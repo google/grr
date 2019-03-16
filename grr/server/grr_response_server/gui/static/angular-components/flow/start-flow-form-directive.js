@@ -59,7 +59,7 @@ const StartFlowFormController = function(
 
     if (angular.isDefined(flowDescriptor)) {
       this.flowArguments = angular.copy(flowDescriptor['value']['default_args']);
-
+      
       this.grrReflectionService_.getRDFValueDescriptor(
           'FlowRunnerArgs').then(function(descriptor) {
             this.flowRunnerArguments = angular.copy(descriptor['default']);

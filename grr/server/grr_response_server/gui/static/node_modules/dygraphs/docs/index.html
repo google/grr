@@ -1,0 +1,83 @@
+<!--#include virtual="header.html" -->
+
+<style>
+pre.prettyprint {
+  margin-top: 28px;
+}
+</style>
+
+  <h4>dygraphs is a fast, flexible open source JavaScript charting library.</h4>
+  <p>It allows users to explore and interpret dense data sets. Here's how it works:</p>
+
+  <div class="row">
+    <div class="col-lg-4">
+      <b>This JavaScript&hellip;</b>
+      <pre class="prettyprint">new Dygraph(div, "ny-vs-sf.txt", {
+  legend: 'always',
+  title: 'NYC vs. SF',
+  showRoller: true,
+  rollPeriod: 14,
+  customBars: true,
+  ylabel: 'Temperature (F)',
+});</pre>
+    </div>
+    <div class="col-lg-8">
+      <b>&hellip;makes this chart!</b>
+      <div id="demodiv"></div>
+    </div>
+  </div>
+  
+
+  <script type="text/javascript">
+    g = new Dygraph(
+      document.getElementById("demodiv"),
+      "ny-vs-sf.txt",
+      {
+        rollPeriod: 14,
+        showRoller: true,
+        customBars: true,
+        title: 'NYC vs. SF',
+        ylabel: 'Temperature (F)',
+        legend: 'always'
+      }
+    );
+  </script>
+
+  <p>The chart is <i>interactive</i>: you can mouse over to highlight individual values. You can click and drag to zoom. Double-clicking will zoom you back out. Shift-drag will pan. You can change the number and hit enter to adjust the averaging period.</p>
+
+  <div class="row smalltop">
+    <div class="col-lg-8">
+      <h3>Features</h3>
+      <ul>
+        <li>Handles <strong>huge data sets</strong>: dygraphs plots millions of points without getting bogged down.
+        <li><strong>Interactive out of the box</strong>: zoom, pan and mouseover are on by default.
+        <li>Strong support for <strong>error bars</strong> / confidence intervals.
+        <li><strong>Highly customizable</strong>: using options and custom callbacks, you can make dygraphs do almost anything.
+        <li>dygraphs is <strong>highly compatible</strong>: it works in all major browsers (including IE8). You can even <strong>pinch to zoom</strong> on mobile/tablet devices!
+        <li>There's an <strong>active community</strong> developing and supporting dygraphs.</li>
+      </ul>
+
+      <h3>Getting Started</h3>
+      <p>Start by <a href="download.html">downloading dygraphs</a>. Then read the <a href="tutorial.html">Tutorial</a> to learn how to use it, or just <a href="http://dygraphs.com/fiddle">play with dygraphs</a> on jsFiddle.</p>
+
+      <p>Once you've got your feet wet, look for inspiration in the <a href="gallery/">demo gallery</a> or check out our <a href="users.html">list of users</a>.</p>
+    </div>
+
+    <div class="col-lg-4">
+      <h3>Quick Links</h3>
+      <ul>
+        <li><a href="tutorial.html">Tutorial</a>
+        <li><a href="options.html">Options Reference</a>
+        <li><a href="jsdoc/symbols/Dygraph.html">API Reference</a>
+        <li><a href="css.html">CSS Reference</a>
+        <li><a href="data.html">Data format</a> documentation
+        <li><a href="http://stackoverflow.com/questions/ask?tags=dygraphs+javascript">Ask a Question</a> on Stack Overflow.</a>
+        <li><a href="https://groups.google.com/forum/#!forum/dygraphs-users">Mailing List</a>
+        <li><a href="http://blog.dygraphs.com/">dygraphs blog</a>
+        <li><a href="legal.html">Policy &amp; Licensing</a>
+      </ul>
+    </div>
+
+  </div>
+  
+<!--#include virtual="footer.html" -->

@@ -1,0 +1,18 @@
+@import url("palette.css");
+@import url("tooltip.css");
+@import url("../../common/textarea.css");
+
+#selector {
+  width: 150px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#toggleInstructions {
+  color: #0000DD;
+}
+
+#toggleInstructions:hover {
+  color: #0000FF;
+  text-decoration: underline;
+}

@@ -1,0 +1,35 @@
+/*
+ * CSS for the options reference page.
+ * Putting it in its own file allows for iteration w/o re-running
+ * generate-documentation.py
+ */
+
+p.option {
+  padding-left: 25px;
+}
+div.parameters {
+  padding-left: 15px;
+}
+#main { margin-top: 0; }
+.row { margin-top: 0; }
+.dygraphs-side-nav .nav>li>a {
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+
+.dygraphs-side-nav {
+  background: #f9f9f9;
+  border-radius: 5px;
+  display: table;
+  overflow-y: scroll;
+  min-width: 200px;
+}
+
+/* This prevents the sidenav from floating on top of the content on small
+ * screens, tablet and mobile.
+ * Where does 992px come from? */
+@media screen and (max-width: 992px) {
+  .dygraphs-side-nav.affix {
+    position: relative;
+  }
+}

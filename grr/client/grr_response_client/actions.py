@@ -59,7 +59,7 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
   """
   # The rdfvalue used to encode this message.
   in_rdfvalue = None
-
+  #print in_rdfvalue
   # TODO(user): The RDFValue instance for the output protobufs. This is
   # required temporarily until the client sends RDFValue instances instead of
   # protobufs.
@@ -92,6 +92,7 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
     self.proc = psutil.Process()
     self.cpu_start = self.proc.cpu_times()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit
+    #print object
 
   def Execute(self, message):
     """This function parses the RDFValue from the server.
@@ -113,6 +114,8 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
       self.require_fastpoll = message.require_fastpoll
 
     args = None
+    #print self.message.args_rdf_name
+    #print self.message.args_rdf_name
     try:
       if self.message.args_rdf_name:
         if not self.in_rdfvalue:
@@ -132,21 +135,23 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
           rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
         raise RuntimeError(
             "Message for %s was not Authenticated." % self.message.name)
-
+     
       self.cpu_start = self.proc.cpu_times()
       self.cpu_limit = self.message.cpu_limit
 
       if getattr(flags.FLAGS, "debug_client_actions", False):
         pdb.set_trace()
-
+      #print in_rdfvalue
       try:
         self.Run(args)
 
       # Ensure we always add CPU usage even if an exception occurred.
       finally:
+
         used = self.proc.cpu_times()
         self.cpu_used = (used.user - self.cpu_start.user,
                          used.system - self.cpu_start.system)
+	#print(args)
 
     except NetworkBytesExceededError as e:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
@@ -175,6 +180,7 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
 
     # This returns the error status of the Actions to the flow.
     self.SendReply(self.status, message_type=rdf_flows.GrrMessage.Type.STATUS)
+    #print self.status
 
     self._RunGC()
 

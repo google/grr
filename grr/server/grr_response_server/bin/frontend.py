@@ -87,7 +87,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     header += "Last-Modified: %s\r\n" % self.date_time_string(last_modified)
     header += "".join(additional_header_strings)
     header += "\r\n"
-
+    #print (data)
     self.wfile.write(header.encode("utf-8"))
     self.wfile.write(data)
 
@@ -226,6 +226,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       # The oldest api version we support if not specified.
       api_version = 3
 
+
     try:
       content_length = self.headers.getheader("content-length")
       if not content_length:
@@ -246,6 +247,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
           api_version=request_comms.api_version)
 
       source_ip = ipaddr.IPAddress(self.client_address[0])
+     # print(source_ip)
 
       if source_ip.version == 6:
         source_ip = source_ip.ipv4_mapped or source_ip
@@ -254,13 +256,14 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
           timestamp=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
           raw_headers=utils.SmartStr(self.headers),
           source_ip=utils.SmartStr(source_ip))
-
+      #print(responses_comms)
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
-
+      #print(responses_comms)
       server_logging.LOGGER.LogHttpFrontendAccess(
           request_comms.orig_request, source=source, message_count=nr_messages)
-
+      #print(responses_comms.SerializeToString())
+      #print (response_comms.orig_request)
       self.Send(responses_comms.SerializeToString())
 
     except communicator.UnknownClientCertError:

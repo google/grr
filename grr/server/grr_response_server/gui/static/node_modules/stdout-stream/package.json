@@ -1,0 +1,20 @@
+{
+  "name": "stdout-stream",
+  "description": "Non-blocking stdout stream",
+  "version": "1.4.1",
+  "repository": "mafintosh/stdout-stream",
+  "devDependencies": {
+    "tape": "~2.12.3"
+  },
+  "scripts": {
+    "test": "tape test/index.js"
+  },
+  "dependencies": {
+    "readable-stream": "^2.0.1"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/stdout-stream/-/stdout-stream-1.4.1.tgz"
+,"_integrity": "sha512-j4emi03KXqJWcIeF8eIXkjMFN1Cmb8gUlDYGeBALLPo5qdyTfA9bOtl8m33lRoC+vFMkP3gl0WsDr6+gzxbbTA=="
+,"_from": "stdout-stream@1.4.1"
+}

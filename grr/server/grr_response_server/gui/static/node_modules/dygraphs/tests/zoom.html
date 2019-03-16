@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>zoom</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <h3>Click the buttons to change the zoom level or just use the normal
+    click-and drag. While zoom typically works by click-and-drag, the
+    buttons are useful for testing.</h3>
+    <h4>Window coordinates (in dates and values):</h4>
+    <div id="xdimensions"></div> <div id="ydimensions"></div>
+    <div style="float: right">
+        <p>Zoomed: <span id="zoomed">False</span><p/>
+        <p>Zoomed X: <span id="zoomedX">False</span><p/>
+        <p>Zoomed Y: <span id="zoomedY">False</span><p/>
+    </div>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+
+    <p><b>Zoom operations:</b></p>
+    <p>
+      <input type="button" value="Y (3,5)" onclick="zoomGraphY(3,5)">&nbsp;
+      <input type="button" value="Y (0,4)" onclick="zoomGraphY(0,4)">&nbsp;
+      <input type="button" value="Y (2,4)" onclick="zoomGraphY(2,4)">&nbsp;
+      <input type="button" value="Y (0,2)" onclick="zoomGraphY(0,2)">&nbsp;
+      <input type="button" value="Y (0,1)" onclick="zoomGraphY(0,1)">&nbsp;
+      <br> <br>
+      <input type="button" value="Oct 8-13" onclick="zoomGraphX(1160261979962, 1163905694248)">&nbsp;
+      <input type="button" value="Oct 22-28" onclick="zoomGraphX(1161489164461 , 1162008465957)">&nbsp;
+      <input type="button" value="Oct 23-24" onclick="zoomGraphX(1161575878860, 1161660991675)">&nbsp;
+      <input type="button" value="Oct 26 6AM-noon" onclick="zoomGraphX(1161770537840, 1161792063332)">&nbsp;
+      <br> <br>
+      <input type="button" value="Unzoom" onclick="unzoomGraph()">&nbsp;
+      <br> <br>
+      <input type="button" value="pan frame null" onclick="panEdgeFraction(null)">&nbsp;
+      <input type="button" value="pan frame 0.1" onclick="panEdgeFraction(0.1)">&nbsp;
+      <input type="button" value="pan frame 0.5" onclick="panEdgeFraction(0.5)">&nbsp;
+      </p>
+
+
+    <script type="text/javascript">
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            NoisyData, {
+              errorBars: true,
+              zoomCallback : function(minDate, maxDate, yRange) {
+                showDimensions(minDate, maxDate, yRange);
+              },
+              drawCallback: function(me, initial) {
+                document.getElementById("zoomed").innerHTML = "" + me.isZoomed();
+                document.getElementById("zoomedX").innerHTML = "" + me.isZoomed("x");
+                document.getElementById("zoomedY").innerHTML = "" + me.isZoomed("y");
+              }
+            }
+          );
+
+      // TODO(konigsberg): Implement a visualization that verifies that initial
+      // displays also show correctly.
+
+      // Pull an initial value for logging.
+      var minDate = g.xAxisRange()[0];
+      var maxDate = g.xAxisRange()[1];
+      var minValue = g.yAxisRange()[0];
+      var maxValue = g.yAxisRange()[1];
+      showDimensions(minDate, maxDate, [minValue, maxValue]);
+
+      function showDimensions(minDate, maxDate, yRanges) {
+        showXDimensions(minDate, maxDate);
+        showYDimensions(yRanges);
+      }
+
+      function showXDimensions(first, second) {
+        var elem = document.getElementById("xdimensions");
+        elem.innerHTML = "dateWindow : [" + first + ", "+ second + "]";
+      }
+
+      function showYDimensions(ranges) {
+        var elem = document.getElementById("ydimensions");
+        elem.innerHTML = "valueRange : [" + ranges + "]";
+      }
+
+      function zoomGraphX(minDate, maxDate) {
+        g.updateOptions({
+          dateWindow: [minDate, maxDate]
+        });
+        showXDimensions(minDate, maxDate);
+      }
+
+      function zoomGraphY(minValue, maxValue) {
+        g.updateOptions({
+          valueRange: [minValue, maxValue]
+        });
+        showYDimensions(g.yAxisRanges());
+      }
+
+      function unzoomGraph() {
+        g.updateOptions({
+          dateWindow: null,
+          valueRange: null
+        });
+      }
+
+      function panEdgeFraction(value) {
+        g.updateOptions({ panEdgeFraction : value });
+      }
+    </script>
+
+  </body>
+</html>

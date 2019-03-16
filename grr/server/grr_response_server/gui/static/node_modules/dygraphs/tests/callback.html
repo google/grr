@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>callbacks</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+    <style type="text/css">
+      #div_g {
+        position: absolute;
+        left: 200px;
+        top: 100px;
+      }
+      #status {
+        position: absolute;
+        top: 400px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Hover, click and zoom to test the callbacks:</p>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+    <input type="button" value="Clear list" onclick="javascript:document.getElementById('status').innerHTML=''" />
+    <input type="checkbox" id="highlight" checked><label for="highlight"> Show 'highlight' events</label>
+    <input type="checkbox" id="unhighlight" checked><label for="unhighlight">Show 'unhighlight' events</label>
+    <input type="checkbox" id="showLabels" checked
+    onclick='g.updateOptions({showLabelsOnHighlight: this.checked});'>
+    <label for="showLabels"> Show Labels on highlight</label>
+    <div id="status" style="width:100%; height:200px;"></div>
+
+    <script type="text/javascript">
+      s = document.getElementById("status");
+      g = null;
+      pts_info = function(e, x, pts, row) {
+        var str = "(" + x + ") ";
+        for (var i = 0; i < pts.length; i++) {
+          var p = pts[i];
+          if (i) str += ", ";
+          str += p.name + ": " + p.yval;
+        }
+
+        var x = e.offsetX;
+        var y = e.offsetY;
+        var dataXY = g.toDataCoords(x, y);
+        str += ", (" + x + ", " + y + ")";
+        str += " -> (" + dataXY[0] + ", " + dataXY[1] + ")";
+        str += ", row #"+row;
+
+        return str;
+      };
+
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            NoisyData, {
+              rollPeriod: 7,
+              showRoller: true,
+              errorBars: true,
+
+              highlightCallback: function(e, x, pts, row) {
+                if (document.getElementById('highlight').checked) {
+                  s.innerHTML += "<b>Highlight</b> " + pts_info(e,x,pts,row) + "<br/>";
+                }
+              },
+
+              unhighlightCallback: function(e) {
+                if (document.getElementById('unhighlight').checked) {
+                  s.innerHTML += "<b>Unhighlight</b><br/>";
+                }
+              },
+
+              clickCallback: function(e, x, pts) {
+                s.innerHTML += "<b>Click</b> " + pts_info(e,x,pts) + "<br/>";
+              },
+
+              pointClickCallback: function(e, p) {
+                s.innerHTML += "<b>Point Click</b> " + p.name + ": " + p.x + "<br/>";
+              },
+
+              zoomCallback: function(minX, maxX, yRanges) {
+                s.innerHTML += "<b>Zoom</b> [" + minX + ", " + maxX + ", [" + yRanges + "]]<br/>";
+              },
+
+              drawCallback: function(g) {
+                s.innerHTML += "<b>Draw</b> [" + g.xAxisRange() + "]<br/>";
+              }
+            }
+          );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+{
+  "name": "component-bind",
+  "version": "1.0.0",
+  "description": "function binding utility",
+  "keywords": [
+    "bind",
+    "utility"
+  ],
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "component": {
+    "scripts": {
+      "bind/index.js": "index.js"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/component/bind.git"
+  }
+
+,"_resolved": "https://registry.npmjs.org/component-bind/-/component-bind-1.0.0.tgz"
+,"_integrity": "sha1-AMYIq33Nk4l8AAllGx06jh5zu9E="
+,"_from": "component-bind@1.0.0"
+}

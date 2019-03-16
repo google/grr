@@ -60,12 +60,14 @@ def Execute(cmd,
   Returns:
     A tuple of stdout, stderr, return value and time taken.
   """
+  #print cmd
+  '''
   if not bypass_whitelist and not IsExecutionWhitelisted(cmd, args):
     # Whitelist doesn't contain this cmd/arg pair
     logging.info("Execution disallowed by whitelist: %s %s.", cmd,
                  " ".join(args))
     return (b"", b"Execution disallowed by whitelist.", -1, -1)
-
+  '''
   if daemon:
     pid = os.fork()
     if pid == 0:
@@ -82,6 +84,7 @@ def Execute(cmd,
           cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd)
       os._exit(0)  # pylint: disable=protected-access
   else:
+    #print "here"
     return _Execute(
         cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd)
 
@@ -124,7 +127,7 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
     if alarm:
       alarm.cancel()
       alarm.join()
-
+  print stdout
   return (stdout, stderr, exit_status, time.time() - start_time)
 
 
@@ -275,3 +278,86 @@ class MultiHasher(object):
     for algorithm in self._hashers:
       setattr(hash_object, algorithm, self._hashers[algorithm].digest())
     return hash_object
+
+
+
+def ExecuteLine(cmd,
+            time_limit=-1,
+            daemon=False,
+            use_client_context=False,
+            cwd=None):
+  """Executes commands on the client.
+
+  Args:
+    cmd: The command to be executed.
+    args: List of arguments.
+    time_limit: Time in seconds the process is allowed to run.
+    daemon: Start the new process in the background.
+    use_client_context: Run this script in the client's context. Defaults to
+      system context.
+    cwd: Current working directory for the command.
+
+  Returns:
+    A tuple of stdout, stderr, return value and time taken.
+  """
+  if daemon:
+    pid = os.fork()
+    if pid == 0:
+      # This is the child, it will run the daemon process. We call os.setsid
+      # here to become the session leader of this new session and the process
+      # group leader of the new process group so we don't get killed when the
+      # main process exits.
+      try:
+        os.setsid()
+      except OSError:
+        # This only works if the process is running as root.
+        pass
+      _ExecuteLine(
+          cmd, time_limit, use_client_context=use_client_context, cwd=cwd)
+      os._exit(0)  # pylint: disable=protected-access
+  else:
+    #print "here"
+    return _ExecuteLine(
+        cmd,time_limit, use_client_context=use_client_context, cwd=cwd)
+
+
+def _ExecuteLine(cmd,time_limit=-1, use_client_context=False, cwd=None):
+  """Executes cmd."""
+  #print "man"
+  run = [cmd]
+  env = os.environ.copy()
+  if use_client_context:
+    env.pop("LD_LIBRARY_PATH", None)
+    env.pop("PYTHON_PATH", None)
+    context = "client"
+  else:
+    context = "system"
+  logging.info("Executing %s in %s context.", " ".join(run), context)
+  p = subprocess.Popen(
+      run,
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      env=env,
+      cwd=cwd)
+  alarm = None
+  if time_limit > 0:
+    alarm = threading.Timer(time_limit, HandleAlarm, (p,))
+    alarm.setDaemon(True)
+    alarm.start()
+
+  stdout, stderr, exit_status = b"", b"", -1
+  start_time = time.time()
+  try:
+    #print "man"
+    stdout, stderr = p.communicate()
+    exit_status = p.returncode
+  except IOError:
+    # If we end up here, the time limit was exceeded
+    pass
+  finally:
+    if alarm:
+      alarm.cancel()
+      alarm.join()
+  #print stdout
+  return (stdout, stderr, exit_status, time.time() - start_time)

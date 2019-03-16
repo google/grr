@@ -1,0 +1,38 @@
+.textarea {
+  position: absolute;
+  border: 1px solid black;
+  background-color: #dddddd;
+  z-index: 12;
+}
+
+.textarea .prompt {
+  padding-left: 2px;
+}
+
+.textarea .buttons {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+}
+
+.textarea button {
+  color: #222222;
+}
+
+.textarea .editor {
+  font-family: Inconsolata, Courier New, Courier;
+  margin: 4px;
+}
+
+#modalBackground {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 11;
+  background-color:#333333;
+  display: none;
+  opacity: 0.40;
+  filter: alpha(opacity=40)
+}

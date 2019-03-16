@@ -1,0 +1,165 @@
+body {
+  font-family: Helvetica Neue, Arial, Helvetica, sans-serif;
+  font-size: 90%;
+}
+
+aside {
+  font-size: 90%;
+}
+
+#toc {
+  vertical-align: top;
+  width: 200px;
+}
+#gap {
+  style="width:0.5em;"
+}
+
+#rhs, #lhs {
+  vertical-align: top;
+}
+
+#subtitle a:visited {
+  color: blue;  
+}
+
+#workarea {
+  border-style: solid;
+  border-color: #ddd;
+  padding: 4px;
+}
+
+#toc .entry {
+  background-color: #eee;
+  padding: .7em;
+
+  /* These two lines result in indenting wrapped lines forward a little bit. */
+  /* text-indent: -1em;
+  padding-left: 1em; */
+}
+
+#toc .entry:hover {
+  color: blue;
+  cursor: pointer;
+}
+
+#toc .entry .selected {
+  color: #090;
+}
+
+#code a:hover {
+  color: blue;
+  cursor: pointer;
+}
+
+#demotitle {
+  text-align: center;
+  font-size: 1.5em;
+  vertical-align: bottom;
+}
+
+.subdued:link,
+.subdued:visited,
+.subdued:active {
+  color: #000;
+}
+
+.subdued:hover {
+  color: blue;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* CSS for drawing tool */
+#workarea #drawing #tool_zoom {
+  background: url('images/tool-palette.png');
+  background-position: 0px 0px;
+  width: 32px;
+  height: 33px;
+  margin-left: 50px;
+  display: inline-block;
+}
+#workarea #drawing #tool_pencil {
+  background: url('images/tool-palette.png');
+  background-position: -32px 0px;
+  width: 32px;
+  height: 33px;
+  display: inline-block;
+}
+#workarea #drawing #tool_eraser {
+  background: url('images/tool-palette.png');
+  background-position: -64px 0px;
+  width: 33px;
+  height: 33px;
+  display: inline-block;
+}
+#workarea #drawing #toolbar {
+  display: inline-block;
+}
+
+/* CSS for independent series */
+#workarea #independent-series .thinborder {
+  border-width: 1px;
+  border-spacing: 0px;
+  border-style: solid;
+  border-color: black;
+  border-collapse: collapse;
+}
+
+#workarea #independent-series .thinborder td,
+#workarea #independent-series .thinborder th {
+  border-width: 1px;
+  padding: 5px;
+  border-style: solid;
+  border-color: black;
+}
+
+/* CSS for resize */
+#workarea #resize #div_g {
+  /* The left and top are just guesses, this needs a proper run-through */
+  position: absolute;
+  left: 200px;
+  right: 10px;
+  top: 100px;
+  bottom: 10px;
+}
+
+/* CSS for styled-chart-label */
+#workarea #styled-chart-labels .infotext {
+    
+}
+
+#workarea #styled-chart-labels #div_g .dygraph-label {
+  /* This applies to the title, x-axis label and y-axis label */
+  font-family: Georgia, Verdana, serif;
+}
+
+#workarea #styled-chart-labels #div_g .dygraph-title {
+  /* This rule only applies to the chart title */
+  font-size: 36px;
+  text-shadow: gray 2px 2px 2px;  /* color, delta-x, delta-y, blur radius */
+}
+
+#workarea #styled-chart-labels #div_g .dygraph-ylabel {
+  /* This rule only applies to the y-axis label */
+  font-size: 18px;
+  text-shadow: gray -2px 2px 2px;  /* (offsets are in a rotated frame) */
+}
+
+#workarea #styled-chart-labels .chart {
+  border: 1px dashed black;
+  margin: 5px  5px 5px 50px;
+  padding: 2px;
+}
+
+#workarea #temperature-sf-ny #bordered {
+  border: 1px solid red;
+}
+
+#workarea #highlighted-series .few .dygraph-legend > span.highlight { border: 1px solid grey; }
+#workarea #highlighted-series .many .dygraph-legend > span { display: none; }
+#workarea #highlighted-series .many .dygraph-legend > span.highlight { display: inline; }
+
+#workarea #edge-padding fieldset { display: inline-block; vertical-align: top; }

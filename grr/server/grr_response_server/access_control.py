@@ -74,8 +74,9 @@ class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
     Returns:
       True if access is allowed, raises otherwise.
     """
+    print ("checking the client access with the keycloak service for the specified URN")
     logging.debug("Checking %s for client %s access.", token, client_urn)
-    raise NotImplementedError()
+    #TODO call the Keycloak service here and check with it
 
   def CheckHuntAccess(self, token, hunt_urn):
     """Checks access to the given hunt.

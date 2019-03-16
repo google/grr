@@ -1,0 +1,75 @@
+.thinborder {
+border-width: 1px;
+border-spacing: 0px;
+border-style: solid;
+border-color: black;
+border-collapse: collapse;
+}
+
+.thinborder td,
+.thinborder th {
+border-width: 1px;
+padding: 5px;
+border-style: solid;
+border-color: black;
+}
+
+#nav {
+position: absolute;
+width: 160px;
+font-size: 12px;
+line-height: 1em;
+padding: 0;
+margin: 0;
+float: left;
+}
+
+#nav h2 {
+font-size: 14px;
+}
+
+#nav ul {
+list-style: none;
+padding-left: 15px;
+margin: 0;
+}
+
+#nav ul li {
+line-height: 1.5em;
+}
+
+
+#content {
+position: absolute;
+left: 160px;
+top: 0px;
+border-left: 2px solid rgb(229, 236, 249);
+padding-left: 20px;
+margin-left: 0px;
+max-width: 900px;
+}
+
+#content h1 {
+font-size: 30px;
+}
+
+pre {
+padding: 0 10px;
+}
+
+.tests {
+  font-size: 80%;
+  font-weight: bold;
+}
+.tests a {
+  font-weight: normal;
+  text-decoration: none;
+}
+
+.padded-list li + li {
+  padding-top: 10px;
+}
+
+.padded-list .desc {
+  font-style: italic;
+}

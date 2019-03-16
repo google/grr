@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>dygraph</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Minimal example of a dygraph chart:</p>
+    <div id="graphdiv"></div>
+    <script type="text/javascript">
+      g = new Dygraph(document.getElementById("graphdiv"),
+                      "Date,Temperature\n" +
+                      "2008-05-07,75\n" +
+                      "2008-05-08,70\n" +
+                      "2008-05-09,80\n");
+    </script>
+
+    <p>Same data, specified in a parsed format:</p>
+    <div id="graphdiv2"></div>
+    <script type="text/javascript">
+      g2 = new Dygraph(document.getElementById("graphdiv2"),
+                       [ [ new Date("2008/05/07"), 75],
+                         [ new Date("2008/05/08"), 70],
+                         [ new Date("2008/05/09"), 80]
+                       ],
+                       {
+                               labels: [ "Date", "Temperature" ]
+                       });
+    </script>
+  </body>
+</html>

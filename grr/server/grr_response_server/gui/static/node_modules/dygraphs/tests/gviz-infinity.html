@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>gviz</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load('visualization', '1', {packages: ['linechart']});
+
+      function createDataTable(dateType) {
+        data = new google.visualization.DataTable();
+        data.addColumn(dateType, 'Date');
+        data.addColumn('number', 'Column A');
+        data.addColumn('number', 'Column B');
+        data.addRows(4);
+        data.setCell(0, 0, new Date("2009/07/01"));
+        data.setCell(0, 1, 1);
+        data.setCell(0, 2, 7);
+        data.setCell(1, 0, new Date("2009/07/08"));
+        data.setCell(1, 1, 2);
+        data.setCell(1, 2, 4);
+        data.setCell(2, 0, new Date("2009/07/15"));
+        data.setCell(2, 1, 3);
+        data.setCell(2, 2, Infinity);
+        data.setCell(3, 0, new Date("2009/07/22"));
+        data.setCell(3, 1, 4);
+        data.setCell(3, 2, 0);
+        return data;
+      }
+
+      function drawVisualization() {
+        data = createDataTable('date');
+        new google.visualization.LineChart(
+            document.getElementById('gviz')).draw(data, null);
+
+        var chart1 = new Dygraph.GVizChart(document.getElementById('dygraphs'))
+          .draw(data, { });
+      }
+
+      google.setOnLoadCallback(drawVisualization);
+    </script>
+  </head>
+  <body>
+    <p>This tests that infinite values don't break dygraphs.</p>
+    <p>gviz line chart:</p>
+    <div id="gviz" style="width:600px; height:300px;"></div>
+
+    <p>same data drawn using dygraphs:</p>
+    date column:
+    <div id="dygraphs" style="width:600px; height:300px;"></div>
+  </body>
+</html>

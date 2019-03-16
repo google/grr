@@ -1,0 +1,113 @@
+dygraphs plugins
+----------------
+
+A single dygraph is actually a collection of dygraphs plugins, each responsible
+for some portion of the chart: the plot area, the axes, the legend, the labels,
+etc.
+
+This forces the dygraphs code to be more modular and encourages better APIs.
+
+The "legend" plugin (plugins/legend.js) can be used as a template for new
+plugins.
+
+Here is a simplified version of it, with comments to explain the plugin
+lifecycle and APIs:
+
+----------------
+
+// (standard JavaScript library wrapper; prevents polluting global namespace)
+Dygraph.Plugins.Legend = (function() {
+
+// Plugin constructor. This is invoked once for every chart which uses the
+// plugin. You can't actually access the Dygraph object at this point, so the
+// initialization you do here shouldn't be chart-specific. (For that, use
+// the activate() method).
+var legend = function() {
+  this.div_ = null;
+};
+
+// Plugins are expected to implement this method for debugging purposes.
+legend.toString = function() {
+  return "Legend";
+};
+
+// This is called once the dygraph is ready. The chart data may not be
+// available yet, but the options specified in the constructor are.
+// 
+// Proper tasks to do here include:
+// - Reading your own options
+// - DOM manipulation
+// - Registering event listeners
+//
+// "dygraph" is the Dygraph object for which this instance is being activated.
+// "registerer" allows you to register event listeners.
+legend.prototype.activate = function(dygraph, registerer) {
+  // Create the legend div and attach it to the chart DOM.
+  this.div_ = document.createElement("div");
+  dygraph.graphDiv.appendChild(this.div_);
+
+  // Add event listeners. These will be called whenever points are selected
+  // (i.e. you hover over them) or deselected (i.e. you mouse away from the
+  // chart). This is your only chance to register event listeners! Once this
+  // method returns, the gig is up.
+  registerer.addEventListener('select', legend.select);
+  registerer.addEventListener('deselect', legend.deselect);
+};
+
+// The functions called by event listeners all take a single parameter, an
+// event object. This contains properties relevant to the particular event, but
+// you can always assume that it has:
+//
+// 1. A "dygraph" parameter which is a reference to the chart on which the
+//    event took place.
+// 2. A "stopPropagation" method, which you can call to prevent the event from
+//    being seen by any other plugins after you. This effectively cancels the
+//    event.
+// 3. A "preventDefault" method, which prevents dygraphs from performing the
+//    default action associated with this event.
+//
+legend.select = function(e) {
+  // These are two of the properties specific to the "select" event object:
+  var xValue = e.selectedX;
+  var points = e.selectedPoints;
+
+  var html = xValue + ':';
+  for (var i = 0; i < points.length; i++) {
+    var point = points[i];
+    html += ' ' + point.name + ':' + point.yval;
+  }
+
+  // In an event listener, "this" refers to your plugin object.
+  this.div_.innerHTML = html;
+};
+
+// This clears out the legend when the user mouses away from the chart.
+legend.deselect = function(e) {
+  this.div_.innerHTML = '';
+};
+
+return legend;
+})();
+
+----------------
+
+Plugin Events Reference:
+
+- predraw
+- clearChart
+- drawChart
+- select
+- deselect
+
+TODO(danvk): document all event properties for each event.
+
+
+Special methods:
+- (constructor)
+- activate
+- destroy
+
+
+----------------
+
+Notes on plugin registration and event cascade ordering/behavior.

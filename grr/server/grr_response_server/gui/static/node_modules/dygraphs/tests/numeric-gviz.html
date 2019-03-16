@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>numeric gviz</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+
+    <script type="text/javascript">
+      google.load("visualization", "1", {"packages":[ "columnchart"]});
+      google.setOnLoadCallback(drawchart);
+
+      function drawchart() {
+          var tableString =
+              "{cols:[{id:'point',label:'n',type:'number',pattern:''}," +
+              "{id:'0',label:'0',type:'number',pattern:''}," +
+              "{id:'stddev',label:'stddev',type:'number',pattern:''}]," +
+              "rows:[{c:[{v:0.0},{v:41.97},{v:17.86}]},{c:[{v:1.0},{v:11.71},{v:17.86}]},{c:[{v:2.0},{v:43.26},{v:17.86}]}]}";
+          data = new google.visualization.DataTable(eval('(' + tableString + ')'));
+          chart = new Dygraph.GVizChart(document.getElementById(
+                "graph"));
+          chart.draw(data, {errorBars: true, showRoller: true, includeZero: true });
+      }
+    </script>
+  </head>
+  <body>
+  <p>This tests that dygraphs can display gviz DataTable's with a numeric
+  x-axis.</p>
+  <div id="graph" style="width: 800px; height: 400px;"></div>
+  </body>
+</html>

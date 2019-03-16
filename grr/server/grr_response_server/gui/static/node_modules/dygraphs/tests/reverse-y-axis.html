@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>reverse y-axis</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <h2>Reverse y-axis</h2>
+    <font size=-1>This test uses the same data as the <a
+        href='demo.html'>demo</a> test, but reverses the y-axis.</font><br/>
+    <table><tr><td>
+    <div id="demodiv"></div>
+    </td><td valign=top>
+    <div id="status" style="width:200px; font-size:0.8em; padding-top:5px;"></div>
+    </td>
+    </tr></table>
+    <script type="text/javascript">
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              function() {
+                var zp = function(x) { if (x < 10) return "0"+x; else return x; };
+                var r = "date,parabola,line,another line,sine wave\n";
+                for (var i=1; i<=31; i++) {
+                r += "200610" + zp(i);
+                r += "," + 10*(i*(31-i));
+                r += "," + 10*(8*i);
+                r += "," + 10*(250 - 8*i);
+                r += "," + 10*(125 + 125 * Math.sin(0.3*i));
+                r += "\n";
+                }
+                return r;
+              },
+              {
+                rollPeriod: 1,
+                labelsDiv: document.getElementById('status'),
+                labelsSeparateLines: true,
+                labelsKMB: true,
+                colors: ["rgb(51,204,204)",
+                         "rgb(255,100,100)",
+                         "#00DD55",
+                         "rgba(50,50,200,0.4)"],
+                width: 480,
+                height: 320,
+                valueRange: [3000, 0]  // Reverse y-axis
+              }
+          );
+    </script>
+</body>
+</html>

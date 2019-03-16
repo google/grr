@@ -1,0 +1,58 @@
+These tests are run with js-test-driver
+(http://code.google.com/p/js-test-driver/).
+
+Running tests
+-------------
+
+With phantomjs:
+
+- Install phantomjs (http://www.phantomjs.org).
+
+- Start a terminal window at the dygraphs root directory (one
+  directory up from here.)
+
+- Run "./test.sh". This will tell you whether the tests passed.
+
+
+With a real browser:
+
+- Start a terminal window at the dygraphs root directory (one
+  directory up from here.)
+
+- From there, you start the test server and capture at least one slave
+  browser:
+
+   Run:
+   $ java -jar ./auto_tests/lib/JsTestDriver-1.3.3c.jar --port 9876
+  
+   Open
+   http://localhost:9876/capture
+   in the browser you want to use for your test.
+
+- Run the tests with:
+
+  $ java -jar ./auto_tests/lib/JsTestDriver-1.3.3c.jar --tests all
+
+
+Debugging tests
+---------------
+
+This is a bit of a hack, but you can also run tests manually inside the browser
+using auto_tests/misc/local.html.
+
+Once you've opened that page, open up the JavaScript console and run something
+like:
+
+  new SimpleDrawingTestCase().runTest("testDrawSimpleRangePlusOne")
+
+to run just one test. This is useful for seeing the dygraph that the test
+creates, setting breakpoints, etc.
+
+Please don't rely on it as proof that your tests pass; the command-line is the
+reference for ensuring Dygraphs automated tests pass.
+
+
+(This is a specialized version of the instructions found at 
+http://code.google.com/p/js-test-driver/wiki/GettingStarted.
+They're listed as a courtesy, but you really should get to understand
+js-test-driver, which has lots of powerful features.)

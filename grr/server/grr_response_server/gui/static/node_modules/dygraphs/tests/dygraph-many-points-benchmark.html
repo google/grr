@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Benchmarking for Plots with Many Points</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Plot which can be easily generated with different numbers of points for
+       benchmarking/profiling and improving performance of dygraphs.</p>    
+    <div id='parameters'>
+      <p>Data to plot:
+        <input type="radio" id="sine" name="group1" value="sine"
+          onclick="setDataType(this);" checked> sinusoid function
+        <input type="radio" id="rand" name="group1" value="rand"
+          onclick="setDataType(this);"> random points <br></p>
+      <p>Timestamps:
+        <input type="radio" id="aligned" name="timestamps" value="aligned" checked> aligned
+        <input type="radio" id="unaligned" name="timestamps" value="unaligned"> unaligned
+      </p>
+      <p>x-axis type:
+        <input type="radio" id="numeric" name="x-axis-type" value="numeric" onclick="setXAxisType(this)" checked> numeric
+        <input type="radio" id="dates" name="x-axis-type" value="date" onclick="setXAxisType(this)"> date/time
+      <p><input type="checkbox" id="fill"><label for="fill"> Fill?</label></p>
+      <p>Number of points per series (points):
+         <input type="text" id="points" size="20"></p>
+      <p>Number of series (series):
+         <input type="text" id="series" size="20"></p>
+      <p>Roll period (in points, rollPeriod):
+        <input type="text" id="rollPeriod" size="20"></p>
+      <p>Repetitions (repititions):
+        <input type="text" id="repetitions" size="20"></p>
+      <input type="button" value="Go!" onclick="updatePlot();">
+    </div>
+    <br>
+    <br>
+    <div id="plot"></div>
+    <div id="message"></div>
+    <div id="metrics"></div>
+    <div id="metaperformance"></div>
+
+    <script type="text/javascript">
+      var graph = null;
+      var metrics = null;
+      var dataType = "sine";
+      var timestamps = "aligned";
+      var numRuns = 0;
+
+      var durations = [];
+      updatePlot = function() {
+        document.getElementById('message').innerHTML = "";
+        var plotDiv = document.getElementById('plot');
+        plotDiv.innerHTML = 'Redrawing...';
+        var numeric = document.getElementById('numeric').checked;
+        var numPoints =
+            parseInt(document.getElementById('points').value);
+        var numSeries =
+            parseInt(document.getElementById('series').value);
+        var repetitions =
+            parseInt(document.getElementById('repetitions').value);
+
+        var data = [];
+        var xmin = numeric ? 0.0 : Date.parse("2014/01/01");
+        var xmax = numeric ? 2.0 * Math.PI : Date.parse("2014/12/31");
+        var adj = .5;
+        var delta = (xmax - xmin) / (numPoints - 1);
+        var unalignmentDelta = delta / numSeries;
+
+        for (var i = 0; i < numPoints; ++i) {
+          var x = xmin + delta * i;
+          var elem = [ x ];
+          for (var j = 0; j < numSeries; j++) {
+            var y;
+            if (dataType == "rand") {
+              y = Math.pow(Math.random() - Math.random(), 7);
+            } else {
+              y = Math.sin(x + (j * adj));
+            }
+            elem.push(y);
+          }
+          if (timestamps == "aligned") {
+            data[i] = elem;
+          } else {
+            for (var j = 0; j < numSeries; j++) {
+              var elemCopy = elem.slice(0);
+              elemCopy[0] += unalignmentDelta * j;
+              data[i*numSeries + j] = elemCopy;
+            }
+          }
+          if (!numeric) data[i][0] = new Date(data[i][0]);
+        }
+        var labels = [ "x" ];
+        for (var j = 0; j < numSeries; j++) {
+          labels.push("data-set-" + j);
+        }
+        var rollPeriod = parseInt(
+            document.getElementById('rollPeriod').value);
+        var opts = {labels: labels, rollPeriod: rollPeriod, timingName: "x"};
+        opts['fillGraph'] = document.getElementById('fill').checked;
+        var millisecondss = [];
+        for (var i = 0; i < repetitions; i++) {
+          if (graph != null) {
+            graph.destroy(); // release memory from prior graph.
+          }
+          var start = new Date();
+          graph = new Dygraph(plotDiv, data, opts);
+          var end = new Date();
+          durations.push([numRuns++, end - start]);
+          millisecondss.push(end - start);
+        }
+        if (repetitions == 1) {
+          document.getElementById('message').innerHTML =
+              "completed in " + (end - start) + " milliseconds.";
+        } else {
+          var avg = 0;
+          for (var i = 0; i < millisecondss.length; i++) {
+            avg+=millisecondss[i];
+          }
+          avg/=millisecondss.length; 
+          document.getElementById('message').innerHTML =
+              "Durations: " + millisecondss + "<br>Average: " + avg;
+        }
+
+        if (durations.length > 0) {
+          var start2 = new Date();
+          if (!metrics) {
+             metrics = new Dygraph(
+                document.getElementById('metrics'),
+                durations,
+                {
+                  highlightCircleSize: 4,
+                  labels: [ "Date", "ms" ]
+                  });
+          } else {
+            metrics.updateOptions({file: durations});
+          }
+          var end2 = new Date();
+          document.getElementById("metaperformance").innerHTML =
+              "completed in " + (end2 - start2) + " milliseconds.";
+        }
+
+        return millisecondss;
+      };
+      
+      setDataType = function(radiobutton) {
+        dataType = radiobutton.value;
+      };
+      setTimestampType = function(radiobutton) {
+        timestamps = radiobutton.value;
+      };
+
+      var values = {
+        points: 100,
+        series: 1,
+        rollPeriod: 1,
+        repetitions: 1,
+        type: 'sine'
+      };
+
+      // Parse the URL for parameters. Use it to override the values hash.
+      var href = window.location.href;
+      var qmindex = href.indexOf('?');
+      if (qmindex > 0) {
+        var entries = href.substr(qmindex + 1).split('&');
+        for (var idx = 0; idx < entries.length; idx++) {
+          var entry = entries[idx];
+          var eindex = entry.indexOf('=');
+          if (eindex > 0) {
+            values[entry.substr(0, eindex)] = entry.substr(eindex + 1);
+          }
+        }
+      }
+
+      var populate = function(name) {
+        document.getElementById(name).value = values[name];
+      }
+
+      var populateRadio = function(name) {
+        var val = values[name];
+        var elem = document.getElementById(val);
+        elem.checked = true;
+        elem.onclick();
+      }
+
+      populate('points');
+      populate('series');
+      populate('rollPeriod');
+      populate('repetitions');
+      populateRadio('type');
+      if (values["go"]) {
+        updatePlot();
+      }
+    </script>
+  </body>
+</html>

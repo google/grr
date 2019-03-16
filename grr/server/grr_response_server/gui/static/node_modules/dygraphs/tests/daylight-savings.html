@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Daylight Savings</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <style>
+      body {
+        max-width: 1024px;
+      }
+    </style>
+
+  </head>
+  <body>
+    <h2>DST</h2>
+    <p>This tests that tick marks don't break when the axis crosses into
+    daylight savings time.</p>
+
+    <div id="demodiv"></div>
+
+    <p>The tick marks should all be on day boundaries or nice hours (6, 12, 18),
+    rather than on odd time boundaries like 5, 11, 17 and 23.</p>
+
+    <hr/>
+    <div id="chart2"></div>
+    <p>This chart shows a continuous line going across the "fall back" EST/EDT event. You may need to switch your computer's time zone to Eastern to see this. The x-axis tick marks go from 01:00 &rarr; 01:55 and then back to 01:00.</p>
+
+    <hr/>
+    <div id="chart3"></div>
+    <p>This chart is analogous to the first, except at a "spring forward".</p>
+
+    <hr/>
+    <div id="chart4"></div>
+    <p>This chart shows a continuous series which crosses a "spring forward". The x-axis ticks should skip from 1:55AM to 3:00AM.</p>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+"Date/Time,Purchases\n" +
+"2010-11-05 00:00:00,167082\n" +
+"2010-11-06 00:00:00,168571\n" +
+"2010-11-07 00:00:00,177796\n" +
+"2010-11-08 00:00:00,165587\n" +
+"2010-11-09 00:00:00,164380\n",
+          {
+            width: 1024
+          }
+          );
+
+      // Generate data which crosses the EST/EDT boundary.
+      var dst_data = [];
+      var base_ms = 1383454200000;
+      for (var x = base_ms; x < base_ms + 1000 * 60 * 80; x += 1000) {
+        dst_data.push([new Date(x), x]);
+      }
+
+      g2 = new Dygraph(
+              document.getElementById("chart2"),
+              dst_data,
+          { width: 1024, labels: ['Date', 'Value'] }
+          );
+
+      g3 = new Dygraph(
+              document.getElementById("chart3"),
+"Date/Time,Purchases\n" +
+"2011-03-11 00:00:00,167082\n" +
+"2011-03-12 00:00:00,168571\n" +
+"2011-03-13 00:00:00,177796\n" +
+"2011-03-14 00:00:00,165587\n" +
+"2011-03-15 00:00:00,164380\n",
+          {
+            width: 1024,
+            dateWindow: [1299989043119.4365, 1300080693627.4866]
+          }
+          );
+
+      var base_ms_spring = 1299999000000;
+      var dst_data_spring = [];
+      for (var x = base_ms_spring; x < base_ms_spring + 1000 * 60 * 80; x += 1000) {
+        dst_data_spring.push([new Date(x), x]);
+      }
+
+      g4 = new Dygraph(
+          document.getElementById("chart4"),
+          dst_data_spring,
+          { width: 1024, labels: ['Date', 'Value'] }
+      );
+
+    </script>
+</body>
+</html>

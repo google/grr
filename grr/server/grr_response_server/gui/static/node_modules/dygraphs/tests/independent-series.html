@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Independent Series</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <style type="text/css">
+      .thinborder {
+        border-width: 1px;
+        border-spacing: 0px;
+        border-style: solid;
+        border-color: black;
+        border-collapse: collapse;
+      }
+
+      .thinborder td,
+      .thinborder th {
+        border-width: 1px;
+        padding: 5px;
+        border-style: solid;
+        border-color: black;
+      }
+    </style>
+  </head>
+  <body>
+    <h3>Independent Series</h3>
+    <p>By using the connectSeparated attribute, it's possible to display a chart of several time series with completely independent x-values.</p>
+
+    <p>The trick is to specify values for the series at the union of the x-values of all series. For one series' x values, specify <code>null</code> for each of the other series.</p>
+
+    <div id="graph" style="float: right; margin-right: 50px; width: 400px; height: 300px;"></div>
+    <p>For example, say you had two series:</p>
+    <table><tr>
+    <td valign=top>
+    <table>
+      <table class=thinborder>
+        <tr><th>x</th><th>A</th></tr>
+        <tr><td>2</td><td>2</td></tr>
+        <tr><td>4</td><td>6</td></tr>
+        <tr><td>6</td><td>4</td></tr>
+      </table>
+    </td>
+    <td valign=top style="padding-left:25px;">
+      <table class=thinborder>
+        <tr><th>x</th><th>B</th></tr>
+        <tr><td>1</td><td>3</td></tr>
+        <tr><td>3</td><td>7</td></tr>
+        <tr><td>5</td><td>5</td></tr>
+      </table>
+    </td>
+    </tr></table>
+
+    <p>Then you would specify the following CSV or native data:</p>
+    <table><tr>
+    <td valign=top>
+    (CSV)
+    <pre>X,A,B
+1,,3
+2,2,
+3,,7
+4,6,
+5,,5
+6,4,</pre>
+    </td>
+    <td valign=top style="padding-left: 25px;">
+    (native)
+    <pre>[
+[1, null, 3],
+[2, 2, null],
+[3, null, 7],
+[4, 6, null],
+[5, null, 5],
+[6, 4, null] ]</pre>
+    </td>
+    </tr></table>
+
+    <script type="text/javascript">
+    var g1 = new Dygraph(
+      document.getElementById("graph"),
+      [
+        [1, null, 3],
+        [2, 2, null],
+        [3, null, 7],
+        [4, 5, null],
+        [5, null, 5],
+        [6, 3, null]
+      ],
+      {
+        labels: ["x", "A", "B" ],
+        connectSeparatedPoints: true,
+        drawPoints: true
+      }
+    );
+    </script>
+
+    <h3>Encoding a gap</h3>
+    <p>There's one extra wrinkle. What if one of the series has a missing
+    value, i.e. what if your series are something like </p>
+
+    <table><tr>
+    <td valign=top>
+    <table>
+      <table class=thinborder>
+        <tr><th>x</th><th>A</th></tr>
+        <tr><td>2</td><td>2</td></tr>
+        <tr><td>4</td><td>4</td></tr>
+        <tr><td>6</td><td>(gap)</td></tr>
+        <tr><td>8</td><td>8</td></tr>
+        <tr><td>10</td><td>10</td></tr>
+      </table>
+    </td>
+    <td valign=top style="padding-left:25px;">
+      <table class=thinborder>
+        <tr><th>x</th><th>B</th></tr>
+        <tr><td>1</td><td>3</td></tr>
+        <tr><td>3</td><td>5</td></tr>
+        <tr><td>5</td><td>7</td></tr>
+      </table>
+    </td>
+    </tr></table>
+
+    <div id="graph3" style="float: right; margin-right: 50px; width: 400px; height: 300px;"></div>
+    <p>The gap would normally be encoded as a null, or missing value. But when you use <code>connectSeparatedPoints</code>, that has a special meaning. Instead, you have to use <code>NaN</code>. This is a bit of a hack, but it gets the job done.</p> 
+
+    <script type="text/javascript">
+    g2 = new Dygraph(
+      document.getElementById("graph3"),
+"x,A,B  \n" +
+"1,,3   \n" +
+"2,2,   \n" +
+"3,,5   \n" +
+"4,4,   \n" +
+"5,,7   \n" +
+"6,NaN, \n" +
+"8,8,   \n" +
+"10,10, \n"
+      , {
+        connectSeparatedPoints: true,
+        drawPoints: true
+      }
+    );
+    </script>
+
+    <table><tr>
+    <td valign=top>
+    (CSV)
+    <pre>x,A,B
+1,,3
+2,2,
+3,,5
+4,4,
+5,,7
+6,NaN,
+8,8,
+10,10,</pre>
+    </td>
+    <td valign=top style="padding-left: 25px;">
+    (native)
+    <pre>[ [1, null, 3],
+  [2, 2, null],
+  [3, null, 5],
+  [4, 4, null],
+  [5, null, 7],
+  [6, NaN, null],
+  [8, 8, null],
+  [10, 10, null] ]</pre>
+    </td>
+    </tr></table>
+
+    <h3>Behavior at the edges of the panel for independent series</h3>
+    <p> In case only a part of the whole data is visible (e.g. after zooming in) the lines are 
+    drawn to the respective next valid point outside the visible area. </p>
+              
+    <table><tr>
+    <td valign=top>
+    <table>
+      <table class=thinborder>
+        <tr><th>x</th><th>A</th></tr>
+        <tr><td>0</td><td>2</td></tr>
+        <tr><td>1</td><td>3</td></tr>
+        <tr><td>2</td><td>3</td></tr>
+        <tr><td>4</td><td>4</td></tr>
+        <tr><td>5</td><td>3</td></tr>
+        <tr><td>6</td><td>3</td></tr>
+        <tr><td>7</td><td>3</td></tr>
+        <tr><td>8</td><td>4</td></tr>
+      </table>
+    </td>
+    <td valign=top style="padding-left:25px;">
+      <table class=thinborder>
+        <tr><th>x</th><th>B</th></tr>
+        <tr><td>0</td><td>1</td></tr>
+        <tr><td>1</td><td>2</td></tr>
+        <tr><td>2</td><td>1</td></tr>
+        <tr><td>8</td><td>2</td></tr>
+      </table>
+    </td>
+    </tr></table>
+
+    <div id="graph2" style="float: right; margin-right: 50px; width: 400px; height: 300px;"></div>
+    <p>Both graphs have no value at the right edge of the panel (x=3). The lines that are drawn to the right edge are determined by their respective next valid value outside the visible area.
+    Therefore it is neither necessary that the next valid values are on the same point nor that they have the same index (index 4 for the green line and index 8 for the blue line).</p> 
+    <p>Use double click to unzoom and see the currently invisible points</p> 
+    
+    <script type="text/javascript">
+    g2 = new Dygraph(
+      document.getElementById("graph2"),
+"x,A,B  \n" +
+"0,2,1   \n" +
+"1,3,2   \n" +
+"2,3,1   \n" +
+"3,,   \n" +
+"4,4,   \n" +
+"5,3,   \n" +
+"6,3,   \n" +
+"7,3,   \n" +
+"8,4,2   \n"
+
+      , {
+        connectSeparatedPoints: true,
+        drawPoints: true,
+        pointSize: 3,
+        highlightCircleSize: 5,
+        dateWindow: [0,3]
+      }
+    );
+    </script>
+    
+    <table><tr>
+    <td valign=top>
+    Index
+    <pre>&nbsp;
+0
+1
+2
+3
+4
+5
+6
+7
+8</pre>
+    </td>
+    <td valign=top>
+    (CSV)
+    <pre>x,A,B
+0,2,1
+1,3,2
+2,3,1
+3,,
+4,4,
+5,3,
+6,3,
+7,3,
+8,4,2</pre>
+    </td>
+    <td valign=top style="padding-left: 25px;">
+    (native)
+    <pre>[ 
+  [0, 2, 1], 
+  [1, 3, 2],
+  [2, 3, 1],
+  [3, null, null],
+  [4, 4, null],
+  [5, 3, null],
+  [6, 3, null],
+  [7, 3, null],
+  [8, 4, 2] ]</pre>
+    </td>
+    </tr></table>
+
+  </body>
+</html>

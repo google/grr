@@ -43,7 +43,7 @@ message HuntArguments {
   optional HuntArgumentsVariable variable = 3;
 }
 
-// Next id: 33
+// Next id: 34
 message Hunt {
   optional string hunt_id = 1;
   optional string description = 2;
@@ -105,13 +105,17 @@ message Hunt {
       description: "A network limit (in bytes) imposed on each client in the "
       "hunt.",
     }];
+  optional uint64 total_network_bytes_limit = 33 [(sem_type) = {
+      description: "Total network bytes limit imposed on a hunt. A hunt is "
+      "stopped if it receives more bytes than the limit."
+    }];
 
   optional FlowLikeObjectReference original_object = 17 [(sem_type) = {
       description: "If this hunt is a copy of another hunt or flow, we store "
       "a reference to the original here.",
     }];
 
-  // Attributes below indicate current hunt's tate and are modified by
+  // Attributes below indicate current hunt's state and are modified by
   // hunt-running code during hunt's lifetime.
    enum HuntState {
     UNSET = 0;
@@ -129,9 +133,9 @@ message Hunt {
   optional uint64 start_time = 21 [(sem_type) = {
       type: "RDFDatetime",
     }];
-  optional uint64 next_client_due = 22 [(sem_type) = {
-      description: "Time since the start_time of the hunt to start next "
-      "flow (expressed in microseconds)."
+  optional uint64 num_clients_at_start_time = 22 [(sem_type) = {
+      description: "Number of hunt's clients as it was at start_time. Used "
+      "for client rate calculation."
     }];
   reserved 23;
   reserved 24;
@@ -143,4 +147,5 @@ message Hunt {
   reserved 30;
   reserved 31;
   reserved 32;
+
 }

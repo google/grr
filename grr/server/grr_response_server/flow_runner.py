@@ -121,6 +121,7 @@ class FlowRunner(object):
 
     # If we have a parent runner, we use its queue manager.
     if parent_runner is not None:
+      #print ("yeey")
       self.queue_manager = parent_runner.queue_manager
     else:
       # Otherwise we use a new queue manager.

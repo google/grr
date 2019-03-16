@@ -1,0 +1,89 @@
+<!--#include virtual="header.html" -->
+<h2>dygraphs per-series and per-axis options</h2>
+
+<p>When you create a Dygraph object, your code looks something like
+this:</p>
+
+<pre>
+  g = new Dygraph(document.getElementById("div"),
+                  <i>data</i>,
+                  { <i>options</i> });
+</pre>
+
+<p>This document is about some of the values you can put in the
+<i>options</i> parameter.</p>
+
+<h3>per-series options</h3>
+
+<p>Typically, an option applies to the whole chart: if you set the
+strokeWidth option, it will apply to all data-series equally:</p>
+
+<pre>
+  g = new Dygraph(document.getElementById("div"),
+                  "X,Y1,Y2,Y3\n" +
+                  "1,2,3,4\n" +
+                  ...,
+                  {
+                    strokeWidth: 5
+                  });
+</pre>
+
+<p>Some options, however, can be applied on a per-series or a per-axis
+basis. For instance, to set three different strokeWidths, you could
+write:</p>
+
+<pre>
+  g = new Dygraph(document.getElementById("div"),
+                  "X,Y1,Y2,Y3\n" +
+                  "1,2,3,4\n" +
+                  ...,
+                  {
+                    strokeWidth: 5,  // default stroke width
+                    series: {
+                      Y1: {
+                        strokeWidth: 3  // Y1 gets a special value.
+                      },
+                      Y3: {
+                        strokeWidth: 1  // so does Y3.
+                      }
+                    }
+                  });
+</pre>
+
+<p>The result of these options is that Y1 will have a strokeWidth of 1, Y2 will have a strokeWidth of 5 and Y3 will have a strokeWidth of 1. You can see a demonstration of this <a href='tests/per-series.html'>here</a>.</p>
+
+<h3>per-axis options</h3>
+
+<p>Some options make more sense when applied to an entire axis, rather than to individual series. For instance, the axisLabelFormatter option lets you specify a function for format the labels on axis tick marks for display. You might want one function for the x-axis and another one for the y-axis.</p>
+
+<p>Here's how you can do that:</p>
+
+<pre>
+  g = new Dygraph(document.getElementById("div"),
+                  "X,Y1,Y2,Y3\n" +
+                  "1,2,3,4\n" +
+                  ...,
+                  {
+                    axes: {
+                      x: {
+                        axisLabelFormatter: function(x) {
+                          return 'x' + x;
+                        }
+                      },
+                      y: {
+                        axisLabelFormatter: function(y) {
+                          return 'y' + y;
+                        }
+                      }
+                    }
+                  });
+</pre>
+
+<p>The keys in the 'axes' option are always 'x', 'y' and, if you have a
+secondary y-axis, 'y2'. If you set the "axisLabelFormatter" option at the
+top level, it will apply to all axes.</p>
+
+<p>To see this in practice, check out the <a
+href="tests/two-axes.html">two-axes</a> test.</p>
+
+<!--#include virtual="footer.html" -->

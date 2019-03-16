@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Custom grid and Dot</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+
+  <body>
+    <p>Dot and lines should be extra large. Grid is red.</p>
+    <div id="div_g14" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      g14 = new Dygraph(
+            document.getElementById("div_g14"),
+            NoisyData, {
+              rollPeriod: 14,
+              errorBars: true,
+              gridLineColor: '#FF0000',
+              highlightCircleSize: 10,
+              strokeWidth: 3
+            }
+          );
+    </script>
+    
+    <p>Use axis specific grid options. (independentTicks, gridLinePattern, ...)</p>
+    <div id="div_g15" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      var data = [];
+      for (var i = 1; i <= 100; i++) {
+        var m = "01", d = i;
+        if (d > 31) { m = "02"; d -= 31; }
+        if (m == "02" && d > 28) { m = "03"; d -= 28; }
+        if (m == "03" && d > 31) { m = "04"; d -= 31; }
+        if (d < 10) d = "0" + d;
+        // two series, one with range 1-100, one with range 1-2M
+        data.push([new Date("2010/" + m + "/" + d),
+                   i,
+                   100 - i,
+                   1e6 * (1 + i * (100 - i) / (50 * 50)),
+                   1e6 * (2 - i * (100 - i) / (50 * 50))]);
+      }
+      g15 = new Dygraph(
+            document.getElementById("div_g15"),
+            data,
+            {
+              labels: [ 'Date', 'Y1', 'Y2', 'Y3', 'Y4' ],
+              series : {
+                'Y3': {
+                  axis: 'y2'
+                },
+                'Y4': {
+                  axis: 'y2'
+                }
+              },
+              axes: {
+                x: {
+                  gridLineWidth: 2,
+                  drawGrid: true,
+                  independentTicks: true
+                },
+                y: {
+                  valueRange: [40, 80],
+                  drawGrid: true,
+                  independentTicks: true
+                },
+                y2: {
+                  // set axis-related properties here
+                  labelsKMB: true,
+                  ticker: Dygraph.numericLinearTicks,
+                  drawGrid: true,
+                  independentTicks: true,
+                  gridLineColor: "#ff0000",
+                  gridLinePattern: [4,4]
+                }
+              }
+            }
+          );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <style>
+      /* Changing 'body' -> 'html, body' triggers a bug */
+      body {
+        margin-left: 100px;
+      }
+
+      .container {
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Mouseovers should work as expected (dots should align with mouse)</p>
+    <div id="demodiv"></div>
+
+    <script type="text/javascript">
+      function Data() {
+        var zp = function(x) { if (x < 10) return "0"+x; else return x; };
+        var r = "date,parabola,line,another line,sine wave\n";
+        for (var i=1; i<=31; i++) {
+        r += "200610" + zp(i);
+        r += "," + 10*(i*(31-i));
+        r += "," + 10*(8*i);
+        r += "," + 10*(250 - 8*i);
+        r += "," + 10*(125 + 125 * Math.sin(0.3*i));
+        r += "\n";
+        }
+        return r;
+      }
+
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              Data,
+              {
+                labelsKMB: true,
+                legend: 'always'
+              }
+          );
+    </script>
+
+    <br/>
+    <div class="container">
+      <div id="chart2"></div>
+    </div>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+              document.getElementById("chart2"),
+              Data,
+              {
+                labelsKMB: true,
+                legend: 'always'
+              }
+          );
+    </script>
+</body>
+</html>

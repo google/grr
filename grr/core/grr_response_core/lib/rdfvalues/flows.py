@@ -32,7 +32,6 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
   lock = threading.Lock()
   next_id_base = 0
   max_ttl = 5
-
   def __init__(self,
                initializer=None,
                age=None,
@@ -266,3 +265,11 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
   ]
 
   num_messages = 0
+
+
+class AccessToken(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ACLToken
+  rdf_deps = [
+     rdfvalue.RDFDatetime,
+  ]
+

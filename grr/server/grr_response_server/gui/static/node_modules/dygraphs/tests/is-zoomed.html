@@ -1,0 +1,106 @@
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>isZoomedIgnoresProgrammaticZoom Flag</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <h1 id="zoom">Determining Zoom</h1>
+    <p>
+      It is possible to detect whether a chart has been zoomed in either axis by the use of the <code>isZoomed</code> function.
+      If called with no argument, it will report whether <em>either</em> axis has been zoomed.
+      Alternatively it can be called with an argument of either <code>'x'</code> or <code>'y'</code> and it will report the status of just that axis.
+    </p>
+  
+    <p>Here's a simple example using <code>drawCallback</code> to display the various zoom states whenever the chart is zoomed:</p>
+  
+    <div style="width:600px; text-align:center; font-weight: bold; font-size: 125%;">OUTPUT</div>
+    <div style="width: 750px">
+      <div style="float: right">
+        <p>Zoomed: <span id="zoomed">False</span><p/>
+        <p>Zoomed X: <span id="zoomedX">False</span><p/>
+        <p>Zoomed Y: <span id="zoomedY">False</span><p/>
+      </div>
+      <div class="codeoutput" style="float:left;">
+      <div id="zoomdiv"></div>
+      <script type="text/javascript">
+        var g = new Dygraph(
+  
+        // containing div
+        document.getElementById("zoomdiv"),
+  
+        // CSV or path to a CSV file.
+        "Date,Value\n" +
+        "2011-01-07,75\n" +
+        "2011-01-08,70\n" +
+        "2011-01-09,90\n" +
+        "2011-01-10,30\n" +
+        "2011-01-11,40\n" +
+        "2011-01-12,60\n" +
+        "2011-01-13,70\n" +
+        "2011-01-14,40\n",
+        {
+          drawCallback: function(me, initial) {
+          document.getElementById("zoomed").innerHTML = "" + me.isZoomed();
+          document.getElementById("zoomedX").innerHTML = "" + me.isZoomed("x");
+          document.getElementById("zoomedY").innerHTML = "" + me.isZoomed("y");
+          }
+        }
+        );
+      </script>
+      </div>
+    </div>
+  
+    <p>
+      <div style="clear:both; width:600px; text-align:center; font-weight: bold; font-size: 125%;">HTML</div>
+
+<pre>
+  new Dygraph(
+
+  // containing div
+  document.getElementById(&quot;zoomdiv&quot;),
+
+  // CSV or path to a CSV file.
+  &quot;Date,Temperature\n&quot; +
+  &quot;2011-01-07,75\n&quot; +
+  &quot;2011-01-08,70\n&quot; +
+  &quot;2011-01-09,90\n&quot; +
+  &quot;2011-01-10,30\n&quot; +
+  &quot;2011-01-11,40\n&quot; +
+  &quot;2011-01-12,60\n&quot; +
+  &quot;2011-01-13,70\n&quot; +
+  &quot;2011-01-14,40\n&quot;,
+  {
+    drawCallback: function(me, initial) {
+    document.getElementById(&quot;zoomed&quot;).innerHTML = &quot;&quot; + me.isZoomed();
+    document.getElementById(&quot;zoomedX&quot;).innerHTML = &quot;&quot; + me.isZoomed(&quot;x&quot;);
+    document.getElementById(&quot;zoomedY&quot;).innerHTML = &quot;&quot; + me.isZoomed(&quot;y&quot;);
+    }
+  }
+  );
+</pre>
+    </p>
+  
+    <p>The <a href="zoom.html">Tests for zoom operations</a> show a full example of this in action.</p>
+  
+    <h3>Programmatic Zoom</h3>
+    <p>
+      When a chart is programmatically zoomed by updating either the <code>dateWindow</code>
+      or <code>valueRange</code> option, by default the zoomed flags are also updated correspondingly.
+      It is possible to prevent this by specifying the <code>isZoomedIgnoreProgrammaticZoom</code> in the same
+      call to the <code>updateOptions</code> method.
+    </p>
+    <p>
+      The <a href="tests/is-zoomed-ignore-programmatic-zoom.html">is-zoomed-ignore-programmatic-zoom</a> test shows this in operation.
+    </p>
+  </body>
+</html>

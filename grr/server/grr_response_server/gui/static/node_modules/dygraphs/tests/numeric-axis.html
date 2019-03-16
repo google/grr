@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>numeric axis</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+  </head>
+  <body>
+    <p>CSV data source:</p>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+    <p>GViz data source:</p>
+    <div id="gviz" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            function() {
+              var ret = "X,Y1,Y2\n";
+              for (var i = 0; i < 100; i++) {
+                ret += i + "," + i + "," + (i * (100-i) * 100/(50*50)) + "\n";
+              }
+              return ret;
+            },
+            { }
+          );
+
+      google.load('visualization', '1', {packages: ['linechart']});
+      function addGViz() {
+        data = new google.visualization.DataTable();
+        data.addColumn('number', 'X');
+        data.addColumn('number', 'Y1');
+        data.addColumn('number', 'Y2');
+        data.addRows(100);
+        for (var i = 0; i < 100; i++) {
+          data.setCell(i, 0, i);
+          data.setCell(i, 1, i);
+          data.setCell(i, 2, i * (100-i) * 100/(50*50));
+        }
+
+        new Dygraph.GVizChart(
+          document.getElementById('gviz')).draw(data,
+          {
+          });
+      }
+
+      google.setOnLoadCallback(addGViz);
+    </script>
+  </body>
+</html>

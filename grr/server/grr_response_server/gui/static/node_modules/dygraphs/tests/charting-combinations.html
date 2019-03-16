@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Charting combinations</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <script type="text/javascript" src="data.js"></script>
+    <style type="text/css">
+      .chart {
+        width: 600px;
+        height: 300px;
+      }
+      #container {
+        display: table;
+        float: left;
+      }
+      #results {
+        display: table;
+        float: left;
+        padding-left: 20px;
+      }
+    </style>
+  </head>
+  <body>
+  <p>There are four options which fundmanentally change the behavior of the standard plotter:</p>
+  <ol>
+    <li> errorBars / customBars
+    <li> stepPlot
+    <li> fillGraph
+    <li> strokePattern
+  </ol>
+
+  <p>This page exhaustively checks all combinations of these parameters.</p>
+
+  <div id=container> </div>
+  <div id=results> <b>Valid combinations</b>
+    <ol id='results-ol'>
+    </ol>
+  </div>
+
+  <script type="text/javascript">
+    // NOTE: this is an odd thing to do; dygraphs should really throw here.
+    console.warn = function(x) {
+      throw x;
+    }
+
+    var bools = [false, true];
+    var containerDiv = document.getElementById("container");
+    var resultsList = document.getElementById("results-ol");
+    bools.forEach(function(errorBars) {
+      var data_csv = errorBars ? NoisyData() : data();
+      bools.forEach(function(stepPlot) {
+        bools.forEach(function(fillGraph) {
+          bools.forEach(function(strokePattern) {
+            var title_parts = [];
+            if (errorBars) title_parts.push('errorBars');
+            if (stepPlot) title_parts.push('stepPlot');
+            if (fillGraph) title_parts.push('fillGraph');
+            if (strokePattern) title_parts.push('strokePattern');
+            var title = title_parts.join(', ');
+            if (!title) title = '(none)';
+
+            var title_h2 = document.createElement('h2');
+            title_h2.innerHTML = title;
+            containerDiv.appendChild(title_h2);
+
+            var div = document.createElement('div');
+            div.className = 'chart';
+            containerDiv.appendChild(div);
+
+            try {
+              var g = new Dygraph(div, data_csv, {
+                errorBars: errorBars,
+                stepPlot: stepPlot,
+                fillGraph: fillGraph,
+                strokePattern: strokePattern ? Dygraph.DASHED_LINE : null
+              });
+
+              resultsList.innerHTML += '<li> ' + title + '</li>';
+            } catch(e) {
+              div.className = '';
+              div.innerHTML = e;
+            }
+          });
+        });
+      });
+    });
+  </script>
+
+  </body>
+</html>

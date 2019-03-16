@@ -44,7 +44,7 @@ class ArtifactCollector(actions.ActionPlugin):
 
   def Run(self, args):
     result = rdf_artifacts.ClientArtifactCollectorResult()
-
+    #print ("hi")
     # The knowledge base is either (partially) filled or an empty rdf object.
     self.knowledge_base = args.knowledge_base
 
@@ -57,7 +57,7 @@ class ArtifactCollector(actions.ActionPlugin):
         result.collected_artifacts.append(collected_artifact)
 
     result.knowledge_base = self.knowledge_base
-
+    #print result
     # TODO(user): Limit the number of bytes and send multiple responses.
     self.SendReply(result)
 

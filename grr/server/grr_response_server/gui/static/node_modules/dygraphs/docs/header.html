@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+    <link rel="stylesheet" href="bootstrap.min.css">
+    <link rel="stylesheet" href="site.css">
+
+    <script src="bootstrap.min.js"></script>
+    <!--[if IE]><script src="excanvas.js"></script><![endif]-->
+    <script type="text/javascript" src="dygraph-combined.js"></script> 
+  </head>
+  <body>
+    <!--
+    "Fork me on github" banner:
+    <a href="http://github.com/danvk/dygraphs"><img style="position: absolute; top: 0; right: 0; border: 0; z-index: 1;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_green_007200.png" alt="Fork me on GitHub"></a>
+    -->
+
+    <div id="header" class="navbar navbar-fixed-top">
+      <div class="container">
+
+      <!-- .navbar-toggle is used as the toggle for collapsed navbar content -->
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-responsive-collapse">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+
+      <h1 class="navbar-brand"><a href="/">dygraphs</a></h1>
+
+      
+      <!-- Place everything within .navbar-collapse to hide it until above 768px -->
+      <div class="nav-collapse collapse navbar-responsive-collapse">
+
+        <!-- TODO(danvk): fill in relevant links here -->
+        <ul class="nav nav-pills">
+          <li class="dropdown">
+            <a class="dropdown-toggle" id="drop3" role="button" data-toggle="dropdown" href="#">Documentation<b class="caret"></b></a>
+            <ul id="menu0" class="dropdown-menu" role="menu" aria-labelledby="drop3">
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="tutorial.html">Tutorial</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="options.html">Options Reference</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="jsdoc/symbols/Dygraph.html">API Reference</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="data.html">Data Format</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="annotations.html">Annotations</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="css.html">CSS Reference</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="versions.html">Version History</a></li>
+              <li role="presentation" class="divider"></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="ie.html">Notes on Internet Explorer</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="gwt.html">Notes on GWT</a></li>
+            </ul>
+          </li>
+          <li class="dropdown">
+            <a class="dropdown-toggle" id="drop4" role="button" data-toggle="dropdown" href="#">Examples<b class="caret"></b></a>
+            <ul id="menu1" class="dropdown-menu" role="menu" aria-labelledby="drop4">
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="gallery/">Demo Gallery</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="users.html">List of Users</a></li>
+              <li role="presentation" class="divider"></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="tests/">Test Cases</a></li>
+            </ul>
+          </li>
+          <li><a class="xnavbar-link" href="/fiddle">Play</a></li>
+          <li><a class="xnavbar-link" href="download.html">Download</a></li>
+          <li class="dropdown">
+            <a class="dropdown-toggle" id="drop7" role="button" data-toggle="dropdown" href="#">Community <b class="caret"></b></a>
+            <ul id="menu4" class="dropdown-menu" role="menu" aria-labelledby="drop7">
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="http://blog.dygraphs.com">Blog</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="http://stackoverflow.com/questions/ask?tags=dygraphs+javascript">Ask a Question</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="http://stackoverflow.com/questions/tagged/dygraphs">Stack Overflow</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="https://groups.google.com/forum/#!forum/dygraphs-users">Mailing List</a></li>
+            </ul>
+          </li>
+          <li class="dropdown">
+            <a class="dropdown-toggle" id="drop6" role="button" data-toggle="dropdown" href="#">Contribute <b class="caret"></b></a>
+            <ul id="menu3" class="dropdown-menu" role="menu" aria-labelledby="drop6">
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="changes.html">Contributors Guide</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="http://github.com/danvk/dygraphs">Source (Github)</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="https://github.com/danvk/dygraphs/issues">Issue Tracker</a></li>
+              <li role="presentation"><a role="menuitem" tabindex="-1" href="https://github.com/danvk/dygraphs/issues/new">Report a Bug</a></li>
+            </ul>
+          </li>
+        </ul> <!-- /tabs -->
+      </div> <!-- /nav-collapse -->
+    </div> <!-- /container -->
+  </div> <!-- /navbar -->
+
+  <div class="container" id="main">
+    <div class="row">
+      <div class="col-lg-12">

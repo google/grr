@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>hourly</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Hourly data:</p>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+    <p>Minutely data:</p>
+    <div id="div_gm" style="width:600px; height:300px;"></div>
+
+    <p>Secondly data:</p>
+    <div id="div_gs" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            function HourlyData() {
+              return "" +
+              "Date,A,B\n" +
+              "2009/07/12 00:00:00,3,4\n" +
+              "2009/07/12 01:00:00,5,6\n" +
+              "2009/07/12 02:00:00,7,6\n" +
+              "2009/07/12 03:00:00,6,5\n" +
+              "2009/07/12 04:00:00,4,7\n" +
+              "2009/07/12 05:00:00,3,6\n" +
+              "2009/07/12 06:00:00,4,6"
+            }
+          );
+
+      gm = new Dygraph(
+            document.getElementById("div_gm"),
+            function() {
+              var ret = "Date,Hours,Minutes\n";
+              var zp = function(x) { if (x<10) return "0"+x; else return ""+x;};
+              for (var d = 0; d <= 1; d++) {
+                for (var h = 0; h < 24; h++) {
+                  for (var m = 0; m < 60; m++) {
+                    ret += "2008/07/" + zp(12 + d) + " " + zp(h) + ":" + zp(m) +
+                        "," + (24*d + h) + "," + m + "\n";
+                  }
+                }
+              }
+              return ret;
+            }
+          );
+
+      gs = new Dygraph(
+            document.getElementById("div_gs"),
+            function() {
+              var ret = "Date,Minutes,Seconds\n";
+              var zp = function(x) { if (x<10) return "0"+x; else return ""+x;};
+              for (var h = 0; h <= 1; h++) {
+                for (var m = 0; m < 60; m++) {
+                  for (var s = 0; s < 60; s++) {
+                    ret += "2008/07/01 " + zp(h) + ":" + zp(m) + ":" + zp(s) +
+                        "," + (h*60 + m) + "," + s + "\n";
+                  }
+                }
+              }
+              return ret;
+            }
+          );
+    </script>
+  </body>
+</html>

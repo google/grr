@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>no range</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>There should be an appropriate amount of padding at the top of the chart:</p>
+    <div id="blah"></div>
+
+    <script type="text/javascript">
+    function CSV() {
+      var label = "X";
+      
+      return "date," + label + "\n20091206,2659329.631743\n20091213,2772361.123362\n20091220,2737584.647191\n20091227,2720000.550414\n20100103,2910306.897977\n20100110,2901385.313093\n20100117,2903041.312099\n20100124,2966455.128911\n";
+    }
+
+    var g1 = new Dygraph(document.getElementById("blah"),
+                CSV,
+                {
+                  width: 640,
+                  height: 480,
+                  includeZero: true
+                });
+
+    </script>
+    
+    <p>The second series (which is entirely zero) should be visible, and the
+    y-axis should go down to zero.</p>
+    <div id="blah2"></div>
+    <script type="text/javascript"> 
+        var data=[
+          ["2006-10-11",0,15228],
+          ["2006-10-12",0,15219],
+          ["2006-10-13",0,15225],
+          ["2006-10-14",0,15212],
+          ["2006-10-15",0,15211],
+          ["2006-10-16",0,15322],
+          ["2006-10-17",0,15414],
+          ["2006-10-18",0,15422],
+          ["2006-10-19",0,15434],
+          ["2006-10-20",0,15423]
+        ];
+        var str = "";
+        for (var i = 0; i < data.length; i++) {
+          str += data[i].join(",") + "\n";
+        }
+
+        var g2 = new Dygraph(document.getElementById("blah2"),
+                    str,
+                    { labels: [ "date", "zero", "non-zero" ] });
+    </script>
+  </body>
+</html>

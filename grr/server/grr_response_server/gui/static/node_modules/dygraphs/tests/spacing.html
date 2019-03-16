@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>spacing</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <p>Wide</p>
+    <div id="div_g" style="width:800px; height:300px;"></div>
+
+    <p>Narrow</p>
+    <div id="div_g2" style="width:300px; height:200px;"></div>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            data, {
+              rollPeriod: 7,
+              pixelsPerYLabel: 20
+            }
+          );
+      g2 = new Dygraph(
+            document.getElementById("div_g2"),
+            data, {
+              rollPeriod: 7,
+              pixelsPerYLabel: 20
+            }
+          );
+    </script>
+  </body>
+</html>

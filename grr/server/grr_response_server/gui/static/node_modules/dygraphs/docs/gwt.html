@@ -1,0 +1,25 @@
+<!--#include virtual="header.html" -->
+
+<h2 id="gwt">Notes on GWT</h2>
+<p>There is currently no GWT wrapper around Dygraphs, however there is a class that can be used to easily load Dygraphs into the browser.  To use it, include the generated dygraph-gwt.jar file in your classpath and add the following line to your GWT module:</p>
+
+<pre>
+&lt;inherits name=&quot;org.danvk.dygraphs&quot;/&gt;    
+</pre>
+
+<p>Call org.danvk.Dygraphs.install() when your application starts to install the JavaScript code into the browser.  You can use <a href="http://code.google.com/webtoolkit/doc/latest/DevGuideCodingBasicsJSNI.html">JSNI</a> to call Dygraphs from your GWT code, as in the example below.  The example uses the <a href="http://code.google.com/p/gwt-google-apis/wiki/VisualizationGettingStarted">Visualization API for GWT</a> and the <a href="#gviz">Dygraphs GViz API.</a></p>
+
+<pre>
+public static native JavaScriptObject drawDygraph(
+    Element element, DataTable dataTable, double minY, double maxY) /*-{
+  var chart = new $wnd.Dygraph.GVizChart(element);
+  chart.draw(dataTable,
+    {
+      valueRange: [minY, maxY]
+    });
+  return chart;
+}-*/;
+</pre>
+
+
+<!--#include virtual="footer.html" -->

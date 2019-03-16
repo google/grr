@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Dygraphs Gallery</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+
+    <script src="../dygraph-dev.js"></script>
+    <script src="../extras/synchronizer.js"></script>
+
+    <script src="lib/jquery-1.4.2.js"></script>
+    <script src="../common/textarea.js"></script>
+    <script src="gallery.js"></script>
+    <script src="data.js"></script>
+    <script src="interaction-api.js"></script>
+    <!-- script src='http://www.google.com/jsapi'></script> -->
+
+    <!-- gallery entries. Can these be auto-loaded? -->
+    <script src="annotations.js"></script>
+    <script src="drawing.js"></script>
+    <script src="dynamic-update.js"></script>
+    <script src="highlighted-series.js"></script>
+    <script src="highlighted-region.js"></script>
+    <script src="highlighted-weekends.js"></script>
+    <script src="independent-series.js"></script>
+    <script src="plotter.js"></script>
+    <script src="link-interaction.js"></script>
+    <script src="per-series.js"></script>
+    <script src="synchronize.js"></script>
+    <script src="range-selector.js"></script>
+    <script src="resize.js"></script>
+    <script src="stock.js"></script>
+    <script src="styled-chart-labels.js"></script>
+    <script src="temperature-sf-ny.js"></script>
+    <script src="interaction.js"></script>
+    <script src="linear-regression.js"></script>
+    <script src="edge-padding.js"></script>
+
+    <!-- These might not remain in the gallery
+    <script src="dygraph-simple.js"></script>
+    <script src="demo.js"></script>
+    <script src="border.js"></script>
+    <script src="callbacks.js"></script>
+    <script src="avoid-min-zero.js"></script>
+    <script src="color-cycle.js"></script>
+    <script src="color-visibility.js"></script>
+    <script src="two-axes.js"></script>
+    <script src="number-format.js"></script>
+    <script src="no-range.js"></script>
+    <script src="negative.js"></script>
+    <script src="annotations-gviz.js"></script>
+    <script src="annotations-native.js"></script>
+    -->
+    <link rel="stylesheet" type="text/css" href="../common/textarea.css"/>
+    <link title="gallery" rel="stylesheet" type="text/css" href="gallery.css"/>
+  </head>
+  <body>
+    <table>
+      <tr>
+        <td><h2><a class='subdued' href="../index.html">Dygraphs</a> Gallery</h2></td>
+        <td></td>
+        <td id="demotitle"></td>
+      </tr>
+      <tr>
+        <td id='lhs'>
+        <div id="toc"></div>
+        <hr/>
+        <a class='subdued' href="../index.html">Back to Dygraphs.</a>
+        </td>
+        <td id='gap'></td>
+        <td id="rhs">
+          <div id="workarea"></div>
+        </td>
+      </tr>
+    </table>
+  <script type="text/javascript">Gallery.start()</script>
+  </body>
+</html>

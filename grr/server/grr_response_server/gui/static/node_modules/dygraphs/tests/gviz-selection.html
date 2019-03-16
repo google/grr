@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>gviz selection</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      google.load('visualization', '1');
+
+      function createDataTable(dateType) {
+        data = new google.visualization.DataTable();
+        data.addColumn(dateType, 'Date');
+        data.addColumn('number', 'Column A');
+        data.addColumn('number', 'Column B');
+        data.addRows(10);
+        data.setCell(0, 0, new Date("2009/07/01"));
+        data.setCell(0, 1, 1);
+        data.setCell(0, 2, 7);
+        data.setCell(1, 0, new Date("2009/07/08"));
+        data.setCell(1, 1, 2);
+        data.setCell(1, 2, 4);
+        data.setCell(2, 0, new Date("2009/07/15"));
+        data.setCell(2, 1, 3);
+        data.setCell(2, 2, 3);
+        data.setCell(3, 0, new Date("2009/07/22"));
+        data.setCell(3, 1, 4);
+        data.setCell(3, 2, 0);
+        data.setCell(4, 0, new Date("2009/07/26"));
+        data.setCell(4, 1, 5);
+        data.setCell(4, 2, 2);
+        data.setCell(5, 0, new Date("2009/07/27"));
+        data.setCell(5, 1, 2);
+        data.setCell(5, 2, 7);
+        data.setCell(6, 0, new Date("2009/07/28"));
+        data.setCell(6, 1, 3);
+        data.setCell(6, 2, 8);
+        data.setCell(7, 0, new Date("2009/08/01"));
+        data.setCell(7, 1, 4);
+        data.setCell(7, 2, 9);
+        data.setCell(8, 0, new Date("2009/08/02"));
+        data.setCell(8, 1, 3);
+        data.setCell(8, 2, 10);
+        data.setCell(9, 0, new Date("2009/08/04"));
+        data.setCell(9, 1, 3);
+        data.setCell(9, 2, 8);
+        return data;
+      }
+
+      var chart;
+
+      function drawVisualization() {
+        data = createDataTable('date');
+
+        chart = new Dygraph.GVizChart(document.getElementById('dygraphs'));
+        chart.draw(data, {hideOverlayOnMouseOut: false});
+
+      }
+
+      function setSelection() {
+          var sel = [{column: 1, row: 2}, {column: 2, row: 2}];
+          chart.setSelection(sel);
+      }
+      function clearSelection() {
+          var sel = [];
+          chart.setSelection(sel);
+      }
+      function getChartSelection() {
+          var sel = chart.getSelection();
+
+          var html = '<p>Selection: [';
+          for (var i = 0; i < sel.length; i++) {
+              if (i > 0) html += ', ';
+              html += i + '=&gt; {row: '+ sel[i].row +
+                                ' col: '+ sel[i].column + '}';
+          }
+          html += ']</p>';
+          document.getElementById('output').innerHTML += html;
+      }
+      google.setOnLoadCallback(drawVisualization);
+    </script>
+  </head>
+  <body>
+    <p>Get/Set/Clear selection via gviz API:</p>
+    <div id="dygraphs" style="width:600px; height:300px;"></div>
+    <input type="button" onclick="setSelection()" value="setSelection()"/>
+    <input type="button" onclick="clearSelection()" value="clearSelection()"/>
+    <input type="button" onclick="getChartSelection()" value="getSelection()"/>
+    <div id="output"></div>
+  </body>
+</html>

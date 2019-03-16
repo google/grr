@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Custom underlay callback</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <p>Should draw a three-colored background, split horizontally at y:2.25, and
+    again on the top at x:19Nov:</p>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+    <div id="status" style="width:100%; height:200px;"></div>
+
+    <script type="text/javascript">
+      s = document.getElementById("status");
+
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            NoisyData, {
+              rollPeriod: 7,
+              showRoller: true,
+              errorBars: true,
+
+              underlayCallback: function(canvas, area, g) {
+                // Selecting a date in the middle of the graph. 
+                var splitDate = new Date("2006-11-19").getTime();
+                var coords = g.toDomCoords(splitDate, 2.25);
+
+                // splitX and splitY are the coordinates on the canvas for (2006-11-19, 2.25).
+                var splitX = coords[0];
+                var splitY = coords[1];
+
+                // The drawing area doesn't start at (0, 0), it starts at (area.x, area.y).
+                // That's why we subtract them from splitX and splitY. This gives us the
+                // actual distance from the upper-left hand corder of the graph itself.
+                var leftSideWidth = splitX - area.x;
+                var rightSideWidth = area.w - leftSideWidth;
+                var topHeight = splitY - area.y;
+                var bottomHeight = area.h - topHeight;
+
+                // fillRect(x, y, width, height)
+                // Top section: y = (2.25, +Infinity)
+                // left: (x < 2006-11-19)
+                canvas.fillStyle = 'lightblue';
+                canvas.fillRect(area.x, area.y, leftSideWidth, topHeight);
+
+                // right: (x > 2006-11-19)
+                canvas.fillStyle = 'orange';
+                canvas.fillRect(splitX, area.y, rightSideWidth, topHeight);
+        
+                // Bottom section: y = (-Infinity, 2.25)
+                canvas.fillStyle = 'pink';
+                canvas.fillRect(area.x, splitY, area.w, bottomHeight);
+              }
+            }
+          );
+    </script>
+  </body>
+</html>

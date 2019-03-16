@@ -1,0 +1,25 @@
+Format: 1.8
+Date: Mon, 11 Feb 2019 18:25:11 +0000
+Source: grr
+Binary: grr
+Architecture: i386
+Version: 3246-1
+Distribution: unstable
+Urgency: low
+Maintainer: GRR <grr-dev@googlegroups.com>
+Changed-By: GRR <grr-dev@googlegroups.com>
+Description:
+ grr        - grr Rapid Response Client
+Changes:
+ grr (3246-1) unstable; urgency=low
+ .
+   * Initial release
+Checksums-Sha1:
+ 3ab80d55d8faa5a3ad0c1550dc9e0c69ed2689a5 5287 grr_3246-1_i386.buildinfo
+ e469203bb8be4357b2353ae961578071e7914670 18025394 grr_3246-1_i386.deb
+Checksums-Sha256:
+ e61a8e83b9c3af4511a443285482a2e4618746c3a2245657b6a4e6c58515642e 5287 grr_3246-1_i386.buildinfo
+ acdeea1709db7cf721d2b8f6828ac5c67ea65e81677ba08782cec83a19dec376 18025394 grr_3246-1_i386.deb
+Files:
+ 97880a4fd455fadcab580731ebc7a0d4 5287 misc extra grr_3246-1_i386.buildinfo
+ 5bbeee7b4f554006174a867cf498d669 18025394 misc extra grr_3246-1_i386.deb

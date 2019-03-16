@@ -1,0 +1,66 @@
+<!--#include virtual="header.html" -->
+
+<style>
+  .versions {
+    margin-top: 20px;
+  }
+  .versions td {
+    vertical-align: top;
+  }
+  td.notes {
+    padding-bottom: 20px;
+  }
+  .versions td:first-child {
+    text-align: right;
+    padding-right: 20px;
+    font-weight: bold;
+  }
+  .date {
+    font-size: small;
+    color: darkgray;
+    font-weight: normal;
+  }
+</style>
+
+<h2>Version History</h2>
+
+<p>For links to download each release, see the <a href="/download.html">Downloads</a> page.</p>
+
+<table class="versions">
+  <tr>
+    <td>1.1.1<p class="date">2015-06-01</p></td>
+    <td class="notes">
+      Minor bug fixes. See <a href="https://github.com/danvk/dygraphs/issues?q=milestone%3A1.1.1+is%3Aclosed">GitHub milestone</a>.
+    </td>
+  </tr>
+
+  <tr>
+    <td>1.1.0<p class="date">2014-12-03</p></td>
+    <td class="notes">
+      Highlights include:
+      <ul>
+        <li>dygraphs is now "retina" compatible.
+        <li>Dramatically improved performance for filled charts (i.e. fillGraph)
+        <li>More sensible date ticks: "Jan 08"→"Jan 2008", "29Jan"→"29 Jan"
+        <li>Using a non-existent option now throws (w/ dygraph-combined-dev.js)
+        <li>x-axis log scales
+        <li>The <code>labelsUTC</code> option forces UTC formatting for all labels.
+        <li>The new DataHandler system allows for more flexibility in data loading.
+        <li>"this" is set to the dygraph in all callbacks.
+        <li>dygraphs has shrunk, because we moved some stuff into "extras" (133kb→122kb)
+      </ul>
+            
+      This will be the last major release to support browsers without a native &lt;canvas&gt; implementation. See <a href="http://blog.dygraphs.com/2014/12/dygraphs-110.html">blog post</a> for more details.
+    </td>
+  </tr>
+  <tr>
+    <td>1.0.1<p class="date">2013-08-29</p></td>
+    <td class="notes">Minor bug fixes and updates to web site.</td>
+  </tr>
+  <tr>
+    <td>1.0.0<p class="date">2013-08-14</p></td>
+    <td class="notes">Initial Release. See <a href="http://blog.dygraphs.com/2013/08/announcing-dygraphs-100.html">blog post</a>.</td>
+  </tr>
+</table>
+
+<!--#include virtual="footer.html" -->

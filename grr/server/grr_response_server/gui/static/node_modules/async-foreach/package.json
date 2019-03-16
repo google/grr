@@ -1,0 +1,29 @@
+{
+  "author": "\"Cowboy\" Ben Alman (http://benalman.com/)",
+  "name": "async-foreach",
+  "description": "An optionally-asynchronous forEach with an interesting interface.",
+  "version": "0.1.3",
+  "homepage": "http://github.com/cowboy/javascript-sync-async-foreach",
+  "bugs": "https://github.com/cowboy/javascript-sync-async-foreach/issues",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/cowboy/javascript-sync-async-foreach.git"
+  },
+  "main": "lib/foreach",
+  "engines": {
+    "node": "*"
+  },
+  "keywords": [
+    "array",
+    "loop",
+    "sync",
+    "async",
+    "foreach"
+  ],
+  "dependencies": {},
+  "devDependencies": {}
+
+,"_resolved": "https://registry.npmjs.org/async-foreach/-/async-foreach-0.1.3.tgz"
+,"_integrity": "sha1-NhIfhFwFeBct5Bmpfb6x0W7DRUI="
+,"_from": "async-foreach@0.1.3"
+}

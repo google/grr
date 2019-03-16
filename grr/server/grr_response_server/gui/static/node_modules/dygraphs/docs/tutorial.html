@@ -1,0 +1,402 @@
+<!--#include virtual="header.html" -->
+
+<style>
+  .annotation {
+    font-size: 12px !important;
+  }
+</style>
+
+<p>To use dygraphs, include the <code><a href="download.html">dygraph-combined-dev.js</a></code> JavaScript file and instantiate a <code>Dygraph</code> object.</p>
+
+<p>Here's a basic example to get things started:</p>
+
+<div class="example" style="clear:both;">
+  <div class="codeblock" style="float:left;width:400px;">
+    <h3 style="text-align:center">HTML</h3>
+  <pre>
+&lt;html&gt;
+&lt;head&gt;
+&lt;script type=&quot;text/javascript&quot;
+  src=&quot;dygraph-combined-dev.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;graphdiv&quot;&gt;&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+  g = new Dygraph(
+
+    // containing div
+    document.getElementById(&quot;graphdiv&quot;),
+
+    // CSV or path to a CSV file.
+    &quot;Date,Temperature\n&quot; +
+    &quot;2008-05-07,75\n&quot; +
+    &quot;2008-05-08,70\n&quot; +
+    &quot;2008-05-09,80\n&quot;
+
+  );
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+  </div>
+  <div class="codeoutput" style="float:left;">
+    <h3 style="text-align:center">OUTPUT</h3>
+    <div id="graphdiv"></div>
+    <script type="text/javascript">
+      g = new Dygraph(
+
+        // containing div
+        document.getElementById("graphdiv"),
+
+        // CSV or path to a CSV file.
+        "Date,Temperature\n" +
+        "2008-05-07,75\n" +
+        "2008-05-08,70\n" +
+        "2008-05-09,80\n"
+      );
+    </script>
+  </div>
+</div>
+
+<p style="clear:both">In order to keep this example self-contained, the second parameter is raw CSV data. The dygraphs library parses this data (including column headers), resizes its container to a reasonable default, calculates appropriate axis ranges and tick marks and draws the graph.</p>
+
+<p>In most applications, it makes more sense to include a CSV file instead. If the second parameter to the constructor doesn't contain a newline, it will be interpreted as the path to a CSV file. The Dygraph will perform an XMLHttpRequest to retrieve this file and display the data when it becomes available. Make sure your CSV file is readable and serving from a place that understands XMLHttpRequest's! In particular, you cannot specify a CSV file using <code>"file:///"</code>. Here's an example: (data from <a href="http://www.wunderground.com/history/airport/KNUQ/2007/1/1/CustomHistory.html?dayend=31&amp;monthend=12&amp;yearend=2007&amp;req_city=NA&amp;req_state=NA&amp;req_statename=NA">Weather Underground</a>)</p>
+
+<div class="example" style="clear:both;">
+  <div class="codeblock" style="float:left;width:400px;">
+    <h3 style="text-align:center">HTML</h3>
+<pre>
+&lt;html&gt;
+&lt;head&gt;
+&lt;script type=&quot;text/javascript&quot;
+  src=&quot;dygraph-combined-dev.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;graphdiv2&quot;
+  style=&quot;width:500px; height:300px;&quot;&gt;&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+  g2 = new Dygraph(
+    document.getElementById(&quot;graphdiv2&quot;),
+    &quot;temperatures.csv&quot;, // path to CSV file
+    {}          // options
+  );
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+  </div>
+  <div class="codeoutput" style="float:left;">
+    <h3 style="text-align:center">OUTPUT</h3>
+    <div id="graphdiv2" style="width:500px; height:300px;"></div>
+    <script type="text/javascript">
+      g2 = new Dygraph(
+        document.getElementById("graphdiv2"),
+        "temperatures.csv",
+        {}
+      );
+    </script>
+  </div>
+</div>
+
+<p style="clear:both;">The file used is <code><a href="temperatures.csv">temperatures.csv</a></code>.</p>
+
+<p>There are a few things to note here:</p>
+
+<ul>
+  <li>The Dygraph sent off an XHR to get the temperatures.csv file.</li>
+  <li>The labels were taken from the first line of <code>temperatures.csv</code>, which is <code>Date,High,Low</code>.</li>
+  <li>The Dygraph automatically chose two different, easily-distinguishable colors for the two data series.</li>
+  <li>The labels on the x-axis have switched from days to months. If you zoom in, they'll switch to weeks and then days.</li>
+  <li>Some heuristics are used to determine a good vertical range for the data. The idea is to make all the data visible and have human-friendly values on the axis (i.e. 200 instead of 193.4). Generally this works well.</li>
+  <li>The data is very spiky. A moving average would be easier to interpret.</li>
+</ul>
+
+<p>This problem can be fixed by specifying the appropriate options in the "additional options" parameter to the Dygraph constructor. To set the number of days for a moving average, use the <code>rollPeriod</code> option. Here's how it's done:</p>
+
+<div class="example" style="clear:both;">
+  <div class="codeblock" style="float:left;width:400px;">
+    <h3 style="text-align:center">HTML</h3>
+<pre>
+&lt;html&gt;
+&lt;head&gt;
+&lt;script type=&quot;text/javascript&quot;
+  src=&quot;dygraph-combined-dev.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;graphdiv3&quot;
+  style=&quot;width:500px; height:300px;&quot;&gt;&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+  g3 = new Dygraph(
+    document.getElementById(&quot;graphdiv3&quot;),
+    &quot;temperatures.csv&quot;,
+    {
+      rollPeriod: 7,
+      showRoller: true
+    }
+  );
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+  </div>
+  <div class="codeoutput" style="float:left;">
+    <h3 style="text-align:center">OUTPUT</h3>
+    <div id="graphdiv3" style="width:500px; height:300px;"></div>
+    <script type="text/javascript">
+      g3 = new Dygraph(
+        document.getElementById("graphdiv3"),
+        "temperatures.csv",
+        {
+          rollPeriod: 7,
+          showRoller: true
+        }
+      );
+    </script>
+  </div>
+</div>
+
+<p style="clear:both;">A rolling average can be set using the text box in the lower left-hand corner of the graph (the showRoller attribute is what makes this appear). Also note that we've explicitly set the size of the chart div.</p>
+
+<h2>Error Bars</h2>
+
+<p>Another significant feature of the dygraphs library is the ability to display error bars around data series. One standard deviation must be specified for each data point. A <em>&plusmn;n</em> sigma band will be drawn around the data series at that point. If a moving average is being displayed, dygraphs will compute the standard deviation of the average at each point. I.E. <em>&sigma; = sqrt( (&sigma;<sub>1<sup>2</sup></sub> + &sigma;<sub>2<sup>2</sup></sub> + ... + &sigma;<sub>n<sup>2</sup></sub>) / n )</em></p>
+
+<p>Here's a demonstration. There are two data series. One is <code>N(100,10)</code> with a standard deviation of 10 specified at each point. The other is <code>N(80,20)</code> with a standard deviation of 20 specified at each point. The CSV file was generated using Octave and can be viewed at <a href="twonormals.csv">twonormals.csv</a>.</p>
+
+<div class="example" style="clear:both;">
+  <div class="codeblock" style="float:left;width:400px;">
+    <h3 style="text-align:center">HTML</h3>
+<pre>
+&lt;html&gt;
+&lt;head&gt;
+&lt;script type=&quot;text/javascript&quot;
+  src=&quot;combined.js&quot;&gt;&lt;/script&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div id=&quot;graphdiv4&quot;
+  style=&quot;width:480px; height:320px;&quot;&gt;&lt;/div&gt;
+&lt;script type=&quot;text/javascript&quot;&gt;
+  g4 = new Dygraph(
+    document.getElementById(&quot;graphdiv4&quot;),
+    &quot;twonormals.csv&quot;,
+    {
+      rollPeriod: 7,
+      showRoller: true,
+      errorBars: true,
+      valueRange: [50,125]
+    }
+  );
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;
+</pre>
+</div>
+<div class="codeoutput" style="float:left;">
+  <h3 style="text-align:center">OUTPUT</h3>
+  <div id="graphdiv4" style="width:480px; height:320px;"></div>
+  <script type="text/javascript">
+    g4 = new Dygraph(
+      document.getElementById("graphdiv4"),
+      "twonormals.csv",
+      {
+        rollPeriod: 7,
+        showRoller: true,
+        errorBars: true,
+        valueRange: [50,125]
+      }
+    );
+  </script>
+</div>
+</div>
+
+<p style="clear:both;">Things to note here:</p>
+
+<ul>
+<li>The <strong>errorBars</strong> option affects both the interpretation of the CSV file and the display of the graph. When <strong>errorBars</strong> is set to true, each line is interpreted as <em>YYYYMMDD</em>, <em>A</em>, <em>sigma_A</em>, <em>B</em>, <em>sigma_B</em>, &hellip;</li>
+<li>The first line of the CSV file doesn't mention the error columns. In this case, it's just "Date,Series1,Series2".</li>
+<li>The averaging visibly affects the error bars. This is most clear if you crank up the rolling period to something like 100 days. For the earliest dates, there won't be 100 data points to average so the signal will be noisier. The error bars get smaller like sqrt(N) going forward in time until there's a full 100 points to average.</li>
+<li>The error bars are partially transparent. This can be seen when they overlap one another.</li>
+</ul>
+
+
+<h2 id="gviz">GViz Data</h2>
+
+<p>The <a
+  href="http://code.google.com/apis/visualization/documentation/index.html">Google
+  Visualization API</a> provides a standard interface for describing data.
+Once you've specified your data using this API, you can plug in any
+GViz-compatible visualization. dygraphs is such a visualization. In
+particular, it can be used as a drop-in replacement for the
+AnnotatedTimeline visualization used on Google Finance and other sites. To
+see how this works, check out the <a href="tests/annotation-gviz.html">gviz
+  annotation demo.</a></p>
+
+<p>For a simple demonstration of how to use dygraphs a GViz visualization, see <a href="http://danvk.org/dygraphs/tests/gviz.html">http://danvk.org/dygraphs/tests/gviz.html</a>. dygraphs can also be used as a GViz gadget. This allows it to be embedded inside of a Google Spreadsheet. For a demonstration of this, see <a   href="http://spreadsheets.google.com/ccc?key=0Anx1yCqeL8YUdDR1c3pPREhraGhkWmdhaURjOXRncXc&amp;hl=en">this spreadsheet</a>. The URL for the gadget is <code><a href="http://danvk.org/dygraphs/gadget.xml">http://danvk.org/dygraphs/gadget.xml</a></code>.</p>
+
+<p>Here's an example of a published gviz gadget using dygraphs:</p>
+
+<script src="http://spreadsheets.google.com/gpub?url=http%3A%2F%2Fkb8jbn8l90ocl9n4b14jrcvp61ceqis5.spreadsheets.gmodules.com%2Fgadgets%2Fifr%3Fup__table_query_url%3Dhttp%253A%252F%252Fspreadsheets.google.com%252Ftq%253Frange%253DA1%25253AC31%2526headers%253D-1%2526key%253D0Anx1yCqeL8YUdDR1c3pPREhraGhkWmdhaURjOXRncXc%2526gid%253D0%2526pub%253D1%26up__table_query_refresh_interval%3D300%26url%3Dhttp%253A%252F%252Fdanvk.org%252Fdygraphs%252Fgadget.xml%253Fnocache&height=215&width=530"></script>
+
+<h2 id="baseball">Charting Fractions</h2>
+
+<p>Situations often arise where you want to plot fractions, e.g. the fraction of respondents in a poll who said they'd vote for candidate X or the number of hits divided by at bats (baseball's batting average). Fractions require special treatment for two main reasons:</p>
+
+<ul>
+  <li>The average of <code>a1/b1</code> and <code>a2/b2</code> is <code>(a1+a2)/(b1+b2)</code>, not <code>(a1/b1 + a2/b2)/2</code>.</li>
+  <li>The normal approximation is not always applicable and more sophisticated confidence intervals (e.g. the <a href="http://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval">Wilson confidence interval</a>) must be employed to avoid ratios that exceed 100% or go below 0%.</li>
+</ul>
+
+<p>Fortunately, dygraphs handles both of these for you! Here's a chart and the command that generated it:</p>
+
+<div style="width:750px; text-align:center; font-weight: bold; font-size: 125%;">Batting Average for Ichiro Suzuki vs. Mariners (2004)</div>
+<div id="baseballdiv" style="width:750px; height:300px;"></div>
+<script type="text/javascript">
+  new Dygraph(
+    document.getElementById("baseballdiv"),
+    "suzuki-mariners.txt",
+    {
+      fractions: true,
+      errorBars: true,
+      showRoller: true,
+      rollPeriod: 15
+    }
+  );
+</script>
+
+<b>Code:</b>
+<pre>
+new Dygraph(
+  document.getElementById(&quot;baseballdiv&quot;),
+  &quot;suzuki-mariners.txt&quot;,
+  {
+    fractions: true,
+    errorBars: true,
+    showRoller: true,
+    rollPeriod: 15
+  }
+);
+</pre>
+
+<p>The <code>fractions</code> option indicates that the values in each column should be parsed as fractions (e.g. "1/2" instead of "0.5"). The <code>errorBars</code> option indicates that we'd like to see a confidence interval around each data point. By default, when <code>fractions</code> is set, you get a Wilson confidence interval. If you look carefully at the chart, you can see that the error bars are asymmetric.</p>
+
+<p>A couple things to notice about this chart:</p>
+
+<ul>
+  <li>The error bars for Ichiro's batting average are larger than for the Mariners', since he has far fewer at bats than his team.</li>
+  <li>dygraphs makes it easy to see "batting average over the last 30 games". This is ordinarily quite difficult to compute. It makes it clear where the "hot" and "cold" part of Suzuki's season were.</li>
+  <li>If you set the averaging period to something large, like 200, you'll see the team's and player's batting average through that game. The final number is the overall batting average for the season.</li>
+  <li>Where the error bars do not overlap, we can say with 95% confidence that the series differ. There is a better than 95% chance that Ichiro was a better hitter than his team as a whole in 2004, the year he won the batting title.</li>
+</ul>
+
+<h2 id="stock">One last demo</h2>
+
+<p>This chart shows monthly closes of the Dow Jones Industrial Average, both in nominal and real (i.e. adjusted for inflation) dollars. The shaded areas show its monthly high and low. CPI values with a base from 1982-84 are used to adjust for inflation.</p>
+
+<div id="dow_chart" style="width:750px; height:350px;"></div>
+<p><b>Display: </b>
+<input type=checkbox id=0 onClick="stockchange(this)" checked>
+<label for="0"> Nominal</label>
+<input type=checkbox id=1 onClick="stockchange(this)" checked>
+<label for="1"> Real</label>
+<input type=checkbox id=ann onClick="annotationschange(this)" checked>
+<label for="ann"> Annotations</label>
+</p>
+
+<script type="text/javascript">
+  var stock_annotations = [
+    {
+      series: "Real",
+      x: "1929-08-15",
+      shortText: "A",
+      text: "1929 Stock Market Peak",
+      cssClass: 'annotation'
+    },
+    {
+      series: "Nominal",
+      x: "1987-08-15",
+      shortText: "B",
+      text: "1987 Crash",
+      cssClass: 'annotation'
+    },
+    {
+      series: "Nominal",
+      x: "1999-12-15",
+      shortText: "C",
+      text: "1999 (.com) Peak",
+      cssClass: 'annotation'
+    },
+    {
+      series: "Nominal",
+      x: "2007-10-15",
+      shortText: "D",
+      text: "All-Time Market Peak",
+      cssClass: 'annotation'
+    }
+  ];
+
+// From http://www.econstats.com/eqty/eq_d_mi_3.csv
+  stockchart = new Dygraph(
+    document.getElementById('dow_chart'),
+    "dow.txt",
+    {
+      showRoller: true,
+      customBars: true,
+      labelsKMB: true,
+      drawCallback: function(g, is_initial) {
+        if (!is_initial) return;
+        g.setAnnotations( stock_annotations );
+      }
+    }
+  );
+
+  function stockchange(el) {
+    stockchart.setVisibility(el.id, el.checked);
+  }
+
+  function annotationschange(el) {
+    if (el.checked) {
+      stockchart.setAnnotations(stock_annotations);
+    } else {
+      stockchart.setAnnotations([]);
+    }
+  }
+</script>
+<!--
+
+Here is a script to regenerate the Dow Jones plot:
+
+# Get unadjusted DJIA data in a nice format:
+curl -O http://www.econstats.com/eqty/eq_d_mi_3.csv
+sed '1,17d' eq_d_mi_3.csv | cut -d, -f1,6 | perl -pe 's/(\d{4}-\d\d)-\d\d/$1/g' | perl -pe 's/, */\t/' | grep -v 'na' | perl -ne 'chomp; ($m,$v) = split/\t/; $close{$m} = $v; if ($low{$m} == 0 || $v < $low{$m}) { $low{$m}=$v } if ($v > $high{$m}) { $high{$m} = $v } END { for $x(sort keys %close) { print "$x\t$low{$x}\t$close{$x}\t$high{$x}\n" } } ' > monthly-djia.tsv
+
+# Fetch and format the CPI data:
+curl 'http://data.bls.gov/PDQ/servlet/SurveyOutputServlet?series_id=CUUR0000SA0&years_option=all_years&periods_option=all_periods&output_type=column&output_format=text&delimiter=comma' > cpi-u.txt
+sed '1,/Series Id,Year,/d' cpi-u.txt | sed '/^$/,$d' | cut -d, -f2,3,4 | perl -ne 'print if /,M(0[0-9]|1[012]),/' | perl -pe 's/(\d{4}),M(\d{2}),/$1-$2\t/g' > cpi-u.tsv
+
+# Merge:
+join -t'     ' cpi-u.tsv monthly-djia.tsv > annotated-djia.tsv
+perl -ne 'BEGIN{print "Month,Nominal,Real\n"} chomp; ($m,$cpi,$low,$close,$high) = split /\t/; $cpi /= 100.0; print "$m-15,$low;$close;$high,",($low/$cpi),";",($close/$cpi),";",($high/$cpi),"\n"' annotated-djia.tsv > dow.txt
+
+-->
+
+<h2>Common Gotchas</h2>
+
+<p>Here are a few problems that I've frequently run into while using the dygraphs library.</p>
+
+<ul>
+  <li>If your chart doesn't display, be sure to check your browser's JavaScript error console. dygraphs makes every attempt to log errors and warnings, and these can often guide you in the right direction.</li>
+  <li>Make sure your CSV files are readable! If your graph isn't showing up, the XMLHttpRequest for the CSV file may be failing. You can determine whether this is the case using tools like <a href="http://www.getfirebug.com/">Firebug</a>.</li>
+  <li>Make sure your CSV files are in the correct format. They must be of the form <code>YYYYMMDD, series1, series2, </code>&hellip; . And if you set the <code>errorBars</code> property, make sure you alternate data series and standard deviations.</li>
+  <li>dygraphs are not happy when placed inside a <code>&lt;center&gt;</code> tag. This applies to the CSS <code>text-align</code> property as well. If you want to center a Dygraph, put it inside a table with <code>align = center</code> set.</li>
+  <li>Don't set the <code>dateWindow</code> property to a date. It expects milliseconds since epoch, which can be obtained from a JavaScript Date object's valueOf method.</li>
+  <li>Make sure you don't have any trailing commas in your call to the Dygraph constructor or in the options parameter. Firefox, Chrome and Safari ignore these but they can cause a graph to not display in Internet Explorer.</li>
+</ul>
+
+<h2>What next?</h2>
+
+<p>If you need to support Internet Explorer, check out our <a href="ie.html">notes on IE</a>.</p>
+
+<p>To get some inspiration, look at how the <a href="gallery/">charts in our gallery</a> are built.</p>
+
+
+<!--#include virtual="footer.html" -->

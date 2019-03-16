@@ -330,10 +330,9 @@ class Factory(object):
           AFF4_PREFIXES,
           timestamp=self.ParseAgeSpecification(age),
           limit=None):
-
         # Ensure the values are sorted.
         values.sort(key=lambda x: x[-1], reverse=True)
-
+	#print (values)
         yield utils.SmartUnicode(subject), values
 
   def SetAttributes(self,

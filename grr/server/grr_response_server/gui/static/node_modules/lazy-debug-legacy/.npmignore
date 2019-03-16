@@ -1,0 +1,4 @@
+test/
+scripts/
+*.json
+*.md

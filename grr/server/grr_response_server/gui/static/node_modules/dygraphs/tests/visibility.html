@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>visibility</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <h3>Click the check boxes to toggle series visibility</h3>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+    <p><b>Show Series:</b></p>
+    <p>
+      <input type=checkbox id="0" onClick="change(this)">
+      <label for="0"> A</label><br/>
+      <input type=checkbox id="1" checked onClick="change(this)">
+      <label for="1"> B</label><br/>
+      <input type=checkbox id="2" checked onClick="change(this)">
+      <label for="2"> C</label>
+    </p>
+
+    <p>g.visibility() = <span id="visibility"></span></p>
+
+
+    <script type="text/javascript">
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            NoisyDataABC, {
+              rollPeriod: 7,
+              errorBars: true,
+              visibility: [false, true, true]
+            }
+          );
+      setStatus();
+
+      function setStatus() {
+        document.getElementById("visibility").innerHTML =
+          g.visibility().toString();
+      }
+
+      function change(el) {
+        g.setVisibility(parseInt(el.id), el.checked);
+        setStatus();
+      }
+    </script>
+
+  </body>
+</html>

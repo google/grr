@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>stacked</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Simple graph:</p>
+    <div id="simple_div"></div>
+    <p>Stacked graph:</p>
+    <div id="stacked_div"></div>
+    <p>Simple graph with missing data:</p>
+    <div id="simple_missing_div"></div>
+    <p>Stacked graph with missing data:</p>
+    <div id="stacked_missing_div"></div>
+    <p>Stacked graph with many series:</p>
+    <div id="stacked_many_div"></div>
+    <p>Change selection/highlighting on all graphs:</p>
+    <div id="graph_selection_div">
+        <select onchange="javascript:setSelection(this.options[this.selectedIndex].value);">
+            <option value="" selected></option>
+            <option value="0">0</option>
+            <option value="10">10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="40">40</option>
+            <option value="50">50</option>
+            <option value="60">60</option>
+            <option value="70">70</option>
+            <option value="80">80</option>
+            <option value="90">90</option>
+            <option value="99">99</option>
+        </select>
+    </div>
+
+    <script type="text/javascript">
+      data = "X,x,100-x\n";
+      for (var i = 0; i < 100; i++) {
+        data += i + "," + i + "," + (100 - i) + "\n";
+      }
+      
+      var graphs = [];
+
+      graphs.push(
+          new Dygraph(
+              document.getElementById("simple_div"),
+              data));
+          
+      graphs.push(
+          new Dygraph(
+              document.getElementById("stacked_div"),
+              data,
+              { stackedGraph: true }));
+
+      missing_data = "X,x,100-x\n";
+      for (var i = 0; i < 100; i++) {
+        if (i >= 20 && i < 40) {
+          missing_data += i + ",," + (100 - i) + "\n";
+        } else if (i >= 60 && i < 80) {
+          missing_data += i + "," + i + ",\n";
+        } else {
+          missing_data += i + "," + i + "," + (100 - i) + "\n";
+        }
+      }
+
+      graphs.push(
+          new Dygraph(
+              document.getElementById("simple_missing_div"),
+              missing_data));
+      
+      graphs.push(
+          new Dygraph(
+              document.getElementById("stacked_missing_div"),
+              missing_data,
+              { stackedGraph: true }));
+
+      many_data = "X,a,b,c,d,e,100-a,100-b,100-c,100-d,100-e\n";
+      for (var i = 0; i < 100; i++) {
+        many_data += i + "," + i + "," + i + "," + i + "," + i + "," + i;
+        j = 100 - i;
+        many_data += "," + j + "," + j + "," + j + "," + j + "," + j;
+        many_data += "\n";
+      }
+
+      graphs.push(
+          new Dygraph(
+              document.getElementById("stacked_many_div"),
+              many_data,
+              { stackedGraph: true }));
+      
+      function setSelection(row) {
+        for (var i = 0; i < graphs.length; i++) {
+          graphs[i].setSelection(row ? row : false);
+        }
+      }
+    </script>
+  </body>
+</html>

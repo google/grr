@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>two series</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+    <style type="text/css">
+    #div_g .dygraph-label {
+      /* This applies to the title, x-axis label and y-axis label */
+      font-family: Arial, Helvetica, sans-serif;
+    }
+    #div_g .dygraph-title {
+      /* This rule only applies to the chart title */
+      font-size: 24px;
+      text-shadow: gray 2px 2px 2px;  /* color, delta-x, delta-y, blur radius */
+    }
+    #div_g .dygraph-ylabel {
+      /* This rule only applies to the y-axis label */
+      font-size: 18px;
+      text-shadow: gray -2px 2px 2px;  /* (offsets are in a rotated frame) */
+    }
+    .chart {
+      border: 1px dashed black;
+      margin: 5px;
+      padding: 2px;
+    }
+    </style>
+  </head>
+  <body>
+    <p>In this chart, each chart label is styled independently. View source to
+    see how it works.</p>
+
+    <div class="chart" id="div_g" style="width:600px; height:300px;"></div>
+
+    <p>This version of the chart uses the default styles:</p>
+    <div class="chart" id="div_g2" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+            document.getElementById("div_g"),
+            data, {
+              rollPeriod: 7,
+              legend: 'always',
+              title: 'High and Low Temperatures',
+              titleHeight: 32,
+              ylabel: 'Temperature (F)',
+              xlabel: 'Date (Ticks indicate the start of the indicated time period)',
+              labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+              },
+              strokeWidth: 1.5
+            }
+          );
+
+      g2 = new Dygraph(
+            document.getElementById("div_g2"),
+            data, {
+              rollPeriod: 30,
+              legend: 'always',
+              title: 'High and Low Temperatures (30-day average)',
+              ylabel: 'Temperature (F)',
+              xlabel: 'Date (Ticks indicate the start of the indicated time period)',
+              labelsDivStyles: {
+                'text-align': 'right',
+                'background': 'none'
+              },
+              strokeWidth: 1.5
+            }
+          );
+    </script>
+  </body>
+</html>

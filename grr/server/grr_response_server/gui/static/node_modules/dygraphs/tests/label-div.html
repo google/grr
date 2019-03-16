@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>label-div</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <p>Chart with labels displayed in a separate div:</p>
+    <table><tr>
+    <td valign="top"><div id="graphdiv2"></div></td>
+    <td valign="top">&nbsp; &nbsp;</td>
+    <td valign="top"><div id="labels"></div></td>
+    </tr></table>
+    <p>
+    	The following chart should be the same as above. Here we use the 
+		labelsDiv id instead of the actual labelsDiv element.<br/>This is 
+		useful when the labelsDiv element has not been attached to the 
+		DOM when the chart/options is created:
+	</p>
+	<table><tr>
+    <td valign="top"><div id="graphdiv3"></div></td>
+    <td valign="top">&nbsp; &nbsp;</td>
+    <td valign="top"><div id="labels2"></div></td>
+    </tr></table>
+    <p>
+    	The following chart shows the labelsShowZeroValues option in use.  
+		When any point has a zero value the label is not shown.  This is 
+		useful when there are many zero values in a point and the user 
+		is only interested in the non-zero points. 
+	</p>
+	<table><tr>
+    <td valign="top"><div id="graphdiv4"></div></td>
+    <td valign="top">&nbsp; &nbsp;</td>
+    <td valign="top"><div id="labels3"></div></td>
+    </tr></table>
+
+    <script type="text/javascript">
+      g2 = new Dygraph(document.getElementById("graphdiv2"),
+                       data_nolabel,
+                       {
+                         labels: [ "Date", "High", "Low" ],
+                         labelsDiv: document.getElementById("labels")
+                       });
+      g3 = new Dygraph(document.getElementById("graphdiv3"),
+                       data_nolabel,
+                       {
+                         labels: [ "Date", "High", "Low" ],
+                         labelsDiv: "labels2"
+                       });
+      g4 = new Dygraph(document.getElementById("graphdiv4"),
+                       data_showzerovalues,
+                       {
+                         labels: [ "Date", "High", "Low" ],
+                         labelsDiv: "labels3",
+						 labelsShowZeroValues: false
+                       });
+    </script>
+  </body>
+</html>

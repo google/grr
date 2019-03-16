@@ -208,7 +208,7 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     self.args_type = flow_cls.args_type.__name__
     self.default_args = flow_cls.GetDefaultArgs(username=token.username)
     self.behaviours = sorted(flow_cls.behaviours)
-
+    #print self
     return self
 
 
@@ -320,7 +320,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
                     flow_state_data))
     except Exception as e:  # pylint: disable=broad-except
       self.internal_error = "Error while opening flow: %s" % str(e)
-
+    #print self
     return self
 
   def InitFromFlowObject(self, flow_obj, with_state_and_context=False):
@@ -1250,7 +1250,6 @@ class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
 
 class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   """Starts a flow on a given client with given parameters."""
-
   args_type = ApiCreateFlowArgs
   result_type = ApiFlow
 
@@ -1259,9 +1258,12 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("client_id must be provided")
 
     runner_args = args.flow.runner_args
+    #print runner_args
     flow_name = args.flow.name
+    #print args
     if not flow_name:
       flow_name = runner_args.flow_name
+      #print flow_name
     if not flow_name:
       raise RuntimeError("Flow name is not specified.")
 
@@ -1274,48 +1276,52 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     runner_args.ClearFieldsWithLabel(
         rdf_structs.SemanticDescriptor.Labels.HIDDEN,
         exceptions="output_plugins")
-
+    #print runner_args
+     
     if args.original_flow:
       runner_args.original_flow = rdf_objects.FlowReference(
           flow_id=utils.SmartStr(args.original_flow.flow_id),
           client_id=utils.SmartStr(args.original_flow.client_id))
 
+    #return ApiFlow().InitFromAff4Object(fd, flow_id=flow_id.Basename())    
     if data_store.RelationalDBFlowsEnabled():
-      flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
-      cpu_limit = None
-      if runner_args.HasField("cpu_limit"):
-        cpu_limit = runner_args.cpu_limit
-      network_bytes_limit = None
-      if runner_args.HasField("network_bytes_limit"):
-        network_bytes_limit = runner_args.network_bytes_limit
+      		flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+      		cpu_limit = None
+      		if runner_args.HasField("cpu_limit"):
+      	  		cpu_limit = runner_args.cpu_limit
+      		network_bytes_limit = None
+      		if runner_args.HasField("network_bytes_limit"):
+        		network_bytes_limit = runner_args.network_bytes_limit
+      		#print flow_cs
+      		flow_id = flow.StartFlow(
+          		client_id=str(args.client_id),
+          		cpu_limit=cpu_limit,
+          		creator=token.username,
+          		flow_args=args.flow.args,
+          		flow_cls=flow_cls,
+          		network_bytes_limit=network_bytes_limit,
+          		original_flow=runner_args.original_flow,
+          		output_plugins=runner_args.output_plugins,
+          		parent_flow_obj=None,
+      		)
+      		flow_obj = data_store.REL_DB.ReadFlowObject(str(args.client_id), flow_id)
 
-      flow_id = flow.StartFlow(
-          client_id=str(args.client_id),
-          cpu_limit=cpu_limit,
-          creator=token.username,
-          flow_args=args.flow.args,
-          flow_cls=flow_cls,
-          network_bytes_limit=network_bytes_limit,
-          original_flow=runner_args.original_flow,
-          output_plugins=runner_args.output_plugins,
-          parent_flow_obj=None,
-      )
-      flow_obj = data_store.REL_DB.ReadFlowObject(str(args.client_id), flow_id)
-
-      res = ApiFlow().InitFromFlowObject(flow_obj)
-      res.context = None
-      return res
+      		res = ApiFlow().InitFromFlowObject(flow_obj)
+      		res.context = None
+      		return res
     else:
-      flow_id = flow.StartAFF4Flow(
-          client_id=args.client_id.ToClientURN(),
-          flow_name=flow_name,
-          token=token,
-          args=args.flow.args,
-          runner_args=runner_args)
-
-      fd = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow, token=token)
-      return ApiFlow().InitFromAff4Object(fd, flow_id=flow_id.Basename())
-
+      		#print args
+      		#print flow_name
+      		flow_id = flow.StartAFF4Flow(
+          		client_id=args.client_id.ToClientURN(),
+          		flow_name=flow_name,
+          		token=token,
+          		args=args.flow.args,
+          		runner_args=runner_args)
+      		#print flow_id
+      		fd = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow, token=token)
+    		return ApiFlow().InitFromAff4Object(fd, flow_id=flow_id.Basename())
+	
 
 class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiCancelFlowArgs
@@ -1360,17 +1366,20 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     """Renders list of descriptors for all the flows."""
-
     if data_store.RelationalDBFlowsEnabled():
       flow_iterator = iteritems(registry.FlowRegistry.FLOW_REGISTRY)
     else:
       flow_iterator = iteritems(registry.AFF4FlowRegistry.FLOW_REGISTRY)
 
     result = []
+    #print flow_iterator
     for name, cls in sorted(flow_iterator):
-
+      #print name
+      #print type(cls)
+      #print type (ApiListFlowDescriptorsHandler)
       # Flows without a category do not show up in the GUI.
       if not getattr(cls, "category", None):
+	#print cls
         continue
 
       # Only show flows that the user is allowed to start.

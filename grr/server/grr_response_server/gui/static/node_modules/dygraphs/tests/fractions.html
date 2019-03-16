@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Fractions</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    Fractions:
+    <div id="dg" style="width:600px; height:300px;">Loading...</div>
+
+    With error bars and roller:
+    <div id="dg2" style="width:600px; height:300px;">Loading...</div>
+
+    <script type="text/javascript">
+      var frac_str =
+                  "X,Frac1,Frac2\n" +
+                  "1,1/2,3/4\n"+
+                  "2,1/3,2/3\n"+
+                  "3,2/3,17/49\n"+
+                  "4,25/30,100/200";
+
+      var g1 = new Dygraph(document.getElementById("dg"),
+                  frac_str,
+                  {
+                    fractions: true
+                  });
+
+      var g2 = new Dygraph(document.getElementById("dg2"),
+                  frac_str,
+                  {
+                    fractions: true,
+                    errorBars: true,
+                    showRoller: true
+                  });
+    </script>
+  </body>
+</html>

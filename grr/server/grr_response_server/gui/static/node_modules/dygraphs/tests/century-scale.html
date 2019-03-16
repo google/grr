@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <h2>Demo</h2>
+    <font size=-1>(Mouse over to highlight individual values. Click and drag to zoom. Double-click to zoom out.)</font><br/>
+    <table><tr><td>
+    <div id="demodiv"></div>
+    </td><td valign=top>
+    <div id="status" style="width:200px; font-size:0.8em; padding-top:5px;"></div>
+    </td>
+    </tr></table>
+    <script type="text/javascript">
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              "Date,Value\n" +
+              "1776/01/01,100\n" +
+              "1876/01/01,200\n" + 
+              "1976/01/01,150\n",
+              {
+                rollPeriod: 1,
+                labelsDiv: document.getElementById('status'),
+                labelsSeparateLines: true,
+                labelsKMB: true,
+                colors: ["rgb(51,204,204)",
+                         "rgb(255,100,100)",
+                         "#00DD55",
+                         "rgba(50,50,200,0.4)"],
+                width: 480,
+                height: 320
+              }
+          );
+    </script>
+</body>
+</html>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>zero series</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Custom bars with a completely zero series. Both Y1 and Y2 should show.</p>
+
+    <div id="data" style="display:none">X,Y1,Y2
+1,1;2;3,0;0;0
+2,2;3;4,0;0;0
+3,1;3;5,0;0;0
+</div>
+
+    <div id="graphdiv" style="width:600px; height:300px;"></div>
+    <script type="text/javascript">
+      var g = new Dygraph(document.getElementById("graphdiv"),
+          document.getElementById("data").innerHTML,
+          {
+            customBars: true
+          });
+    </script>
+  </body>
+</html>

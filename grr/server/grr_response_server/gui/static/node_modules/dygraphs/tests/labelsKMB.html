@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>labelsKMB</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>labelsKMB:</p>
+    <div id="labelsKMB" style="width:600px; height: 300px;"></div>
+
+    <p>labelsKMG2:</p>
+    <div id="labelsKMG2" style="width:600px; height: 300px;"></div>
+
+    <p>labelsKMG2 with yValueFormatter:</p>
+    <div id="labelsKMG2yValueFormatter" style="width:600px; height: 300px;"></div>
+
+    <p>labelsKMG2 with very small numbers:</p>
+    <div id="labelsKMG2SmallNumbers" style="width:600px; height: 300px;"></div>
+
+    <p>The curves are exponentials. Zooming in should reveal each of the 'K',
+    'M', 'B', etc. labels.</p>
+
+    <script type="text/javascript">
+      function round(num, places) {
+        var shift = Math.pow(10, places);
+        return Math.round(num * shift)/shift;
+      };
+
+      var data = [], smalldata = [];
+      for (var i = 0, n = 1; i < 63; i++, n *= 2) {
+        data.push([i, n]);
+        smalldata.push([i, Math.pow(10,-n)]);
+      }
+
+      var suffixes = ['', 'k', 'M', 'G', 'T'];
+      function formatValue(v) {
+        if (v < 1000) return v;
+
+        var magnitude = Math.floor(String(Math.floor(v)).length / 3);
+        if (magnitude > suffixes.length - 1)
+          magnitude = suffixes.length - 1;
+        return String(round(v / Math.pow(10, magnitude * 3), 2)) +
+          suffixes[magnitude];
+      }
+
+      var g = new Dygraph(document.getElementById("labelsKMB"), data, {
+        labelsKMB: true,
+        labels: ['Base', 'Power']
+      });
+      var g2 = new Dygraph(document.getElementById("labelsKMG2"), data, {
+        labelsKMG2: true,
+        labels: ['Base', 'Power']
+      });
+      var g3 = new Dygraph(document.getElementById("labelsKMG2yValueFormatter"), data, {
+        labelsKMG2: true,
+        yValueFormatter: formatValue,
+        labels: ['Base', 'Power']
+      });
+
+      var g4 = new Dygraph(document.getElementById("labelsKMG2SmallNumbers"), smalldata, {
+        labelsKMG2: true,
+        labels: ['Base', 'Power']
+      });
+    </script>
+  </body>
+</html>

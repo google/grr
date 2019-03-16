@@ -1,0 +1,59 @@
+<html>
+<head>
+  <script src="../dashed-canvas.js"></script>
+</head>
+<body>
+<p>You should see solid black and blue lines with a dashed red line in between
+them:</p>
+<canvas id=cnv width=640 height=480></canvas>
+
+<p>You should see a solid black line:</p>
+<canvas id=cnv2 width=640 height=100></canvas>
+
+<script type="text/javascript">
+ctx = document.getElementById("cnv").getContext("2d");
+ctx2 = document.getElementById("cnv2").getContext("2d");
+
+// Draw a line segment -- should be perfectly normal.
+ctx.lineWidth = 2;
+ctx.save();
+ctx.beginPath();
+ctx.moveTo(80, 50);
+ctx.lineTo(280, 400);
+ctx.moveTo(330, 400);
+ctx.lineTo(580, 200);
+ctx.stroke();
+
+// Draw a dashed line segment.
+ctx.installPattern([10, 10]);
+ctx.strokeStyle = 'red';
+ctx.beginPath();
+ctx.moveTo(100, 50);
+ctx.lineTo(300, 400);
+ctx.lineTo(300, 450);
+ctx.moveTo(350, 450);
+ctx.lineTo(350, 400);
+ctx.lineTo(600, 200);
+ctx.stroke();
+
+// An unrelated canvas should not be aware of the pattern.
+ctx2.beginPath();
+ctx2.moveTo(100, 50);
+ctx2.lineTo(600, 50);
+ctx2.stroke();
+
+ctx.uninstallPattern();
+
+// Now that we've uninstalled the pattern, should be normal again.
+ctx.strokeStyle = 'blue';
+ctx.beginPath();
+ctx.moveTo(120, 50);
+ctx.lineTo(320, 400);
+ctx.moveTo(370, 400);
+ctx.lineTo(620, 200);
+ctx.stroke();
+
+ctx.restore();
+</script>
+</body>
+</html>

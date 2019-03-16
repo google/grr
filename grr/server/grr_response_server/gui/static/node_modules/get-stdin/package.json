@@ -1,0 +1,39 @@
+{
+  "name": "get-stdin",
+  "version": "4.0.1",
+  "description": "Easier stdin",
+  "license": "MIT",
+  "repository": "sindresorhus/get-stdin",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "http://sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "node test.js && node test-buffer.js && echo unicorns | node test-real.js"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "std",
+    "stdin",
+    "stdio",
+    "concat",
+    "buffer",
+    "stream",
+    "process",
+    "stream"
+  ],
+  "devDependencies": {
+    "ava": "0.0.4",
+    "buffer-equal": "0.0.1"
+  }
+
+,"_resolved": "https://registry.npmjs.org/get-stdin/-/get-stdin-4.0.1.tgz"
+,"_integrity": "sha1-uWjGsKBDhDJJAui/Gl3zJXmkUP4="
+,"_from": "get-stdin@4.0.1"
+}

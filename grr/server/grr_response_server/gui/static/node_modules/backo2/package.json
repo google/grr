@@ -1,0 +1,19 @@
+{
+  "name": "backo2",
+  "version": "1.0.2",
+  "repository": "mokesmokes/backo",
+  "description": "simple backoff based on segmentio/backo",
+  "keywords": [
+    "backoff"
+  ],
+  "dependencies": {},
+  "devDependencies": {
+    "mocha": "*",
+    "should": "*"
+  },
+  "license": "MIT"
+
+,"_resolved": "https://registry.npmjs.org/backo2/-/backo2-1.0.2.tgz"
+,"_integrity": "sha1-MasayLEpNjRj41s+u2n038+6eUc="
+,"_from": "backo2@1.0.2"
+}

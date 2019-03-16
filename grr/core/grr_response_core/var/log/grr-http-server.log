@@ -1,0 +1,2314 @@
+ERROR:2019-02-12 20:41:42,839 13821 MainProcess 139912962336512 Thread-235 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 264, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-12 20:42:12,414 13821 MainProcess 139912962336512 Thread-239 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 264, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-14 14:45:23,182 9411 MainProcess 140177813600000 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    print (messages.name)
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'name'
+ERROR:2019-02-14 14:45:35,419 9411 MainProcess 140177813600000 Thread-4 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    print (messages.name)
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'name'
+ERROR:2019-02-14 15:06:44,370 11566 MainProcess 140586208188160 Thread-23 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 266, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-15 08:37:26,963 9124 MainProcess 140403802433280 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 266, in Control
+    print (requests_comms.orig_request)
+NameError: global name 'requests_comms' is not defined
+ERROR:2019-02-15 08:38:27,430 9124 MainProcess 140403802433280 Thread-3 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 266, in Control
+    print (requests_comms.orig_request)
+NameError: global name 'requests_comms' is not defined
+ERROR:2019-02-15 20:26:27,882 11045 MainProcess 140333081421568 Thread-111 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-15 20:31:11,479 15969 MainProcess 140523036010240 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 265, in Control
+    print(messages)
+NameError: global name 'messages' is not defined
+ERROR:2019-02-15 20:43:03,804 16620 MainProcess 139755227207424 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 265, in Control
+    print(response_comms.SerializeToString())
+NameError: global name 'response_comms' is not defined
+ERROR:2019-02-24 16:42:48,851 4639 MainProcess 140421070059264 Thread-132 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-24 16:46:43,260 4639 MainProcess 140421070059264 Thread-171 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-24 16:49:52,642 4639 MainProcess 140421070059264 Thread-209 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-24 17:16:02,904 4639 MainProcess 140421070059264 Thread-396 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-24 17:32:55,304 4639 MainProcess 140421070059264 Thread-617 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-02-24 17:33:51,236 4639 MainProcess 140421070059264 Thread-639 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-02-24 17:36:37,790 4639 MainProcess 140421070059264 Thread-712 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-24 17:48:58,790 4639 MainProcess 140421070059264 Thread-714 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-24 18:01:23,799 4639 MainProcess 140421061666560 Thread-819 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 19:50:06,635 15568 MainProcess 140085344581376 Thread-110 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 19:56:15,800 20186 MainProcess 139918464612096 Thread-1 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 20:02:05,508 20186 MainProcess 139918464612096 Thread-5 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 20:09:12,030 22069 MainProcess 140597788747520 Thread-6 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 20:11:47,121 22597 MainProcess 140400926123776 Thread-26 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 20:12:11,344 22862 MainProcess 140263414290176 Thread-5 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 20:13:52,963 23316 MainProcess 139899981432576 Thread-5 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-02-25 20:17:58,404 24062 MainProcess 139852716697344 Thread-19 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-10 23:51:53,849 21318 MainProcess 140584240158464 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-12 01:45:04,839 28194 MainProcess 140257575294720 Thread-317 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 01:46:05,641 28194 MainProcess 140257575294720 Thread-318 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:44:55,146 28194 MainProcess 140257575294720 Thread-335 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:45:55,663 28194 MainProcess 140257575294720 Thread-336 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:46:56,262 28194 MainProcess 140257575294720 Thread-337 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:47:56,681 28194 MainProcess 140257575294720 Thread-338 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:48:57,174 28194 MainProcess 140257575294720 Thread-339 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:49:57,591 28194 MainProcess 140257575294720 Thread-340 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:50:58,167 28194 MainProcess 140257575294720 Thread-341 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:51:58,576 28194 MainProcess 140257575294720 Thread-342 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:52:59,175 28194 MainProcess 140257575294720 Thread-343 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:53:59,597 28194 MainProcess 140257575294720 Thread-344 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:54:00,452 28194 MainProcess 140257575294720 Thread-346 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:55:01,092 28194 MainProcess 140257575294720 Thread-347 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:56:01,714 28194 MainProcess 140257575294720 Thread-348 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:57:02,282 28194 MainProcess 140257575294720 Thread-349 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 13:57:36,288 28194 MainProcess 140257575294720 Thread-351 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-12 14:12:17,825 28194 MainProcess 140257575294720 Thread-380 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:13:18,427 28194 MainProcess 140257575294720 Thread-381 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:14:19,026 28194 MainProcess 140257575294720 Thread-382 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:15:19,563 28194 MainProcess 140257575294720 Thread-383 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:16:20,169 28194 MainProcess 140257575294720 Thread-384 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:17:20,700 28194 MainProcess 140257575294720 Thread-385 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:18:21,314 28194 MainProcess 140257575294720 Thread-386 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:19:21,829 28194 MainProcess 140257575294720 Thread-387 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:20:22,468 28194 MainProcess 140257575294720 Thread-388 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:21:23,471 28194 MainProcess 140257575294720 Thread-389 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:21:24,049 28194 MainProcess 140257575294720 Thread-391 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:22:24,772 28194 MainProcess 140257575294720 Thread-392 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:23:25,173 28194 MainProcess 140257575294720 Thread-393 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:24:25,750 28194 MainProcess 140257575294720 Thread-394 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:25:26,177 28194 MainProcess 140257575294720 Thread-395 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:26:26,661 28194 MainProcess 140257575294720 Thread-396 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:27:27,064 28194 MainProcess 140257575294720 Thread-397 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:28:27,664 28194 MainProcess 140257575294720 Thread-398 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:29:28,109 28194 MainProcess 140257575294720 Thread-399 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:30:28,622 28194 MainProcess 140257575294720 Thread-400 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:30:29,288 28194 MainProcess 140257575294720 Thread-402 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:31:29,715 28194 MainProcess 140257575294720 Thread-403 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:32:30,307 28194 MainProcess 140257575294720 Thread-404 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:33:30,659 28194 MainProcess 140257575294720 Thread-405 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:34:31,063 28194 MainProcess 140257575294720 Thread-406 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-12 14:34:52,209 28194 MainProcess 140257575294720 Thread-408 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-12 14:35:26,615 28194 MainProcess 140257575294720 Thread-430 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 21:57:19,402 9409 MainProcess 139948654995200 Thread-18 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 21:59:19,656 9409 MainProcess 139948654995200 Thread-36 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:00:20,394 9409 MainProcess 139948654995200 Thread-37 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:27:49,910 9409 MainProcess 139948654995200 Thread-174 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:28:50,375 9409 MainProcess 139948654995200 Thread-175 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:29:50,984 9409 MainProcess 139948654995200 Thread-176 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:30:51,492 9409 MainProcess 139948654995200 Thread-177 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:31:41,973 9409 MainProcess 139948654995200 Thread-193 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:32:42,468 9409 MainProcess 139948654995200 Thread-194 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:33:43,182 9409 MainProcess 139948654995200 Thread-195 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:34:44,011 9409 MainProcess 139948654995200 Thread-196 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:35:44,562 9409 MainProcess 139948654995200 Thread-197 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 22:48:40,442 13494 MainProcess 139793170732800 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-16 23:06:46,349 13637 MainProcess 140044817901312 Thread-18 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 400, in HandleMessageBundles
+    self.ReceiveMessages(source, messages)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 676, in ReceiveMessages
+    "ClientCrash", crash_details, token=self.token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 51, in PublishEvent
+    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/events.py", line 76, in PublishMultipleEvents
+    event_cls().ProcessMessages(messages, token=token)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/flows/general/administrative.py", line 215, in ProcessMessages
+    is_html=True)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/email_alerts.py", line 153, in SendEmail
+    (config.CONFIG["Worker.smtp_server"], e))
+RuntimeError: Could not connect to SMTP server to send email. Please check config option Worker.smtp_server. Currently set to localhost. Error: [Errno 111] Connection refused
+ERROR:2019-03-16 23:52:27,445 20227 MainProcess 140644129433344 Thread-158 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-16 23:54:50,501 20227 MainProcess 140644129433344 Thread-249 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-16 23:56:06,663 20227 MainProcess 140644129433344 Thread-308 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-17 00:32:35,229 22867 MainProcess 140620114949888 Thread-10 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    print messages.args
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:33:35,876 22867 MainProcess 140620114949888 Thread-11 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:34:36,240 22867 MainProcess 140620114949888 Thread-12 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:35:36,770 22867 MainProcess 140620114949888 Thread-13 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:36:37,134 22867 MainProcess 140620114949888 Thread-14 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:37:37,532 22867 MainProcess 140620114949888 Thread-15 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:38:37,881 22867 MainProcess 140620114949888 Thread-16 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:39:38,227 22867 MainProcess 140620114949888 Thread-17 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:40:38,956 22867 MainProcess 140620114949888 Thread-18 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:41:39,321 22867 MainProcess 140620114949888 Thread-19 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:41:39,967 22867 MainProcess 140620114949888 Thread-21 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:42:40,453 22867 MainProcess 140620114949888 Thread-22 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 261, in Control
+    request_comms, responses_comms)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/frontend_lib.py", line 402, in HandleMessageBundles
+    
+AttributeError: 'RepeatedFieldHelper' object has no attribute 'args'
+ERROR:2019-03-17 00:43:26,969 23198 MainProcess 140338710697728 Thread-2 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-17 00:50:14,389 23536 MainProcess 139628292220672 Thread-3 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe
+ERROR:2019-03-17 01:34:10,322 23835 MainProcess 140349577885440 Thread-264 frontend:205] Had to respond with status 500.
+Traceback (most recent call last):
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 199, in do_POST
+    self.Control()
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 55, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/core/grr_response_core/stats/stats_utils.py", line 33, in Decorated
+    return func(*args, **kwargs)
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 267, in Control
+    self.Send(responses_comms.SerializeToString())
+  File "/home/samanoudy/grr/grr/server/grr_response_server/bin/frontend.py", line 92, in Send
+    self.wfile.write(data)
+  File "/usr/lib/python2.7/socket.py", line 328, in write
+    self.flush()
+  File "/usr/lib/python2.7/socket.py", line 307, in flush
+    self._sock.sendall(view[write_offset:write_offset+buffer_size])
+error: [Errno 32] Broken pipe

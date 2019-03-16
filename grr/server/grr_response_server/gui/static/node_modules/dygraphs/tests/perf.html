@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>perf</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+    <div id="status"></div>
+
+    <script type="text/javascript">
+      var num_tests = 250;
+      var times = [];
+      var start = new Date;
+
+      for (var i = 0; i < num_tests; i++) {
+        var this_start = new Date;
+        // Calling destroy() here reduces the memory usage in Chrome by
+        // ~1.2MB/instantiation.
+        if (i) g.destroy();
+        g = new Dygraph(
+              document.getElementById("div_g"),
+              NoisyData, {
+                rollPeriod: 7,
+                errorBars: true
+              }
+            );
+        var this_end = new Date;
+        times.push([i, this_end - this_start]);
+      }
+
+      var end = new Date;
+
+      document.getElementById("status").innerHTML = "Elapsed time: " + (end - start)/num_tests + " ms/instantiation";
+      perf = new Dygraph(
+        document.getElementById("div_g"),
+        times, {
+          labels: [ "Iteration", "Time (ms)" ]
+        }
+        );
+    </script>
+
+    <p><b>Some numbers on a MacBook Pro 2.53 GHz Core 2 Duo</b><br/>
+    <table border="1"><tbody>
+    <tr><td>commit</td><td>Firefox 3.0.15</td><td>Safari 4.0.3</td></tr>
+    <tr><td>bb5899c56e33716db724cb60a5120b91f5fccdeb</td>
+    <td>28 ms/instantiation</td>
+    <td>15.02 ms/instantiation</td></tr>
+    <tr><td>2847c1cf1a2874e9fe56b5749e6e105e37bb086a</td>
+    <td>49.27 ms/instantiation</td>
+    <td>24.48 ms/instantiation</td></tr>
+    </tbody></table>
+    </p>
+  </body>
+</html>

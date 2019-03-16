@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Plotters demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+    <style type="text/css">
+      body {
+        max-width: 750px;
+      }
+      div.chart {
+        width: 640px;
+        height: 320px;
+      }
+    </style>
+  </head>
+  <body>
+    <p>This page demonstrates how to build custom plotters with dygraphs.
+    The <a href="http://dygraphs.com/options.html#plotter">plotter</a> option
+    allows you to write your own drawing logic. This can be used to achieve
+    powerful customization. View source to see how the examples work.</p>
+
+    <h2>Bar Chart</h2>
+    <p>Here a specialized <a
+    href="http://dygraphs.com/options.html#plotter">plotter</a> is used to draw
+    a bar plot rather than a line plot:</p>
+    <div id="demodiv" class=chart></div>
+
+    <h2>Candle Chart</h2>
+    <p>Here a specialized <a
+    href="http://dygraphs.com/options.html#plotter">plotter</a> is used to
+    combined four series into a unified "Candle" plot:</p>
+    <div id="candlechart" class=chart></div>
+
+    <h2>Bar &amp; Line Chart</h2>
+    <p>The <a href="http://dygraphs.com/options.html#plotter">plotter</a>
+    option may be set on a per-series basis to create mixed charts:</p>
+    <div id="barlinechart" class="chart"></div>
+
+    <h2>Multi-column Bar Chart</h2>
+    <div id="multibar" class="chart"></div>
+
+    <h2>Mixed Error Bars and Lines</h2>
+    <p>You can tweak the standard plotters list to achieve effects which would
+    be difficult otherwise, e.g. drawing series with only confidence intervals
+    and showing error bars only for some series.</p>
+    <div id="mixed-error" class="chart"></div>
+
+    <h2>Smooth Lines</h2>
+    <p>See the <a href="smooth-plots.html">smooth-plots demo</a> for an example of a custom plotter which connects points using bezier curves instead of straight lines.</p>
+
+    <script type="text/javascript">
+      // Darken a color
+      function darkenColor(colorStr) {
+        // Defined in dygraph-utils.js
+        var color = Dygraph.toRGB_(colorStr);
+        color.r = Math.floor((255 + color.r) / 2);
+        color.g = Math.floor((255 + color.g) / 2);
+        color.b = Math.floor((255 + color.b) / 2);
+        return 'rgb(' + color.r + ',' + color.g + ',' + color.b + ')';
+      }
+
+      // This function draws bars for a single series. See
+      // multiColumnBarPlotter below for a plotter which can draw multi-series
+      // bar charts.
+      function barChartPlotter(e) {
+        var ctx = e.drawingContext;
+        var points = e.points;
+        var y_bottom = e.dygraph.toDomYCoord(0);
+
+        ctx.fillStyle = darkenColor(e.color);
+
+        // Find the minimum separation between x-values.
+        // This determines the bar width.
+        var min_sep = Infinity;
+        for (var i = 1; i < points.length; i++) {
+          var sep = points[i].canvasx - points[i - 1].canvasx;
+          if (sep < min_sep) min_sep = sep;
+        }
+        var bar_width = Math.floor(2.0 / 3 * min_sep);
+
+        // Do the actual plotting.
+        for (var i = 0; i < points.length; i++) {
+          var p = points[i];
+          var center_x = p.canvasx;
+
+          ctx.fillRect(center_x - bar_width / 2, p.canvasy,
+              bar_width, y_bottom - p.canvasy);
+
+          ctx.strokeRect(center_x - bar_width / 2, p.canvasy,
+              bar_width, y_bottom - p.canvasy);
+        }
+      }
+
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              "Date,Widgets Sold\n" +
+              "2012/07/21,10\n" +
+              "2012/07/22,12\n" +
+              "2012/07/23,9\n"  +
+              "2012/07/24,16\n" +
+              "2012/07/25,10\n",
+              {
+                legend: 'always',
+                title: 'Daily Widget Sales',
+                includeZero: true,
+                dateWindow: [ Date.parse("2012/07/20"), Date.parse("2012/07/26") ],
+                animatedZooms: true,
+                drawXGrid: false,
+                plotter: barChartPlotter
+              }
+          );
+
+      // The Candle chart plotter is adapted from code written by
+      // Zhenlei Cai (jpenguin@gmail.com)
+      // https://github.com/danvk/dygraphs/pull/141/files
+      
+      var BAR_WIDTH = 8;
+      function candlePlotter(e) {
+        // This is the officially endorsed way to plot all the series at once.
+        if (e.seriesIndex !== 0) return;
+
+        var setCount = e.seriesCount;
+        if (setCount != 4) {
+          throw "Exactly 4 prices each point must be provided for candle chart (open close high low)";
+        }
+
+        var prices = [];
+        var price;
+        var sets = e.allSeriesPoints;
+        for (var p = 0 ; p < sets[0].length; p++) {
+          price = {
+            open : sets[0][p].yval,
+            close : sets[1][p].yval,
+            high : sets[2][p].yval,
+            low : sets[3][p].yval,
+            openY : sets[0][p].y,
+            closeY : sets[1][p].y,
+            highY : sets[2][p].y,
+            lowY : sets[3][p].y
+          };
+          prices.push(price);
+        }
+
+        var area = e.plotArea;
+        var ctx = e.drawingContext;
+        ctx.strokeStyle = '#202020';
+        ctx.lineWidth = 0.6;
+
+        for (p = 0 ; p < prices.length; p++) {
+          ctx.beginPath();
+
+          price = prices[p];
+          var topY = area.h * price.highY + area.y;
+          var bottomY = area.h * price.lowY + area.y;
+          var centerX = area.x + sets[0][p].x * area.w;
+          ctx.moveTo(centerX, topY);
+          ctx.lineTo(centerX, bottomY);
+          ctx.closePath();
+          ctx.stroke();
+          var bodyY;
+          if (price.open > price.close) {
+            ctx.fillStyle ='rgba(244,44,44,1.0)';
+            bodyY = area.h * price.openY + area.y;
+          }
+          else {
+            ctx.fillStyle ='rgba(44,244,44,1.0)';
+            bodyY = area.h * price.closeY  + area.y;
+          }
+          var bodyHeight = area.h * Math.abs(price.openY - price.closeY);
+          ctx.fillRect(centerX - BAR_WIDTH / 2, bodyY, BAR_WIDTH,  bodyHeight);
+        }
+
+      }
+
+var candleData = "Date,Open,Close,High,Low\n" +
+  "2011-12-06,392.54,390.95,394.63,389.38\n" + 
+  "2011-12-07,389.93,389.09,390.94,386.76\n" + 
+  "2011-12-08,391.45,390.66,395.50,390.23\n" + 
+  "2011-12-09,392.85,393.62,394.04,391.03\n" + 
+  "2011-12-12,391.68,391.84,393.90,389.45\n" + 
+  "2011-12-13,393.00,388.81,395.40,387.10\n" + 
+  "2011-12-14,386.70,380.19,387.38,377.68\n" + 
+  "2011-12-15,383.33,378.94,383.74,378.31\n" + 
+  "2011-12-16,380.36,381.02,384.15,379.57\n" + 
+  "2011-12-19,382.47,382.21,384.85,380.48\n" + 
+  "2011-12-20,387.76,395.95,396.10,387.26\n" + 
+  "2011-12-21,396.69,396.45,397.30,392.01\n" + 
+  "2011-12-22,397.00,398.55,399.13,396.10\n" + 
+  "2011-12-23,399.69,403.33,403.59,399.49\n" + 
+  "2011-12-27,403.10,406.53,409.09,403.02\n" + 
+  "2011-12-28,406.89,402.64,408.25,401.34\n" + 
+  "2011-12-29,403.40,405.12,405.65,400.51\n" + 
+  "2011-12-30,403.51,405.00,406.28,403.49\n" + 
+  "2012-01-03,409.50,411.23,412.50,409.00\n" + 
+  "2012-01-04,410.21,413.44,414.68,409.28\n" + 
+  "2012-01-05,414.95,418.03,418.55,412.67\n" + 
+  "2012-01-06,419.77,422.40,422.75,419.22\n" + 
+  "2012-01-09,425.52,421.73,427.75,421.35\n" + 
+  "2012-01-10,425.91,423.24,426.00,421.50\n" + 
+  "2012-01-11,422.59,422.55,422.85,419.31\n" + 
+  "2012-01-12,422.41,421.39,422.90,418.75\n" + 
+  "2012-01-13,419.53,419.81,420.45,418.66\n" + 
+  "2012-01-17,424.20,424.70,425.99,422.96\n" + 
+  "2012-01-18,426.87,429.11,429.47,426.30\n" + 
+  "2012-01-19,430.03,427.75,431.37,426.51\n" + 
+  "2012-01-20,427.49,420.30,427.50,419.75\n" + 
+  "2012-01-23,422.67,427.41,428.45,422.30\n" + 
+  "2012-01-24,425.10,420.41,425.10,419.55\n" + 
+  "2012-01-25,454.26,446.66,454.45,443.73\n" + 
+  "2012-01-26,448.45,444.63,448.79,443.14\n" + 
+  "2012-01-27,444.37,447.28,448.48,443.77\n" + 
+  "2012-01-30,445.71,453.01,453.90,445.39\n" + 
+  "2012-01-31,455.85,456.48,458.24,453.07\n" + 
+  "2012-02-01,458.49,456.19,458.99,455.55\n" + 
+  "2012-02-02,455.90,455.12,457.17,453.98\n" + 
+  "2012-02-03,457.30,459.68,460.00,455.56\n" + 
+  "2012-02-06,458.38,463.97,464.98,458.20\n" + 
+  "2012-02-07,465.25,468.83,469.75,464.58\n" + 
+  "2012-02-08,470.50,476.68,476.79,469.70\n" + 
+  "2012-02-09,480.95,493.17,496.75,480.56\n" + 
+  "2012-02-10,491.17,493.42,497.62,488.55\n" + 
+  "2012-02-13,499.74,502.60,503.83,497.09\n" + 
+  "2012-02-14,504.70,509.46,509.56,502.00\n" ;
+
+    g2 = new Dygraph(
+            document.getElementById("candlechart"),
+            candleData,
+            {
+              plotter: candlePlotter
+            });
+
+
+    // Bar and Line chart
+    var short_data = data_nolabel();
+    short_data = short_data.split('\n').slice(0, 20).join('\n');
+
+    g3 = new Dygraph(
+            document.getElementById("barlinechart"),
+            short_data,
+            {
+              labels: ['Date', 'A', 'B'],
+              includeZero: true,
+              series: {
+                "A": {
+                  strokeWidth: 2
+                },
+                "B": {
+                  plotter: barChartPlotter
+                }
+              }
+            });
+
+
+    // Multiple column bar chart
+    function multiColumnBarPlotter(e) {
+      // We need to handle all the series simultaneously.
+      if (e.seriesIndex !== 0) return;
+
+      var g = e.dygraph;
+      var ctx = e.drawingContext;
+      var sets = e.allSeriesPoints;
+      var y_bottom = e.dygraph.toDomYCoord(0);
+
+      // Find the minimum separation between x-values.
+      // This determines the bar width.
+      var min_sep = Infinity;
+      for (var j = 0; j < sets.length; j++) {
+        var points = sets[j];
+        for (var i = 1; i < points.length; i++) {
+          var sep = points[i].canvasx - points[i - 1].canvasx;
+          if (sep < min_sep) min_sep = sep;
+        }
+      }
+      var bar_width = Math.floor(2.0 / 3 * min_sep);
+
+      var fillColors = [];
+      var strokeColors = g.getColors();
+      for (var i = 0; i < strokeColors.length; i++) {
+        fillColors.push(darkenColor(strokeColors[i]));
+      }
+
+      for (var j = 0; j < sets.length; j++) {
+        ctx.fillStyle = fillColors[j];
+        ctx.strokeStyle = strokeColors[j];
+        for (var i = 0; i < sets[j].length; i++) {
+          var p = sets[j][i];
+          var center_x = p.canvasx;
+          var x_left = center_x - (bar_width / 2) * (1 - j/(sets.length-1));
+
+          ctx.fillRect(x_left, p.canvasy,
+              bar_width/sets.length, y_bottom - p.canvasy);
+
+          ctx.strokeRect(x_left, p.canvasy,
+              bar_width/sets.length, y_bottom - p.canvasy);
+        }
+      }
+    }
+
+    g4 = new Dygraph(
+            document.getElementById("multibar"),
+            short_data,
+            {
+              includeZero: true,
+              plotter: multiColumnBarPlotter
+            });
+
+    // Mixed Error Bars and Lines
+    g5 = new Dygraph(
+            document.getElementById("mixed-error"),
+            NoisyData(),
+            {
+              errorBars: true,
+              series: {
+                'A': {
+                  plotter: Dygraph.Plotters.errorPlotter
+                },
+                'B': {
+                  plotter: Dygraph.Plotters.linePlotter,
+                  strokePattern: Dygraph.DASHED_LINE
+                }
+              }
+            });
+
+    </script>
+</body>
+</html>

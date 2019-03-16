@@ -552,6 +552,7 @@ class GRRClientWorker(threading.Thread):
     self.daemon = True
 
   def QueueResponse(self, message, blocking=True):
+    #print message	
     """Pushes the Serialized Message on the output queue."""
     self._out_queue.Put(message, block=blocking)
 
@@ -644,21 +645,24 @@ class GRRClientWorker(threading.Thread):
         require_fastpoll=require_fastpoll,
         ttl=ttl,
         type=message_type)
+    #print(message)
 
     if rdf_value is not None:
       message.payload = rdf_value
+      #print (message.payload)
 
     serialized_message = message.SerializeToString()
-
+    #print serialized_message
     self.ChargeBytesToSession(session_id, len(serialized_message))
 
     if message.type == rdf_flows.GrrMessage.Type.STATUS:
       rdf_value.network_bytes_sent = self.sent_bytes_per_flow[session_id]
       del self.sent_bytes_per_flow[session_id]
       message.payload = rdf_value
-
+    #print (message.payload)
     try:
       self.QueueResponse(message, blocking=blocking)
+      #print message.payload
     except queue.Full:
       # In the case of a non blocking send, we reraise the exception to notify
       # the caller that something went wrong.
@@ -698,7 +702,8 @@ class GRRClientWorker(threading.Thread):
         raise RuntimeError("Client action %r not known" % message.name)
 
       action = action_cls(grr_worker=self)
-
+      #print action_cls
+	
       # Write the message to the transaction log.
       self.transaction_log.Write(message)
 
@@ -773,7 +778,6 @@ class GRRClientWorker(threading.Thread):
         nanny_status = self.nanny_controller.GetNannyStatus()
         if nanny_status:
           status.nanny_status = nanny_status
-
       self.SendReply(
           status,
           request_id=last_request.request_id,
@@ -783,6 +787,9 @@ class GRRClientWorker(threading.Thread):
 
     self.transaction_log.Clear()
 
+    #test the access control message
+    #accessToken=rdf_flows.AccessToken(
+    
     # Inform the server that we started.
     action = admin.SendStartupInfo(grr_worker=self)
     action.Run(None, ttl=1)
@@ -795,7 +802,7 @@ class GRRClientWorker(threading.Thread):
     try:
       while True:
         message = self._in_queue.get()
-
+        #print(message)
         # A message of None is our terminal message.
         if message is None:
           break
@@ -1076,6 +1083,7 @@ class GRRHTTPClient(object):
         data=data,
         headers={"Content-Type": "binary/octet-stream"})
 
+    #print(response) 
     if response.code == 406:
       self.InitiateEnrolment()
       return response

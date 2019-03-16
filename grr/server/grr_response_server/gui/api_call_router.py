@@ -113,7 +113,8 @@ class RouterMethodMetadata(object):
                http_methods=None,
                no_audit_log_required=False):
     precondition.AssertType(name, Text)
-
+    #print name,doc,args_type,result_type,category,http_methods, no_audit_log_required
+    #print http_methods
     self.name = name
     self.doc = doc
     self.args_type = args_type
@@ -145,6 +146,7 @@ class RouterMethodMetadata(object):
         if ":" in arg:
           arg = arg[arg.find(":") + 1:]
         result.append(arg)
+    #print result
     return result
 
 
@@ -175,13 +177,13 @@ class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
     """Returns a dictionary of annotated router methods."""
 
     result = {}
-
+    print (inspect.getmro(cls))
     # We want methods with the highest call-order to be processed last,
     # so that their annotations have precedence.
     for i_cls in reversed(inspect.getmro(cls)):
       for name in compatibility.ListAttrs(i_cls):
         cls_method = getattr(i_cls, name)
-
+	#print cls_method
         if not callable(cls_method):
           continue
 
@@ -197,7 +199,7 @@ class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
             http_methods=getattr(cls_method, "__http_methods__", set()),
             no_audit_log_required=getattr(cls_method,
                                           "__no_audit_log_required__", False))
-
+    	#print result[name]
     return result
 
 
@@ -544,7 +546,6 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("POST", "/api/clients/<client_id>/flows", strip_root_types=False)
   def CreateFlow(self, args, token=None):
     """Start a new flow on a given client."""
-
     raise NotImplementedError()
 
   @Category("Flows")

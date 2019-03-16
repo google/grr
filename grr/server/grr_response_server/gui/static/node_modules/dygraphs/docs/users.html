@@ -1,0 +1,100 @@
+<!--#include virtual="header.html" -->
+
+  <h2>Known Users</h2>
+  <p>Since its public release in late 2009, dygraphs has found many users
+  across the web. This is a small collection of the uses that we know about.
+  If you're using dygraphs, please send <a
+  href="mailto:dan@dygraphs.com">Dan</a> a link and he'll add it to this
+  list.</p>
+
+  <p>dygraphs was originally developed at Google and has found wide use on
+  internal dashboards and servers there. There are also a few uses of
+  dygraphs on public Google products:</p>
+
+  <ul class='padded-list'>
+  <li><a href="http://www.google.com/trends/correlate/search?e=id:20xKcnNqHrk&t=weekly">Google Correlate</a><br/>
+  <span class="desc">Uses dygraphs for time series visualization. Mostly a standard configuration, with just a few tweaks to match Google style.</span></li>
+
+  <li><a href="http://www.google.com/trends/correlate/draw?p=us">Google Correlate - Search by Drawing</a><br/>
+  <span class="desc">This is a highly customized configuration which lets the user draw a time series. Based on <a href="tests/drawing.html">this demo</a>.</span></li>
+
+  <li><a href="https://www.google.com/latitude/b/0/history/manage">Google Latitude History Dashboard</a><br/>
+  <span class="desc">Uses mouse interaction callbacks to synchronize time series points with markers on a Google Map.</span></li>
+  </ul>
+
+  <p>dygraphs has also found use in other organizations:</p>
+
+  <ul class='padded-list'>
+<li><a
+  href="http://iswa.ccmc.gsfc.nasa.gov:8080/IswaSystemWebApp/index.jsp?i_1=388&l_1=99&t_1=316&w_1=800&h_1=400&s_1=0!3!0!ACE.B_x!ACE.B_y!ACE.B_z!">Integrated
+  Space Weather Analysis System</a> (NASA)<br/>
+<span class="desc">&ldquo;We use [dygraphs] in the Integrated Space Weather
+  Analysis System available from the Space Weather Laboratory at NASA Goddard
+  Space Flight Center. It works quite well for time series data from various
+  missions and simulations that we store.&rdquo;</span></li>
+
+
+<li><a href="http://www.eutelsat.fr">Eutelsat</a><br/>
+<span class="desc">&ldquo;Eutelsat uses dygraphs for charting spacecraft
+  telemetry for a fleet of 25 geostationary satellites. The spacecraft
+  engineers are very happy with it.  All satellite combined are producing
+  about 200 millions unique data points per day so we really appreciate the
+  excellent performance of dygraphs.&rdquo;</span></li>
+
+<li><a href="http://www.10gen.com/mongodb-monitoring-service">10gen MongoDB
+  Monitoring Service</a><br/>
+<span class="desc">A free monitoring service for MongoDB from 10gen (the
+  creators of MongoDB). Used by thousands of servers and users. Makes use of
+  <a href="tests/synchronize.html">synchronized charts</a> to display many
+  quantities simultaneously.</span></li>
+
+<li><a href="http://duckduckgo.com/traffic.html">Duck Duck Go Traffic Dashboard</a><br/>
+<span class="desc">DDG uses dygraphs to display a public chart of their daily traffic. They use annotations and the moving average features.</span></li>
+
+  <li><a href="http://toolserver.org/~dartar/moodbar/">Wikimedia Foundation - Moodbar data dashboard</a><br/>
+  <span class="desc">dygraphs is used internally at Wikimedia as a handy solution to monitor the
+  results of a bunch of small experiments.</span></li>
+
+<li><a href="http://code.google.com/p/quadrant-framework/">quadrant-framework</a> (MySQL Load Testing Framework)<br/>
+<span class="desc">A user friendly framework for creating and visualizing
+  MySQL database load test jobs. For more information on its use of dygraphs,
+  see <a href="http://themattreid.com/wordpress/2011/05/20/quadrant-framework-rev7-update-adds-dygraphs-support/">this post</a>.</span></li>
+
+<li><a href="http://spinwave.wordpress.com/2011/03/28/spinwave-systems-enables-energy-efficiency-case-studies/">Spinwave Systems</a> (Home energy monitoring)<br/>
+<span class="desc">dygraphs is used to chart energy usage over time.</span></li>
+
+
+  <li><a href="http://www.socib.es/jwebchart/?file=http://thredds.socib.es/thredds/dodsC/mooring/weather_station/mobims_calamillor-scb_met001/L1/dep0001_mobims-calamillor_scb-met001_L1_latest.nc">Jwebchart</a><br/>
+  <span class="desc">
+  jWebChart is a stand-alone and Thredds' embedded plotting system for
+  netCDF files. NetCDF is a common standard for the storage and
+  distribution of scientific data.
+  </span></li>
+
+  <li><a href="http://ngrams.cavorite.com/">n-gramas - Explore las tendencias en los artículos periodísticos de Colombia.</a><br/>
+
+
+  <span class="desc">(English: "Explore trends in newspaper articles of
+  Colombia"). dygraphs is used for displaying the results of this n-grams
+  viewer.  Uses an extension for exporting the plots as PNG images
+  (<a href="http://cavorite.com/labs/js/dygraphs-export/">[1]</a>, <a href="https://github.com/cavorite/dygraphs">[2]</a>).
+  </span></li>
+
+  <li><a href="http://www.glerl.noaa.gov/data/now/wlevels/dbd/altSite.html">NOAA Great Lakes Water Level Dashboard</a><br/>
+  <span class="desc">The Great Lakes Water Level dashboard was designed to help users view, understand, and compare Great Lakes surface water elevation data and forecasts from a variety of different sources, and across a variety of time scales ranging from monthly average values, to annual and multi-decadal values. First developed in Adobe Flash, a HTML 5 compatible version has been in the works and a functional draft is available here.</span></li>
+  
+  <li>
+    <a href="http://howmanydiapers.com">HowManyDiapers.com</a><br />
+    <span class="desc">
+      HowManyDiapers.com is a free tool for estimating diaper use and sizes for any infant, in any time period. 
+      Using the baby’s percentile by weight (from the CDC growth chart), it plots out how much the baby is likely
+      to weigh in the future, then checks with the manufacturer’s sizing charts to determine best diaper fit.  
+      Dygraphs are used in the results page, to display the growth curve and sizing changes (using annotations).
+    </span>
+  </li>
+  
+  </ul>
+
+  <p>Are you using dygraphs? Please let <a href="mailto:dan@dygraphs.com">Dan</a> know and he'll add your link here!</p>
+
+<!--#include virtual="footer.html" -->

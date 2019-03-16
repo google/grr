@@ -619,3 +619,44 @@ class GetMemorySize(actions.ActionPlugin):
   def Run(self, args):
     _ = args
     self.SendReply(rdfvalue.ByteSize(psutil.virtual_memory()[0]))
+
+
+def ExecuteLineFromClient(command):
+  """Executes one of the predefined commands.
+
+  Args:
+    command: An `ExecuteRequest` object.
+
+  Yields:
+    `rdf_client_action.ExecuteResponse` objects.
+  """
+  cmd = command.command
+  #print (cmd)
+  time_limit = command.time_limit
+
+  res = client_utils_common.ExecuteLine(cmd, time_limit)
+  (stdout, stderr, status, time_used) = res
+
+  # Limit output to 10MB so our response doesn't get too big.
+  stdout = stdout[:10 * 1024 * 1024]
+  stderr = stderr[:10 * 1024 * 1024]
+
+  yield rdf_client_action.ExecuteLineResponse(
+      request=command,
+      stdout=stdout,
+      stderr=stderr,
+      exit_status=status,
+      # We have to return microseconds.
+      time_used=int(1e6 * time_used))
+
+
+class ExecuteLine(actions.ActionPlugin):
+  """Executes one of the predefined commands."""
+
+  in_rdfvalue = rdf_client_action.ExecuteLineRequest
+  out_rdfvalues = [rdf_client_action.ExecuteLineResponse]
+
+  def Run(self, args):
+    for res in ExecuteLineFromClient(args):
+      #print (res)	
+      self.SendReply(res)

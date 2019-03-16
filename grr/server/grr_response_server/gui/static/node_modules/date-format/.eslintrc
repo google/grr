@@ -1,0 +1,24 @@
+{
+  "env": {
+    "node": true,
+    "mocha": true
+  },
+  "plugins": [
+      "mocha",
+      "import"
+  ],
+  "rules": {
+    "comma-dangle": 0,
+    "indent": 2,
+    "func-names": 0,
+    "max-len": [1, 120, 2],
+    "no-use-before-define": 1,
+    "no-param-reassign": 0,
+    "strict": 0,
+    "import/no-extraneous-dependencies": ["error", {"devDependencies": ["test/*.js"]}],
+    "mocha/no-exclusive-tests": "error"
+  },
+  "parserOptions": {
+    "ecmaVersion": 5
+  }
+}

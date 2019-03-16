@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <style type="text/css">
+    .annotation {
+    }
+    </style>
+  </head>
+  <body>
+    <h3>Annotations Demo</h3>
+    <p>Click any point to add an annotation to it or click "Add Annotation".</p>
+    <input type="button" value="Add Annotation" onclick="add()" />
+    <input type="button" value="Shove to bottom" onclick="bottom(this)" />
+    <div id="events"> </div>
+    <div style="position:absolute; left:200px; top: 200px;" id="g_div"></div>
+    <div style="position:absolute; left:700px; top: 200px;" id="list"></div>
+
+    <script type="text/javascript">
+      var eventDiv = document.getElementById("events");
+      function nameAnnotation(ann) {
+        return "(" + ann.series + ", " + ann.x + ")";
+      }
+
+      annotations = [];
+      var graph_initialized = false;
+
+      g = new Dygraph(
+              document.getElementById("g_div"),
+              function() {
+                var zp = function(x) { if (x < 10) return "0"+x; else return x; };
+                var r = "date,parabola,line,another line,sine wave\n";
+                for (var i=1; i<=31; i++) {
+                  r += "200610" + zp(i);
+                  r += "," + 10*(i*(31-i));
+                  r += "," + 10*(8*i);
+                  r += "," + 10*(250 - 8*i);
+                  r += "," + 10*(125 + 125 * Math.sin(0.3*i));
+                  r += "\n";
+                }
+                return r;
+              },
+              {
+                rollPeriod: 1,
+                showRoller: true,
+                width: 480,
+                height: 320,
+                drawCallback: function(g, is_initial) {
+                  if (is_initial) {
+                    graph_initialized = true;
+                    if (annotations.length > 0) {
+                      g.setAnnotations(annotations);
+                    }
+                  }
+
+                  var ann = g.annotations();
+                  var html = "";
+                  for (var i = 0; i < ann.length; i++) {
+                    var name = nameAnnotation(ann[i]);
+                    html += "<span id='" + name + "'>"
+                    html += name + ": " + (ann[i].shortText || '(icon)')
+                    html += " -> " + ann[i].text + "</span><br/>";
+                  }
+                  document.getElementById("list").innerHTML = html;
+                }
+              }
+          );
+
+      var last_ann = 0;
+      for (var x = 10; x < 15; x += 2) {
+        annotations.push( {
+          series: 'sine wave',
+          x: "200610" + x,
+          shortText: x,
+          text: 'Stock Market Crash ' + x
+        } );
+        last_ann = x;
+      }
+      annotations.push( {
+        series: 'another line',
+        x: "20061013",
+        icon: 'dollar.png',
+        width: 18,
+        height: 23,
+        tickHeight: 4,
+        text: 'Another one',
+        cssClass: 'annotation',
+        clickHandler: function() {
+          document.getElementById("events").innerHTML += "special handler<br/>";
+        }
+      } );
+      annotations.push( {
+        series: 'parabola',
+        x: '20061012',
+        shortText: 'P',
+        text: 'Parabola Annotation at same x-coord'
+      } );
+
+      if (graph_initialized) {
+        g.setAnnotations(annotations);
+      }
+
+      function add() {
+        var x = last_ann + 2;
+        var annnotations = g.annotations();
+        annotations.push( {
+          series: 'line',
+          x: "200610" + x,
+          shortText: x,
+          text: 'Line ' + x,
+          tickHeight: 10
+        } );
+        last_ann = x;
+        g.setAnnotations(annotations);
+      }
+
+      function bottom(el) {
+        var to_bottom = true;
+        if (el.value != 'Shove to bottom') to_bottom = false;
+
+        var anns = g.annotations();
+        for (var i = 0; i < anns.length; i++) {
+          anns[i].attachAtBottom = to_bottom;
+        }
+        g.setAnnotations(anns);
+
+        if (to_bottom) {
+          el.value = 'Lift back up';
+        } else {
+          el.value = 'Shove to bottom';
+        }
+      }
+
+      var saveBg = '';
+      var num = 0;
+      g.updateOptions( {
+        annotationClickHandler: function(ann, point, dg, event) {
+          eventDiv.innerHTML += "click: " + nameAnnotation(ann) + "<br/>";
+        },
+        annotationDblClickHandler: function(ann, point, dg, event) {
+          eventDiv.innerHTML += "dblclick: " + nameAnnotation(ann) + "<br/>";
+        },
+        annotationMouseOverHandler: function(ann, point, dg, event) {
+          document.getElementById(nameAnnotation(ann)).style.fontWeight = 'bold';
+          saveBg = ann.div.style.backgroundColor;
+          ann.div.style.backgroundColor = '#ddd';
+        },
+        annotationMouseOutHandler: function(ann, point, dg, event) {
+          document.getElementById(nameAnnotation(ann)).style.fontWeight = 'normal';
+          ann.div.style.backgroundColor = saveBg;
+        },
+
+        pointClickCallback: function(event, p) {
+          // Check if the point is already annotated.
+          if (p.annotation) return;
+
+          // If not, add one.
+          var ann = {
+            series: p.name,
+            xval: p.xval,
+            shortText: num,
+            text: "Annotation #" + num
+          };
+          var anns = g.annotations();
+          anns.push(ann);
+          g.setAnnotations(anns);
+
+          num++;
+        }
+      });
+    </script>
+</body>
+</html>

@@ -69,6 +69,7 @@ class InterrogateMixin(object):
   def Start(self):
     """Start off all the tests."""
     self.state.client = rdf_objects.ClientSnapshot(client_id=self.client_id)
+    #print self.state.client
     self.state.fqdn = None
     self.state.os = None
 
@@ -80,7 +81,7 @@ class InterrogateMixin(object):
       with aff4.FACTORY.Create(
           urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
         fd.Set(fd.Schema.PATHSPEC, pathspec)
-
+    #print("hi\n\n\n\n")
     # ClientInfo should be collected early on since we might need the client
     # version later on to know what actions a client supports.
     self.CallClient(server_stubs.GetClientInfo, next_state="ClientInfo")
@@ -387,6 +388,7 @@ class InterrogateMixin(object):
     self.state.client.interfaces = sorted(responses, key=lambda i: i.ifname)
 
   def EnumerateFilesystems(self, responses):
+    #print("hi")
     """Store all the local filesystems in the client."""
     if not responses.success or not responses:
       self.Log("Could not enumerate file systems.")

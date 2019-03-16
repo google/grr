@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Linear Regression</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <style type="text/css">
+    body { max-width: 640 px; }
+    </style>
+  </head>
+  <body>
+    <h2>Linear Regression Demo</h2>
+    <p>Click the buttons to generate linear regressions over either data
+    series. If you zoom in and click the regression button, the regression will
+    only be run over visible points. Zoom back out to see what the local
+    regression looks like over the full data.</p>
+
+    <div id="demodiv" style="width: 480px; height: 320px;"></div>
+
+    <script type="text/javascript">
+      var data = "X,Y1,Y2\n";
+      for (var i = 0; i < 120; i++) {
+        // data.push([i,
+        //            i / 5.0 + 10.0 * Math.sin(i / 3.0),
+        //            30.0 - i / 5.0 - 10.0 * Math.sin(i / 3.0 + 1.0)]);
+        data += i + "," + i + "/120," + (i*(120-i)) + "/" + (60*60) + "\n";
+      }
+
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              data,
+              {
+                underlayCallback: drawLines,
+                drawPoints: true,
+                strokeWidth: 0.0,
+                fractions: true,
+                errorBars: true,
+                pointSize: 1
+              }
+          );
+
+      // coefficients of regression for each series.
+      // if coeffs = [ null, [1, 2], null ] then we draw a regression for series 1
+      // only. The regression line is y = 1 + 2 * x.
+      var coeffs = [ null, null, null ];
+      function regression(series) {
+        // Only run the regression over visible points.
+        var range = g.xAxisRange();
+
+        var sum_xy = 0.0, sum_x = 0.0, sum_y = 0.0, sum_x2 = 0.0, num = 0;
+        for (var i = 0; i < g.numRows(); i++) {
+          var x = g.getValue(i, 0);
+          if (x < range[0] || x > range[1]) continue;
+
+          var y = g.getValue(i, series);
+          if (y == null) continue;
+          if (y.length == 2) {
+            // using fractions
+            y = y[0] / y[1];
+          }
+
+          num++;
+          sum_x += x;
+          sum_y += y;
+          sum_xy += x * y;
+          sum_x2 += x * x;
+        }
+
+        var a = (sum_xy - sum_x * sum_y / num) / (sum_x2 - sum_x * sum_x / num);
+        var b = (sum_y - a * sum_x) / num;
+
+        coeffs[series] = [b, a];
+        if (typeof(console) != 'undefined') {
+          console.log("coeffs(" + series + "): [" + b + ", " + a + "]");
+        }
+
+        g.updateOptions({});  // forces a redraw.
+      }
+
+      function clearLines() {
+        for (var i = 0; i < coeffs.length; i++) coeffs[i] = null;
+        g.updateOptions({});
+      }
+
+      function toHex(rgb) {
+        return 'rgb(' + rgb.r + ',' + rgb.g + ',' + rgb.b + ')';
+      }
+
+      function drawLines(ctx, area, layout) {
+        if (typeof(g) == 'undefined') return;  // won't be set on the initial draw.
+
+        var range = g.xAxisRange();
+        for (var i = 0; i < coeffs.length; i++) {
+          if (!coeffs[i]) continue;
+          var a = coeffs[i][1];
+          var b = coeffs[i][0];
+
+          var x1 = range[0];
+          var y1 = a * x1 + b;
+          var x2 = range[1];
+          var y2 = a * x2 + b;
+
+          // Scale up to percentages, rather than fractions.
+          y1 *= 100;
+          y2 *= 100;
+
+          var p1 = g.toDomCoords(x1, y1);
+          var p2 = g.toDomCoords(x2, y2);
+
+          var c = Dygraph.toRGB_(g.getColors()[i - 1]);
+          c.r = Math.floor(255 - 0.5 * (255 - c.r));
+          c.g = Math.floor(255 - 0.5 * (255 - c.g));
+          c.b = Math.floor(255 - 0.5 * (255 - c.b));
+          var color = toHex(c);
+          ctx.save();
+          ctx.strokeStyle = color;
+          ctx.lineWidth = 2.0;
+          ctx.beginPath();
+          ctx.moveTo(p1[0], p1[1]);
+          ctx.lineTo(p2[0], p2[1]);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.restore();
+        }
+      }
+      
+    </script>
+    
+    <div style="position: absolute; left: 500px; top: 150px;">
+    <input type=button style="color: green;" value="Regression (Y1)" onClick="regression(1)" />
+    <br/><br/>
+    <input type=button style="color: blue;" value="Regression (Y2)" onClick="regression(2)" />
+    <br/><br/>
+    <input type=button value="Clear Lines" onClick="clearLines()" />
+    </div>
+</body>
+</html>

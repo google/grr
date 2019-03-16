@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>dateWindow</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>dateWindow is set to something other than an x-value in the data set.
+    Grid lines should still go through data points. In the second chart, there
+    should be lines going off the edge of the chart (to data points out of
+    view).</p>
+
+    <div id="div_g1" style="width:900px; height:300px;"></div>
+    <div id="div_g2" style="width:900px; height:300px;"></div>
+
+    <script type="text/javascript">
+      var data = [];
+      for (var i = 1; i < 10; i++) {
+        data.push([new Date("2009/10/0" + i), i%2, i%3]);
+      }
+
+      g1 = new Dygraph(
+             document.getElementById("div_g1"),
+             data, {
+               dateWindow: [ Date.parse("2009/09/29 12:00:00"),
+                             Date.parse("2009/10/10 12:00:00") ],
+               labels: [ 'Date', 'Y1', 'Y2' ]
+             }
+           );
+
+      g2 = new Dygraph(
+             document.getElementById("div_g2"),
+             data, {
+               dateWindow: [ Date.parse("2009/10/01 12:00:00"),
+                             Date.parse("2009/10/08 12:00:00") ],
+               labels: [ 'Date', 'Y1', 'Y2' ]
+             }
+           );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,28 @@
+[
+  {
+    "version": "1.1.1",
+    "files": [
+      "dygraph-combined.js",
+      "dygraph-combined-dev.js"
+    ]
+  },
+  {
+    "version": "1.1.0",
+    "files": [
+      "dygraph-combined.js",
+      "dygraph-combined-dev.js"
+    ]
+  },
+  {
+    "version": "1.0.1",
+    "files": [
+      "dygraph-combined.js"
+    ]
+  },
+  {
+    "version": "1.0.0",
+    "files": [
+      "dygraph-combined.js"
+    ]
+  }
+]

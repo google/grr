@@ -1,0 +1,40 @@
+{
+  "name": "indent-string",
+  "version": "2.1.0",
+  "description": "Indent each line in a string",
+  "license": "MIT",
+  "repository": "sindresorhus/indent-string",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "indent",
+    "string",
+    "str",
+    "pad",
+    "align",
+    "line",
+    "text"
+  ],
+  "dependencies": {
+    "repeating": "^2.0.0"
+  },
+  "devDependencies": {
+    "mocha": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/indent-string/-/indent-string-2.1.0.tgz"
+,"_integrity": "sha1-ji1INIdCEhtKghi3oTfppSBJ3IA="
+,"_from": "indent-string@2.1.0"
+}

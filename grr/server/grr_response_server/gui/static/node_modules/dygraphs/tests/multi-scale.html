@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>multi-scale</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <style type="text/css">
+    body {
+      line-height: 150%;
+    }
+    </style>
+  </head>
+  <body style="max-width: 700px;">
+    <p>Gridlines and axis labels make charts easier to understand. They give
+    the lines a clear scale. Unless you tell it otherwise, dygraphs will choose
+    a y-axis and set of gridlines which include all of your data.</p>
+
+    <p>If you have many series with different scales, this will compress the
+    variation in all but the largest one. Standard ways to deal with this
+    include <a href="two-axes.html">secondary y-axes</a> and <a
+    href="logscale.html">log scales</a>.</p>
+
+    <p>If neither of these is to your liking, you can manually rescale your
+    series and undo that scaling for the hover values. This demo shows how to
+    do it.</p>
+
+    <div id="demodiv"></div>
+
+    <p>Hover over to see the original values. This is what the data looks
+    like without any rescaling:</p>
+
+    <div id="reference_div"></div>
+
+    <script type="text/javascript">
+      var zp = function(x) { if (x < 10) return "0"+x; else return x; };
+      var labels = ["date","parabola","line","another line","sine wave"];
+      var data = [];
+      for (var i=1; i<=31; i++) {
+        var row = [];
+        row.push(new Date("2006/10/" + zp(i)));
+        row.push(10*(i*(31-i)));
+        row.push(100*(8*i));
+        row.push(1000*(250 - 8*i));
+        row.push(10000*(125 + 125 * Math.sin(0.3*i)));
+        data.push(row);
+      }
+
+      var scales = {
+        "parabola": 1,
+        "line": 10,
+        "another line": 100,
+        "sine wave": 1000
+      };
+      var rescaled_data = [];
+      for (var i = 0; i < data.length; i++) {
+        var src = data[i];
+        var row = [];
+        row.push(src[0]);
+        for (var j = 1; j < src.length; j++) {
+          row.push(src[j] / scales[labels[j]]);
+        }
+        rescaled_data.push(row);
+      }
+
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              rescaled_data,
+              {
+                legend: 'always',
+                labels: labels,
+                width: 640,
+                height: 480,
+                title: 'Four series on different scales',
+                xlabel: 'Date',
+                ylabel: 'Count',
+                axes : {
+                  y : {
+                    valueFormatter: function(y, opts, series_name) {
+                      var unscaled = y * scales[series_name];
+                      if (series_name == 'sine wave') return unscaled.toPrecision(4);
+                      return unscaled;
+                    }
+                  }
+                }
+              }
+          );
+
+      g_orig = new Dygraph(
+              document.getElementById("reference_div"),
+              data,
+              {
+                legend: 'always',
+                labels: labels,
+                width: 640,
+                height: 480,
+                title: 'Four series on the same scale',
+                xlabel: 'Date',
+                ylabel: 'Count',
+                yAxisLabelWidth: 80
+              }
+          );
+    </script>
+</body>
+</html>

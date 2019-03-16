@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Native format annotations</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+  </head>
+  <body>
+    <p>This test demonstrates how annotations can be used with <a href="http://dygraphs.com/data.html#array">native-format</a> data.</p>
+
+    <div id="demodiv"></div>
+
+    <script type="text/javascript">
+      g = new Dygraph(
+              document.getElementById("demodiv"),
+              [
+                [ new Date("2011/11/01"), 100 ],
+                [ new Date("2011/11/02"), 200 ],
+                [ new Date("2011/11/03"), 300 ],
+                [ new Date("2011/11/04"), 100 ],
+                [ new Date("2011/11/05"), 200 ],
+                [ new Date("2011/11/06"), 300 ],
+                [ new Date("2011/11/07"), 200 ],
+                [ new Date("2011/11/08"), 100 ]
+              ],
+              {
+                labels: [ 'Date', 'Value' ]
+              }
+          );
+
+      g.setAnnotations([{
+        series: 'Value',
+        x: Date.parse('2011/11/04'),
+        shortText: 'M',
+        text: 'Marker'
+      }]);
+    </script>
+</body>
+</html>

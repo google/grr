@@ -339,7 +339,7 @@ class FrontEndServer(object):
     # Identify ourselves as the server.
     self.token = access_control.ACLToken(
         username="GRRFrontEnd", reason="Implied.")
-    self.token.supervisor = True
+    self.token.supervisor = False
 
     if data_store.RelationalDBReadEnabled():
       self._communicator = RelationalServerCommunicator(
@@ -398,7 +398,8 @@ class FrontEndServer(object):
     if messages:
       # Receive messages in line.
       self.ReceiveMessages(source, messages)
-
+      #print messages
+    #print (messages)
     # We send the client a maximum of self.max_queue_size messages
     required_count = max(0, self.max_queue_size - request_comms.queue_size)
     tasks = []
@@ -409,16 +410,18 @@ class FrontEndServer(object):
     if time.time() - now < 10:
       tasks = self.DrainTaskSchedulerQueueForClient(source, required_count)
       message_list.job = tasks
+      #print tasks
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
+    #print (response_comms)
     self._communicator.EncodeMessages(
         message_list,
         response_comms,
         destination=source,
         timestamp=timestamp,
         api_version=request_comms.api_version)
-
+    #print (message_list)
     return source, len(messages)
 
   def DrainTaskSchedulerQueueForClient(self, client, max_count=None):

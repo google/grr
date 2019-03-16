@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>negatives</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>All negatives (x-axis on top):</p>
+    <div id="g1" style="width:600px; height:200px;"></div>
+
+    <p>Mixed (x-axis in middle):</p>
+    <div id="g2" style="width:600px; height:200px;"></div>
+
+    <p>All positives (x-axis on bottom):</p>
+    <div id="g3" style="width:600px; height:200px;"></div>
+
+    <script type="text/javascript">
+      var negs = [];
+      var mixed = [];
+      var pos = [];
+      for (var i = 0; i < 100; i++) {
+        negs.push([i, -210 + i, -110 - i]);
+        mixed.push([i, -50 + i, 50 - i]);
+        pos.push([i, 1000 + 2 * i, 1100 + i]);
+      }
+
+      var g1 = new Dygraph(
+        document.getElementById("g1"),
+        negs, { labels: [ 'x', 'y1', 'y2' ] }
+      );
+
+      var g2 = new Dygraph(
+        document.getElementById("g2"),
+        mixed, { labels: [ 'x', 'y1', 'y2' ] }
+      );
+
+      var g3 = new Dygraph(
+        document.getElementById("g3"),
+        pos, { labels: [ 'x', 'y1', 'y2' ] }
+      );
+
+    </script>
+  </body>
+</html>

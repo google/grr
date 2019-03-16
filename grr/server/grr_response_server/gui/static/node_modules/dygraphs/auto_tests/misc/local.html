@@ -1,0 +1,124 @@
+<!-- A local source file that allows dygraph developers to test locally. -->
+<html>
+<head>
+  <!-- Standard Dygraph scripts -->
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+  <!--[if IE]>
+  <script type="text/javascript" src="../../excanvas.js"></script>
+  <![endif]-->
+  <script type="text/javascript" src="../../dygraph-dev.js"></script>
+  <script type="text/javascript" src="../../extras/smooth-plotter.js"></script>
+
+  <!-- Scripts for library support -->
+  <script type="text/javascript" src="../lib/jquery-1.4.2.js"></script>
+  <script type="text/javascript" src="../lib/Asserts.js"></script>
+  <script type="text/javascript" src="fake-jstestdriver.js"></script>
+  <script type="text/javascript" src="../tests/Proxy.js"></script>
+  <script type="text/javascript" src="../tests/CanvasAssertions.js"></script>
+  <script type="text/javascript" src="../tests/DygraphOps.js"></script>
+  <script type="text/javascript" src="../tests/PixelSampler.js"></script>
+  <script type="text/javascript" src="../tests/Util.js"></script>
+  <script type="text/javascript" src="local.js"></script>
+
+  <!-- Scripts for automated tests -->
+  <script type="text/javascript" src="../tests/annotations.js"></script>
+  <script type="text/javascript" src="../tests/axis_labels.js"></script>
+  <script type="text/javascript" src="../tests/axis_labels-deprecated.js"></script>
+  <script type="text/javascript" src="../tests/callback.js"></script>
+  <script type="text/javascript" src="../tests/connect_separated_points.js"></script>
+  <script type="text/javascript" src="../tests/css.js"></script>
+  <script type="text/javascript" src="../tests/custom_bars.js"></script>
+  <script type="text/javascript" src="../tests/date_formats.js"></script>
+  <script type="text/javascript" src="../tests/date_ticker.js"></script>
+  <script type="text/javascript" src="../tests/dygraph-options-tests.js"></script>
+  <script type="text/javascript" src="../tests/error_bars.js"></script>
+  <script type="text/javascript" src="../tests/fill_step_plot.js"></script>
+  <script type="text/javascript" src="../tests/formats.js"></script>
+  <script type="text/javascript" src="../tests/grid_per_axis.js"></script>
+  <script type="text/javascript" src="../tests/interaction_model.js"></script>
+  <script type="text/javascript" src="../tests/missing_points.js"></script>
+  <script type="text/javascript" src="../tests/multi_csv.js"></script>
+  <script type="text/javascript" src="../tests/multiple_axes.js"></script>
+  <script type="text/javascript" src="../tests/multiple_axes-old.js"></script>
+  <script type="text/javascript" src="../tests/no_hours.js"></script>
+  <script type="text/javascript" src="../tests/numeric_ticker.js"></script>
+  <script type="text/javascript" src="../tests/parser.js"></script>
+  <script type="text/javascript" src="../tests/pathological_cases.js"></script>
+  <script type="text/javascript" src="../tests/per_axis.js"></script>
+  <script type="text/javascript" src="../tests/per_series.js"></script>
+  <script type="text/javascript" src="../tests/plugins.js"></script>
+  <script type="text/javascript" src="../tests/range_selector.js"></script>
+  <script type="text/javascript" src="../tests/range_tests.js"></script>
+  <script type="text/javascript" src="../tests/rolling_average.js"></script>
+  <script type="text/javascript" src="../tests/sanity.js"></script>
+  <script type="text/javascript" src="../tests/scientific_notation.js"></script>
+  <script type="text/javascript" src="../tests/scrolling_div.js"></script>
+  <script type="text/javascript" src="../tests/selection.js"></script>
+  <script type="text/javascript" src="../tests/simple_drawing.js"></script>
+  <script type="text/javascript" src="../tests/step_plot_per_series.js"></script>
+  <script type="text/javascript" src="../tests/stacked.js"></script>
+  <script type="text/javascript" src="../tests/to_dom_coords.js"></script>
+  <script type="text/javascript" src="../tests/resize.js"></script>
+  <script type="text/javascript" src="../tests/plugins_legend.js"></script>
+  <script type="text/javascript" src="../tests/two_digit_years.js"></script>
+  <script type="text/javascript" src="../tests/hidpi.js"></script>
+  <script type="text/javascript" src="../tests/smooth_plotter.js"></script>
+  <script type="text/javascript" src="../tests/fast_canvas_proxy.js"></script>
+  <script type="text/javascript" src="../tests/update_options.js"></script>
+  <script type="text/javascript" src="../tests/update_while_panning.js"></script>
+  <script type="text/javascript" src="../tests/utils_test.js"></script>
+
+<style type="text/css">
+  .pass .outcome {
+    color: green;
+  }
+
+  .fail .outcome {
+    color: red;
+  }
+
+  /* Broken: the active anchor isn't gray. Why not? */
+  #results .activeAnchor {
+    color: grey;
+  }
+
+  #results a {
+    text-decoration: none;
+  }
+
+  #results a:visited {
+    color: blue;
+    text-decoration: none;
+  }
+
+  #results a:hover {
+    color: blue;
+    text-decoration: underline;
+  }
+</style>
+</head>
+<body>
+  <div id='graph'></div>
+  <div id="selector"></div>
+  <p>This file is really nothing more than all the tests coalesced into a single
+  HTML file. To run a test, use the selector above, or
+  open a Javascript console and execute, for instance,</p>
+  <code>testDrawSimpleRangePlusOne()</code>
+
+  <p>Alternatively you can use query args: <ul>
+  <li>testCase - for the name of the test case prototype
+  <li>testCaseName - for the name of the test case
+  <li>test - for the name of the test (use command=runTest)
+  <li>command - either runTest or runAllTests.
+  </ul>
+  Example: <code>local.html?testCase=ScrollingDivTestCase&test=testNestedDiv_Scrolled&command=runTest</code>
+  <p/>
+</body>
+<script type="text/javascript">
+  var tester = new DygraphsLocalTester();
+  // tester.overrideWarn(); // uncomment if you want warnings to be errors.
+  tester.processVariables();
+  addGlobalTestSymbols();
+  tester.run();
+</script>
+</html>

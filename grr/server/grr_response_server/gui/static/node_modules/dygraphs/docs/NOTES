@@ -1,0 +1,15 @@
+The dygraphs documentation uses server-side includes to enforce a consistent
+template between pages. As such, you can't load the docs files directly in your
+browser.
+
+To iterate locally on the docs, run:
+
+    cd (dygraphs)/docs
+    ./ssi_server.py
+
+Then visit localhost:8000 in your browser. You can edit/save/reload to see changes.
+
+To push documentation to the web, run:
+
+    cd (dygraphs)
+    ./push-to-web.sh user@site.com:directory

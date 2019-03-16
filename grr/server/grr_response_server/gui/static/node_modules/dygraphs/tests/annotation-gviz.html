@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type='text/javascript' src='http://www.google.com/jsapi'></script>
+    <script type='text/javascript'>
+      google.load('visualization', '1', {'packages':['annotatedtimeline']});
+      google.setOnLoadCallback(drawChart);
+      function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('date', 'Date');
+        data.addColumn('number', 'Sold Pencils');
+        data.addColumn('string', 'title1');
+        data.addColumn('string', 'text1');
+        data.addColumn('number', 'Sold Pens');
+        data.addColumn('string', 'title2');
+        data.addColumn('string', 'text2');
+        data.addRows([
+          [new Date(2008, 11 ,1), 30000, undefined, undefined, 40645, undefined, undefined],
+          [new Date(2008, 11 ,2), 14045, undefined, undefined, 20374, undefined, undefined],
+          [new Date(2008, 11 ,3), 55022, undefined, undefined, 50766, undefined, undefined],
+          [new Date(2008, 11 ,4), 75284, undefined, undefined, 14334, 'Out of Stock','Ran out of stock on pens at 4pm'],
+          [new Date(2008, 11 ,5), 41476, 'Bought Pens','Bought 200k pens', 66467, undefined, undefined],
+          [new Date(2008, 11 ,6), 33322, undefined, undefined, 39463, undefined, undefined]
+        ]);
+
+        for (var i = 1; i < 14; i++) {
+          data.addRows([
+            [new Date(2008, 11 , 6 + i), i * 1000, 'title1-' + i, 'text1 ' + (i * 1000 - i), (i * 2000 + i), 'title2-' + i, 'text2' + i * 1000],
+          ]);
+        }
+
+        var chart = new google.visualization.AnnotatedTimeLine(document.getElementById('gviz_div'));
+        chart.draw(data, {displayAnnotations: true});
+
+        var g = new Dygraph.GVizChart(document.getElementById("dg_div"));
+        g.draw(data, {displayAnnotations: true, labelsKMB: true});
+      }
+    </script>
+  </head>
+
+  <body>
+    <h3>Google AnnotatedTimeline:</h3>
+    <div id='gviz_div' style='width: 700px; height: 240px;'></div>
+
+    <h3>Dygraph.GVizChart:</h3>
+    <div id='dg_div' style='width: 700px; height: 240px;'></div>
+  </body>
+</html>

@@ -1,0 +1,46 @@
+<!--#include virtual="header.html" -->
+
+<h2 id="ie">Internet Explorer Compatibility</h2>
+
+<p>The dygraphs library relies heavily on the HTML5 <code>&lt;canvas&gt;</code> tag, which Microsoft Internet Explorer did not traditionally support. To use Microsoft's native canvas implementation in IE9, you need to set an HTML5 doctype on your page:</p>
+
+<pre>
+&lt;!DOCTYPE html&gt;
+</pre>
+
+<p>When IE9 is in HTML5 mode, dygraphs works just like in other modern browsers.</p>
+
+<p>You should seriously consider stopping here! Older versions of IE have a small market share that's decreasing by the day. Major web sites, like the <a href="http://www.nytimes.com/">New York Times</a>, have already dropped support for IE8. Future versions of dygraphs will do the same. But if you insist&hellip;</p>
+
+<p>If you want to support previous versions of Internet Explorer (IE6&ndash;IE8), you'll need to include the <a href="http://code.google.com/p/explorercanvas/">excanvas</a> library, which emulates the <code>&lt;canvas&gt;</code> tag using VML. You can add excanvas by including the following snippet:</p>
+
+<pre>
+&lt;!DOCTYPE html&gt; 
+&lt;html&gt;
+  &lt;head&gt;
+    &lt;meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9"&gt; 
+    &lt;!--[if IE]&gt;&lt;script src="path/to/excanvas.js"&gt;&lt;/script&gt;&lt;![endif]--&gt;
+  &lt;/head&gt;
+</pre>
+
+<p>(This is surprisingly tricky because the HTML5 doctype breaks excanvas in IE8. See <a href="https://groups.google.com/group/dygraphs-users/browse_thread/thread/c60709e04bc7fe5f#">this discussion</a> for details. Note that the &lt;meta http-equiv&hellip;&gt; line must appear <i>first</i> in the &lt;head&gt; section for this to work properly.)</p>
+
+<p>While VML emulation sounds like it would be slow, it works well in practice for most charts.</p>
+
+<p>One common gotcha to look out for: make sure you don't have any trailing commas in parameter lists, e.g.</p>
+
+<pre>
+new Dygraph(el, data, {
+  showRoller: true,  // note trailing comma
+})</pre>
+
+<p>Most browsers will ignore the trailing comma, but it will break under IE.</p>
+
+<p>You may also need to delay instantiating any dygraphs until after the DOM
+content is ready, as there have been some <a
+  href="https://groups.google.com/d/topic/dygraphs-users/qPX4Syx2kz8/discussion">reports</a>
+that excanvas won't work until this happens. If you're using jQuery, this
+means drawing your charts inside of a <code>$(function() { ... })</code>
+block.</p>
+
+<!--#include virtual="footer.html" -->

@@ -94,7 +94,8 @@ class RouterMatcher(object):
 
   def _GetRoutingMap(self, router):
     """Returns a routing map for a given router instance."""
-
+    #print router.__class__
+    #print self._routing_maps_cache
     try:
       routing_map = self._routing_maps_cache.Get(router.__class__)
     except KeyError:
@@ -138,6 +139,7 @@ class RouterMatcher(object):
     elif request.method in ["POST", "DELETE", "PATCH"]:
       try:
         args = method_metadata.args_type()
+        #print args.type_infos
         for type_info in args.type_infos:
           if type_info.name in route_args:
             self._SetField(args, type_info, route_args[type_info.name])
@@ -155,7 +157,10 @@ class RouterMatcher(object):
           json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
           args.ParseFromString(args_proto.SerializeToString())
         else:
+	  #print args
+	  #print request
           payload = json.loads(request.get_data(as_text=True) or "{}")
+	  #print payload
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except
@@ -169,18 +174,26 @@ class RouterMatcher(object):
 
   def MatchRouter(self, request):
     """Returns a router for a given HTTP request."""
+    #payload=json.loads(request.get_data(as_text=True) or "{}")
+    #print (payload)
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(request.user)
+    #print router
     routing_map = self._GetRoutingMap(router)
-
+    #print routing_map
     matcher = routing_map.bind("%s:%s" % (request.environ["SERVER_NAME"],
                                           request.environ["SERVER_PORT"]))
     try:
       match = matcher.match(request.path, request.method)
+      #print (request.path)
     except werkzeug_exceptions.NotFound:
       raise ApiCallRouterNotFoundError("No API router was found for (%s) %s" %
                                        (request.path, request.method))
 
     router_method_metadata, route_args_dict = match
+    #print router_method_metadata
+    #print(self._GetArgsFromRequest(request, router_method_metadata,
+    #                                 route_args_dict))
+    #print request
     return (router, router_method_metadata,
             self._GetArgsFromRequest(request, router_method_metadata,
                                      route_args_dict))
@@ -259,10 +272,13 @@ class HttpRequestHandler(object):
         reason=reason,
         process="GRRAdminUI",
         expiry=rdfvalue.RDFDatetime.Now() + execution_time)
+    #print(token)
+    #print rdfvalue.RDFDatetime.Now()
 
     for field in ["Remote_Addr", "X-Forwarded-For"]:
       remote_addr = request.headers.get(field, "")
       if remote_addr:
+        #print remote_addr
         token.source_ips.append(remote_addr)
     return token
 
@@ -294,10 +310,11 @@ class HttpRequestHandler(object):
   @staticmethod
   def CallApiHandler(handler, args, token=None):
     """Handles API call to a given handler with given args and token."""
-
+    #print handler
     result = handler.Handle(args, token=token)
-
+    #print args
     expected_type = handler.result_type
+    #print expected_type
     if expected_type is None:
       expected_type = None.__class__
 
@@ -386,6 +403,7 @@ class HttpRequestHandler(object):
   def HandleRequest(self, request):
     """Handles given HTTP request."""
     impersonated_username = config.CONFIG["AdminUI.debug_impersonate_user"]
+    #print impersonated_username
     if impersonated_username:
       logging.info("Overriding user as %s", impersonated_username)
       request.user = config.CONFIG["AdminUI.debug_impersonate_user"]
@@ -393,9 +411,11 @@ class HttpRequestHandler(object):
     if not aff4_users.GRRUser.IsValidUsername(request.user):
       return self._BuildResponse(
           403, dict(message="Invalid username: %s" % request.user))
-
+    #print (request.get_data(as_text=True))
     try:
       router, method_metadata, args = self._router_matcher.MatchRouter(request)
+      #print self._router_matcher.MatchRouter(request)
+      #print args
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
       logging.exception("Access denied to %s (%s): %s", request.path,
@@ -417,6 +437,7 @@ class HttpRequestHandler(object):
       return self._BuildResponse(404, dict(message=error_message))
     except werkzeug_exceptions.MethodNotAllowed as e:
       error_message = str(e)
+      #print error_message
       return self._BuildResponse(405, dict(message=error_message))
     except Error as e:
       logging.exception("Can't match URL to router/method: %s", e)
@@ -424,6 +445,7 @@ class HttpRequestHandler(object):
       return self._BuildResponse(
           500, dict(message=str(e), traceBack=traceback.format_exc()))
 
+    #print request.args
     request.method_metadata = method_metadata
     request.parsed_args = args
 
@@ -431,6 +453,7 @@ class HttpRequestHandler(object):
     # clash with datastore ACL checks.
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
+    #print token
 
     # TODO:
     # AFF4 edge case: if a user is issuing a request, before they are created
@@ -443,6 +466,7 @@ class HttpRequestHandler(object):
     # We send a blind-write request to ensure that the user object is created
     # for a user specified by the username.
     user_urn = rdfvalue.RDFURN("aff4:/users/").Add(request.user)
+    #print user_urn
     # We can't use conventional AFF4 interface, since aff4.FACTORY.Create will
     # create a new version of the object for every call.
     with data_store.DB.GetMutationPool() as pool:
@@ -463,7 +487,9 @@ class HttpRequestHandler(object):
       # does not raise), then handlers run without further ACL checks (they're
       # free to do some in their own implementations, though).
       handler = getattr(router, method_metadata.name)(args, token=token)
-
+      #print router
+      #print handler
+      #print ("hi")
       if handler.args_type != method_metadata.args_type:
         raise RuntimeError("Handler args type doesn't match "
                            "method args type: %s vs %s" %
@@ -471,17 +497,18 @@ class HttpRequestHandler(object):
 
       binary_result_type = (
           api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE)
-
+      #print binary_result_type
       if (handler.result_type != method_metadata.result_type and
           not (handler.result_type is None and
                method_metadata.result_type == binary_result_type)):
         raise RuntimeError("Handler result type doesn't match "
                            "method result type: %s vs %s" %
-                           (handler.result_type, method_metadata.result_type))
+                           (handler.result_type, method_metadata.result_type))	
 
       # HEAD method is only used for checking the ACLs for particular API
       # methods.
       if request.method == "HEAD":
+	#print("here")
         # If the request would return a stream, we add the Content-Length
         # header to the response.
         if (method_metadata.result_type ==
@@ -502,14 +529,17 @@ class HttpRequestHandler(object):
 
       if (method_metadata.result_type ==
           method_metadata.BINARY_STREAM_RESULT_TYPE):
+	#print ("hi")
         binary_stream = handler.Handle(args, token=token)
         return self._BuildStreamingResponse(
             binary_stream, method_name=method_metadata.name)
       else:
         format_mode = GetRequestFormatMode(request, method_metadata)
+        #print format_mode
         result = self.CallApiHandler(handler, args, token=token)
         rendered_data = self._FormatResultAsJson(
             result, format_mode=format_mode)
+	#print rendered_data
 
         return self._BuildResponse(
             200,
@@ -568,6 +598,7 @@ def RenderHttpResponse(request):
   """Renders HTTP response to a given HTTP request."""
 
   start_time = time.time()
+  #print HTTP_REQUEST_HANDLER
   response = HTTP_REQUEST_HANDLER.HandleRequest(request)
   total_time = time.time() - start_time
 

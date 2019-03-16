@@ -1,0 +1,154 @@
+body {
+  padding-top: 100px;  /* required for fixed header */
+}
+#header {
+  background: #f9f9f9;
+  margin-bottom: 10px;
+  border-bottom: 1px solid lightgray;
+}
+.navbar-brand {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.navbar-brand a, navbar-brand a:visited {
+  color: black;
+  font-size: 38px;
+}
+.navbar-brand a:hover {
+  text-decoration: none;
+}
+#header ul.nav {
+  display: inline-block;
+}
+#header ul.nav {
+  float: right;
+  margin-top: 20px;
+  margin-right: 20px;
+}
+@media screen and (min-width: 992px) {
+  /* without this, the right-most menu goes off the page */
+  #header ul.nav {
+    margin-right: 75px;
+  }
+}
+@media screen and (min-width: 768px) and (max-width: 992px) {
+  /* The topnav drops down to the next line between these sizes. We must accomodate. */
+  body {
+    padding-top: 130px;
+  }
+  /* center the menu and logo */
+  .navbar-brand {
+    float: none;
+    text-align: center;
+    max-width: none;
+  }
+  #header ul.nav {
+    float: none;
+    display: table;  /* shrink to fit */
+    margin-left: auto;  /* center */
+    margin-right: auto;
+  }
+}
+@media screen and (max-width: 768px) {
+  #header .nav-collapse.in li, #header .nav-collapse.collapsing li {
+    float: none;
+  }
+  #header .nav-collapse.in .nav, #header .nav-collapse.collapsing .nav {
+    float: none;
+  }
+}
+code {
+  white-space: pre-wrap;
+  color: black;
+  background: transparent;
+}
+#demodiv {
+  width: 100%;
+  height: 320px;
+  margin-bottom: 10px;
+}
+@media screen and (max-width: 768px) {
+  /* aspect ratio is weird on phones */
+  #demodiv {
+    height: 200px;
+  }
+}
+.dygraph-axis-label {
+  font-size: 12px;
+}
+.dygraph-title {
+  font-size: 16px;
+}
+h1{
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+pre{
+  background: #f9f9f9;
+}
+/*
+#main {
+  margin-top: 30px;
+}
+.row {
+  margin-top: 30px;
+}
+*/
+.row.smalltop {
+  margin-top: 10px;
+}
+
+/* maybe just used on annotations.html ? */
+.thinborder {
+  border-width: 1px;
+  border-spacing: 0px;
+  border-style: solid;
+  border-color: black;
+  border-collapse: collapse;
+}
+
+.thinborder td,
+.thinborder th {
+  border-width: 1px;
+  padding: 5px;
+  border-style: solid;
+  border-color: black;
+}
+
+#current-release {
+  font-size: 18px;
+  background: #f9f9f9;
+  /*
+  padding: 10px 15px;
+  border: 1px dashed black;
+*/
+  display: table;
+  margin-bottom: 50px;
+}
+#current-release p:last-child {
+  margin-bottom: 0;
+}
+
+/* When you visit dygraphs.com/options.html#errorBars, the fixed top nav
+ * obscures the top 100px of content for that anchor. This is a workaround.
+ * See http://stackoverflow.com/questions/10732690/offsetting-an-html-anchor-to-adjust-for-fixed-header
+ */
+a[name] {
+  display: block;
+  position: relative;
+  top: -100px;
+  visibility: hidden;
+}
+@media screen and (min-width: 768px) and (max-width: 992px) {
+  a[name] {
+    top: -130px;
+  }
+}
+a.link {
+  visibility: hidden;
+  text-decoration: none;
+  color: #777;
+}
+.option:hover a.link {
+  visibility: visible;
+}

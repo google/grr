@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Multiple y-axes</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <h2>Multiple y-axes</h2>
+    <p>The same data with both one and two y-axes. Two y-axes:</p>
+    <p>Two y-axes with y as primary axis (default):</p>
+    <div id="demodiv" style="width: 640; height: 350; border: 1px solid black"></div>
+    <p>Two y-axes with y2 as primary axis:</p>
+    <div id="demodiv_y2_primary" style="width: 640; height: 350; border: 1px solid black"></div>
+    <p>Two y-axes using different grids:</p>
+    <div id="demodiv_two_grids" style="width: 640; height: 350; border: 1px solid black"></div>
+    <p>A single y-axis (left):</p>
+    <div id="demodiv_one" style="width: 640; height: 350; border: 1px solid black"></div>
+    <p>A single y-axis (right):</p>
+    <div id="demodiv_one_right" style="width: 640; height: 350; border: 1px solid black"></div>
+
+    <script type="text/javascript">
+      var data = [];
+      for (var i = 1; i <= 100; i++) {
+        var m = "01", d = i;
+        if (d > 31) { m = "02"; d -= 31; }
+        if (m == "02" && d > 28) { m = "03"; d -= 28; }
+        if (m == "03" && d > 31) { m = "04"; d -= 31; }
+        if (d < 10) d = "0" + d;
+        // two series, one with range 1-100, one with range 1-2M
+        data.push([new Date("2010/" + m + "/" + d),
+                   i,
+                   100 - i,
+                   1e6 * (1 + i * (100 - i) / (50 * 50)),
+                   1e6 * (2 - i * (100 - i) / (50 * 50))]);
+      }
+
+      g = new Dygraph(
+          document.getElementById("demodiv"),
+          data,
+          {
+            labels: [ 'Date', 'Y1', 'Y2', 'Y3', 'Y4' ],
+            series: {
+              'Y3': {
+                axis: 'y2'
+              },
+              'Y4': {
+                axis: 'y2'
+              },
+            },
+            axes: {
+              y2: {
+                // set axis-related properties here
+                labelsKMB: true
+              }
+            },
+            ylabel: 'Primary y-axis',
+            y2label: 'Secondary y-axis',
+            yAxisLabelWidth: 60
+          }
+      );
+      
+      g2 = new Dygraph(
+          document.getElementById("demodiv_y2_primary"),
+          data,
+          {
+            labels: [ 'Date', 'Y1', 'Y2', 'Y3', 'Y4' ],
+            ylabel: 'Primary y-axis',
+            y2label: 'Secondary y-axis',
+            series : {
+              'Y3': {
+                axis: 'y2'
+              },
+              'Y4': {
+                axis: 'y2'
+              }
+            },
+            axes: {
+              y: {
+                // set axis-related properties here
+                drawGrid: false,
+                independentTicks: false
+              },
+              y2: {
+                // set axis-related properties here
+                labelsKMB: true,
+                drawGrid: true,
+                independentTicks: true
+              }
+            }
+          }
+      );
+      
+      g3 = new Dygraph(
+          document.getElementById("demodiv_two_grids"),
+          data,
+          {
+            labels: [ 'Date', 'Y1', 'Y2', 'Y3', 'Y4' ],
+            ylabel: 'Primary y-axis',
+            y2label: 'Secondary y-axis',
+            series : {
+              'Y3': {
+                axis: 'y2'
+              },
+              'Y4': {
+                axis: 'y2'
+              }
+            },
+            axes: {
+              y2: {
+                // set axis-related properties here
+                labelsKMB: true,
+                drawGrid: true,
+                independentTicks: true,
+                gridLinePattern: [2,2]
+              }
+            }
+          }
+      );
+
+      g4 = new Dygraph(
+        document.getElementById("demodiv_one"),
+        data,
+        {
+          labels: [ 'Date', 'Y1', 'Y2', 'Y3', 'Y4' ],
+          labelsKMB: true,
+          ylabel: 'Primary y-axis',
+          y2label: 'Secondary y-axis',
+        }
+      );
+      
+      g5 = new Dygraph(
+       document.getElementById("demodiv_one_right"),
+       data,
+       {
+         labels: [ 'Date', 'Y1', 'Y2', 'Y3', 'Y4' ],
+         ylabel: 'Primary y-axis',
+         y2label: 'Secondary y-axis',
+          series : {
+            'Y1': {
+               axis: 'y2'
+            },
+            'Y2': {
+              axis: 'y2'
+            },
+            'Y3': {
+              axis: 'y2'
+            },
+            'Y4': {
+              axis: 'y2'
+            }
+          },
+          axes: {
+            y: {
+              // set axis-related properties here
+              drawGrid: false,
+              independentTicks: false
+            },
+            y2: {
+              // set axis-related properties here
+              labelsKMB: true,
+              drawGrid: true,
+              independentTicks: true
+            }
+          }
+        }
+      );
+      
+      function update(el) {
+        g.updateOptions( { fillGraph: el.checked } );
+        g2.updateOptions( { fillGraph: el.checked } );
+        g3.updateOptions( { fillGraph: el.checked } );
+        g4.updateOptions( { fillGraph: el.checked } );
+        g5.updateOptions( { fillGraph: el.checked } );
+      }
+    </script>
+
+    <input type=checkbox id="check" onChange="update(this)"><label for="check"> Fill?</label>
+</body>
+</html>

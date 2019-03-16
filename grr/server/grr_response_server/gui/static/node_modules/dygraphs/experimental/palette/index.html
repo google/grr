@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Palette Demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="jquery-1.8.3.min.js"></script>
+    <script type="text/javascript" src="../../dygraph-dev.js"></script>
+    <script type="text/javascript" src="options.js"></script>
+    <script type="text/javascript" src="../../common/textarea.js"></script>
+    <script type="text/javascript" src="tooltip.js"></script>
+    <script type="text/javascript" src="palette.js"></script>
+    <script type="text/javascript" src="multi-palette.js"></script>
+    <script type="text/javascript" src="samples.js"></script>
+    <script type="text/javascript" src="index.js"></script>
+    <link rel="stylesheet" type="text/css" href="index.css" />
+  </head>
+  <body>
+    <h2>Palette</h2>
+    <div style="font-size:smaller;"><p>To configure this chart, tweak the values on the right.
+    Enter applies changes, and the filter bar on the top reduces selections</p></div>
+    <table>
+      <tr>
+        <td valign="top">
+          <div id="selector">
+            <select></select>
+          </div>
+          <div id="graph"></div>
+          <div id="status" style="width:200px; font-size:0.8em; padding-top:5px;"></div>
+          <div class="instructions">
+            <a id="toggleInstructions">instructions</a>
+            <div id="instructions" style="display: none">
+              <h3>Learn By Doing</h3>
+              <ol>
+                <li>In the filter box, type <code>point</code>.</li>
+                <li>Click the <em>drawPoints</em> toggle button until <code>true</code> appears</li>
+                <li>You will see dots on the graph where points exist.</li>
+                <li>In the <em>pointSize</em> text box, enter <code>5</code></li>
+                <li>Press <code>enter</code> or click <em>Refresh</em>. The dots
+                just got larger.</li>
+                <li>Type <code>callback</code> in the filter box.</li>
+                <li>Instead of a text box, you will see buttons that can be used
+                to define callbacks. Click the button for <em>clickCallback</em>.</li>
+                <li>You will see that the prototype function body is
+                <code>function(e, x, points){ }</code>. Paste in this
+                replacement function:<p/>
+                <code>function(e, x){<br/>&nbsp;&nbsp;var elem =
+                  document.getElementById("messages");<br/>&nbsp;&nbsp;elem.innerHTML =
+                  elem.innerHTML + x + "&lt;br&gt;";<br/>}</code></li>
+                <li>Click the <em>OK</em> button. The <em>clickCallback</em>
+                button now says <code>defined</code> instead of <code>not defined</code>.</li>
+                <li>Click anywhere on the graph. The x-value will appear on the
+                page.</li>
+                <li>If you click directly on a point, then an alert box will
+                indicate that you've clicked on a point. That's because the
+                <em>pointClickCallback</em> was defined already.</li>
+                <li><b>Have fun and send feedback!</b></li>
+              </ol>
+              <h3>tips</h3>
+              The palette on the right contains (most) Dygraphs options. Here's
+              how they work:
+              <ul>
+                <li>The selection box on top can be used to choose your own data source.</li>
+                <li>Use the filter box to constrain your selection. For instance,
+                typing <code>draw</code> will show all options with that phrase in
+                its name.</li>
+                <li>Each field has specific types. The types are not documented,
+                but if you hover over an entry (or click on it) it will give you a
+                hint.</li>
+                <li>Enter a new value for the option, and hit the
+                <code>enter</code> key, or the <em>Refresh</em> button.</li>
+                <li>Some types require special consideration:
+                  <li>integers, floats, strings and booleans can be entered
+                  as-is.</li>
+                  <li>arrays of elements can be comma-separated <em>except string
+                    arrays, which are (at the moment) semicolon-separated (anyone
+                    interested in making a good string array parser, take a shot.</em></li>
+                  <li>Callbacks are defined in a (crappy tiny) dialog box. If the
+                  function isn't defined, then a prototype of the function will be
+                  presented to the user.</li>
+                </li>
+              </ul>
+  
+              Then in the filter text box, type "point". Set drawPoints: true and
+              pointSize: 5.
+              You get the idea.
+            </div>
+          </div>
+        </td>
+        <td valign="top"><div id="optionsPalette"></div></td>
+     </tr>
+    </table>
+  </body>
+  <script type="text/javascript">
+    Index.start();
+    $(function() {
+      $("#toggleInstructions").click(function() {
+        $("#instructions").toggle(500);
+      });
+    });
+  </script>
+</html>

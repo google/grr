@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>missing data</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <table>
+    <tr><td valign=top>
+    <div id="graph"></div>
+    <div id="graph2"></div>
+    </td><td valign=top>
+    <div id="graph3"></div>
+    <div id="graph4"></div>
+    </td><td valign=top>
+    <div id="graph5"></div>
+    <div id="graph6"></div>
+    </td></tr>
+    </table>
+
+    <script type="text/javascript">
+    g = new Dygraph(
+      document.getElementById("graph"),
+      "Date,GapSeries1,GapSeries2\n" +
+      "2009/12/01,10,10\n" +
+      "2009/12/02,15,11\n" +
+      "2009/12/03,,12\n" +
+      "2009/12/04,20,13\n" +
+      "2009/12/05,15,\n" +
+      "2009/12/06,18,15\n" +
+      "2009/12/07,12,16\n"
+    );
+
+    g2 = new Dygraph(
+      document.getElementById("graph2"),
+      [
+        [ new Date("2009/12/01"), 10, 10],
+        [ new Date("2009/12/02"), 15, 11],
+        [ new Date("2009/12/03"), null, 12],
+        [ new Date("2009/12/04"), 20, 13],
+        [ new Date("2009/12/05"), 15, null],
+        [ new Date("2009/12/06"), 18, 15],
+        [ new Date("2009/12/07"), 12, 16]
+      ],
+      {
+        labels: ["Date","GapSeries1","GapSeries2"],
+        showRoller: true
+      }
+    );
+
+    g3 = new Dygraph(
+      document.getElementById("graph3"),
+      [
+        [1, [10, 2], [20, 3]],
+        [2, [12, 2], [20, 3]],
+        [3, [ 8, 2], [20, 3]],
+        [4, [null, 2], [20, 3]],
+        [5, [null, 2], null],
+        [6, [ 9, 2], [20, 3]],
+        [7, [10, 2], [20, 3]]
+      ],
+      {
+        errorBars: true,
+        labels: [ "X", "Series1", "Series2" ]
+      }
+    );
+
+    g4 = new Dygraph(
+      document.getElementById("graph4"),
+      [
+        [1, [10, 2], [20, 3]],
+        [2, [12, 2], [20, 3]],
+        [3, [ 8, 2], [20, 3]],
+        [4, null, [20, 3]],
+        [5, null, [null, 3]],
+        [6, [ 9, 2], [20, 3]],
+        [7, [10, 2], [20, 3]]
+      ],
+      {
+        errorBars: true,
+        rollPeriod: 2,
+        labels: [ "X", "Series1", "Series2" ]
+      }
+    );
+      
+    g5 = new Dygraph(
+        document.getElementById("graph5"),
+        [
+          [1, [10, 2], [20, 3]],
+          [2, [12, 2], [20, 3]],
+          [3, [ 8, 2], [20, 3]],
+          [4, [2, null], null],
+          [5, null, [null, 3]],
+          [6, [ 9, 2], [20, 3]],
+          [7, [10, 2], [20, 3]]
+        ],
+        {
+          errorBars: true,
+          connectSeparatedPoints: false,
+          labels: [ "X", "Series1", "Series2" ]
+        }
+    );
+      
+    g6 = new Dygraph(
+        document.getElementById("graph6"),
+        [
+          [1, [8, 10,12],null],
+          [2, [3, 5,7],[4,6,7]],
+          [3, null,[1,2,4]],
+          [4, [ 9,null, 2],[3,4,8]],
+          [5, [null,2, null],[6,8,9]],
+          [6, [2,3, 6],[2,3,5]]
+        ],
+        {
+          customBars: true,
+          connectSeparatedPoints: false,
+          labels: [ "X", "Series1", "Series2"]
+        }
+    );
+    </script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>connect separated</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Connecting separated points.  All three of the series should have their points
+      connected with lines, and hovering over them should produce dot and legend
+      overlays in the proper color.</p>
+
+    <div id="graphdiv" style="width:600px; height:300px;"></div>
+<p><b>Toggle ConnectSeparated:<b></p>
+<p>
+  All: <button id="All" onclick="change(this)">true</button>
+  Series 1 <button id="Series1" onclick="change(this)">disabled</button>
+  Series 2 <button id="Series2" onclick="change(this)">disabled</button>
+  Series 3 <button id="Series3" onclick="change(this)">disabled</button>
+</p>
+    <script type="text/javascript">
+      var g = new Dygraph(document.getElementById("graphdiv"),
+      [
+        [ new Date("2009/12/01"), 10, 10, 10],
+        [ new Date("2009/12/02"), 15, 11, 12],
+        [ new Date("2009/12/03"), null, null, 12],
+        [ new Date("2009/12/04"), 20, 14, null],
+        [ new Date("2009/12/05"), 15, null, 17],
+        [ new Date("2009/12/06"), 18, null, null],
+        [ new Date("2009/12/07"), 12, 14, null]
+      ],
+      {
+        connectSeparatedPoints: true,
+        labels: ["Date","Series1","Series2","Series3"]
+      });
+
+      function change(el) {
+        var textSequences = [ "disabled", "true", "false" ];
+        var values = [ null, true, false ];
+        for (var idx = 0; idx < textSequences.length; idx++) {
+          if (textSequences[idx] == el.textContent) {
+            var nextIdx = (idx + 1) % 3;
+            var nextVal = values[nextIdx];
+            el.textContent = textSequences[nextIdx];
+
+            if (el.id == "All") {
+              g.updateOptions({ connectSeparatedPoints : nextVal });
+            } else {
+              var seriesOpt = {};
+              seriesOpt[el.id] = { connectSeparatedPoints : nextVal };
+              g.updateOptions({ series : seriesOpt });
+            }
+            break;
+          }
+        }
+      }
+    </script>
+  </body>
+</html>

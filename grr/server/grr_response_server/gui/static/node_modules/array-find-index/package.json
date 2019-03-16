@@ -1,0 +1,39 @@
+{
+  "name": "array-find-index",
+  "version": "1.0.2",
+  "description": "ES2015 `Array#findIndex()` ponyfill",
+  "license": "MIT",
+  "repository": "sindresorhus/array-find-index",
+  "author": {
+    "name": "Sindre Sorhus",
+    "email": "sindresorhus@gmail.com",
+    "url": "sindresorhus.com"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "scripts": {
+    "test": "xo && ava"
+  },
+  "files": [
+    "index.js"
+  ],
+  "keywords": [
+    "es2015",
+    "ponyfill",
+    "polyfill",
+    "shim",
+    "find",
+    "index",
+    "findindex",
+    "array"
+  ],
+  "devDependencies": {
+    "ava": "*",
+    "xo": "*"
+  }
+
+,"_resolved": "https://registry.npmjs.org/array-find-index/-/array-find-index-1.0.2.tgz"
+,"_integrity": "sha1-3wEKoSh+Fku9pvlyOwqWoexBh6E="
+,"_from": "array-find-index@1.0.2"
+}

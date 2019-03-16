@@ -89,6 +89,7 @@ class ArtifactCollectorFlowMixin(object):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def Start(self):
+    print("collector\n\n\n")
     """For each artifact, create subflows for each collector."""
     self.state.artifacts_failed = []
     self.state.artifacts_skipped_due_to_condition = []
@@ -230,6 +231,8 @@ class ArtifactCollectorFlowMixin(object):
     for artifact_name in self.args.artifact_list:
       if artifact_name not in knowledgebase_list:
         return False
+      else:
+	print("success")
     return True
 
   def GetFiles(self, source, path_type, max_size):

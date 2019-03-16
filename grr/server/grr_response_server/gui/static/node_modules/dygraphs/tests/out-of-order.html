@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>out of order</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="http://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+      // Capture warnings, since these are what we want in this test.
+      Dygraph.prototype.warn = function(msg) {
+        console.log(msg);
+      };
+
+      google.load('visualization', '1');
+
+      function createDataTable(dateType) {
+        data = new google.visualization.DataTable();
+        data.addColumn(dateType, 'Date');
+        data.addColumn('number', 'Column A');
+        data.addColumn('number', 'Column B');
+        data.addRows(4);
+        data.setCell(0, 0, new Date("2009/07/15"));
+        data.setCell(0, 1, 3);
+        data.setCell(0, 2, 3);
+        data.setCell(1, 0, new Date("2009/07/22"));
+        data.setCell(1, 1, 4);
+        data.setCell(1, 2, 0);
+        data.setCell(2, 0, new Date("2009/07/08"));
+        data.setCell(2, 1, 2);
+        data.setCell(2, 2, 4);
+        data.setCell(3, 0, new Date("2009/07/01"));
+        data.setCell(3, 1, 1);
+        data.setCell(3, 2, 7);
+        return data;
+      }
+
+      var csv =
+      "Date,Column A,Column B\n" +
+      "2009/07/15,3,3\n" +
+      "2009/07/22,4,0\n" +
+      "2009/07/08,2,4\n" +
+      "2009/07/01,1,7\n";
+
+      function drawVisualization() {
+        data = createDataTable('date');
+
+        var chart = new Dygraph.GVizChart(
+            document.getElementById('dygraphs_gviz')).draw(data, {
+            });
+
+        var graph = new Dygraph(document.getElementById('dygraphs'), csv);
+
+      }
+      google.setOnLoadCallback(drawVisualization);
+    </script>
+  </head>
+  <body>
+    <p>CSV data source out of order:</p>
+    <div id="dygraphs" style="width:600px; height:300px;"></div>
+
+    <p>gviz data source out of order:</p>
+    <div id="dygraphs_gviz" style="width:600px; height:300px;"></div>
+  </body>
+</html>

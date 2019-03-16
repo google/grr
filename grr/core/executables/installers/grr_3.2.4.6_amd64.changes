@@ -1,0 +1,25 @@
+Format: 1.8
+Date: Mon, 11 Feb 2019 18:25:11 +0000
+Source: grr
+Binary: grr
+Architecture: amd64
+Version: 3246-1
+Distribution: unstable
+Urgency: low
+Maintainer: GRR <grr-dev@googlegroups.com>
+Changed-By: GRR <grr-dev@googlegroups.com>
+Description:
+ grr        - grr Rapid Response Client
+Changes:
+ grr (3246-1) unstable; urgency=low
+ .
+   * Initial release
+Checksums-Sha1:
+ 60ba1c67108d236c31fd127dbf93d9027f8e6c8f 5291 grr_3246-1_amd64.buildinfo
+ c0c9dfb27fd7de852492403107bd95125878dfcd 20453094 grr_3246-1_amd64.deb
+Checksums-Sha256:
+ d577e14bf68f74698ae09d102f6536d4cc07292247caa7c4bdd816ff31a3753c 5291 grr_3246-1_amd64.buildinfo
+ a0fa2e218015c42001f8c20581011af5266486e4c63be8799970b24dd76c2c65 20453094 grr_3246-1_amd64.deb
+Files:
+ 2873a52b1340cba8a1503e9ccf3e606c 5291 misc extra grr_3246-1_amd64.buildinfo
+ 13cfd0b66cefe2129ed1b269f5982f25 20453094 misc extra grr_3246-1_amd64.deb

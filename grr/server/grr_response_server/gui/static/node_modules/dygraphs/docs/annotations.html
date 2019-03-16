@@ -1,0 +1,226 @@
+<!--#include virtual="header.html" -->
+
+<style type="text/css">
+  code { white-space: pre; }
+  pre  { white-space: pre; }
+  .annotation {
+    font-size: 12px !important;
+  }
+</style>
+
+<h2>dygraphs Annotations</h2>
+
+<p>dygraphs lets you add annotations (markers) to individual points on your
+chart. These markers have a short bit of text or an icon that's displayed
+over the chart, plus a longer description that appears when you hover over
+them.</p>
+
+<h3>Demo: Dow Jones Industrial Average</h3>
+<div id="dow_chart" style="width: 800px; height: 250px;"></div>
+<script type="text/javascript">
+  // From http://www.econstats.com/eqty/eq_d_mi_3.csv
+  stockchart = new Dygraph(
+    document.getElementById('dow_chart'),
+    "dow.txt",
+    {
+      showRoller: true,
+      customBars: true,
+      labelsKMB: true,
+      labelsDivWidth: 300
+    }
+  );
+
+  stockchart.ready(function(g) {
+    g.setAnnotations( [
+    {
+      series: "Real",
+      x: "1929-08-15",
+      shortText: "A",
+      text: "1929 Stock Market Peak",
+      cssClass: 'annotation'
+    },
+    {
+      series: "Nominal",
+      x: "1987-08-15",
+      shortText: "B",
+      text: "1987 Crash",
+      cssClass: 'annotation'
+    },
+    {
+      series: "Nominal",
+      x: "1999-12-15",
+      shortText: "C",
+      text: "1999 (.com) Peak",
+      cssClass: 'annotation'
+    },
+    {
+      series: "Nominal",
+      x: "2007-10-15",
+      shortText: "D",
+      text: "All-Time Market Peak",
+      cssClass: 'annotation'
+    }
+    ] );
+  });
+</script>
+
+<h3>Adding Annotations</h3>
+
+<p>There are two methods which are used to add, remove and modify annotations:</p>
+
+<table class="thinborder">
+<tr>
+  <td><code>setAnnotations(array)</code></td>
+  <td>Set the list of annotations currently displayed. This overwrites
+  existing annotations and redraws the dygraph.</td>
+</tr>
+<tr>
+  <td><code>annotations</code></td>
+  <td>Returns an array of the currently-displayed annotations.</td>
+</tr>
+</table>
+
+<p>Calling <code>dygraph.setAnnotations(dygraph.annotations())</code> is a
+no-op: it simply causes the chart to refresh.</p>
+
+<p>Let's say we have a simple chart and wish to add an annotation. Here's how:</p>
+
+  <div class="example" style="clear:both;">
+    <div class="codeblock" style="float:left;width:400px;">
+      <h3 style="text-align:center">HTML</h3>
+  <pre>
+&lt;script type=&quot;text/javascript&quot;&gt;
+  g = new Dygraph(
+    document.getElementById(&quot;graphdiv&quot;),
+    &quot;Date,Temperature\n&quot; +
+    &quot;2008-05-07,75\n&quot; +
+    &quot;2008-05-08,70\n&quot; +
+    &quot;2008-05-09,80\n&quot;
+  );
+
+  g.ready(function() {
+    g.setAnnotations([
+    {
+      series: &quot;Temperature&quot;,
+      x: &quot;2008-05-08&quot;,
+      shortText: &quot;L&quot;,
+      text: &quot;Coldest Day&quot;
+    }
+    ]);
+  });
+&lt;/script&gt;
+</pre>
+</div>
+
+<div class="codeoutput" style="float:left;">
+  <h3 style="text-align:center">OUTPUT</h3>
+  <div id="graphdiv" style="width: 350px; height: 250px;"></div>
+  <script type="text/javascript">
+    g = new Dygraph(
+
+      // containing div
+      document.getElementById("graphdiv"),
+
+      // CSV or path to a CSV file.
+      "Date,Temperature\n" +
+      "2008-05-07,75\n" +
+      "2008-05-08,70\n" +
+      "2008-05-09,80\n"
+    );
+    g.ready(function() {
+        g.setAnnotations([
+        {
+          series: "Temperature",
+          x: "2008-05-08",
+          shortText: "L",
+          text: "Coldest Day"
+        }
+        ]);
+    });
+  </script>
+</div>
+</div>
+
+<p style="clear:both">Annotations are JavaScript dictionaries. The <code>series</code> and <code>x</code> fields are required: they indicate which point the annotation should be attached to. If specified, <code>shortText</code> will appear on the annotation "flag". If you don't specify <code>shortText</code>, you can specify <code>icon</code> instead to display a small picture. The <code>text</code> parameter specifies hovertext. If you highlight the annotation and leave the mouse still, it will appear.</p>
+
+<p>If you are using <a href="http://dygraphs.com/data.html#array">native format</a>, you need to pass in a numeric value for the <code>x</code> field. For a numeric x-axis, simply pass in the x-value of the data point on which you wish to attach the annotation. For a date axis, pass in <code>Date.parse('YYYY/MM/DD')</code>. This returns milliseconds since epoch for the date.</p>
+
+<h3>Modifying Annotations</h3>
+<p>To remove or modify existing annotations, call the
+<code>annotations</code> method to get an array of annotations. Modify that
+array, then pass it back in to <code>setAnnotations</code>. For example, this
+code deletes the second annotation and changes the series to which the first
+is attached:</p>
+
+<pre>
+var annotations = g.annotations();
+annotations.splice(1,1);  // remove the second annotation
+annotations[0].series = "Series 2";
+g.setAnnotations(annotations);  // causes a redraw
+</pre>
+
+<p>For a more real-life example, see the <a
+href="tests/annotation.html">annotations demo</a></p>
+
+<h3>Annotations and Data Sources</h3>
+<p>When you pass a URL as the data source to dygraphs, it must issue a request
+for the data before drawing the chart. This means that the chart data is not yet
+available immediately after you call <code>new Dygraph</code> and so the call to
+<code>g.setAnnotations</code> will fail. The best way around this is to use the
+<code>ready()</code> method:</p>
+
+<pre>g = new Dygraph(div, "path/to/data.csv");
+g.ready(function() {
+  // This is called when data.csv comes back and the chart draws.
+  g.setAnnotations([
+    &hellip;
+  ]);
+});
+</pre>
+
+<h3>Annotations property reference</h3>
+<p>These properties can all be set in the dictionary for an annotation. The use of each one is demonstrated on the <a href="tests/annotation.html">annotations demo</a> page.</p>
+
+<table class="thinborder">
+<tr> <td><b>Property</b></td><td><b>Description</b></td> </tr>
+<tr><td><code>series</code></td> <td><i>Required</i> The name of the series to which the annotated point belongs.</td></tr>
+<tr><td><code>x</code></td><td><i>Required</i> The x value of the point. This should be the same as the value you specified in your CSV file, e.g. "2010-09-13".</td></tr>
+<tr><td><code>shortText</code></td><td>Text that will appear on the annotation's flag.</td></tr>
+<tr><td><code>text</code></td><td>A longer description of the annotation which will appear when the user hovers over it.</td></tr>
+<tr><td><code>icon</code></td><td>Specify in place of <code>shortText</code> to mark the annotation with an image rather than text. If you specify this, you must specify <code>width</code> and <code>height</code>.</td></tr>
+<tr><td><code>width</code></td><td>Width (in pixels) of the annotation flag or icon.</td></tr>
+<tr><td><code>height</code></td><td>Height (in pixels) of the annotation flag or icon.</td></tr>
+<tr><td><code>cssClass</code></td><td>CSS class to use for styling the annotation.</td></tr>
+<tr><td><code>tickHeight</code></td><td>Height of the tick mark (in pixels) connecting the point to its flag or icon.</td></tr>
+<tr><td><code>attachAtBottom</code></td><td>If true, attach annotations to the x-axis, rather than to actual points.</td></tr>
+<tr><td><code>clickHandler</code></td>    <td>See Handlers, below</td></tr>
+<tr><td><code>mouseOverHandler</code></td><td>See Handlers, below</td></tr>
+<tr><td><code>mouseOutHandler</code></td> <td>See Handlers, below</td></tr>
+<tr><td><code>dblClickHandler</code></td> <td>See Handlers, below</td></tr>
+</table>
+
+<h3>Annotation event handlers</h3>
+
+<p>dygraphs lets you attach event handlers to your annotations. These can be
+specified globally (for all annotations) or on a per-annotation basis:</p>
+
+<table class="thinborder">
+<tr><td><b>Per-point field</b></td><td><b>Global option</b></td></tr>
+<tr><td><code>clickHandler</code></td>    <td><code>annotationClickHandler</code></td></tr>
+<tr><td><code>mouseOverHandler</code></td><td><code>annotationMouseOverHandler</code></td></tr>
+<tr><td><code>mouseOutHandler</code></td> <td><code>annotationMouseOutHandler</code></td></tr>
+<tr><td><code>dblClickHandler</code></td> <td><code>annotationDblClickHandler</code></td></tr>
+</table>
+
+<p>These event handlers all take the same parameters:</p>
+
+<pre>g.updateOptions( {
+  annotationClickHandler: function(annotation, point, dygraph, event) {
+    // ... access/modify annotation.series, annotation.x, ...
+  }
+}); </pre>
+
+<p>Again, check out the <a href="tests/annotation.html">annotations demo</a>
+for concrete examples of usage of all these handlers.</p>
+
+<!--#include virtual="footer.html" -->

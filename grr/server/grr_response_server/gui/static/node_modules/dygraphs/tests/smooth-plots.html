@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Plotters demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <script type="text/javascript" src="../extras/smooth-plotter.js"></script>
+
+    <style type="text/css">
+      body {
+        max-width: 700px;
+      }
+      div.chart {
+        width: 640px;
+        height: 320px;
+      }
+      input[type="range"] {
+        width: 400px;
+      }
+      .smoother {
+        margin-left: 50px;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Smooth Lines</h2>
+    <p>This plotter draws smooth lines between points using bezier curves.</p>
+    <p class="smoother">Smoothing:&nbsp;<input type="range" id="smoothing-amount" min=0 max=0.7 step=0.01 value=0.33> <span id="smoothing-param">0.33</span></p>
+    <div id="smooth-line" class="chart"></div>
+
+    <p>View source to see how this works. You'll have to source <code>extras/smooth-plotter.js</code> in addition to dygraphs to get this feature. See the <a href="https://github.com/danvk/dygraphs/pull/469">pull request</a> that introduced this plotter to learn more about how it smooths your curves.</p>
+
+<script type="text/javascript">
+// Smooth line plotter
+var functionData = [];
+var vs = [10, 20, 40, 0, 30, 15, 25, 60, 35, 45];
+for (var i = 0; i < 10; i++) {
+  var v = vs[i];
+  functionData.push([i, v, v]);
+}
+
+var g6;
+function drawSmoothPlot() {
+  g6 = new Dygraph(document.getElementById('smooth-line'),
+                   functionData,
+                   {
+                     labels: ['Year', 'Straight', 'Smoothed'],
+                     series: {
+                       Straight: {
+                         color: 'rgba(0,0,0,0.33)',
+                         strokeWidth: 2,
+                         drawPoints: true,
+                         pointSize: 3
+                       },
+                       Smoothed: {
+                         plotter: smoothPlotter,
+                         color: 'red',
+                         strokeWidth: 2
+                       }
+                     },
+                     legend: 'always',
+                     gridLineColor: '#ddd'
+                   });
+}
+drawSmoothPlot();
+
+var smoothRangeEl = document.getElementById('smoothing-amount');
+smoothRangeEl.addEventListener('input', function() {
+  var param = parseFloat(smoothRangeEl.value);
+  smoothPlotter.smoothing = param;
+  document.getElementById('smoothing-param').innerHTML = param;
+  drawSmoothPlot();
+});
+</script>
+</body>
+</html>

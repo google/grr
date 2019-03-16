@@ -2313,3 +2313,22 @@ message FlowOutputPluginLogEntry {
     }];
   optional string message = 7;
 }
+
+// Next field ID: 3
+message ExecuteLineArgs {
+  optional string command = 1 [(sem_type) = {
+      description: "The command needed to get executed on the client",
+    }];
+  optional int64 time_limit = 2 [(sem_type) = {
+      description: "The time limit for this execution, -1 means unlimited."
+    }, default=-1];
+}
+
+// Next field ID: 6
+message CombineFlowArgs {
+  optional string flow1 = 1;
+  optional string flow2 = 2;
+  optional string flow3 = 3;
+  optional string flow4 = 4;
+  optional string flow5 = 5;
+}

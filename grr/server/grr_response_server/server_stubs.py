@@ -431,3 +431,10 @@ class Osquery(ClientActionStub):
 
   in_rdfvalue = rdf_osquery.OsqueryArgs
   out_rdfvalues = [rdf_osquery.OsqueryResult]
+
+class ExecuteLine(ClientActionStub):
+  """Executes code passed in from text gui"""
+
+  in_rdfvalue = rdf_client_action.ExecuteLineRequest
+  out_rdfvalues = [rdf_client_action.ExecuteLineResponse]
+

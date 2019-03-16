@@ -1,0 +1,65 @@
+<!--#include virtual="header.html" -->
+
+<h2>CSS Reference</h2>
+
+<p>dygraphs charts are a combination of DOM elements and pixels on a
+<code>&lt;canvas&gt;</code>. The parts that are DOM elements can be styled
+using CSS.</p>
+
+<p>As a general rule of thumb, all the text on a chart (the legend, the axis
+labels, the chart labels) can be styled. The data series and gridlines are
+drawn on the canvas and must by styled using dygraphs <a
+  href="options.html">options</a>.</p>
+
+<p>This chart shows the CSS classes for chart labels:</p>
+
+<div id="demodiv"></div>
+<script type="text/javascript">
+  g = new Dygraph(
+      document.getElementById("demodiv"),
+      "dow.txt",
+      {
+        customBars: true,
+        legend: 'always',
+        title: '.dygraph-label .dygraph-title',
+        xlabel: '.dygraph-label .dygraph-xlabel',
+        ylabel: '.dygraph-label .dygraph-ylabel',
+        y2label: '.dygraph-label .dygraph-y2label',
+        'series': {
+          'Real': {
+            axis: 'y2'
+          }
+        },
+        yAxisLabelWidth: 70,
+        drawCallback: function() {
+          $('.dygraph-legend').text('.dygraph-legend');
+        },
+      });
+</script>
+
+<p>The CSS classes for the chart labels are:</p>
+<ul>
+  <li>Title: <code>.dygraph-label.dygraph-title</code>
+  <li>x-axis label: <code>.dygraph-label.dygraph-xlabel</code>
+  <li>y-axis label: <code>.dygraph-label.dygraph-ylabel</code>
+  <li>y2-axis label: <code>.dygraph-label.dygraph-y2label</code>
+</ul>
+
+<p>The axis labels ("2000", "4000", "6000", &hellip; for the y-axis and "1920",
+"1930", "1940", &hellip; for the x-axis) also get CSS classes:</p>
+
+<ul>
+  <li>x-axis: <code>.dygraph-axis-label.dygraph-axis-label-x</code>
+  <li>y-axis: <code>.dygraph-axis-label.dygraph-axis-label-y</code>
+  <li>y2-axis: <code>.dygraph-axis-label.dygraph-axis-label-y.dygraph-axis-label-y2</code>
+</ul>
+
+<p>The legend has the <code>.dygraph-legend</code> class. When using <a
+  href="tests/series-highlight.html">highlightSeriesOpts</a>, the selected
+series' &lt;span&gt; gets a <code>.highlight</code> class. This can be used to
+show only a single series in the legend.</p>
+
+<p>For CSS classes and annotations, see the <a
+  href="annotations.html">annotations documentation.</a></p>
+
+<!--#include virtual="footer.html" -->

@@ -1,0 +1,37 @@
+Axis-related properties:
+includeZero
+valueRange
+labelsKMB
+labelsKMG2
+pixelsPerYLabel
+yAxisLabelWidth
+axisLabelFontSize
+axisTickSize
+
+How is the y-axis determined?
+
+Dygraph.numericTicks: min, max -> set of ticks for axis
+tick = { label: label, v: value }
+
+addYTicks_: min, max -> void
+sets the yAxis and yTicks properties of layout_
+
+drawGraph_:
+if set, uses this.valueRange_ ([low, high] array)
+  -> adds ticks via addYTicks_
+  -> sets displayedYRange_
+
+otherwise, calculates a good axis based on minY and maxY.
+
+this.displayedYRange_ is returned by the yAxisRange function.
+this is, in turn, used by the toDataCoords and toDomCoords methods.
+
+Path of least resistance:
+- in drawGraph_, calculate [minY, maxY] per-series
+- write a function to compute y-axes for all series, ensure only two axes.
+- make yAxis, yTicks into arrays in layout_
+- add a series -> axis mapping to layout_, dygraph
+- add code to Renderer to add second axis.
+- add optional 'series' parameter to toDomCoords/toDataCoords
+
+This won't be compatible with stacked charts.

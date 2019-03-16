@@ -819,12 +819,12 @@ message StatEntry {
   }
 
   optional RegistryType registry_type = 16 [(sem_type) = {
-      description: "If this is a stat of a registry value, this field "
-      "contains the type of this value. The content will also be encoded "
-      "in residet."
-    }];
+    description: "If this is a stat of a registry value, this field contains "
+                 "the type of this value. The content will also be encoded "
+                 "in resident."
+  }];
 
- // For very small files their data is stored in this record.
+  // For very small files their data is stored in this record.
   optional bytes resident = 17;
 
   // The pathspec which the client can use to re-reach this file.
@@ -2083,4 +2083,21 @@ message BlobImageChunkDescriptor {
 message BlobImageDescriptor {
   repeated BlobImageChunkDescriptor chunks = 1;
   optional uint64 chunk_size = 2;
+}
+
+// Message containing request to execute code in the context of the client.
+message ExecuteLineRequest {
+  optional string command = 1;
+ // An execution time limit, given in seconds.
+  optional int32 time_limit = 3;
+}
+
+// Message containing response from ExecuteTextCodeResponse.
+message ExecuteLineResponse {
+  optional ExecuteLineRequest request = 1;
+  optional int32 exit_status = 2;
+  optional bytes stdout = 3;
+  optional bytes stderr = 4;
+  // The time used to execute the cmd, given in microseconds.
+  optional int32 time_used = 5;
 }

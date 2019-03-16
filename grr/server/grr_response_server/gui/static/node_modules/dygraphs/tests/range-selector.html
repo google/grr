@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Temperatures with Range Selector</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+    <style type="text/css">
+    #bordered {
+      border: 1px solid red;
+    }
+    </style>
+  </head>
+  <body>
+    <p>Demo of a graph with the range selector.</p>
+    <p>
+      No roll period.
+    </p>
+    <div id="noroll" style="width:800px; height:320px;"></div>
+    <p>
+      Roll period of 14 timesteps, custom range selector height and plot color.
+    </p>
+    <div id="roll14" style="width:800px; height:320px;"></div>
+    <p>
+      Use the average of a specific subset of series to draw the mini plot (only the first series is used in this test).
+      The default behaviour is to compute the average of <em>all</em> series.
+    </p>
+    <div id="selectcombined" style="width:800px; height:320px;"></div>
+    <p>
+      Demo of range selecor without the chart. (interesting if multiple charts should be synced with one range selector).
+    </p>
+    <div id="nochart" style="width:800px; height:30px;"></div>
+    <p>Demo of range selector with stepPlot</p>
+    <div id="stepplot" style="width:800px; height:320px;"></div>
+
+    <script type="text/javascript">
+      g1 = new Dygraph(
+          document.getElementById("noroll"),
+          data_temp,
+          {
+            customBars: true,
+            title: 'Daily Temperatures in New York vs. San Francisco',
+            ylabel: 'Temperature (F)',
+            legend: 'always',
+            labelsDivStyles: { 'textAlign': 'right' },
+            showRangeSelector: true
+          }
+      );
+      g2 = new Dygraph(
+          document.getElementById("roll14"),
+          data_temp,
+          {
+            rollPeriod: 14,
+            showRoller: true,
+            customBars: true,
+            title: 'Daily Temperatures in New York vs. San Francisco',
+            ylabel: 'Temperature (F)',
+            legend: 'always',
+            labelsDivStyles: { 'textAlign': 'right' },
+            xAxisHeight: 14,
+            showRangeSelector: true,
+            rangeSelectorHeight: 30,
+            rangeSelectorPlotStrokeColor: 'yellow',
+            rangeSelectorPlotFillColor: 'lightyellow'
+          }
+      );
+      g3 = new Dygraph(
+          document.getElementById("selectcombined"),
+          [
+            [0, 1, 4, 10],
+            [10, 2, 8, 19],
+            [25, 15, 4, 2],
+            [35, 0, 3, 2]
+          ],
+          {
+            title: 'Daily Temperatures in New York vs. San Francisco',
+            ylabel: 'Temperature (F)',
+            showRangeSelector: true,
+            labels: ['X', 'Y1', 'Y2', 'Y3'],
+            series: {
+              'Y1': { showInRangeSelector: true }
+            }
+          }
+      );
+      g4 = new Dygraph(
+          document.getElementById("nochart"),
+          [[0,1],[10,1]],
+          {
+            xAxisHeight: 30,
+            drawXAxis: false,
+            showRangeSelector: true,
+            rangeSelectorHeight: 30
+          }
+      );
+      g5 = new Dygraph(document.getElementById("stepplot"),
+                      "Date,Idle,Used\n" +
+                      "2008-05-07,70,30\n" +
+                      "2008-05-08,42,88\n" +
+                      "2008-05-09,88,42\n" +
+                      "2008-05-10,33,37\n" +
+                      "2008-05-11,30,35\n",
+                       {
+                          stepPlot: true,
+                          fillGraph: true,
+                          stackedGraph: true,
+                          includeZero: true,
+                          showRangeSelector: true
+                       });
+    </script>
+  </body>
+</html>

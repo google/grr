@@ -1,0 +1,9 @@
+- Let ssi_server be run from any directory (#include paths relative to file).
+- Set up ScrollSpy on options page.
+
+x Write docs on how to iterate with ssi_server.
+x Tweak display of "dygraphs" banner in nav.
+x Move per-axis.html into new site.
+x Get menu items to display in a stack on mobile.
+x Move div#main into header.html.
+x Reformat options.html to not look bad on mobile.

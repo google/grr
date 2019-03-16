@@ -1,0 +1,50 @@
+.palette {
+  border-style: solid;
+  border-width: 1px;
+  border-color: #bbbbbb;
+  font-size: smaller;
+  font-family: Arial, Verdana, sans-serif;
+  width: 300px;
+  padding:2px;
+  color: #333333;
+}
+
+.palette .header {
+  background-color: #b0c0e0;
+}
+
+.palette .odd {
+  background-color: #ccddff;
+}
+
+.palette .even {
+  background-color: #c6d6f4;
+}
+
+.palette .name {
+}
+
+.palette .name:after {
+  content: ":";
+}
+
+.palette .option {
+}
+
+.palette .textInput {
+  padding: 1px;
+  border: 2px inset;
+  border-color: #EEE;
+}
+
+.palette a {
+  color: #3333FF;
+}
+
+.palette a:hover {
+  text-decoration: underline;
+}
+
+.palette a:active {
+  color: #0000FF;
+}

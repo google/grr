@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>demo</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <style type="text/css">
+      .chart {
+        position: absolute;
+        left: 10px;
+        width: 500px;
+        height: 250px;
+        border: 1px solid black;
+      }
+      #chart1 {
+        top: 10px;
+      }
+      #chart2 {
+        top: 270px;
+      }
+      #iframe {
+        border: 1px solid black;
+        position: absolute;
+        left: 520px;
+      }
+      p {
+        position: absolute;
+        top: 550px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chart" id="chart1"></div>
+    <div class="chart" id="chart2"></div>
+    <iframe id="iframe" width=400 height=520 src="http://en.wikipedia.org/">iframe here</iframe>
+
+    <p>Click on various places in the chart, then drag the mouse over the iframe
+    and release it. When you mouse back over the charts, strange things will
+    happen.</p>
+
+    <script type="text/javascript">
+      var data = function() {
+        var zp = function(x) { if (x < 10) return "0"+x; else return x; };
+        var r = "date,parabola,line,another line,sine wave\n";
+        for (var i=1; i<=31; i++) {
+        r += "200610" + zp(i);
+        r += "," + 10*(i*(31-i));
+        r += "," + 10*(8*i);
+        r += "," + 10*(250 - 8*i);
+        r += "," + 10*(125 + 125 * Math.sin(0.3*i));
+        r += "\n";
+        }
+        return r;
+      };
+
+      g1 = new Dygraph(
+              document.getElementById("chart1"), data,
+              { }
+          );
+      g2 = new Dygraph(
+              document.getElementById("chart2"), data,
+              {
+                showRangeSelector: true
+              }
+          );
+    </script>
+</body>
+</html>

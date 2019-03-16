@@ -1,0 +1,30 @@
+Tips on adding entries to the gallery
+ 
+* You can use the id in conjunction with specialized CSS.
+
+* Most files don't have a lot of HTML, but some have tons. See
+  independent-series for tips on adding a lot of HTML.
+
+* You can also define a function called cleanup, which is the
+  opposite of setup. It's perfect for stopping timers, for instance.
+
+* Callbacks in HTML widgets. You might assume you can use
+  <button onclick="func">
+  and then define func in your run script:
+  
+  run: function() { function func() { .. }; }
+
+  but because func is defined in function scope the button can't call it.
+  The solution is to put func in the global scope, which is the same as window
+  scope:
+
+  run: function() { function window.func() { .. }; }
+
+* You'll find it easier if you convert all the double-quotes in your HTML to
+  single quotes.
+
+TODOs:
+  * Remove the awful tables in interaction.html (that I wrote)
+  * Move all style to css
+  * Add margin-left: 30px to #workarea, and then make #workarea h2 { margin-left: -30px}
+  * Remove runtime warnings.

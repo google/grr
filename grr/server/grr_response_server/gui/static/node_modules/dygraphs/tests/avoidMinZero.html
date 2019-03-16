@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>dygraph</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>1: Line chart with axis at zero problem:</p>
+    <div id="graph1"></div>
+    <script type="text/javascript">
+        var g1 = new Dygraph(document.getElementById("graph1"),
+            "Date,Temperature\n" +
+            "2008-05-07,0\n" +
+            "2008-05-08,1\n" +
+            "2008-05-09,0\n" +
+            "2008-05-10,0\n" +
+            "2008-05-11,3\n" +
+            "2008-05-12,4\n"
+        )
+    </script>
+
+    <p>2: Step chart with axis at zero problem:</p>
+    <div id="graphd2"></div>
+    <script type="text/javascript">
+        var g2 = new Dygraph(document.getElementById("graphd2"),
+            "Date,Temperature\n" +
+            "2008-05-07,0\n" +
+            "2008-05-08,1\n" +
+            "2008-05-09,0\n" +
+            "2008-05-10,0\n" +
+            "2008-05-11,3\n" +
+            "2008-05-12,4\n",
+            {
+               stepPlot: true
+            }
+        )
+    </script>
+
+    <p>3: Line chart with <code>avoidMinZero</code> option:</p>
+    <div id="graph3"></div>
+    <script type="text/javascript">
+        var g3 = new Dygraph(document.getElementById("graph3"),
+            "Date,Temperature\n" +
+            "2008-05-07,0\n" +
+            "2008-05-08,1\n" +
+            "2008-05-09,0\n" +
+            "2008-05-10,0\n" +
+            "2008-05-11,3\n" +
+            "2008-05-12,4\n",
+            {
+                avoidMinZero: true
+            }
+        )
+    </script>
+
+    <p>4: Step chart with <code>avoidMinZero</code> option:</p>
+    <div id="graphd4"></div>
+    <script type="text/javascript">
+        var g4 = new Dygraph(document.getElementById("graphd4"),
+            "Date,Temperature\n" +
+            "2008-05-07,0\n" +
+            "2008-05-08,1\n" +
+            "2008-05-09,0\n" +
+            "2008-05-10,0\n" +
+            "2008-05-11,3\n" +
+            "2008-05-12,4\n",
+            {
+               stepPlot: true,
+               avoidMinZero: true
+            }
+        )
+    </script>
+
+  </body>
+</html>

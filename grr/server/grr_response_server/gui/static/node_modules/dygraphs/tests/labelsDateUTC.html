@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>UTC date labels</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+  </head>
+  <body>
+
+    <h2>UTC date and time labels</h2>
+
+    <p>This shows how date ticks and labels may be generated according to local 
+    time (default) or UTC with the option <code>labelsUTC</code>.</p>
+    
+    <p>72 hours of random hourly data since 2009-Jul-23 18:00 UTC 
+    according to local time (top) and UTC (bottom):</p>
+    
+    <div id="div_loc" style="width:600px; height:200px;"></div>
+    <div id="div_utc" style="width:600px; height:200px;"></div>
+    
+    <p>Please note the offset between the respective ticks in both plots.
+    It should match your local time zone offset.</p>
+    
+    <p>You can also check it by hovering over corresponding points and comparing
+    the value labels.</p>
+    
+    <p>Try different zoom levels to show that ticks are always placed at nice
+    time boundaries.</p>
+
+    <script type="text/javascript">
+      var data = (function() {
+        var rand10 = function () { return Math.round(10 * Math.random()); };
+        var a = []
+        for (var y = 2009, m = 6, d = 23, hh = 18, n=0; n < 72; n++) {
+          a.push([new Date(Date.UTC(y, m, d, hh + n, 0, 0)), rand10()]);
+        }
+        return a;
+      })();
+      gloc = new Dygraph(
+                   document.getElementById("div_loc"),
+                   data,
+                   {
+                     labels: ['local time', 'random']
+                   }
+                 );
+      gutc = new Dygraph(
+                   document.getElementById("div_utc"),
+                   data,
+                   {
+                     labelsUTC: true,
+                     labels: ['UTC', 'random']
+                   }
+                 );
+    </script>
+
+  </body>
+</html>

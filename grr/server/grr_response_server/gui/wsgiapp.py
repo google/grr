@@ -211,6 +211,8 @@ class AdminUIApp(object):
 
   def _BuildToken(self, request, execution_time):
     """Build an ACLToken from the request."""
+    #print(request.user)
+    #print("\nhi\n\n")
     token = access_control.ACLToken(
         username=request.user,
         reason=request.args.get("reason", ""),
@@ -272,10 +274,12 @@ class AdminUIApp(object):
     """Handles API requests."""
     # Checks CSRF token. CSRF token cookie is updated when homepage is visited
     # or via GetPendingUserNotificationsCount API call.
+    #print(request)
     ValidateCSRFTokenOrRaise(request)
-
+    #print (request.get_data(as_text=True))
+    #print(request.args)
     response = http_api.RenderHttpResponse(request)
-
+    #print(response)
     # GetPendingUserNotificationsCount is an API method that is meant
     # to be invoked very often (every 10 seconds). So it's ideal
     # for updating the CSRF token.
@@ -283,6 +287,7 @@ class AdminUIApp(object):
     if (("csrftoken" not in request.cookies) or response.headers.get(
         "X-API-Method", "") == "GetPendingUserNotificationsCount"):
       StoreCSRFCookie(request.user, response)
+      #print request.user
 
     return response
 
@@ -349,6 +354,7 @@ class GuiPluginsInit(registry.InitHook):
   """Initialize the GUI plugins."""
 
   def RunOnce(self):
+    #print ("ths")
     """Import the plugins once only."""
     # pylint: disable=unused-variable,g-import-not-at-top
     from grr_response_server.gui import gui_plugins

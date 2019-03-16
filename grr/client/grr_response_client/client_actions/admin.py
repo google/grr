@@ -351,10 +351,11 @@ class SendStartupInfo(actions.ActionPlugin):
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
+    #print("Sending startup information.");
     boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
     response = rdf_client.StartupInfo(
         boot_time=boot_time, client_info=GetClientInformation())
-
+    #print(response)
     self.grr_worker.SendReply(
         response,
         session_id=self.well_known_session_id,

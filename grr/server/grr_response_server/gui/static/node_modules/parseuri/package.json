@@ -1,0 +1,26 @@
+{
+  "name": "parseuri",
+  "version": "0.0.5",
+  "description": "Method that parses a URI and returns an array of its components",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/get/parseuri.git"
+  },
+  "homepage": "https://github.com/get/parseuri",
+  "scripts": {
+    "test": "make test"
+  },
+  "devDependencies": {
+    "mocha": "1.17.1",
+    "better-assert": "1.0.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "better-assert": "~1.0.0"
+  }
+
+,"_resolved": "https://registry.npmjs.org/parseuri/-/parseuri-0.0.5.tgz"
+,"_integrity": "sha1-gCBKUNTbt3m/3G6+J3jZDkvOMgo="
+,"_from": "parseuri@0.0.5"
+}

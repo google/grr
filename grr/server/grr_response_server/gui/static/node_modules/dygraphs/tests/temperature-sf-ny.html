@@ -1,0 +1,59 @@
+<!DOCTYPE html> 
+<html> 
+  <head> 
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9"> 
+    <title>Temperatures</title> 
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]--> 
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    --> 
+    <script type="text/javascript" src="../dygraph-dev.js"></script> 
+ 
+    <script type="text/javascript" src="data.js"></script> 
+    <style type="text/css"> 
+    #bordered {
+      border: 1px solid red;
+    }
+    </style> 
+  </head> 
+  <body> 
+    <p>Demo of a graph with many data points and custom error bars.</p>
+    <p>
+      No roll period.
+    </p>
+    <div id="noroll" style="width:800px; height:320px;"></div> 
+    <p>
+      Roll period of 14 timesteps.
+    </p>
+    <div id="roll14" style="width:800px; height:320px;"></div> 
+    <script type="text/javascript"> 
+      g1 = new Dygraph(
+          document.getElementById("noroll"),
+          data_temp,
+          {
+            customBars: true,
+            title: 'Daily Temperatures in New York vs. San Francisco',
+            ylabel: 'Temperature (F)',
+            legend: 'always',
+            labelsDivStyles: { 'textAlign': 'right' }
+          }
+      );
+      g2 = new Dygraph(
+          document.getElementById("roll14"),
+          data_temp,
+          {
+            rollPeriod: 14,
+            showRoller: true,
+            customBars: true,
+            title: 'Daily Temperatures in New York vs. San Francisco',
+            ylabel: 'Temperature (F)',
+            legend: 'always',
+            labelsDivStyles: { 'textAlign': 'right' }
+          }
+      );
+    </script> 
+  </body> 
+</html> 

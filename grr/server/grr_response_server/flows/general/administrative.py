@@ -479,8 +479,10 @@ class ExecuteCommandMixin(object):
 
   def Confirmation(self, responses):
     """Confirmation."""
+    #print responses
     if responses.success:
       response = responses.First()
+      print "shit"
       self.Log(
           ("Execution of %s %s (return value %d, "
            "ran for %f seconds):"),
@@ -1001,3 +1003,202 @@ class LaunchBinaryMixin(object):
       self.Log("Stderr: %s" % self._TruncateResult(response.stderr))
 
       self.SendReply(response)
+
+class ExecuteLineArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ExecuteLineArgs
+
+@flow_base.DualDBFlow
+class ExecuteLineMixin(object):
+  """Execute a command from GUI on the client."""
+
+  category = "/Administrative/"
+  args_type = ExecuteLineArgs
+
+  def Start(self):
+    """Call the execute function on the client."""
+    self.CallClient(
+        server_stubs.ExecuteLine,
+        command=self.args.command,
+        time_limit=self.args.time_limit,
+        next_state="Confirmation")
+
+  def Confirmation(self, responses):
+    """Confirmation."""
+    if responses.success:
+      response = responses.First()
+      print "command_sucess"
+      self.Log(
+          ("Execution of %s %s (return value %d, "
+           "ran for %f seconds):"),
+          response.request.command,
+          response.exit_status,
+          # time_used is returned in microseconds.
+          response.time_used / 1e6)
+      try:
+        # We don't want to overflow the log so we just save 100 bytes each.
+        logout = response.stdout[:100]
+        if len(response.stdout) > 100:
+          logout += "..."
+        logerr = response.stderr[:100]
+        if len(response.stderr) > 100:
+          logerr += "..."
+        self.Log("Output: %s, %s", logout, logerr)
+      except ValueError:
+        # The received byte buffer does not convert to unicode.
+        self.Log("Received output not convertible to unicode.")
+    else:
+      print "command_failure"
+      self.Log("Execute failed.")
+
+
+class CombineFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.CombineFlowArgs
+
+@flow_base.DualDBFlow
+class CombineFlowMixin(object):
+  """Creates a new custom flow by combining some already existing flows"""
+
+  category = "/Administrative/"
+
+  args_type = CombineFlowArgs
+
+  def Start(self):
+    """The start method."""
+    print self.runner_args
+    client_id= self.runner_args.client_id
+    setflag=[]
+    if(self.args.HasField("flow1")):
+	setflag.append(1)
+    else:
+	setflag.append(0)
+    if(self.args.HasField("flow2")):
+	setflag.append(1)
+    else:
+	setflag.append(0)
+    if(self.args.HasField("flow3")):
+	setflag.append(1)
+    else:
+	setflag.append(0)
+    if(self.args.HasField("flow4")):
+	setflag.append(1)
+    else:
+	setflag.append(0)
+    if(self.args.HasField("flow5")):
+	setflag.append(1)
+    else:
+	setflag.append(0)
+    #print setflag
+    if data_store.RelationalDBFlowsEnabled():
+     cpu_limit = None
+     if self.runner_args.HasField("cpu_limit"):
+     	cpu_limit = self.runner_args.cpu_limit
+     network_bytes_limit = None
+     if self.runner_args.HasField("network_bytes_limit"):
+     	network_bytes_limit = self.runner_args.network_bytes_limit
+     if setflag[0]:
+	flow_name=self.args.flow1
+	flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+	flow.StartFlow(
+          		client_id=client_id,
+          		cpu_limit=cpu_limit,
+          		creator=self.token.username,
+          		flow_args=self.args.flow.args,
+          		flow_cls=flow_cls,
+			network_bytes_limit=network_bytes_limit,
+          		original_flow=self.runner_args.original_flow,
+			output_plugins=self.runner_args.output_plugins,
+          		parent_flow_obj=self,
+			)
+     if setflag[1]:
+	flow_name=self.args.flow2
+	flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+	flow.StartFlow(
+          		client_id=client_id,
+          		cpu_limit=cpu_limit,
+          		creator=self.token.username,
+          		flow_args=self.args.flow.args,
+          		flow_cls=flow_cls,
+			network_bytes_limit=network_bytes_limit,
+          		original_flow=self.runner_args.original_flow,
+			output_plugins=self.runner_args.output_plugins,
+          		parent_flow_obj=self,
+			)
+     if setflag[2]:
+	flow_name=self.args.flow3
+	flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+	flow.StartFlow(
+          		client_id=client_id,
+          		cpu_limit=cpu_limit,
+          		creator=self.token.username,
+          		flow_args=self.args.flow.args,
+          		flow_cls=flow_cls,
+			network_bytes_limit=network_bytes_limit,
+          		original_flow=self.runner_args.original_flow,
+			output_plugins=self.runner_args.output_plugins,
+          		parent_flow_obj=self,
+			)
+     if setflag[3]:
+	flow_name=self.args.flow4
+	flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+	flow.StartFlow(
+          		client_id=client_id,
+          		cpu_limit=cpu_limit,
+          		creator=self.token.username,
+          		flow_args=self.args.flow.args,
+          		flow_cls=flow_cls,
+			network_bytes_limit=network_bytes_limit,
+          		original_flow=self.runner_args.original_flow,
+			output_plugins=self.runner_args.output_plugins,
+          		parent_flow_obj=self,
+			)
+     if setflag[4]:
+	flow_name=self.args.flow5
+	flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+	flow.StartFlow(
+          		client_id=client_id,
+          		cpu_limit=cpu_limit,
+          		creator=self.token.username,
+          		flow_args=self.args.flow.args,
+          		flow_cls=flow_cls,
+			network_bytes_limit=network_bytes_limit,
+          		original_flow=self.runner_args.original_flow,
+			output_plugins=self.runner_args.output_plugins,
+          		parent_flow_obj=self,
+			)
+    else:
+     if setflag[0]:
+	flow_name=self.args.flow1
+	flow.StartAFF4Flow(
+          		client_id=client_id,
+          		flow_name=flow_name,
+	 		parent_flow=self,
+          		token=self.token)
+	#print "hello worlds"
+     if setflag[1]:
+	flow_name=self.args.flow2
+	flow.StartAFF4Flow(
+          		client_id=client_id,
+          		flow_name=flow_name,
+			parent_flow=self,
+          		token=self.token)
+     if setflag[2]:
+	flow_name=self.args.flow3
+	flow.StartAFF4Flow(
+          		client_id=client_id,
+          		flow_name=flow_name,
+			parent_flow=self,
+          		token=self.token)
+     if setflag[3]:
+	flow_name=self.args.flow4
+	flow.StartAFF4Flow(
+          		client_id=client_id,
+          		flow_name=flow_name,
+			parent_flow=self,
+          		token=self.token)
+     if setflag[4]:
+	flow_name=self.args.flow5
+	flow.StartAFF4Flow(
+          		client_id=client_id,
+          		flow_name=flow_name,
+			parent_flow=self,
+          		token=self.token)

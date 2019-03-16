@@ -1,0 +1,7 @@
+Authors ordered by first contribution.
+
+Dave Methvin <dave.methvin@gmail.com>
+Richard Gibson <richard.gibson@gmail.com>
+Igor Kalashnikov <igor.kalashnikov@me.com>
+Max Riveiro <kavu13@gmail.com>
+

@@ -1,0 +1,123 @@
+<!--#include virtual="header.html" -->
+
+<style type="text/css">
+  pre {
+    margin-top: 5px;
+    margin-bottom: 5px;
+  }
+  ol > li { padding: 5px; }
+</style>
+
+<h2>Guide to making dygraphs changes</h2>
+
+<p>So you've made a change to dygraphs and would like to contribute it back
+to the open source project. Wonderful!</p>
+
+<p>This is a step-by-step guide explaining how to do it.</p>
+
+<h3>dygraphs style</h3>
+<p>First of all, please try to follow the style of the existing dygraphs
+code. This will make the review process go much more smoothly.<p>
+
+<p>A few salient points:</p>
+<ol>
+  <li>We try to adhere to Google's <a
+    href="http://google-styleguide.googlecode.com/svn/trunk/javascriptguide.xml">
+    JS style guide</a> and would appreciate it if you try to as well. This
+  means:
+  <ul>
+    <li>No tabs! Indent using two spaces.
+    <li>Use camelCase for variable and function names.
+    <li>Limit lines to 80 characters.
+  </ul>
+
+  <li>Please run 'lint.sh' to see if you've introduced any new violations.
+
+  <li>If you've added a new feature, add a test for it (in the tests/
+  directory) or a gallery entry.
+
+  <li>If you've added an option, document it in
+  dygraph-options-reference.js. You'll get lots of warnings if you don't.
+
+  <li>If you've fixed a bug or added a feature, add an auto_test for
+  it.<br/>
+  This ensures that we won't inadvertently break your feature in the
+  future. To do this, either add to an existing auto_test in
+  auto_tests/tests or run
+  <code>auto_tests/misc/new-test.sh your-test-name</code> to
+  create a new one. There are two easy ways to run tests:
+  <ul>
+  <li>You can run your auto_test in any browser by visiting
+  <code>auto_tests/misc/local.html</code>. This allows you to debug your
+  test, or test against a specific browser.
+  <li>You can run your auto_test on the command-line by running
+  <code>./test.sh</code>. (It requires installing
+  <a href="http://phantomjs.org">phantomjs</a> on your computer.)
+  </ul>
+</ol>
+
+<h3>Sending a Pull Request</h3>
+
+<p>dygraphs is hosted on github, which uses a "pull request" model. They
+have a good writeup <a
+  href="http://help.github.com/send-pull-requests/">here</a>. These
+instructions discuss dygraphs more specifically.</p>
+
+<p>The list of steps may look a bit daunting, but it's not too bad,
+especially if you have any familiarity with git or github. If you run into
+any problems while following the instructions, feel free to contact
+dygraphs-users.</p>
+
+<p>Why not just take patches? This process means less work for me (the
+maintainer) and it also results in your name appearing in the list of
+dygraphs commits. This lets you take credit for your work.</p>
+
+<ol>
+  <li>Create an account on <a href="http://github.com">github</a>. This is
+  free, painless and will let you claim credit for your changes.
+
+  <li>Install git. github has a good writeup <a
+    href="http://help.github.com/git-installation-redirect">here</a>.
+
+  <li>Create a fork of the dygraphs repository on github by
+  clicking <a href="https://github.com/danvk/dygraphs">this link</a> and
+  then the "Fork" button.
+
+  <li>You should see a URL along the lines of
+  <code>git@github.com:yourname/dygraphs.git</code><br/>Copy this, open up a
+  terminal and run<br/>
+  <pre>git clone git@github.com:yourname/dygraphs.git</pre> This
+  pulls the dygraphs code down onto your local disk.
+
+  <li>cd into the dygraphs directory and make your changes.<br/>
+  If you've already got them somewhere else, just copy them over.<br/>
+
+  <li>Be a good citizen! Make sure your code follows the guidelines
+  above.<br/>
+    You'll have to do this before we accept your changes, so you may as well
+    do it now
+
+  <li>Commit your changes locally: run
+    <pre>git add .
+git commit</pre>
+  Type in a description of your change. This will
+  eventually appear in the dygraphs <a
+    href="https://github.com/danvk/dygraphs/commits/master">commit list</a>.
+
+  <li>Push your changes to github by running <pre>git push</pre>This will
+    send your changes to your forked repository on github.
+
+  <li>Go to your fork of dygraphs on github (i.e.
+  github.com/yourname/dygraphs).<br/>
+  Click the "Pull Request" button.<br/>
+  This will send me an email with a pointer to your changes.
+
+  <li>We'll review your changes and (unless your code is perfect!) give you
+  some feedback. Make these suggested changes in your local git client and
+  re-run "git commit" and "git push" so that we can see them.
+
+  <li>Once your change is ready, we'll pull it into the main dygraphs
+  repository and publish it to the web.
+</ol>
+
+<!--#include virtual="footer.html" -->

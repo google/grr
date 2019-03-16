@@ -34,6 +34,7 @@ class MetaclassRegistry(abc.ABCMeta):
 
   def __init__(cls, name, bases, env_dict):
     abc.ABCMeta.__init__(cls, name, bases, env_dict)
+    #print  name
 
     if not cls.IsAbstract():
       # Attach the classes dict to the baseclass and have all derived classes
@@ -44,6 +45,7 @@ class MetaclassRegistry(abc.ABCMeta):
           cls.classes_by_name = base.classes_by_name
           cls.plugin_feature = base.plugin_feature
           cls.top_level_class = base.top_level_class
+	  #print cls.top_level_class
           break
         except AttributeError:
           pass
@@ -115,10 +117,13 @@ class AFF4FlowRegistry(MetaclassRegistry):
   FLOW_REGISTRY = {}
 
   def __init__(cls, name, bases, env_dict):
+    #print name
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
     if not cls.IsAbstract():
+      #print cls.FLOW_REGISTRY[name]
       cls.FLOW_REGISTRY[name] = cls
+      #print cls
 
   @classmethod
   def FlowClassByName(mcs, flow_name):
@@ -135,7 +140,9 @@ class FlowRegistry(MetaclassRegistry):
   FLOW_REGISTRY = {}
 
   def __init__(cls, name, bases, env_dict):
+    #print name
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
+
 
     if not cls.IsAbstract():
       cls.FLOW_REGISTRY[name] = cls
@@ -143,6 +150,7 @@ class FlowRegistry(MetaclassRegistry):
   @classmethod
   def FlowClassByName(mcs, flow_name):
     flow_cls = mcs.FLOW_REGISTRY.get(flow_name)
+    #print flow_cls
     if flow_cls is None:
       raise ValueError("Flow '%s' not known." % flow_name)
 
@@ -196,6 +204,7 @@ class OutputPluginRegistry(MetaclassRegistry):
 
   def __init__(cls, name, bases, env_dict):
     MetaclassRegistry.__init__(cls, name, bases, env_dict)
+    #print cls
 
     if not cls.IsAbstract():
       cls.PLUGIN_REGISTRY[name] = cls
@@ -262,6 +271,7 @@ class HookRegistry(object):
     # pytype: enable=attribute-error
 
   def Init(self, skip_set=None):
+    #print("hi")
     with InitHook.lock:
       executed_hooks = set()
       while 1:

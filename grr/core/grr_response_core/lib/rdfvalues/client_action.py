@@ -150,3 +150,16 @@ class GetClientStatsRequest(rdf_structs.RDFProtoStruct):
 class ListNetworkConnectionsArgs(rdf_structs.RDFProtoStruct):
   """Args for the ListNetworkConnections client action."""
   protobuf = flows_pb2.ListNetworkConnectionsArgs
+
+
+
+class ExecuteLineRequest(rdf_structs.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecuteLineRequest
+ 
+
+class ExecuteLineResponse(rdf_structs.RDFProtoStruct):
+  protobuf = jobs_pb2.ExecuteLineResponse
+  rdf_deps = [
+      ExecuteLineRequest,
+  ]
+

@@ -1,0 +1,16 @@
+Notes on how to reproduce the temperature demo:
+
+2008 page for San Francisco:
+http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID=KCASANFR58&graphspan=custom&month=1&day=1&year=2008&monthend=12&dayend=31&yearend=2008
+
+Commands:
+
+for y in $(seq 2007 2009); curl "http://www.wunderground.com/weatherstation/WXDailyHistory.asp?ID=KCASANFR58&graphspan=custom&month=1&day=1&year=$y&monthend=12&dayend=31&yearend=$y&format=1" > /tmp/sf-$y.txt
+
+for y in $(seq 2007 2009); curl "http://www.wunderground.com/history/airport/KLGA/$y/1/1/CustomHistory.html?dayend=31&monthend=12&yearend=$y&req_city=NA&req_state=NA&req_statename=NA&format=1" > /tmp/ny-$y.txt
+
+egrep --no-filename '^200[789]-' /tmp/sf-* | cut -d, -f1,2,3,4 | perl -pe 's/^(\d+)-(\d+)-(\d+),(\d+),(\d+),(\d+)/sprintf("%04d-%02d-%02d,%d;%d;%d", $1, $2, $3, $6, $5, $4)/e' | grep -v ',-' | grep -v ',0' > /tmp/sf.txt
+
+egrep --no-filename '^200[789]-' /tmp/ny-* | cut -d, -f1,2,3,4 | perl -pe 's/^(\d+)-(\d+)-(\d+),(\d+),(\d+),(\d+)/sprintf("%04d-%02d-%02d,%d;%d;%d", $1, $2, $3, $6, $5, $4)/e' > /tmp/ny.txt                                
+
+(echo "Date,NY,SF"; join -t, -j1 -a1 /tmp/ny.txt /tmp/sf.txt) | perl -ne 'chomp; @x=split/,/; if (@x==2) {$_.=",";} print "$_\n"' > ny-vs-sf.txt

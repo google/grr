@@ -91,7 +91,8 @@ class APIAuthorizationManager(object):
     self.auth_manager = auth_manager.AuthorizationManager()
 
     self.default_router = self._CreateRouter(default_router_cls)
-
+    #print acl_list
+    #print default_router_cls
     for index, acl in enumerate(acl_list):
       router = self._CreateRouter(acl.router_cls, params=acl.router_params)
       self.routers.append(router)
@@ -119,6 +120,7 @@ class APIAuthorizationManager(object):
 
     for index, router in enumerate(self.routers):
       router_id = str(index)
+      #print router_id
 
       if self.auth_manager.CheckPermissions(username, router_id):
         logging.debug("Matched router %s to user %s", router.__class__.__name__,
@@ -127,6 +129,7 @@ class APIAuthorizationManager(object):
 
     logging.debug("No router ACL rule match for user %s. Using default "
                   "router %s", username, self.default_router.__class__.__name__)
+    #print (self.routers)
     return self.default_router
 
 

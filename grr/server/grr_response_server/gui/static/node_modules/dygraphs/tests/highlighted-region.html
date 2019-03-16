@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Highlighted Region</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+    <script type="text/javascript" src="data.js"></script>
+  </head>
+  <body>
+    <p>Should draw a time series with an unusual region highlighted:</p>
+    <div id="div_g" style="width:600px; height:300px;"></div>
+
+    <p>When you zoom/pan, the region should remain highlighted.</p>
+
+    <script type="text/javascript">
+      // A basic sinusoidal data series.
+      var data = [];
+      for (var i = 0; i < 1000; i++) {
+        var base = 10 * Math.sin(i / 90.0);
+        data.push([i, base, base + Math.sin(i / 2.0)]);
+      }
+
+      // Shift one portion out of line.
+      var highlight_start = 450;
+      var highlight_end = 500;
+      for (var i = highlight_start; i <= highlight_end; i++) {
+        data[i][2] += 5.0;
+      }
+
+
+      var g = new Dygraph(
+          document.getElementById("div_g"),
+          data,
+          {
+            labels: ['X', 'Est.', 'Actual'],
+            animatedZooms: true,
+            underlayCallback: function(canvas, area, g) {
+              var bottom_left = g.toDomCoords(highlight_start, -20);
+              var top_right = g.toDomCoords(highlight_end, +20);
+
+              var left = bottom_left[0];
+              var right = top_right[0];
+
+              canvas.fillStyle = "rgba(255, 255, 102, 1.0)";
+              canvas.fillRect(left, area.y, right - left, area.h);
+            }
+
+          }
+      );
+    </script>
+  </body>
+</html>

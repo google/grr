@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Custom Circles</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+    <script type="text/javascript" src="../extras/shapes.js"></script>
+
+  </head>
+  <body>
+    <h2>Custom circles and hover circles</h2>
+
+    <script type="text/javascript">
+      // Simple version
+      var div = document.createElement('div');
+      document.body.appendChild(div);
+
+      var data = 'x,A,B\n' +
+        '1,1,2\n' +
+        '2,2,4\n' +
+        '3,3,6\n' +
+        '4,4,8\n' +
+        '5,5,7\n';
+      var g = new Dygraph(div, data, {
+            drawPoints : true,
+            pointSize : 5,
+            highlightCircleSize: 8,
+            series : {
+              A : {
+                drawPointCallback : Dygraph.Circles.TRIANGLE,
+                drawHighlightPointCallback : Dygraph.Circles.TRIANGLE
+              },
+              B : {
+                drawPointCallback : Dygraph.Circles.HEXAGON,
+                drawHighlightPointCallback : Dygraph.Circles.HEXAGON
+              }
+            }
+        });
+
+
+      // Fancy demos
+      var smile = function(g, series, ctx, cx, cy, color, radius) {
+        mouthlessFace(g, series, ctx, cx, cy, color, radius);
+
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius - 2, .3, Math.PI - .3, false);
+        ctx.stroke();
+      };
+
+      var frown = function(g, series, ctx, cx, cy, color, radius) {
+        mouthlessFace(g, series, ctx, cx, cy, color, radius);
+
+        ctx.lineWidth = 1;
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(cx, cy + radius, radius - 2, Math.PI + .3, -.3, false);
+        ctx.stroke();
+      };
+
+      var mouthlessFace = function(g, series, ctx, cx, cy, color, radius) {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "#000000";
+        ctx.fillStyle = "#FFFF00";
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, Math.PI * 2, false);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+
+        ctx.fillStyle = "#000000";
+        ctx.beginPath();
+        ctx.arc(cx - (radius / 3) , cy - (radius / 4), 1, Math.PI * 2, false);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(cx + (radius / 3) , cy - (radius / 4), 1, Math.PI * 2, false);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fill();
+      };
+
+      var makeGraph = function(title, yFunc, extraOpts) {
+        var opts = {
+            drawPoints : true,
+            pointSize : 5
+        };
+
+        var shapes = [];
+        var addShape = function(name, pointFn, highlightPointFn) {
+          shapes.push(name);
+          if (!opts['series']) opts['series'] = {};
+          opts.series[name] = {
+            drawPointCallback: pointFn,
+            drawHighlightPointCallback: highlightPointFn
+          };
+        };
+
+        for (var shape in Dygraph.Circles) {
+          if (!Dygraph.Circles.hasOwnProperty(shape)) continue;
+          var fn = Dygraph.Circles[shape];
+          if (typeof fn !== 'function') continue;
+          addShape(shape.toLowerCase(), fn, fn);
+        };
+        addShape('custom', frown, smile);
+
+        for (var key in extraOpts) {
+          if (extraOpts.hasOwnProperty(key)) {
+            opts[key] = extraOpts[key];
+          }
+        };
+
+        var header = document.createElement('h3');
+        header.appendChild(document.createTextNode(title));
+        document.body.appendChild(header);
+
+        var div = document.createElement('div');
+        document.body.appendChild(div);
+
+        var g = new Dygraph(
+          div,
+          function() {
+            var r = "xval," + shapes.join(',') + "\n";
+            var n = shapes.length;
+            for (var i=1; i<=20; i++) {
+              r += i;
+              for (var j = 0; j < n; j++) {
+                r += "," + yFunc(i, j, n);
+              }
+              r += "\n";
+            }
+            return r;
+          }, opts);
+        };
+
+        makeGraph(
+          "Gallery of predefined shapes, adding a custom shape:",
+          function(x, c, n) {
+            return x / 3 + c * 10;
+          }, {
+            highlightCircleSize : 8
+          });
+        makeGraph(
+          "With interactive per-series highlighting:",
+          function(x, c, n) {
+            return Math.sin(x * c / n);
+          }, {
+            strokeBorderWidth: 2,
+            highlightSeriesOpts: {
+              pointSize: 6,
+              highlightCircleSize: 10,
+              strokeWidth: 2,
+            }});
+    </script>
+</body>
+</html>

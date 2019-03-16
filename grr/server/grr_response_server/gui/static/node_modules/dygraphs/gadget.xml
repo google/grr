@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Module>
+
+  <ModulePrefs
+      title="dygraphs Gadget"
+      description="Interactive, zoomable chart"
+      author="Dan Vanderkam"
+      author_email="dan@dygraphs.com"
+      thumbnail="http://dygraphs.com/thumbnail.png"
+      screenshot="http://dygraphs.com/screenshot.png"
+      author_location="US"
+      >
+    <Require feature="idi" />
+    <Require feature="locked-domain" />
+  </ModulePrefs>
+
+  <UserPref name="_table_query_url" display_name="Data source url" required="true"/>
+  <UserPref name="_table_query_refresh_interval" display_name="Data refresh interval (minutes)" default_value="300" datatype="enum" required="false">
+    <EnumValue value="0" display_value="Do not refresh"/>
+    <EnumValue value="60" display_value="1"/>
+    <EnumValue value="300" display_value="5"/>
+    <EnumValue value="1800" display_value="30"/>
+  </UserPref>
+  <UserPref name="_dg_rollPeriod" display_name="Roll Period" required="false" default_value="1" />
+  <UserPref name="_dg_showRoller" display_name="Show Roller" required="false" default_value="false" datatype="bool" />
+  <UserPref name="_dg_minY" display_name="Min Y Value" required="false" default_value="" />
+  <UserPref name="_dg_maxY" display_name="Max Y Value" required="false" default_value="" />
+  <UserPref name="_dg_kmb" display_name="KMB labels" required="false" default_value="false" datatype="bool" />
+  <UserPref name="_dg_errorbars" display_name="Error Bars" required="false" default_value="false" datatype="bool" />
+  <UserPref name="_dg_fillGraph" display_name="Fill Chart" required="false" default_value="false" datatype="bool" />
+
+  <Content type="html"><![CDATA[
+
+  <!-- Load the Google common loader, that is later used to load the Visualization API. -->
+  <script src="http://www.google.com/jsapi" type="text/javascript"></script>
+  <script src="http://dygraphs.com/dygraph-combined.js" type="text/javascript"></script>
+
+  <div id="chartdiv" style="overflow: auto;"><img src="http://www.google.com/ig/images/spinner.gif" /></div>
+
+  <script>
+    var gadgetHelper = null;
+    var table = null;
+    var kPadding = 5;  // pixels of padding on any side of the chart.
+
+    _IG_RegisterOnloadHandler(loadVisualizationAPI);
+
+    /**
+     * Load the Google Visualization API
+     */
+    function loadVisualizationAPI() {
+      google.load("visualization", "1");
+      google.setOnLoadCallback(sendQuery);
+    }
+
+    /**
+     * Create a query from the user prefs, and then send it to the data source.
+     * This method is called once the visualization API is fully loaded.
+     * Note that in the last line, a callback function is specified to be
+     * called once the response is received from the data source.
+     */
+    function sendQuery() {
+      var prefs = new _IG_Prefs(); // User preferences
+      var chartDiv = _gel('chartdiv');
+      chartDiv.style.width = (document.body.clientWidth - 2 * kPadding) + 'px';
+      chartDiv.style.height = (document.body.clientHeight - 2 * kPadding) + 'px';
+      chartDiv.style.left = kPadding + 'px';
+      chartDiv.style.top = kPadding + 'px';
+      chartDiv.style.position = 'absolute';
+      chart = new DateGraph.GVizChart(chartDiv);
+
+      gadgetHelper = new google.visualization.GadgetHelper();
+      var query = gadgetHelper.createQueryFromPrefs(prefs);
+      query.send(handleQueryResponse);
+    }
+
+    /**
+     * Query response handler function.
+     * Called by the Google Visualization API once the response is received.
+     * Takes the query response and formats it as a table.
+     */
+    function handleQueryResponse(response) {
+      // Use the visualization GadgetHelper class to validate the data, and
+      // for error handling.
+      if (!gadgetHelper.validateResponse(response)) {
+        // Default error handling was done, just leave.
+        return;
+      };
+      var data = response.getDataTable();
+
+      // Take the data table from the response, and format it.
+      // var options = {showRowNumber: true};
+      var prefs = new _IG_Prefs(); // User preferences
+      var showRoller = prefs.getBool("_dg_showRoller");
+      var rollPeriod = prefs.getInt("_dg_rollPeriod");
+      var labelsKMB = prefs.getBool("_dg_kmb");
+      var errorBars = prefs.getBool("_dg_errorbars");
+      var fillGraph = prefs.getBool("_dg_fillGraph");
+      var opts = {
+        showRoller: showRoller,
+        rollPeriod: rollPeriod,
+        labelsKMB: labelsKMB,
+        errorBars: errorBars,
+        fillGraph: fillGraph
+      };
+
+      var minY = prefs.getString("_dg_minY");
+      var maxY = prefs.getString("_dg_maxY");
+      if (minY && maxY) {
+        opts.valueRange = [parseInt(minY), parseInt(maxY)];
+      }
+
+      chart.draw(data, opts);
+    };
+
+  </script>
+
+  ]]>
+  </Content>
+</Module>

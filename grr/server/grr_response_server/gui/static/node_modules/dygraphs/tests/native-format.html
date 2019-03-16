@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>Native Format</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>These two charts should be indistinguishable:</p>
+    <!-- <div id="graphdiv"></div> -->
+    <div id="graphdiv"></div>
+    <script type="text/javascript">
+      g = new Dygraph(document.getElementById("graphdiv"),
+                                    "x,A,B\n" +
+                                    "1,10,100\n" +
+                                    "2,20,80\n" +
+                                    "3,50,60\n" +
+                                    "4,70,80\n");
+    </script>
+
+    <p>Same data, specified in a parsed format:</p>
+    <div id="graphdiv2"></div>
+    <script type="text/javascript">
+      g2 = new Dygraph(document.getElementById("graphdiv2"),
+                       [
+                         [1,10,100],
+                         [2,20,80],
+                         [3,50,60],
+                         [4,70,80]
+                       ],
+                       {
+                         labels: [ "x", "A", "B" ]
+                       });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>log scale</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+
+  <body>
+    <center>
+      <input id='ylog' type="button" value="y log scale" onclick="setLogScale('y', true)">
+      <input id='ylinear' type="button" value="y linear scale" onclick="setLogScale('y', false)">
+      <input id='xlog' type="button" value="x log scale" onclick="setLogScale('x', true)">
+      <input id='xlinear' type="button" value="x linear scale" onclick="setLogScale('x', false)">
+      <div>Current scales: <span id="description"></span></div>
+    </center>
+
+    <h2>X axis of dates</h2>
+    <div id="div_g0" style="width:600px; height:300px;"></div>
+    <div style="font-style: italic; margin-left: 40px;">(Note: when the x-axis is dates, logscale is ignored on that axis.)</div>
+
+    <h2>X axis of numbers</h2>
+    <div id="div_g1" style="width:600px; height:300px;"></div>
+
+    <script type="text/javascript">
+      Dygraph.Interaction.DEBUG = true;
+
+      function data0() {
+        return "Date,A\n" +
+        "20101201,5\n"+
+        "20101202,10\n"+
+        "20101203,-1\n"+
+        "20101204,250\n"+
+        "20101205,1000\n"+
+        "20101206,30\n"+
+        "20101207,80\n"+
+        "20101208,100\n"+
+        "20101209,500\n"+
+        "";
+      };
+      function data1() {
+        return "X,A\n" +
+        "1,0.000001\n"+
+        "2,10\n"+
+        "3,100\n"+
+        "4,250\n"+
+        "5,1000\n"+
+        "6,30\n"+
+        "7,0\n"+
+        "8,100\n"+
+        "9,500\n"+
+        "101,500\n"+
+        "30,500\n"+
+        "50,400\n"+
+        "100,300\n"+
+        "300,200\n"+
+        "1000,100\n"+
+        "";
+      };
+
+      var g0 = new Dygraph(document.getElementById("div_g0"), data0, {});
+      var g1 = new Dygraph(document.getElementById("div_g1"), data1, {});
+      var graphs = [ g0, g1 ];
+      var scales = { x : false, y : false };
+      function setLogScale(axis, val) {
+        if (axis === 'y') {
+          for (var idx = 0; idx < graphs.length; idx++) {
+            graphs[idx].updateOptions({ logscale: val });
+          }
+        } else {
+          for (var idx = 0; idx < graphs.length; idx++) {
+            graphs[idx].updateOptions({ axes : { x : {  logscale : val } } });
+          }
+        }
+        scales[axis] = val;
+        var text = "y: " + (scales.y ? "log" : "linear") + ", x: " + (scales.x ? "log" : "linear");
+        document.getElementById("description").innerText = text;
+      }
+
+      setLogScale('y', true);
+    </script>
+
+  </body>
+</html>

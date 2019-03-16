@@ -583,6 +583,7 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
+    #print ("fuk yoooooooo")
     if data_store.RelationalDBFlowsEnabled():
       flow_id = flow.StartFlow(
           flow_cls=discovery.Interrogate, client_id=str(args.client_id))

@@ -115,6 +115,7 @@ class AttributedDict(dict):
   def __init__(self, *args, **kwargs):
     super(AttributedDict, self).__init__(*args, **kwargs)
     self.__dict__ = self
+    #print("hi")
 
 
 class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
@@ -237,14 +238,16 @@ def StartAFF4Flow(args=None,
     RuntimeError: Unknown or invalid parameters were provided.
   """
   # Build the runner args from the keywords.
+  #print (runner_args)
   if runner_args is None:
     runner_args = rdf_flow_runner.FlowRunnerArgs()
-
+  #print (runner_args)
   FilterArgsFromSemanticProtobuf(runner_args, kwargs)
-
+  #print (runner_args.flow_name)
   # Is the required flow a known flow?
   try:
     flow_cls = registry.AFF4FlowRegistry.FlowClassByName(runner_args.flow_name)
+    #print (flow_cls)
   except ValueError:
     stats_collector_instance.Get().IncrementCounter(
         "grr_flow_invalid_flow_count")
@@ -275,6 +278,7 @@ def StartAFF4Flow(args=None,
     args = flow_obj.args_type()
 
   FilterArgsFromSemanticProtobuf(args, kwargs)
+  #print (args)
 
   # Check that the flow args are valid.
   args.Validate()
@@ -282,6 +286,8 @@ def StartAFF4Flow(args=None,
   # Store the flow args.
   flow_obj.args = args
   flow_obj.runner_args = runner_args
+ 
+  #print (flow_obj.args_type)
 
   # At this point we should exhaust all the keyword args. If any are left
   # over, we do not know what to do with them so raise.
@@ -291,12 +297,14 @@ def StartAFF4Flow(args=None,
 
   # Create a flow runner to run this flow with.
   if parent_flow:
+    print (parent_flow)
     parent_runner = parent_flow.runner
   else:
     parent_runner = None
 
   runner = flow_obj.CreateRunner(
       parent_runner=parent_runner, runner_args=runner_args)
+  print(runner)
 
   logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn, runner_args.flow_name,
                runner_args.client_id)
@@ -304,6 +312,7 @@ def StartAFF4Flow(args=None,
     # Just run the first state inline. NOTE: Running synchronously means
     # that this runs on the thread that starts the flow. The advantage is
     # that that Start method can raise any errors immediately.
+    #print ("mann")
     flow_obj.Start()
   else:
     # Running Asynchronously: Schedule the start method on another worker.
@@ -326,7 +335,7 @@ def StartAFF4Flow(args=None,
             urn=flow_obj.urn,
             client=runner_args.client_id),
         token=token)
-
+  #print (flow_obj.urn)
   return flow_obj.urn
 
 

@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE7; IE=EmulateIE9">
+    <title>no range</title>
+    <!--[if IE]>
+    <script type="text/javascript" src="../excanvas.js"></script>
+    <![endif]-->
+    <!--
+    For production (minified) code, use:
+    <script type="text/javascript" src="dygraph-combined.js"></script>
+    -->
+    <script type="text/javascript" src="../dygraph-dev.js"></script>
+
+  </head>
+  <body>
+    <p>Line should be visible in the middle of the chart:</p>
+    <div id="blah"></div>
+
+    <p>Line should be visible ~90% up the chart:</p>
+    <div id="blah2"></div>
+
+    <script type="text/javascript">
+    var g1 = new Dygraph(document.getElementById("blah"),
+                "X,Y\n10,12345\n11,12345\n",
+                { width: 640, height: 480 });
+
+    var g2 = new Dygraph(document.getElementById("blah2"),
+"date,10M\n" +
+"20021229,10000000.000000\n" +
+"20030105,10000000.000000\n" +
+"20030112,10000000.000000\n" +
+"20030119,10000000.000000\n" +
+"20030126,10000000.000000\n" +
+"20030202,10000000.000000\n" +
+"20030209,10000000.000000\n" +
+"20030216,10000000.000000\n",
+                { width: 640, height: 480, includeZero: true, labelsKMB: true });
+    </script>
+  </body>
+</html>
