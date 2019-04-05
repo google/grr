@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS clients(
     certificate BLOB,
     last_ping DATETIME(6),
     last_clock DATETIME(6),
-    last_ip VARCHAR(45),
+    last_ip MEDIUMBLOB,
     last_foreman DATETIME(6),
     first_seen DATETIME(6),
     last_version_string VARCHAR(128),
@@ -88,6 +88,9 @@ CREATE TABLE IF NOT EXISTS client_keywords(
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 )""", """
+CREATE INDEX IF NOT EXISTS client_index_by_keyword_hash
+    ON client_keywords(keyword_hash)
+""", """
 CREATE TABLE IF NOT EXISTS client_stats(
     client_id BIGINT UNSIGNED,
     payload MEDIUMBLOB,
@@ -182,8 +185,11 @@ CREATE TABLE IF NOT EXISTS message_handler_requests(
     request MEDIUMBLOB,
     leased_until DATETIME(6),
     leased_by VARCHAR(128),
-    PRIMARY KEY (handlername, request_id)
+    PRIMARY KEY (request_id)
 )""", """
+CREATE INDEX IF NOT EXISTS message_handler_requests_by_lease
+ON message_handler_requests(leased_until, leased_by)
+""", """
 CREATE TABLE IF NOT EXISTS foreman_rules(
     hunt_id VARCHAR(128),
     expiration_time DATETIME(6),
@@ -204,6 +210,9 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     leased_by VARCHAR(128),
     PRIMARY KEY (job_id)
 )""", """
+CREATE INDEX IF NOT EXISTS cron_jobs_by_lease
+ON cron_jobs(leased_until, leased_by)
+""", """
 CREATE TABLE IF NOT EXISTS cron_job_runs(
     job_id VARCHAR(100),
     run_id INT UNSIGNED,
@@ -230,16 +239,21 @@ CREATE TABLE IF NOT EXISTS flows(
     flow_id BIGINT UNSIGNED,
     long_flow_id VARCHAR(255),
     parent_flow_id BIGINT UNSIGNED,
+    parent_hunt_id BIGINT UNSIGNED,
     flow BLOB,
     flow_state INT UNSIGNED,
     client_crash_info MEDIUMBLOB,
     next_request_to_process INT UNSIGNED,
     pending_termination MEDIUMBLOB,
-    processing_deadline DATETIME(6),
+    processing_deadline TIMESTAMP(6) NULL,
     processing_on VARCHAR(128),
-    processing_since DATETIME(6),
-    timestamp DATETIME(6),
-    last_update DATETIME(6),
+    processing_since TIMESTAMP(6) NULL,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    network_bytes_sent BIGINT UNSIGNED,
+    user_cpu_time_used_micros BIGINT UNSIGNED,
+    system_cpu_time_used_micros BIGINT UNSIGNED,
+    num_replies_sent BIGINT UNSIGNED,
+    last_update TIMESTAMP(6) NOT NULL,
     PRIMARY KEY (client_id, flow_id),
     FOREIGN KEY (client_id)
         REFERENCES clients(client_id)
@@ -247,14 +261,16 @@ CREATE TABLE IF NOT EXISTS flows(
 )""", """
 CREATE INDEX IF NOT EXISTS timestamp_idx ON flows(timestamp)
 """, """
+CREATE INDEX IF NOT EXISTS flows_by_hunt ON flows(parent_hunt_id)
+""", """
 CREATE TABLE IF NOT EXISTS flow_requests(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
     request_id BIGINT UNSIGNED,
-    needs_processing BOOL,
+    needs_processing BOOL NOT NULL DEFAULT FALSE,
     responses_expected BIGINT UNSIGNED,
     request MEDIUMBLOB,
-    timestamp DATETIME(6),
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
     PRIMARY KEY (client_id, flow_id, request_id),
     FOREIGN KEY (client_id)
         REFERENCES clients(client_id)
@@ -271,7 +287,7 @@ CREATE TABLE IF NOT EXISTS flow_responses(
     response MEDIUMBLOB,
     status MEDIUMBLOB,
     iterator MEDIUMBLOB,
-    timestamp DATETIME(6),
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
     PRIMARY KEY (client_id, flow_id, request_id, response_id),
     FOREIGN KEY (client_id)
         REFERENCES clients(client_id)
@@ -283,10 +299,10 @@ CREATE TABLE IF NOT EXISTS flow_responses(
 CREATE TABLE IF NOT EXISTS flow_processing_requests(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
-    timestamp DATETIME(6),
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
     request MEDIUMBLOB,
-    delivery_time DATETIME(6),
-    leased_until DATETIME(6),
+    delivery_time TIMESTAMP(6) NULL,
+    leased_until TIMESTAMP(6) NULL,
     leased_by VARCHAR(128),
     PRIMARY KEY (client_id, flow_id, timestamp),
     FOREIGN KEY (client_id)
@@ -296,6 +312,77 @@ CREATE TABLE IF NOT EXISTS flow_processing_requests(
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 )""", """
+CREATE INDEX IF NOT EXISTS flow_processing_requests_by_lease
+    ON flow_processing_requests(leased_until, leased_by)
+""", """
+CREATE TABLE IF NOT EXISTS flow_results(
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    hunt_id BIGINT UNSIGNED,
+    timestamp TIMESTAMP(6),
+    payload MEDIUMBLOB,
+    type VARCHAR(128),
+    tag VARCHAR(128),
+    PRIMARY KEY (client_id, flow_id, timestamp),
+    FOREIGN KEY (client_id)
+        REFERENCES clients(client_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (client_id, flow_id)
+        REFERENCES flows(client_id, flow_id)
+        ON DELETE CASCADE
+)""", """
+CREATE INDEX IF NOT EXISTS flow_results_hunt_id_flow_id_timestamp
+    ON flow_results(hunt_id, flow_id, timestamp)
+""", """
+CREATE INDEX IF NOT EXISTS flow_results_hunt_id_flow_id_type_tag_timestamp
+    ON flow_results(hunt_id, flow_id, type, tag, timestamp)
+""", """
+CREATE TABLE IF NOT EXISTS flow_log_entries(
+    log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    hunt_id BIGINT UNSIGNED,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    message MEDIUMBLOB,
+    PRIMARY KEY (log_id),
+    FOREIGN KEY (client_id)
+        REFERENCES clients(client_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (client_id, flow_id)
+        REFERENCES flows(client_id, flow_id)
+        ON DELETE CASCADE
+)""", """
+CREATE INDEX IF NOT EXISTS flow_log_entries_by_flow
+    ON flow_log_entries(client_id, flow_id, log_id)
+""", """
+CREATE INDEX IF NOT EXISTS flow_log_entries_by_hunt
+    ON flow_log_entries(hunt_id, flow_id, log_id)
+""", """
+CREATE TABLE IF NOT EXISTS flow_output_plugin_log_entries(
+    log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    hunt_id BIGINT UNSIGNED,
+    output_plugin_id BIGINT UNSIGNED,
+    log_entry_type INT UNSIGNED,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    message MEDIUMBLOB,
+    PRIMARY KEY (log_id),
+    FOREIGN KEY (client_id)
+        REFERENCES clients(client_id)
+        ON DELETE CASCADE,
+    FOREIGN KEY (client_id, flow_id)
+        REFERENCES flows(client_id, flow_id)
+        ON DELETE CASCADE
+)""", """
+CREATE UNIQUE INDEX IF NOT EXISTS flow_output_plugin_log_entries_by_flow
+    ON flow_output_plugin_log_entries(
+        client_id, flow_id, output_plugin_id, log_entry_type, log_id)
+""", """
+CREATE UNIQUE INDEX IF NOT EXISTS flow_output_plugin_log_entries_by_hunt
+    ON flow_output_plugin_log_entries(
+        hunt_id, output_plugin_id, log_entry_type, log_id)
+""", """
 CREATE TABLE IF NOT EXISTS signed_binary_references(
     binary_type INT UNSIGNED NOT NULL,
     binary_path_hash BINARY(32) NOT NULL,
@@ -303,6 +390,85 @@ CREATE TABLE IF NOT EXISTS signed_binary_references(
     blob_references MEDIUMBLOB NOT NULL,
     timestamp DATETIME(6) NOT NULL,
     PRIMARY KEY (binary_type, binary_path_hash)
+)
+""", """
+CREATE TABLE IF NOT EXISTS client_paths(
+    client_id BIGINT UNSIGNED NOT NULL,
+    path_type INT UNSIGNED NOT NULL,
+    path_id BINARY(32) NOT NULL,
+    path TEXT NOT NULL,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    last_stat_entry_timestamp TIMESTAMP(6) NULL DEFAULT NULL,
+    last_hash_entry_timestamp TIMESTAMP(6) NULL DEFAULT NULL,
+    directory BOOLEAN NOT NULL DEFAULT FALSE,
+    depth INT UNSIGNED NOT NULL,
+    PRIMARY KEY (client_id, path_type, path_id),
+    FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE,
+    CHECK (depth = length(path) - length(replace(path, '/', '')))
+)
+""", """
+CREATE UNIQUE INDEX IF NOT EXISTS client_paths_idx
+ON client_paths(client_id, path_type, path(128))
+""", """
+CREATE TABLE IF NOT EXISTS client_path_stat_entries(
+    client_id BIGINT UNSIGNED NOT NULL,
+    path_type INT UNSIGNED NOT NULL,
+    path_id BINARY(32) NOT NULL,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    stat_entry MEDIUMBLOB NOT NULL,
+    PRIMARY KEY (client_id, path_type, path_id, timestamp),
+    FOREIGN KEY (client_id, path_type, path_id)
+    REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
+)
+""", """
+CREATE TABLE IF NOT EXISTS client_path_hash_entries(
+    client_id BIGINT UNSIGNED NOT NULL,
+    path_type INT UNSIGNED NOT NULL,
+    path_id BINARY(32) NOT NULL,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    hash_entry MEDIUMBLOB NOT NULL,
+    sha256 BINARY(32) NOT NULL,
+    PRIMARY KEY (client_id, path_type, path_id, timestamp),
+    FOREIGN KEY (client_id, path_type, path_id)
+    REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
+)
+""", """
+ALTER TABLE client_paths
+ADD FOREIGN KEY (client_id, path_type, path_id, last_stat_entry_timestamp)
+REFERENCES client_path_stat_entries(client_id, path_type, path_id, timestamp)
+""", """
+ALTER TABLE client_paths
+ADD FOREIGN KEY (client_id, path_type, path_id, last_hash_entry_timestamp)
+REFERENCES client_path_hash_entries(client_id, path_type, path_id, timestamp)
+""", """
+CREATE TABLE IF NOT EXISTS hunts(
+    hunt_id BIGINT UNSIGNED NOT NULL,
+    create_timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    last_update_timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6),
+    creator VARCHAR(128),
+    init_start_time TIMESTAMP(6) NULL DEFAULT NULL,
+    last_start_time TIMESTAMP(6) NULL DEFAULT NULL,
+    duration_micros BIGINT NOT NULL,
+    client_rate FLOAT,
+    client_limit INT UNSIGNED,
+    num_clients_at_start_time INT UNSIGNED,
+    hunt_state INT UNSIGNED,
+    hunt_state_comment TEXT,
+    description TEXT,
+    hunt MEDIUMBLOB NOT NULL,
+    PRIMARY KEY (hunt_id)
+)
+""", """
+CREATE TABLE IF NOT EXISTS hunt_output_plugins_states(
+    hunt_id BIGINT UNSIGNED NOT NULL,
+    plugin_id BIGINT UNSIGNED NOT NULL,
+    plugin_name VARCHAR(128),
+    plugin_args MEDIUMBLOB,
+    plugin_state MEDIUMBLOB,
+    PRIMARY KEY (hunt_id, plugin_id),
+    FOREIGN KEY (hunt_id)
+        REFERENCES hunts(hunt_id)
+        ON DELETE CASCADE
 )
 """
 ]

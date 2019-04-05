@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for API client and flows-related API calls."""
 from __future__ import absolute_import
 from __future__ import division
@@ -71,6 +72,20 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     self.assertEqual(flows[0].client_id, client_urn.Basename())
     self.assertEqual(flows[0].flow_id, flow_id)
     self.assertEqual(flows[0].data.flow_id, flow_id)
+
+  def testCreateFlowWithUnicodeArguments(self):
+    unicode_str = "🐊 🐢 🦎 🐍"
+
+    client_urn = self.SetupClient(0)
+    args = processes.ListProcessesArgs(
+        filename_regex=unicode_str, fetch_binaries=True)
+
+    client_ref = self.api.Client(client_id=client_urn.Basename())
+    result_flow = client_ref.CreateFlow(
+        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
+
+    got_flow = client_ref.Flow(flow_id=result_flow.flow_id).Get()
+    self.assertEqual(got_flow.args.filename_regex, unicode_str)
 
   def testCreateFlowFromClientRef(self):
     client_urn = self.SetupClient(0)

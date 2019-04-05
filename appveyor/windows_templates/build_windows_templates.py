@@ -79,6 +79,18 @@ parser.add_argument(
     default="",
     help="Path to the config file to be used when building templates.")
 
+parser.add_argument(
+    "--virtualenv_64bit",
+    default="",
+    help="Optional path to a 64-bit Python virtualenv to be used instead "
+    "of creating a new one.")
+
+parser.add_argument(
+    "--virtualenv_32bit",
+    default="",
+    help="Optional path to a 32-bit Python virtualenv to be used instead "
+    "of creating a new one.")
+
 args = parser.parse_args()
 
 
@@ -98,8 +110,14 @@ class WindowsTemplateBuilder(object):
     self.virtualenv_bin32 = os.path.join(self.python_dir_32,
                                          r"Scripts\virtualenv.exe")
 
-    self.virtualenv64 = os.path.join(args.build_dir, r"python_64")
-    self.virtualenv32 = os.path.join(args.build_dir, r"python_32")
+    if args.virtualenv_64bit:
+      self.virtualenv64 = args.virtualenv_64bit
+    else:
+      self.virtualenv64 = os.path.join(args.build_dir, "python_64")
+    if args.virtualenv_32bit:
+      self.virtualenv32 = args.virtualenv_32bit
+    else:
+      self.virtualenv32 = os.path.join(args.build_dir, "python_32")
 
     self.grr_client_build64 = os.path.join(self.virtualenv64,
                                            r"Scripts\grr_client_build.exe")
@@ -132,8 +150,9 @@ class WindowsTemplateBuilder(object):
     os.makedirs(args.output_dir)
 
     # Create virtualenvs.
-    subprocess.check_call([self.virtualenv_bin64, self.virtualenv64])
-    if args.build_32:
+    if not args.virtualenv_64bit:
+      subprocess.check_call([self.virtualenv_bin64, self.virtualenv64])
+    if args.build_32 and not args.virtualenv_32bit:
       subprocess.check_call([self.virtualenv_bin32, self.virtualenv32])
 
     # Currently this should do nothing as we will already have a modern pip

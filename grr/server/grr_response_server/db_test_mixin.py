@@ -6,10 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import random
-
-
-from future.builtins import range
 from future.utils import with_metaclass
 import mock
 
@@ -21,12 +17,12 @@ from grr_response_server import db_client_reports_test
 from grr_response_server import db_clients_test
 from grr_response_server import db_cronjob_test
 from grr_response_server import db_events_test
-from grr_response_server import db_flows_test
 from grr_response_server import db_foreman_rules_test
 from grr_response_server import db_hunts_test
 from grr_response_server import db_message_handler_test
 from grr_response_server import db_paths_test
 from grr_response_server import db_signed_binaries_test
+from grr_response_server import db_test_utils
 from grr_response_server import db_users_test
 
 
@@ -44,32 +40,8 @@ class DatabaseProvider(with_metaclass(abc.ABCMeta, object)):
     """
 
 
-class DatabaseTestMixin(
-    with_metaclass(
-        abc.ABCMeta,
-        DatabaseProvider,
-        db_artifacts_test.DatabaseTestArtifactsMixin,
-        db_blob_references_test.DatabaseBlobReferencesTestMixin,
-        db_client_reports_test.DatabaseTestClientReportsMixin,
-        db_clients_test.DatabaseTestClientsMixin,
-        db_cronjob_test.DatabaseTestCronJobMixin,
-        db_events_test.DatabaseEventsTestMixin,
-        db_flows_test.DatabaseTestFlowMixin,
-        db_foreman_rules_test.DatabaseTestForemanRulesMixin,
-        db_hunts_test.DatabaseTestHuntMixin,
-        db_message_handler_test.DatabaseTestHandlerMixin,
-        db_paths_test.DatabaseTestPathsMixin,
-        db_signed_binaries_test.DatabaseTestSignedBinariesMixin,
-        db_users_test.DatabaseTestUsersMixin,
-    )):
-  """An abstract class for testing db.Database implementations.
-
-  Implementations should override CreateDatabase in order to produce
-  a test suite for a particular implementation of db.Database.
-
-  This class does not inherit from `TestCase` to prevent the test runner from
-  executing its method. Instead it should be mixed into the actual test classes.
-  """
+class DatabaseSetupMixin(DatabaseProvider):
+  """A mixin that adds a setup method to tests that instantiates self.db."""
 
   def setUp(self):
     # Set up database before calling super.setUp(), in case any other mixin
@@ -83,7 +55,35 @@ class DatabaseTestMixin(
     # In case a test registers a message handler, unregister it.
     self.addCleanup(self.db.UnregisterMessageHandler)
 
-    super(DatabaseTestMixin, self).setUp()
+    super(DatabaseSetupMixin, self).setUp()
+
+
+class DatabaseTestMixin(
+    with_metaclass(
+        abc.ABCMeta,
+        DatabaseSetupMixin,
+        db_artifacts_test.DatabaseTestArtifactsMixin,
+        db_blob_references_test.DatabaseBlobReferencesTestMixin,
+        db_client_reports_test.DatabaseTestClientReportsMixin,
+        db_clients_test.DatabaseTestClientsMixin,
+        db_cronjob_test.DatabaseTestCronJobMixin,
+        db_events_test.DatabaseEventsTestMixin,
+        db_foreman_rules_test.DatabaseTestForemanRulesMixin,
+        db_hunts_test.DatabaseTestHuntMixin,
+        db_message_handler_test.DatabaseTestHandlerMixin,
+        db_paths_test.DatabaseTestPathsMixin,
+        db_signed_binaries_test.DatabaseTestSignedBinariesMixin,
+        db_users_test.DatabaseTestUsersMixin,
+        # Special mixin for easier testing of list/query methods.
+        db_test_utils.QueryTestHelpersMixin)):
+  """An abstract class for testing db.Database implementations.
+
+  Implementations should override CreateDatabase in order to produce
+  a test suite for a particular implementation of db.Database.
+
+  This class does not inherit from `TestCase` to prevent the test runner from
+  executing its method. Instead it should be mixed into the actual test classes.
+  """
 
   def testDatabaseType(self):
     d = self.db
@@ -95,24 +95,6 @@ class DatabaseTestMixin(
     user = self.db.ReadGRRUser(name)
     self.assertLen(user.username, 5)
     self.assertEqual(user.username, name)
-
-  def InitializeClient(self, client_id=None):
-    """Initializes a test client.
-
-    Args:
-      client_id: A specific client id to use for initialized client. If none is
-        provided a randomly generated one is used.
-
-    Returns:
-      A client id for initialized client.
-    """
-    if client_id is None:
-      client_id = "C."
-      for _ in range(16):
-        client_id += random.choice("0123456789abcdef")
-
-    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
-    return client_id
 
 
 class GlobalDatabaseTestMixin(DatabaseProvider):

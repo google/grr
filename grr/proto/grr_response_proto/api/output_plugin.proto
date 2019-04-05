@@ -1,7 +1,6 @@
 syntax = "proto2";
 
 import "google/protobuf/any.proto";
-
 import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -11,15 +10,13 @@ import "grr_response_proto/semantic.proto";
 //
 
 message ApiOutputPlugin {
-  optional string id = 1 [(sem_type) = {
-      description: "String identifying the output plugin."
-    }];
-  optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
-      description: "Descriptor of the output plugin."
-    }];
+  optional string id = 1
+      [(sem_type) = { description: "String identifying the output plugin." }];
+  optional OutputPluginDescriptor plugin_descriptor = 2
+      [(sem_type) = { description: "Descriptor of the output plugin." }];
   optional google.protobuf.Any state = 3 [(sem_type) = {
-      description: "State of the plugin.",
-      dynamic_type: "GetStateClass"
-    }];
+    description: "State of the plugin.",
+    dynamic_type: "GetStateClass"
+  }];
   reserved 4;
 }

@@ -274,8 +274,8 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
             if path.startswith(part):
               self.reference.type = reference_type_enum.VFS
               self.reference.vfs.client_id = components[0]
-              self.reference.vfs.vfs_path = (
-                  prefix + path[len(part):]).lstrip("/")
+              self.reference.vfs.vfs_path = (prefix +
+                                             path[len(part):]).lstrip("/")
               break
 
         if self.reference.type != reference_type_enum.VFS:
@@ -541,7 +541,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       if not approval_subject_obj:
         approval_subject_obj = data_store.REL_DB.ReadHuntObject(
             db_obj.subject_id)
@@ -574,7 +574,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
         self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
             original_flow, flow_id=original_flow.urn.Basename())
     elif original_object.object_type == "HUNT_REFERENCE":
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         original_hunt = data_store.REL_DB.ReadHuntObject(
             original_object.hunt_reference.hunt_id)
         original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
@@ -948,9 +948,9 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
           args.username, args.approval_id)
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
-          "No approval with id=%s, type=%s, subject=%s could be found."
-          % (args.approval_id, self.__class__.approval_type,
-             args.BuildSubjectId()))
+          "No approval with id=%s, type=%s, subject=%s could be found." %
+          (args.approval_id, self.__class__.approval_type,
+           args.BuildSubjectId()))
 
     if approval_obj.approval_type != self.__class__.approval_type:
       raise ValueError(
@@ -991,9 +991,9 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
           args.username, args.approval_id)
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
-          "No approval with id=%s, type=%s, subject=%s could be found."
-          % (args.approval_id, self.__class__.approval_type,
-             args.BuildSubjectId()))
+          "No approval with id=%s, type=%s, subject=%s could be found." %
+          (args.approval_id, self.__class__.approval_type,
+           args.BuildSubjectId()))
 
     return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
@@ -1071,8 +1071,8 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
   def CreateGrantNotification(self, approval, token=None):
     notification_lib.Notify(
         approval.requestor, self.__class__.approval_notification_type,
-        "%s has granted you access to %s." % (token.username,
-                                              approval.subject_title),
+        "%s has granted you access to %s." %
+        (token.username, approval.subject_title),
         approval.subject.ObjectReference())
 
   def Handle(self, args, token=None):

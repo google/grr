@@ -29,7 +29,7 @@ class MySQLDBEventMixin(object):
 
     query = """SELECT details, timestamp
         FROM api_audit_entry
-        WHERE_PLACEHOLDER
+        {WHERE_PLACEHOLDER}
         ORDER BY timestamp ASC
     """
 
@@ -58,13 +58,46 @@ class MySQLDBEventMixin(object):
     if conditions:
       where = "WHERE " + " AND ".join(conditions)
 
-    query = query.replace("WHERE_PLACEHOLDER", where)
+    query = query.replace("{WHERE_PLACEHOLDER}", where)
     cursor.execute(query, values)
 
     return [
         _AuditEntryFromRow(details, timestamp)
         for details, timestamp in cursor.fetchall()
     ]
+
+  @mysql_utils.WithTransaction()
+  def CountAPIAuditEntriesByUserAndDay(self,
+                                       min_timestamp=None,
+                                       max_timestamp=None,
+                                       cursor=None):
+    """Returns audit entry counts grouped by user and calendar day."""
+    query = """
+        SELECT username, CAST(timestamp AS DATE) AS day, COUNT(*)
+        FROM api_audit_entry
+        {WHERE_PLACEHOLDER}
+        GROUP BY username, day
+    """
+    conditions = []
+    values = []
+    where = ""
+
+    if min_timestamp is not None:
+      conditions.append("timestamp >= %s")
+      values.append(mysql_utils.RDFDatetimeToMysqlString(min_timestamp))
+
+    if max_timestamp is not None:
+      conditions.append("timestamp <= %s")
+      values.append(mysql_utils.RDFDatetimeToMysqlString(max_timestamp))
+
+    if conditions:
+      where = "WHERE " + " AND ".join(conditions)
+
+    query = query.replace("{WHERE_PLACEHOLDER}", where)
+    cursor.execute(query, values)
+
+    return {(username, rdfvalue.RDFDatetime.FromDate(day)): count
+            for (username, day, count) in cursor.fetchall()}
 
   @mysql_utils.WithTransaction()
   def WriteAPIAuditEntry(self, entry, cursor=None):

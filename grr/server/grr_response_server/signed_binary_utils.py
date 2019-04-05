@@ -29,8 +29,8 @@ def GetAFF4ExecutablesRoot():
   return rdfvalue.RDFURN("aff4:/config/executables")
 
 
-def _SignedBinaryIDFromURN(
-    binary_urn):
+def _SignedBinaryIDFromURN(binary_urn
+                          ):
   """Converts an AFF4 URN for a signed binary to a SignedBinaryID."""
   if binary_urn.RelativeName(GetAFF4PythonHackRoot()):
     return rdf_objects.SignedBinaryID(
@@ -41,12 +41,12 @@ def _SignedBinaryIDFromURN(
         binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
         path=binary_urn.RelativeName(GetAFF4ExecutablesRoot()))
   else:
-    raise ValueError(
-        "Unable to determine type of signed binary: %s." % binary_urn)
+    raise ValueError("Unable to determine type of signed binary: %s." %
+                     binary_urn)
 
 
-def _SignedBinaryURNFromID(
-    binary_id):
+def _SignedBinaryURNFromID(binary_id
+                          ):
   """Converts a SignedBinaryID to the equivalent AFF4 URN."""
   binary_type = binary_id.binary_type
   if binary_type == rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK:
@@ -183,8 +183,8 @@ def DeleteSignedBinary(binary_urn,
         _SignedBinaryIDFromURN(binary_urn))
 
 
-def FetchURNsForAllSignedBinaries(
-    token):
+def FetchURNsForAllSignedBinaries(token
+                                 ):
   """Returns URNs for all signed binaries in the datastore.
 
   Args:
@@ -246,9 +246,9 @@ def FetchBlobsForSignedBinary(
     return blobs, timestamp
 
 
-def FetchSizeOfSignedBinary(
-    binary_urn,
-    token = None):
+def FetchSizeOfSignedBinary(binary_urn,
+                            token = None
+                           ):
   """Returns the size of the given binary (in bytes).
 
   Args:
@@ -311,4 +311,4 @@ def _ShouldUseLegacyDatastore():
   reading from the legacy DB until a config option specific to signed binaries
   is enabled. When that happens, we will also stop writing to the legacy DB.
   """
-  return not data_store.RelationalDBReadEnabled(category="signed_binaries")
+  return not data_store.RelationalDBReadEnabled()

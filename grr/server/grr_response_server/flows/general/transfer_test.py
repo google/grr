@@ -164,15 +164,16 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     pathspec.path = pathspec.path.replace("\\", "/")
     fd2 = open(pathspec.path, "rb")
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
       fd_rel_db = file_store.OpenFile(cp)
       self.CompareFDs(fd2, fd_rel_db)
 
       # Only the sha256 hash of the contents should have been calculated:
       # in order to put file contents into the file store.
-      history = data_store.REL_DB.ReadPathInfoHistory(
-          cp.client_id, cp.path_type, cp.components)
+      history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                      cp.path_type,
+                                                      cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
       self.assertIsNone(history[-1].hash_entry.sha1)
@@ -210,7 +211,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     fd2 = open(res_pathspec.path, "rb")
     fd2.seek(0, 2)
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), res_pathspec)
 
       fd_rel_db = file_store.OpenFile(cp)
@@ -218,8 +219,9 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       # Only the sha256 hash of the contents should have been calculated:
       # in order to put file contents into the file store.
-      history = data_store.REL_DB.ReadPathInfoHistory(
-          cp.client_id, cp.path_type, cp.components)
+      history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                      cp.path_type,
+                                                      cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
       self.assertIsNone(history[-1].hash_entry.sha1)
@@ -297,7 +299,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     data = open(pathspec.last.path, "rb").read()
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
       fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(fd_rel_db.size, len(data))
@@ -305,8 +307,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       # Check that SHA256 hash of the file matches the contents
       # hash and that MD5 and SHA1 are set.
-      history = data_store.REL_DB.ReadPathInfoHistory(
-          cp.client_id, cp.path_type, cp.components)
+      history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                      cp.path_type,
+                                                      cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
       self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -346,15 +349,16 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     fd2 = open(pathspec.path, "rb")
 
     # Test the AFF4 file that was created.
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
       fd_rel_db = file_store.OpenFile(cp)
       self.CompareFDs(fd2, fd_rel_db)
 
       # Check that SHA256 hash of the file matches the contents
       # hash and that MD5 and SHA1 are set.
-      history = data_store.REL_DB.ReadPathInfoHistory(
-          cp.client_id, cp.path_type, cp.components)
+      history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                      cp.path_type,
+                                                      cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
       self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -390,7 +394,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         args=args)
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       # Now open each file and make sure the data is there.
       for pathspec in pathspecs:
         cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
@@ -399,8 +403,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
         # Check that SHA256 hash of the file matches the contents
         # hash and that MD5 and SHA1 are set.
-        history = data_store.REL_DB.ReadPathInfoHistory(
-            cp.client_id, cp.path_type, cp.components)
+        history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                        cp.path_type,
+                                                        cp.components)
         self.assertEqual(history[-1].hash_entry.sha256,
                          fd_rel_db.hash_id.AsBytes())
         self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -456,7 +461,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(client_mock.action_counts["TransferBuffer"], 1)
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       for pathspec in pathspecs:
         # Check that each referenced file can be read.
         cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
@@ -465,8 +470,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
         # Check that SHA256 hash of the file matches the contents
         # hash and that MD5 and SHA1 are set.
-        history = data_store.REL_DB.ReadPathInfoHistory(
-            cp.client_id, cp.path_type, cp.components)
+        history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                        cp.path_type,
+                                                        cp.components)
         self.assertEqual(history[-1].hash_entry.sha256,
                          fd_rel_db.hash_id.AsBytes())
         self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -499,7 +505,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
           client_id=self.client_id,
           args=args)
 
-      if data_store.RelationalDBReadEnabled(category="filestore"):
+      if data_store.RelationalDBReadEnabled():
         cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
         fd_rel_db = file_store.OpenFile(cp)
         self.assertEqual(fd_rel_db.size, len(data))
@@ -507,8 +513,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
         # Check that SHA256 hash of the file matches the contents
         # hash and that MD5 and SHA1 are set.
-        history = data_store.REL_DB.ReadPathInfoHistory(
-            cp.client_id, cp.path_type, cp.components)
+        history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                        cp.path_type,
+                                                        cp.components)
         self.assertEqual(history[-1].hash_entry.sha256,
                          fd_rel_db.hash_id.AsBytes())
         self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -540,7 +547,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     with open(os.path.join(self.base_path, "test_img.dd"), "rb") as model_fd:
       h.update(model_fd.read())
 
-    if not data_store.RelationalDBReadEnabled(category="filestore"):
+    if not data_store.RelationalDBReadEnabled():
       # Fix path for Windows testing.
       pathspec.path = pathspec.path.replace("\\", "/")
       # Test the AFF4 file that was created.
@@ -550,15 +557,16 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       self.assertTrue(fd_hash)
       self.assertEqual(fd_hash.sha256, h.digest())
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
       fd_rel_db = file_store.OpenFile(cp)
       self.assertEqual(fd_rel_db.hash_id.AsBytes(), h.digest())
 
       # Check that SHA256 hash of the file matches the contents
       # hash and that MD5 and SHA1 are set.
-      history = data_store.REL_DB.ReadPathInfoHistory(
-          cp.client_id, cp.path_type, cp.components)
+      history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                      cp.path_type,
+                                                      cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
       self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -583,7 +591,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     expected_data = open(image_path, "rb").read(expected_size)
 
-    if data_store.RelationalDBReadEnabled(category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec)
       fd_rel_db = file_store.OpenFile(cp)
 
@@ -598,8 +606,9 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       # Check that SHA256 hash of the file matches the contents
       # hash and that MD5 and SHA1 are set.
-      history = data_store.REL_DB.ReadPathInfoHistory(
-          cp.client_id, cp.path_type, cp.components)
+      history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id,
+                                                      cp.path_type,
+                                                      cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
       self.assertIsNotNone(history[-1].hash_entry.sha1)
@@ -624,7 +633,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testExternalFileStoreSubmissionIsTriggeredWhenFileIsSentToFileStore(
       self, add_file_mock):
-    if not data_store.RelationalDBReadEnabled("filestore"):
+    if not data_store.RelationalDBReadEnabled():
       self.skipTest("Relational filestore has to be enabled for this test.")
 
     client_mock = action_mocks.GetFileClientMock()

@@ -31,10 +31,10 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rdf_yara
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
@@ -639,9 +639,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
       Resulting ExportedFile values. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    if data_store.RelationalDBReadEnabled("vfs") and (
-        data_store.RelationalDBReadEnabled("filestore") or
-        not self.options.export_files_contents):
+    if data_store.RelationalDBReadEnabled():
       result_generator = self._BatchConvertRelational(metadata_value_pairs)
     else:
       result_generator = self._BatchConvertLegacy(
@@ -1229,8 +1227,7 @@ class FileStoreHashConverter(ExportConverter):
     """Convert batch of FileStoreHashs."""
 
     urns = [urn for metadata, urn in metadata_value_pairs]
-    urns_dict = dict(
-        [(urn, metadata) for metadata, urn in metadata_value_pairs])
+    urns_dict = dict((urn, metadata) for metadata, urn in metadata_value_pairs)
 
     results = []
     for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(
@@ -1407,7 +1404,7 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
 
 class YaraProcessScanResponseConverter(ExportConverter):
-  input_rdf_type = rdf_yara.YaraProcessScanMatch
+  input_rdf_type = rdf_memory.YaraProcessScanMatch
 
   def Convert(self, metadata, yara_match, token=None):
     """Convert a single YaraProcessScanMatch."""

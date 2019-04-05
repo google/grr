@@ -21,6 +21,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import compatibility
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import test_lib
 
 # pylint: mode=test
@@ -299,6 +300,10 @@ message DynamicTypeTest {{
         "// A string value\n  optional string type = 1;\n\n  "
         "// A dynamic value based on another field.\n  "
         "optional google.protobuf.Any dynamic = 2;\n}\n")
+
+  def testUninitializedDynamicValueIsNonePerDefault(self):
+    response = rdf_flow_objects.FlowResponse()  # Do not set payload.
+    self.assertIsNone(response.payload)
 
   def testDynamicAnyValueTypeWithPrimitiveValues(self):
     test_pb = DynamicAnyValueTypeTest(type="RDFString")

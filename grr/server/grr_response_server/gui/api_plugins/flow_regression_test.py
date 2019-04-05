@@ -190,11 +190,15 @@ class ApiListFlowResultsHandlerRegressionTest(
     client_id = self.SetupClient(0).Basename()
 
     flow_id = self._RunFlow(client_id)
-
     self.Check(
         "ListFlowResults",
         args=flow_plugin.ApiListFlowResultsArgs(
-            client_id=client_id, flow_id=flow_id),
+            client_id=client_id, flow_id=flow_id, filter="evil"),
+        replace={flow_id: "W:ABCDEF"})
+    self.Check(
+        "ListFlowResults",
+        args=flow_plugin.ApiListFlowResultsArgs(
+            client_id=client_id, flow_id=flow_id, filter="benign"),
         replace={flow_id: "W:ABCDEF"})
 
 

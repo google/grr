@@ -420,7 +420,7 @@ class ClientFileFinderMixin(object):
     # TODO(amoser): This might be broken. Files that haven't been downloaded are
     # published here to LegacyFileStore and the use_external_stores flag is
     # ignored. Not worth fixing anymore, this is going away soon.
-    if files_to_publish and not data_store.RelationalDBReadEnabled("filestore"):
+    if files_to_publish and not data_store.RelationalDBReadEnabled():
       events.Events.PublishMultipleEvents(
           {"LegacyFileStore.AddFileToStore": files_to_publish})
 
@@ -471,8 +471,7 @@ class ClientFileFinderMixin(object):
       client_path_path_info[client_path] = path_info
       client_path_blob_refs[client_path] = blob_refs
 
-    if (data_store.RelationalDBReadEnabled("filestore") and
-        client_path_blob_refs):
+    if (data_store.RelationalDBReadEnabled() and client_path_blob_refs):
       use_external_stores = self.args.action.download.use_external_stores
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
           client_path_blob_refs, use_external_stores=use_external_stores)

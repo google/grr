@@ -102,10 +102,6 @@ class DataStoreTestMixin(object):
     super(DataStoreTestMixin, self).setUp()
     data_store.DB.ClearTestDB()
 
-  def _TruncateToMilliseconds(self, timestamp_int):
-    timestamp_int -= (timestamp_int % 1000)
-    return timestamp_int
-
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
     predicate = "task:00000001"
@@ -2494,3 +2490,6 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
                    (end_time - start_time) / self.n, self.n)
 
     self.assertEmpty(self.fails)
+
+
+# This file is a test library and thus does not require a __main__ block.

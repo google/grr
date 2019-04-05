@@ -66,3 +66,6 @@ class DatabaseBlobReferencesTestMixin(object):
 
     results = self.db.ReadHashBlobReferences([hash_id_2])
     self.assertEqual(results, {hash_id_2: data[hash_id_2]})
+
+
+# This file is a test library and thus does not require a __main__ block.

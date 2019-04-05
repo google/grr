@@ -12,8 +12,8 @@ from grr_response_test.end_to_end_tests.tests import file_finder
 from grr_response_test.end_to_end_tests.tests import filesystem
 from grr_response_test.end_to_end_tests.tests import fingerprint
 from grr_response_test.end_to_end_tests.tests import limits
+from grr_response_test.end_to_end_tests.tests import memory
 from grr_response_test.end_to_end_tests.tests import network
 from grr_response_test.end_to_end_tests.tests import processes
 from grr_response_test.end_to_end_tests.tests import registry
 from grr_response_test.end_to_end_tests.tests import transfer
-from grr_response_test.end_to_end_tests.tests import yara

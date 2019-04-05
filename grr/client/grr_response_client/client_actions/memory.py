@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Yara based client actions."""
+"""Client actions dealing with memory."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -19,8 +19,8 @@ from grr_response_client import streaming
 from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import rdf_yara
 
 
 def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
@@ -28,12 +28,12 @@ def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
 
   Args:
     pids: A list of pids. If given, only the processes with those pids are
-          returned.
+      returned.
     process_regex_string: If given, only processes whose name matches the regex
-          are returned.
+      are returned.
     ignore_grr_process: If True, the grr process itself will not be returned.
-    error_list: All errors while handling processes are appended to this
-                list. Type is repeated YaraProcessError.
+    error_list: All errors while handling processes are appended to this list.
+      Type is repeated ProcessMemoryError.
 
   Yields:
     psutils.Process objects matching all criteria.
@@ -56,7 +56,7 @@ def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
         process_iterator.append(psutil.Process(pid=pid))
       except Exception as e:  # pylint: disable=broad-except
         error_list.Append(
-            rdf_yara.YaraProcessError(
+            rdf_memory.ProcessMemoryError(
                 process=rdf_client.Process(pid=pid), error=str(e)))
   else:
     process_iterator = psutil.process_iter()
@@ -73,8 +73,8 @@ def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
 
 class YaraProcessScan(actions.ActionPlugin):
   """Scans the memory of a number of processes using Yara."""
-  in_rdfvalue = rdf_yara.YaraProcessScanRequest
-  out_rdfvalues = [rdf_yara.YaraProcessScanResponse]
+  in_rdfvalue = rdf_memory.YaraProcessScanRequest
+  out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
 
   def _ScanRegion(self, rules, chunks, deadline):
     for chunk in chunks:
@@ -93,7 +93,7 @@ class YaraProcessScan(actions.ActionPlugin):
         for offset, _, s in m.strings:
           if offset + len(s) > chunk.overlap:
             # We haven't seen this match before.
-            rdf_match = rdf_yara.YaraMatch.FromLibYaraMatch(m)
+            rdf_match = rdf_memory.YaraMatch.FromLibYaraMatch(m)
             for string_match in rdf_match.string_matches:
               string_match.offset += chunk.offset
             yield rdf_match
@@ -131,7 +131,7 @@ class YaraProcessScan(actions.ActionPlugin):
     return matches
 
   def Run(self, args):
-    result = rdf_yara.YaraProcessScanResponse()
+    result = rdf_memory.YaraProcessScanResponse()
     for p in ProcessIterator(args.pids, args.process_regex,
                              args.ignore_grr_process, result.errors):
       self.Progress()
@@ -144,23 +144,23 @@ class YaraProcessScan(actions.ActionPlugin):
         scan_time_us = int(scan_time * 1e6)
       except yara.TimeoutError:
         result.errors.Append(
-            rdf_yara.YaraProcessError(
+            rdf_memory.ProcessMemoryError(
                 process=rdf_process,
                 error="Scanning timed out (%s seconds)." %
                 (time.time() - start_time)))
         continue
       except Exception as e:  # pylint: disable=broad-except
         result.errors.Append(
-            rdf_yara.YaraProcessError(process=rdf_process, error=str(e)))
+            rdf_memory.ProcessMemoryError(process=rdf_process, error=str(e)))
         continue
 
       if matches:
         result.matches.Append(
-            rdf_yara.YaraProcessScanMatch(
+            rdf_memory.YaraProcessScanMatch(
                 process=rdf_process, match=matches, scan_time_us=scan_time_us))
       else:
         result.misses.Append(
-            rdf_yara.YaraProcessScanMiss(
+            rdf_memory.YaraProcessScanMiss(
                 process=rdf_process, scan_time_us=scan_time_us))
 
     self.SendReply(result)
@@ -168,8 +168,8 @@ class YaraProcessScan(actions.ActionPlugin):
 
 class YaraProcessDump(actions.ActionPlugin):
   """Dumps a process to disk and returns pathspecs for GRR to pick up."""
-  in_rdfvalue = rdf_yara.YaraProcessDumpArgs
-  out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
+  in_rdfvalue = rdf_memory.YaraProcessDumpArgs
+  out_rdfvalues = [rdf_memory.YaraProcessDumpResponse]
 
   def _SaveMemDumpToFile(self, fd, chunks):
     bytes_written = 0
@@ -197,7 +197,7 @@ class YaraProcessDump(actions.ActionPlugin):
     return bytes_written
 
   def DumpProcess(self, psutil_process, args):
-    response = rdf_yara.YaraProcessDumpInformation()
+    response = rdf_memory.YaraProcessDumpInformation()
     response.process = rdf_client.Process.FromPsutilProcess(psutil_process)
 
     process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
@@ -235,7 +235,7 @@ class YaraProcessDump(actions.ActionPlugin):
     return response
 
   def Run(self, args):
-    result = rdf_yara.YaraProcessDumpResponse()
+    result = rdf_memory.YaraProcessDumpResponse()
 
     self.bytes_written = 0
 
@@ -253,7 +253,7 @@ class YaraProcessDump(actions.ActionPlugin):
           break
       except Exception as e:  # pylint: disable=broad-except
         result.errors.Append(
-            rdf_yara.YaraProcessError(
+            rdf_memory.ProcessMemoryError(
                 process=rdf_client.Process.FromPsutilProcess(p), error=str(e)))
         continue
 

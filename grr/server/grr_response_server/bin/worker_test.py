@@ -32,6 +32,7 @@ from grr_response_server.flows.general import administrative
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
@@ -597,7 +598,6 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   def testMessageHandlers(self):
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
-        "Database.useForReads.message_handlers": True
     }):
       self._testProcessMessagesWellKnown()
 
@@ -609,9 +609,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     session_id = administrative.GetClientStatsAuto.well_known_session_id
-    client_id = rdf_client.ClientURN("C.1100110011001100")
+    client_id = self.SetupClient(100)
 
-    if data_store.RelationalDBReadEnabled(category="message_handlers"):
+    if data_store.RelationalDBReadEnabled():
       done = threading.Event()
 
       def handle(l):
@@ -621,11 +621,13 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       data_store.REL_DB.RegisterMessageHandler(
           handle, worker_obj.well_known_flow_lease_time, limit=1000)
 
-      self.SendResponse(
-          session_id,
-          data=rdf_client_stats.ClientStats(RSS_size=1234),
-          client_id=client_id,
-          well_known=True)
+      data_store.REL_DB.WriteMessageHandlerRequests([
+          rdf_objects.MessageHandlerRequest(
+              client_id=client_id.Basename(),
+              handler_name="StatsHandler",
+              request_id=12345,
+              request=rdf_client_stats.ClientStats(RSS_size=1234))
+      ])
 
       self.assertTrue(done.wait(10))
     else:
@@ -639,7 +641,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    if data_store.RelationalDBReadEnabled("client_stats"):
+    if data_store.RelationalDBReadEnabled():
       results = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
@@ -657,7 +659,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
     self.assertIsNone(notifications)
 
-    if data_store.RelationalDBReadEnabled(category="message_handlers"):
+    if data_store.RelationalDBReadEnabled():
       data_store.REL_DB.UnregisterMessageHandler(timeout=60)
 
   def testWellKnownFlowResponsesAreProcessedOnlyOnce(self):
@@ -1108,19 +1110,20 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   def testForemanMessageHandler(self):
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
-        "Database.useForReads.message_handlers": True
     }):
       with mock.patch.object(foreman.Foreman, "AssignTasksToClient") as instr:
         worker_obj = self._TestWorker()
 
         # Send a message to the Foreman.
-        session_id = administrative.Foreman.well_known_session_id
-        client_id = rdf_client.ClientURN("C.1100110011001100")
-        self.SendResponse(
-            session_id,
-            rdf_protodict.DataBlob(),
-            client_id=client_id,
-            well_known=True)
+        client_id = "C.1100110011001100"
+
+        data_store.REL_DB.WriteMessageHandlerRequests([
+            rdf_objects.MessageHandlerRequest(
+                client_id=client_id,
+                handler_name="ForemanHandler",
+                request_id=12345,
+                request=rdf_protodict.DataBlob())
+        ])
 
         done = threading.Event()
 

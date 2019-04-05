@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
-import json
 import logging
 import time
 import traceback
@@ -26,6 +25,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import json
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
@@ -144,7 +144,7 @@ class RouterMatcher(object):
 
         if request.content_type and request.content_type.startswith(
             "multipart/form-data;"):
-          payload = json.loads(request.form["_params_"])
+          payload = json.Parse(request.form["_params_"].decode("utf-8"))
           args.FromDict(payload)
 
           for name, fd in iteritems(request.files):
@@ -155,7 +155,8 @@ class RouterMatcher(object):
           json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
           args.ParseFromString(args_proto.SerializeToString())
         else:
-          payload = json.loads(request.get_data(as_text=True) or "{}")
+          json_data = request.get_data(as_text=True) or "{}"
+          payload = json.Parse(json_data)
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except
@@ -187,7 +188,7 @@ class RouterMatcher(object):
                                      route_args_dict))
 
 
-class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
+class JSONEncoderWithRDFPrimitivesSupport(json.Encoder):
   """Custom JSON encoder that encodes handlers output.
 
   Custom encoder is required to facilitate usage of primitive values -
@@ -201,11 +202,20 @@ class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
   """
 
   def default(self, obj):
-    if isinstance(obj,
-                  (rdfvalue.RDFInteger, rdfvalue.RDFBool, rdfvalue.RDFString)):
-      return obj.SerializeToDataStore()
+    if isinstance(obj, rdfvalue.RDFInteger):
+      return int(obj)
 
-    return json.JSONEncoder.default(self, obj)
+    if isinstance(obj, rdfvalue.RDFBool):
+      return bool(obj)
+
+    if isinstance(obj, rdfvalue.RDFString):
+      # TODO: Since we want to this to be a JSON-compatible type,
+      # we cannot call `str` as that would result in `future.newstr` in Python 2
+      # which is not easily serializable. This can be replaced with `str` call
+      # once support for Python 2 is dropped.
+      return Text(obj)
+
+    return super(JSONEncoderWithRDFPrimitivesSupport, self).default(obj)
 
 
 class JsonMode(object):
@@ -272,7 +282,8 @@ class HttpRequestHandler(object):
       return dict(status="OK")
 
     if format_mode == JsonMode.PROTO3_JSON_MODE:
-      return json.loads(json_format.MessageToJson(result.AsPrimitiveProto()))
+      json_data = json_format.MessageToJson(result.AsPrimitiveProto())
+      return json.Parse(json_data.decode("utf-8"))
     elif format_mode == JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE:
       result_dict = {}
       for field, value in result.ListSetFields():
@@ -327,8 +338,8 @@ class HttpRequestHandler(object):
     # does content sniffing and doesn't respect Content-Disposition header) and
     # IE will treat the document as html and executre arbitrary JS that was
     # passed with the payload.
-    str_data = json.dumps(
-        rendered_data, cls=JSONEncoderWithRDFPrimitivesSupport)
+    str_data = json.Dump(
+        rendered_data, encoder=JSONEncoderWithRDFPrimitivesSupport)
     # XSSI protection and tags escaping
     rendered_data = ")]}'\n" + str_data.replace("<", r"\u003c").replace(
         ">", r"\u003e")

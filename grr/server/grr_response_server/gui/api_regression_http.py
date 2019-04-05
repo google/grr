@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 # pylint:mode=test
 
-import json
 import logging
 import os
 import threading
@@ -15,11 +14,14 @@ import threading
 from absl import flags
 import portpicker
 import requests
+from typing import Text
 
 from google.protobuf import json_format
 
 from grr_api_client.connectors import http_connector
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import json
+from grr_response_core.lib.util import precondition
 from grr_response_server import data_store
 from grr_response_server import gui
 from grr_response_server.gui import api_auth_manager
@@ -70,12 +72,13 @@ class HttpApiRegressionTestMixinBase(object):
 
   def _ParseJSON(self, json_str):
     """Parses response JSON."""
+    precondition.AssertType(json_str, Text)
 
     xssi_prefix = ")]}'\n"
     if json_str.startswith(xssi_prefix):
       json_str = json_str[len(xssi_prefix):]
 
-    return json.loads(json_str)
+    return json.Parse(json_str)
 
   def _PrepareV1Request(self, method, args=None):
     """Prepares API v1 request for a given method and args."""
@@ -90,10 +93,10 @@ class HttpApiRegressionTestMixinBase(object):
       json_format.Parse(request.data, body_proto)
       body_args = args.__class__()
       body_args.ParseFromString(body_proto.SerializeToString())
-      request.data = json.dumps(
+      request.data = json.Dump(
           api_value_renderers.StripTypeInfo(
               api_value_renderers.RenderValue(body_args)),
-          cls=http_api.JSONEncoderWithRDFPrimitivesSupport)
+          encoder=http_api.JSONEncoderWithRDFPrimitivesSupport)
 
     prepped_request = request.prepare()
 
@@ -135,7 +138,8 @@ class HttpApiRegressionTestMixinBase(object):
     }
 
     if request.data:
-      request_payload = self._ParseJSON(replace(request.data))
+      data = request.data.decode("utf-8")
+      request_payload = self._ParseJSON(replace(data))
       if request_payload:
         check_result["request_payload"] = request_payload
 
@@ -143,7 +147,8 @@ class HttpApiRegressionTestMixinBase(object):
         api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE):
       check_result["response"] = replace(utils.SmartUnicode(response.content))
     else:
-      check_result["response"] = self._ParseJSON(replace(response.content))
+      content = response.content.decode("utf-8")
+      check_result["response"] = self._ParseJSON(replace(content))
 
     if self.__class__.api_version == 1:
       stripped_response = api_value_renderers.StripTypeInfo(

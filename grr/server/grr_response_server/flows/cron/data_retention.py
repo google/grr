@@ -93,7 +93,7 @@ class CleanCronJobs(aff4_cronjobs.SystemCronFlow):
 
     manager = aff4_cronjobs.GetCronManager()
     cutoff_timestamp = rdfvalue.RDFDatetime.Now() - cron_jobs_ttl
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+    if data_store.RelationalDBReadEnabled():
       deletion_count = manager.DeleteOldRuns(cutoff_timestamp=cutoff_timestamp)
 
     else:

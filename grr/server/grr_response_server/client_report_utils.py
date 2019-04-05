@@ -30,8 +30,8 @@ def GetAFF4ClientReportsURN():
   return rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
 
-def _GetAFF4AttributeForReportType(
-    report_type):
+def _GetAFF4AttributeForReportType(report_type
+                                  ):
   """Returns the corresponding AFF4 attribute for the given report type."""
   if report_type == rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION:
     return aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
@@ -248,4 +248,4 @@ def _ShouldUseLegacyDatastore():
   reading from the legacy DB until a config option specific to client reports
   is enabled. When that happens, we will also stop writing to the legacy DB.
   """
-  return not data_store.RelationalDBReadEnabled(category="client_reports")
+  return not data_store.RelationalDBReadEnabled()

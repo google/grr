@@ -130,8 +130,8 @@ class RelDBChecker(object):
 
     user_obj = data_store.REL_DB.ReadGRRUser(username)
     if user_obj.user_type != user_obj.UserType.USER_TYPE_ADMIN:
-      raise access_control.UnauthorizedAccess(
-          "User %s is not an admin." % username)
+      raise access_control.UnauthorizedAccess("User %s is not an admin." %
+                                              username)
 
 
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
@@ -539,7 +539,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ModifyHunt(args, token=token)
 
   def _GetHuntObj(self, hunt_id, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       try:
         return data_store.REL_DB.ReadHuntObject(str(hunt_id))
       except db.UnknownHuntError:

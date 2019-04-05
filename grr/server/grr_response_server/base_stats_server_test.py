@@ -43,3 +43,6 @@ class StatsServerTestMixin(with_metaclass(abc.ABCMeta, object)):
     with self.assertRaises(base_stats_server.PortInUseError) as context:
       duplicate.Start()
     self.assertEqual(context.exception.port, port)
+
+
+# This file is a test library and thus does not require a __main__ block.

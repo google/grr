@@ -168,3 +168,6 @@ class DatabaseTestArtifactsMixin(object):
 
     artifacts = self.db.ReadAllArtifacts()
     self.assertCountEqual(map(name, artifacts), ["Foo", "Bar"])
+
+
+# This file is a test library and thus does not require a __main__ block.

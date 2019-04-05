@@ -28,6 +28,11 @@ describe('duration directive', () => {
     return element;
   };
 
+  it('gracefully handles cases where passed wrapped object is not defined', () => {
+    const element = renderTestTemplate(undefined);
+    expect(element.text().trim()).toBe('-');
+  });
+
   it('shows "-" when value is empty', () => {
     const value = {
       type: 'Duration',

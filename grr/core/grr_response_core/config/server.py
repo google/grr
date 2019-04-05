@@ -96,6 +96,11 @@ config_lib.DEFINE_list(
     "This is the equivalent setting to disabled_system_jobs "
     "when using the relational database.")
 
+config_lib.DEFINE_integer(
+    "Cron.interrogate_crash_limit", 500,
+    "Maximum number of client crashes to allow for an Interrogate cron hunt "
+    "before stopping the hunt.")
+
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 

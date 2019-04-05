@@ -832,13 +832,13 @@ class HuntRunner(object):
 
   def _AddForemanRule(self):
     """Adds a foreman rule for this hunt."""
-    if data_store.RelationalDBReadEnabled(category="foreman"):
+    if data_store.RelationalDBReadEnabled():
       # Relational DB uses ForemanCondition objects.
       foreman_condition = foreman_rules.ForemanCondition(
           creation_time=rdfvalue.RDFDatetime.Now(),
           expiration_time=self.context.expires,
-          description="Hunt %s %s" % (self.session_id,
-                                      self.runner_args.hunt_name),
+          description="Hunt %s %s" %
+          (self.session_id, self.runner_args.hunt_name),
           client_rule_set=self.runner_args.client_rule_set,
           hunt_id=self.session_id.Basename(),
           hunt_name=self.runner_args.hunt_name)
@@ -851,8 +851,8 @@ class HuntRunner(object):
       foreman_rule = foreman_rules.ForemanRule(
           created=rdfvalue.RDFDatetime.Now(),
           expires=self.context.expires,
-          description="Hunt %s %s" % (self.session_id,
-                                      self.runner_args.hunt_name),
+          description="Hunt %s %s" %
+          (self.session_id, self.runner_args.hunt_name),
           client_rule_set=self.runner_args.client_rule_set)
 
       foreman_rule.actions.Append(
@@ -875,7 +875,7 @@ class HuntRunner(object):
 
   def _RemoveForemanRule(self):
     """Removes the foreman rule corresponding to this hunt."""
-    if data_store.RelationalDBReadEnabled(category="foreman"):
+    if data_store.RelationalDBReadEnabled():
       data_store.REL_DB.RemoveForemanRule(hunt_id=self.session_id.Basename())
       return
 
@@ -1022,8 +1022,8 @@ class HuntRunner(object):
         if isinstance(payload, rdf_flows.GrrStatus):
           msg.type = rdf_flows.GrrMessage.Type.STATUS
       else:
-        raise flow_runner.FlowRunnerError(
-            "Bad message %s of type %s." % (payload, type(payload)))
+        raise flow_runner.FlowRunnerError("Bad message %s of type %s." %
+                                          (payload, type(payload)))
 
       self.QueueResponse(msg, timestamp=start_time)
 
@@ -1486,8 +1486,8 @@ class GRRHunt(flow.FlowBase):
 
     if client_id:
       # But we also create a symlink to it from the client's namespace.
-      hunt_link_urn = client_id.Add("flows").Add(
-          "%s:hunt" % (self.urn.Basename()))
+      hunt_link_urn = client_id.Add("flows").Add("%s:hunt" %
+                                                 (self.urn.Basename()))
 
       hunt_link = aff4.FACTORY.Create(
           hunt_link_urn, aff4.AFF4Symlink, token=self.token)

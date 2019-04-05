@@ -178,7 +178,7 @@ class CronManager(object):
 
 
 def GetCronManager():
-  if data_store.RelationalDBReadEnabled(category="cronjobs"):
+  if data_store.RelationalDBReadEnabled():
     return cronjobs.CronManager()
   return CronManager()
 
@@ -254,7 +254,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
 def ScheduleSystemCronFlows(names=None, token=None):
   """Schedule all the SystemCronFlows found."""
 
-  if data_store.RelationalDBReadEnabled(category="cronjobs"):
+  if data_store.RelationalDBReadEnabled():
     return cronjobs.ScheduleSystemCronJobs(names=names)
 
   errors = []
@@ -307,8 +307,8 @@ def ScheduleSystemCronFlows(names=None, token=None):
       cron_job.Set(cron_job.Schema.DISABLED(not enabled))
 
   if errors:
-    raise ValueError(
-        "Error(s) while parsing Cron.disabled_system_jobs: %s" % errors)
+    raise ValueError("Error(s) while parsing Cron.disabled_system_jobs: %s" %
+                     errors)
 
 
 class CronWorker(object):
@@ -584,8 +584,8 @@ def DualDBSystemCronJob(legacy_name=None, stateful=False):
       raise ValueError("Mixin class shouldn't inherit from SystemCronJobBase")
 
     if issubclass(cls, aff4_base_cls):
-      raise ValueError(
-          "Mixin class shouldn't inherit from %s" % aff4_base_cls.__name__)
+      raise ValueError("Mixin class shouldn't inherit from %s" %
+                       aff4_base_cls.__name__)
 
     # Generate legacy class. Register it within the module as it's not going
     # to be returned from the decorator.

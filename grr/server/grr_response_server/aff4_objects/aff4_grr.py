@@ -76,9 +76,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "GRR client",
         default=rdf_client.ClientInformation())
 
-    LAST_BOOT_TIME = aff4.Attribute(
-        "metadata:LastBootTime", rdfvalue.RDFDatetime,
-        "When the machine was last booted", "BootTime")
+    LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime",
+                                    rdfvalue.RDFDatetime,
+                                    "When the machine was last booted",
+                                    "BootTime")
 
     FIRST_SEEN = aff4.Attribute("metadata:FirstSeen", rdfvalue.RDFDatetime,
                                 "First time the client registered with us",
@@ -611,7 +612,7 @@ class GRRAFF4Init(registry.InitHook):
   pre = [aff4.AFF4InitHook]
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled(category="foreman"):
+    if data_store.RelationalDBReadEnabled():
       return
 
     try:

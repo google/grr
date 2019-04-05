@@ -944,3 +944,6 @@ class DatabaseTestUsersMixin(object):
         d.ReadUserNotifications(username, timerange=(None, None)))
     d.DeleteGRRUser(username)
     self.assertEmpty(d.ReadUserNotifications(username, timerange=(None, None)))
+
+
+# This file is a test library and thus does not require a __main__ block.

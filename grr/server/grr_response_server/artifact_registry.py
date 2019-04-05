@@ -148,7 +148,7 @@ class ArtifactRegistry(object):
     for artifact_coll_urn in self._sources.GetDatastores():
       artifact_coll = ArtifactCollection(artifact_coll_urn)
 
-      if data_store.RelationalDBReadEnabled(category="artifacts"):
+      if data_store.RelationalDBReadEnabled():
         artifact_list = data_store.REL_DB.ReadAllArtifacts()
       else:
         artifact_list = list(artifact_coll)
@@ -372,12 +372,13 @@ class ArtifactRegistry(object):
       os_name: string to match against supported_os
       name_list: list of strings to match against artifact names
       source_type: rdf_artifacts.ArtifactSource.SourceType to match against
-                      source_type
+        source_type
       exclude_dependents: if true only artifacts with no dependencies will be
-                          returned
+        returned
       provides: return the artifacts that provide these dependencies
       reload_datastore_artifacts: If true, the data store sources are queried
-                                  for new artifacts.
+        for new artifacts.
+
     Returns:
       set of artifacts matching filter criteria
     """
@@ -456,6 +457,7 @@ class ArtifactRegistry(object):
         e.g. set(["WindowsRegistryProfiles", "WindowsEnvironmentVariablePath"])
       existing_expansion_deps: existing expansion dependencies to add to, for
         recursion, e.g. set(["users.userprofile", "users.homedir"])
+
     Returns:
       (artifact_names, expansion_names): a tuple of sets, one with artifact
           names, the other expansion names
@@ -548,8 +550,8 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
 
   if len(found_artifact_names) != len(to_delete):
     not_found = to_delete - found_artifact_names
-    raise ValueError(
-        "Artifact(s) to delete (%s) not found." % ",".join(not_found))
+    raise ValueError("Artifact(s) to delete (%s) not found." %
+                     ",".join(not_found))
 
   # TODO(user): this is ugly and error- and race-condition- prone.
   # We need to store artifacts not in a *Collection, which is an

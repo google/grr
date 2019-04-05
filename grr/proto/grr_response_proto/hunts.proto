@@ -40,7 +40,7 @@ message HuntArguments {
   optional HuntArgumentsVariable variable = 3;
 }
 
-// Next id: 34
+// Next id: 36
 message Hunt {
   optional string hunt_id = 1;
   optional string description = 2;
@@ -52,9 +52,10 @@ message Hunt {
   optional HuntArguments args = 5;
   optional ForemanClientRuleSet client_rule_set = 6
       [(sem_type) = { description: "Rules that trigger this hunt." }];
-  optional uint64 expiry_time = 7 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Expiry time for the hunt.",
+  reserved 7;
+  optional uint64 duration = 34 [(sem_type) = {
+    type: "Duration",
+    description: "A maximum allowed duration after which the hunt is expired.",
   }];
   optional float client_rate = 8 [(sem_type) = {
     description: "The maximum number of clients to engage per minute. "
@@ -126,7 +127,10 @@ message Hunt {
   optional uint64 last_update_time = 20 [(sem_type) = {
     type: "RDFDatetime",
   }];
-  optional uint64 start_time = 21 [(sem_type) = {
+  optional uint64 init_start_time = 35 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  optional uint64 last_start_time = 21 [(sem_type) = {
     type: "RDFDatetime",
   }];
   optional uint64 num_clients_at_start_time = 22 [(sem_type) = {

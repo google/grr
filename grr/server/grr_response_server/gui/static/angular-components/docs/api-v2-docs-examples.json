@@ -3109,27 +3109,27 @@
         "items": [
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
+            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
             "timestamp": "4000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
+            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
             "timestamp": "3000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
+            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
             "timestamp": "2000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
+            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
             "timestamp": "1000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
+            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
             "timestamp": "0"
           }
         ]
@@ -4239,7 +4239,16 @@
         "totalCount": "1"
       },
       "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results"
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=evil"
+    },
+    {
+      "api_method": "ListFlowResults",
+      "method": "GET",
+      "response": {
+        "totalCount": "1"
+      },
+      "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=benign"
     }
   ],
   "ApiListFlowsHandler": [
@@ -4799,8 +4808,7 @@
             "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000000"
           }
-        ],
-        "totalCount": "2"
+        ]
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts"
@@ -4829,8 +4837,7 @@
             "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000001"
           }
-        ],
-        "totalCount": "2"
+        ]
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=1"
@@ -4859,8 +4866,7 @@
             "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000000"
           }
-        ],
-        "totalCount": "2"
+        ]
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=1&offset=1"

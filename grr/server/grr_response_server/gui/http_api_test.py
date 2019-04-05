@@ -5,8 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import json
-
 
 from absl import app
 from future.moves.urllib import parse as urlparse
@@ -14,6 +12,7 @@ import mock
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import json
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 
@@ -219,7 +218,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     if content.startswith(")]}'\n"):
       content = content[5:]
 
-    return json.loads(content)
+    return json.Parse(content)
 
   def setUp(self):
     super(HttpRequestHandlerTest, self).setUp()

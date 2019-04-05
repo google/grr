@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""End to end tests for Yara based flows."""
+"""End to end tests for memory flows."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -100,19 +100,19 @@ rule test_rule {
       self.assertLess(process_scan_match.scan_time_us, 10 * 1e6)
 
 
-class TestYaraProcessDump(test_base.AbstractFileTransferTest):
-  """Yara process memory dump test."""
+class TestProcessDump(test_base.AbstractFileTransferTest):
+  """Process memory dump test."""
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
   def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs(flow_name="YaraDumpProcessMemory")
+    args = self.grr_api.types.CreateFlowArgs(flow_name="DumpProcessMemory")
     process_name = GetProcessName(self.platform)
     args.process_regex = GetProcessNameRegex(self.platform)
     args.ignore_grr_process = False
     args.size_limit = 1024 * 1024
 
-    f = self.RunFlowAndWait("YaraDumpProcessMemory", args=args)
+    f = self.RunFlowAndWait("DumpProcessMemory", args=args)
 
     results = [x.payload for x in f.ListResults()]
     self.assertNotEmpty(results, "Expected at least a YaraProcessDumpResponse.")

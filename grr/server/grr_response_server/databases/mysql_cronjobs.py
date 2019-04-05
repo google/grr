@@ -10,6 +10,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import db
+from grr_response_server import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
@@ -39,7 +40,7 @@ class MySQLDBCronJobMixin(object):
      last_run_time, current_run_id, state, leased_until, leased_by) = row
 
     job = rdf_cronjobs.CronJob.FromSerializedString(job)
-    job.current_run_id = mysql_utils.IntToCronJobRunID(current_run_id)
+    job.current_run_id = db_utils.IntToCronJobRunID(current_run_id)
     job.enabled = enabled
     job.forced_run_requested = forced_run_requested
     job.last_run_status = last_run_status
@@ -70,8 +71,8 @@ class MySQLDBCronJobMixin(object):
 
     if len(res) != len(cronjob_ids):
       missing = set(cronjob_ids) - set([c.cron_job_id for c in res])
-      raise db.UnknownCronJobError(
-          "CronJob(s) with id(s) %s not found." % missing)
+      raise db.UnknownCronJobError("CronJob(s) with id(s) %s not found." %
+                                   missing)
     return res
 
   def _SetCronEnabledBit(self, cronjob_id, enabled, cursor=None):
@@ -115,7 +116,7 @@ class MySQLDBCronJobMixin(object):
       args.append(mysql_utils.RDFDatetimeToMysqlString(last_run_time))
     if current_run_id != db.Database.unchanged:
       updates.append("current_run_id=%s")
-      args.append(mysql_utils.CronJobRunIDToInt(current_run_id))
+      args.append(db_utils.CronJobRunIDToInt(current_run_id))
     if state != db.Database.unchanged:
       updates.append("state=%s")
       args.append(state.SerializeToString())
@@ -159,8 +160,9 @@ class MySQLDBCronJobMixin(object):
         "SELECT job, create_time, enabled, forced_run_requested, "
         "last_run_status, last_run_time, current_run_id, state, "
         "leased_until, leased_by "
-        "FROM cron_jobs WHERE leased_until=%s AND leased_by=%s",
-        [expiry_str, id_str])
+        "FROM cron_jobs "
+        "FORCE INDEX (cron_jobs_by_lease) "
+        "WHERE leased_until=%s AND leased_by=%s", [expiry_str, id_str])
     return [self._CronJobFromRow(row) for row in cursor.fetchall()]
 
   @mysql_utils.WithTransaction()
@@ -193,8 +195,8 @@ class MySQLDBCronJobMixin(object):
     if unleased_jobs:
       raise ValueError("CronJobs to return are not leased: %s" % unleased_jobs)
     if returned != len(jobs):
-      raise ValueError("%d cronjobs in %s could not be returned." % (
-          (len(jobs) - returned), jobs))
+      raise ValueError("%d cronjobs in %s could not be returned." %
+                       ((len(jobs) - returned), jobs))
 
   @mysql_utils.WithTransaction()
   def WriteCronJobRun(self, run_object, cursor=None):
@@ -210,7 +212,7 @@ class MySQLDBCronJobMixin(object):
     try:
       cursor.execute(query, [
           run_object.cron_job_id,
-          mysql_utils.CronJobRunIDToInt(run_object.run_id),
+          db_utils.CronJobRunIDToInt(run_object.run_id),
           write_time_str,
           run_object.SerializeToString(),
       ])
@@ -238,7 +240,7 @@ class MySQLDBCronJobMixin(object):
     query = ("SELECT run, write_time FROM cron_job_runs "
              "WHERE job_id = %s AND run_id = %s")
     num_runs = cursor.execute(
-        query, [job_id, mysql_utils.CronJobRunIDToInt(run_id)])
+        query, [job_id, db_utils.CronJobRunIDToInt(run_id)])
     if num_runs == 0:
       raise db.UnknownCronJobRunError(
           "Run with job id %s and run id %s not found." % (job_id, run_id))

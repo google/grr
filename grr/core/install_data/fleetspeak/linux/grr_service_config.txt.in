@@ -1,0 +1,12 @@
+name: "GRR"
+factory: "Daemon"
+required_labels {
+  service_name: "client"
+  label: "linux"
+}
+config {
+  [type.googleapis.com/fleetspeak.daemonservice.Config] {
+    argv: "%(ClientBuilder.daemon_link)"
+    argv: "--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)"
+  }
+}

@@ -1063,6 +1063,10 @@ class ProtoDynamicEmbedded(ProtoType):
     return value
 
   def GetDefault(self, container=None):
+    # _type can be None if a ProtoDynamicEmbedded field is not initialized.
+    if self._type is None:
+      return None
+
     cls = self._type(container or self.owner())
     if cls is not None:
       return cls()

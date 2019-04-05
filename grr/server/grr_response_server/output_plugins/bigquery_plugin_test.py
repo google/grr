@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import gzip
-import json
 import os
 
 
@@ -21,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import json
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
 from grr.test_lib import flow_test_lib
@@ -62,10 +62,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     return [x[0] for x in mock_bigquery.return_value.InsertData.call_args_list]
 
   def CompareSchemaToKnownGood(self, schema):
-    expected_schema_data = json.load(
-        open(
-            os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                         "ExportedFile.schema"), "rb"))
+    expected_schema_path = os.path.join(config.CONFIG["Test.data_dir"],
+                                        "bigquery", "ExportedFile.schema")
+    expected_schema_data = json.ReadFromPath(expected_schema_path)
 
     # It's easier to just compare the two dicts but even a change to the proto
     # description requires you to fix the json so we just compare field names
@@ -124,7 +123,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # valid JSON so we can't just load the whole thing and compare.
     counter = 0
     for actual, expected in zip(actual_fd, expected_fd):
-      self.assertEqual(json.loads(actual), json.loads(expected))
+      actual = actual.decode("utf-8")
+      expected = expected.decode("utf-8")
+      self.assertEqual(json.Parse(actual), json.Parse(expected))
       counter += 1
 
     self.assertEqual(counter, 10)
@@ -135,7 +136,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     for item in content_fd:
       counter += 1
-      row = json.loads(item)
+      row = json.Parse(item.decode("utf-8"))
 
       if name == "ExportedFile":
         self.assertEqual(row["metadata"]["client_urn"], self.client_id)
@@ -224,7 +225,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     counter = 0
     for actual_fd in actual_fds:
       for actual, expected in zip(actual_fd, expected_fd):
-        self.assertEqual(json.loads(actual), json.loads(expected))
+        actual = actual.decode("utf-8")
+        expected = expected.decode("utf-8")
+        self.assertEqual(json.Parse(actual), json.Parse(expected))
         counter += 1
 
     self.assertEqual(counter, 10)

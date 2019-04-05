@@ -62,7 +62,7 @@ class ApiListCronJobsHandlerRegressionTest(
           token=self.token)
 
     with test_lib.FakeTime(230):
-      if data_store.RelationalDBReadEnabled(category="cronjobs"):
+      if data_store.RelationalDBReadEnabled():
         data_store.REL_DB.UpdateCronJob(
             cron_id_3,
             last_run_time=rdfvalue.RDFDatetime.Now(),
@@ -98,7 +98,7 @@ def _SetupAndRunVersionBreakDownCronjob(token=None):
   with test_lib.FakeTime(44):
     manager = aff4_cronjobs.GetCronManager()
 
-    if data_store.RelationalDBReadEnabled("cronjobs"):
+    if data_store.RelationalDBReadEnabled():
       cron_job_name = compatibility.GetName(
           cron_system.GRRVersionBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[cron_job_name])

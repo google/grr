@@ -14,15 +14,11 @@ import "grr_response_proto/sysinfo.proto";
 
 // Next id: 21
 message ApiClient {
-  optional string client_id = 18 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 18
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 
-  optional string urn = 1 [(sem_type) = {
-      type: "ClientURN",
-      description: "Client URN."
-    }];
+  optional string urn = 1
+      [(sem_type) = { type: "ClientURN", description: "Client URN." }];
 
   optional bool fleetspeak_enabled = 20;
   optional ClientInformation agent_info = 2;
@@ -30,30 +26,25 @@ message ApiClient {
   optional Uname os_info = 4;
   optional KnowledgeBase knowledge_base = 16;
   optional uint64 memory_size = 17 [(sem_type) = {
-      type: "ByteSize",
-      description: "Memory available to this client."
-    }];
+    type: "ByteSize",
+    description: "Memory available to this client."
+  }];
 
-  optional uint64 first_seen_at = 6 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "When flow was created."
-    }];
+  optional uint64 first_seen_at = 6 [
+    (sem_type) = { type: "RDFDatetime", description: "When flow was created." }
+  ];
   optional uint64 last_seen_at = 7 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Last time when client checked in."
-    }];
-  optional uint64 last_booted_at = 8 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Last boot time."
-    }];
+    type: "RDFDatetime",
+    description: "Last time when client checked in."
+  }];
+  optional uint64 last_booted_at = 8
+      [(sem_type) = { type: "RDFDatetime", description: "Last boot time." }];
   optional uint64 last_clock = 9 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Client clocks value during latest checkin."
-    }];
-  optional uint64 last_crash_at = 10 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Last crash time."
-    }];
+    type: "RDFDatetime",
+    description: "Client clocks value during latest checkin."
+  }];
+  optional uint64 last_crash_at = 10
+      [(sem_type) = { type: "RDFDatetime", description: "Last crash time." }];
 
   repeated ClientLabel labels = 11;
   repeated Interface interfaces = 12;
@@ -61,9 +52,9 @@ message ApiClient {
   repeated Volume volumes = 14;
 
   optional uint64 age = 15 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Age of the client information."
-    }];
+    type: "RDFDatetime",
+    description: "Age of the client information."
+  }];
   optional CloudInstance cloud_instance = 19;
 }
 
@@ -71,22 +62,20 @@ message ApiClientActionRequest {
   optional uint64 task_id = 1;
 
   optional uint64 leased_until = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "This task's lease expiration time."
-    }];
+    type: "RDFDatetime",
+    description: "This task's lease expiration time."
+  }];
 
   optional string session_id = 3 [(sem_type) = {
-      type: "RDFURN"
-      description: "Session id that triggered the request."
-    }];
+    type: "RDFURN"
+    description: "Session id that triggered the request."
+  }];
 
-  optional string client_action = 4 [(sem_type) = {
-      description: "Requested client action name."
-    }];
+  optional string client_action = 4
+      [(sem_type) = { description: "Requested client action name." }];
 
-  repeated GrrMessage responses = 5 [(sem_type) = {
-      description: "Responses queued for this request."
-    }];
+  repeated GrrMessage responses = 5
+      [(sem_type) = { description: "Responses queued for this request." }];
 }
 
 //
@@ -95,16 +84,14 @@ message ApiClientActionRequest {
 
 message ApiSearchClientsArgs {
   optional string query = 1 [(sem_type) = {
-      description: "Search query string. See here for syntax: "
-      "https://grr-doc.readthedocs.io/en/v3.2.0/investigating-with-grr/"
-      "searching-for-client.html"
+    description: "Search query string. See here for syntax: "
+                 "https://grr-doc.readthedocs.io/en/v3.2.0/investigating-with-grr/"
+                 "searching-for-client.html"
   }];
-  optional int64 offset = 2 [(sem_type) = {
-      description: "Found clients starting offset."
-    }];
-  optional int64 count = 3 [(sem_type) = {
-      description: "Number of found client to fetch."
-    }];
+  optional int64 offset = 2
+      [(sem_type) = { description: "Found clients starting offset." }];
+  optional int64 count = 3
+      [(sem_type) = { description: "Number of found client to fetch." }];
 }
 
 message ApiSearchClientsResult {
@@ -112,40 +99,36 @@ message ApiSearchClientsResult {
 }
 
 message ApiGetClientArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   optional uint64 timestamp = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp of the client."
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp of the client."
+  }];
 }
 
 message ApiGetClientVersionsArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   optional uint64 start = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timerange start (timerange is a closed interval)."
-    }];
+    type: "RDFDatetime",
+    description: "Timerange start (timerange is a closed interval)."
+  }];
   optional uint64 end = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timerange end (timerange is a closed interval)."
-    }];
+    type: "RDFDatetime",
+    description: "Timerange end (timerange is a closed interval)."
+  }];
 
   enum Mode {
-    UNSET = 0; // will default to FULL
+    UNSET = 0;  // will default to FULL
     FULL = 1;
     DIFF = 2;
   }
   optional Mode mode = 4 [(sem_type) = {
-      description: "Mode to be used: FULL to return full versions for "
-      "every timestamp, DIFF to return only differences between subsequent "
-      "versions."
-    }];
+    description: "Mode to be used: FULL to return full versions for "
+                 "every timestamp, DIFF to return only differences between subsequent "
+                 "versions."
+  }];
 }
 
 message ApiGetClientVersionsResult {
@@ -153,36 +136,30 @@ message ApiGetClientVersionsResult {
 }
 
 message ApiGetClientVersionTimesArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 }
 
 message ApiGetClientVersionTimesResult {
   repeated uint64 times = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The list of version times."
-    }];
+    type: "RDFDatetime",
+    description: "The list of version times."
+  }];
 }
 
 message ApiInterrogateClientArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 }
 
 message ApiInterrogateClientResult {
-  optional string operation_id = 1 [(sem_type) = {
-      description: "The id of the interrogate operation."
-    }];
+  optional string operation_id = 1
+      [(sem_type) = { description: "The id of the interrogate operation." }];
 }
 
 message ApiGetInterrogateOperationStateArgs {
-  optional string operation_id = 1 [(sem_type) = {
-      description: "The id of the interrogate operation."
-    }];
+  optional string operation_id = 1
+      [(sem_type) = { description: "The id of the interrogate operation." }];
   optional string client_id = 2
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 }
@@ -193,16 +170,13 @@ message ApiGetInterrogateOperationStateResult {
     FINISHED = 1;
   }
 
-  optional State state = 1 [(sem_type) = {
-      description: "The state of the interrogate operation."
-    }];
+  optional State state = 1
+      [(sem_type) = { description: "The state of the interrogate operation." }];
 }
 
 message ApiGetLastClientIPAddressArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 }
 
 message ApiGetLastClientIPAddressResult {
@@ -214,55 +188,43 @@ message ApiGetLastClientIPAddressResult {
   }
 
   optional string ip = 1 [(sem_type) = {
-      description: "The ip the client used for the latest communication."
-    }];
-  optional string info = 2 [(sem_type) = {
-      description: "Additional info about the ip address."
-    }];
-  optional Status status = 3 [(sem_type) = {
-      description: "The status of the ip address."
-    }];
+    description: "The ip the client used for the latest communication."
+  }];
+  optional string info = 2
+      [(sem_type) = { description: "Additional info about the ip address." }];
+  optional Status status = 3
+      [(sem_type) = { description: "The status of the ip address." }];
 }
 
 message ApiListClientCrashesArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
-  optional int64 offset = 2 [(sem_type) = {
-      description: "Client crashes starting offset."
-    }];
-  optional int64 count = 3 [(sem_type) = {
-      description: "Max number of crashes to fetch."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional int64 offset = 2
+      [(sem_type) = { description: "Client crashes starting offset." }];
+  optional int64 count = 3
+      [(sem_type) = { description: "Max number of crashes to fetch." }];
   optional string filter = 4 [(sem_type) = {
-      description: "Return only results whose string representation "
-      "contains given substring."
-    }];
+    description: "Return only results whose string representation "
+                 "contains given substring."
+  }];
 }
 
 message ApiListClientCrashesResult {
-  repeated ClientCrash items = 1 [(sem_type) = {
-    description: "The client crashes"
-  }];
-  optional int64 total_count = 2 [(sem_type) = {
-    description: "Total count of items."
-  }];
+  repeated ClientCrash items = 1
+      [(sem_type) = { description: "The client crashes" }];
+  optional int64 total_count = 2
+      [(sem_type) = { description: "Total count of items." }];
 }
 
 message ApiAddClientsLabelsArgs {
-  repeated string client_ids = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  repeated string client_ids = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   repeated string labels = 2;
 }
 
 message ApiRemoveClientsLabelsArgs {
-  repeated string client_ids = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  repeated string client_ids = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   repeated string labels = 2;
 }
 
@@ -274,24 +236,21 @@ message ApiListKbFieldsResult {
   repeated string items = 2;
 }
 
-
 message ApiGetClientLoadStatsArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
 
   optional uint64 start = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Fetch client load stats data starting from this "
-      "timestamp. If not set, will default to 30 minutes ago."
-    }];
+    type: "RDFDatetime",
+    description: "Fetch client load stats data starting from this "
+                 "timestamp. If not set, will default to 30 minutes ago."
+  }];
   optional uint64 end = 3 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Fetch client load stats data from the interval "
-      "ending with this timestamp. If not set, will default to the current "
-      "time."
-    }];
+    type: "RDFDatetime",
+    description: "Fetch client load stats data from the interval "
+                 "ending with this timestamp. If not set, will default to the current "
+                 "time."
+  }];
 
   enum Metric {
     CPU_PERCENT = 0;
@@ -313,19 +272,16 @@ message ApiGetClientLoadStatsArgs {
   optional Metric metric = 5;
 }
 
-
 message ApiGetClientLoadStatsResult {
   repeated ApiStatsStoreMetricDataPoint data_points = 1;
 }
 
 message ApiListClientActionRequestsArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   optional bool fetch_responses = 2 [(sem_type) = {
-      description: "If true, fetch all the responses for every request."
-    }];
+    description: "If true, fetch all the responses for every request."
+  }];
 }
 
 message ApiListClientActionRequestsResult {

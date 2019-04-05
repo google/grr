@@ -99,8 +99,8 @@ class ApiHuntId(rdfvalue.RDFString):
       try:
         rdfvalue.SessionID.ValidateID(self._value)
       except ValueError as e:
-        raise ValueError(
-            "Invalid hunt id: %s (%s)" % (utils.SmartStr(self._value), e))
+        raise ValueError("Invalid hunt id: %s (%s)" %
+                         (utils.SmartStr(self._value), e))
 
   def ToURN(self):
     if not self._value:
@@ -249,7 +249,11 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.client_limit = hunt_obj.client_limit
     self.client_rate = hunt_obj.client_rate
     self.created = hunt_obj.create_time
-    self.expires = hunt_obj.expiry_time
+    # TODO: Migrate to durations instead of absolute timestamps.
+    if hunt_obj.init_start_time is not None:
+      self.expires = hunt_obj.init_start_time + hunt_obj.duration
+    else:
+      self.expires = hunt_obj.create_time + hunt_obj.duration
     self.creator = hunt_obj.creator
     self.description = hunt_obj.description
     self.is_robot = hunt_obj.creator in ["GRRWorker", "Cron"]
@@ -499,7 +503,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
                        "queries of death)")
 
     if args.created_by:
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         filters.append(
             functools.partial(self._CreatedByFilterRelational,
                               self._Username(args.created_by, token)))
@@ -509,7 +513,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
                               self._Username(args.created_by, token)))
 
     if args.description_contains:
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         filters.append(
             functools.partial(self._DescriptionContainsFilterRelational,
                               args.description_contains))
@@ -534,7 +538,6 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   def HandleNonFiltered(self, args, token):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
     children = list(fd.ListChildren())
-    total_count = len(children)
     children.sort(key=operator.attrgetter("age"), reverse=True)
     if args.count:
       children = children[args.offset:args.offset + args.count]
@@ -550,8 +553,9 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
 
       hunt_list.append(hunt_obj)
 
-    return ApiListHuntsResult(
-        total_count=total_count, items=self._BuildHuntList(hunt_list))
+    # Not returning "total_count". REL_DB implementation is not returning it,
+    # and legacy implementation have to conform.
+    return ApiListHuntsResult(items=self._BuildHuntList(hunt_list))
 
   def HandleFiltered(self, filter_func, args, token):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
@@ -611,33 +615,30 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       return self.HandleNonFiltered(args, token)
 
   def _HandleRelational(self, args, token=None):
-    hunt_objs = data_store.REL_DB.ReadAllHuntObjects()
+    if args.description_contains and not args.active_within:
+      raise ValueError("description_contains filter has to be "
+                       "used together with active_within filter")
 
-    # TODO(user): Add support for args.active_within filtering on the
-    # DB API level.
-    now = rdfvalue.RDFDatetime.Now()
+    kw_args = {}
+    if args.created_by:
+      kw_args["with_creator"] = self._Username(args.created_by, token)
+    if args.description_contains:
+      kw_args["with_description_match"] = args.description_contains
     if args.active_within:
-      hunt_objs = [
-          h for h in hunt_objs if now - h.create_time < args.active_within
-      ]
+      kw_args["created_after"] = rdfvalue.RDFDatetime.Now() - args.active_within
 
-    filter_func = self._BuildFilter(args, token)
-    if filter_func:
-      hunt_objs = [h for h in hunt_objs if filter_func(h)]
+    hunt_objs = data_store.REL_DB.ReadHuntObjects(args.offset, args.count or
+                                                  db.MAX_COUNT, **kw_args)
 
-    total_count = len(hunt_objs)
-    count = args.count or total_count
-
-    hunt_objs = sorted(
-        hunt_objs, reverse=True,
-        key=lambda h: h.create_time)[args.offset:args.offset + count]
-
+    # TODO(user): total_count is not returned by the current implementation.
+    # It's not clear, if it's needed - GRR UI doesn't show total number of
+    # available hunts anywhere. Adding it would require implementing
+    # an additional data_store.REL_DB.CountHuntObjects method.
     return ApiListHuntsResult(
-        total_count=total_count,
         items=[ApiHunt().InitFromHuntObject(h) for h in hunt_objs])
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -663,8 +664,8 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
 
       return ApiHunt().InitFromAff4Object(hunt_obj, with_full_summary=True)
     except aff4.InstantiationError:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
   def _HandleRelational(self, args, token=None):
     try:
@@ -675,11 +676,11 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
       return ApiHunt().InitFromHuntObject(
           hunt_obj, hunt_counters=hunt_counters, with_full_summary=True)
     except db.UnknownHuntError:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -708,8 +709,9 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   def _HandleLegacy(self, args, token=None):
     results_collection = implementation.GRRHunt.ResultCollectionForHID(
         args.hunt_id.ToURN())
-    items = api_call_handler_utils.FilterCollection(
-        results_collection, args.offset, args.count, args.filter)
+    items = api_call_handler_utils.FilterCollection(results_collection,
+                                                    args.offset, args.count,
+                                                    args.filter)
     wrapped_items = [ApiHuntResult().InitFromGrrMessage(item) for item in items]
 
     return ApiListHuntResultsResult(
@@ -729,7 +731,7 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
         total_count=total_count)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -776,7 +778,7 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
         items=[f.client_crash_info for f in flows], total_count=total_count)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -793,8 +795,8 @@ class ApiGetHuntResultsExportCommandResult(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiGetHuntResultsExportCommandResult
 
 
-class ApiGetHuntResultsExportCommandHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiGetHuntResultsExportCommandHandler(api_call_handler_base.ApiCallHandler
+                                           ):
   """Renders GRR export tool command line that exports hunt results."""
 
   args_type = ApiGetHuntResultsExportCommandArgs
@@ -888,7 +890,7 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListHuntOutputPluginsResult(items=result, total_count=len(result))
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -980,7 +982,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
         items=[l.ToOutputPluginBatchProcessingStatus() for l in logs])
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1000,8 +1002,8 @@ class ApiListHuntOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ApiListHuntOutputPluginLogsHandler(
-    ApiListHuntOutputPluginLogsHandlerBase):
+class ApiListHuntOutputPluginLogsHandler(ApiListHuntOutputPluginLogsHandlerBase
+                                        ):
   """Renders hunt's output plugin's log."""
 
   args_type = ApiListHuntOutputPluginLogsArgs
@@ -1069,8 +1071,9 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
     logs_collection = implementation.GRRHunt.LogCollectionForHID(
         args.hunt_id.ToURN())
 
-    result = api_call_handler_utils.FilterCollection(
-        logs_collection, args.offset, args.count, args.filter)
+    result = api_call_handler_utils.FilterCollection(logs_collection,
+                                                     args.offset, args.count,
+                                                     args.filter)
 
     return ApiListHuntLogsResult(
         items=[ApiHuntLog().InitFromFlowLog(x) for x in result],
@@ -1090,7 +1093,7 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
         total_count=total_count)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1121,8 +1124,9 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
     errors_collection = implementation.GRRHunt.ErrorCollectionForHID(
         args.hunt_id.ToURN())
 
-    result = api_call_handler_utils.FilterCollection(
-        errors_collection, args.offset, args.count, args.filter)
+    result = api_call_handler_utils.FilterCollection(errors_collection,
+                                                     args.offset, args.count,
+                                                     args.filter)
 
     return ApiListHuntErrorsResult(
         items=[ApiHuntError().InitFromHuntError(x) for x in result],
@@ -1160,7 +1164,7 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
         total_count=total_count)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1342,7 +1346,7 @@ class ApiGetHuntClientCompletionStatsHandler(
     return result
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1462,7 +1466,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
     results = implementation.GRRHunt.ResultCollectionForHID(
         args.hunt_id.ToURN())
 
-    if data_store.RelationalDBReadEnabled("filestore"):
+    if data_store.RelationalDBReadEnabled():
       path_type, components = rdf_objects.ParseCategorizedPath(args.vfs_path)
       expected_client_path = db.ClientPath(
           str(args.client_id), path_type, components)
@@ -1639,7 +1643,7 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetHuntStatsResult(stats=stats)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1711,7 +1715,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListHuntClientsResult(items=results, total_count=total_count)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1757,10 +1761,9 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
         session_id=rdfvalue.RDFURN("hunts").Add(h.hunt_id),
         create_time=h.create_time,
         creator=h.creator,
-        expires=h.expiry_time,
         network_bytes_sent=h_counters.total_network_bytes_sent,
-        next_client_due=h.start_time,
-        start_time=h.start_time,
+        next_client_due=h.last_start_time,
+        start_time=h.last_start_time,
         # TODO(user): implement proper hunt client resources starts support
         # for REL_DB hunts.
         # usage_stats=h.client_resources_stats,
@@ -1768,6 +1771,9 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
         results_count=h_counters.num_results,
         completed_clients_count=h_counters.num_successful_clients +
         h_counters.num_failed_clients)
+    if h.init_start_time is not None:
+      # TODO: Use durations instead of absolute timestamps.
+      context.expires = h.init_start_time + h.duration
     return ApiGetHuntContextResult(
         context=context, state=api_call_handler_utils.ApiDataObject())
 
@@ -1796,7 +1802,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
       return ApiGetHuntContextResult(state=context)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1886,7 +1892,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
         avg_cpu_seconds_per_client_limit=hra.avg_cpu_seconds_per_client_limit,
         avg_network_bytes_per_client_limit=hra
         .avg_network_bytes_per_client_limit,
-        expiry_time=rdfvalue.RDFDatetime.Now() + hra.expiry_time,
+        duration=hra.expiry_time,
         client_rate=hra.client_rate,
         per_client_cpu_limit=hra.per_client_cpu_limit,
         per_client_network_bytes_limit=hra.per_client_network_limit_bytes,
@@ -1904,7 +1910,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1930,8 +1936,8 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
       hunt_obj = aff4.FACTORY.Open(
           hunt_urn, aff4_type=implementation.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
     current_state = hunt_obj.Get(hunt_obj.Schema.STATE)
     hunt_changes = []
@@ -1948,8 +1954,8 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
       runner.runner_args.client_rate = args.client_rate
 
     if args.HasField("expires"):
-      hunt_changes.append(
-          "Expires: Old=%s, New=%s" % (runner.context.expires, args.expires))
+      hunt_changes.append("Expires: Old=%s, New=%s" %
+                          (runner.context.expires, args.expires))
       runner.context.expires = args.expires
 
     if hunt_changes and current_state != "PAUSED":
@@ -2018,14 +2024,18 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
         if args.HasField("client_rate"):
           kw_args["client_rate"] = args.client_rate
 
+        # TODO: Use durations instead of absolute timestamps.
         if args.HasField("expires"):
-          kw_args["expiry_time"] = args.expires
+          if hunt_obj.init_start_time is not None:
+            kw_args["duration"] = args.expires - hunt_obj.init_start_time
+          else:
+            kw_args["duration"] = args.expires - hunt_obj.create_time
 
         data_store.REL_DB.UpdateHuntObject(hunt_id, **kw_args)
         hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     except db.UnknownHuntError:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
     if args.HasField("state"):
       if args.state == ApiHunt.State.STARTED:
@@ -2052,7 +2062,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
         hunt_obj, hunt_counters=hunt_counters, with_full_summary=True)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -2101,8 +2111,8 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
 
     except aff4.InstantiationError:
       # Raise standard NotFoundError if the hunt object can't be opened.
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
   def _HandleRelational(self, args, token=None):
     try:
@@ -2115,11 +2125,11 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
 
       data_store.REL_DB.DeleteHuntObject(h.hunt_id)
     except db.UnknownHuntError:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -2146,8 +2156,8 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
       aff4.FACTORY.Open(
           hunt_urn, aff4_type=implementation.GRRHunt, mode="rw", token=token)
     except aff4.InstantiationError:
-      raise HuntNotFoundError(
-          "Hunt with id %s could not be found" % args.hunt_id)
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
 
     output_collection = implementation.GRRHunt.TypedResultCollectionForHID(
         hunt_urn)
@@ -2184,7 +2194,7 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
         plugin.output_file_name, content_generator=content_generator)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)

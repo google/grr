@@ -5,11 +5,16 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import test_lib
 
 
 def _SetTimestampNone(entries):
   for entry in entries:
     entry.timestamp = None
+
+
+def _Date(date, time="00:00:00"):
+  return rdfvalue.RDFDatetime.FromHumanReadable("{} {}".format(date, time))
 
 
 class DatabaseEventsTestMixin(object):
@@ -43,6 +48,17 @@ class DatabaseEventsTestMixin(object):
     _SetTimestampNone(entries)
 
     self.assertCountEqual(entries, [entry])
+
+  def testWriteEntriesWithMicrosecondDifference(self):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(1)):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user2"))
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(2)):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+
+    entries = self.db.ReadAPIAuditEntries()
+    self.assertLen(entries, 3)
 
   def testReadEntries(self):
     entry1 = self._MakeEntry()
@@ -116,6 +132,52 @@ class DatabaseEventsTestMixin(object):
         min_timestamp=timestamps[1], max_timestamp=timestamps[1])
     self.assertEqual([e.response_code for e in entries], ["ERROR"])
 
+  def testCountEntries(self):
+    day = _Date("2019-02-02")
+
+    with test_lib.FakeTime(_Date("2019-02-02", "00:00:00")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user2"))
+
+    self.assertEqual({
+        ("user1", day): 1,
+        ("user2", day): 1
+    }, self.db.CountAPIAuditEntriesByUserAndDay())
+
+    with test_lib.FakeTime(_Date("2019-02-02", "23:59:59")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+
+    self.assertEqual({
+        ("user1", day): 2,
+        ("user2", day): 1
+    }, self.db.CountAPIAuditEntriesByUserAndDay())
+
+  def testCountEntriesFilteredByTimestamp(self):
+    with test_lib.FakeTime(_Date("2019-02-01")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user"))
+
+    with test_lib.FakeTime(_Date("2019-02-02", "00:12:00")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user2"))
+
+    with test_lib.FakeTime(_Date("2019-02-02", "00:12:01")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+
+    with test_lib.FakeTime(_Date("2019-02-03")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+
+    with test_lib.FakeTime(_Date("2019-02-04")):
+      self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
+
+    counts = self.db.CountAPIAuditEntriesByUserAndDay(
+        min_timestamp=_Date("2019-02-02"),
+        max_timestamp=_Date("2019-02-03", "23:59:59"))
+    self.assertEqual({
+        ("user1", _Date("2019-02-02")): 2,
+        ("user2", _Date("2019-02-02")): 1,
+        ("user1", _Date("2019-02-03")): 1,
+    }, counts)
+
   def testDeleteUsersRetainsApiAuditEntries(self):
     entry = self._MakeEntry(username="foo")
     self.db.WriteAPIAuditEntry(entry)
@@ -123,3 +185,6 @@ class DatabaseEventsTestMixin(object):
     entries = self.db.ReadAPIAuditEntries(username="foo")
     self.assertLen(entries, 1)
     self.assertEqual(entries[0].username, "foo")
+
+
+# This file is a test library and thus does not require a __main__ block.

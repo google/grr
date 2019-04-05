@@ -117,7 +117,7 @@ class GRRWorker(object):
         if master.MASTER_WATCHER.IsMaster():
           processed = self.RunOnce()
           if not was_master:
-            if data_store.RelationalDBReadEnabled(category="message_handlers"):
+            if data_store.RelationalDBReadEnabled():
               data_store.REL_DB.RegisterMessageHandler(
                   self._ProcessMessageHandlerRequests,
                   self.well_known_flow_lease_time,
@@ -149,8 +149,8 @@ class GRRWorker(object):
 
   def _ProcessMessageHandlerRequests(self, requests):
     """Processes message handler requests."""
-    logging.debug("Leased message handler request ids: %s", ",".join(
-        str(r.request_id) for r in requests))
+    logging.debug("Leased message handler request ids: %s",
+                  ",".join(str(r.request_id) for r in requests))
     grouped_requests = collection.Group(requests, lambda r: r.handler_name)
     for handler_name, requests_for_handler in iteritems(grouped_requests):
       handler_cls = handler_registry.handler_name_map.get(handler_name)
@@ -169,8 +169,8 @@ class GRRWorker(object):
         logging.exception("Exception while processing message handler %s: %s",
                           handler_name, e)
 
-    logging.debug("Deleting message handler request ids: %s", ",".join(
-        str(r.request_id) for r in requests))
+    logging.debug("Deleting message handler request ids: %s",
+                  ",".join(str(r.request_id) for r in requests))
     data_store.REL_DB.DeleteMessageHandlerRequests(requests)
 
   def RunOnce(self):
@@ -396,7 +396,7 @@ class GRRWorker(object):
           "worker_session_errors", fields=[str(type(e))])
       queue_manager.DeleteNotification(session_id)
 
-  def _ReturnProcessedFlow(self, flow_obj):
+  def _ReleaseProcessedFlow(self, flow_obj):
     rdf_flow = flow_obj.rdf_flow
     if rdf_flow.processing_deadline < rdfvalue.RDFDatetime.Now():
       raise flow.FlowError(
@@ -405,7 +405,7 @@ class GRRWorker(object):
 
     flow_obj.FlushQueuedMessages()
 
-    return data_store.REL_DB.ReturnProcessedFlow(rdf_flow)
+    return data_store.REL_DB.ReleaseProcessedFlow(rdf_flow)
 
   def ProcessFlow(self, flow_processing_request):
     """The callback for the flow processing queue."""
@@ -418,7 +418,7 @@ class GRRWorker(object):
     data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
 
     try:
-      rdf_flow = data_store.REL_DB.ReadFlowForProcessing(
+      rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
           client_id, flow_id, processing_time=rdfvalue.Duration("6h"))
     except db.ParentHuntIsNotRunningError:
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
@@ -438,10 +438,10 @@ class GRRWorker(object):
           "Unable to process any requests for flow %s on client %s." %
           (flow_id, client_id))
 
-    while not self._ReturnProcessedFlow(flow_obj):
+    while not self._ReleaseProcessedFlow(flow_obj):
       processed = flow_obj.ProcessAllReadyRequests()
       if processed == 0:
         raise ValueError(
-            "%s/%s: ReturnProcessedFlow returned false but no "
+            "%s/%s: ReleaseProcessedFlow returned false but no "
             "request could be processed (next req: %d)." %
             (client_id, flow_id, flow_obj.rdf_flow.next_request_to_process))

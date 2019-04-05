@@ -1,0 +1,74 @@
+# RPM spec file for a Fleetspeak-enabled GRR client.
+Name: %(Client.name)
+Version: %(Template.version_major).%(Template.version_minor).%(Template.version_revision).%(Template.version_release)
+Release: 1
+Summary: %(Client.name) Rapid Response Client
+Group: Applications/System
+License: APL2
+Source: \%{name}-\%{version}.tar.gz
+URL: https://github.com/google/grr
+AutoReqProv: no
+
+# Disable binary stripping or pyinstaller files won't work.
+%global __os_install_post \%{nil}
+
+# Macro that restarts the Fleetspeak service. Note that Fleetspeak only
+# supports RHEL 6 and above [hence we only use Upstart and Systemd
+# commands to restart Fleetspeak].
+%global restart_fleetspeak \
+if [ -x /bin/systemctl ]; then \
+  /bin/systemctl restart %(Client.fleetspeak_service_name) >/dev/null 2>&1 || true \
+elif [ -x /sbin/initctl ]; then \
+  /sbin/initctl restart %(Client.fleetspeak_service_name) >/dev/null 2>&1 || true \
+fi
+
+%description
+%(Client.name) Rapid Response Client
+
+%prep
+
+%build
+
+%install
+cp -R \%{_builddir}/* \%{buildroot}
+DIR="\%{buildroot}%(ClientBuilder.daemon_link)"
+mkdir -p "$\(dirname ${DIR}\)"
+ln -s %(ClientBuilder.target_dir)/%(Client.binary_name) \%{buildroot}%(ClientBuilder.daemon_link)
+
+%clean
+
+%pre
+# Disable the legacy [non-Fleetspeak] GRR service if it exists.
+if [ -x /bin/systemctl ]; then
+  /bin/systemctl stop %(Client.name) >/dev/null 2>&1 || true
+  /bin/systemctl disable %(Client.name) >/dev/null 2>&1 || true
+elif [ -x "/etc/init.d/%(Client.name)" ]; then
+  /etc/init.d/%(Client.name) stop >/dev/null 2>&1 || true
+  /sbin/chkconfig %(Client.name) off >/dev/null 2>&1 || true
+  /sbin/chkconfig --del %(Client.name) >/dev/null 2>&1 || true
+fi
+
+%post
+%restart_fleetspeak
+
+%postun
+# The first argument to preun and postun is 0 when the package is
+# being uninstalled.
+if [ "$1" -eq 0 ]; then
+  # Restart Fleetspeak after uninstalling GRR.
+  %restart_fleetspeak
+fi
+# Delete service config files for any legacy GRR installation if
+# present.
+rm -f "/etc/init.d/%(Client.name)" || true
+rm -f "/usr/lib/systemd/system/%(Client.name).service" || true
+
+%files
+\%attr\(755,root,root\) %(ClientBuilder.target_dir)
+\%attr\(755,root,root\) %(ClientBuilder.daemon_link)
+\%attr\(755,root,root\) %(ClientBuilder.fleetspeak_service_dir)/%(Client.fleetspeak_unsigned_config_fname)
+\%attr\(444,root,root\) /etc/prelink.conf.d/%(Client.name).conf
+
+%changelog
+* %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)
+- New version, %(Template.version_major).%(Template.version_minor).%(Template.version_revision).%(Template.version_release)

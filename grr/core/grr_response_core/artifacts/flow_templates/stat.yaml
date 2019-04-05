@@ -1,9 +1,9 @@
 # This file contains miscellaneous artifacts that collect only the stat of
-# files/folder. This cannot be in ForensicArtifact repo as it uses LIST_FILES
+# files/folder.
 name: RootEnvPath
 doc: Collect stat on files in root's $PATH.
 sources:
-- type: LIST_FILES
+- type: DIRECTORY
   attributes:
     paths:
       - '/usr/local/sbin/*'
@@ -19,7 +19,7 @@ name: RootEnvPathDirs
 doc: "Collect stat on directories (including parents) containing the files in
       root's $PATH."
 sources:
-- type: LIST_FILES
+- type: DIRECTORY
   attributes:
     paths:
       - '/usr/local/sbin'
@@ -37,7 +37,7 @@ supported_os: [Linux]
 name: LinuxLogFiles
 doc: Collect stat of all linux log files/folders
 sources:
-- type: LIST_FILES
+- type: DIRECTORY
   attributes:
     paths:
       - '/var/log'
@@ -48,7 +48,7 @@ supported_os: [Linux]
 name: UserHomeDirs
 doc: Collect stat on users' home directories
 sources:
-- type: LIST_FILES
+- type: DIRECTORY
   attributes:
     paths:
       - '%%users.homedir%%'
@@ -59,7 +59,7 @@ supported_os: [Linux]
 name: UserDotFiles
 doc: Collect stat on dot files in users' home directories
 sources:
-- type: LIST_FILES
+- type: DIRECTORY
   attributes:
     paths:
       - '%%users.homedir%%/.*'

@@ -185,12 +185,13 @@ config_lib.DEFINE_integer(
 # the windows nanny code (grr/client/nanny/windows_nanny.h).
 config_lib.DEFINE_string(
     "Nanny.child_binary",
-    r"%(Client.install_path)\\%(Client.binary_name)",
+    default=r"%(Client.install_path)\\%(Client.binary_name)",
     help="The location to the client binary.")
 
 config_lib.DEFINE_string(
-    "Nanny.child_command_line", r"%(child_binary) --config "
-    r"\"%(Client.install_path)\\%(Client.binary_name).yaml\"",
+    "Nanny.child_command_line",
+    default=(r"%(child_binary) "
+             r'--config "%(Client.install_path)\\%(Client.binary_name).yaml"'),
     help="The command line to launch the client binary.")
 
 config_lib.DEFINE_string("Client.transaction_log_file",
@@ -237,7 +238,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "Client.fleetspeak_unsigned_services_regkey",
-    "HKEY_LOCAL_MACHINE\\Software\\Fleetspeak\\textservices",
+    "HKEY_LOCAL_MACHINE\\Software\\FleetspeakClient\\textservices",
     "Registry key (on Windows) where Fleetspeak expects services "
     "to write their unsigned configs to.")
 

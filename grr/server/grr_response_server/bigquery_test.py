@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import json
 import os
 import tempfile
 import time
@@ -16,6 +15,7 @@ import mock
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import json
 from grr_response_server import bigquery
 from grr.test_lib import test_lib
 
@@ -33,10 +33,10 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
         service_account_json=self.SERVICE_ACCOUNT_JSON,
         project_id=self.PROJECT_ID)
 
-    schema_data = json.load(
-        open(
-            os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                         "ExportedFile.schema"), "rb"))
+    schema_path = os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
+                               "ExportedFile.schema")
+    schema_data = json.ReadFromPath(schema_path)
+
     data_fd = open(
         os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
                      "ExportedFile.json.gz"), "rb")

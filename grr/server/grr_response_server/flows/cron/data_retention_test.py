@@ -188,10 +188,10 @@ class CleanCronJobsFlowTest(flow_test_lib.FlowTestsBaseclass):
     for i in range(self.NUM_CRON_RUNS):
       with test_lib.FakeTime(40 + 60 * i):
         manager.RunOnce(token=self.token)
-        if data_store.RelationalDBReadEnabled(category="cronjobs"):
+        if data_store.RelationalDBReadEnabled():
           manager._GetThreadPool().Join()
 
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+    if data_store.RelationalDBReadEnabled():
       manager._GetThreadPool().Stop()
 
   def _RunCleanup(self):

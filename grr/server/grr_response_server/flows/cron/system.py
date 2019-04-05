@@ -96,8 +96,8 @@ class _ActiveCounter(object):
       for label in self.categories[active_time]:
         graphs_for_label = graph_series_by_label.setdefault(
             label, rdf_stats.ClientGraphSeries(report_type=self._report_type))
-        graph = rdf_stats.Graph(
-            title="%s day actives for %s label" % (active_time, label))
+        graph = rdf_stats.Graph(title="%s day actives for %s label" %
+                                (active_time, label))
         for k, v in sorted(iteritems(self.categories[active_time][label])):
           graph.Append(label=k, y_value=v)
         graphs_for_label.graphs.Append(graph)
@@ -555,16 +555,16 @@ class InterrogationHuntMixin(object):
     flow_args = flows_discovery.InterrogateArgs(lightweight=False)
     description = "Interrogate run by cron to keep host info fresh."
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt_id = hunt.CreateAndStartHunt(
           flow_name,
           flow_args,
           self.token.username,
           client_limit=0,
           client_rate=50,
-          crash_limit=500,
+          crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],
           description=description,
-          expiry_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1w"),
+          duration=rdfvalue.Duration("1w"),
           output_plugins=self.GetOutputPlugins())
       self.Log("Started hunt %s.", hunt_id)
     else:
@@ -574,7 +574,7 @@ class InterrogationHuntMixin(object):
           flow_runner_args=rdf_flow_runner.FlowRunnerArgs(flow_name=flow_name),
           flow_args=flow_args,
           output_plugins=self.GetOutputPlugins(),
-          crash_limit=500,
+          crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],
           client_rate=50,
           expiry_time=rdfvalue.Duration("1w"),
           description=description,

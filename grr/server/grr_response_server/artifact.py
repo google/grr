@@ -254,9 +254,9 @@ class KnowledgeBaseInitializationFlowMixin(object):
           raise flow.FlowError(
               "KnowledgeBase initialization failed as the "
               "following artifacts had dependencies that could"
-              " not be fulfilled %s. Missing: %s" % ([
-                  utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts
-              ], missing_deps))
+              " not be fulfilled %s. Missing: %s" %
+              ([utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts],
+               missing_deps))
         else:
           self.Log("Storing incomplete KnowledgeBase. The following artifacts "
                    "had dependencies that could not be fulfilled %s. "
@@ -433,8 +433,7 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   if has_single_file_parsers or has_multi_file_parsers:
     precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
     pathspecs = [response.pathspec for response in responses]
-    if (data_store.RelationalDBReadEnabled("vfs") and
-        data_store.RelationalDBReadEnabled("filestore")):
+    if data_store.RelationalDBReadEnabled():
       # TODO(amoser): This is not super efficient, AFF4 provided an api to open
       # all pathspecs at the same time, investigate if optimizing this is worth
       # it.

@@ -355,6 +355,68 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertEqual(buffer_ref.data[bytes_before:bytes_before + len(needle)],
                        needle)
 
+  def testContentMatchIgnoreDirsWildcard(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      os.makedirs(os.path.join(temp_dirpath, "foo"))
+      os.makedirs(os.path.join(temp_dirpath, "bar"))
+
+      with io.open(os.path.join(temp_dirpath, "quux"), "wb") as filedesc:
+        filedesc.write(b"quuxfoobar")
+
+      with io.open(os.path.join(temp_dirpath, "norf"), "wb") as filedesc:
+        filedesc.write(b"norfbarbaz")
+
+      with io.open(os.path.join(temp_dirpath, "thud"), "wb") as filedesc:
+        filedesc.write(b"thudfoobaz")
+
+      condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+          literal=b"fooba")
+
+      results = self._RunFileFinder(
+          paths=[os.path.join(temp_dirpath, "*")],
+          action=rdf_file_finder.FileFinderAction.Stat(),
+          conditions=[condition])
+
+      result_paths = [result.stat_entry.pathspec.path for result in results]
+      self.assertItemsEqual(result_paths, [
+          os.path.join(temp_dirpath, "quux"),
+          os.path.join(temp_dirpath, "thud"),
+      ])
+
+  def testContentMatchIgnoreDirsRecursive(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      os.makedirs(os.path.join(temp_dirpath, "foo", "bar"))
+      os.makedirs(os.path.join(temp_dirpath, "foo", "baz"))
+
+      os.makedirs(os.path.join(temp_dirpath, "foo", "bar", "quux"))
+      os.makedirs(os.path.join(temp_dirpath, "foo", "bar", "thud"))
+
+      norf_path = os.path.join(temp_dirpath, "foo", "bar", "norf")
+      with io.open(norf_path, "wb") as filedesc:
+        filedesc.write(b"123")
+
+      blargh_path = os.path.join(temp_dirpath, "foo", "bar", "blargh")
+      with io.open(blargh_path, "wb") as filedesc:
+        filedesc.write(b"abc")
+
+      ztesch_path = os.path.join(temp_dirpath, "foo", "bar", "ztesch")
+      with io.open(ztesch_path, "wb") as filedesc:
+        filedesc.write(b"456")
+
+      condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
+          regex=b"\\d+")
+
+      results = self._RunFileFinder(
+          paths=[os.path.join(temp_dirpath, "**", "*")],
+          action=rdf_file_finder.FileFinderAction.Stat(),
+          conditions=[condition])
+
+      result_paths = [result.stat_entry.pathspec.path for result in results]
+      self.assertItemsEqual(result_paths, [
+          os.path.join(temp_dirpath, "foo", "bar", "norf"),
+          os.path.join(temp_dirpath, "foo", "bar", "ztesch"),
+      ])
+
   def testHashAction(self):
     paths = [os.path.join(self.base_path, "hello.exe")]
 

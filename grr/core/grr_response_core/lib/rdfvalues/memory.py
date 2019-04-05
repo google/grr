@@ -26,8 +26,8 @@ class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
   rdf_deps = [YaraSignature]
 
 
-class YaraProcessError(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.YaraProcessError
+class ProcessMemoryError(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ProcessMemoryError
   rdf_deps = [rdf_client.Process]
 
 
@@ -72,7 +72,7 @@ class YaraProcessScanMiss(rdf_structs.RDFProtoStruct):
 
 class YaraProcessScanResponse(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessScanResponse
-  rdf_deps = [YaraProcessScanMatch, YaraProcessScanMiss, YaraProcessError]
+  rdf_deps = [YaraProcessScanMatch, YaraProcessScanMiss, ProcessMemoryError]
 
 
 class YaraProcessDumpArgs(rdf_structs.RDFProtoStruct):
@@ -87,4 +87,4 @@ class YaraProcessDumpInformation(rdf_structs.RDFProtoStruct):
 
 class YaraProcessDumpResponse(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessDumpResponse
-  rdf_deps = [YaraProcessDumpInformation, YaraProcessError]
+  rdf_deps = [YaraProcessDumpInformation, ProcessMemoryError]

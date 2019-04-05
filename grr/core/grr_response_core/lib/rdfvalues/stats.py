@@ -168,6 +168,16 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
 
     self.lock = threading.RLock()
 
+  def __getstate__(self):
+    # We can't pickle the lock.
+    res = self.__dict__.copy()
+    del res["lock"]
+    return res
+
+  def __setstate__(self, state):
+    self.__dict__ = state
+    self.lock = threading.RLock()
+
   @utils.Synchronized
   def RegisterResources(self, client_resources):
     """Update stats with info about resources consumed by a single client."""

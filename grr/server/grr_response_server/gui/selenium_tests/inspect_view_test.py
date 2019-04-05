@@ -35,19 +35,19 @@ class TestClientLoadView(TestInspectViewBase):
     self.client_id = self.SetupClient(0).Basename()
 
   def CreateLeasedClientRequest(self, client_id=None, token=None):
-    if data_store.AFF4Enabled():
+    if data_store.RelationalDBReadEnabled():
+      flow.StartFlow(
+          client_id=client_id.Basename(), flow_cls=processes.ListProcesses)
+      client_messages = data_store.REL_DB.LeaseClientMessages(
+          client_id.Basename(), lease_time=rdfvalue.Duration("10000s"))
+      self.assertNotEmpty(client_messages)
+    else:
       flow.StartAFF4Flow(
           client_id=client_id,
           flow_name=processes.ListProcesses.__name__,
           token=token)
       with queue_manager.QueueManager(token=token) as manager:
         manager.QueryAndOwn(client_id.Queue(), limit=1, lease_seconds=10000)
-    else:
-      flow.StartFlow(
-          client_id=client_id.Basename(), flow_cls=processes.ListProcesses)
-      client_messages = data_store.REL_DB.LeaseClientMessages(
-          client_id.Basename(), lease_time=rdfvalue.Duration("10000s"))
-      self.assertNotEmpty(client_messages)
 
   def testNoClientActionIsDisplayed(self):
     self.RequestAndGrantClientApproval(self.client_id)

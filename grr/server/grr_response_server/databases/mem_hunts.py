@@ -34,7 +34,7 @@ class InMemoryDBHuntMixin(object):
     self.hunts[(hunt_obj.hunt_id)] = clone
 
   @utils.Synchronized
-  def UpdateHuntObject(self, hunt_id, **kwargs):
+  def UpdateHuntObject(self, hunt_id, start_time=None, **kwargs):
     """Updates the hunt object by applying the update function."""
     hunt_obj = self.ReadHuntObject(hunt_id)
 
@@ -50,6 +50,10 @@ class InMemoryDBHuntMixin(object):
         setattr(hunt_obj, key, current_value + v)
       else:
         setattr(hunt_obj, k, v)
+
+    if start_time is not None:
+      hunt_obj.init_start_time = hunt_obj.init_start_time or start_time
+      hunt_obj.last_start_time = start_time
 
     self.WriteHuntObject(hunt_obj)
 
@@ -110,9 +114,26 @@ class InMemoryDBHuntMixin(object):
       raise db.UnknownHuntError(hunt_id)
 
   @utils.Synchronized
-  def ReadAllHuntObjects(self):
+  def ReadHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None):
     """Reads all hunt objects from the database."""
-    return [self._DeepCopy(h) for h in self.hunts.values()]
+    filter_fns = []
+    if with_creator is not None:
+      filter_fns.append(lambda h: h.creator == with_creator)
+    if created_after is not None:
+      filter_fns.append(lambda h: h.create_time > created_after)
+    if with_description_match is not None:
+      filter_fns.append(lambda h: with_description_match in h.description)
+    filter_fn = lambda h: all(f(h) for f in filter_fns)
+
+    result = [self._DeepCopy(h) for h in self.hunts.values() if filter_fn(h)]
+    return sorted(
+        result, key=lambda h: h.create_time,
+        reverse=True)[offset:offset + (count or db.MAX_COUNT)]
 
   @utils.Synchronized
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):

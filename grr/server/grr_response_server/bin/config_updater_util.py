@@ -33,18 +33,14 @@ from typing import Optional, Text
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
-from grr_api_client import api
 from grr_api_client import errors as api_errors
 from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_server import access_control
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
-from grr_response_server import signed_binary_utils
-from grr_response_server.bin import api_shell_raw_access_lib
 from grr_response_server.bin import config_updater_keys_util
 from grr_response_server.gui.api_plugins import user as api_user
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 try:
   # Importing readline enables the raw_input calls to have history etc.
@@ -61,9 +57,6 @@ _MYSQL_RETRY_WAIT_SECS = 2
 
 # Python hacks or executables larger than this limit will not be uploaded.
 _MAX_SIGNED_BINARY_BYTES = 100 << 20  # 100 MiB
-
-# Batch size to use when fetching multiple items from the GRR API.
-_GRR_API_PAGE_SIZE = 1000
 
 
 class ConfigInitError(Exception):
@@ -135,8 +128,8 @@ def RetryQuestion(question_text, output_re="", default_val=None):
 
 def RetryBoolQuestion(question_text, default_bool):
   if not isinstance(default_bool, bool):
-    raise ValueError(
-        "default_bool should be a boolean, not %s" % type(default_bool))
+    raise ValueError("default_bool should be a boolean, not %s" %
+                     type(default_bool))
   default_val = "Y" if default_bool else "N"
   prompt_suff = "[Yn]" if default_bool else "[yN]"
   return RetryQuestion("%s %s: " % (question_text, prompt_suff), "[yY]|[nN]",
@@ -247,8 +240,8 @@ def CheckMySQLConnection(db_options):
         return False  # No need for retry.
       else:
         print("Unexpected operational error encountered while trying to "
-              "connect to MySQL. %d attempts left: %s" % (tries_left,
-                                                          mysql_op_error))
+              "connect to MySQL. %d attempts left: %s" %
+              (tries_left, mysql_op_error))
     except MySQLdb.Error as mysql_error:
       print("Unexpected error encountered while trying to connect to MySQL. "
             "%d attempts left: %s" % (tries_left, mysql_error))
@@ -369,8 +362,8 @@ def ConfigureUrls(config, external_hostname = None):
       existing_frontend_urns = []
       for existing_control_urn in existing_control_urns:
         if not existing_control_urn.endswith("control"):
-          raise RuntimeError(
-              "Invalid existing control URL: %s" % existing_control_urn)
+          raise RuntimeError("Invalid existing control URL: %s" %
+                             existing_control_urn)
 
         existing_frontend_urns.append(
             existing_control_urn.rsplit("/", 1)[0] + "/")
@@ -612,10 +605,10 @@ def InitializeNoPrompt(config=None,
   config_dict["AdminUI.url"] = "http://%s:%s" % (external_hostname,
                                                  config["AdminUI.port"])
   config_dict["Logging.domain"] = external_hostname
-  config_dict["Monitoring.alert_email"] = (
-      "grr-monitoring@%s" % external_hostname)
-  config_dict["Monitoring.emergency_access_email"] = (
-      "grr-emergency@%s" % external_hostname)
+  config_dict["Monitoring.alert_email"] = ("grr-monitoring@%s" %
+                                           external_hostname)
+  config_dict["Monitoring.emergency_access_email"] = ("grr-emergency@%s" %
+                                                      external_hostname)
   # Print all configuration options, except for the MySQL password.
   print("Setting configuration as:\n\n%s" % config_dict)
   config_dict["Mysql.database_password"] = mysql_password
@@ -652,8 +645,7 @@ def GetToken():
 def UploadSignedBinary(source_path,
                        binary_type,
                        platform,
-                       upload_subdirectory="",
-                       token=None):
+                       upload_subdirectory=""):
   """Signs a binary and uploads it to the datastore.
 
   Args:
@@ -663,35 +655,40 @@ def UploadSignedBinary(source_path,
     upload_subdirectory: Path of a subdirectory to upload the binary to,
       relative to the canonical path for binaries of the given type and
       platform.
-    token: ACL token to use for uploading.
 
   Raises:
     BinaryTooLargeError: If the binary to upload is too large.
   """
-  if binary_type == rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK:
-    root_urn = signed_binary_utils.GetAFF4PythonHackRoot()
-  elif binary_type == rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE:
-    root_urn = signed_binary_utils.GetAFF4ExecutablesRoot()
-  else:
-    raise ValueError("Unknown binary type %s." % binary_type)
   file_size = os.path.getsize(source_path)
   if file_size > _MAX_SIGNED_BINARY_BYTES:
     raise BinaryTooLargeError(
         "File [%s] is of size %d (bytes), which exceeds the allowed maximum "
         "of %d bytes." % (source_path, file_size, _MAX_SIGNED_BINARY_BYTES))
-  binary_urn = root_urn.Add(platform.lower()).Add(upload_subdirectory).Add(
-      os.path.basename(source_path))
+
   context = ["Platform:%s" % platform.title(), "Client Context"]
-  with open(source_path, "rb") as f:
-    file_content = f.read()
-  maintenance_utils.UploadSignedConfigBlob(
-      file_content, aff4_path=binary_urn, client_context=context, token=token)
-  print("Uploaded to %s" % binary_urn)
+  signing_key = grr_config.CONFIG.Get(
+      "PrivateKeys.executable_signing_private_key", context=context)
+
+  root_api = maintenance_utils.InitGRRRootAPI()
+  binary_path = "/".join([
+      platform.lower(),
+      upload_subdirectory,
+      os.path.basename(source_path),
+  ])
+  binary = root_api.GrrBinary(binary_type, binary_path)
+
+  with open(source_path, "rb") as fd:
+    binary.Upload(
+        fd,
+        sign_fn=binary.DefaultUploadSigner(
+            private_key=signing_key.GetRawPrivateKey()))
+
+  print("Uploaded %s to %s" % (binary_type, binary_path))
 
 
 def CreateUser(username, password=None, is_admin=False):
   """Creates a new GRR user."""
-  grr_api = _CreateInProcessRootGRRAPI()
+  grr_api = maintenance_utils.InitGRRRootAPI()
   try:
     user_exists = grr_api.GrrUser(username).Get() is not None
   except api_errors.ResourceNotFoundError:
@@ -708,14 +705,14 @@ def UpdateUser(username, password=None, is_admin=False):
   """Updates the password or privilege-level for a user."""
   user_type, password = _GetUserTypeAndPassword(
       username, password=password, is_admin=is_admin)
-  grr_api = _CreateInProcessRootGRRAPI()
+  grr_api = maintenance_utils.InitGRRRootAPI()
   grr_user = grr_api.GrrUser(username).Get()
   grr_user.Modify(user_type=user_type, password=password)
 
 
 def GetUserSummary(username):
   """Returns a string with summary info for a user."""
-  grr_api = _CreateInProcessRootGRRAPI()
+  grr_api = maintenance_utils.InitGRRRootAPI()
   try:
     return _Summarize(grr_api.GrrUser(username).Get().data)
   except api_errors.ResourceNotFoundError:
@@ -724,7 +721,7 @@ def GetUserSummary(username):
 
 def GetAllUserSummaries():
   """Returns a string containing summary info for all GRR users."""
-  grr_api = _CreateInProcessRootGRRAPI()
+  grr_api = maintenance_utils.InitGRRRootAPI()
   user_wrappers = sorted(grr_api.ListGrrUsers(), key=lambda x: x.username)
   summaries = [_Summarize(w.data) for w in user_wrappers]
   return "\n\n".join(summaries)
@@ -739,17 +736,11 @@ def _Summarize(user_info):
 
 def DeleteUser(username):
   """Deletes a GRR user from the datastore."""
-  grr_api = _CreateInProcessRootGRRAPI()
+  grr_api = maintenance_utils.InitGRRRootAPI()
   try:
     grr_api.GrrUser(username).Get().Delete()
   except api_errors.ResourceNotFoundError:
     raise UserNotFoundError(username)
-
-
-def _CreateInProcessRootGRRAPI():
-  return api.GrrApi(
-      connector=api_shell_raw_access_lib.RawConnector(
-          token=GetToken(), page_size=_GRR_API_PAGE_SIZE)).root
 
 
 def _GetUserTypeAndPassword(username, password=None, is_admin=False):
@@ -768,7 +759,7 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
   if password is None:
     # TODO
     # pytype: disable=wrong-arg-types
-    password = getpass.getpass(
-        prompt="Please enter password for user '%s':" % username)
+    password = getpass.getpass(prompt="Please enter password for user '%s':" %
+                               username)
     # pytype: enable=wrong-arg-types
   return user_type, password

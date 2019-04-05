@@ -147,8 +147,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
           python_hack_path,
           rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
           "linux",
-          upload_subdirectory="test",
-          token=self.token)
+          upload_subdirectory="test")
       python_hack_urn = rdfvalue.RDFURN(
           "aff4:/config/python_hacks/linux/test/hello_world.py")
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
@@ -167,8 +166,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
           executable_path,
           rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
           "windows",
-          upload_subdirectory="anti-malware/registry-tools",
-          token=self.token)
+          upload_subdirectory="anti-malware/registry-tools")
       executable_urn = rdfvalue.RDFURN(
           "aff4:/config/executables/windows/anti-malware/registry-tools/"
           "foo.exe")
@@ -191,10 +189,8 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         with self.assertRaisesWithLiteralMatch(
             config_updater_util.BinaryTooLargeError, expected_message):
           config_updater_util.UploadSignedBinary(
-              executable_path,
-              rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
-              "windows",
-              token=self.token)
+              executable_path, rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+              "windows")
 
   @mock.patch.object(getpass, "getpass")
   def testCreateAdminUser(self, getpass_mock):

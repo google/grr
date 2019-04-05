@@ -589,8 +589,7 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
 
       # TODO(user): don't encode client_id inside the operation_id, but
       # rather have it as a separate field.
-      return ApiInterrogateClientResult(
-          operation_id="%s/%s" % (args.client_id, flow_id))
+      return ApiInterrogateClientResult(operation_id=flow_id)
     else:
       flow_urn = flow.StartAFF4Flow(
           client_id=args.client_id.ToClientURN(),
@@ -629,7 +628,8 @@ class ApiGetInterrogateOperationStateHandler(
         raise InterrogateOperationNotFoundError(
             "Operation with id %s not found" % args.operation_id)
 
-      if flow_obj.flow_name != compatibility.GetName(discovery.Interrogate):
+      expected_flow_name = compatibility.GetName(discovery.Interrogate)
+      if flow_obj.flow_class_name != expected_flow_name:
         raise InterrogateOperationNotFoundError(
             "Operation with id %s not found" % args.operation_id)
 
@@ -1061,7 +1061,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
     if not start_time:
       start_time = end_time - rdfvalue.Duration("30m")
 
-    if data_store.RelationalDBReadEnabled("client_stats"):
+    if data_store.RelationalDBReadEnabled():
       stat_values = data_store.REL_DB.ReadClientStats(
           client_id=str(args.client_id),
           min_timestamp=start_time,

@@ -32,15 +32,10 @@ config_lib.DEFINE_bool(
     "Whether the client uses Fleetspeak to communicate "
     "with the server.")
 
-config_lib.DEFINE_bool(
-    "ClientBuilder.fleetspeak_enabled", False,
-    "Whether the client will use Fleetspeak to communicate "
-    "with the server.")
-
 config_lib.DEFINE_string(
     "Client.fleetspeak_service_name", "FleetspeakService",
-    "Name of the Fleetspeak Windows service. Used to restart the Fleetspeak "
-    "service during GRR client installation.")
+    "Name of the Fleetspeak (upstart, systemd or Windows) service. Used to "
+    "restart the Fleetspeak service during GRR client installation.")
 
 config_lib.DEFINE_string(
     "ClientBuilder.client_path",
@@ -50,12 +45,12 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string(
     "ClientBuilder.fleetspeak_service_dir", "/etc/fleetspeak/services",
     "Directory where Fleetspeak expects service configs to be. Only applies "
-    "if ClientBuilder.fleetspeak_enabled is true.")
+    "if Client.fleetspeak_enabled is true.")
 
 config_lib.DEFINE_string(
     "ClientBuilder.fleetspeak_plist_path", None,
     "Path where the Fleetspeak client installs its plist file. Only applies "
-    "if ClientBuilder.fleetspeak_enabled is true.")
+    "if Client.fleetspeak_enabled is true.")
 
 config_lib.DEFINE_string(
     "ClientBuilder.fleetspeak_config_path",
@@ -317,12 +312,6 @@ config_lib.DEFINE_string(
              "--config %(ClientBuilder.config_filename)"),
     help=("The command that the installer will execute after "
           "unpacking the package."))
-
-config_lib.DEFINE_list(
-    name="ClientBuilder.installer_plugins",
-    default=[],
-    help="Plugins that will copied to the client installation file and run "
-    "at install time.")
 
 config_lib.DEFINE_list(
     name="ClientBuilder.plugins",

@@ -61,19 +61,6 @@ class StableRelationalDBEnabledMixin(object):
     config_overrider = test_lib.ConfigOverrider({
         "Database.aff4_enabled": True,
         "Database.useForReads": True,
-        "Database.useForReads.artifacts": True,
-        "Database.useForReads.audit": True,
-        "Database.useForReads.client_messages": True,
-        "Database.useForReads.client_reports": True,
-        "Database.useForReads.client_stats": False,
-        "Database.useForReads.cronjobs": True,
-        "Database.useForReads.filestore": True,
-        "Database.useForReads.foreman": True,
-        "Database.useForReads.hunts": True,
-        "Database.useForReads.message_handlers": True,
-        "Database.useForReads.signed_binaries": True,
-        "Database.useForReads.vfs": True,
-        "Database.useRelationalFlows": True,
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)

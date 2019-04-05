@@ -303,8 +303,8 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
 
       return ApiCronJob().InitFromObject(cron_job)
     except (aff4.InstantiationError, db.UnknownCronJobError):
-      raise CronJobNotFoundError(
-          "Cron job with id %s could not be found" % args.cron_job_id)
+      raise CronJobNotFoundError("Cron job with id %s could not be found" %
+                                 args.cron_job_id)
 
 
 class ApiListCronJobRunsArgs(rdf_structs.RDFProtoStruct):
@@ -328,7 +328,7 @@ class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListCronJobRunsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+    if data_store.RelationalDBReadEnabled():
       runs = cronjobs.CronManager().ReadJobRuns(str(args.cron_job_id))
       start = args.offset
       if args.count:
@@ -367,7 +367,7 @@ class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJobRun
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+    if data_store.RelationalDBReadEnabled():
       run = cronjobs.CronManager().ReadJobRun(
           str(args.cron_job_id), str(args.run_id))
       if not run:
@@ -450,7 +450,7 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     job_id = str(args.cron_job_id)
-    if data_store.RelationalDBReadEnabled(category="cronjobs"):
+    if data_store.RelationalDBReadEnabled():
       aff4_cronjobs.GetCronManager().RequestForcedRun(job_id)
     else:
       aff4_cronjobs.GetCronManager().RunOnce(

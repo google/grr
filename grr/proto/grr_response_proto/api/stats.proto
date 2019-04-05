@@ -10,25 +10,23 @@ import "grr_response_proto/semantic.proto";
 
 message ApiStatsStoreMetricDataPoint {
   optional uint64 timestamp = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Timestamp of the data point."
-    }];
-  optional double value = 2 [(sem_type) = {
-      description: "Value corresponding to the timestamp."
-    }];
+    type: "RDFDatetime",
+    description: "Timestamp of the data point."
+  }];
+  optional double value = 2
+      [(sem_type) = { description: "Value corresponding to the timestamp." }];
 }
 
 message ApiStatsStoreMetric {
   optional string metric_name = 1;
   optional uint64 start = 2 [(sem_type) = {
-      type: "RDFDatetime",
-    }];
+    type: "RDFDatetime",
+  }];
   optional uint64 end = 3 [(sem_type) = {
-      type: "RDFDatetime",
-    }];
+    type: "RDFDatetime",
+  }];
   repeated ApiStatsStoreMetricDataPoint data_points = 4;
 }
-
 
 message ApiReportDescriptor {
   enum ReportType {
@@ -38,26 +36,25 @@ message ApiReportDescriptor {
   }
 
   optional ReportType type = 1 [(sem_type) = {
-      description: "Top-level identifier in the report hierarchy."
-    }];
+    description: "Top-level identifier in the report hierarchy."
+  }];
 
   optional string name = 2 [(sem_type) = {
-      description: "Second-level identifier in the report hierarchy. "
-        "Also the name of the corresponding class in report_plugins.py. "
-        "Eg 'ClientsActivityReportPlugin'."
-    }];
+    description: "Second-level identifier in the report hierarchy. "
+                 "Also the name of the corresponding class in report_plugins.py. "
+                 "Eg 'ClientsActivityReportPlugin'."
+  }];
 
-  optional string title = 3 [(sem_type) = {
-      description: "UI-friendly displayed title."
-    }];
+  optional string title = 3
+      [(sem_type) = { description: "UI-friendly displayed title." }];
 
   optional string summary = 4 [(sem_type) = {
-      description: "UI-friendly displayed summary of what the report reports."
-    }];
+    description: "UI-friendly displayed summary of what the report reports."
+  }];
 
   optional bool requires_time_range = 5 [(sem_type) = {
-      description: "Indicates whether the report needs a time range."
-    }];
+    description: "Indicates whether the report needs a time range."
+  }];
 }
 
 message ApiReport {
@@ -86,57 +83,51 @@ message ApiReportData {
 }
 
 message ApiStackChartReportData {
-  repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
-      description: "What the report contains."
-    }];
+  repeated ApiReportDataSeries2D data = 1
+      [(sem_type) = { description: "What the report contains." }];
 
   repeated ApiReportTickSpecifier x_ticks = 2 [(sem_type) = {
-      description: "X axis ticks. See: github.com/flot/flot/blob/master/API.md"
-    }];
+    description: "X axis ticks. See: github.com/flot/flot/blob/master/API.md"
+  }];
 
   repeated ApiReportTickSpecifier y_ticks = 3 [(sem_type) = {
-      description: "Y axis ticks. See: github.com/flot/flot/blob/master/API.md"
-    }];
+    description: "Y axis ticks. See: github.com/flot/flot/blob/master/API.md"
+  }];
 
-  optional float bar_width = 4 [(sem_type) = {
-      description: "Width of the bars displayed on the chart."
-    }];
+  optional float bar_width = 4 [
+    (sem_type) = { description: "Width of the bars displayed on the chart." }
+  ];
 }
 
 message ApiPieChartReportData {
-  repeated ApiReportDataPoint1D data = 1 [(sem_type) = {
-      description: "What the report contains."
-    }];
+  repeated ApiReportDataPoint1D data = 1
+      [(sem_type) = { description: "What the report contains." }];
 }
 
 message ApiLineChartReportData {
-  repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
-      description: "What the report contains."
-    }];
+  repeated ApiReportDataSeries2D data = 1
+      [(sem_type) = { description: "What the report contains." }];
 }
 
 message ApiAuditChartReportData {
   repeated string used_fields = 1 [(sem_type) = {
-      description: "Names of the AuditEvent fields used by the report."
-    }];
+    description: "Names of the AuditEvent fields used by the report."
+  }];
 
-  repeated AuditEvent rows = 2 [(sem_type) = {
-      description: "Data to be shown in the chart."
-    }];
+  repeated AuditEvent rows = 2
+      [(sem_type) = { description: "Data to be shown in the chart." }];
 }
 
 message ApiReportDataPoint1D {
   optional float x = 1;
 
-  optional string label = 2 [(sem_type) = {
-      description: "The series is labeled with this string."
-    }];
+  optional string label = 2
+      [(sem_type) = { description: "The series is labeled with this string." }];
 }
 
 message ApiReportDataSeries2D {
-  optional string label = 1 [(sem_type) = {
-      description: "The series is labeled with this string."
-    }];
+  optional string label = 1
+      [(sem_type) = { description: "The series is labeled with this string." }];
 
   repeated ApiReportDataPoint2D points = 2;
 }
@@ -157,30 +148,29 @@ message ApiReportTickSpecifier {
 
 message ApiGetReportArgs {
   optional string name = 1 [(sem_type) = {
-      description: "Identifier in the report hierarchy. Also the name of the "
-        "corresponding class in report_plugins.py. "
-        "Eg 'ClientsActivityReportPlugin'."
-    }];
+    description: "Identifier in the report hierarchy. Also the name of the "
+                 "corresponding class in report_plugins.py. "
+                 "Eg 'ClientsActivityReportPlugin'."
+  }];
 
   optional uint64 start_time = 2 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Earliest timestamp of data points to consider. "
-        "Ignored by reports with requires_time_range set to false."
-    }];
+    type: "RDFDatetime",
+    description: "Earliest timestamp of data points to consider. "
+                 "Ignored by reports with requires_time_range set to false."
+  }];
 
   optional uint64 duration = 3 [(sem_type) = {
-      type: "Duration",
-      description: "Length of the time range to consider. "
-        "Ignored by reports with requires_time_range set to false."
-    }];
+    type: "Duration",
+    description: "Length of the time range to consider. "
+                 "Ignored by reports with requires_time_range set to false."
+  }];
 
   optional string client_label = 4 [(sem_type) = {
-      description: "Client label used by label-specific reports. Optional."
-    }];
+    description: "Client label used by label-specific reports. Optional."
+  }];
 }
 
 message ApiListReportsResult {
-  repeated ApiReport reports = 1 [(sem_type) = {
-      description: "The report list."
-    }];
+  repeated ApiReport reports = 1
+      [(sem_type) = { description: "The report list." }];
 }

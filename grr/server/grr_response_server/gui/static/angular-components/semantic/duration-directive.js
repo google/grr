@@ -72,12 +72,11 @@ const DurationController = function($scope) {
 /**
  * Handles changes of scope.value attribute.
  *
- * @param {number} newValue Timestamp value in microseconds.
- * @suppress {missingProperties} as value can be anything.
+ * @param {{value: number}} newValue A wrapped duration object carrying number of microseconds.
  */
 DurationController.prototype.onValueChange = function(newValue) {
-  var duration = newValue.value;
-  if (angular.isNumber(duration)) {
+  if (newValue !== undefined && angular.isNumber(newValue.value)) {
+    const duration = newValue.value;
     this.stringifiedDuration = exports.stringifySeconds(duration);
   } else {
     this.stringifiedDuration = '-';

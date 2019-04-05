@@ -28,6 +28,7 @@ from cryptography.hazmat.primitives.kdf import pbkdf2
 from cryptography.x509 import oid
 
 from future.builtins import str
+from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from typing import Text
 
@@ -73,8 +74,8 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
       elif isinstance(initializer, bytes):
         self.ParseFromString(initializer)
       else:
-        raise rdfvalue.InitializeError(
-            "Cannot initialize %s from %s." % (self.__class__, initializer))
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def GetRawCertificate(self):
     return self._value
@@ -164,6 +165,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
 
     Args:
       csr: A CertificateSigningRequest.
+
     Returns:
       The signed cert.
     """
@@ -202,6 +204,9 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
             algorithm=hashes.SHA256(),
             backend=openssl.backend))
 
+  def __reduce__(self):
+    return type(self), (self.SerializeToString(), self.age)
+
 
 class CertificateSigningRequest(rdfvalue.RDFValue):
   """A CSR Rdfvalue."""
@@ -227,8 +232,8 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
                                         hashes.SHA256(),
                                         backend=openssl.backend)
       elif initializer is not None:
-        raise rdfvalue.InitializeError(
-            "Cannot initialize %s from %s." % (self.__class__, initializer))
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def ParseFromString(self, csr_as_pem):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
@@ -284,8 +289,8 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       elif isinstance(initializer, Text):
         self.ParseFromString(initializer.encode("ascii"))
       else:
-        raise rdfvalue.InitializeError(
-            "Cannot initialize %s from %s." % (self.__class__, initializer))
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def GetRawPublicKey(self):
     return self._value
@@ -381,8 +386,8 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       elif isinstance(initializer, Text):
         self.ParseFromString(initializer.encode("ascii"))
       else:
-        raise rdfvalue.InitializeError(
-            "Cannot initialize %s from %s." % (self.__class__, initializer))
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def ParseFromHumanReadable(self, string):
     precondition.AssertType(string, Text)
@@ -586,17 +591,30 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     return self
 
 
-class EncryptionKey(rdfvalue.RDFBytes):
+@python_2_unicode_compatible
+class EncryptionKey(rdfvalue.RDFPrimitive):
   """Base class for encryption keys."""
+
+  data_store_type = "bytes"
 
   # Size of the key in bits.
   length = 0
 
+  def __init__(self, initializer=None, age=None):
+    super(EncryptionKey, self).__init__(age=age)
+    if initializer is None:
+      self._value = b""
+    elif isinstance(initializer, bytes):
+      self.ParseFromString(initializer)
+    elif isinstance(initializer, EncryptionKey):
+      self._value = initializer.RawBytes()
+
   def ParseFromString(self, string):
+    precondition.AssertType(string, bytes)
 
     if len(string) % 8:
-      raise CipherError(
-          "Invalid key length %d (%s)." % (len(string) * 8, string))
+      raise CipherError("Invalid key length %d (%s)." %
+                        (len(string) * 8, string))
 
     self._value = string
     self.length = 8 * len(self._value)
@@ -604,12 +622,22 @@ class EncryptionKey(rdfvalue.RDFBytes):
     if self.length < 128:
       raise CipherError("Key too short (%d): %s" % (self.length, string))
 
+  def ParseFromDatastore(self, value):
+    precondition.AssertType(value, bytes)
+    self._value = value
+
+  def ParseFromHumanReadable(self, string):
+    precondition.AssertType(string, Text)
+    self._value = binascii.unhexlify(string.encode("ascii"))
+
   def __str__(self):
-    digest = hashlib.sha256(self.AsHexDigest()).hexdigest()
-    return "%s (%s)" % (self.__class__.__name__, digest)
+    return "%s (%s)" % (self.__class__.__name__, self.AsHexDigest())
+
+  def __len__(self):
+    return len(self._value)
 
   def AsHexDigest(self):
-    return binascii.hexlify(self._value)
+    return binascii.hexlify(self._value).decode("ascii")
 
   @classmethod
   def FromHex(cls, hex_string):

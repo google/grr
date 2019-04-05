@@ -163,7 +163,7 @@ class GetFileMixin(object):
 
         # TODO(user): when all the code can read files from REL_DB,
         # protect this with:
-        # if not data_store.RelationalDBReadEnabled(category="filestore"):
+        # if not data_store.RelationalDBReadEnabled():
         if data_store.AFF4Enabled():
           with aff4.FACTORY.Create(
               urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
@@ -179,7 +179,7 @@ class GetFileMixin(object):
 
           # Adding files to filestore requires reading data from RELDB,
           # thus protecting this code with a filestore-read-enabled check.
-          if data_store.RelationalDBReadEnabled("filestore"):
+          if data_store.RelationalDBReadEnabled():
             blob_refs = []
             offset = 0
             for data, size in self.state.blobs:
@@ -631,7 +631,7 @@ class MultiGetFileLogic(object):
     hash. Otherwise, we request the client to hash every block in the file,
     and add it to the file tracking queue (self.state.pending_files).
     """
-    if not data_store.RelationalDBReadEnabled(category="filestore"):
+    if not data_store.RelationalDBReadEnabled():
       return self._LegacyCheckHashesWithFileStore()
 
     if not self.state.pending_hashes:
@@ -844,7 +844,7 @@ class MultiGetFileLogic(object):
 
           # Adding files to filestore requires reading data from RELDB,
           # thus protecting this code with a filestore-read-enabled check.
-          if data_store.RelationalDBReadEnabled("filestore"):
+          if data_store.RelationalDBReadEnabled():
             blob_refs = []
             offset = 0
             for index in sorted(blob_dict):
@@ -873,7 +873,7 @@ class MultiGetFileLogic(object):
 
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-        if (not data_store.RelationalDBReadEnabled("filestore") and
+        if (not data_store.RelationalDBReadEnabled() and
             self.state.use_external_stores):
           # Publish the new file event to cause the file to be added to the
           # filestore.

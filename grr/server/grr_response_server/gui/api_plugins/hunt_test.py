@@ -149,6 +149,8 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(create_times[0], 10 * 60 * 1000000)
     self.assertEqual(create_times[1], 9 * 60 * 1000000)
 
+  # New implementation doesn't have this resriction.
+  @db_test_lib.LegacyDataStoreOnly
   def testRaisesIfCreatedByFilterUsedWithoutActiveWithinFilter(self):
     self.assertRaises(
         ValueError,
@@ -388,7 +390,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args)
 
   def testRaisesIfResultIsBeforeTimestamp(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
     else:
       results = implementation.GRRHunt.ResultCollectionForHID(
@@ -449,7 +451,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler.Handle(args, token=self.token)
 
   def testRaisesIfResultFileDoesNotExist(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
       original_result = results[0]
 
@@ -509,7 +511,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
   def testReturnsBinaryStreamIfResultFound(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
       timestamp = results[0].timestamp
     else:
@@ -530,8 +532,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 
 @db_test_lib.DualDBTest
-class ApiListHuntOutputPluginLogsHandlerTest(
-    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin):
+class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                             hunt_test_lib.StandardHuntTestMixin
+                                            ):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -619,7 +622,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler = hunt_plugin.ApiModifyHuntHandler()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       self.hunt_id = self.CreateHunt(description="the hunt")
     else:
       self.hunt_obj = self.CreateHunt(description="the hunt")
@@ -629,7 +632,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args = hunt_plugin.ApiModifyHuntArgs(hunt_id=self.hunt_id)
 
   def testDoesNothingIfArgsHaveNoChanges(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       before = hunt_plugin.ApiHunt().InitFromHuntObject(
           data_store.REL_DB.ReadHuntObject(self.hunt_id))
     else:
@@ -638,7 +641,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       after = hunt_plugin.ApiHunt().InitFromHuntObject(
           data_store.REL_DB.ReadHuntObject(self.hunt_id))
     else:
@@ -653,7 +656,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(self.args, token=self.token)
 
   def testRaisesWhenStartingHuntInTheWrongState(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt.StartHunt(self.hunt_id)
       hunt.StopHunt(self.hunt_id)
     else:
@@ -665,7 +668,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(self.args, token=self.token)
 
   def testRaisesWhenStoppingHuntInTheWrongState(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt.StartHunt(self.hunt_id)
       hunt.StopHunt(self.hunt_id)
     else:
@@ -680,7 +683,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.state = "STARTED"
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
       self.assertEqual(h.hunt_state, h.HuntState.STARTED)
     else:
@@ -691,7 +694,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.state = "STOPPED"
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
       self.assertEqual(h.hunt_state, h.HuntState.STOPPED)
     else:
@@ -699,7 +702,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
 
   def testRaisesWhenModifyingHuntInNonPausedState(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt.StartHunt(self.hunt_id)
     else:
       self.hunt_obj.Run()
@@ -709,13 +712,15 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(self.args, token=self.token)
 
   def testModifiesHuntCorrectly(self):
+    duration = rdfvalue.Duration("1w")
+
     self.args.client_rate = 100
     self.args.client_limit = 42
-    self.args.expires = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
+    self.args.expires = rdfvalue.RDFDatetime.Now() + duration
 
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       after = hunt_plugin.ApiHunt().InitFromHuntObject(
           data_store.REL_DB.ReadHuntObject(self.hunt_id))
     else:
@@ -724,8 +729,12 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
-    self.assertEqual(after.expires,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
+
+    # TODO: The test should not modify expiry time (because it
+    # should not be possible to modify it). Instead, it should modify duration
+    # and test that for change.
+    now = rdfvalue.RDFDatetime.Now()
+    self.assertBetween(after.expires - duration, after.created, now)
 
   # New datastore implementation has a slightly different behavior.
   # client_rate/limit modification is applied before an attempt
@@ -738,7 +747,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(hunt_plugin.InvalidHuntStateError):
       self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       after = hunt_plugin.ApiHunt().InitFromHuntObject(
           data_store.REL_DB.ReadHuntObject(self.hunt_id))
     else:
@@ -757,7 +766,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler = hunt_plugin.ApiDeleteHuntHandler()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       self.hunt_id = self.CreateHunt(description="the hunt")
     else:
       self.hunt_obj = self.CreateHunt(description="the hunt")
@@ -771,7 +780,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
           hunt_plugin.ApiDeleteHuntArgs(hunt_id="H:123456"), token=self.token)
 
   def testRaisesIfHuntIsRunning(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt.StartHunt(self.hunt_id)
     else:
       self.hunt_obj.Run()
@@ -782,7 +791,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testDeletesHunt(self):
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       with self.assertRaises(db.UnknownHuntError):
         data_store.REL_DB.ReadHuntObject(self.hunt_id)
     else:

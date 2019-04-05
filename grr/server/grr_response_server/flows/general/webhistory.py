@@ -89,7 +89,7 @@ class ChromeHistoryMixin(object):
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
       for response in responses:
-        if data_store.RelationalDBReadEnabled("filestore"):
+        if data_store.RelationalDBReadEnabled():
           client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                    response.stat_entry.pathspec)
           fd = file_store.OpenFile(client_path)
@@ -210,7 +210,7 @@ class FirefoxHistoryMixin(object):
     """Take each file we retrieved and get the history from it."""
     if responses:
       for response in responses:
-        if data_store.RelationalDBReadEnabled("filestore"):
+        if data_store.RelationalDBReadEnabled():
           client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                    response.stat_entry.pathspec)
           fd = file_store.OpenFile(client_path)

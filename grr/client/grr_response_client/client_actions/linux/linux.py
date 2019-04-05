@@ -281,7 +281,7 @@ ACCEPTABLE_FILESYSTEMS = {
 
 def CheckMounts(filename):
   """Parses the currently mounted devices."""
-  with io.open(filename, "rb") as fd:
+  with io.open(filename, "r") as fd:
     for line in fd:
       try:
         device, mnt_point, fs_type, _ = line.split(" ", 3)

@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
-from datetime import datetime
 import time
 
 from absl import app
@@ -310,16 +309,22 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testInitFromDatetimeObject(self):
     # Test initializing from a datetime object
-    date = datetime(2015, 6, 17, 5, 22, 3)
+    date = datetime.datetime(2015, 6, 17, 5, 22, 3)
     self.assertEqual(rdfvalue.RDFDatetime.FromDatetime(date).AsDatetime(), date)
-    date = datetime.utcfromtimestamp(99999)
+    date = datetime.datetime.utcfromtimestamp(99999)
     self.assertEqual(
         rdfvalue.RDFDatetime.FromDatetime(date).AsSecondsSinceEpoch(), 99999)
 
     # Test microsecond support
-    date = datetime(1970, 1, 1, 0, 0, 0, 567)
+    date = datetime.datetime(1970, 1, 1, 0, 0, 0, 567)
     self.assertEqual(
         rdfvalue.RDFDatetime.FromDatetime(date).AsMicrosecondsSinceEpoch(), 567)
+
+  def testInitFromDateObject(self):
+    date = datetime.date(2018, 2, 1)
+    self.assertEqual(
+        rdfvalue.RDFDatetime.FromDate(date),
+        rdfvalue.RDFDatetime.FromHumanReadable("2018-02-01 00:00:00"))
 
   def testAddNumber(self):
     date = rdfvalue.RDFDatetime(1e9)

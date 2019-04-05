@@ -373,7 +373,7 @@ class MockClient(object):
     message.auth_state = "AUTHENTICATED"
     session_id = message.session_id
 
-    if data_store.RelationalDBReadEnabled("message_handlers"):
+    if data_store.RelationalDBReadEnabled():
       handler_name = queue_manager.session_id_map.get(session_id, None)
       if handler_name is None:
         raise ValueError("Unknown well known session id in msg %s" % message)
@@ -419,8 +419,14 @@ class MockClient(object):
   def Next(self):
     """Grab tasks for us from the server's queue."""
     with queue_manager.QueueManager(token=self.token) as manager:
-      request_tasks = manager.QueryAndOwn(
-          self.client_id.Queue(), limit=1, lease_seconds=10000)
+      if data_store.RelationalDBReadEnabled():
+        request_tasks = data_store.REL_DB.LeaseClientMessages(
+            self.client_id.Basename(),
+            lease_time=rdfvalue.Duration("10000s"),
+            limit=1)
+      else:
+        request_tasks = manager.QueryAndOwn(
+            self.client_id.Queue(), limit=1, lease_seconds=10000)
 
       request_tasks.extend(self._mock_task_queue)
       self._mock_task_queue[:] = []  # Clear the referenced list.
@@ -461,8 +467,8 @@ def CheckFlowErrors(total_flows, token=None):
       if flags.FLAGS.pdb_post_mortem:
         pdb.set_trace()
       raise RuntimeError(
-          "Flow %s completed in state %s" % (flow_obj.runner_args.flow_name,
-                                             flow_obj.context.state))
+          "Flow %s completed in state %s" %
+          (flow_obj.runner_args.flow_name, flow_obj.context.state))
 
 
 def TestFlowHelper(flow_urn_or_cls_name,

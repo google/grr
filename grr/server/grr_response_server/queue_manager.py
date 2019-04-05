@@ -20,7 +20,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_utils
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class Error(Exception):
@@ -305,25 +304,6 @@ class QueueManager(object):
   def Flush(self):
     """Writes the changes in this object to the datastore."""
 
-    if data_store.RelationalDBReadEnabled(category="message_handlers"):
-      message_handler_requests = []
-      leftover_responses = []
-
-      for r, timestamp in self.response_queue:
-        if r.request_id == 0 and r.session_id in session_id_map:
-          message_handler_requests.append(
-              rdf_objects.MessageHandlerRequest(
-                  client_id=r.source and r.source.Basename(),
-                  handler_name=session_id_map[r.session_id],
-                  request_id=r.response_id,
-                  request=r.payload))
-        else:
-          leftover_responses.append((r, timestamp))
-
-      if message_handler_requests:
-        data_store.REL_DB.WriteMessageHandlerRequests(message_handler_requests)
-      self.response_queue = leftover_responses
-
     self.data_store.StoreRequestsAndResponses(
         new_requests=self.request_queue,
         new_responses=self.response_queue,
@@ -334,16 +314,11 @@ class QueueManager(object):
     mutation_pool = self.data_store.GetMutationPool()
     with mutation_pool:
 
-      if data_store.RelationalDBReadEnabled(category="client_messages"):
-        if self.client_messages_to_delete:
-          data_store.REL_DB.DeleteClientMessages(
-              list(itervalues(self.client_messages_to_delete)))
-      else:
-        messages_by_queue = collection.Group(
-            list(itervalues(
-                self.client_messages_to_delete)), lambda request: request.queue)
-        for queue, messages in iteritems(messages_by_queue):
-          self.Delete(queue, messages, mutation_pool=mutation_pool)
+      messages_by_queue = collection.Group(
+          list(itervalues(
+              self.client_messages_to_delete)), lambda request: request.queue)
+      for queue, messages in iteritems(messages_by_queue):
+        self.Delete(queue, messages, mutation_pool=mutation_pool)
 
       if self.new_client_messages:
         for timestamp, messages in iteritems(
@@ -453,11 +428,8 @@ class QueueManager(object):
         continue
       non_fleetspeak_tasks.extend(queued_tasks)
 
-    if data_store.RelationalDBReadEnabled(category="client_messages"):
-      data_store.REL_DB.WriteClientMessages(non_fleetspeak_tasks)
-    else:
-      timestamp = timestamp or self.frozen_timestamp
-      mutation_pool.QueueScheduleTasks(non_fleetspeak_tasks, timestamp)
+    timestamp = timestamp or self.frozen_timestamp
+    mutation_pool.QueueScheduleTasks(non_fleetspeak_tasks, timestamp)
 
   def GetNotifications(self, queue):
     """Returns all queue notifications."""
@@ -603,10 +575,7 @@ class QueueManager(object):
     if isinstance(queue, rdf_client.ClientURN):
       queue = queue.Queue()
 
-    if data_store.RelationalDBReadEnabled(category="client_messages"):
-      return data_store.REL_DB.ReadClientMessages(queue.Split()[0])
-    else:
-      return self.data_store.QueueQueryTasks(queue, limit=limit)
+    return self.data_store.QueueQueryTasks(queue, limit=limit)
 
   def QueryAndOwn(self, queue, lease_seconds=10, limit=1):
     """Returns a list of Tasks leased for a certain time.
@@ -619,11 +588,6 @@ class QueueManager(object):
     Returns:
         A list of GrrMessage() objects leased.
     """
-    if data_store.RelationalDBReadEnabled(category="client_messages"):
-      return data_store.REL_DB.LeaseClientMessages(
-          queue.Split()[0],
-          lease_time=rdfvalue.Duration("%ds" % lease_seconds),
-          limit=limit)
     with self.data_store.GetMutationPool() as mutation_pool:
       return mutation_pool.QueueQueryAndOwn(queue, lease_seconds, limit,
                                             self.frozen_timestamp)

@@ -247,12 +247,17 @@ class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
   data_store_type = "bytes"
 
-  _value = b""
-
   def __init__(self, initializer=None, age=None):
-    super(RDFBytes, self).__init__(initializer=initializer, age=age)
-    if not self._value and initializer is not None:
-      self.ParseFromString(initializer)
+    super(RDFBytes, self).__init__(age=age)
+    if initializer is None:
+      self._value = b""
+    elif isinstance(initializer, bytes):
+      self._value = initializer
+    elif isinstance(initializer, RDFBytes):
+      self._value = initializer.AsBytes()
+    else:
+      message = "Unexpected initializer `{value}` of type {type}"
+      raise TypeError(message.format(value=initializer, type=type(initializer)))
 
   def ParseFromString(self, string):
     precondition.AssertType(string, bytes)
@@ -643,6 +648,11 @@ class RDFDatetime(RDFInteger):
   def FromDatetime(cls, value):
     seconds = calendar.timegm(value.utctimetuple())
     return cls(seconds * cls.converter + value.microsecond)
+
+  @classmethod
+  def FromDate(cls, value):
+    seconds = calendar.timegm(value.timetuple())
+    return cls(seconds * cls.converter)
 
   @classmethod
   def FromHumanReadable(cls, value, eoy=False):

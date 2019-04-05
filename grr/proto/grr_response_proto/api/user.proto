@@ -1,10 +1,9 @@
 syntax = "proto2";
 
+import "grr_response_proto/api/client.proto";
 import "grr_response_proto/api/cron.proto";
 import "grr_response_proto/api/flow.proto";
 import "grr_response_proto/api/hunt.proto";
-import "grr_response_proto/api/client.proto";
-
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/objects.proto";
 import "grr_response_proto/semantic.proto";
@@ -18,154 +17,151 @@ import "grr_response_proto/user.proto";
 // Next message id: 13
 message ApiHuntApproval {
   optional ApiHunt subject = 1 [(sem_type) = {
-      description: "A hunt that has to be accessed after this approval "
-      "is granted."
-    }];
+    description: "A hunt that has to be accessed after this approval "
+                 "is granted."
+  }];
 
   optional string id = 8 [(sem_type) = {
-      description: "Approval id. Approval is identified by the hunt id, "
-      "requestor's username and the approval id."
-    }];
+    description: "Approval id. Approval is identified by the hunt id, "
+                 "requestor's username and the approval id."
+  }];
 
   optional string requestor = 12 [(sem_type) = {
-      description: "Username of the user requesting this approval."
-    }];
+    description: "Username of the user requesting this approval."
+  }];
 
-  optional string reason = 2 [(sem_type) = {
-      description: "A reason for accessing the hunt."
-    }];
+  optional string reason = 2
+      [(sem_type) = { description: "A reason for accessing the hunt." }];
   optional bool is_valid = 3 [(sem_type) = {
-      description: "If True, this approval is still valid. If False, then "
-      "it wasn't approved or got expired."
-    }];
+    description: "If True, this approval is still valid. If False, then "
+                 "it wasn't approved or got expired."
+  }];
   optional string is_valid_message = 4 [(sem_type) = {
-      description: "If is_valid is False, is_valid_message will contain "
-      "a human-readable description of why the approval is not valid."
-    }];
+    description: "If is_valid is False, is_valid_message will contain "
+                 "a human-readable description of why the approval is not valid."
+  }];
 
   optional string email_message_id = 11 [(sem_type) = {
-      description: "Email msg id used to group all messages related to this "
-      "approval."
-    }];
+    description: "Email msg id used to group all messages related to this "
+                 "approval."
+  }];
 
   repeated string notified_users = 5 [(sem_type) = {
-      description: "GRR users that will be notified about the approval "
-      "being requested."
-    }];
+    description: "GRR users that will be notified about the approval "
+                 "being requested."
+  }];
   repeated string email_cc_addresses = 6 [(sem_type) = {
-      description: "List of emails used to send a notification to about "
-      "this approval being requested."
+    description: "List of emails used to send a notification to about "
+                 "this approval being requested."
   }];
 
   repeated string approvers = 7 [(sem_type) = {
-      description: "List of GRR users who granted this approval. Note: this "
-      "list always includes the original approval requestor."
-    }];
+    description: "List of GRR users who granted this approval. Note: this "
+                 "list always includes the original approval requestor."
+  }];
 
   optional ApiHunt copied_from_hunt = 9 [(sem_type) = {
-      description: "If the hunt was copied from another hunt, the original "
-      "hunt information will be stored here."
-    }];
+    description: "If the hunt was copied from another hunt, the original "
+                 "hunt information will be stored here."
+  }];
   optional ApiFlow copied_from_flow = 10 [(sem_type) = {
-      description: "If the hunt was started from a flow, the original "
-      "flow information will be stored here."
-    }];
+    description: "If the hunt was started from a flow, the original "
+                 "flow information will be stored here."
+  }];
 }
 
 // Next message id: 11
 message ApiCronJobApproval {
   optional ApiCronJob subject = 1 [(sem_type) = {
-      description: "A cron job that has to be accessed after this approval "
-      "is granted."
-    }];
+    description: "A cron job that has to be accessed after this approval "
+                 "is granted."
+  }];
 
   optional string id = 8 [(sem_type) = {
-      description: "Approval id. Approval is identified by the cron job id, "
-      "requestor's username and the approval id."
-    }];
+    description: "Approval id. Approval is identified by the cron job id, "
+                 "requestor's username and the approval id."
+  }];
 
   optional string requestor = 10 [(sem_type) = {
-      description: "Username of the user requesting this approval."
-    }];
+    description: "Username of the user requesting this approval."
+  }];
 
-  optional string reason = 2 [(sem_type) = {
-      description: "A reason for accessing the cron job."
-    }];
+  optional string reason = 2
+      [(sem_type) = { description: "A reason for accessing the cron job." }];
   optional bool is_valid = 3 [(sem_type) = {
-      description: "If True, this approval is still valid. If False, then "
-      "it wasn't approved or got expired."
-    }];
+    description: "If True, this approval is still valid. If False, then "
+                 "it wasn't approved or got expired."
+  }];
   optional string is_valid_message = 4 [(sem_type) = {
-      description: "If is_valid is False, is_valid_message will contain "
-      "a human-readable description of why the approval is not valid."
-    }];
+    description: "If is_valid is False, is_valid_message will contain "
+                 "a human-readable description of why the approval is not valid."
+  }];
 
   optional string email_message_id = 9 [(sem_type) = {
-      description: "Email msg id used to group all messages related to this "
-      "approval."
-    }];
+    description: "Email msg id used to group all messages related to this "
+                 "approval."
+  }];
 
   repeated string notified_users = 5 [(sem_type) = {
-      description: "GRR users that will be notified about the approval "
-      "being requested."
-    }];
+    description: "GRR users that will be notified about the approval "
+                 "being requested."
+  }];
   repeated string email_cc_addresses = 6 [(sem_type) = {
-      description: "List of emails used to send a notification to about "
-      "this approval being requested."
+    description: "List of emails used to send a notification to about "
+                 "this approval being requested."
   }];
 
   repeated string approvers = 7 [(sem_type) = {
-      description: "List of GRR users who granted this approval. Note: this "
-      "list always includes the original approval requestor."
-    }];
+    description: "List of GRR users who granted this approval. Note: this "
+                 "list always includes the original approval requestor."
+  }];
 }
 
 // Next message id: 11
 message ApiClientApproval {
   optional ApiClient subject = 1 [(sem_type) = {
-      description: "A client that has to be accessed after this approval "
-      "is granted."
-    }];
+    description: "A client that has to be accessed after this approval "
+                 "is granted."
+  }];
 
   optional string id = 8 [(sem_type) = {
-      description: "Approval id. Approval is identified by the client id, "
-      "requestor's username and the approval id."
-    }];
+    description: "Approval id. Approval is identified by the client id, "
+                 "requestor's username and the approval id."
+  }];
 
   optional string requestor = 10 [(sem_type) = {
-      description: "Username of the user requesting this approval."
-    }];
+    description: "Username of the user requesting this approval."
+  }];
 
-  optional string reason = 2 [(sem_type) = {
-      description: "A reason for accessing the client."
-    }];
+  optional string reason = 2
+      [(sem_type) = { description: "A reason for accessing the client." }];
   optional bool is_valid = 3 [(sem_type) = {
-      description: "If True, this approval is still valid. If False, then "
-      "it wasn't approved or got expired."
-    }];
+    description: "If True, this approval is still valid. If False, then "
+                 "it wasn't approved or got expired."
+  }];
   optional string is_valid_message = 4 [(sem_type) = {
-      description: "If is_valid is False, is_valid_message will contain "
-      "a human-readable description of why the approval is not valid."
-    }];
+    description: "If is_valid is False, is_valid_message will contain "
+                 "a human-readable description of why the approval is not valid."
+  }];
 
   optional string email_message_id = 9 [(sem_type) = {
-      description: "Email msg id used to group all messages related to this "
-      "approval."
-    }];
+    description: "Email msg id used to group all messages related to this "
+                 "approval."
+  }];
 
   repeated string notified_users = 5 [(sem_type) = {
-      description: "GRR users that will be notified about the approval "
-      "being requested."
-    }];
+    description: "GRR users that will be notified about the approval "
+                 "being requested."
+  }];
   repeated string email_cc_addresses = 6 [(sem_type) = {
-      description: "List of emails used to send a notification to about "
-      "this approval being requested."
+    description: "List of emails used to send a notification to about "
+                 "this approval being requested."
   }];
 
   repeated string approvers = 7 [(sem_type) = {
-      description: "List of GRR users who granted this approval. Note: this "
-      "list always includes the original approval requestor."
-    }];
+    description: "List of GRR users who granted this approval. Note: this "
+                 "list always includes the original approval requestor."
+  }];
 }
 
 // These traits are used by the AdminUI Angular app to disable certain UI
@@ -194,19 +190,17 @@ message ApiGrrUserInterfaceTraits {
   optional bool start_client_flow_nav_item_enabled = 16;
   optional bool manage_client_flows_nav_item_enabled = 17;
   optional bool modify_client_labels_action_enabled = 18;
-};
+}
 
 message ApiGrrUser {
-  optional string username = 1 [(sem_type) = {
-      description: "The name of the user."
-    }];
-  optional GUISettings settings = 2 [(sem_type) = {
-      description: "User UI settings."
-    }];
+  optional string username = 1
+      [(sem_type) = { description: "The name of the user." }];
+  optional GUISettings settings = 2
+      [(sem_type) = { description: "User UI settings." }];
   optional ApiGrrUserInterfaceTraits interface_traits = 3 [(sem_type) = {
-      description: "User's interface traits (what they can and can't do "
-      "in the UI)."
-    }];
+    description: "User's interface traits (what they can and can't do "
+                 "in the UI)."
+  }];
 
   enum UserType {
     USER_TYPE_NONE = 0;
@@ -249,102 +243,93 @@ message ApiNotificationReference {
 
 message ApiNotificationClientReference {
   optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "The client this notification is about."
-    }];
+    type: "ApiClientId",
+    description: "The client this notification is about."
+  }];
 }
 
 message ApiNotificationHuntReference {
   // DEPRECATED: hunt_urn
   reserved 1;
   optional string hunt_id = 2 [(sem_type) = {
-      type: "ApiHuntId",
-      description: "The hunt this notification is about."
-    }];
+    type: "ApiHuntId",
+    description: "The hunt this notification is about."
+  }];
 }
 
 message ApiNotificationCronReference {
   // DEPRECATED: cron_job_urn
   reserved 1;
   optional string cron_job_id = 2 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "Id of the referenced cron job."
-    }];
+    type: "ApiCronJobId",
+    description: "Id of the referenced cron job."
+  }];
 }
 
 message ApiNotificationFlowReference {
   optional string client_id = 2 [(sem_type) = {
-      type: "ApiClientId",
-      description: "The client this notification is about."
-    }];
+    type: "ApiClientId",
+    description: "The client this notification is about."
+  }];
   optional string flow_id = 3 [(sem_type) = {
-      type: "ApiFlowId",
-      description: "The flow this notification is about."
-    }];
+    type: "ApiFlowId",
+    description: "The flow this notification is about."
+  }];
 }
 
 message ApiNotificationVfsReference {
-  optional string vfs_path = 1 [(sem_type) = {
-      description: "The cron job this notification is about."
-    }];
+  optional string vfs_path = 1 [
+    (sem_type) = { description: "The cron job this notification is about." }
+  ];
   optional string client_id = 2 [(sem_type) = {
-      type: "ApiClientId",
-      description: "The client this notification is about."
-    }];
+    type: "ApiClientId",
+    description: "The client this notification is about."
+  }];
 }
 
 message ApiNotificationClientApprovalReference {
   optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-    }];
+    type: "ApiClientId",
+  }];
   optional string approval_id = 2;
   optional string username = 3;
 }
 
 message ApiNotificationHuntApprovalReference {
-  optional string hunt_id = 1 [(sem_type) = {
-      type: "ApiHuntId"
-    }];
+  optional string hunt_id = 1 [(sem_type) = { type: "ApiHuntId" }];
   optional string approval_id = 2;
   optional string username = 3;
 }
 
 message ApiNotificationCronJobApprovalReference {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId"
-    }];
+  optional string cron_job_id = 1 [(sem_type) = { type: "ApiCronJobId" }];
   optional string approval_id = 2;
   optional string username = 3;
 }
 
 message ApiNotificationUnknownReference {
-  optional string source_urn = 1 [(sem_type) = {
-      type: "RDFURN"
-    }];
-  optional string subject_urn = 2 [(sem_type) = {
-      type: "RDFURN"
-    }];
-};
+  optional string source_urn = 1 [(sem_type) = { type: "RDFURN" }];
+  optional string subject_urn = 2 [(sem_type) = { type: "RDFURN" }];
+}
 
 // Next id: 6
 message ApiNotification {
   optional uint64 timestamp = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Time the notification was added."
-    }];
-  optional UserNotification.Type notification_type = 5 [(sem_type) = {
-      description: "Notification type."
-    }];
-  optional string message = 2 [(sem_type) = {
-      description: "The content message of this notification."
-    }];
+    type: "RDFDatetime",
+    description: "Time the notification was added."
+  }];
+  optional UserNotification.Type notification_type = 5
+      [(sem_type) = { description: "Notification type." }];
+  optional string message = 2 [
+    (sem_type) = { description: "The content message of this notification." }
+  ];
   optional ApiNotificationReference reference = 3 [(sem_type) = {
-      description: "Information about the object that this notification "
-      "references."
-    }];
-  optional bool is_pending = 4 [(sem_type) = {
-      description: "Whether the notification is pending or not."
-    }];
+    description: "Information about the object that this notification "
+                 "references."
+  }];
+  optional bool is_pending = 4 [
+    (sem_type) = { description: "Whether the notification is pending or not." }
+  ];
 }
 
 //
@@ -352,50 +337,42 @@ message ApiNotification {
 //
 
 message ApiCreateHuntApprovalArgs {
-  optional string hunt_id = 1 [(sem_type) = {
-      type: "ApiHuntId",
-      description: "Hunt id."
-    }];
+  optional string hunt_id = 1
+      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
   optional ApiHuntApproval approval = 2;
 }
 
 message ApiGetHuntApprovalArgs {
-  optional string hunt_id = 1 [(sem_type) = {
-      type: "ApiHuntId",
-      description: "Hunt id."
-    }];
+  optional string hunt_id = 1
+      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
   optional string approval_id = 2 [(sem_type) = {
-      description: "Hunt approvals are uniquely identified by the user who "
-      "requested them, the hunt id in question, and the approval id."
-    }];
+    description: "Hunt approvals are uniquely identified by the user who "
+                 "requested them, the hunt id in question, and the approval id."
+  }];
   optional string username = 3 [(sem_type) = {
-      description: "Username of the user, whose hunt approval is being "
-      "requested."
-    }];
+    description: "Username of the user, whose hunt approval is being "
+                 "requested."
+  }];
 }
 
 message ApiGrantHuntApprovalArgs {
-  optional string hunt_id = 1 [(sem_type) = {
-      type: "ApiHuntId",
-      description: "Hunt id."
-    }];
+  optional string hunt_id = 1
+      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
   optional string approval_id = 2 [(sem_type) = {
-      description: "Hunt approvals are uniquely identified by the user who "
-      "requested them, the hunt id in question, and the approval id."
-    }];
+    description: "Hunt approvals are uniquely identified by the user who "
+                 "requested them, the hunt id in question, and the approval id."
+  }];
   optional string username = 3 [(sem_type) = {
-      description: "Username of the user, whose hunt approval is being "
-      "requested."
-    }];
+    description: "Username of the user, whose hunt approval is being "
+                 "requested."
+  }];
 }
 
 message ApiListHuntApprovalsArgs {
-  optional int64 offset = 1 [(sem_type) = {
-      description: "Approvals starting offset."
-    }];
-  optional int64 count = 2 [(sem_type) = {
-      description: "Number of approvals to fetch."
-    }];
+  optional int64 offset = 1
+      [(sem_type) = { description: "Approvals starting offset." }];
+  optional int64 count = 2
+      [(sem_type) = { description: "Number of approvals to fetch." }];
 }
 
 message ApiListHuntApprovalsResult {
@@ -403,50 +380,42 @@ message ApiListHuntApprovalsResult {
 }
 
 message ApiCreateCronJobApprovalArgs {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "Cron id."
-    }];
+  optional string cron_job_id = 1
+      [(sem_type) = { type: "ApiCronJobId", description: "Cron id." }];
   optional ApiCronJobApproval approval = 2;
 }
 
 message ApiGetCronJobApprovalArgs {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "Cron id."
-    }];
+  optional string cron_job_id = 1
+      [(sem_type) = { type: "ApiCronJobId", description: "Cron id." }];
   optional string approval_id = 2 [(sem_type) = {
-      description: "Cron job approvals are uniquely identified by the user who "
-      "requested them, the cron id in question, and the approval id."
-    }];
+    description: "Cron job approvals are uniquely identified by the user who "
+                 "requested them, the cron id in question, and the approval id."
+  }];
   optional string username = 3 [(sem_type) = {
-      description: "Username of the user, whose cron approval is being "
-      "requested."
-    }];
+    description: "Username of the user, whose cron approval is being "
+                 "requested."
+  }];
 }
 
 message ApiGrantCronJobApprovalArgs {
-  optional string cron_job_id = 1 [(sem_type) = {
-      type: "ApiCronJobId",
-      description: "Cron id."
-    }];
+  optional string cron_job_id = 1
+      [(sem_type) = { type: "ApiCronJobId", description: "Cron id." }];
   optional string approval_id = 2 [(sem_type) = {
-      description: "Cron job approvals are uniquely identified by the user who "
-      "requested them, the cron id in question, and the approval id."
-    }];
+    description: "Cron job approvals are uniquely identified by the user who "
+                 "requested them, the cron id in question, and the approval id."
+  }];
   optional string username = 3 [(sem_type) = {
-      description: "Username of the user, whose cron approval is being "
-      "requested."
-    }];
+    description: "Username of the user, whose cron approval is being "
+                 "requested."
+  }];
 }
 
 message ApiListCronJobApprovalsArgs {
-  optional int64 offset = 1 [(sem_type) = {
-      description: "Approvals starting offset."
-    }];
-  optional int64 count = 2 [(sem_type) = {
-      description: "Number of approvals to fetch."
-    }];
+  optional int64 offset = 1
+      [(sem_type) = { description: "Approvals starting offset." }];
+  optional int64 count = 2
+      [(sem_type) = { description: "Number of approvals to fetch." }];
 }
 
 message ApiListCronJobApprovalsResult {
@@ -454,67 +423,56 @@ message ApiListCronJobApprovalsResult {
 }
 
 message ApiCreateClientApprovalArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   optional ApiClientApproval approval = 2;
   optional bool keep_client_alive = 3 [(sem_type) = {
-      description: "If true, the client will be kept alive for an hour right "
-      "after the approval request is sent."
-    }];
+    description: "If true, the client will be kept alive for an hour right "
+                 "after the approval request is sent."
+  }];
 }
 
 message ApiGetClientApprovalArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   optional string approval_id = 2 [(sem_type) = {
-      description: "Client approvals are uniquely identified by the user who "
-      "requested them, the client id in question, and the approval id."
-    }];
+    description: "Client approvals are uniquely identified by the user who "
+                 "requested them, the client id in question, and the approval id."
+  }];
   optional string username = 3 [(sem_type) = {
-      description: "Username of the user, whose client approval is being "
-      "requested."
-    }];
-};
+    description: "Username of the user, whose client approval is being "
+                 "requested."
+  }];
+}
 
 message ApiGrantClientApprovalArgs {
-  optional string client_id = 1 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
   optional string approval_id = 2 [(sem_type) = {
-      description: "Client approvals are uniquely identified by the user who "
-      "requested them, the client id in question, and the approval id."
-    }];
+    description: "Client approvals are uniquely identified by the user who "
+                 "requested them, the client id in question, and the approval id."
+  }];
   optional string username = 3 [(sem_type) = {
-      description: "Username of the user, whose client approval is being "
-      "requested."
-    }];
-};
+    description: "Username of the user, whose client approval is being "
+                 "requested."
+  }];
+}
 
 message ApiListClientApprovalsArgs {
   enum State {
     ANY = 0;
     VALID = 1;
     INVALID = 2;
-  };
+  }
 
-  optional int64 offset = 1 [(sem_type) = {
-      description: "Approvals starting offset."
-    }];
-  optional int64 count = 2 [(sem_type) = {
-      description: "Number of approvals to fetch."
-    }];
-  optional string client_id = 3 [(sem_type) = {
-      type: "ApiClientId",
-      description: "Client id."
-    }];
-  optional State state = 4 [(sem_type) = {
-      description: "The state of approvals to fetch."
-    }];
+  optional int64 offset = 1
+      [(sem_type) = { description: "Approvals starting offset." }];
+  optional int64 count = 2
+      [(sem_type) = { description: "Number of approvals to fetch." }];
+  optional string client_id = 3
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional State state = 4
+      [(sem_type) = { description: "The state of approvals to fetch." }];
 }
 
 message ApiListClientApprovalsResult {
@@ -522,52 +480,45 @@ message ApiListClientApprovalsResult {
 }
 
 message ApiGetPendingUserNotificationsCountResult {
-  optional int64 count = 1 [(sem_type) = {
-      description: "Number of pending notifications."
-    }];
+  optional int64 count = 1
+      [(sem_type) = { description: "Number of pending notifications." }];
 }
 
 message ApiDeletePendingUserNotificationArgs {
   optional uint64 timestamp = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "The timestamp of the notification to delete."
-    }];
+    type: "RDFDatetime",
+    description: "The timestamp of the notification to delete."
+  }];
 }
 
 message ApiListAndResetUserNotificationsArgs {
-  optional int64 offset = 2 [(sem_type) = {
-      description: "Starting offset."
-    }];
-  optional int64 count = 3 [(sem_type) = {
-      description: "Max number of items to fetch."
-    }];
+  optional int64 offset = 2 [(sem_type) = { description: "Starting offset." }];
+  optional int64 count = 3
+      [(sem_type) = { description: "Max number of items to fetch." }];
   optional string filter = 4 [(sem_type) = {
-      description: "Return only results whose string representation "
-      "contains given substring."
-    }];
-};
+    description: "Return only results whose string representation "
+                 "contains given substring."
+  }];
+}
 
 message ApiListAndResetUserNotificationsResult {
-  repeated ApiNotification items = 1 [(sem_type) = {
-      description: "The list of notifications."
-    }];
-   optional int64 total_count = 2 [(sem_type) = {
-      description: "Total count of items."
-   }];
+  repeated ApiNotification items = 1
+      [(sem_type) = { description: "The list of notifications." }];
+  optional int64 total_count = 2
+      [(sem_type) = { description: "Total count of items." }];
 }
 
 message ApiListPendingUserNotificationsArgs {
   optional uint64 timestamp = 1 [(sem_type) = {
-      type: "RDFDatetime",
-      description: "Only notifications after this timestamp "
-      "will be returned."
-    }];
-};
+    type: "RDFDatetime",
+    description: "Only notifications after this timestamp "
+                 "will be returned."
+  }];
+}
 
 message ApiListPendingUserNotificationsResult {
-  repeated ApiNotification items = 1 [(sem_type) = {
-      description: "The list of notifications."
-    }];
+  repeated ApiNotification items = 1
+      [(sem_type) = { description: "The list of notifications." }];
 }
 
 message ApiListApproverSuggestionsArgs {
@@ -578,12 +529,10 @@ message ApiListApproverSuggestionsArgs {
 
 message ApiListApproverSuggestionsResult {
   message ApproverSuggestion {
-    optional string username = 1 [(sem_type) = {
-      description: "The name of the user."
-    }];
+    optional string username = 1
+        [(sem_type) = { description: "The name of the user." }];
   }
 
-  repeated ApproverSuggestion suggestions = 1 [(sem_type) = {
-    description: "List of users suggested as approvers."
-  }];
+  repeated ApproverSuggestion suggestions = 1
+      [(sem_type) = { description: "List of users suggested as approvers." }];
 }

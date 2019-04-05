@@ -286,7 +286,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
     client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       token = token or self.token
 
       hunt_args = rdf_hunt_objects.HuntArguments(
@@ -316,7 +316,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         **kwargs)
 
   def StartHunt(self, paused=False, **kwargs):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt_id = self.CreateHunt(**kwargs)
       if not paused:
         hunt.StartHunt(hunt_id)
@@ -328,7 +328,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       return hunt_obj.urn
 
   def FindForemanRules(self, hunt_obj, token=None):
-    if data_store.RelationalDBReadEnabled(category="foreman"):
+    if data_store.RelationalDBReadEnabled():
       rules = data_store.REL_DB.ReadAllForemanRules()
       return [
           rule for rule in rules
@@ -380,10 +380,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
   def RunHuntWithClientCrashes(self, client_ids):
     with flow_test_lib.TestWorker(threadpool_size=0, token=True) as test_worker:
-      client_mocks = dict([(client_id,
-                            flow_test_lib.CrashClientMock(
-                                client_id, self.token))
-                           for client_id in client_ids])
+      client_mocks = dict([
+          (client_id, flow_test_lib.CrashClientMock(client_id, self.token))
+          for client_id in client_ids
+      ])
       self.AssignTasksToClients(client_ids=client_ids, worker=test_worker)
       return TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
 
@@ -403,7 +403,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       for value in values:
@@ -431,7 +431,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       data_store.REL_DB.WriteFlowLogEntries([
@@ -461,7 +461,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -486,7 +486,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
     else:
       hunt_obj = aff4.FACTORY.Open(rdfvalue.RDFURN("hunts").Add(hunt_id))
@@ -499,7 +499,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       # No processing needed for new style hunts.
       return
 

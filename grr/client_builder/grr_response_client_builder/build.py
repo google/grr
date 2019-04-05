@@ -328,9 +328,6 @@ class ClientRepacker(BuilderBase):
 
             new_config.SetRaw(descriptor.name, value)
 
-      if config.CONFIG.Get("ClientBuilder.fleetspeak_enabled", context=context):
-        new_config.Set("Client.fleetspeak_enabled", True)
-
       if deploy_timestamp:
         deploy_time_string = str(rdfvalue.RDFDatetime.Now())
         new_config.Set("Client.deploy_time", deploy_time_string)
@@ -358,7 +355,7 @@ class ClientRepacker(BuilderBase):
     """Given a generated client config, attempt to check for common errors."""
     errors = []
 
-    if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+    if not config.CONFIG["Client.fleetspeak_enabled"]:
       location = config_obj.Get("Client.server_urls", context=self.context)
       if not location:
         errors.append("Empty Client.server_urls")
@@ -379,11 +376,8 @@ class ClientRepacker(BuilderBase):
     else:
       rsa_key = rdf_crypto.RSAPublicKey()
       rsa_key.ParseFromHumanReadable(key_data)
-      logging.info(
-          "Executable signing key successfully parsed from config (%d-bit)",
-          rsa_key.KeyLen())
 
-    if not config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+    if not config.CONFIG["Client.fleetspeak_enabled"]:
       certificate = config_obj.GetRaw(
           "CA.certificate", default=None, context=self.context)
       if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
@@ -487,7 +481,7 @@ class WindowsClientRepacker(ClientRepacker):
         "Nanny.service_binary_name", context=context)
     output_zip.writestr(service_bin_name, z_template.read(service_template))
 
-    if config.CONFIG["ClientBuilder.fleetspeak_enabled"]:
+    if config.CONFIG["Client.fleetspeak_enabled"]:
       self._GenerateFleetspeakServiceConfig(output_zip)
 
     if self.signed_template:
@@ -908,39 +902,30 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(target_binary_dir, client_binary_name))
         # pytype: enable=wrong-arg-types
 
+      if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
+        self._GenerateFleetspeakConfig(template_dir, rpm_build_dir)
+        if not config.CONFIG.Get(
+            "Client.fleetspeak_service_name", context=self.context):
+          # The Fleetspeak service name is required when generating the RPM
+          # spec file.
+          raise BuildError("Client.fleetspeak_service_name is not set.")
+      else:
+        self._GenerateInitConfigs(template_dir, rpm_build_dir)
+
       # Generate spec
       spec_filename = os.path.join(rpm_specs_dir, "%s.spec" % client_name)
       self.GenerateFile(
           os.path.join(tmp_dir, "dist/rpmbuild/grr.spec.in"), spec_filename)
 
-      initd_target_filename = os.path.join(rpm_build_dir, "etc/init.d",
-                                           client_name)
+      # Generate prelinking blacklist file
+      prelink_target_filename = os.path.join(rpm_build_dir,
+                                             "etc/prelink.conf.d",
+                                             "%s.conf" % client_name)
 
-      # Generate init.d
-      utils.EnsureDirExists(os.path.dirname(initd_target_filename))
+      utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
       self.GenerateFile(
-          os.path.join(tmp_dir, "dist/rpmbuild/grr-client.initd.in"),
-          initd_target_filename)
-
-      # Generate systemd unit
-      if config.CONFIG["Template.version_numeric"] >= 3125:
-        systemd_target_filename = os.path.join(rpm_build_dir,
-                                               "usr/lib/systemd/system/",
-                                               "%s.service" % client_name)
-
-        utils.EnsureDirExists(os.path.dirname(systemd_target_filename))
-        self.GenerateFile(
-            os.path.join(tmp_dir, "dist/rpmbuild/grr-client.service.in"),
-            systemd_target_filename)
-
-        # Generate prelinking blacklist file
-        prelink_target_filename = os.path.join(
-            rpm_build_dir, "etc/prelink.conf.d", "%s.conf" % client_name)
-
-        utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
-        self.GenerateFile(
-            os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
-            prelink_target_filename)
+          os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
+          prelink_target_filename)
 
       # Create a client config.
       client_context = ["Client Context"] + self.context
@@ -984,6 +969,46 @@ class CentosClientRepacker(LinuxClientRepacker):
       logging.info("Created package %s", output_path)
       self.Sign(output_path)
       return output_path
+
+  def _GenerateFleetspeakConfig(self, template_dir, rpm_build_dir):
+    """Generates a Fleetspeak config for GRR."""
+    source_config = os.path.join(
+        template_dir, "fleetspeak",
+        os.path.basename(
+            config.CONFIG.Get("ClientBuilder.fleetspeak_config_path")))
+    fleetspeak_service_dir = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_service_dir", context=self.context)
+    dest_config_dir = os.path.join(rpm_build_dir, fleetspeak_service_dir[1:])
+    utils.EnsureDirExists(dest_config_dir)
+    dest_config_path = os.path.join(
+        dest_config_dir,
+        config.CONFIG.Get(
+            "Client.fleetspeak_unsigned_config_fname", context=self.context))
+    self.GenerateFile(
+        input_filename=source_config, output_filename=dest_config_path)
+
+  def _GenerateInitConfigs(self, template_dir, rpm_build_dir):
+    """Generates init-system configs."""
+    client_name = config.CONFIG.Get("Client.name", context=self.context)
+    initd_target_filename = os.path.join(rpm_build_dir, "etc/init.d",
+                                         client_name)
+
+    # Generate init.d
+    utils.EnsureDirExists(os.path.dirname(initd_target_filename))
+    self.GenerateFile(
+        os.path.join(template_dir, "rpmbuild/grr-client.initd.in"),
+        initd_target_filename)
+
+    # Generate systemd unit
+    if config.CONFIG["Template.version_numeric"] >= 3125:
+      systemd_target_filename = os.path.join(rpm_build_dir,
+                                             "usr/lib/systemd/system/",
+                                             "%s.service" % client_name)
+
+      utils.EnsureDirExists(os.path.dirname(systemd_target_filename))
+      self.GenerateFile(
+          os.path.join(template_dir, "rpmbuild/grr-client.service.in"),
+          systemd_target_filename)
 
 
 def CopyFileInZip(from_zip, from_name, to_zip, to_name=None, signer=None):

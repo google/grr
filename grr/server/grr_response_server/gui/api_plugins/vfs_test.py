@@ -879,7 +879,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
     stat_entry = rdf_client_fs.StatEntry(st_size=1337)
     stat_entry.pathspec.path = u"foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-    hash_entry = rdf_crypto.Hash(md5=b"quux")
+    hash_entry = rdf_crypto.Hash(md5=b"quux", sha256=b"norf")
     self.SetupFileMetadata(
         client_urn,
         u"fs/os/foo/bar",
@@ -898,7 +898,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testTimelineEntriesWithHashOnlyAreIgnoredOnBodyExport(self):
     client_urn = self.SetupClient(1)
-    hash_entry = rdf_crypto.Hash(md5=b"quux")
+    hash_entry = rdf_crypto.Hash(sha256=b"quux")
     self.SetupFileMetadata(
         client_urn, u"fs/os/foo/bar", stat_entry=None, hash_entry=hash_entry)
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(

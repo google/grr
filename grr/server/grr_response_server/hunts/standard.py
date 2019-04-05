@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import events as rdf_events
@@ -40,10 +39,9 @@ class RunHunt(cronjobs.CronJobBase):
   """A cron job that starts a hunt."""
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hra = self.job.args.hunt_cron_action.hunt_runner_args
       anbpcl = hra.avg_network_bytes_per_client_limit
-      expiry_time = rdfvalue.RDFDatetime.Now() + hra.expiry_time
       hunt.CreateAndStartHunt(
           self.job.args.hunt_cron_action.flow_name,
           self.job.args.hunt_cron_action.flow_args,
@@ -56,7 +54,7 @@ class RunHunt(cronjobs.CronJobBase):
           client_rule_set=hra.client_rule_set,
           crash_limit=hra.crash_limit,
           description=hra.description,
-          expiry_time=expiry_time,
+          duration=hra.expiry_time,
           original_object=hra.original_object,
           output_plugins=hra.output_plugins,
           per_client_cpu_limit=hra.per_client_cpu_limit,

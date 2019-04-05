@@ -24,11 +24,11 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rdf_yara
 
 
 class ClientActionStub(with_metaclass(registry.MetaclassRegistry, object)):
@@ -419,19 +419,19 @@ class DumpACPITable(ClientActionStub):
   out_rdfvalues = [rdf_chipsec_types.DumpACPITableResponse]
 
 
-# from yara_actions.py
+# from memory.py
 class YaraProcessScan(ClientActionStub):
   """Scans the memory of a number of processes using Yara."""
 
-  in_rdfvalue = rdf_yara.YaraProcessScanRequest
-  out_rdfvalues = [rdf_yara.YaraProcessScanResponse]
+  in_rdfvalue = rdf_memory.YaraProcessScanRequest
+  out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
 
 
 class YaraProcessDump(ClientActionStub):
   """Dumps a process to disk and returns pathspecs for GRR to pick up."""
 
-  in_rdfvalue = rdf_yara.YaraProcessDumpArgs
-  out_rdfvalues = [rdf_yara.YaraProcessDumpResponse]
+  in_rdfvalue = rdf_memory.YaraProcessDumpArgs
+  out_rdfvalues = [rdf_memory.YaraProcessDumpResponse]
 
 
 class Osquery(ClientActionStub):

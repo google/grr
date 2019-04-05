@@ -40,7 +40,7 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   def SetBuildVars(self):
     self.fleetspeak_enabled = config.CONFIG.Get(
-        "ClientBuilder.fleetspeak_enabled", context=self.context)
+        "Client.fleetspeak_enabled", context=self.context)
     self.version = config.CONFIG.Get(
         "Source.version_string", context=self.context)
     self.client_name = config.CONFIG.Get("Client.name", context=self.context)

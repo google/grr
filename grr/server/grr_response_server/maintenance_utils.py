@@ -9,14 +9,28 @@ import sys
 
 from future.builtins import str
 
+from grr_api_client import api
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_server import access_control
 from grr_response_server import key_utils
 from grr_response_server import signed_binary_utils
+from grr_response_server.bin import api_shell_raw_access_lib
 
 SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 SUPPORTED_ARCHITECTURES = ["i386", "amd64"]
+
+# Batch size to use when fetching multiple items from the GRR API.
+_GRR_API_PAGE_SIZE = 1000
+
+
+def InitGRRRootAPI():
+
+  return api.GrrApi(
+      connector=api_shell_raw_access_lib.RawConnector(
+          token=access_control.ACLToken(username="GRRConfigUpdater"),
+          page_size=_GRR_API_PAGE_SIZE)).root
 
 
 def EPrint(message):
@@ -85,6 +99,7 @@ def RotateServerKey(cn=u"grr", keylength=4096):
   Args:
     cn: The common name for the server to use.
     keylength: Length in bits for the new server key.
+
   Raises:
     ValueError: There is no CA cert in the config. Probably the server
                 still needs to be initialized.

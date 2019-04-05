@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import itertools
 import random
 
@@ -15,6 +16,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
+from grr_response_server import db_test_utils
 from grr_response_server import flow
 from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -35,7 +37,7 @@ class DatabaseTestHuntMixin(object):
                               hunt_id=None,
                               flow_id=None,
                               **additional_flow_args):
-    client_id = self.InitializeClient(client_id=client_id)
+    client_id = db_test_utils.InitializeClient(self.db, client_id=client_id)
     # Top-level hunt-induced flows should have hunt's id.
     flow_id = flow_id or hunt_id
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
@@ -55,9 +57,10 @@ class DatabaseTestHuntMixin(object):
     self.db.WriteHuntObject(hunt_obj)
 
     read_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
-    # Last update time is set automatically when the object is written.
+    # Create and update time is set automatically when the object is written.
     # Setting it on hunt_obj to make sure it doesn't influence the equality
     # check.
+    hunt_obj.create_time = read_hunt_obj.create_time
     hunt_obj.last_update_time = read_hunt_obj.last_update_time
     self.assertEqual(hunt_obj, read_hunt_obj)
 
@@ -91,7 +94,7 @@ class DatabaseTestHuntMixin(object):
 
     self.db.UpdateHuntObject(
         hunt_obj.hunt_id,
-        expiry_time=rdfvalue.RDFDatetime(42),
+        duration=rdfvalue.Duration("1w"),
         client_rate=33,
         client_limit=48,
         hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED,
@@ -100,14 +103,29 @@ class DatabaseTestHuntMixin(object):
         num_clients_at_start_time=44)
 
     updated_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
-    self.assertEqual(updated_hunt_obj.expiry_time, rdfvalue.RDFDatetime(42))
+    self.assertEqual(updated_hunt_obj.duration, rdfvalue.Duration("1w"))
     self.assertEqual(updated_hunt_obj.client_rate, 33)
     self.assertEqual(updated_hunt_obj.client_limit, 48)
     self.assertEqual(updated_hunt_obj.hunt_state,
                      rdf_hunt_objects.Hunt.HuntState.STOPPED)
     self.assertEqual(updated_hunt_obj.hunt_state_comment, "foo")
-    self.assertEqual(updated_hunt_obj.start_time, rdfvalue.RDFDatetime(43))
+    self.assertEqual(updated_hunt_obj.init_start_time, rdfvalue.RDFDatetime(43))
+    self.assertEqual(updated_hunt_obj.last_start_time, rdfvalue.RDFDatetime(43))
     self.assertEqual(updated_hunt_obj.num_clients_at_start_time, 44)
+
+  def testUpdateHuntObjectCorrectlyUpdatesInitAndLastStartTime(self):
+    hunt_object = rdf_hunt_objects.Hunt(description="Lorem ipsum.")
+    self.db.WriteHuntObject(hunt_object)
+
+    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    self.db.UpdateHuntObject(hunt_object.hunt_id, start_time=timestamp_1)
+
+    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    self.db.UpdateHuntObject(hunt_object.hunt_id, start_time=timestamp_2)
+
+    updated_hunt_object = self.db.ReadHuntObject(hunt_object.hunt_id)
+    self.assertEqual(updated_hunt_object.init_start_time, timestamp_1)
+    self.assertEqual(updated_hunt_object.last_start_time, timestamp_2)
 
   def testDeletingHuntObjectWorks(self):
     hunt_obj = rdf_hunt_objects.Hunt()
@@ -122,20 +140,78 @@ class DatabaseTestHuntMixin(object):
     with self.assertRaises(db.UnknownHuntError):
       self.db.ReadHuntObject(hunt_obj.hunt_id)
 
-  def testReadAllHuntObjectsReturnsEmptyListWhenNoHunts(self):
-    self.assertEqual(self.db.ReadAllHuntObjects(), [])
+  def testReadHuntObjectsReturnsEmptyListWhenNoHunts(self):
+    self.assertEqual(self.db.ReadHuntObjects(offset=0, count=db.MAX_COUNT), [])
 
-  def testReadAllHuntObjectsReturnsAllWrittenObjects(self):
-    hunt_obj_1 = rdf_hunt_objects.Hunt(description="foo")
-    self.db.WriteHuntObject(hunt_obj_1)
+  def _CreateMultipleHunts(self):
+    result = []
+    for i in range(10):
+      if i < 5:
+        creator = "user-a"
+      else:
+        creator = "user-b"
+      hunt_obj = rdf_hunt_objects.Hunt(
+          description="foo_%d" % i, creator=creator)
+      self.db.WriteHuntObject(hunt_obj)
+      result.append(self.db.ReadHuntObject(hunt_obj.hunt_id))
 
-    hunt_obj_2 = rdf_hunt_objects.Hunt(description="bar")
-    self.db.WriteHuntObject(hunt_obj_2)
+    return result
 
-    read_hunt_objs = self.db.ReadAllHuntObjects()
-    self.assertLen(read_hunt_objs, 2)
-    self.assertCountEqual(["foo", "bar"],
-                          [h.description for h in read_hunt_objs])
+  def testReadHuntObjectsWithoutFiltersReadsAllHunts(self):
+    expected = self._CreateMultipleHunts()
+    got = self.db.ReadHuntObjects(0, db.MAX_COUNT)
+    self.assertListEqual(got, list(reversed(expected)))
+
+  def testReadHuntObjectsWithCreatorFilterIsAppliedCorrectly(self):
+    all_hunts = self._CreateMultipleHunts()
+
+    got = self.db.ReadHuntObjects(0, db.MAX_COUNT, with_creator="user-a")
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ReadHuntObjects(0, db.MAX_COUNT, with_creator="user-b")
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+  def testReadHuntObjectsCreatedAfterFilterIsAppliedCorrectly(self):
+    all_hunts = self._CreateMultipleHunts()
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        created_after=all_hunts[0].create_time - rdfvalue.Duration("1s"))
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, created_after=all_hunts[2].create_time)
+    self.assertListEqual(got, list(reversed(all_hunts[3:])))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, created_after=all_hunts[-1].create_time)
+    self.assertEmpty(got)
+
+  def testReadHuntObjectsWithDescriptionMatchFilterIsAppliedCorrectly(self):
+    all_hunts = self._CreateMultipleHunts()
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, with_description_match="foo_")
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, with_description_match="blah")
+    self.assertEmpty(got)
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, with_description_match="foo_3")
+    self.assertListEqual(got, [all_hunts[3]])
+
+  def testReadHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
+    expected = self._CreateMultipleHunts()
+    self.TestFilterCombinationsAndOffsetCount(
+        self.db.ReadHuntObjects,
+        conditions=dict(
+            with_creator="user-a",
+            created_after=expected[2].create_time,
+            with_description_match="foo_4"),
+        error_desc="ReadHuntObjects")
 
   def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -191,6 +267,12 @@ class DatabaseTestHuntMixin(object):
     with self.assertRaises(db.UnknownHuntError):
       self.db.WriteHuntOutputPluginsStates(rdf_hunt_objects.RandomHuntId(),
                                            [state])
+
+  def testReadingHuntOutputPluginsWithoutStates(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+    res = self.db.ReadHuntOutputPluginsStates(hunt_obj.hunt_id)
+    self.assertEqual(res, [])
 
   def testReadingHuntOutputStatesForUnknownHuntRaises(self):
     with self.assertRaises(db.UnknownHuntError):
@@ -258,12 +340,17 @@ class DatabaseTestHuntMixin(object):
   def _WriteNestedAndNonNestedLogEntries(self, hunt_obj):
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
     self.db.WriteFlowLogEntries([
+        # Top-level hunt-induced flows should have the hunt's ID.
         rdf_flow_objects.FlowLogEntry(
             client_id=client_id,
-            # Top-level hunt-induced flows should have hunt's ids.
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah")
+            message="blah_a"),
+        rdf_flow_objects.FlowLogEntry(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_obj.hunt_id,
+            message="blah_b")
     ])
 
     for i in range(10):
@@ -277,7 +364,12 @@ class DatabaseTestHuntMixin(object):
               client_id=client_id,
               flow_id=nested_flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="blah_%d" % i)
+              message="blah_a_%d" % i),
+          rdf_flow_objects.FlowLogEntry(
+              client_id=client_id,
+              flow_id=nested_flow_id,
+              hunt_id=hunt_obj.hunt_id,
+              message="blah_b_%d" % i)
       ])
 
   def testReadHuntLogEntriesIgnoresNestedFlows(self):
@@ -287,8 +379,9 @@ class DatabaseTestHuntMixin(object):
     self._WriteNestedAndNonNestedLogEntries(hunt_obj)
 
     hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 10)
-    self.assertLen(hunt_log_entries, 1)
-    self.assertEqual(hunt_log_entries[0].message, "blah")
+    self.assertLen(hunt_log_entries, 2)
+    self.assertEqual(hunt_log_entries[0].message, "blah_a")
+    self.assertEqual(hunt_log_entries[1].message, "blah_b")
 
   def testCountHuntLogEntriesIgnoresNestedFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -297,9 +390,9 @@ class DatabaseTestHuntMixin(object):
     self._WriteNestedAndNonNestedLogEntries(hunt_obj)
 
     num_hunt_log_entries = self.db.CountHuntLogEntries(hunt_obj.hunt_id)
-    self.assertEqual(num_hunt_log_entries, 1)
+    self.assertEqual(num_hunt_log_entries, 2)
 
-  def _WriteHuntLogEntries(self):
+  def _WriteHuntLogEntries(self, msg="blah"):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)
 
@@ -311,7 +404,7 @@ class DatabaseTestHuntMixin(object):
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="blah%d" % i)
+              message="%s%d" % (msg, i))
       ])
 
     return hunt_obj
@@ -352,6 +445,15 @@ class DatabaseTestHuntMixin(object):
     self.assertLen(hunt_log_entries, 1)
     self.assertEqual(hunt_log_entries[0].message, "blah1")
 
+  def testReadHuntLogEntriesSubstringFilterIsCorrectlyEscaped(self):
+    hunt_obj = self._WriteHuntLogEntries("ABC%1")
+    hunt_log_entries = self.db.ReadHuntLogEntries(
+        hunt_obj.hunt_id, 0, 100, with_substring="BC%1")
+    self.assertLen(hunt_log_entries, 10)
+    hunt_log_entries = self.db.ReadHuntLogEntries(
+        hunt_obj.hunt_id, 0, 100, with_substring="B%1")
+    self.assertLen(hunt_log_entries, 0)
+
   def testReadHuntLogEntriesCorrectlyAppliesCombinationOfFilters(self):
     hunt_obj = self._WriteHuntLogEntries()
 
@@ -367,66 +469,84 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(num_entries, 10)
 
   def _WriteHuntResults(self, sample_results=None):
-    self._WriteFlowResults(
-        multiple_timestamps=True,
-        sample_results=sample_results,
-    )
+    for r in sample_results:
+      self.db.WriteFlowResults([r])
+
+    # Update num_replies_sent for all flows referenced in sample_results:
+    # in case the DB implementation relies on this data when
+    # counting results.
+    results_per_flow = collections.Counter()
+    for r in sample_results:
+      results_per_flow[(r.client_id, r.flow_id)] += 1
+
+    for (client_id, flow_id), delta in results_per_flow.items():
+      f_obj = self.db.ReadFlowObject(client_id, flow_id)
+      f_obj.num_replies_sent += delta
+      self.db.UpdateFlow(client_id, flow_id, flow_obj=f_obj)
 
   def _SampleSingleTypeHuntResults(self,
                                    client_id=None,
                                    flow_id=None,
                                    hunt_id=None,
+                                   serial_number=None,
                                    count=10):
     self.assertIsNotNone(client_id)
     self.assertIsNotNone(flow_id)
     self.assertIsNotNone(hunt_id)
 
-    return [
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            hunt_id=hunt_id,
-            tag="tag_%d" % i,
-            payload=rdf_client.ClientSummary(
-                client_id=client_id,
-                system_manufacturer="manufacturer_%d" % i,
-                install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
-                                                                        i)))
-        for i in range(count)
-    ]
+    res = []
+    for i in range(count):
+      res.append(
+          rdf_flow_objects.FlowResult(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              tag="tag_%d" % i,
+              payload=rdf_client.ClientSummary(
+                  client_id=client_id,
+                  system_manufacturer="manufacturer_%d" % i,
+                  serial_number=serial_number,
+                  install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
+                                                                          i))))
+    return res
 
   def _SampleTwoTypeHuntResults(self,
                                 client_id=None,
                                 flow_id=None,
                                 hunt_id=None,
+                                serial_number=None,
                                 count_per_type=5,
                                 timestamp_start=10):
     self.assertIsNotNone(client_id)
     self.assertIsNotNone(flow_id)
     self.assertIsNotNone(hunt_id)
 
-    return [
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            hunt_id=hunt_id,
-            tag="tag_%d" % i,
-            payload=rdf_client.ClientSummary(
-                client_id=client_id,
-                system_manufacturer="manufacturer_%d" % i,
-                install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-                    timestamp_start + i))) for i in range(count_per_type)
-    ] + [
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            hunt_id=hunt_id,
-            tag="tag_%d" % i,
-            payload=rdf_client.ClientCrash(
-                client_id=client_id,
-                timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
-                    timestamp_start + i))) for i in range(count_per_type)
-    ]
+    res = []
+    for i in range(count_per_type):
+      res.append(
+          rdf_flow_objects.FlowResult(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              tag="tag_%d" % i,
+              payload=rdf_client.ClientSummary(
+                  client_id=client_id,
+                  system_manufacturer="manufacturer_%d" % i,
+                  serial_number=serial_number,
+                  install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                      timestamp_start + i))))
+    for i in range(count_per_type):
+      res.append(
+          rdf_flow_objects.FlowResult(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              tag="tag_%d" % i,
+              payload=rdf_client.ClientCrash(
+                  client_id=client_id,
+                  timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(
+                      timestamp_start + i))))
+    return res
 
   def testReadHuntResultsReadsSingleResultOfSingleType(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -578,7 +698,7 @@ class DatabaseTestHuntMixin(object):
 
     results = self.db.ReadHuntResults(
         hunt_obj.hunt_id, 0, 100, with_substring="blah")
-    self.assertFalse(results)
+    self.assertEmpty(results)
 
     results = self.db.ReadHuntResults(
         hunt_obj.hunt_id, 0, 100, with_substring="manufacturer")
@@ -590,6 +710,28 @@ class DatabaseTestHuntMixin(object):
     results = self.db.ReadHuntResults(
         hunt_obj.hunt_id, 0, 100, with_substring="manufacturer_1")
     self.assertEqual([i.payload for i in results], [sample_results[1].payload])
+
+  def testReadHuntResultsSubstringFilterIsCorrectlyEscaped(self):
+
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
+
+    sample_results = self._SampleSingleTypeHuntResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        hunt_id=hunt_obj.hunt_id,
+        serial_number="ABC%123")
+    self._WriteHuntResults(sample_results)
+
+    results = self.db.ReadHuntResults(
+        hunt_obj.hunt_id, 0, 100, with_substring="ABC%123")
+    self.assertLen(results, 10)
+
+    results = self.db.ReadHuntResults(
+        hunt_obj.hunt_id, 0, 100, with_substring="AB%23")
+    self.assertLen(results, 0)
 
   def testReadHuntResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -966,6 +1108,19 @@ class DatabaseTestHuntMixin(object):
           "(filter_condition=%d): %d vs %d" %
           (filter_condition, len(expected), result))
 
+  def testReadHuntCountersForNewHunt(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+    hunt_counters = self.db.ReadHuntCounters(hunt_obj.hunt_id)
+    self.assertEqual(hunt_counters.num_clients, 0)
+    self.assertEqual(hunt_counters.num_successful_clients, 0)
+    self.assertEqual(hunt_counters.num_failed_clients, 0)
+    self.assertEqual(hunt_counters.num_clients_with_results, 0)
+    self.assertEqual(hunt_counters.num_crashed_clients, 0)
+    self.assertEqual(hunt_counters.num_results, 0)
+    self.assertEqual(hunt_counters.total_cpu_seconds, 0)
+    self.assertEqual(hunt_counters.total_network_bytes_sent, 0)
+
   def testReadHuntCountersCorrectlyAggregatesResultsAmongDifferentFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)
@@ -1004,6 +1159,44 @@ class DatabaseTestHuntMixin(object):
     hunt_counters = self.db.ReadHuntCounters(hunt_obj.hunt_id)
     self.assertAlmostEqual(hunt_counters.total_cpu_seconds, 14.5)
     self.assertEqual(hunt_counters.total_network_bytes_sent, 42)
+
+  def testReadHuntClientResourcesStatsIgnoresSubflows(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    client_id, flow_id = self._SetupHuntClientAndFlow(
+        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        cpu_time_used=rdf_client_stats.CpuSeconds(
+            user_cpu_time=100, system_cpu_time=200),
+        network_bytes_sent=300,
+        hunt_id=hunt_obj.hunt_id)
+
+    # Create a subflow that used some resources too. This resource usage is
+    # already accounted for in the parent flow so the overall hunt resource
+    # usage should ignore those numbers.
+    sub_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id="12345678",
+        parent_flow_id=flow_id,
+        parent_hunt_id=hunt_obj.hunt_id,
+        create_time=rdfvalue.RDFDatetime.Now(),
+        cpu_time_used=rdf_client_stats.CpuSeconds(
+            user_cpu_time=10, system_cpu_time=20),
+        network_bytes_sent=30)
+    self.db.WriteFlowObject(sub_flow)
+
+    usage_stats = self.db.ReadHuntClientResourcesStats(hunt_obj.hunt_id)
+    network_bins = usage_stats.network_bytes_sent_stats.histogram.bins
+    user_cpu_bins = usage_stats.user_cpu_stats.histogram.bins
+    system_cpu_bins = usage_stats.system_cpu_stats.histogram.bins
+
+    self.assertEqual(usage_stats.network_bytes_sent_stats.sum, 300)
+    self.assertEqual(sum([b.num for b in network_bins]), 1)
+    self.assertEqual(usage_stats.system_cpu_stats.sum, 200)
+    self.assertEqual(sum([b.num for b in system_cpu_bins]), 1)
+    self.assertEqual(usage_stats.user_cpu_stats.sum, 100)
+    self.assertEqual(sum([b.num for b in user_cpu_bins]), 1)
+    self.assertLen(usage_stats.worst_performers, 1)
 
   def testReadHuntClientResourcesStatsCorrectlyAggregatesData(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -1298,19 +1491,19 @@ class DatabaseTestHuntMixin(object):
         filter_condition=db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY)
     self.assertLen(results, 1)
 
-  def testFlowStateUpdateUsingReturnProcessedFlow(self):
+  def testFlowStateUpdateUsingReleaseProcessedFlow(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)
     hunt_id = hunt_obj.hunt_id
 
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
 
-    flow_obj = self.db.ReadFlowForProcessing(client_id, flow_id,
-                                             rdfvalue.Duration("1m"))
+    flow_obj = self.db.LeaseFlowForProcessing(client_id, flow_id,
+                                              rdfvalue.Duration("1m"))
     self.assertEqual(flow_obj.flow_state, rdf_flow_objects.Flow.FlowState.UNSET)
 
     flow_obj.flow_state = rdf_flow_objects.Flow.FlowState.ERROR
-    self.db.ReturnProcessedFlow(flow_obj)
+    self.db.ReleaseProcessedFlow(flow_obj)
 
     results = self.db.ReadHuntFlows(
         hunt_id,
@@ -1318,3 +1511,6 @@ class DatabaseTestHuntMixin(object):
         10,
         filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY)
     self.assertLen(results, 1)
+
+
+# This file is a test library and thus does not require a __main__ block.

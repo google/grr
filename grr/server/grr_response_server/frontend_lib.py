@@ -260,6 +260,7 @@ class RelationalServerCommunicator(communicator.Communicator):
       client_id = cipher.cipher_metadata.source.Basename()
       metadata = data_store.REL_DB.ReadClientMetadata(client_id)
       client_time = packed_message_list.timestamp or rdfvalue.RDFDatetime(0)
+      update_metadata = True
 
       # This used to be a strict check here so absolutely no out of
       # order messages would be accepted ever. Turns out that some
@@ -279,15 +280,12 @@ class RelationalServerCommunicator(communicator.Communicator):
           # This is likely an old message
           return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
-        stats_collector_instance.Get().IncrementCounter(
-            "grr_authenticated_messages")
-
-        # Update the client and server timestamps only if the client
-        # time moves forward.
-        if client_time <= stored_client_time:
-          logging.warning("Out of order message for %s: %s >= %s", client_id,
+        # Update the client and server timestamps only if the client time moves
+        # forward.
+        if client_time < stored_client_time:
+          logging.warning("Out of order message for %s: %s > %s", client_id,
                           stored_client_time, client_time)
-          return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+          update_metadata = False
 
       stats_collector_instance.Get().IncrementCounter(
           "grr_authenticated_messages")
@@ -295,6 +293,9 @@ class RelationalServerCommunicator(communicator.Communicator):
       for label in data_store.REL_DB.ReadClientLabels(client_id):
         stats_collector_instance.Get().IncrementCounter(
             "client_pings_by_label", fields=[label.name])
+
+      if not update_metadata:
+        return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
       source_ip = response_comms.orig_request.source_ip
       if source_ip:
@@ -445,34 +446,39 @@ class FrontEndServer(object):
       return []
 
     client = rdf_client.ClientURN(client)
-
     start_time = time.time()
     # Drain the queue for this client
-    new_tasks = queue_manager.QueueManager(token=self.token).QueryAndOwn(
-        queue=client.Queue(),
-        limit=max_count,
-        lease_seconds=self.message_expiry_time)
+    if data_store.RelationalDBReadEnabled():
+      result = data_store.REL_DB.LeaseClientMessages(
+          client.Basename(),
+          lease_time=rdfvalue.Duration.FromSeconds(self.message_expiry_time),
+          limit=max_count)
+    else:
+      new_tasks = queue_manager.QueueManager(token=self.token).QueryAndOwn(
+          queue=client.Queue(),
+          limit=max_count,
+          lease_seconds=self.message_expiry_time)
 
-    initial_ttl = rdf_flows.GrrMessage().task_ttl
-    check_before_sending = []
-    result = []
-    for task in new_tasks:
-      if task.task_ttl < initial_ttl - 1:
-        # This message has been leased before.
-        check_before_sending.append(task)
-      else:
-        result.append(task)
+      initial_ttl = rdf_flows.GrrMessage().task_ttl
+      check_before_sending = []
+      result = []
+      for task in new_tasks:
+        if task.task_ttl < initial_ttl - 1:
+          # This message has been leased before.
+          check_before_sending.append(task)
+        else:
+          result.append(task)
 
-    if check_before_sending:
-      with queue_manager.QueueManager(token=self.token) as manager:
-        status_found = manager.MultiCheckStatus(check_before_sending)
+      if check_before_sending:
+        with queue_manager.QueueManager(token=self.token) as manager:
+          status_found = manager.MultiCheckStatus(check_before_sending)
 
-        # All messages that don't have a status yet should be sent again.
-        for task in check_before_sending:
-          if task not in status_found:
-            result.append(task)
-          else:
-            manager.DeQueueClientRequest(task)
+          # All messages that don't have a status yet should be sent again.
+          for task in check_before_sending:
+            if task not in status_found:
+              result.append(task)
+            else:
+              manager.DeQueueClientRequest(task)
 
     stats_collector_instance.Get().IncrementCounter("grr_messages_sent",
                                                     len(result))

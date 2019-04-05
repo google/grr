@@ -260,8 +260,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   def testNannyMessageFlow(self):
     client_id = self.SetupClient(0)
     email_dict = {}
-    with test_lib.ConfigOverrider(
-        {"Database.useForReads.message_handlers": False}):
+    with test_lib.ConfigOverrider({"Database.useForReads": False}):
       nanny_message = "Oh no!"
       self.SendResponse(
           session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
@@ -312,8 +311,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   def testClientAlertFlow(self):
     client_id = self.SetupClient(0)
     email_dict = {}
-    with test_lib.ConfigOverrider(
-        {"Database.useForReads.message_handlers": False}):
+    with test_lib.ConfigOverrider({"Database.useForReads": False}):
       client_message = "Oh no!"
       self.SendResponse(
           session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
@@ -358,8 +356,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
   def testStartupFlow(self):
-    with test_lib.ConfigOverrider(
-        {"Database.useForReads.message_handlers": False}):
+    with test_lib.ConfigOverrider({"Database.useForReads": False}):
       client_id = self.SetupClient(0)
       rel_client_id = client_id.Basename()
       data_store.REL_DB.WriteClientMetadata(
@@ -652,7 +649,7 @@ sys.test_code_ran_here = True
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled("client_stats"):
+    if data_store.RelationalDBReadEnabled():
       samples = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
@@ -738,7 +735,6 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
   def testStartupHandler(self):
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
-        "Database.useForReads.message_handlers": True,
     }):
       client_id = self.SetupClient(0).Basename()
 
@@ -789,7 +785,6 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
 
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
-        "Database.useForReads.message_handlers": True
     }):
       with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
         flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
@@ -814,7 +809,6 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
 
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
-        "Database.useForReads.message_handlers": True
     }):
       with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
         flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
@@ -849,7 +843,6 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
 
     with test_lib.ConfigOverrider({
         "Database.useForReads": True,
-        "Database.useForReads.message_handlers": True
     }):
       with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
         flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(

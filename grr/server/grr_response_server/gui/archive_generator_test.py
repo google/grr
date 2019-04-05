@@ -48,7 +48,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     else:
       digest = None
 
-    if data_store.RelationalDBReadEnabled("filestore"):
+    if data_store.RelationalDBReadEnabled():
       self.assertTrue(data_store.RelationalDBWriteEnabled())
       self.assertTrue(hashing)
     else:
@@ -78,8 +78,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
   def _InitializeFiles(self, hashing=False):
     path1 = self.client_id.Add("fs/os/foo/bar/hello1.txt")
-    archive_path1 = (
-        "test_prefix/%s/fs/os/foo/bar/hello1.txt" % self.client_id.Basename())
+    archive_path1 = ("test_prefix/%s/fs/os/foo/bar/hello1.txt" %
+                     self.client_id.Basename())
     self._CreateFile(
         path=path1, content="hello1".encode("utf-8"), hashing=hashing)
 
@@ -159,8 +159,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     zip_fd = zipfile.ZipFile(fd_path)
     names = [str(s) for s in sorted(zip_fd.namelist())]
 
-    client_info_name = (
-        "test_prefix/%s/client_info.yaml" % self.client_id.Basename())
+    client_info_name = ("test_prefix/%s/client_info.yaml" %
+                        self.client_id.Basename())
     manifest_name = "test_prefix/MANIFEST"
 
     self.assertCountEqual(
@@ -215,8 +215,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
           tar_fd.extractfile(self.archive_paths[1].encode("utf-8")).read(),
           "hello2")
 
-      client_info_name = (
-          "test_prefix/%s/client_info.yaml" % self.client_id.Basename())
+      client_info_name = ("test_prefix/%s/client_info.yaml" %
+                          self.client_id.Basename())
       client_info = yaml.safe_load(tar_fd.extractfile(client_info_name).read())
 
       try:
@@ -231,7 +231,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     # TODO(user): This divergence in behavior is not nice.
     # To be removed with AFF4.
-    if data_store.RelationalDBReadEnabled("filestore"):
+    if data_store.RelationalDBReadEnabled():
       with mock.patch.object(
           file_store, "StreamFilesChunks", side_effect=Exception("foobar")):
         with self.assertRaises(Exception) as context:

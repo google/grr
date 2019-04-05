@@ -5,25 +5,22 @@ goog.module.declareLegacyNamespace();
  * Controller for ComparisonChartDirective.
  *
  * @param {!angular.Scope} $scope
- * @param {!angular.jQuery} $element
  * @constructor
  * @ngInject
  */
-const ComparisonChartController = function(
-    $scope, $element) {
+const ComparisonChartController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
-
   this.values = [];
 
-  this.scope_.$watch('typedData', (typedData) => {
-    if (angular.isDefined(typedData)) {
-      this.initComparisonChart_(typedData['value']);
-    }
-  });
+  this.scope_.$watchGroup(
+      ['typedData', 'preserveOrder'],
+      ([typedData, _]) => {
+        if (angular.isDefined(typedData)) {
+          this.initComparisonChart_(typedData['value']);
+        }
+      });
 };
 
 /**

@@ -117,7 +117,8 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     rule = rules[0]
     self.assertEqual(rule.client_rule_set, client_rule_set)
     self.assertEqual(rule.hunt_id, hunt_obj.hunt_id)
-    self.assertEqual(rule.expiration_time, hunt_obj.expiry_time)
+    self.assertEqual(rule.expiration_time,
+                     hunt_obj.init_start_time + hunt_obj.duration)
 
     # Running a second time should not change the rules any more.
     with self.assertRaises(hunt.OnlyPausedHuntCanBeStartedError):
@@ -798,12 +799,13 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
   def testHuntIsStoppedWhenExpirationTimeIsReached(self):
     client_ids = self.SetupClients(5)
 
-    now = rdfvalue.RDFDatetime.Now()
-    expiry_time = now + rdfvalue.Duration("1d")
+    duration = rdfvalue.Duration("1d")
+    expiry_time = rdfvalue.RDFDatetime.Now() + duration
+
     hunt_id = self._CreateHunt(
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
         client_rate=0,
-        expiry_time=expiry_time,
+        duration=duration,
         args=self.GetFileHuntArgs())
 
     client_mock = hunt_test_lib.SampleHuntMock(failrate=-1)

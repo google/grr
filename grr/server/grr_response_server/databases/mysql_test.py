@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 from __future__ import division
+from __future__ import print_function
 from __future__ import unicode_literals
 
 import contextlib
@@ -12,17 +13,21 @@ import threading
 import unittest
 
 from absl import app
+from absl import flags
 from absl.testing import absltest
 from future.builtins import range
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
-from grr_response_server import blob_store_test_mixin
 from grr_response_server import db_test_mixin
 from grr_response_server.databases import mysql
 from grr_response_server.databases import mysql_utils
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
+
+flags.DEFINE_string(
+    "slow_query_log", "",
+    "Filename. If given, generates a log of all queries not using an index.")
 
 
 def _GetEnvironOrSkip(key):
@@ -32,7 +37,7 @@ def _GetEnvironOrSkip(key):
   return value
 
 
-class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseProvider):
+class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
 
   def CreateDatabase(self):
 
@@ -65,16 +70,18 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseProvider):
     return self.db.delegate, None
 
 
+class MysqlTestBase(MySQLDatabaseProviderMixin):
+  pass
+
+
 class TestMysqlDB(stats_test_lib.StatsTestMixin,
-                  db_test_mixin.DatabaseTestMixin, MySQLDatabaseProviderMixin,
-                  blob_store_test_mixin.BlobStoreTestMixin, absltest.TestCase):
+                  db_test_mixin.DatabaseTestMixin, MysqlTestBase,
+                  absltest.TestCase):
   """Test the mysql.MysqlDB class.
 
   Most of the tests in this suite are general blackbox tests of the db.Database
   interface brought in by the db_test.DatabaseTestMixin.
   """
-
-  flow_processing_req_func = "_WriteFlowProcessingRequests"
 
   def testIsRetryable(self):
     self.assertFalse(mysql._IsRetryable(Exception("Some general error.")))
@@ -190,35 +197,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   # Tests that we don't expect to pass yet.
 
   # TODO(user): Finish implementation and enable these tests.
-  def testWritePathInfosRawValidates(self):
-    pass
-
-  def testWritePathInfosValidatesClient(self):
-    pass
-
-  def testWritePathInfosMetadata(self):
-    pass
-
-  def testWritePathInfosMetadataTimestampUpdate(self):
-    pass
-
-  def testWritePathInfosStatEntry(self):
-    pass
-
-  def testWritePathInfosExpansion(self):
-    pass
-
-  def testWritePathInfosTypeSeparated(self):
-    pass
-
-  def testWritePathInfosUpdates(self):
-    pass
-
-  def testWritePathInfosUpdatesAncestors(self):
-    pass
-
-  def testMultiWritePathInfos(self):
-    pass
 
   def testWriteStatHistory(self):
     pass
@@ -253,116 +231,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
   def testMultiWriteHistoryRaisesOnNonExistingPathForHash(self):
     pass
 
-  def testReadPathInfosNonExistent(self):
-    pass
-
-  def testReadPathInfoNonExistent(self):
-    pass
-
-  def testReadPathInfoTimestampStatEntry(self):
-    pass
-
-  def testReadPathInfosMany(self):
-    pass
-
-  def testWritePathInfosDuplicatedData(self):
-    pass
-
-  def testWritePathInfosStoresCopy(self):
-    pass
-
-  def testListDescendentPathInfosEmptyResult(self):
-    pass
-
-  def testListDescendentPathInfosSingleResult(self):
-    pass
-
-  def testListDescendentPathInfosSingle(self):
-    pass
-
-  def testListDescendentPathInfosBranching(self):
-    pass
-
-  def testListDescendentPathInfosLimited(self):
-    pass
-
-  def testListDescendentPathInfosTypeSeparated(self):
-    pass
-
-  def testListDescendentPathInfosAll(self):
-    pass
-
-  def testListDescendentPathInfosLimitedDirectory(self):
-    pass
-
-  def testListDescendentPathInfosTimestampNow(self):
-    pass
-
-  def testListDescendentPathInfosTimestampMultiple(self):
-    pass
-
-  def testListDescendentPathInfosTimestampStatValue(self):
-    pass
-
-  def testListDescendentPathInfosTimestampHashValue(self):
-    pass
-
-  def testListChildPathInfosRoot(self):
-    pass
-
-  def testListChildPathInfosRootDeeper(self):
-    pass
-
-  def testListChildPathInfosDetails(self):
-    pass
-
-  def testListChildPathInfosDeepSorted(self):
-    pass
-
-  def testListChildPathInfosTimestamp(self):
-    pass
-
-  def testListChildPathInfosTimestampStatAndHashValue(self):
-    pass
-
   # TODO(hanuszczak): Remove these once support for storing file hashes in
   # the MySQL backend is ready.
-
-  def testWritePathInfosHashEntry(self):
-    pass
-
-  def testWriteMultiplePathInfosHashEntry(self):
-    pass
-
-  def testWritePathInfosHashAndStatEntry(self):
-    pass
-
-  def testWritePathInfoHashAndStatEntrySeparateWrites(self):
-    pass
-
-  def testReadPathInfoTimestampHashEntry(self):
-    pass
-
-  def testReadPathInfoTimestampStatAndHashEntry(self):
-    pass
-
-  def testReadPathInfoOlder(self):
-    pass
-
-  def testReadPathInfosHistoriesEmpty(self):
-    pass
-
-  def testReadPathInfosHistoriesDoesNotRaiseOnUnknownClient(self):
-    pass
-
-  def testReadPathInfosHistoriesWithSingleFileWithSingleHistoryItem(self):
-    pass
-
-  def testReadPathInfosHistoriesWithTwoFilesWithSingleHistoryItemEach(self):
-    pass
-
-  def testReadPathInfosHistoriesWithTwoFilesWithTwoHistoryItems(self):
-    pass
 
   def testInitPathInfosValidatesClient(self):
     pass
@@ -416,320 +286,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     pass
 
   def testMultiClearPathHistoryClearsMultipleHistories(self):
-    pass
-
-  def testWritesAndReadsSingleFlowResultOfSingleType(self):
-    pass
-
-  def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
-    pass
-
-  def testWritesAndReadsMultipleFlowResultsWithDifferentTimestamps(self):
-    pass
-
-  def testWritesAndReadsMultipleFlowResultsOfMultipleTypes(self):
-    pass
-
-  def testReadFlowResultsCorrectlyAppliesOffsetAndCountFilters(self):
-    pass
-
-  def testReadFlowResultsCorrectlyAppliesWithTagFilter(self):
-    pass
-
-  def testReadFlowResultsCorrectlyAppliesWithTypeFilter(self):
-    pass
-
-  def testReadFlowResultsCorrectlyAppliesWithSubstringFilter(self):
-    pass
-
-  def testReadFlowResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
-    pass
-
-  def testReadFlowResultsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    pass
-
-  def testCountFlowResultsReturnsCorrectResultsCount(self):
-    pass
-
-  def testCountFlowResultsCorrectlyAppliesWithTagFilter(self):
-    pass
-
-  def testCountFlowResultsCorrectlyAppliesWithTypeFilter(self):
-    pass
-
-  def testCountFlowResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
-    pass
-
-  def testWritesAndReadsSingleFlowLogEntry(self):
-    pass
-
-  def testWritesAndReadsMultipleFlowLogEntries(self):
-    pass
-
-  def testReadFlowLogEntriesCorrectlyAppliesOffsetAndCountFilters(self):
-    pass
-
-  def testReadFlowLogEntriesCorrectlyAppliesWithSubstringFilter(self):
-    pass
-
-  def testReadFlowLogEntriesCorrectlyAppliesVariousCombinationsOfFilters(self):
-    pass
-
-  def testCountFlowLogEntriesReturnsCorrectFlowLogEntriesCount(self):
-    pass
-
-  def testReadLatestPathInfosReturnsNothingForNonExistingPaths(self):
-    pass
-
-  def testFlowLogsAndErrorsForUnknownFlowsRaise(self):
-    pass
-
-  def testReadLatestPathInfosReturnsNothingWhenNoFilesCollected(self):
-    pass
-
-  def testReadLatestPathInfosFindsTwoCollectedFilesWhenTheyAreTheOnlyEntries(
-      self):
-    pass
-
-  def testReadLatestPathInfosCorrectlyFindsCollectedFileWithNonLatestEntry(
-      self):
-    pass
-
-  def testReadLatestPathInfosCorrectlyFindsLatestOfTwoCollectedFiles(self):
-    pass
-
-  def testReadLatestPathInfosCorrectlyFindsLatestCollectedFileBeforeTimestamp(
-      self):
-    pass
-
-  def testReadLatestPathInfosIncludesStatEntryIfThereIsOneWithSameTimestamp(
-      self):
-    pass
-
-  # TODO(user): implement hunts support for MySQL
-  def testReadFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
-    pass
-
-  def testWritingAndReadingHuntObjectWorks(self):
-    pass
-
-  def testHuntObjectCanBeOverwritten(self):
-    pass
-
-  def testReadingNonExistentHuntObjectRaises(self):
-    pass
-
-  def testUpdateHuntObjectRaisesIfHuntDoesNotExist(self):
-    pass
-
-  def testUpdateHuntObjectCorrectlyUpdatesHuntObject(self):
-    pass
-
-  def testUpdateHuntObjectIsAtomic(self):
-    pass
-
-  def testUpdateHuntObjectPropagatesExceptions(self):
-    pass
-
-  def testUpdateHuntObjectIncrementsCountersWithoutOverridingThem(self):
-    pass
-
-  def testDeletingHuntObjectWorks(self):
-    pass
-
-  def testReadAllHuntObjectsReturnsEmptyListWhenNoHunts(self):
-    pass
-
-  def testReadAllHuntObjectsReturnsAllWrittenObjects(self):
-    pass
-
-  def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
-    pass
-
-  def testReadingHuntOutputPluginsReturnsThemInOrderOfWriting(self):
-    pass
-
-  def testWritingHuntOutputStatesForZeroPlugins(self):
-    pass
-
-  def testWritingHuntOutputStatesForUnknownHuntRaises(self):
-    pass
-
-  def testReadingHuntOutputStatesForUnknownHuntRaises(self):
-    pass
-
-  def testUpdatingHuntOutputStateForUnknownHuntRaises(self):
-    pass
-
-  def testUpdatingHuntOutputStateWorksCorrectly(self):
-    pass
-
-  def testReadHuntLogEntriesReturnsEntryFromSingleHuntFlow(self):
-    pass
-
-  def testReadHuntLogEntriesReturnsEntryFromMultipleHuntFlows(self):
-    pass
-
-  def testReadHuntLogEntriesCorrectlyAppliesOffsetAndCountFilters(self):
-    pass
-
-  def testReadHuntLogEntriesCorrectlyAppliesWithSubstringFilter(self):
-    pass
-
-  def testReadHuntLogEntriesCorrectlyAppliesCombinationOfFilters(self):
-    pass
-
-  def testCountHuntLogEntriesReturnsCorrectHuntLogEntriesCount(self):
-    pass
-
-  def testReadHuntResultsReadsSingleResultOfSingleType(self):
-    pass
-
-  def testReadHuntResultsReadsMultipleResultOfSingleType(self):
-    pass
-
-  def testReadHuntResultsReadsMultipleResultOfMultipleTypes(self):
-    pass
-
-  def testReadHuntResultsCorrectlyAppliedOffsetAndCountFilters(self):
-    pass
-
-  def testReadHuntResultsCorrectlyAppliesWithTagFilter(self):
-    pass
-
-  def testReadHuntResultsCorrectlyAppliesWithTypeFilter(self):
-    pass
-
-  def testReadHuntResultsCorrectlyAppliesWithSubstringFilter(self):
-    pass
-
-  def testReadHuntResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
-    pass
-
-  def testReadHuntResultsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    pass
-
-  def testCountHuntResultsReturnsCorrectResultsCount(self):
-    pass
-
-  def testCountHuntResultsCorrectlyAppliesWithTagFilter(self):
-    pass
-
-  def testCountHuntResultsCorrectlyAppliesWithTypeFilter(self):
-    pass
-
-  def testCountHuntResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
-    pass
-
-  def testCountHuntResultsCorrectlyAppliesWithTimestampFilter(self):
-    pass
-
-  def testCountHuntResultsByTypeGroupsResultsCorrectly(self):
-    pass
-
-  def testReadHuntFlowsReturnsEmptyListWhenNoFlows(self):
-    pass
-
-  def testReadHuntFlowsReturnsAllHuntFlowsWhenNoFilterCondition(self):
-    pass
-
-  def testReadHuntFlowsAppliesFilterConditionCorrectly(self):
-    pass
-
-  def testReadHuntFlowsCorrectlyAppliesOffsetAndCountFilters(self):
-    pass
-
-  def testCountHuntFlowsReturnsEmptyListWhenNoFlows(self):
-    pass
-
-  def testCountHuntFlowsReturnsAllHuntFlowsWhenNoFilterCondition(self):
-    pass
-
-  def testCountHuntFlowsAppliesFilterConditionCorrectly(self):
-    pass
-
-  # Flow/hunt output plugin tests.
-  def testFlowOutputPluginLogEntriesCanBeWrittenAndThenRead(self):
-    pass
-
-  def testFlowOutputPluginLogEntryWith1MbMessageCanBeWrittenAndThenRead(self):
-    pass
-
-  def testFlowOutputPluginLogEntriesCanBeReadWithTypeFilter(self):
-    pass
-
-  def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
-    pass
-
-  def testReadFlowOutputPluginLogEntriesAppliesOffsetCounterWithType(self):
-    pass
-
-  def testFlowOutputPluginLogEntriesCanBeCountedPerPlugin(self):
-    pass
-
-  def testCountFlowOutputPluginLogEntriesRespectsWithTypeFilter(self):
-    pass
-
-  def testReadHuntOutputPluginLogEntriesReturnsEntryFromSingleHuntFlow(self):
-    pass
-
-  def testReadHuntOutputPluginLogEntriesReturnsEntryFromMultipleHuntFlows(self):
-    pass
-
-  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesOffsetAndCountFilters(
-      self):
-    pass
-
-  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesWithTypeFilter(self):
-    pass
-
-  def testReadHuntOutputPluginLogEntriesCorrectlyAppliesCombinationOfFilters(
-      self):
-    pass
-
-  def testCountHuntOutputPluginLogEntriesReturnsCorrectCount(self):
-    pass
-
-  def testCountHuntOutputPluginLogEntriesRespectsWithTypeFilter(self):
-    pass
-
-  def testFlowStateUpdateUsingUpdateFlow(self):
-    pass
-
-  def testFlowStateUpdateUsingReturnProcessedFlow(self):
-    pass
-
-  def testReadHuntFlowsIgnoresSubflows(self):
-    pass
-
-  def testCountHuntFlowsIgnoresSubflows(self):
-    pass
-
-  def testReadHuntLogEntriesIgnoresNestedFlows(self):
-    pass
-
-  def testCountHuntLogEntriesIgnoresNestedFlows(self):
-    pass
-
-  def testReadHuntCountersCorrectlyAggregatesResultsAmongDifferentFlows(self):
-    pass
-
-  def testFlowRequestsWithStartTimeAreCorrectlyDelayed(self):
-    pass
-
-  def testReadHuntClientResourcesStatsCorrectlyAggregatesData(self):
-    pass
-
-  def testReadHuntFlowsStatesAndTimestampsWorksCorrectlyForMultipleFlows(self):
-    pass
-
-  def testReadHuntFlowsStatesAndTimestampsIgnoresNestedFlows(self):
-    pass
-
-  def test40000ResponsesCanBeWrittenAndRead(self):
-    pass
-
-  def testWritesAndCounts40001FlowResults(self):
     pass
 
 

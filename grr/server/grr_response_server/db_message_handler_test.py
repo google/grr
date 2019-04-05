@@ -11,7 +11,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import test_lib
 
 
 class DatabaseTestHandlerMixin(object):
@@ -62,19 +61,18 @@ class DatabaseTestHandlerMixin(object):
     ]
     lease_time = rdfvalue.Duration("5m")
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)):
-      self.db.WriteMessageHandlerRequests(requests)
-
     leased = queue.Queue()
     self.db.RegisterMessageHandler(leased.put, lease_time, limit=5)
+
+    self.db.WriteMessageHandlerRequests(requests)
 
     got = []
     while len(got) < 10:
       try:
         l = leased.get(True, timeout=6)
       except queue.Empty:
-        self.fail(
-            "Timed out waiting for messages, expected 10, got %d" % len(got))
+        self.fail("Timed out waiting for messages, expected 10, got %d" %
+                  len(got))
       self.assertLessEqual(len(l), 5)
       for m in l:
         self.assertEqual(m.leased_by, utils.ProcessIdString())
@@ -88,3 +86,6 @@ class DatabaseTestHandlerMixin(object):
 
     got.sort(key=lambda req: req.request_id)
     self.assertEqual(requests, got)
+
+
+# This file is a test library and thus does not require a __main__ block.

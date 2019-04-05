@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import gzip
-import json
 import logging
 import os
 import tempfile
@@ -17,6 +16,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import json
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import bigquery
 from grr_response_server import export
@@ -127,11 +127,14 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     return row
 
   def _WriteJSONValue(self, output_file, value, delimiter=None):
+    # We write newline-separated dicts of JSON values, so each JSON value is not
+    # allowed to contain any newline characters.
+    dumped_json = json.Dump(self._GetNestedDict(value)).replace("\n", "")
+
     if delimiter:
-      output_file.write("{0}{1}".format(delimiter,
-                                        json.dumps(self._GetNestedDict(value))))
-    else:
-      output_file.write(json.dumps(self._GetNestedDict(value)))
+      output_file.write(delimiter.encode("utf-8"))
+
+    output_file.write(dumped_json.encode("utf-8"))
 
   def _CreateOutputFileHandles(self, output_type):
     """Creates a new gzipped output tempfile for the output type.

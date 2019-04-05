@@ -201,7 +201,7 @@ class SystemCronTestMixin(object):
         if data_store.RelationalDBWriteEnabled():
           data_store.REL_DB.WriteClientStats(client_id.Basename(), st)
 
-    if data_store.RelationalDBReadEnabled("client_stats"):
+    if data_store.RelationalDBReadEnabled():
       stat_entries = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
@@ -215,7 +215,7 @@ class SystemCronTestMixin(object):
     with test_lib.FakeTime(2.51 * max_age):
       self._RunPurgeClientStats()
 
-    if data_store.RelationalDBReadEnabled("client_stats"):
+    if data_store.RelationalDBReadEnabled():
       stat_entries = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))

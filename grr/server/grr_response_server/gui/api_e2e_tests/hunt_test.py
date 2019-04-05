@@ -63,7 +63,7 @@ class ApiClientLibHuntTest(
 
     self.api.Hunt(hunt_id).Delete()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       with self.assertRaises(db.UnknownHuntError):
         data_store.REL_DB.ReadHuntObject(hunt_id)
     else:
@@ -112,7 +112,7 @@ class ApiClientLibHuntTest(
   def testListLogsWithoutClientIds(self):
     hunt_urn = self.StartHunt()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       client_ids = self.SetupClients(2)
       self.AssignTasksToClients(client_ids)
 
@@ -154,7 +154,7 @@ class ApiClientLibHuntTest(
     hunt_urn = self.StartHunt()
     client_ids = self.SetupClients(2)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       with test_lib.FakeTime(52):
         flow_id = flow_test_lib.StartFlow(
             flows_processes.ListProcesses,

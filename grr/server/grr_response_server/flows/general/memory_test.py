@@ -15,17 +15,17 @@ import yara
 
 from grr_response_client import client_utils
 from grr_response_client import process_error
+from grr_response_client.client_actions import memory as memory_actions
 from grr_response_client.client_actions import tempfiles
-from grr_response_client.client_actions import yara_actions
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import rdf_yara
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.flows.general import yara_flows
+from grr_response_server.flows.general import memory
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
@@ -154,7 +154,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
                           include_misses_in_results=False,
                           max_results_per_process=0,
                           **kw):
-    client_mock = action_mocks.ActionMock(yara_actions.YaraProcessScan)
+    client_mock = action_mocks.ActionMock(memory_actions.YaraProcessScan)
 
     with utils.MultiStubber(
         (psutil, "process_iter", lambda: procs),
@@ -162,7 +162,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         (client_utils, "OpenProcessForMemoryAccess",
          lambda pid: FakeMemoryProcess(pid=pid))):
       session_id = flow_test_lib.TestFlowHelper(
-          yara_flows.YaraProcessScan.__name__,
+          memory.YaraProcessScan.__name__,
           client_mock,
           yara_signature=test_yara_signature,
           client_id=self.client_id,
@@ -174,9 +174,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           **kw)
 
     res = flow_test_lib.GetFlowResults(self.client_id.Basename(), session_id)
-    matches = [r for r in res if isinstance(r, rdf_yara.YaraProcessScanMatch)]
-    errors = [r for r in res if isinstance(r, rdf_yara.YaraProcessError)]
-    misses = [r for r in res if isinstance(r, rdf_yara.YaraProcessScanMiss)]
+    matches = [r for r in res if isinstance(r, rdf_memory.YaraProcessScanMatch)]
+    errors = [r for r in res if isinstance(r, rdf_memory.ProcessMemoryError)]
+    misses = [r for r in res if isinstance(r, rdf_memory.YaraProcessScanMiss)]
     return (matches, errors, misses)
 
   def setUp(self):
@@ -283,7 +283,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
   def testPerProcessTimeoutArg(self):
     FakeRules.invocations = []
-    with utils.Stubber(rdf_yara.YaraSignature, "GetRules", FakeRules):
+    with utils.Stubber(rdf_memory.YaraSignature, "GetRules", FakeRules):
       self._RunYaraProcessScan(self.procs, per_process_timeout=50)
 
     self.assertLen(FakeRules.invocations, 7)
@@ -294,7 +294,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
   def testPerProcessTimeout(self):
     FakeRules.invocations = []
-    with utils.Stubber(rdf_yara.YaraSignature, "GetRules", TimeoutRules):
+    with utils.Stubber(rdf_memory.YaraSignature, "GetRules", TimeoutRules):
       matches, errors, misses = self._RunYaraProcessScan(
           self.procs,
           per_process_timeout=50,
@@ -312,7 +312,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
   def testTooManyHitsError(self):
     FakeRules.invocations = []
-    with utils.Stubber(rdf_yara.YaraSignature, "GetRules", TooManyHitsRules):
+    with utils.Stubber(rdf_memory.YaraSignature, "GetRules", TooManyHitsRules):
       matches, errors, misses = self._RunYaraProcessScan(
           self.procs,
           include_errors_in_results=True,
@@ -328,7 +328,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
 
   def testYaraProcessScanChunkingWorks(self):
     FakeRules.invocations = []
-    with utils.Stubber(rdf_yara.YaraSignature, "GetRules", FakeRules):
+    with utils.Stubber(rdf_memory.YaraSignature, "GetRules", FakeRules):
       self._RunYaraProcessScan(self.procs, chunk_size=100, overlap_size=10)
 
     self.assertLen(FakeRules.invocations, 21)
@@ -370,9 +370,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         (client_utils, "OpenProcessForMemoryAccess",
          lambda pid: FakeMemoryProcess(pid=pid))):
       client_mock = action_mocks.MultiGetFileClientMock(
-          yara_actions.YaraProcessDump, tempfiles.DeleteGRRTempFiles)
+          memory_actions.YaraProcessDump, tempfiles.DeleteGRRTempFiles)
       session_id = flow_test_lib.TestFlowHelper(
-          yara_flows.YaraDumpProcessMemory.__name__,
+          memory.DumpProcessMemory.__name__,
           client_mock,
           pids=pids or [105],
           size_limit=size_limit,
@@ -392,7 +392,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec))
       return fd.read(num_bytes)
 
-  def testYaraProcessDump(self):
+  def testProcessDump(self):
     results = self._RunProcessDump()
 
     self.assertLen(results, 3)
@@ -405,13 +405,13 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         self.assertIn(data,
                       [GeneratePattern(b"A", 100),
                        GeneratePattern(b"B", 700)])
-      elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
+      elif isinstance(result, rdf_memory.YaraProcessDumpResponse):
         self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
       else:
         self.fail("Unexpected result type %s" % type(result))
 
-  def testYaraProcessDumpChunked(self):
+  def testProcessDumpChunked(self):
     with test_lib.Instrument(FakeMemoryProcess, "ReadBytes") as read_func:
       results = self._RunProcessDump(chunk_size=11)
 
@@ -429,13 +429,13 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         self.assertIn(data,
                       [GeneratePattern(b"A", 100),
                        GeneratePattern(b"B", 700)])
-      elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
+      elif isinstance(result, rdf_memory.YaraProcessDumpResponse):
         self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
       else:
         self.fail("Unexpected result type %s" % type(result))
 
-  def testYaraProcessDumpWithLimit(self):
+  def testProcessDumpWithLimit(self):
     results = self._RunProcessDump(size_limit=150)
 
     # Now we should only get one block (+ the YaraProcessDumpResponse), the
@@ -449,21 +449,21 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
         data = self._ReadFromPathspec(result.pathspec, 1000)
 
         self.assertEqual(data, GeneratePattern(b"A", 100))
-      elif isinstance(result, rdf_yara.YaraProcessDumpResponse):
+      elif isinstance(result, rdf_memory.YaraProcessDumpResponse):
         self.assertLen(result.dumped_processes, 1)
         self.assertEqual(result.dumped_processes[0].process.pid, 105)
         self.assertIn("limit exceeded", result.dumped_processes[0].error)
       else:
         self.fail("Unexpected result type %s" % type(result))
 
-  def testYaraProcessDumpByDefaultErrors(self):
+  def testProcessDumpByDefaultErrors(self):
     # This tests that not specifying any restrictions on the processes
     # to dump does not dump them all which would return tons of data.
     client_mock = action_mocks.MultiGetFileClientMock(
-        yara_actions.YaraProcessDump, tempfiles.DeleteGRRTempFiles)
+        memory_actions.YaraProcessDump, tempfiles.DeleteGRRTempFiles)
     with self.assertRaises(ValueError):
       flow_test_lib.TestFlowHelper(
-          yara_flows.YaraDumpProcessMemory.__name__,
+          memory.DumpProcessMemory.__name__,
           client_mock,
           client_id=self.client_id,
           ignore_grr_process=True,
@@ -474,13 +474,13 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
       results = self._RunProcessDump()
 
     self.assertGreater(len(results), 1)
-    self.assertIsInstance(results[0], rdf_yara.YaraProcessDumpResponse)
+    self.assertIsInstance(results[0], rdf_memory.YaraProcessDumpResponse)
     self.assertLen(results[0].dumped_processes, 1)
     self.assertEqual(results[0].dumped_processes[0].dump_time_us, 0.1 * 1e6)
 
   def testScanAndDump(self):
     client_mock = action_mocks.MultiGetFileClientMock(
-        yara_actions.YaraProcessScan, yara_actions.YaraProcessDump,
+        memory_actions.YaraProcessScan, memory_actions.YaraProcessDump,
         tempfiles.DeleteGRRTempFiles)
 
     procs = [p for p in self.procs if p.pid in [102, 103]]
@@ -492,7 +492,7 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
           (client_utils, "OpenProcessForMemoryAccess",
            lambda pid: FakeMemoryProcess(pid=pid))):
         session_id = flow_test_lib.TestFlowHelper(
-            yara_flows.YaraProcessScan.__name__,
+            memory.YaraProcessScan.__name__,
             client_mock,
             yara_signature=test_yara_signature,
             client_id=self.client_id,
@@ -512,9 +512,9 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     # 3. ProcDump response.
     # 4. Stat entry for the dumped file.
     self.assertLen(results, 4)
-    self.assertIsInstance(results[0], rdf_yara.YaraProcessScanMatch)
-    self.assertIsInstance(results[1], rdf_yara.YaraProcessScanMiss)
-    self.assertIsInstance(results[2], rdf_yara.YaraProcessDumpResponse)
+    self.assertIsInstance(results[0], rdf_memory.YaraProcessScanMatch)
+    self.assertIsInstance(results[1], rdf_memory.YaraProcessScanMiss)
+    self.assertIsInstance(results[2], rdf_memory.YaraProcessDumpResponse)
     self.assertIsInstance(results[3], rdf_client_fs.StatEntry)
 
     self.assertLen(results[2].dumped_processes, 1)

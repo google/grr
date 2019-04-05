@@ -21,10 +21,10 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.rdfvalues import rdf_yara
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events
@@ -256,7 +256,7 @@ class ExportTest(ExportTestBase):
 
     urn = pathspec.AFF4Path(self.client_id)
 
-    if data_store.RelationalDBReadEnabled(category="vfs"):
+    if data_store.RelationalDBReadEnabled():
       path_info = data_store.REL_DB.ReadPathInfo(
           self.client_id.Basename(),
           rdf_objects.PathInfo.PathType.TSK,
@@ -308,9 +308,7 @@ class ExportTest(ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    if data_store.RelationalDBReadEnabled(
-        category="vfs") and data_store.RelationalDBReadEnabled(
-            category="filestore"):
+    if data_store.RelationalDBReadEnabled():
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
                                                  path_info.path_type,
@@ -510,7 +508,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[1].ctime, 0)
 
   def testRDFURNConverterWithURNPointingToFile(self):
-    if data_store.RelationalDBReadEnabled(category="vfs"):
+    if data_store.RelationalDBReadEnabled():
       self.skipTest("This converter is used with AFF4 only.")
 
     urn = self.client_id.Add("fs/os/some/path")
@@ -1219,11 +1217,11 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
         cmdline=["cmd.exe"],
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083)
-    return rdf_yara.YaraProcessScanMatch(
+    return rdf_memory.YaraProcessScanMatch(
         process=process, match=match, scan_time_us=42)
 
   def testExportsSingleMatchCorrectly(self):
-    sample = self.GenerateSample([rdf_yara.YaraMatch(rule_name="foo")])
+    sample = self.GenerateSample([rdf_memory.YaraMatch(rule_name="foo")])
 
     converter = export.YaraProcessScanResponseConverter()
     converted = list(converter.Convert(self.metadata, sample, token=self.token))
@@ -1241,8 +1239,8 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
 
   def testExportsOneEntryForTheSameRuleMatchingSameProcessTwice(self):
     sample = self.GenerateSample([
-        rdf_yara.YaraMatch(rule_name="foo"),
-        rdf_yara.YaraMatch(rule_name="foo")
+        rdf_memory.YaraMatch(rule_name="foo"),
+        rdf_memory.YaraMatch(rule_name="foo")
     ])
 
     converter = export.YaraProcessScanResponseConverter()
@@ -1255,8 +1253,8 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
 
   def testExportsTwoEntriesForTwoRulesMatchingSameProcess(self):
     sample = self.GenerateSample([
-        rdf_yara.YaraMatch(rule_name="foo"),
-        rdf_yara.YaraMatch(rule_name="bar")
+        rdf_memory.YaraMatch(rule_name="foo"),
+        rdf_memory.YaraMatch(rule_name="bar")
     ])
 
     converter = export.YaraProcessScanResponseConverter()

@@ -42,7 +42,7 @@ class ApiListHuntsHandlerRegressionTest(
   handler = hunt_plugin.ApiListHuntsHandler
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       replace = {}
       for i in range(0, 2):
         with test_lib.FakeTime((1 + i) * 1000):
@@ -73,9 +73,9 @@ class ApiListHuntsHandlerRegressionTest(
         replace=replace)
 
 
-class ApiListHuntResultsRegressionTest(
-    hunt_test_lib.StandardHuntTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
+                                       api_regression_test_lib.ApiRegressionTest
+                                      ):
 
   api_method = "ListHuntResults"
   handler = hunt_plugin.ApiListHuntResultsHandler
@@ -83,7 +83,7 @@ class ApiListHuntResultsRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0).Basename()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt_id = self.CreateHunt()
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
@@ -161,7 +161,7 @@ class ApiGetHuntHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest,
     with test_lib.FakeTime(42):
       # TODO(user): make hunt stats non-zero when AFF4 is gone to
       # improve test coverage.
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(description="the hunt")
       else:
         with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -186,7 +186,7 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
         object_type="HUNT_REFERENCE",
         hunt_reference=rdf_objects.HuntReference(hunt_id="H:332211"))
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       # TODO(user): make hunt stats non-zero when AFF4 is gone to
       # improve test coverage.
       with test_lib.FakeTime(42):
@@ -216,7 +216,7 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
         flow_reference=rdf_objects.FlowReference(
             flow_id="F:332211", client_id="C.1111111111111111"))
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       # TODO(user): make hunt stats non-zero when AFF4 is gone to
       # improve test coverage.
       with test_lib.FakeTime(42):
@@ -241,7 +241,7 @@ class ApiListHuntLogsHandlerRegressionTest(
   handler = hunt_plugin.ApiListHuntLogsHandler
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       with test_lib.FakeTime(42):
         hunt_id = self.CreateHunt()
 
@@ -322,7 +322,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
     client_id_1 = self.SetupClient(0).Basename()
     client_id_2 = self.SetupClient(1).Basename()
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       with test_lib.FakeTime(42):
         hunt_id = self.CreateHunt(description="the hunt")
 
@@ -394,7 +394,7 @@ class ApiListHuntCrashesHandlerRegressionTest(
         client_id: flow_test_lib.CrashClientMock(client_id, self.token)
     }
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt_id = self.CreateHunt(description="the hunt")
       hunt.StartHunt(hunt_id)
     else:
@@ -408,7 +408,7 @@ class ApiListHuntCrashesHandlerRegressionTest(
       hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False,
                                                     self.token)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       crash = data_store.REL_DB.ReadHuntFlows(
           hunt_id,
           0,
@@ -457,7 +457,7 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
 
     client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt_id = self.CreateHunt(description="the hunt")
       hunt.StartHunt(hunt_id)
     else:
@@ -470,8 +470,9 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     for client_id in client_ids:
       with test_lib.FakeTime(45 + time_offset):
         self.AssignTasksToClients([client_id])
-        hunt_test_lib.TestHuntHelper(
-            client_mock, [rdf_client.ClientURN(client_id)], False, self.token)
+        hunt_test_lib.TestHuntHelper(client_mock,
+                                     [rdf_client.ClientURN(client_id)], False,
+                                     self.token)
         time_offset += 10
 
     replace = {hunt_id: "H:123456"}
@@ -500,7 +501,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(description="the hunt")
         # TODO(user): replacement done for backwards compatibility with
         # the AFF4 implementation. Simply change to {hunt_id: "123456"} when
@@ -539,7 +540,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
     ]
 
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(
             description="the hunt", output_plugins=output_plugins)
         hunt.StartHunt(hunt_id)
@@ -575,7 +576,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
                 filename_regex="blah!", fetch_binaries=True))
     ]
     with test_lib.FakeTime(42, increment=1):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(
             description="the hunt", output_plugins=output_plugins)
         hunt.StartHunt(hunt_id)
@@ -615,7 +616,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
         plugin_name=hunt_test_lib.FailingDummyHuntOutputPlugin.__name__)
 
     with test_lib.FakeTime(42, increment=1):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(
             description="the hunt", output_plugins=[failing_descriptor])
         hunt.StartHunt(hunt_id)
@@ -650,7 +651,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(description="the hunt")
         hunt.StartHunt(hunt_id)
       else:
@@ -666,7 +667,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
 
     # Create replace dictionary.
     replace = {hunt_id: "H:123456"}
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       stats = data_store.REL_DB.ReadHuntClientResourcesStats(hunt_id)
       for performance in stats.worst_performers:
         session_id = unicode(performance.session_id)
@@ -693,7 +694,7 @@ class ApiListHuntClientsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(description="the hunt")
         hunt.StartHunt(hunt_id)
       else:
@@ -743,7 +744,7 @@ class ApiModifyHuntHandlerRegressionTest(
   def Run(self):
     # Check client_limit update.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(description="the hunt")
       else:
         hunt_obj = self.CreateHunt(description="the hunt")
@@ -772,7 +773,7 @@ class ApiDeleteHuntHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled("hunts"):
+      if data_store.RelationalDBReadEnabled():
         hunt_id = self.CreateHunt(description="the hunt")
       else:
         hunt_obj = self.CreateHunt(description="the hunt")

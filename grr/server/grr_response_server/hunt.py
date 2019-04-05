@@ -179,11 +179,13 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
 
 def CompleteHuntIfExpirationTimeReached(hunt_obj):
   """Marks the hunt as complete if it's past its expiry time."""
-
+  # TODO(hanuszczak): This should not set the hunt state to `COMPLETED` but we
+  # should have a sparate `EXPIRED` state instead and set that.
+  expiry_time = hunt_obj.init_start_time + hunt_obj.duration
   if (hunt_obj.hunt_state not in [
       rdf_hunt_objects.Hunt.HuntState.STOPPED,
       rdf_hunt_objects.Hunt.HuntState.COMPLETED
-  ] and hunt_obj.expiry_time < rdfvalue.RDFDatetime.Now()):
+  ] and expiry_time < rdfvalue.RDFDatetime.Now()):
     StopHunt(hunt_obj.hunt_id, reason="Hunt completed.")
 
     data_store.REL_DB.UpdateHuntObject(
@@ -213,8 +215,8 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
   # starting interface took an rdfvalue.Duration object which was then added to
   # the current time to get the expiry. This check exists to make sure we don't
   # confuse the two.
-  if "expiry_time" in kwargs:
-    precondition.AssertType(kwargs["expiry_time"], rdfvalue.RDFDatetime)
+  if "duration" in kwargs:
+    precondition.AssertType(kwargs["duration"], rdfvalue.Duration)
 
   hunt_args = rdf_hunt_objects.HuntArguments(
       hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
@@ -235,10 +237,11 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
 
 def _ScheduleGenericHunt(hunt_obj):
   """Adds foreman rules for a generic hunt."""
-
+  # TODO: Migrate foreman conditions to use relation expiration
+  # durations instead of absolute timestamps.
   foreman_condition = foreman_rules.ForemanCondition(
       creation_time=rdfvalue.RDFDatetime.Now(),
-      expiration_time=hunt_obj.expiry_time,
+      expiration_time=hunt_obj.init_start_time + hunt_obj.duration,
       description="Hunt %s %s" % (hunt_obj.hunt_id, hunt_obj.args.hunt_type),
       client_rule_set=hunt_obj.client_rule_set,
       hunt_id=hunt_obj.hunt_id)
@@ -350,7 +353,7 @@ def StopHunt(hunt_id, reason=None):
   return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
-def UpdateHunt(hunt_id, client_limit=None, client_rate=None, expiry_time=None):
+def UpdateHunt(hunt_id, client_limit=None, client_rate=None, duration=None):
   """Updates a hunt (it must be paused to be updated)."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
@@ -361,7 +364,7 @@ def UpdateHunt(hunt_id, client_limit=None, client_rate=None, expiry_time=None):
       hunt_id,
       client_limit=client_limit,
       client_rate=client_rate,
-      expiry_time=expiry_time)
+      duration=duration)
   return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
@@ -399,7 +402,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
           num_clients_diff / hunt_obj.client_rate * 60e6)
 
       start_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
-          hunt_obj.start_time.AsMicrosecondsSinceEpoch() +
+          hunt_obj.last_start_time.AsMicrosecondsSinceEpoch() +
           next_client_due_msecs)
     else:
       start_at = None

@@ -60,6 +60,9 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
     self.embedded_age = payload.age
     self.data = payload.SerializeToString()
 
+  def __reduce__(self):
+    return type(self), (None, self.payload)
+
 
 class DataBlob(rdf_structs.RDFProtoStruct):
   """Wrapper class for DataBlob protobuf."""
@@ -77,6 +80,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       value: value to set
       raise_on_error: if True, raise if we can't serialize.  If False, set the
         key to an error string.
+
     Returns:
       self
     Raises:
@@ -412,8 +416,8 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
       except TypeError:
         if initializer is not None:
           raise rdfvalue.InitializeError(
-              "%s can not be initialized from %s" % (self.__class__.__name__,
-                                                     type(initializer)))
+              "%s can not be initialized from %s" %
+              (self.__class__.__name__, type(initializer)))
 
   def Append(self, value=None, **kwarg):
     """Add another member to the array.

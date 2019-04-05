@@ -87,7 +87,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
             fs_path.replace("\\", "/"))
 
     # Check if the History file is created.
-    if data_store.RelationalDBReadEnabled("filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.TSK(self.client_id.Basename(),
                              tuple(output_path.Split()[3:]))
       fd = file_store.OpenFile(cp)
@@ -118,11 +118,11 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
 
     output_path = self.client_id.Add("fs/tsk").Add("/".join(
-        [self.base_path.replace("\\", "/"), "test_img.dd"])).Add(
-            fs_path.replace("\\", "/"))
+        [self.base_path.replace("\\", "/"),
+         "test_img.dd"])).Add(fs_path.replace("\\", "/"))
 
     # Check if the History file is created.
-    if data_store.RelationalDBReadEnabled("filestore"):
+    if data_store.RelationalDBReadEnabled():
       cp = db.ClientPath.TSK(self.client_id.Basename(),
                              tuple(output_path.Split()[3:]))
       rel_fd = file_store.OpenFile(cp)

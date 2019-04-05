@@ -40,7 +40,8 @@ def FileFinderOSFromClient(args):
 
   for path in GetExpandedPaths(args):
     try:
-      for content_condition in _ParseContentConditions(args):
+      content_conditions = conditions.ContentCondition.Parse(args.conditions)
+      for content_condition in content_conditions:
         with io.open(path, "rb") as fd:
           result = list(content_condition.Search(fd))
         if not result:
@@ -69,6 +70,11 @@ class FileFinderOS(actions.ActionPlugin):
     self.stat_cache = filesystem.StatCache()
 
     action = self._ParseAction(args)
+    self._metadata_conditions = list(
+        conditions.MetadataCondition.Parse(args.conditions))
+    self._content_conditions = list(
+        conditions.ContentCondition.Parse(args.conditions))
+
     for path in GetExpandedPaths(args):
       self.Progress()
       try:
@@ -100,40 +106,35 @@ class FileFinderOS(actions.ActionPlugin):
   def _Validate(self, args,
                 filepath):
     matches = []
-    self._ValidateRegularity(args, filepath)
-    self._ValidateMetadata(args, filepath)
-    self._ValidateContent(args, filepath, matches)
+    stat = self._GetStat(filepath, follow_symlink=False)
+    self._ValidateRegularity(stat, args, filepath)
+    self._ValidateMetadata(stat, filepath)
+    self._ValidateContent(stat, filepath, matches)
     return matches
 
-  def _ValidateRegularity(self, args, filepath):
-    stat = self._GetStat(filepath, follow_symlink=False)
+  def _ValidateRegularity(self, stat, args, filepath):
+    if args.process_non_regular_files:
+      return
 
     is_regular = stat.IsRegular() or stat.IsDirectory()
-    if not is_regular and not args.process_non_regular_files:
+    if not is_regular:
       raise _SkipFileException()
 
-  def _ValidateMetadata(self, args, filepath):
-    stat = self._GetStat(filepath, follow_symlink=False)
-
-    for metadata_condition in _ParseMetadataConditions(args):
+  def _ValidateMetadata(self, stat, filepath):
+    for metadata_condition in self._metadata_conditions:
       if not metadata_condition.Check(stat):
         raise _SkipFileException()
 
-  def _ValidateContent(self, args, filepath, matches):
-    for content_condition in _ParseContentConditions(args):
+  def _ValidateContent(self, stat, filepath, matches):
+    if self._content_conditions and stat.IsDirectory():
+      raise _SkipFileException()
+
+    for content_condition in self._content_conditions:
       with io.open(filepath, "rb") as fd:
         result = list(content_condition.Search(fd))
       if not result:
         raise _SkipFileException()
       matches.extend(result)
-
-
-def _ParseMetadataConditions(args):
-  return conditions.MetadataCondition.Parse(args.conditions)
-
-
-def _ParseContentConditions(args):
-  return conditions.ContentCondition.Parse(args.conditions)
 
 
 def GetExpandedPaths(

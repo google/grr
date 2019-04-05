@@ -164,7 +164,7 @@ setup_args = dict(
         "typing==3.6.4",
         "virtualenv==15.0.3",
         "wheel==0.32.3",
-        "rekall-yara==3.6.3.1",
+        "yara-python==3.8.1",
     ],
 
     # Data files used by GRR. Access these via the config_lib "resource" filter.

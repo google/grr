@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import json
 import logging
 import time
 
@@ -14,14 +13,15 @@ from googleapiclient import errors
 from googleapiclient import http
 import httplib2
 
+from grr_response_core import config
+from grr_response_core.lib.util import json
+
 # pylint: disable=g-import-not-at-top
 try:
   from oauth2client.service_account import ServiceAccountCredentials
 except ImportError:
   # Set this so mock won't complain about stubbing it.
   ServiceAccountCredentials = None
-
-from grr_response_core import config
 # pylint: enable=g-import-not-at-top
 
 BIGQUERY_SCOPE = "https://www.googleapis.com/auth/bigquery"
@@ -50,7 +50,7 @@ def GetBigQueryClient(service_account_json=None,
                        "must be defined.")
 
   creds = ServiceAccountCredentials.from_json_keyfile_dict(
-      json.loads(service_account_data), scopes=BIGQUERY_SCOPE)
+      json.Parse(service_account_data), scopes=BIGQUERY_SCOPE)
   http_obj = httplib2.Http()
   http_obj = creds.authorize(http_obj)
   service = discovery.build("bigquery", "v2", http=http_obj)

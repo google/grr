@@ -422,7 +422,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
       self.RunCollectorAndGetCollection(["TestFilesArtifact"],
                                         client_mock=self.client_mock,
                                         client_id=client_id)
-      if data_store.RelationalDBReadEnabled(category="vfs"):
+      if data_store.RelationalDBReadEnabled():
         cp = db.ClientPath.OS(client_id.Basename(), ("var", "log", "auth.log"))
         fd = file_store.OpenFile(cp)
         self.assertNotEmpty(fd.read())
@@ -587,7 +587,7 @@ class GrrKbWindowsTest(GrrKbTest):
         token=self.token)
     path = paths[0].replace("\\", "/")
 
-    if data_store.RelationalDBReadEnabled(category="vfs"):
+    if data_store.RelationalDBReadEnabled():
       path_info = data_store.REL_DB.ReadPathInfo(
           client_id.Basename(),
           rdf_objects.PathInfo.PathType.REGISTRY,

@@ -83,6 +83,10 @@ def _ReadVariable(name, cursor):
     return row[1]
 
 
+def _SetGlobalVariable(name, value, cursor):
+  cursor.execute("SET GLOBAL {}=%s".format(name), [value])
+
+
 class Error(MySQLdb.Error):
   """Base Error for the MySQL datastore."""
 
@@ -137,8 +141,9 @@ def _CheckDatabaseEncoding(cursor):
   if cur_character_set != CHARACTER_SET:
     raise EncodingEnforcementError(
         "Require MySQL character_set_database of {}, got {}."
-        " To create your database, use: {}".format(
-            CHARACTER_SET, cur_character_set, CREATE_DATABASE_QUERY))
+        " To create your database, use: {}".format(CHARACTER_SET,
+                                                   cur_character_set,
+                                                   CREATE_DATABASE_QUERY))
 
 
 def _SetPacketSizeForFollowingConnections(cursor):
@@ -146,11 +151,10 @@ def _SetPacketSizeForFollowingConnections(cursor):
   cur_packet_size = int(_ReadVariable("max_allowed_packet", cursor))
 
   if cur_packet_size < MAX_PACKET_SIZE:
-    query = "SET GLOBAL max_allowed_packet={}".format(MAX_PACKET_SIZE)
     logging.warning(
-        "MySQL max_allowed_packet of %d is required, got %d. Overwriting: %s",
-        MAX_PACKET_SIZE, cur_packet_size, query)
-    cursor.execute(query)
+        "MySQL max_allowed_packet of %d is required, got %d. Overwriting.",
+        MAX_PACKET_SIZE, cur_packet_size)
+    _SetGlobalVariable("max_allowed_packet", MAX_PACKET_SIZE, cursor)
 
 
 def _CheckPacketSize(cursor):
@@ -237,21 +241,20 @@ def _InitializeSchema(cursor):
               e, command.strip()))
 
 
-def _SetupDatabase(host, port, user, password, database, **kwargs):
+def _SetupDatabase(host, port, user, passwd, db, **kwargs):
   """Connect to the given MySQL host and create a utf8mb4_unicode_ci database.
 
   Args:
     host: The hostname to connect to.
     port: The port to connect to.
     user: The username to connect as.
-    password: The password to connect with.
-    database: The database name to create.
+    passwd: The password to connect with.
+    db: The database name to create.
     **kwargs: Further MySQL connection arguments.
   """
   with contextlib.closing(
-      MySQLdb.Connect(
-          host=host, port=port, user=user, password=password,
-          **kwargs)) as conn:
+      MySQLdb.Connect(host=host, port=port, user=user, passwd=passwd,
+                      **kwargs)) as conn:
     with contextlib.closing(conn.cursor()) as cursor:
       _CheckForSSL(cursor)
       _SetMariaDBMode(cursor)
@@ -262,13 +265,13 @@ def _SetupDatabase(host, port, user, password, database, **kwargs):
       _CheckLogFileSize(cursor)
 
       try:
-        cursor.execute(CREATE_DATABASE_QUERY.format(database))
+        cursor.execute(CREATE_DATABASE_QUERY.format(db))
       except MySQLdb.MySQLError as e:
         #  Statement might fail if database exists, this is fine.
         if e.args[0] != mysql_error_constants.DB_CREATE_EXISTS:
           raise
 
-      cursor.execute("USE {}".format(database))
+      cursor.execute("USE {}".format(db))
       _CheckCollation(cursor)
       _InitializeSchema(cursor)
 
@@ -309,7 +312,13 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     # Refactor database test to provide their own logic of cleanup in tearDown.
     pass
 
-  def __init__(self, host=None, port=None, user=None, password=None,
+  _WRITE_ROWS_BATCH_SIZE = 10000
+
+  def __init__(self,
+               host=None,
+               port=None,
+               user=None,
+               password=None,
                database=None):
     """Creates a datastore implementation.
 
@@ -331,12 +340,12 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         ".*Table '.*' already exists",
         # And CREATE INDEX IF NOT EXISTS.
         ".*Duplicate key name.*",
-        ]:
-      warnings.filterwarnings("ignore", category=MySQLdb.Warning,
-                              message=message)
+    ]:
+      warnings.filterwarnings(
+          "ignore", category=MySQLdb.Warning, message=message)
 
-    self._args = self._GetConnectionArgs(host=host, port=port, user=user,
-                                         password=password, database=database)
+    self._args = self._GetConnectionArgs(
+        host=host, port=port, user=user, password=password, database=database)
 
     _SetupDatabase(**self._args)
 
@@ -356,18 +365,21 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
   def _Connect(self):
     return _Connect(**self._args)
 
-  def _GetConnectionArgs(self, host=None, port=None, user=None, password=None,
+  def _GetConnectionArgs(self,
+                         host=None,
+                         port=None,
+                         user=None,
+                         password=None,
                          database=None):
     connection_args = dict(
         host=host,
         port=port,
         user=user,
-        password=password,
-        database=database,
+        passwd=password,
+        db=database,
         autocommit=False,
         use_unicode=True,
-        charset=CHARACTER_SET
-    )
+        charset=CHARACTER_SET)
 
     if host is None:
       connection_args["host"] = config.CONFIG["Mysql.host"]
@@ -376,9 +388,9 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     if user is None:
       connection_args["user"] = config.CONFIG["Mysql.username"]
     if password is None:
-      connection_args["password"] = config.CONFIG["Mysql.password"]
+      connection_args["passwd"] = config.CONFIG["Mysql.password"]
     if database is None:
-      connection_args["database"] = config.CONFIG["Mysql.database"]
+      connection_args["db"] = config.CONFIG["Mysql.database"]
 
     key_path = config.CONFIG["Mysql.client_key_path"]
     if key_path:

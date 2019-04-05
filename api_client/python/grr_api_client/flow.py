@@ -66,6 +66,11 @@ class FlowBase(object):
     items = self._context.SendIteratorRequest("ListFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
 
+  def GetExportedResultsArchive(self, plugin_name):
+    args = flow_pb2.ApiGetExportedFlowResultsArgs(
+        client_id=self.client_id, flow_id=self.flow_id, plugin_name=plugin_name)
+    return self._context.SendStreamingRequest("GetExportedFlowResults", args)
+
   def ListLogs(self):
     args = flow_pb2.ApiListFlowLogsArgs(
         client_id=self.client_id, flow_id=self.flow_id)
@@ -89,8 +94,9 @@ class FlowBase(object):
     """Wait until the flow completes.
 
     Args:
-      timeout: timeout in seconds. None means default timeout (1 hour).
-               0 means no timeout (wait forever).
+      timeout: timeout in seconds. None means default timeout (1 hour). 0 means
+        no timeout (wait forever).
+
     Returns:
       Fresh flow object.
     Raises:
@@ -103,9 +109,9 @@ class FlowBase(object):
         condition=lambda f: f.data.state != f.data.RUNNING,
         timeout=timeout)
     if f.data.state != f.data.TERMINATED:
-      raise errors.FlowFailedError("Flow %s (%s) failed: %s" %
-                                   (self.flow_id, self.client_id,
-                                    f.data.context.current_state))
+      raise errors.FlowFailedError(
+          "Flow %s (%s) failed: %s" %
+          (self.flow_id, self.client_id, f.data.context.current_state))
     return f
 
 
@@ -127,3 +133,7 @@ class Flow(FlowBase):
         client_id=client_id, flow_id=flow_id, context=context)
 
     self.data = data
+
+  @property
+  def args(self):
+    return utils.UnpackAny(self.data.args)

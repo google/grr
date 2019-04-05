@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from grr_response_server import blob_store
 from grr_response_server import data_store
 
@@ -25,17 +24,5 @@ class DbBlobStore(blob_store.BlobStore):
   def ReadBlobs(self, blob_ids):
     return self.delegate.ReadBlobs(blob_ids)
 
-  def ReadBlob(self, blob_id):
-    return self.delegate.ReadBlob(blob_id)
-
   def CheckBlobsExist(self, blob_ids):
     return self.delegate.CheckBlobsExist(blob_ids)
-
-  def CheckBlobExists(self, blob_id):
-    return self.delegate.CheckBlobExists(blob_id)
-
-  def WriteBlobsWithUnknownHashes(self, blobs_data):
-    return self.delegate.WriteBlobsWithUnknownHashes(blobs_data)
-
-  def WriteBlobWithUnknownHash(self, blob_data):
-    return self.delegate.WriteBlobWithUnknownHash(blob_data)

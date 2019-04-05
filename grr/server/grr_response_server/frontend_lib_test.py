@@ -228,12 +228,11 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
   def testMessageHandlers(self):
     """Tests message handlers."""
-    with utils.Stubber(
-        queue_manager, "session_id_map",
-        {flow_test_lib.WellKnownSessionTest.well_known_session_id: "Test"}):
+    with utils.MultiStubber((queue_manager, "session_id_map", {
+        flow_test_lib.WellKnownSessionTest.well_known_session_id: "Test"
+    }), (data_store, "RelationalDBFlowsEnabled", lambda: True)):
       with test_lib.ConfigOverrider({
           "Database.useForReads": True,
-          "Database.useForReads.message_handlers": True
       }):
         session_id = self._ReceiveWKFMessages()
 
@@ -247,14 +246,16 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     flow_test_lib.WellKnownSessionTest.messages = []
     session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=0,
-            response_id=0,
-            session_id=session_id,
-            auth_state="AUTHENTICATED",
-            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
-    ]
+    messages = []
+    for i in range(1, 10):
+      messages.append(
+          rdf_flows.GrrMessage(
+              source=test_lib.TEST_CLIENT_ID,
+              request_id=0,
+              response_id=0,
+              session_id=session_id,
+              auth_state="AUTHENTICATED",
+              payload=rdfvalue.RDFInteger(i)))
 
     server = TestServer()
     # Delete the local well known flow cache.
@@ -575,6 +576,22 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     # This must not raise even though we don't generate session ids like the one
     # above anymore.
     ReceiveMessages(client_id, messages)
+
+  def testDrainTaskSchedulerQueue(self):
+    client_id = "C.1234567890123456"
+
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    msgs = [
+        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
+        for _ in range(3)
+    ]
+
+    data_store.REL_DB.WriteClientMessages(msgs)
+
+    server = TestServer()
+
+    res = server.DrainTaskSchedulerQueueForClient(rdfvalue.RDFURN(client_id))
+    self.assertItemsEqual(res, msgs)
 
 
 class FleetspeakFrontendTests(frontend_test_lib.FrontEndServerTest):

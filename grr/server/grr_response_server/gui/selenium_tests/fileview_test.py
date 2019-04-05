@@ -291,7 +291,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # an HTTP 500.
     with self.DisableHttpErrorChecks():
       self.Click("css=button:contains(\"Collect from the client\")")
-      if not data_store.RelationalDBReadEnabled("vfs"):
+      if not data_store.RelationalDBReadEnabled():
         # Wait until the error is processed before we leave the
         # DisableHttpErrorChecks context.
         self.WaitUntil(self.GetHttpErrors)

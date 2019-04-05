@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import json
 
 from future.builtins import map
 from future.utils import iterkeys
@@ -19,6 +18,7 @@ from typing import Text
 from grr_response_client import actions
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
+from grr_response_core.lib.util import json
 from grr_response_core.lib.util import precondition
 
 # pylint: disable=g-import-not-at-top
@@ -85,7 +85,7 @@ class Osquery(actions.ActionPlugin):
     if output.stderr and not args.ignore_stderr_errors:
       raise QueryError(output.stderr)
 
-    json_decoder = json.JSONDecoder(object_pairs_hook=collections.OrderedDict)
+    json_decoder = json.Decoder(object_pairs_hook=collections.OrderedDict)
 
     table = ParseTable(json_decoder.decode(output.stdout))
     table.query = args.query

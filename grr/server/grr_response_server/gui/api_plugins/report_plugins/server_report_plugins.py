@@ -223,10 +223,13 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
 
   def _GetUserCounts(self, get_report_args, token=None):
     if data_store.RelationalDBReadEnabled():
-      entries = data_store.REL_DB.ReadAPIAuditEntries(
+      counter = collections.Counter()
+      entries = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
           min_timestamp=get_report_args.start_time,
           max_timestamp=get_report_args.start_time + get_report_args.duration)
-      return collections.Counter(entry.username for entry in entries)
+      for (username, _), count in iteritems(entries):
+        counter[username] += count
+      return counter
     else:
       events = report_utils.GetAuditLogEntries(
           offset=get_report_args.duration,
@@ -342,16 +345,17 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
 
   def _LoadUserActivity(self, start_time, end_time, token):
     if data_store.RelationalDBReadEnabled():
-      for entry in data_store.REL_DB.ReadAPIAuditEntries(
-          min_timestamp=start_time):
-        yield entry.username, entry.timestamp
+      counts = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
+          min_timestamp=start_time, max_timestamp=end_time)
+      for (username, day), count in iteritems(counts):
+        yield username, day, count
     else:
       for fd in audit.LegacyAuditLogsForTimespan(
           start_time=start_time - audit.AUDIT_ROLLOVER_TIME,
           end_time=end_time,
           token=token):
         for event in fd.GenerateItems():
-          yield event.user, event.timestamp
+          yield event.user, event.timestamp, 1
 
   def GetReportData(self, get_report_args, token):
     """Filter the last week of user actions."""
@@ -369,10 +373,10 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     entries = self._LoadUserActivity(
         start_time=get_report_args.start_time, end_time=end_time, token=token)
 
-    for username, timestamp in entries:
+    for username, timestamp, count in entries:
       week = (timestamp - start_time).seconds // week_duration.seconds
       if week in user_activity[username]:
-        user_activity[username][week] += 1
+        user_activity[username][week] += count
 
     user_activity = sorted(iteritems(user_activity))
     user_activity = [(user, data)

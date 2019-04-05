@@ -23,4 +23,4 @@ from grr_response_client.client_actions import plist
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
-from grr_response_client.client_actions import yara_actions
+from grr_response_client.client_actions import memory

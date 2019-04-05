@@ -20,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_server import db
+from grr_response_server import db_test_utils
 from grr_response_server import flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
@@ -48,7 +49,7 @@ class DatabaseTestFlowMixin(object):
     return client_id, flow_id
 
   def testClientMessageStorage(self):
-    client_id = self.InitializeClient()
+    client_id = db_test_utils.InitializeClient(self.db)
     msg = rdf_flows.GrrMessage(
         queue=client_id,
         ttl=db.Database.CLIENT_MESSAGES_TTL,
@@ -78,7 +79,7 @@ class DatabaseTestFlowMixin(object):
       self.db.WriteClientMessages([msg])
 
   def testClientMessageUpdate(self):
-    client_id = self.InitializeClient()
+    client_id = db_test_utils.InitializeClient(self.db)
     msg = rdf_flows.GrrMessage(
         queue=client_id,
         ttl=db.Database.CLIENT_MESSAGES_TTL,
@@ -96,7 +97,7 @@ class DatabaseTestFlowMixin(object):
 
   def testClientMessageLeasing(self):
 
-    client_id = self.InitializeClient()
+    client_id = db_test_utils.InitializeClient(self.db)
     messages = [
         rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
         for _ in range(10)
@@ -159,7 +160,7 @@ class DatabaseTestFlowMixin(object):
       self.assertLen(leased, 10)
 
   def testClientMessagesAreSorted(self):
-    client_id = self.InitializeClient()
+    client_id = db_test_utils.InitializeClient(self.db)
     messages = [
         rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
         for _ in range(10)
@@ -181,7 +182,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(task_ids, sorted(task_ids))
 
   def testClientMessagesTTL(self):
-    client_id = self.InitializeClient()
+    client_id = db_test_utils.InitializeClient(self.db)
     messages = [
         rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
         for _ in range(10)
@@ -442,8 +443,27 @@ class DatabaseTestFlowMixin(object):
       self.db.UpdateFlow(
           u"C.1234567890AAAAAA", flow_id, client_crash_info=crash_info)
 
+  def testFlowUpdateChangesAllFields(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    flow_obj = self.db.ReadFlowObject(client_id, flow_id)
+
+    flow_obj.cpu_time_used.user_cpu_time = 0.5
+    flow_obj.cpu_time_used.system_cpu_time = 1.5
+    flow_obj.num_replies_sent = 10
+    flow_obj.network_bytes_sent = 100
+
+    self.db.UpdateFlow(client_id, flow_id, flow_obj=flow_obj)
+
+    read_flow = self.db.ReadFlowObject(client_id, flow_id)
+
+    # Last update times will differ.
+    read_flow.last_update_time = None
+    flow_obj.last_update_time = None
+
+    self.assertEqual(read_flow, flow_obj)
+
   def testFlowStateUpdate(self):
-    _, flow_id = self._SetupClientAndFlow()
     client_id, flow_id = self._SetupClientAndFlow()
 
     # Check that just updating flow_state works fine.
@@ -464,7 +484,6 @@ class DatabaseTestFlowMixin(object):
                      rdf_flow_objects.Flow.FlowState.RUNNING)
 
   def testUpdatingFlowObjAndFlowStateInSingleUpdateRaises(self):
-    _, flow_id = self._SetupClientAndFlow()
     client_id, flow_id = self._SetupClientAndFlow()
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
@@ -580,25 +599,68 @@ class DatabaseTestFlowMixin(object):
             client_id=client_id, flow_id=flow_id)
 
         self.assertLen(read, 3)
-        self.assertEqual([req.request_id for (req, _) in read], list(
-            range(1, 4)))
+        self.assertEqual([req.request_id for (req, _) in read],
+                         list(range(1, 4)))
         for _, responses in read:
           self.assertEqual(responses, {})
 
   flow_processing_req_func = "WriteFlowProcessingRequests"
 
   def _WriteRequestForProcessing(self, client_id, flow_id, request_id):
-    with mock.patch.object(self.db.delegate,
-                           self.flow_processing_req_func) as req_func:
+    req_func = mock.Mock()
+    self.db.RegisterFlowProcessingHandler(req_func)
+    self.addCleanup(self.db.UnregisterFlowProcessingHandler)
 
-      request = rdf_flow_objects.FlowRequest(
-          flow_id=flow_id,
-          client_id=client_id,
-          request_id=request_id,
-          needs_processing=True)
-      self.db.WriteFlowRequests([request])
+    _, marked_flow_id = self._SetupClientAndFlow(
+        client_id=client_id, next_request_to_process=3)
 
-      return req_func.call_count
+    # We write 2 requests, one after another:
+    # First request is the request provided by the user. Second is
+    # a special (i.e. marked) one.
+    #
+    # The marked request is guaranteed to trigger processing. This way
+    # tests relying on flow processing callback being called (or not being
+    # called) can avoid race conditions: flow processing callback is guaranteed
+    # to be called for the marked request after it's either called or not called
+    # for the  user-supplied request. Effectively, callback's invocation for
+    # the marked requests acts as a checkpoint: after it we can make
+    # assertions.
+    request = rdf_flow_objects.FlowRequest(
+        flow_id=flow_id,
+        client_id=client_id,
+        request_id=request_id,
+        needs_processing=True)
+    marked_request = rdf_flow_objects.FlowRequest(
+        flow_id=marked_flow_id,
+        client_id=client_id,
+        request_id=3,
+        needs_processing=True)
+
+    self.db.WriteFlowRequests([request, marked_request])
+
+    marked_found = False
+    cur_time = rdfvalue.RDFDatetime.Now()
+    while True:
+      requests = []
+      for call in req_func.call_args_list:
+        requests.extend(call[0])
+
+      if any(r.flow_id == marked_flow_id for r in requests):
+        # Poll-based implementations (i.e. MySQL) give no guarantess
+        # with regards to the order in which requests are going to be processed.
+        # In such implementations when 2 requests are retrieved from the DB,
+        # they're both going to be processed concurrently in parallel threads.
+        # For such implementations we allow for additional 0.1 seconds to pass
+        # after the marked flow processing request is processed to allow for
+        # possible parallel processing to finish.
+        if marked_found:
+          return len([r for r in requests if r.flow_id != marked_flow_id])
+        else:
+          marked_found = True
+
+      time.sleep(0.1)
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
+        self.fail("Flow request was not processed in time.")
 
   def testRequestWritingHighIDDoesntTriggerFlowProcessing(self):
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
@@ -769,6 +831,35 @@ class DatabaseTestFlowMixin(object):
     for response_id, response in iteritems(read_responses):
       self.assertEqual(response.response_id, response_id)
 
+  def testResponseWritingForDuplicateResponses(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=1,
+        needs_processing=False)
+    self.db.WriteFlowRequests([request])
+
+    responses = [
+        rdf_flow_objects.FlowResponse(
+            client_id=client_id, flow_id=flow_id, request_id=1, response_id=0),
+        rdf_flow_objects.FlowResponse(
+            client_id=client_id, flow_id=flow_id, request_id=1, response_id=0)
+    ]
+
+    self.db.WriteFlowResponses(responses)
+
+    all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    self.assertLen(all_requests, 1)
+
+    read_request, read_responses = all_requests[0]
+    self.assertEqual(read_request, request)
+    self.assertEqual(list(read_responses), [0])
+
+    for response_id, response in iteritems(read_responses):
+      self.assertEqual(response.response_id, response_id)
+
   def testStatusMessagesCanBeWrittenAndRead(self):
     client_id, flow_id = self._SetupClientAndFlow()
 
@@ -890,25 +981,73 @@ class DatabaseTestFlowMixin(object):
   def testRewritingResponsesForRequestDoesNotTriggerAdditionalProcessing(self):
     # Write a flow that is waiting for request #2.
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    marked_client_id, marked_flow_id = self._SetupClientAndFlow(
+        next_request_to_process=2)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=2)
     self.db.WriteFlowRequests([request])
 
+    marked_request = rdf_flow_objects.FlowRequest(
+        client_id=marked_client_id, flow_id=marked_flow_id, request_id=2)
+    self.db.WriteFlowRequests([marked_request])
+
     # Generate responses together with a status message.
     responses = self._ResponsesAndStatus(client_id, flow_id, 2, 4)
+    marked_responses = self._ResponsesAndStatus(marked_client_id,
+                                                marked_flow_id, 2, 4)
 
-    with mock.patch.object(self.db.delegate,
-                           self.flow_processing_req_func) as req_func:
-      self.assertEqual(req_func.call_count, 0)
+    req_func = mock.Mock()
+    self.db.RegisterFlowProcessingHandler(req_func)
+    self.addCleanup(self.db.UnregisterFlowProcessingHandler)
 
-      # Write responses. This should trigger flow request processing.
-      self.db.WriteFlowResponses(responses)
-      self.assertEqual(req_func.call_count, 1)
+    # Write responses. This should trigger flow request processing.
+    self.db.WriteFlowResponses(responses)
+    cur_time = rdfvalue.RDFDatetime.Now()
+    while True:
+      if req_func.call_count == 1:
+        break
+      time.sleep(0.1)
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
+        self.fail("Flow request was not processed in time.")
 
-      # Write responses again. No further processing should be triggered.
-      self.db.WriteFlowResponses(responses)
-      self.assertEqual(req_func.call_count, 1)
+    req_func.reset_mock()
+
+    # Write responses again. No further processing of these should be triggered.
+    self.db.WriteFlowResponses(responses)
+    # Testing for a callback *not being* called is not entirely trivial. Waiting
+    # for 1 (or 5, or 10) seconds is not acceptable (too slow). An approach used
+    # here: we need to trigger certain event - a kind of a checkpoint that is
+    # guaranteed to be triggered after the callback is called or is not called.
+    #
+    # Explicitly write marked_responses to trigger the flow processing handler.
+    # After flow processing handler is triggered for marked_responses, we can
+    # check that it wasn't triggered for responses.
+    self.db.WriteFlowResponses(marked_responses)
+    cur_time = rdfvalue.RDFDatetime.Now()
+    marked_found = False
+    while True:
+      requests = []
+      for call in req_func.call_args_list:
+        requests.extend(call[0])
+
+      if any(r.flow_id == marked_flow_id for r in requests):
+        # Poll-based implementations (i.e. MySQL) give no guarantess
+        # with regards to the order in which requests are going to be processed.
+        # In such implementations when 2 requests are retrieved from the DB,
+        # they're both going to be processed concurrently in parallel threads.
+        # For such implementations we allow for additional 0.1 seconds to pass
+        # after the marked flow processing request is processed to allow for
+        # possible parallel processing to finish.
+        if marked_found:
+          self.assertEmpty([r for r in requests if r.flow_id != marked_flow_id])
+          break
+        else:
+          marked_found = True
+
+      time.sleep(0.1)
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
+        self.fail("Flow request was not processed in time.")
 
   def testResponsesAnyRequestTriggerClientMessageDeletion(self):
     # Write a flow that is waiting for request #2.
@@ -983,7 +1122,7 @@ class DatabaseTestFlowMixin(object):
                                                    request.flow_id)
     self.assertEmpty(arrp)
 
-  def testReadFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
+  def testLeaseFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_state = hunt_obj.HuntState.STOPPED
     self.db.WriteHuntObject(hunt_obj)
@@ -993,54 +1132,54 @@ class DatabaseTestFlowMixin(object):
     processing_time = rdfvalue.Duration("60s")
 
     with self.assertRaises(db.ParentHuntIsNotRunningError):
-      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+      self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
     self.db.UpdateHuntObject(
         hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.COMPLETED)
 
     with self.assertRaises(db.ParentHuntIsNotRunningError):
-      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+      self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
     self.db.UpdateHuntObject(
         hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.STARTED)
 
     # Should work again.
-    self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+    self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
-  def testReadFlowForProcessingThatIsAlreadyBeingProcessed(self):
+  def testLeaseFlowForProcessingThatIsAlreadyBeingProcessed(self):
     client_id, flow_id = self._SetupClientAndFlow()
     processing_time = rdfvalue.Duration("60s")
 
-    flow_for_processing = self.db.ReadFlowForProcessing(client_id, flow_id,
-                                                        processing_time)
+    flow_for_processing = self.db.LeaseFlowForProcessing(
+        client_id, flow_id, processing_time)
 
     # Already marked as being processed.
     with self.assertRaises(ValueError):
-      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+      self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
-    self.db.ReturnProcessedFlow(flow_for_processing)
+    self.db.ReleaseProcessedFlow(flow_for_processing)
 
     # Should work again.
-    self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+    self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
-  def testReadFlowForProcessingAfterProcessingTimeExpiration(self):
+  def testLeaseFlowForProcessingAfterProcessingTimeExpiration(self):
     client_id, flow_id = self._SetupClientAndFlow()
     processing_time = rdfvalue.Duration("60s")
     now = rdfvalue.RDFDatetime.Now()
 
     with test_lib.FakeTime(now):
-      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+      self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
     # Already marked as being processed.
     with self.assertRaises(ValueError):
-      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+      self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
     after_deadline = now + processing_time + rdfvalue.Duration("1s")
     with test_lib.FakeTime(after_deadline):
       # Should work again.
-      self.db.ReadFlowForProcessing(client_id, flow_id, processing_time)
+      self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
-  def testReadFlowForProcessingUpdatesFlowObjects(self):
+  def testLeaseFlowForProcessingUpdatesFlowObjects(self):
     client_id, flow_id = self._SetupClientAndFlow()
 
     now = rdfvalue.RDFDatetime.Now()
@@ -1048,7 +1187,7 @@ class DatabaseTestFlowMixin(object):
     processing_deadline = now + processing_time
 
     with test_lib.FakeTime(now):
-      flow_for_processing = self.db.ReadFlowForProcessing(
+      flow_for_processing = self.db.LeaseFlowForProcessing(
           client_id, flow_id, processing_time)
 
     self.assertEqual(flow_for_processing.processing_on, utils.ProcessIdString())
@@ -1062,47 +1201,50 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_flow.processing_deadline, processing_deadline)
 
     flow_for_processing.next_request_to_process = 5
+    flow_for_processing.num_replies_sent = 10
 
-    self.db.ReturnProcessedFlow(flow_for_processing)
-    self.assertFalse(flow_for_processing.processing_on)
-    self.assertIsNone(flow_for_processing.processing_since)
-    self.assertIsNone(flow_for_processing.processing_deadline)
+    self.assertTrue(self.db.ReleaseProcessedFlow(flow_for_processing))
+    # Check that returning the flow doesn't change the flow object.
+    self.assertEqual(read_flow.processing_on, utils.ProcessIdString())
+    self.assertEqual(read_flow.processing_since, now)
+    self.assertEqual(read_flow.processing_deadline, processing_deadline)
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
     self.assertFalse(read_flow.processing_on)
     self.assertIsNone(read_flow.processing_since)
     self.assertIsNone(read_flow.processing_deadline)
     self.assertEqual(read_flow.next_request_to_process, 5)
+    self.assertEqual(read_flow.num_replies_sent, 10)
 
   def testFlowLastUpateTime(self):
-    now = rdfvalue.RDFDatetime.Now()
     processing_time = rdfvalue.Duration("60s")
 
-    with test_lib.FakeTime(now):
-      client_id, flow_id = self._SetupClientAndFlow()
+    t0 = rdfvalue.RDFDatetime.Now()
+    client_id, flow_id = self._SetupClientAndFlow()
+    t1 = rdfvalue.RDFDatetime.Now()
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(read_flow.last_update_time, now)
 
-    flow_for_processing = self.db.ReadFlowForProcessing(client_id, flow_id,
-                                                        processing_time)
-    self.assertEqual(flow_for_processing.last_update_time, now)
+    self.assertBetween(read_flow.last_update_time, t0, t1)
 
-    return_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("15s")
+    flow_for_processing = self.db.LeaseFlowForProcessing(
+        client_id, flow_id, processing_time)
+    self.assertBetween(flow_for_processing.last_update_time, t0, t1)
 
-    with test_lib.FakeTime(return_time):
-      self.db.ReturnProcessedFlow(flow_for_processing)
+    t2 = rdfvalue.RDFDatetime.Now()
+    self.db.ReleaseProcessedFlow(flow_for_processing)
+    t3 = rdfvalue.RDFDatetime.Now()
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(read_flow.last_update_time, return_time)
+    self.assertBetween(read_flow.last_update_time, t2, t3)
 
-  def testReturnProcessedFlow(self):
+  def testReleaseProcessedFlow(self):
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=1)
 
     processing_time = rdfvalue.Duration("60s")
 
-    processed_flow = self.db.ReadFlowForProcessing(client_id, flow_id,
-                                                   processing_time)
+    processed_flow = self.db.LeaseFlowForProcessing(client_id, flow_id,
+                                                    processing_time)
 
     # Let's say we processed one request on this flow.
     processed_flow.next_request_to_process = 2
@@ -1121,10 +1263,10 @@ class DatabaseTestFlowMixin(object):
             needs_processing=True)
     ])
 
-    self.assertTrue(self.db.ReturnProcessedFlow(processed_flow))
+    self.assertTrue(self.db.ReleaseProcessedFlow(processed_flow))
 
-    processed_flow = self.db.ReadFlowForProcessing(client_id, flow_id,
-                                                   processing_time)
+    processed_flow = self.db.LeaseFlowForProcessing(client_id, flow_id,
+                                                    processing_time)
     # And another one.
     processed_flow.next_request_to_process = 3
 
@@ -1137,7 +1279,7 @@ class DatabaseTestFlowMixin(object):
             needs_processing=True)
     ])
 
-    self.assertFalse(self.db.ReturnProcessedFlow(processed_flow))
+    self.assertFalse(self.db.ReleaseProcessedFlow(processed_flow))
 
   def testReadChildFlows(self):
     client_id = u"C.1234567890123456"
@@ -1311,8 +1453,8 @@ class DatabaseTestFlowMixin(object):
       try:
         l = request_queue.get(True, timeout=6)
       except queue.Empty:
-        self.fail(
-            "Timed out waiting for messages, expected 5, got %d" % len(got))
+        self.fail("Timed out waiting for messages, expected 5, got %d" %
+                  len(got))
       got.append(l)
 
     self.assertCountEqual(requests, got)
@@ -1350,8 +1492,8 @@ class DatabaseTestFlowMixin(object):
       try:
         l = request_queue.get(True, timeout=6)
       except queue.Empty:
-        self.fail(
-            "Timed out waiting for messages, expected 5, got %d" % len(got))
+        self.fail("Timed out waiting for messages, expected 5, got %d" %
+                  len(got))
       got.append(l)
       self.assertGreater(rdfvalue.RDFDatetime.Now(), l.delivery_time)
 
@@ -1457,6 +1599,7 @@ class DatabaseTestFlowMixin(object):
     results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
     self.assertLen(results, 1)
     self.assertEqual(results[0].payload, sample_result.payload)
+    self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
 
   def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -1678,8 +1821,8 @@ class DatabaseTestFlowMixin(object):
 
     self.assertLen(sample_results, len(results))
     for r in results:
-      self.assertTrue(
-          isinstance(r.payload, rdf_objects.SerializedValueOfUnrecognizedType))
+      self.assertIsInstance(r.payload,
+                            rdf_objects.SerializedValueOfUnrecognizedType)
       self.assertEqual(r.payload.type_name, type_name)
 
   def testCountFlowResultsReturnsCorrectResultsCount(self):
@@ -1748,9 +1891,31 @@ class DatabaseTestFlowMixin(object):
         with_type=compatibility.GetName(rdf_client.ClientSummary))
     self.assertEqual(num_results, 1)
 
+  def testCountFlowResultsByTypeReturnsCorrectNumbers(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_results = self._WriteFlowResults(sample_results=[
+        rdf_flow_objects.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 3)
+    sample_results.extend(
+        self._WriteFlowResults(sample_results=[
+            rdf_flow_objects.FlowResult(
+                client_id=client_id,
+                flow_id=flow_id,
+                payload=rdf_client.ClientCrash(client_id=client_id))
+        ] * 5))
+
+    counts_by_type = self.db.CountFlowResultsByType(client_id, flow_id)
+    self.assertEqual(counts_by_type, {
+        "ClientSummary": 3,
+        "ClientCrash": 5,
+    })
+
   def testWritesAndReadsSingleFlowLogEntry(self):
     client_id, flow_id = self._SetupClientAndFlow()
-    message = "blah"
+    message = "blah: ٩(͡๏̯͡๏)۶"
 
     self.db.WriteFlowLogEntries([
         rdf_flow_objects.FlowLogEntry(
@@ -2003,3 +2168,6 @@ class DatabaseTestFlowMixin(object):
             .ERROR),
         4,
     )
+
+
+# This file is a test library and thus does not require a __main__ block.

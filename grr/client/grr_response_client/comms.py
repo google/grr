@@ -1017,7 +1017,7 @@ class GRRHTTPClient(object):
       server_pem = http_object.data
       server_url = http_object.url
 
-      if "BEGIN CERTIFICATE" in server_pem:
+      if b"BEGIN CERTIFICATE" in server_pem:
         # Now we know that this proxy is working. We still have to verify the
         # certificate. This will raise if the server cert is invalid.
         server_certificate = rdf_crypto.RDFX509Cert(server_pem)

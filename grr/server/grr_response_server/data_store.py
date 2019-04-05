@@ -91,36 +91,22 @@ def RelationalDBWriteEnabled():
   return bool(REL_DB)
 
 
-def RelationalDBReadEnabled(category=None):
+def RelationalDBReadEnabled():
   """Returns True if reads from a relational database are enabled.
-
-  Args:
-    category: string identifying the category. Useful when a large piece of
-      functionality gets converted to REL_DB iteratively, step by step and when
-      enabling already implemented steps may break the rest of the system. For
-      example - reading single approvals is implemented, but listing them is
-      not.
 
   Returns:
     True if reads are enabled, False otherwise.
   """
-  flag = config.CONFIG["Database.useForReads"]
-
-  if category:
-    return flag and config.CONFIG["Database.useForReads.%s" % category]
-
-  return flag
+  return config.CONFIG["Database.useForReads"]
 
 
 def RelationalDBFlowsEnabled():
   """Returns True if relational flows are enabled.
 
-  Even with RelationalDBReadEnabled() returning True, this can be False.
-
   Returns: True if relational flows are enabled.
 
   """
-  return config.CONFIG["Database.useRelationalFlows"]
+  return config.CONFIG["Database.useForReads"]
 
 
 def AFF4Enabled():
@@ -259,8 +245,8 @@ class MutationPool(object):
     self.Flush()
 
   def Size(self):
-    return (len(self.delete_subject_requests) + len(self.set_requests) + len(
-        self.delete_attributes_requests))
+    return (len(self.delete_subject_requests) + len(self.set_requests) +
+            len(self.delete_attributes_requests))
 
   # Notification handling
   def CreateNotifications(self, queue, notifications):
@@ -375,14 +361,16 @@ class MutationPool(object):
   def QueueRefreshClaims(self, records, timeout="30m"):
     expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
     for record in records:
-      subject, _, _ = DataStore.CollectionMakeURN(
-          record.queue_id, record.timestamp, record.suffix, record.subpath)
+      subject, _, _ = DataStore.CollectionMakeURN(record.queue_id,
+                                                  record.timestamp,
+                                                  record.suffix, record.subpath)
       self.Set(subject, DataStore.QUEUE_LOCK_ATTRIBUTE, expiration)
 
   def QueueDeleteRecords(self, records):
     for record in records:
-      subject, _, _ = DataStore.CollectionMakeURN(
-          record.queue_id, record.timestamp, record.suffix, record.subpath)
+      subject, _, _ = DataStore.CollectionMakeURN(record.queue_id,
+                                                  record.timestamp,
+                                                  record.suffix, record.subpath)
 
       self.DeleteAttributes(
           subject,
@@ -390,8 +378,9 @@ class MutationPool(object):
 
   def QueueReleaseRecords(self, records):
     for record in records:
-      subject, _, _ = DataStore.CollectionMakeURN(
-          record.queue_id, record.timestamp, record.suffix, record.subpath)
+      subject, _, _ = DataStore.CollectionMakeURN(record.queue_id,
+                                                  record.timestamp,
+                                                  record.suffix, record.subpath)
       self.DeleteAttributes(subject, [DataStore.QUEUE_LOCK_ATTRIBUTE])
 
   def QueueDeleteTasks(self, queue, tasks):
@@ -514,9 +503,8 @@ class MutationPool(object):
     precondition.AssertType(child, Text)
 
     attributes = {
-        DataStore.AFF4_INDEX_DIR_TEMPLATE % child: [
-            DataStore.EMPTY_DATA_PLACEHOLDER
-        ]
+        DataStore.AFF4_INDEX_DIR_TEMPLATE %
+        child: [DataStore.EMPTY_DATA_PLACEHOLDER]
     }
     if extra_attributes:
       attributes.update(extra_attributes)
@@ -1216,8 +1204,8 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     subject = session_id.Add("state/request:00000000")
     predicates = []
     for response in responses:
-      predicates.append(self.FLOW_RESPONSE_TEMPLATE % (response.request_id,
-                                                       response.response_id))
+      predicates.append(self.FLOW_RESPONSE_TEMPLATE %
+                        (response.request_id, response.response_id))
 
     self.DeleteAttributes(subject, predicates, sync=True, start=0)
 
@@ -1371,8 +1359,9 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     Yields:
       Tuples (index, ts, suffix).
     """
-    for (attr, value, ts) in self.ResolvePrefix(
-        collection_id, self.COLLECTION_INDEX_ATTRIBUTE_PREFIX):
+    for (attr, value,
+         ts) in self.ResolvePrefix(collection_id,
+                                   self.COLLECTION_INDEX_ATTRIBUTE_PREFIX):
       i = int(attr[len(self.COLLECTION_INDEX_ATTRIBUTE_PREFIX):], 16)
       yield (i, ts, int(value, 16))
 

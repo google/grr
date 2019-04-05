@@ -11,7 +11,6 @@ from grr_response_server import blob_store
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-
 # Maximum size of one blob chunk, affected by MySQL configuration, especially
 # innodb_log_file_size and max_allowed_packet.
 BLOB_CHUNK_SIZE = 2**24  # MySQL MEDIUMBLOB, 16 MiB
@@ -97,7 +96,10 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadBlobs(self, blob_ids, cursor=None):
     """Reads given blobs."""
-    query = ("SELECT blob_id, blob_chunk FROM blobs WHERE blob_id IN {} "
+    query = ("SELECT blob_id, blob_chunk "
+             "FROM blobs "
+             "FORCE INDEX (PRIMARY) "
+             "WHERE blob_id IN {} "
              "ORDER BY blob_id, chunk_index ASC").format(
                  mysql_utils.Placeholders(len(blob_ids)))
     cursor.execute(query, [blob_id.AsBytes() for blob_id in blob_ids])
@@ -114,8 +116,11 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   def CheckBlobsExist(self, blob_ids, cursor=None):
     """Checks if given blobs exist."""
     exists = {blob_id: False for blob_id in blob_ids}
-    query = "SELECT blob_id FROM blobs WHERE blob_id IN {}".format(
-        mysql_utils.Placeholders(len(blob_ids)))
+    query = ("SELECT blob_id "
+             "FROM blobs "
+             "FORCE INDEX (PRIMARY) "
+             "WHERE blob_id IN {}".format(
+                 mysql_utils.Placeholders(len(blob_ids))))
     cursor.execute(query, [blob_id.AsBytes() for blob_id in blob_ids])
     for blob_id, in cursor.fetchall():
       exists[rdf_objects.BlobID.FromBytes(blob_id)] = True

@@ -70,8 +70,8 @@ class ApiFlowId(rdfvalue.RDFString):
         try:
           rdfvalue.SessionID.ValidateID(component)
         except ValueError as e:
-          raise ValueError(
-              "Invalid flow id: %s (%s)" % (utils.SmartStr(self._value), e))
+          raise ValueError("Invalid flow id: %s (%s)" %
+                           (utils.SmartStr(self._value), e))
 
   def _FlowIdToUrn(self, flow_id, client_id):
     return client_id.ToClientURN().Add("flows").Add(flow_id)
@@ -166,8 +166,8 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     if flow_cls.args_type:
       for type_descriptor in flow_cls.args_type.type_infos:
         if not type_descriptor.hidden:
-          prototypes.append(
-              "%s=%s" % (type_descriptor.name, type_descriptor.name))
+          prototypes.append("%s=%s" %
+                            (type_descriptor.name, type_descriptor.name))
     output.append(", ".join(prototypes))
     output.append(")")
     return "".join(output)
@@ -340,8 +340,8 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
         self.state = "CLIENT_CRASHED"
       elif flow_obj.pending_termination:
         self.state = "ERROR"
-        self.status = (
-            "Pending termination: %s" % flow_obj.pending_termination.reason)
+        self.status = ("Pending termination: %s" %
+                       flow_obj.pending_termination.reason)
       else:
         context_state_map = {1: "RUNNING", 2: "TERMINATED", 3: "ERROR"}
         self.state = context_state_map[int(flow_obj.flow_state)]
@@ -625,8 +625,11 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     if data_store.RelationalDBFlowsEnabled():
       results = data_store.REL_DB.ReadFlowResults(
-          str(args.client_id), str(args.flow_id), args.offset, args.count or
-          db.MAX_COUNT)
+          str(args.client_id),
+          str(args.flow_id),
+          args.offset,
+          args.count or db.MAX_COUNT,
+          with_substring=args.filter or None)
       total_count = data_store.REL_DB.CountFlowResults(
           str(args.client_id), str(args.flow_id))
       wrapped_items = [ApiFlowResult().InitFromFlowResult(r) for r in results]
@@ -635,8 +638,9 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
       output_collection = flow.GRRFlow.ResultCollectionForFID(flow_urn)
       total_count = len(output_collection)
 
-      items = api_call_handler_utils.FilterCollection(
-          output_collection, args.offset, args.count, args.filter)
+      items = api_call_handler_utils.FilterCollection(output_collection,
+                                                      args.offset, args.count,
+                                                      args.filter)
 
       wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
 
@@ -682,8 +686,9 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
       flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
       logs_collection = flow.GRRFlow.LogCollectionForFID(flow_urn)
 
-      result = api_call_handler_utils.FilterCollection(
-          logs_collection, args.offset, args.count, args.filter)
+      result = api_call_handler_utils.FilterCollection(logs_collection,
+                                                       args.offset, args.count,
+                                                       args.filter)
 
       return ApiListFlowLogsResult(
           items=[ApiFlowLog().InitFromFlowLog(x) for x in result],
@@ -702,8 +707,8 @@ class ApiGetFlowResultsExportCommandResult(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiGetFlowResultsExportCommandResult
 
 
-class ApiGetFlowResultsExportCommandHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiGetFlowResultsExportCommandHandler(api_call_handler_base.ApiCallHandler
+                                           ):
   """Renders GRR export tool command line that exports flow results."""
 
   args_type = ApiGetFlowResultsExportCommandArgs
@@ -711,8 +716,8 @@ class ApiGetFlowResultsExportCommandHandler(
 
   def Handle(self, args, token=None):
     output_fname = re.sub(
-        "[^0-9a-zA-Z]+", "_", "%s_%s" % (utils.SmartStr(args.client_id),
-                                         utils.SmartStr(args.flow_id)))
+        "[^0-9a-zA-Z]+", "_", "%s_%s" %
+        (utils.SmartStr(args.client_id), utils.SmartStr(args.flow_id)))
     code_to_execute = ("""grrapi.Client("%s").Flow("%s").GetFilesArchive()."""
                        """WriteToFile("./flow_results_%s.zip")""") % (
                            args.client_id, args.flow_id, output_fname)
@@ -836,10 +841,10 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_api_object, flow_results = self._GetFlow(args, token)
 
-    description = (
-        "Files downloaded by flow %s (%s) that ran on client %s by "
-        "user %s on %s" % (flow_api_object.name, args.flow_id, args.client_id,
-                           flow_api_object.creator, flow_api_object.started_at))
+    description = ("Files downloaded by flow %s (%s) that ran on client %s by "
+                   "user %s on %s" %
+                   (flow_api_object.name, args.flow_id, args.client_id,
+                    flow_api_object.creator, flow_api_object.started_at))
 
     target_file_prefix = "%s_flow_%s_%s" % (
         args.client_id, flow_api_object.name, str(
@@ -1059,8 +1064,8 @@ class ApiListFlowOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-class ApiListFlowOutputPluginLogsHandler(
-    ApiListFlowOutputPluginLogsHandlerBase):
+class ApiListFlowOutputPluginLogsHandler(ApiListFlowOutputPluginLogsHandlerBase
+                                        ):
   """Renders flow's output plugin's logs."""
 
   # TODO(user): remove "attribute_name" as soon as AFF4 is gone.
@@ -1398,7 +1403,7 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetExportedFlowResultsArgs
 
-  def Handle(self, args, token=None):
+  def _HandleLegacy(self, args, token=None):
     iop_cls = instant_output_plugin.InstantOutputPlugin
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
 
@@ -1411,3 +1416,36 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         plugin, output_collection, source_urn=args.client_id.ToClientURN())
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name, content_generator=content_generator)
+
+  def _HandleRelational(self, args, token=None):
+    iop_cls = instant_output_plugin.InstantOutputPlugin
+    plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
+
+    # TODO(user): Instant output plugins shouldn't depend on tokens
+    # and URNs.
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+    plugin = plugin_cls(source_urn=flow_urn, token=token)
+
+    client_id = str(args.client_id)
+    flow_id = str(args.flow_id)
+    types = data_store.REL_DB.CountFlowResultsByType(client_id, flow_id)
+
+    def FetchFn(type_name):
+      for r in data_store.REL_DB.ReadFlowResults(
+          client_id, flow_id, offset=0, count=db.MAX_COUNT,
+          with_type=type_name):
+        msg = r.AsLegacyGrrMessage()
+        msg.source = client_id
+        yield msg
+
+    content_generator = instant_output_plugin.ApplyPluginToTypedCollection(
+        plugin, types, FetchFn)
+
+    return api_call_handler_base.ApiBinaryStream(
+        plugin.output_file_name, content_generator=content_generator)
+
+  def Handle(self, args, token=None):
+    if data_store.RelationalDBFlowsEnabled():
+      return self._HandleRelational(args, token=token)
+    else:
+      return self._HandleLegacy(args, token=token)

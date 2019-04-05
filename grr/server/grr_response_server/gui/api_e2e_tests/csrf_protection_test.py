@@ -4,14 +4,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import json
-
 
 from absl import app
 import requests
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import json
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
@@ -51,7 +50,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
 
     response = requests.post(
-        self.base_url + "/api/clients/labels/add", data=json.dumps(data))
+        self.base_url + "/api/clients/labels/add", data=json.Dump(data))
 
     self.assertEqual(response.status_code, 403)
     self.assertIn("CSRF", response.text)
@@ -66,7 +65,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
 
     response = requests.post(
         self.base_url + "/api/clients/labels/add",
-        data=json.dumps(data),
+        data=json.Dump(data),
         cookies=cookies)
 
     self.assertEqual(response.status_code, 403)
@@ -84,7 +83,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
     response = requests.post(
         self.base_url + "/api/clients/labels/add",
         headers=headers,
-        data=json.dumps(data),
+        data=json.Dump(data),
         cookies=cookies)
     self.assertEqual(response.status_code, 200)
 
@@ -100,7 +99,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,
-          data=json.dumps(data),
+          data=json.Dump(data),
           cookies=cookies)
       self.assertEqual(response.status_code, 200)
 
@@ -112,7 +111,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,
-          data=json.dumps(data),
+          data=json.Dump(data),
           cookies=cookies)
       self.assertEqual(response.status_code, 200)
 
@@ -122,7 +121,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,
-          data=json.dumps(data),
+          data=json.Dump(data),
           cookies=cookies)
       self.assertEqual(response.status_code, 403)
       self.assertIn("Expired CSRF token", response.text)
@@ -138,7 +137,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
     response = requests.post(
         self.base_url + "/api/clients/labels/add",
         headers=headers,
-        data=json.dumps(data),
+        data=json.Dump(data),
         cookies=cookies)
     self.assertEqual(response.status_code, 403)
     self.assertIn("Malformed", response.text)
@@ -158,7 +157,7 @@ class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
     response = requests.post(
         self.base_url + "/api/clients/labels/add",
         headers=headers,
-        data=json.dumps(data),
+        data=json.Dump(data),
         cookies=cookies)
     self.assertEqual(response.status_code, 403)
     self.assertIn("Non-matching", response.text)

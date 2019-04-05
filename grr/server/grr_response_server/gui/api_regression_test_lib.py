@@ -6,7 +6,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import abc
-import json
 import logging
 import os
 import re
@@ -24,6 +23,7 @@ import pytest
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import json
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.gui import api_auth_manager
@@ -245,8 +245,7 @@ class ApiRegressionTest(
     creates a public testForRegression method for generated regression
     classes.
     """
-    with open(self.output_file_name, "rb") as fd:
-      prev_data = json.load(fd)
+    prev_data = json.ReadFromPath(self.output_file_name)
 
     checks = prev_data[self.__class__.handler.__name__]
     relevant_checks = []
@@ -258,12 +257,7 @@ class ApiRegressionTest(
     # Make sure that this test has generated some checks.
     self.assertTrue(self.checks)
 
-    checks_str = json.dumps(
-        self.checks, indent=2, sort_keys=True, separators=(",", ": "))
-    prev_checks_str = json.dumps(
-        relevant_checks, indent=2, sort_keys=True, separators=(",", ": "))
-
-    self.assertMultiLineEqual(prev_checks_str, checks_str)
+    self.assertEqual(self.checks, relevant_checks)
 
 
 class ApiRegressionGoldenOutputGenerator(object):
@@ -318,9 +312,11 @@ class ApiRegressionGoldenOutputGenerator(object):
           except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
 
-    json_sample_data = json.dumps(
-        sample_data, indent=2, sort_keys=True, separators=(",", ": "))
-    print(json_sample_data)
+    json_sample_data = json.Dump(sample_data, sort_keys=True)
+    if compatibility.PY2:
+      print(json_sample_data.encode("utf-8"))
+    else:
+      print(json_sample_data)
 
 
 def GetFlowTestReplaceDict(client_id=None,

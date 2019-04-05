@@ -74,3 +74,6 @@ class DatabaseTestSignedBinariesMixin(object):
     self.assertEqual(stored_hash_id, _test_references1)
     self.assertGreater(stored_timestamp.AsMicrosecondsSinceEpoch(), 0)
     self.assertEqual(self.db.ReadIDsForAllSignedBinaries(), [test_id])
+
+
+# This file is a test library and thus does not require a __main__ block.

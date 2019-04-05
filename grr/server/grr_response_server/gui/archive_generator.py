@@ -35,7 +35,7 @@ def CompatCollectionArchiveGenerator(*args, **kwargs):
 
 def GetCompatClass():
   """Returns the (Aff4)CollectionArchiveGenerator class."""
-  if data_store.RelationalDBReadEnabled("filestore"):
+  if data_store.RelationalDBReadEnabled():
     return CollectionArchiveGenerator
   else:
     return Aff4CollectionArchiveGenerator

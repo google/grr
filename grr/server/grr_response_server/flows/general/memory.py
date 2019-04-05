@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Flows that utilize the Yara library."""
+"""Flows related to process memory."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import logging
 import re
 
-from grr_response_core.lib.rdfvalues import rdf_yara
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
@@ -18,13 +18,14 @@ from grr_response_server.flows.general import transfer
 class YaraProcessScanMixin(object):
   """Scans process memory using Yara."""
 
-  category = "/Yara/"
+  category = "/Memory/"
   friendly_name = "Yara Process Scan"
 
-  args_type = rdf_yara.YaraProcessScanRequest
+  args_type = rdf_memory.YaraProcessScanRequest
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def Start(self):
+    """The start method."""
 
     # Catch signature issues early.
     rules = self.args.yara_signature.GetRules()
@@ -41,6 +42,7 @@ class YaraProcessScanMixin(object):
         next_state="ProcessScanResults")
 
   def ProcessScanResults(self, responses):
+    """Processes the results of the scan."""
     if not responses.success:
       raise flow.FlowError(responses.status)
 
@@ -66,7 +68,7 @@ class YaraProcessScanMixin(object):
 
     if pids_to_dump:
       self.CallFlow(
-          YaraDumpProcessMemory.__name__,  # pylint: disable=undefined-variable
+          DumpProcessMemory.__name__,  # pylint: disable=undefined-variable
           pids=list(pids_to_dump),
           skip_special_regions=self.args.skip_special_regions,
           skip_mapped_files=self.args.skip_mapped_files,
@@ -84,18 +86,13 @@ class YaraProcessScanMixin(object):
 
 
 @flow_base.DualDBFlow
-class YaraDumpProcessMemoryMixin(object):
-  """Acquires memory for a given list of processes.
+class DumpProcessMemoryMixin(object):
+  """Acquires memory for a given list of processes."""
 
-  Note that accessing process memory with Yara on Linux causes
-  processes to pause. This can impact the client machines when dumping
-  large processes.
-  """
+  category = "/Memory/"
+  friendly_name = "Process Dump"
 
-  category = "/Yara/"
-  friendly_name = "Yara Process Dump"
-
-  args_type = rdf_yara.YaraProcessDumpArgs
+  args_type = rdf_memory.YaraProcessDumpArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def Start(self):
@@ -113,6 +110,7 @@ class YaraDumpProcessMemoryMixin(object):
         next_state="ProcessResults")
 
   def ProcessResults(self, responses):
+    """Processes the results of the dump."""
     if not responses.success:
       raise flow.FlowError(responses.status)
 
@@ -122,14 +120,14 @@ class YaraDumpProcessMemoryMixin(object):
 
     for error in response.errors:
       p = error.process
-      self.Log("Error dumping process %s (pid %d): %s" % (p.name, p.pid,
-                                                          error.error))
+      self.Log("Error dumping process %s (pid %d): %s" %
+               (p.name, p.pid, error.error))
 
     dump_files_to_get = []
     for dumped_process in response.dumped_processes:
       p = dumped_process.process
-      self.Log("Getting %d dump files for process %s (pid %d)." % (len(
-          dumped_process.dump_files), p.name, p.pid))
+      self.Log("Getting %d dump files for process %s (pid %d)." %
+               (len(dumped_process.dump_files), p.name, p.pid))
       for pathspec in dumped_process.dump_files:
         dump_files_to_get.append(pathspec)
 

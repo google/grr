@@ -24,6 +24,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 
@@ -327,6 +328,36 @@ Platform:Windows:
     new_conf.Initialize(filename=config_file)
 
     self.assertEqual(new_conf["NewSection1.new_option1"], "New Value1")
+
+  def testQuotes(self):
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_string(name="foo.bar", default="\"baz\"", help="Bar.")
+    conf.DEFINE_string(name="foo.quux", default="\"%(foo.bar)\"", help="Quux.")
+
+    conf.Initialize(data="")
+
+    self.assertEqual(conf["foo.bar"], "\"baz\"")
+    self.assertEqual(conf["foo.quux"], "\"\"baz\"\"")
+
+  def testWritebackQuotes(self):
+
+    def Config():
+      conf = config_lib.GrrConfigManager()
+      conf.DEFINE_string(name="foo.bar", default="", help="Bar.")
+      conf.DEFINE_string(name="foo.baz", default="\"%(foo.bar)\"", help="Baz.")
+      return conf
+
+    with temp.AutoTempFilePath(suffix=".yaml") as confpath:
+      writeback_conf = Config()
+      writeback_conf.SetWriteBack(confpath)
+      writeback_conf.Set("foo.bar", "\"quux\"")
+      writeback_conf.Write()
+
+      loaded_conf = Config()
+      loaded_conf.Initialize(filename=confpath)
+
+    self.assertEqual(loaded_conf["foo.bar"], "\"quux\"")
+    self.assertEqual(loaded_conf["foo.baz"], "\"\"quux\"\"")
 
   def _SetupConfig(self, value):
     conf = config_lib.GrrConfigManager()

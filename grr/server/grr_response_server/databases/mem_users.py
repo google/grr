@@ -102,8 +102,8 @@ class InMemoryDBUsersMixin(object):
     try:
       return self.approvals_by_username[requestor_username][approval_id]
     except KeyError:
-      raise db.UnknownApprovalRequestError(
-          "Can't find approval with id: %s" % approval_id)
+      raise db.UnknownApprovalRequestError("Can't find approval with id: %s" %
+                                           approval_id)
 
   @utils.Synchronized
   def ReadApprovalRequests(self,
@@ -114,6 +114,7 @@ class InMemoryDBUsersMixin(object):
     """Reads approval requests of a given type for a given user."""
     now = rdfvalue.RDFDatetime.Now()
 
+    result = []
     approvals = self.approvals_by_username.get(requestor_username, {})
     for approval in itervalues(approvals):
       if approval.approval_type != approval_type:
@@ -125,7 +126,9 @@ class InMemoryDBUsersMixin(object):
       if not include_expired and approval.expiration_time < now:
         continue
 
-      yield approval
+      result.append(approval)
+
+    return result
 
   @utils.Synchronized
   def GrantApproval(self, requestor_username, approval_id, grantor_username):
@@ -137,8 +140,8 @@ class InMemoryDBUsersMixin(object):
               grantor_username=grantor_username,
               timestamp=rdfvalue.RDFDatetime.Now()))
     except KeyError:
-      raise db.UnknownApprovalRequestError(
-          "Can't find approval with id: %s" % approval_id)
+      raise db.UnknownApprovalRequestError("Can't find approval with id: %s" %
+                                           approval_id)
 
   @utils.Synchronized
   def WriteUserNotification(self, notification):

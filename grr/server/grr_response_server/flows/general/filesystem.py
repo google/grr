@@ -56,6 +56,39 @@ def CreateAFF4Object(stat_response, client_id_urn, mutation_pool, token=None):
     fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
 
 
+def _FilterOutPathInfoDuplicates(path_infos):
+  """Filters out duplicates from passed PathInfo objects.
+
+  Args:
+    path_infos: An iterable with PathInfo objects.
+
+  Returns:
+    A list of PathInfo objects with duplicates removed. Duplicates are
+    removed following this logic: they're sorted by (ctime, mtime, atime,
+    inode number) in the descending order and then the first one is taken
+    and the others are dropped.
+  """
+  pi_dict = {}
+
+  for pi in path_infos:
+    path_key = (pi.path_type, pi.GetPathID())
+    pi_dict.setdefault(path_key, []).append(pi)
+
+  def _SortKey(pi):
+    return (
+        pi.stat_entry.st_ctime,
+        pi.stat_entry.st_mtime,
+        pi.stat_entry.st_atime,
+        pi.stat_entry.st_ino,
+    )
+
+  for pi_values in pi_dict.values():
+    if len(pi_values) > 1:
+      pi_values.sort(key=_SortKey, reverse=True)
+
+  return [v[0] for v in pi_dict.values()]
+
+
 def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
   """Persists information about stat entries.
 
@@ -84,8 +117,19 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
           token=token)
 
   if data_store.RelationalDBWriteEnabled():
-    path_infos = list(map(rdf_objects.PathInfo.FromStatEntry, stat_entries))
-    data_store.REL_DB.WritePathInfos(client_id, path_infos)
+    path_infos = [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
+    # NOTE: TSK may return duplicate entries. This is may be either due to
+    # a bug in TSK implementation, or due to the fact that TSK is capable
+    # of returning deleted files information. Our VFS data model only supports
+    # storing multiple versions of the files when we collect the versions
+    # ourselves. At the moment we can't store multiple versions of the files
+    # "as returned by TSK".
+    #
+    # Current behaviour is to simply drop excessive version before the
+    # WritePathInfo call. This way files returned by TSK will still make it
+    # into the flow's results, but not into the VFS data.
+    data_store.REL_DB.WritePathInfos(client_id,
+                                     _FilterOutPathInfoDuplicates(path_infos))
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -1071,8 +1115,8 @@ class DiskVolumeInfoMixin(object):
         # rather than raise.
         self.Log("Error collecting SystemRoot artifact: %s", responses.status)
       else:
-        raise flow.FlowError(
-            "Error collecting SystemRoot artifact: %s" % responses.status)
+        raise flow.FlowError("Error collecting SystemRoot artifact: %s" %
+                             responses.status)
 
     drive = str(responses.First())[0:2]
     if drive:

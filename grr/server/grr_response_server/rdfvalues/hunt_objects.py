@@ -68,6 +68,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
       HuntArguments,
       foreman_rules.ForemanClientRuleSet,
       rdfvalue.RDFDatetime,
+      rdfvalue.Duration,
       rdf_hunts.FlowLikeObjectReference,
       rdf_output_plugin.OutputPluginDescriptor,
   ]
@@ -84,8 +85,8 @@ class Hunt(rdf_structs.RDFProtoStruct):
     if not self.HasField("create_time"):
       self.create_time = rdfvalue.RDFDatetime.Now()
 
-    if not self.HasField("expiry_time"):
-      self.expiry_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("2w")
+    if not self.HasField("duration"):
+      self.duration = rdfvalue.Duration("2w")
 
     if not self.HasField("client_rate"):
       self.client_rate = 20.5

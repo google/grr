@@ -161,9 +161,10 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunts_list = sorted(
-          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
       self.assertLen(hunts_list, 2)
 
@@ -275,9 +276,10 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunts_list = sorted(
-          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
       self.assertLen(hunts_list, 2)
 
@@ -407,9 +409,10 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     # Close the window and check that the hunt was created.
     self.Click("css=button.Next")
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunts_list = sorted(
-          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
       self.assertLen(hunts_list, 2)
 
@@ -523,9 +526,10 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunts_list = sorted(
-          data_store.REL_DB.ReadAllHuntObjects(), key=lambda x: x.create_time)
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
       self.assertLen(hunts_list, 1)
 

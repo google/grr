@@ -5,6 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import collections
 import logging
 import sys
 import threading
@@ -260,7 +261,7 @@ class InMemoryDBFlowMixin(object):
     return res
 
   @utils.Synchronized
-  def ReadFlowForProcessing(self, client_id, flow_id, processing_time):
+  def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
     """Marks a flow as being processed on this worker and returns it."""
     rdf_flow = self.ReadFlowObject(client_id, flow_id)
     # TODO(user): remove the check for a legacy hunt prefix as soon as
@@ -269,8 +270,9 @@ class InMemoryDBFlowMixin(object):
       rdf_hunt = self.ReadHuntObject(rdf_flow.parent_hunt_id)
       if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(
           rdf_hunt.hunt_state):
-        raise db.ParentHuntIsNotRunningError(
-            client_id, flow_id, rdf_hunt.hunt_id, rdf_hunt.hunt_state)
+        raise db.ParentHuntIsNotRunningError(client_id, flow_id,
+                                             rdf_hunt.hunt_id,
+                                             rdf_hunt.hunt_state)
 
     now = rdfvalue.RDFDatetime.Now()
     if rdf_flow.processing_on and rdf_flow.processing_deadline > now:
@@ -531,8 +533,8 @@ class InMemoryDBFlowMixin(object):
     return res
 
   @utils.Synchronized
-  def ReturnProcessedFlow(self, flow_obj):
-    """Returns a flow that the worker was processing to the database."""
+  def ReleaseProcessedFlow(self, flow_obj):
+    """Releases a flow that the worker was processing to the database."""
     key = (flow_obj.client_id, flow_obj.flow_id)
     next_id_to_process = flow_obj.next_request_to_process
     request_dict = self.flow_requests.get(key, {})
@@ -540,9 +542,6 @@ class InMemoryDBFlowMixin(object):
         request_dict[next_id_to_process].needs_processing):
       return False
 
-    flow_obj.processing_on = None
-    flow_obj.processing_since = None
-    flow_obj.processing_deadline = None
     self.UpdateFlow(
         flow_obj.client_id,
         flow_obj.flow_id,
@@ -743,6 +742,16 @@ class InMemoryDBFlowMixin(object):
             sys.maxsize,
             with_tag=with_tag,
             with_type=with_type))
+
+  @utils.Synchronized
+  def CountFlowResultsByType(self, client_id, flow_id):
+    """Returns counts of flow results grouped by result type."""
+    result = collections.Counter()
+    for hr in self.ReadFlowResults(client_id, flow_id, 0, sys.maxsize):
+      key = compatibility.GetName(hr.payload.__class__)
+      result[key] += 1
+
+    return result
 
   @utils.Synchronized
   def WriteFlowLogEntries(self, entries):

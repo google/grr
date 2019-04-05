@@ -24,7 +24,7 @@ class UnknownHuntTypeError(Error):
 
 
 def GetForeman(token=None):
-  if data_store.RelationalDBReadEnabled(category="foreman"):
+  if data_store.RelationalDBReadEnabled():
     return Foreman()
   else:
     return aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=token)

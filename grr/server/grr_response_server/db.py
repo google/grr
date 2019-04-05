@@ -22,11 +22,10 @@ from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import with_metaclass
-from typing import Generator, List, Optional, Text, Iterable, Dict
+from typing import Generator, List, Optional, Text, Tuple, Iterable, Dict
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import time_utils
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -69,14 +68,36 @@ MAX_COUNT = 1024**3
 
 
 class Error(Exception):
+  """Base exception class for DB exceptions."""
 
-  def __init__(self, message="", cause=None):
-    if cause is not None:
-      message += ": %s" % cause
+  # Python exception constructors should be able to handle arbitrary amount
+  # of arguments if they want to stay pickleable.
+  # See:
+  # https://stackoverflow.com/questions/41808912/cannot-unpickle-exception-subclass
+  #
+  # Database exceptions have to be pickleable in order to make self-contained
+  # E2E testing with SharedMemoryDB possible (as SharedMemoryDB server has to
+  # pass serialized exception objects back to SharedMemoryDB clients running
+  # as separate processes - see test/grr_response_test/run_self_contained.py for
+  # more details). Consequently, __init__ passes all the positional arguments
+  # through and accepts "cause" as a keyword argument.
+  #
+  # Exceptions inherited from Error are expected to call Error's constructor
+  # with all positional arguments they've received and set self.message to
+  # a custom message (in case they need one).
+  def __init__(self, *args, **kwargs):
+    super(Error, self).__init__(*args)
 
-    super(Error, self).__init__(message)
+    self.cause = kwargs.get("cause")
+    self.message = None
 
-    self.cause = cause
+  def __str__(self):
+    message = self.message or super(Error, self).__str__()
+
+    if self.cause is not None:
+      return "%s: %s" % (message, self.cause)
+
+    return message
 
 
 class NotFoundError(Error):
@@ -92,10 +113,10 @@ class UnknownArtifactError(NotFoundError):
   """
 
   def __init__(self, name, cause=None):
-    message = "Artifact with name '%s' does not exist" % name
-    super(UnknownArtifactError, self).__init__(message, cause=cause)
+    super(UnknownArtifactError, self).__init__(name, cause=cause)
 
     self.name = name
+    self.message = "Artifact with name '%s' does not exist" % self.name
 
 
 class DuplicatedArtifactError(Error):
@@ -107,10 +128,10 @@ class DuplicatedArtifactError(Error):
   """
 
   def __init__(self, name, cause=None):
-    message = "Artifact with name '%s' already exists" % name
-    super(DuplicatedArtifactError, self).__init__(message, cause=cause)
+    super(DuplicatedArtifactError, self).__init__(name, cause=cause)
 
     self.name = name
+    self.message = "Artifact with name '%s' already exists" % self.name
 
 
 class UnknownClientError(NotFoundError):
@@ -123,20 +144,20 @@ class UnknownClientError(NotFoundError):
   """
 
   def __init__(self, client_id, cause=None):
-    message = "Client with id '%s' does not exist" % client_id
-    super(UnknownClientError, self).__init__(message, cause=cause)
+    super(UnknownClientError, self).__init__(client_id, cause=cause)
 
     self.client_id = client_id
+    self.message = "Client with id '%s' does not exist" % self.client_id
 
 
 class AtLeastOneUnknownClientError(UnknownClientError):
 
   def __init__(self, client_ids, cause=None):
-    message = "At least one client in '%s' does not exist" % ",".join(
-        client_ids)
-    super(AtLeastOneUnknownClientError, self).__init__(message, cause=cause)
+    super(AtLeastOneUnknownClientError, self).__init__(client_ids, cause=cause)
 
     self.client_ids = client_ids
+    self.message = "At least one client in '%s' does not exist" % ",".join(
+        client_ids)
 
 
 class UnknownPathError(NotFoundError):
@@ -149,27 +170,28 @@ class UnknownPathError(NotFoundError):
   """
 
   def __init__(self, client_id, path_type, components, cause=None):
-    message = "Path '%s' of type '%s' on client '%s' does not exist"
-    message %= ("/".join(components), path_type, client_id)
-    super(UnknownPathError, self).__init__(message, cause=cause)
+    super(UnknownPathError, self).__init__(
+        client_id, path_type, components, cause=cause)
 
     self.client_id = client_id
     self.path_type = path_type
     self.components = components
+
+    self.message = "Path '%s' of type '%s' on client '%s' does not exist"
+    self.message %= ("/".join(self.components), self.path_type, self.client_id)
 
 
 class AtLeastOneUnknownPathError(NotFoundError):
   """An exception class raised when one of a set of paths is unknown."""
 
   def __init__(self, client_path_ids, cause=None):
-    message = "At least one of client path ids does not exist: "
-    message += ", ".join(utils.SmartStr(cpid) for cpid in client_path_ids)
-    if cause is not None:
-      message += ": %s" % cause
-    super(AtLeastOneUnknownPathError, self).__init__(message)
+    super(AtLeastOneUnknownPathError, self).__init__(
+        client_path_ids, cause=cause)
 
     self.client_path_ids = client_path_ids
-    self.cause = cause
+
+    self.message = "At least one of client path ids does not exist: "
+    self.message += ", ".join(str(cpid) for cpid in self.client_path_ids)
 
 
 class UnknownRuleError(NotFoundError):
@@ -180,9 +202,10 @@ class UnknownGRRUserError(NotFoundError):
   """An error thrown when no user is found for a given username."""
 
   def __init__(self, username):
+    super(UnknownGRRUserError, self).__init__(username)
     self.username = username
-    message = "Cannot find user with username %r" % username
-    super(UnknownGRRUserError, self).__init__(message)
+
+    self.message = "Cannot find user with username %r" % self.username
 
 
 class UnknownApprovalRequestError(NotFoundError):
@@ -208,103 +231,121 @@ class UnknownSignedBinaryError(NotFoundError):
       cause: A lower-level Exception raised by the database driver, which might
         have more details about the error.
     """
-    super(UnknownSignedBinaryError, self).__init__(
-        "Signed binary of type %s and path %s was not found" %
-        (binary_id.binary_type, binary_id.path),
-        cause=cause)
+    super(UnknownSignedBinaryError, self).__init__(binary_id, cause=cause)
+
+    self.binary_id = binary_id
+    self.message = ("Signed binary of type %s and path %s was not found" %
+                    (self.binary_id.binary_type, self.binary_id.path))
 
 
 class UnknownFlowError(NotFoundError):
 
   def __init__(self, client_id, flow_id, cause=None):
-    message = ("Flow with client id '%s' and flow id '%s' does not exist" %
-               (client_id, flow_id))
-    super(UnknownFlowError, self).__init__(message, cause=cause)
+    super(UnknownFlowError, self).__init__(client_id, flow_id, cause=cause)
 
     self.client_id = client_id
     self.flow_id = flow_id
+
+    self.message = ("Flow with client id '%s' and flow id '%s' does not exist" %
+                    (self.client_id, self.flow_id))
 
 
 class UnknownHuntError(NotFoundError):
 
   def __init__(self, hunt_id, cause=None):
-    message = "Hunt with hunt id '%s' does not exist" % hunt_id
-    super(UnknownHuntError, self).__init__(message, cause=cause)
-
+    super(UnknownHuntError, self).__init__(hunt_id, cause=cause)
     self.hunt_id = hunt_id
+
+    self.message = "Hunt with hunt id '%s' does not exist" % self.hunt_id
 
 
 class UnknownHuntOutputPluginStateError(NotFoundError):
 
   def __init__(self, hunt_id, state_index):
-    message = ("Hunt output plugin state for hunt '%s' with index %d does not "
-               "exist") % (hunt_id, state_index)
-    super(UnknownHuntOutputPluginStateError, self).__init__(message)
+    super(UnknownHuntOutputPluginStateError,
+          self).__init__(hunt_id, state_index)
 
     self.hunt_id = hunt_id
     self.state_index = state_index
+
+    self.message = ("Hunt output plugin state for hunt '%s' with "
+                    "index %d does not exist" %
+                    (self.hunt_id, self.state_index))
 
 
 class AtLeastOneUnknownFlowError(NotFoundError):
 
   def __init__(self, flow_keys, cause=None):
-    message = (
-        "At least one flow with client id/flow_id in '%s' does not exist" %
-        (flow_keys))
-    super(AtLeastOneUnknownFlowError, self).__init__(message, cause=cause)
+    super(AtLeastOneUnknownFlowError, self).__init__(flow_keys, cause=cause)
 
     self.flow_keys = flow_keys
 
+    self.message = ("At least one flow with client id/flow_id in '%s' "
+                    "does not exist" % (self.flow_keys))
+
 
 class UnknownFlowRequestError(NotFoundError):
+  """Raised when a flow request is not found."""
 
   def __init__(self, client_id, flow_id, request_id, cause=None):
-    message = ("Flow request %d for flow with client id '%s' and flow id '%s' "
-               "does not exist" % (request_id, client_id, flow_id))
-    super(UnknownFlowRequestError, self).__init__(message, cause=cause)
+    super(UnknownFlowRequestError, self).__init__(
+        client_id, flow_id, request_id, cause=cause)
 
     self.client_id = client_id
     self.flow_id = flow_id
     self.request_id = request_id
+
+    self.message = (
+        "Flow request %d for flow with client id '%s' and flow id '%s' "
+        "does not exist" % (self.request_id, self.client_id, self.flow_id))
 
 
 class ParentHuntIsNotRunningError(Error):
   """Exception indicating that a hunt-induced flow is not processable."""
 
   def __init__(self, client_id, flow_id, hunt_id, hunt_state):
-    message = ("Parent hunt %s of the flow with client id '%s' and "
-               "flow id '%s' is not running: %s" %
-               (hunt_id, client_id, flow_id, hunt_state))
-    super(ParentHuntIsNotRunningError, self).__init__(message)
+    super(ParentHuntIsNotRunningError, self).__init__(client_id, flow_id,
+                                                      hunt_id, hunt_state)
 
     self.client_id = client_id
     self.flow_id = flow_id
     self.hunt_id = hunt_id
     self.hunt_state = hunt_state
 
+    self.message = (
+        "Parent hunt %s of the flow with client id '%s' and "
+        "flow id '%s' is not running: %s" %
+        (self.hunt_id, self.client_id, self.flow_id, self.hunt_state))
+
 
 class HuntOutputPluginsStatesAreNotInitializedError(Error):
   """Exception indicating that hunt output plugin states weren't initialized."""
 
   def __init__(self, hunt_obj):
-    message = ("Hunt %r has output plugins but no output plugins states. "
-               "Make sure it was created with hunt.CreateHunt and not "
-               "simply written to the database." % hunt_obj)
-    super(HuntOutputPluginsStatesAreNotInitializedError, self).__init__(message)
+    super(HuntOutputPluginsStatesAreNotInitializedError,
+          self).__init__(hunt_obj)
 
     self.hunt_obj = hunt_obj
+
+    self.message = ("Hunt %r has output plugins but no output plugins states. "
+                    "Make sure it was created with hunt.CreateHunt and not "
+                    "simply written to the database." % self.hunt_obj)
 
 
 class ConflictingUpdateFlowArgumentsError(Error):
   """Raised when UpdateFlow is called with conflicting parameter."""
 
   def __init__(self, client_id, flow_id, param_name):
-    super(ConflictingUpdateFlowArgumentsError, self).__init__(
-        "Conflicting parameter when updating flow "
-        "%s (client %s). Can't call UpdateFlow with "
-        "flow_obj and %s passed together." % (flow_id, client_id, param_name))
+    super(ConflictingUpdateFlowArgumentsError,
+          self).__init__(client_id, flow_id, param_name)
     self.client_id = client_id
     self.flow_id = flow_id
+    self.param_name = param_name
+
+    self.message = ("Conflicting parameter when updating flow "
+                    "%s (client %s). Can't call UpdateFlow with "
+                    "flow_obj and %s passed together." %
+                    (flow_id, client_id, param_name))
 
 
 class StringTooLongError(ValueError):
@@ -1489,6 +1530,29 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def CountAPIAuditEntriesByUserAndDay(
+      self,
+      min_timestamp = None,
+      max_timestamp = None
+  ):
+    """Returns audit entry counts grouped by user and calendar day.
+
+    Examples:
+      >>> db.REL_DB.CountAPIAuditEntriesByUserAndDay()
+      {("sampleuser", RDFDateTime("2019-02-02 00:00:00")): 5}
+
+    Args:
+      min_timestamp: minimum rdfvalue.RDFDateTime (inclusive)
+      max_timestamp: maximum rdfvalue.RDFDateTime (inclusive)
+
+    Returns:
+      A dictionary mapping tuples of usernames and datetimes to counts.
+      - The dictionary has no entry if the count is zero for a day and user.
+      - The RDFDateTime only contains date information. The time part is always
+        midnight in UTC.
+    """
+
+  @abc.abstractmethod
   def WriteAPIAuditEntry(self, entry):
     """Writes an audit entry to the database.
 
@@ -1852,7 +1916,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadFlowForProcessing(self, client_id, flow_id, processing_time):
+  def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
     """Marks a flow as being processed on this worker and returns it.
 
     Args:
@@ -1871,8 +1935,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReturnProcessedFlow(self, flow_obj):
-    """Returns a flow that the worker was processing to the database.
+  def ReleaseProcessedFlow(self, flow_obj):
+    """Releases a flow that the worker was processing to the database.
 
     This method will check if there are currently more requests ready for
     processing. If there are, the flow will not be written to the database and
@@ -2105,6 +2169,18 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def CountFlowResultsByType(self, client_id, flow_id):
+    """Returns counts of flow results grouped by result type.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count results for.
+
+    Returns:
+      A dictionary of "type name" => <number of items>.
+    """
+
+  @abc.abstractmethod
   def WriteFlowLogEntries(self, entries):
     """Writes flow log entries for a given flow.
 
@@ -2274,7 +2350,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
   @abc.abstractmethod
   def UpdateHuntObject(self,
                        hunt_id,
-                       expiry_time=None,
+                       duration=None,
                        client_rate=None,
                        client_limit=None,
                        hunt_state=None,
@@ -2288,7 +2364,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       hunt_id: Id of the hunt to be updated.
-      expiry_time: RDFDatetime, hunt expiry time.
+      duration: A maximum allowed running time duration of the flow.
       client_rate: Number correpsonding to hunt's client rate.
       client_limit: Number corresponding hunt's client limit.
       hunt_state: New Hunt.HuntState value.
@@ -2371,11 +2447,28 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAllHuntObjects(self):
-    """Reads all hunt objects from the database.
+  def ReadHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None):
+    """Reads hunt objects from the database.
+
+    Args:
+      offset: An integer specifying an offset to be used when reading hunt
+        objects.
+      count: Number of hunt objects to read.
+      with_creator: When specified, should be a string corresponding to a GRR
+        username. Only hunts created by the matching user will be returned.
+      created_after: When specified, should be a rdfvalue.RDFDatetime. Only
+        hunts with create_time after created_after timestamp will be returned.
+      with_description_match: When specified, will only return hunts with
+        descriptions containing a given substring.
 
     Returns:
-      A list of rdf_hunt_objects.Hunt objects.
+      A list of rdf_hunt_objects.Hunt objects sorted by create_time in
+      descending order.
     """
 
   @abc.abstractmethod
@@ -2883,8 +2976,8 @@ class DatabaseValidationWrapper(Database):
 
     precondition.AssertType(yield_after_count, int)
     if yield_after_count < 1:
-      raise ValueError(
-          "yield_after_count must be >= 1. Got %r" % (yield_after_count,))
+      raise ValueError("yield_after_count must be >= 1. Got %r" %
+                       (yield_after_count,))
 
     for deleted_count in self.delegate.DeleteOldClientStats(
         yield_after_count, retention_time):
@@ -3172,6 +3265,16 @@ class DatabaseValidationWrapper(Database):
         min_timestamp=min_timestamp,
         max_timestamp=max_timestamp)
 
+  def CountAPIAuditEntriesByUserAndDay(
+      self,
+      min_timestamp = None,
+      max_timestamp = None
+  ):
+    precondition.AssertOptionalType(min_timestamp, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(max_timestamp, rdfvalue.RDFDatetime)
+    return self.delegate.CountAPIAuditEntriesByUserAndDay(
+        min_timestamp=min_timestamp, max_timestamp=max_timestamp)
+
   def WriteAPIAuditEntry(self, entry):
     precondition.AssertType(entry, rdf_objects.APIAuditEntry)
     return self.delegate.WriteAPIAuditEntry(entry)
@@ -3337,16 +3440,16 @@ class DatabaseValidationWrapper(Database):
     _ValidateFlowId(flow_id)
     return self.delegate.ReadChildFlowObjects(client_id, flow_id)
 
-  def ReadFlowForProcessing(self, client_id, flow_id, processing_time):
+  def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
     _ValidateClientId(client_id)
     _ValidateFlowId(flow_id)
     _ValidateDuration(processing_time)
-    return self.delegate.ReadFlowForProcessing(client_id, flow_id,
-                                               processing_time)
+    return self.delegate.LeaseFlowForProcessing(client_id, flow_id,
+                                                processing_time)
 
-  def ReturnProcessedFlow(self, flow_obj):
+  def ReleaseProcessedFlow(self, flow_obj):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
-    return self.delegate.ReturnProcessedFlow(flow_obj)
+    return self.delegate.ReleaseProcessedFlow(flow_obj)
 
   def UpdateFlow(self,
                  client_id,
@@ -3508,6 +3611,16 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.CountFlowResults(
         client_id, flow_id, with_tag=with_tag, with_type=with_type)
 
+  def CountFlowResultsByType(
+      self,
+      client_id,
+      flow_id,
+  ):
+    _ValidateClientId(client_id)
+    _ValidateFlowId(flow_id)
+
+    return self.delegate.CountFlowResultsByType(client_id, flow_id)
+
   def WriteFlowLogEntries(self, entries):
     for e in entries:
       _ValidateClientId(e.client_id)
@@ -3617,7 +3730,7 @@ class DatabaseValidationWrapper(Database):
 
   def UpdateHuntObject(self,
                        hunt_id,
-                       expiry_time=None,
+                       duration=None,
                        client_rate=None,
                        client_limit=None,
                        hunt_state=None,
@@ -3626,7 +3739,7 @@ class DatabaseValidationWrapper(Database):
                        num_clients_at_start_time=None):
     """Updates the hunt object by applying the update function."""
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(expiry_time, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(duration, rdfvalue.Duration)
     precondition.AssertOptionalType(client_rate, (float, int))
     precondition.AssertOptionalType(client_limit, int)
     if hunt_state is not None:
@@ -3637,7 +3750,7 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.UpdateHuntObject(
         hunt_id,
-        expiry_time=expiry_time,
+        duration=duration,
         client_rate=client_rate,
         client_limit=client_limit,
         hunt_state=hunt_state,
@@ -3673,8 +3786,24 @@ class DatabaseValidationWrapper(Database):
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntObject(hunt_id)
 
-  def ReadAllHuntObjects(self):
-    return self.delegate.ReadAllHuntObjects()
+  def ReadHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None):
+    precondition.AssertOptionalType(offset, int)
+    precondition.AssertOptionalType(count, int)
+    precondition.AssertOptionalType(with_creator, Text)
+    precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(with_description_match, Text)
+
+    return self.delegate.ReadHuntObjects(
+        offset,
+        count,
+        with_creator=with_creator,
+        created_after=created_after,
+        with_description_match=with_description_match)
 
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
     _ValidateHuntId(hunt_id)
@@ -3887,8 +4016,8 @@ def _ValidateLabel(label):
 def _ValidatePathInfo(path_info):
   precondition.AssertType(path_info, rdf_objects.PathInfo)
   if not path_info.path_type:
-    raise ValueError(
-        "Expected path_type to be set, got: %s" % path_info.path_type)
+    raise ValueError("Expected path_type to be set, got: %s" %
+                     path_info.path_type)
 
 
 def _ValidatePathInfos(path_infos):
@@ -3904,6 +4033,11 @@ def _ValidatePathInfos(path_infos):
       message = "Conflicting writes for path: '{path}' ({path_type})".format(
           path="/".join(path_info.components), path_type=path_info.path_type)
       raise ValueError(message)
+
+    if path_info.HasField("hash_entry"):
+      if path_info.hash_entry.sha256 is None:
+        message = "Path with hash entry without SHA256: {}".format(path_info)
+        raise ValueError(message)
 
     validated.add(path_key)
 

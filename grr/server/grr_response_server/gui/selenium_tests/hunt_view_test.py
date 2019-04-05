@@ -38,7 +38,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.AddErrorToHunt(hunt_urn, self.client_ids[1], "Client Error 1",
                         traceback.format_exc())
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_urn.Basename())
       if client_limit == 0:
         self.assertEqual(hunt_counters.num_clients, client_count)
@@ -130,8 +130,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     # TODO(user): move the code below outside of if as soon as hunt's
     # subflows are properly reported in the REL_DB implementation.
     if not data_store.RelationalDBFlowsEnabled():
-      self.Click(
-          "css=tr:contains('%s') td:nth-of-type(2) a" % client_id.Basename())
+      self.Click("css=tr:contains('%s') td:nth-of-type(2) a" %
+                 client_id.Basename())
       self.WaitUntil(self.IsTextPresent, "Flow Information")
       self.WaitUntil(self.IsTextPresent, self.base_path)
 
@@ -167,7 +167,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""
     hunt_urn = self.CreateSampleHunt()
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       client_id = self.SetupClient(0).Basename()
 
       rdf_flow = rdf_flow_objects.Flow(
@@ -199,7 +199,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntOverviewGetsUpdatedWhenHuntChanges(self):
     hunt_urn = self.CreateSampleHunt()
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       client_id = self.SetupClient(0).Basename()
 
       rdf_flow = rdf_flow_objects.Flow(
@@ -227,7 +227,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1h 23m 20s")
     self.WaitUntil(self.IsTextPresent, "976.6KiB")
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       client_id = self.SetupClient(1).Basename()
 
       rdf_flow = rdf_flow_objects.Flow(
@@ -550,7 +550,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     # TODO(user): display hunt.hunt_state_comment in the UI.
     # For legacy hunts: go to the logs and check that a reason for hunt's
     # stopping is the.
-    if not data_store.RelationalDBReadEnabled("hunts"):
+    if not data_store.RelationalDBReadEnabled():
       self.Click("css=li[heading=Log]")
 
       self.WaitUntil(

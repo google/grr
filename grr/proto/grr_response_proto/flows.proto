@@ -2209,7 +2209,7 @@ message YaraProcessScanRequest {
   }];
 }
 
-message YaraProcessError {
+message ProcessMemoryError {
   optional Process process = 1 [(sem_type) = {
     description: "The process that returned an error while scanning.",
   }];
@@ -2264,7 +2264,7 @@ message YaraProcessScanResponse {
   repeated YaraProcessScanMatch matches = 1 [(sem_type) = {
     description: "A list of processes with signature matches.",
   }];
-  repeated YaraProcessError errors = 2 [(sem_type) = {
+  repeated ProcessMemoryError errors = 2 [(sem_type) = {
     description: "A list of processes that we failed to scan.",
   }];
   repeated YaraProcessScanMiss misses = 3 [(sem_type) = {
@@ -2375,7 +2375,7 @@ message YaraProcessDumpResponse {
   repeated YaraProcessDumpInformation dumped_processes = 1 [(sem_type) = {
     description: "Information about processes that we dumped to disk.",
   }];
-  repeated YaraProcessError errors = 2 [(sem_type) = {
+  repeated ProcessMemoryError errors = 2 [(sem_type) = {
     description: "A list of processes that we failed to dump.",
   }];
 }

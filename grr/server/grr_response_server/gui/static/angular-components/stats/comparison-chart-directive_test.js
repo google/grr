@@ -59,9 +59,18 @@ describe('comparison chart directive', () => {
 
   it('shows the given data in the original order if preserveOrder is true', () => {
     const element = renderTestTemplate(sampleData, true);
-    expect(element.find('tr:nth(1) td:nth(0)').text())
-        .toContain('< 32768.6s');
+    expect(element.find('tr:nth(1) td:nth(0)').text()).toContain('< 32768.6s');
     expect(element.find('tr:nth(2) td:nth(0)').text()).toContain('< 16.6s');
+  });
+
+  it('updates itself on preserve-order binding changes', () => {
+    const element = renderTestTemplate(sampleData, false);
+    expect(element.find('tr:nth(1) td:nth(0)').text()).toContain('< 16.6s');
+
+    $rootScope.preserveOrder = true;
+    $rootScope.$apply();
+
+    expect(element.find('tr:nth(1) td:nth(0)').text()).toContain('< 32768.6s');
   });
 });
 

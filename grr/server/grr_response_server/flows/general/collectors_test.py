@@ -211,7 +211,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         [artifact.ARTIFACT_STORE_ROOT_URN])
     artifact_registry.REGISTRY._CheckDirty()
 
-    if data_store.RelationalDBReadEnabled(category="artifacts"):
+    if data_store.RelationalDBReadEnabled():
       data_store.REL_DB.WriteArtifact(artifact_obj)
     else:
       with data_store.DB.GetMutationPool() as pool:

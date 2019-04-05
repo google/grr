@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import json
 
 
 from future.builtins import str
@@ -20,6 +19,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import json
 from grr_response_core.lib.util import yaml
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
@@ -298,7 +298,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
 
   def ToJson(self):
     artifact_dict = self.ToPrimitiveDict()
-    return json.dumps(artifact_dict)
+    return json.Dump(artifact_dict)
 
   def ToDict(self):
     return self.ToPrimitiveDict()

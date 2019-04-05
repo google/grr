@@ -84,3 +84,6 @@ class DatabaseTestForemanRulesMixin(object):
     with test_lib.FakeTime(590):
       self.db.RemoveExpiredForemanRules()
       self.assertLen(self.db.ReadAllForemanRules(), 1)
+
+
+# This file is a test library and thus does not require a __main__ block.

@@ -321,3 +321,6 @@ class DatabaseTestCronJobMixin(object):
     self.assertLen(jobs, 1)
     for job in jobs:
       self.assertGreater(job.timestamp, cutoff)
+
+
+# This file is a test library and thus does not require a __main__ block.

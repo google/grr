@@ -62,7 +62,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
   def CreateSampleHunt(self):
     """Creats SampleHunt, writes it to the data store and returns it's id."""
 
-    if data_store.RelationalDBReadEnabled("hunts"):
+    if data_store.RelationalDBReadEnabled():
       return self.CreateHunt()
     else:
       with implementation.StartHunt(

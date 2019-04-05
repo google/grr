@@ -347,16 +347,14 @@ def main(args):
         args.file,
         rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
         args.platform,
-        upload_subdirectory=args.upload_subdirectory,
-        token=token)
+        upload_subdirectory=args.upload_subdirectory)
 
   elif args.subparser_name == "upload_exe":
     config_updater_util.UploadSignedBinary(
         args.file,
         rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
         args.platform,
-        upload_subdirectory=args.upload_subdirectory,
-        token=token)
+        upload_subdirectory=args.upload_subdirectory)
 
   elif args.subparser_name == "set_var":
     var = args.var

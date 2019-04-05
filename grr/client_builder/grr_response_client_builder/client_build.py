@@ -425,17 +425,16 @@ def main(args):
   logger.handlers = [handler]
 
   if args.subparser_name == "build":
-    if grr_config.CONFIG.Get("ClientBuilder.fleetspeak_enabled"):
-      if "Target:Darwin" in context:
+    if grr_config.CONFIG["Client.fleetspeak_enabled"]:
+      if grr_config.CONFIG.ContextApplied("Platform:Darwin"):
         if not args.fleetspeak_service_config:
           raise RuntimeError("--fleetspeak_service_config must be provided.")
         if not grr_config.CONFIG.Get("ClientBuilder.install_dir"):
           raise RuntimeError("ClientBuilder.install_dir must be set.")
         if not grr_config.CONFIG.Get("ClientBuilder.fleetspeak_plist_path"):
           raise RuntimeError("ClientBuilder.fleetspeak_plist_path must be set.")
-      grr_config.CONFIG.Set(
-          "ClientBuilder.client_path",
-          "grr_response_client.grr_fs_client")
+      grr_config.CONFIG.Set("ClientBuilder.client_path",
+                            "grr_response_client.grr_fs_client")
     TemplateBuilder().BuildTemplate(
         context=context,
         output=args.output,

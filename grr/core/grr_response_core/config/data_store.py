@@ -24,54 +24,6 @@ config_lib.DEFINE_bool(
     "Database.useForReads", False,
     "Use relational database for reading as well as for writing.")
 
-config_lib.DEFINE_bool("Database.useForReads.audit", False,
-                       "Use relational database for reading audit logs.")
-
-config_lib.DEFINE_bool(
-    "Database.useForReads.artifacts", False,
-    "Enable reading artifact data from the relational database.")
-
-config_lib.DEFINE_bool(
-    "Database.useForReads.message_handlers", False,
-    "Enable message handlers using the relational database.")
-
-config_lib.DEFINE_bool("Database.useForReads.cronjobs", False,
-                       "Enable storing cronjobs in the relational database.")
-
-# Previously `Database.useForReads.flows`. This has been changed to allow
-# testing relational flows separately and prevent confusion in the usage of
-# RelationalDBReadEnabled(). This flag should not be True, when
-# Database.useForReads is False.
-config_lib.DEFINE_bool("Database.useRelationalFlows", False,
-                       "Enable storing flows in the relational database.")
-
-config_lib.DEFINE_bool(
-    "Database.useForReads.client_messages", False,
-    "Enable storing client messages in the relational "
-    "database.")
-
-config_lib.DEFINE_bool("Database.useForReads.client_stats", False,
-                       "Use relational database for reading ClientStats.")
-
-config_lib.DEFINE_bool("Database.useForReads.foreman", False,
-                       "Enable the foreman using the relational database.")
-
-config_lib.DEFINE_bool("Database.useForReads.vfs", False,
-                       "Use relational database for reading VFS information.")
-
-config_lib.DEFINE_bool(
-    "Database.useForReads.filestore", False,
-    "Use relational database for reading files from filestore.")
-
-config_lib.DEFINE_bool("Database.useForReads.signed_binaries", False,
-                       "Read signed binary data from the relational database.")
-
-config_lib.DEFINE_bool("Database.useForReads.client_reports", False,
-                       "Read client-report data from the relational database.")
-
-config_lib.DEFINE_bool("Database.useForReads.hunts", False,
-                       "Read hunts from the relational database by default.")
-
 config_lib.DEFINE_bool("Database.aff4_enabled", True,
                        "Enables reading/writing to the legacy data store.")
 

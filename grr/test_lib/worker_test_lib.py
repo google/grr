@@ -10,7 +10,6 @@ import logging
 
 from grr_response_core.lib import queues as queue_config
 from grr_response_server import aff4
-from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import queue_manager
 from grr_response_server import worker_lib
@@ -102,20 +101,8 @@ class MockWorker(worker_lib.GRRWorker):
             well_known_flow.ProcessResponses(responses, self.pool)
             continue
 
-          if (not data_store.RelationalDBReadEnabled("hunts") and
-              data_store.RelationalDBFlowsEnabled()):
-            # TODO(user): special-casing for tests with old hunts and
-            # new flows. Using OpenWithLock here would lead to a deadlock,
-            # as everything runs in a single thread. Call chain would involve
-            # two consecutive OpenWithLock calls.
-            flow_obj = aff4.FACTORY.Open(
-                session_id,
-                mode="rw",
-                token=self.token,
-            )
-          else:
-            flow_obj = aff4.FACTORY.OpenWithLock(
-                session_id, token=self.token, blocking=False)
+          flow_obj = aff4.FACTORY.OpenWithLock(
+              session_id, token=self.token, blocking=False)
 
           with flow_obj:
             # Run it

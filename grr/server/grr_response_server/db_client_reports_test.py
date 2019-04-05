@@ -156,3 +156,4 @@ class DatabaseTestClientReportsMixin(object):
       self.db.WriteClientGraphSeries(graph_series, label)
 
 # pytype: enable=attribute-error
+# This file is a test library and thus does not require a __main__ block.
