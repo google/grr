@@ -17,7 +17,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 def CreateUser(username):
   """Creates a user."""
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     data_store.REL_DB.WriteGRRUser(username)
   else:
     user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser)
@@ -26,7 +26,7 @@ def CreateUser(username):
 
 
 def CreateAdminUser(username):
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     data_store.REL_DB.WriteGRRUser(
         username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
 

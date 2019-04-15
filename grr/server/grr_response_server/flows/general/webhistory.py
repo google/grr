@@ -18,11 +18,11 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_utils
+from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
 
 
@@ -89,7 +89,7 @@ class ChromeHistoryMixin(object):
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
       for response in responses:
-        if data_store.RelationalDBReadEnabled():
+        if data_store.RelationalDBEnabled():
           client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                    response.stat_entry.pathspec)
           fd = file_store.OpenFile(client_path)
@@ -121,7 +121,7 @@ class ChromeHistoryMixin(object):
     Raises:
       OSError: On invalid system in the Schema
     """
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
       system = client.knowledge_base.os
       user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
@@ -210,7 +210,7 @@ class FirefoxHistoryMixin(object):
     """Take each file we retrieved and get the history from it."""
     if responses:
       for response in responses:
-        if data_store.RelationalDBReadEnabled():
+        if data_store.RelationalDBEnabled():
           client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                    response.stat_entry.pathspec)
           fd = file_store.OpenFile(client_path)
@@ -240,7 +240,7 @@ class FirefoxHistoryMixin(object):
     Raises:
       OSError: On invalid system in the Schema
     """
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
       system = client.knowledge_base.os
       user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
@@ -316,7 +316,7 @@ class CacheGrepMixin(object):
     """Redirect to start on the workers and not in the UI."""
 
     # Figure out which paths we are going to check.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
       kb = client.knowledge_base
       system = kb.os

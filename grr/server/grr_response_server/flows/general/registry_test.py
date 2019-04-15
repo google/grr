@@ -329,7 +329,7 @@ class TestRegistryFlows(RegistryFlowTest):
 
       kb = flow_test_lib.GetFlowResults(client_id, session_id)[0]
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
         client.knowledge_base = kb
         data_store.REL_DB.WriteClientSnapshot(client)
@@ -338,7 +338,7 @@ class TestRegistryFlows(RegistryFlowTest):
             client_id, token=self.token, mode="rw") as client:
           client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         flow_cls = transfer.MultiGetFile
       else:
         flow_cls = aff4_flows.MultiGetFile

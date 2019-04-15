@@ -174,16 +174,14 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button[name=ModifyHunt]")
     self.WaitUntil(self.IsTextPresent, "Modify this hunt")
 
-    expiry_time = rdfvalue.Duration("5m").Expiry().Format("%Y-%m-%d %H:%M")
-
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input",
         "4483")
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
         "42")
-    self.Type("css=grr-modify-hunt-dialog label:contains('Expires') ~ * input",
-              expiry_time)
+    self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
+              str(rdfvalue.Duration("1337s")))
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -207,8 +205,8 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.Type(
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
         "42")
-    self.Type("css=grr-modify-hunt-dialog label:contains('Expires') ~ * input",
-              expiry_time)
+    self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
+              str(rdfvalue.Duration("1337s")))
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -224,7 +222,10 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent, "4483")
-    self.WaitUntil(self.IsTextPresent, expiry_time)
+    self.WaitUntil(self.IsTextPresent, "1337s")
+
+    # TODO: If the hunt has been started, expiration time should
+    # also be shown. Once this is implemented, extend this test to check it.
 
   def testDeleteHunt(self):
     # This needs to be created by a different user so we can test the

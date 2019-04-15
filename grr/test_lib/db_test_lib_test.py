@@ -20,29 +20,11 @@ class DualDBTestDecoratorTest(test_lib.GRRBaseTest):
     name = compatibility.GetName(self.__class__)
     return name.endswith("_RelationalDBEnabled")
 
-  def _IsStableDBTest(self):
-    name = compatibility.GetName(self.__class__)
-    return name.endswith("_StableRelationalDBEnabled")
-
-  def _Description(self):
-    if self._IsDBTest() or self._IsStableDBTest():
-      return "RelationalDB enabled"
-    else:
-      return "RelationalDB disabled"
-
-  def testRelationalDBReadEnabled(self):
-    result = data_store.RelationalDBReadEnabled()
+  def testRelationalDBEnabled(self):
+    result = data_store.RelationalDBEnabled()
+    expected = self._IsDBTest()
     self.assertEqual(
-        result,
-        self._IsDBTest() or self._IsStableDBTest(),
-        "RelationalDBReadEnabled() is %s for %s" % (result,
-                                                    self._Description()))
-
-  def testRelationalDBFlowsEnabled(self):
-    result = data_store.RelationalDBFlowsEnabled()
-    expected = self._IsDBTest() or self._IsStableDBTest()
-    self.assertEqual(
-        result, expected, "RelationalDBFlowsEnabled() is %s for %s" %
+        result, expected, "RelationalDBEnabled() is %s for %s" %
         (result, compatibility.GetName(self.__class__)))
 
 

@@ -61,7 +61,7 @@ def WriteGraphSeries(graph_series,
     AFF4AttributeTypeError: If, when writing to the legacy DB, an unexpected
     report-data type is encountered.
   """
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     data_store.REL_DB.WriteClientGraphSeries(graph_series, label)
 
   if _ShouldUseLegacyDatastore():
@@ -248,4 +248,4 @@ def _ShouldUseLegacyDatastore():
   reading from the legacy DB until a config option specific to client reports
   is enabled. When that happens, we will also stop writing to the legacy DB.
   """
-  return not data_store.RelationalDBReadEnabled()
+  return not data_store.RelationalDBEnabled()

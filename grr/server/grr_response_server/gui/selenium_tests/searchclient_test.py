@@ -38,7 +38,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.AddClientLabel(self.client_ids[1], self.token.username,
                         u"common_test_label")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       snapshot = data_store.REL_DB.ReadClientSnapshot(
           self.client_ids[0].Basename())
       snapshot.knowledge_base.users.Append(

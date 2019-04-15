@@ -1,1 +1,326 @@
-[{"fields": [{"type": "STRING", "description":"Client ID of a client that contains this entry.", "name": "client_urn"}, {"type": "STRING", "description":"Client hostname.", "name": "hostname"}, {"type": "STRING", "description":"Client Operating System class (Windows|Darwin|Linux).", "name": "os"}, {"type": "TIMESTAMP", "description":"Age of the client.", "name": "client_age"}, {"type": "STRING", "description":"Uname string.", "name": "uname"}, {"type": "STRING", "description":"The OS release identifier e.g. 7, OSX, debian.", "name": "os_release"}, {"type": "STRING", "description":"The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.", "name": "os_version"}, {"type": "STRING", "description":"Username.", "name": "usernames"}, {"type": "STRING", "description":"MAC address.", "name": "mac_address"}, {"type": "TIMESTAMP", "description":"When data was exported.", "name": "timestamp"}, {"type": "TIMESTAMP", "description":"When original data was generated.", "name": "original_timestamp"}, {"type": "STRING", "description":"Deprecated session id of a hunt that collected the data.", "name": "deprecated_session_id"}, {"type": "STRING", "description":"CSV list of client labels.", "name": "labels"}, {"type": "STRING", "description":"Labels hardcoded into GRR clients configs.", "name": "system_labels"}, {"type": "STRING", "description":"Labels assigned by GRR uses via the UI/API.", "name": "user_labels"}, {"type": "STRING", "description":"URN of a source of exported data.", "name": "source_urn"}, {"type": "STRING", "description":"CSV list of annotations for this data. This field can be used to differentiate sets of exported data inside a particular exported type. e.g. data collected by users vs. data collected by cronjob.", "name": "annotations"}, {"fields": [{"type": "STRING", "description":"Identifying/Serial Number.", "name": "serial_number"}, {"type": "STRING", "description":"System Manufacturer.", "name": "system_manufacturer"}, {"type": "STRING", "description":"System Product Name.", "name": "system_product_name"}, {"type": "STRING", "description":"System UUID.", "name": "system_uuid"}, {"type": "STRING", "description":"System SKU Number.", "name": "system_sku_number"}, {"type": "STRING", "description":"System Family.", "name": "system_family"}, {"type": "STRING", "description":"BIOS Vendor.", "name": "bios_vendor"}, {"type": "STRING", "description":"BIOS Version.", "name": "bios_version"}, {"type": "STRING", "description":"BIOS Release Date.", "name": "bios_release_date"}, {"type": "STRING", "description":"BIOS ROM Size.", "name": "bios_rom_size"}, {"type": "STRING", "description":"BIOS Revision.", "name": "bios_revision"}, {"type": "STRING", "description":"System Asset tag.", "name": "system_assettag"}], "type": "RECORD", "description":"Hardware information of the client.", "name": "hardware_info"}, {"type": "STRING", "description":"Client kernel version.", "name": "kernel_version"}], "type": "RECORD", "description": "", "name": "metadata"}, {"type": "STRING", "description":"The location of this file in the AFF4 space.", "name": "urn"}, {"type": "STRING", "description":"Basename of the file.", "name": "basename"}, {"type": "STRING", "description":"A unix file permission mode.", "name": "st_mode"}, {"type": "INTEGER", "description": "", "name": "st_ino"}, {"type": "INTEGER", "description": "", "name": "st_dev"}, {"type": "INTEGER", "description": "", "name": "st_nlink"}, {"type": "INTEGER", "description": "", "name": "st_uid"}, {"type": "INTEGER", "description": "", "name": "st_gid"}, {"type": "INTEGER", "description": "", "name": "st_size"}, {"type": "TIMESTAMP", "description":"Last access time.", "name": "st_atime"}, {"type": "TIMESTAMP", "description":"Last modified time.", "name": "st_mtime"}, {"type": "TIMESTAMP", "description":"Last inode change time.", "name": "st_ctime"}, {"type": "INTEGER", "description": "", "name": "st_blocks"}, {"type": "INTEGER", "description": "", "name": "st_blksize"}, {"type": "INTEGER", "description": "", "name": "st_rdev"}, {"type": "STRING", "description": "", "name": "symlink"}, {"type": "STRING", "description":"Actual content of the file if available.", "name": "content"}, {"type": "STRING", "description":"SHA256 of content", "name": "content_sha256"}, {"type": "STRING", "description": "", "name": "hash_md5"}, {"type": "STRING", "description": "", "name": "hash_sha1"}, {"type": "STRING", "description": "", "name": "hash_sha256"}, {"type": "STRING", "description": "", "name": "pecoff_hash_md5"}, {"type": "STRING", "description": "", "name": "pecoff_hash_sha1"}, {"type": "STRING", "description": "", "name": "cert_hasher_name"}, {"type": "STRING", "description": "", "name": "cert_program_name"}, {"type": "STRING", "description": "", "name": "cert_program_url"}, {"type": "STRING", "description": "", "name": "cert_signing_id"}, {"type": "STRING", "description": "", "name": "cert_chain_head_issuer"}, {"type": "STRING", "description": "", "name": "cert_countersignature_chain_head_issuer"}, {"type": "STRING", "description": "", "name": "cert_certificates"}]
+[
+  {
+    "fields": [
+      {
+        "type": "STRING",
+        "description": "Client ID of a client that contains this entry.",
+        "name": "client_urn"
+      },
+      {
+        "type": "STRING",
+        "description": "Client hostname.",
+        "name": "hostname"
+      },
+      {
+        "type": "STRING",
+        "description": "Client Operating System class (Windows|Darwin|Linux).",
+        "name": "os"
+      },
+      {
+        "type": "TIMESTAMP",
+        "description": "Age of the client.",
+        "name": "client_age"
+      },
+      {
+        "type": "STRING",
+        "description": "Uname string.",
+        "name": "uname"
+      },
+      {
+        "type": "STRING",
+        "description": "The OS release identifier e.g. 7, OSX, debian.",
+        "name": "os_release"
+      },
+      {
+        "type": "STRING",
+        "description": "The OS version ID e.g. 6.1.7601SP1, 10.9.2, 14.04.",
+        "name": "os_version"
+      },
+      {
+        "type": "STRING",
+        "description": "Username.",
+        "name": "usernames"
+      },
+      {
+        "type": "STRING",
+        "description": "MAC address.",
+        "name": "mac_address"
+      },
+      {
+        "type": "TIMESTAMP",
+        "description": "When data was exported.",
+        "name": "timestamp"
+      },
+      {
+        "type": "TIMESTAMP",
+        "description": "When original data was generated.",
+        "name": "original_timestamp"
+      },
+      {
+        "type": "STRING",
+        "description": "Deprecated session id of a hunt that collected the data.",
+        "name": "deprecated_session_id"
+      },
+      {
+        "type": "STRING",
+        "description": "CSV list of client labels.",
+        "name": "labels"
+      },
+      {
+        "type": "STRING",
+        "description": "Labels hardcoded into GRR clients configs.",
+        "name": "system_labels"
+      },
+      {
+        "type": "STRING",
+        "description": "Labels assigned by GRR uses via the UI/API.",
+        "name": "user_labels"
+      },
+      {
+        "type": "STRING",
+        "description": "URN of a source of exported data.",
+        "name": "source_urn"
+      },
+      {
+        "type": "STRING",
+        "description": "CSV list of annotations for this data. This field can be used to differentiate sets of exported data inside a particular exported type. e.g. data collected by users vs. data collected by cronjob.",
+        "name": "annotations"
+      },
+      {
+        "fields": [
+          {
+            "type": "STRING",
+            "description": "Identifying/Serial Number.",
+            "name": "serial_number"
+          },
+          {
+            "type": "STRING",
+            "description": "System Manufacturer.",
+            "name": "system_manufacturer"
+          },
+          {
+            "type": "STRING",
+            "description": "System Product Name.",
+            "name": "system_product_name"
+          },
+          {
+            "type": "STRING",
+            "description": "System UUID.",
+            "name": "system_uuid"
+          },
+          {
+            "type": "STRING",
+            "description": "System SKU Number.",
+            "name": "system_sku_number"
+          },
+          {
+            "type": "STRING",
+            "description": "System Family.",
+            "name": "system_family"
+          },
+          {
+            "type": "STRING",
+            "description": "BIOS Vendor.",
+            "name": "bios_vendor"
+          },
+          {
+            "type": "STRING",
+            "description": "BIOS Version.",
+            "name": "bios_version"
+          },
+          {
+            "type": "STRING",
+            "description": "BIOS Release Date.",
+            "name": "bios_release_date"
+          },
+          {
+            "type": "STRING",
+            "description": "BIOS ROM Size.",
+            "name": "bios_rom_size"
+          },
+          {
+            "type": "STRING",
+            "description": "BIOS Revision.",
+            "name": "bios_revision"
+          },
+          {
+            "type": "STRING",
+            "description": "System Asset tag.",
+            "name": "system_assettag"
+          }
+        ],
+        "type": "RECORD",
+        "description": "Hardware information of the client.",
+        "name": "hardware_info"
+      },
+      {
+        "type": "STRING",
+        "description": "Client kernel version.",
+        "name": "kernel_version"
+      },
+      {
+        "type": "STRING",
+        "description": "",
+        "name": "cloud_instance_type"
+      },
+      {
+        "type": "STRING",
+        "description": "",
+        "name": "cloud_instance_id"
+      }
+    ],
+    "type": "RECORD",
+    "description": "",
+    "name": "metadata"
+  },
+  {
+    "type": "STRING",
+    "description": "The location of this file in the AFF4 space.",
+    "name": "urn"
+  },
+  {
+    "type": "STRING",
+    "description": "Basename of the file.",
+    "name": "basename"
+  },
+  {
+    "type": "STRING",
+    "description": "A unix file permission mode.",
+    "name": "st_mode"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_ino"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_dev"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_nlink"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_uid"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_gid"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_size"
+  },
+  {
+    "type": "TIMESTAMP",
+    "description": "Last access time.",
+    "name": "st_atime"
+  },
+  {
+    "type": "TIMESTAMP",
+    "description": "Last modified time.",
+    "name": "st_mtime"
+  },
+  {
+    "type": "TIMESTAMP",
+    "description": "Last inode change time.",
+    "name": "st_ctime"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_blocks"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_blksize"
+  },
+  {
+    "type": "INTEGER",
+    "description": "",
+    "name": "st_rdev"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "symlink"
+  },
+  {
+    "type": "STRING",
+    "description": "Actual content of the file if available.",
+    "name": "content"
+  },
+  {
+    "type": "STRING",
+    "description": "SHA256 of content",
+    "name": "content_sha256"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "hash_md5"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "hash_sha1"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "hash_sha256"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "pecoff_hash_md5"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "pecoff_hash_sha1"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_hasher_name"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_program_name"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_program_url"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_signing_id"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_chain_head_issuer"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_countersignature_chain_head_issuer"
+  },
+  {
+    "type": "STRING",
+    "description": "",
+    "name": "cert_certificates"
+  }
+]

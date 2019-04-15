@@ -36,8 +36,8 @@ from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
+from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
@@ -211,7 +211,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         [artifact.ARTIFACT_STORE_ROOT_URN])
     artifact_registry.REGISTRY._CheckDirty()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteArtifact(artifact_obj)
     else:
       with data_store.DB.GetMutationPool() as pool:
@@ -276,7 +276,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id.Basename(),
                                                   session_id)
       state = flow_obj.persistent_data
@@ -719,20 +719,21 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
 
 class TestCmdParser(parser.CommandParser):
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["TestEchoArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
     del cmd, args, stderr, return_val, time_taken, knowledge_base  # Unused
     installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    soft = rdf_client.SoftwarePackage(
-        name="Package",
-        description=stdout,
-        version="1",
-        architecture="amd64",
-        install_state=installed)
-    yield soft
+    yield rdf_client.SoftwarePackages(packages=[
+        rdf_client.SoftwarePackage(
+            name="Package",
+            description=stdout,
+            version="1",
+            architecture="amd64",
+            install_state=installed)
+    ])
 
 
 class TestFileParser(parser.FileParser):
@@ -1049,7 +1050,7 @@ sources:
           apply_parsers=True)
       self.assertTrue(expected)
       expected = expected[0]
-      self.assertIsInstance(expected, rdf_client.SoftwarePackage)
+      self.assertIsInstance(expected, rdf_client.SoftwarePackages)
 
       # Run the ClientArtifactCollector to get the actual result.
       results = self._RunFlow(
@@ -1059,7 +1060,7 @@ sources:
           apply_parsers=True)
       self.assertLen(results, 1)
       artifact_response = results[0]
-      self.assertIsInstance(artifact_response, rdf_client.SoftwarePackage)
+      self.assertIsInstance(artifact_response, rdf_client.SoftwarePackages)
 
       self.assertEqual(artifact_response, expected)
     finally:

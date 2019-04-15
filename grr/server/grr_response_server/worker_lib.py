@@ -23,16 +23,15 @@ from grr_response_core.lib.util import collection
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import handler_registry
-from grr_response_server import master
 from grr_response_server import queue_manager as queue_manager_lib
 # pylint: disable=unused-import
 from grr_response_server import server_stubs
 # pylint: enable=unused-import
 from grr_response_server import threadpool
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
 
@@ -111,28 +110,16 @@ class GRRWorker(object):
 
   def Run(self):
     """Event loop."""
-    was_master = False
+    if data_store.RelationalDBEnabled():
+      data_store.REL_DB.RegisterMessageHandler(
+          self._ProcessMessageHandlerRequests,
+          self.well_known_flow_lease_time,
+          limit=100)
+      data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
+
     try:
       while 1:
-        if master.MASTER_WATCHER.IsMaster():
-          processed = self.RunOnce()
-          if not was_master:
-            if data_store.RelationalDBReadEnabled():
-              data_store.REL_DB.RegisterMessageHandler(
-                  self._ProcessMessageHandlerRequests,
-                  self.well_known_flow_lease_time,
-                  limit=100)
-            if data_store.RelationalDBFlowsEnabled():
-              data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
-
-          was_master = True
-        else:
-          processed = 0
-          data_store.REL_DB.UnregisterMessageHandler()
-          data_store.REL_DB.UnregisterFlowProcessingHandler()
-          was_master = False
-          time.sleep(60)
-
+        processed = self.RunOnce()
         if processed == 0:
           if time.time() - self.last_active > self.SHORT_POLL_TIME:
             interval = self.POLLING_INTERVAL
@@ -142,7 +129,6 @@ class GRRWorker(object):
           time.sleep(interval)
         else:
           self.last_active = time.time()
-
     except KeyboardInterrupt:
       logging.info("Caught interrupt, exiting.")
       self.thread_pool.Join()

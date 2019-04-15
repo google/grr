@@ -87,7 +87,7 @@ def AddFakeAuditLog(description=None,
           flow_name=flow_name),
       token=token)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     data_store.REL_DB.WriteAPIAuditEntry(
         rdf_objects.APIAuditEntry(
             username=user,
@@ -749,7 +749,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.WriteFlowObject(
             rdf_flow_objects.Flow(
                 flow_class_name="GetClientStats",
@@ -766,7 +766,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
       for i in range(10):
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           data_store.REL_DB.WriteFlowObject(
               rdf_flow_objects.Flow(
                   flow_class_name="GetClientStats",
@@ -780,7 +780,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             flow_name="GetClientStats",
             token=self.token)
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.WriteFlowObject(
             rdf_flow_objects.Flow(
                 flow_class_name="ArtifactCollectorFlow",
@@ -922,7 +922,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
           user="User123",
           flow_name="GetClientStats",
           token=self.token)
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.WriteFlowObject(
             rdf_flow_objects.Flow(
                 flow_class_name="GetClientStats",
@@ -934,7 +934,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
       for i in range(10):
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           data_store.REL_DB.WriteFlowObject(
               rdf_flow_objects.Flow(
                   flow_class_name="GetClientStats",
@@ -948,7 +948,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             flow_name="GetClientStats",
             token=self.token)
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.WriteFlowObject(
             rdf_flow_objects.Flow(
                 flow_class_name="ArtifactCollectorFlow",

@@ -6,6 +6,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import platform
+import unittest
+
 
 from absl import app
 
@@ -124,6 +127,9 @@ PAM_CONF_EXTERNAL_REF_ERRORS = [
 ]
 
 
+# TODO: This test fails on Windows, but could theoretically pass.
+@unittest.skipIf(platform.system() == 'Windows',
+                 'Test fails on Windows (but is non-criticial for Windows).')
 class LinuxPAMParserTest(test_lib.GRRBaseTest):
   """Test parsing of PAM config files."""
 

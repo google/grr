@@ -26,7 +26,6 @@ except ImportError:
 # Global Application Logger.
 LOGGER = None
 
-
 flags.DEFINE_bool(
     "verbose",
     default=False,
@@ -67,7 +66,7 @@ class GrrApplicationLogger(object):
     logging.info(log_msg)
 
     if response.headers.get("X-No-Log") != "True":
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         entry = rdf_objects.APIAuditEntry.FromHttpRequestResponse(
             request, response)
         data_store.REL_DB.WriteAPIAuditEntry(entry)

@@ -1,0 +1,20 @@
+#!/bin/bash
+#
+# Deb post-removal script for a Fleetspeak-enabled GRR client.
+#
+# Restarts the Fleetspeak process after GRR's Fleetspeak config has been
+# removed.
+
+set -e
+
+# We want to avoid restarting Fleetspeak twice when GRR is purged.
+[[ "$1" != "remove" ]] && exit 0
+
+# Fleetspeak currently only supports platforms using Upstart or systemd.
+if [[ -d /run/systemd/system ]]; then
+  deb-systemd-invoke restart "%(Client.fleetspeak_service_name).service" >/dev/null 2>&1 || true
+elif [[ -e "/etc/init/%(Client.fleetspeak_service_name).conf" ]]; then
+  invoke-rc.d "%(Client.fleetspeak_service_name)" restart >/dev/null 2>&1 || true
+fi
+
+#DEBHELPER#

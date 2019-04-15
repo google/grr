@@ -196,8 +196,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
             "key_value_pairs": [{
                 "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
                         r"\Control\Session Manager"),
-                "value":
-                    "BootExecute"
+                "value": "BootExecute"
             }]
         })
     request = GetRequest(source, "FakeRegistryValue")
@@ -527,20 +526,21 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
 class TestEchoCmdParser(parser.CommandParser):
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["TestEchoCmdArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
     del cmd, args, stderr, return_val, time_taken, knowledge_base  # Unused
     installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    soft = rdf_client.SoftwarePackage(
-        name="Package",
-        description=stdout,
-        version="1",
-        architecture="amd64",
-        install_state=installed)
-    yield soft
+    yield rdf_client.SoftwarePackages(packages=[
+        rdf_client.SoftwarePackage(
+            name="Package",
+            description=stdout,
+            version="1",
+            architecture="amd64",
+            install_state=installed)
+    ])
 
 
 class FakeFileParser(parser.FileParser):
@@ -612,8 +612,8 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     self.assertIsInstance(result, rdf_artifact.ClientArtifactCollectorResult)
     self.assertLen(result.collected_artifacts, 1)
     res = result.collected_artifacts[0].action_results[0].value
-    self.assertIsInstance(res, rdf_client.SoftwarePackage)
-    self.assertEqual(res.description, "1\n")
+    self.assertIsInstance(res, rdf_client.SoftwarePackages)
+    self.assertEqual(res.packages[0].description, "1\n")
 
   @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
                      factory.Factory(parser.SingleFileParser))

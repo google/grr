@@ -114,6 +114,7 @@ class Sdist(sdist):
 data_files = list(
     itertools.chain(
         find_data_files("grr_response_server/checks"),
+        find_data_files("grr_response_server/databases/mysql_migrations"),
         find_data_files("grr_response_server/gui/templates"),
         find_data_files(
             "grr_response_server/gui/static", ignore_dirs=IGNORE_GUI_DIRS),

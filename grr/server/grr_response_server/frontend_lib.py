@@ -26,13 +26,12 @@ from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index
-from grr_response_server import data_migration
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -167,7 +166,7 @@ class ServerCommunicator(communicator.Communicator):
                         remote_time, client_time)
 
       client.Flush()
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         source_ip = response_comms.orig_request.source_ip
         if source_ip:
           last_ip = rdf_client_network.NetworkAddress(
@@ -342,7 +341,7 @@ class FrontEndServer(object):
         username="GRRFrontEnd", reason="Implied.")
     self.token.supervisor = True
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self._communicator = RelationalServerCommunicator(
           certificate=certificate, private_key=private_key)
     else:
@@ -448,7 +447,7 @@ class FrontEndServer(object):
     client = rdf_client.ClientURN(client)
     start_time = time.time()
     # Drain the queue for this client
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       result = data_store.REL_DB.LeaseClientMessages(
           client.Basename(),
           lease_time=rdfvalue.Duration.FromSeconds(self.message_expiry_time),
@@ -502,7 +501,7 @@ class FrontEndServer(object):
     client_urn = rdf_client.ClientURN(client_id)
 
     # If already enrolled, return.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       try:
         data_store.REL_DB.ReadClientMetadata(client_id)
         return False
@@ -515,7 +514,7 @@ class FrontEndServer(object):
 
     logging.info("Enrolling a new Fleetspeak client: %r", client_id)
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       now = rdfvalue.RDFDatetime.Now()
       data_store.REL_DB.WriteClientMetadata(
           client_id, first_seen=now, fleetspeak_enabled=True, last_ping=now)
@@ -535,9 +534,11 @@ class FrontEndServer(object):
 
         index = client_index.CreateClientIndex(token=self.token)
         index.AddClient(client)
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
+          client_obj = rdf_objects.ClientSnapshot(
+              client_id=client_urn.Basename())
           index = client_index.ClientIndex()
-          index.AddClient(data_migration.ConvertVFSGRRClient(client))
+          index.AddClient(client_obj)
 
     # Publish the client enrollment message.
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
@@ -621,7 +622,7 @@ class FrontEndServer(object):
       client_id: The client which sent the messages.
       messages: A list of GrrMessage RDFValues.
     """
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self.ReceiveMessagesRelationalFlows(client_id, messages)
 
     now = time.time()

@@ -31,7 +31,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   @staticmethod
   def FindForemanRules(hunt_urn, token):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       rules = data_store.REL_DB.ReadAllForemanRules()
       return [rule for rule in rules if rule.hunt_id == hunt_urn.Basename()]
     else:
@@ -43,7 +43,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def setUp(self):
     super(TestNewHuntWizard, self).setUp()
 
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
       # Create a Foreman with an empty rule set.
       with aff4.FACTORY.Create(
           "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
@@ -274,7 +274,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
             "css=grr-hunt-inspector:contains('Client Rule Set')"))
 
     # Check that the hunt object was actually created
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)
@@ -431,7 +431,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)
@@ -586,7 +586,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Created Hunt')")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)

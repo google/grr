@@ -91,7 +91,7 @@ class FingerprintFileLogic(object):
           self.state.urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
         fd.Set(fd.Schema.HASH, hash_obj)
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info.hash_entry = response.hash
 

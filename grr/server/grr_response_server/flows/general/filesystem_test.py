@@ -25,13 +25,13 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.databases import db
 # TODO(user): break the dependency cycle described in filesystem.py and
 # and remove this import.
 # pylint: disable=unused-import
@@ -1176,7 +1176,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           pathspec=pb,
           token=token)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       notifications = data_store.REL_DB.ReadUserNotifications(token.username)
       self.assertLen(notifications, 1)
       n = notifications[0]

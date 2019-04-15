@@ -121,7 +121,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         token=self.token)
 
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       flow_id = flow_id.Basename()
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -179,7 +179,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       session_id = session_id.Basename()
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
@@ -210,7 +210,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       session_id = session_id.Basename()
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))

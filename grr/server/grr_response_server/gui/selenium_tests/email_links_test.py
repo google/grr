@@ -151,7 +151,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
 
   def _CreateOSBreakDownCronJobApproval(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       job_name = compatibility.GetName(cron_system.OSBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[job_name])
     else:

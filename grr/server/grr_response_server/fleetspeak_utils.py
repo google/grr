@@ -21,7 +21,7 @@ def IsFleetspeakEnabledClient(grr_id, token=None):
   if grr_id is None:
     return False
 
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     md = data_store.REL_DB.ReadClientMetadata(grr_id)
     if not md:
       return False

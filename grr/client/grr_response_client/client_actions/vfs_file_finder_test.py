@@ -16,8 +16,7 @@ import mock
 
 from grr_response_client.client_actions import vfs_file_finder
 from grr_response_client.client_actions.file_finder_utils import globbing
-# TODO: Test requires side effects from the following import.
-from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
+
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows

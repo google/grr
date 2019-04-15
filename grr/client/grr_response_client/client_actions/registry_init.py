@@ -13,7 +13,6 @@ from grr_response_client import actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import cloud
-from grr_response_client.client_actions import enrol
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import network

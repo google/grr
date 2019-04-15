@@ -24,9 +24,10 @@ class DumpFlashImageMock(action_mocks.ActionMock):
   """Mock the flash dumping on the client side."""
 
   def __init__(self, *args, **kwargs):
-    super(DumpFlashImageMock, self).__init__(
-        standard.HashBuffer, standard.HashFile, standard.GetFileStat,
-        standard.TransferBuffer, tempfiles.DeleteGRRTempFiles)
+    super(DumpFlashImageMock,
+          self).__init__(standard.HashBuffer, standard.HashFile,
+                         standard.GetFileStat, standard.TransferBuffer,
+                         tempfiles.DeleteGRRTempFiles)
 
   def DumpFlashImage(self, args):
     flash_fd, flash_path = tempfiles.CreateGRRTempFileVFS()
@@ -91,7 +92,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       log_items = data_store.REL_DB.ReadFlowLogEntries(
           self.client_id.Basename(), flow_id, 0, 100)
       logs = [l.message for l in log_items]
@@ -175,7 +176,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       results = [
           r.payload for r in data_store.REL_DB.ReadFlowResults(
               client_id.Basename(), flow_id, 0, 100)
@@ -212,7 +213,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       log_items = data_store.REL_DB.ReadFlowLogEntries(client_id.Basename(),
                                                        flow_id, 0, 100)
       logs = [l.message for l in log_items]

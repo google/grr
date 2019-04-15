@@ -73,7 +73,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     if emails_left < 0:
       return
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client_id = response.source.Basename()
       client = data_store.REL_DB.ReadClientSnapshot(client_id)
       hostname = client.knowledge_base.fqdn or "unknown hostname"

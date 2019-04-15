@@ -21,7 +21,7 @@ config_lib.DEFINE_string("Database.implementation", "",
                          "Relational database system to use.")
 
 config_lib.DEFINE_bool(
-    "Database.useForReads", False,
+    "Database.enabled", False,
     "Use relational database for reading as well as for writing.")
 
 config_lib.DEFINE_bool("Database.aff4_enabled", True,
@@ -107,6 +107,10 @@ config_lib.DEFINE_integer(
     default=10,
     help="The maximum number of open connections to keep available in the pool."
 )
+
+config_lib.DEFINE_string(
+    "Mysql.migrations_dir", "%(grr_response_server/databases/mysql_migrations@"
+    "grr-response-server|resource)", "Folder with MySQL migrations files.")
 
 # Support for MySQL SSL connections.
 

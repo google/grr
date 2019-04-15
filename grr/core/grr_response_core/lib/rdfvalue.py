@@ -813,15 +813,15 @@ class Duration(RDFInteger):
       self.ParseFromHumanReadable(initializer)
     elif isinstance(initializer, bytes):
       self.ParseFromString(initializer)
-    elif isinstance(initializer, (int, float)):
+    elif isinstance(initializer, int):
       self._value = initializer
     elif isinstance(initializer, RDFInteger):
       self._value = int(initializer)
     elif initializer is None:
       self._value = 0
     else:
-      raise InitializeError(
-          "Unknown initializer for Duration: %s." % type(initializer))
+      message = "Unsupported initializer `{value}` of type `{type}`"
+      raise TypeError(message.format(value=initializer, type=type(initializer)))
 
   @classmethod
   def FromDays(cls, days):
@@ -829,7 +829,11 @@ class Duration(RDFInteger):
 
   @classmethod
   def FromHours(cls, hours):
-    return cls.FromSeconds(3600 * hours)
+    return cls.FromMinutes(60 * hours)
+
+  @classmethod
+  def FromMinutes(cls, minutes):
+    return cls.FromSeconds(60 * minutes)
 
   @classmethod
   def FromSeconds(cls, seconds):
@@ -837,7 +841,7 @@ class Duration(RDFInteger):
 
   @classmethod
   def FromMicroseconds(cls, microseconds):
-    return cls(microseconds * 1e-6)
+    return cls.FromSeconds(int(microseconds / 1e6))
 
   def Validate(self, value, **_):
     self.ParseFromString(value)

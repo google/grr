@@ -80,21 +80,22 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     parser = osx_file_parser.OSXInstallHistoryPlistParser()
 
     path = os.path.join(self.base_path, "parser_test", "InstallHistory.plist")
+    stat = rdf_client_fs.StatEntry(
+        pathspec=rdf_paths.PathSpec(
+            path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
+        st_mode=16887)
     with io.open(path, "rb") as plist_file:
-      stat = rdf_client_fs.StatEntry(
-          pathspec=rdf_paths.PathSpec(
-              path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
-          st_mode=16887)
       results = list(parser.Parse(stat, plist_file, None))
 
-    self.assertLen(results, 4)
-    self.assertIsInstance(results[0], rdf_client.SoftwarePackage)
+    self.assertLen(results, 1)
+    self.assertIsInstance(results[0], rdf_client.SoftwarePackages)
+    packages = results[0].packages
 
     # ESET AV
-    self.assertEqual(results[0].name, "ESET NOD32 Antivirus")
-    self.assertEqual(results[0].version, "")
+    self.assertEqual(packages[0].name, "ESET NOD32 Antivirus")
+    self.assertEqual(packages[0].version, "")
     self.assertEqual(
-        results[0].description,
+        packages[0].description,
         "com.eset.esetNod32Antivirus.ESETNOD32Antivirus.pkg,"
         "com.eset.esetNod32Antivirus.GUI_startup.pkg,"
         "com.eset.esetNod32Antivirus.pkgid.pkg,"
@@ -102,39 +103,39 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
         "com.eset.esetNod32Antivirus.esetsbkp.pkg,"
         "com.eset.esetNod32Antivirus.esets_kac_64_106.pkg")
     # echo $(( $(date --date="2017-07-20T18:40:22Z" +"%s") * 1000000))
-    self.assertEqual(results[0].installed_on, 1500576022000000)
-    self.assertEqual(results[0].install_state,
+    self.assertEqual(packages[0].installed_on, 1500576022000000)
+    self.assertEqual(packages[0].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
     # old grr agent
-    self.assertEqual(results[1].name, "grr")
-    self.assertEqual(results[1].version, "")
-    self.assertEqual(results[1].description, "com.google.code.grr.grr_3.2.1.0")
+    self.assertEqual(packages[1].name, "grr")
+    self.assertEqual(packages[1].version, "")
+    self.assertEqual(packages[1].description, "com.google.code.grr.grr_3.2.1.0")
     # echo $(( $(date --date="2018-03-13T05:39:17Z" +"%s") * 1000000))
-    self.assertEqual(results[1].installed_on, 1520919557000000)
-    self.assertEqual(results[1].install_state,
+    self.assertEqual(packages[1].installed_on, 1520919557000000)
+    self.assertEqual(packages[1].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
     # new grr agent
-    self.assertEqual(results[2].name, "grr")
-    self.assertEqual(results[2].version, "")
-    self.assertEqual(results[2].description, "com.google.code.grr.grr_3.2.3.2")
+    self.assertEqual(packages[2].name, "grr")
+    self.assertEqual(packages[2].version, "")
+    self.assertEqual(packages[2].description, "com.google.code.grr.grr_3.2.3.2")
     # echo $(( $(date --date="2018-08-07T16:07:10Z" +"%s") * 1000000))
-    self.assertEqual(results[2].installed_on, 1533658030000000)
-    self.assertEqual(results[2].install_state,
+    self.assertEqual(packages[2].installed_on, 1533658030000000)
+    self.assertEqual(packages[2].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
     # Sierra
-    self.assertEqual(results[3].name, "macOS Sierra Update")
-    self.assertEqual(results[3].version, "10.12.6")
+    self.assertEqual(packages[3].name, "macOS Sierra Update")
+    self.assertEqual(packages[3].version, "10.12.6")
     self.assertEqual(
-        results[3].description, "com.apple.pkg.update.os.10.12.6Patch.16G29,"
+        packages[3].description, "com.apple.pkg.update.os.10.12.6Patch.16G29,"
         "com.apple.pkg.FirmwareUpdate,"
         "com.apple.update.fullbundleupdate.16G29,"
         "com.apple.pkg.EmbeddedOSFirmware")
     # echo $(( $(date --date="2017-07-25T04:26:10Z" +"%s") * 1000000))
-    self.assertEqual(results[3].installed_on, 1500956770000000)
-    self.assertEqual(results[3].install_state,
+    self.assertEqual(packages[3].installed_on, 1500956770000000)
+    self.assertEqual(packages[3].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
 

@@ -30,8 +30,10 @@
       <dt>Start Time</dt>
       <dd><grr-timestamp value="controller.hunt.value.created" /></dd>
 
-      <dt>Expiry Time</dt>
-      <dd><grr-timestamp value="controller.hunt.value.expires" /></dd>
+      <!-- TODO: If the hunt has been started, expiration time should
+           also be shown. Once this is implemented, extend this test to check it. -->
+      <dt>Duration</dt>
+      <dd><grr-duration value="controller.hunt.value.duration" /></dd>
 
       <dt>Crash Limit</dt>
       <dd ng-if="::!controller.hunt.value.crash_limit">-</dd>

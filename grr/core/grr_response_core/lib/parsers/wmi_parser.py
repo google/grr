@@ -96,44 +96,46 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
 
   __abstract = True  # pylint: disable=invalid-name
 
-  def Parse(self, result):
-    """Parse a WMI Event Consumer."""
-    wmi_dict = result.ToDict()
+  def ParseMultiple(self, result_dicts):
+    """Parse WMI Event Consumers."""
+    for result_dict in result_dicts:
+      wmi_dict = result_dict.ToDict()
 
-    try:
-      creator_sid_bytes = bytes(wmi_dict["CreatorSID"])
-      wmi_dict["CreatorSID"] = BinarySIDtoStringSID(creator_sid_bytes)
-    except ValueError:
-      # We recover from corrupt SIDs by outputting it raw as a string
-      wmi_dict["CreatorSID"] = compatibility.Repr(wmi_dict["CreatorSID"])
-    except KeyError:
-      pass
+      try:
+        creator_sid_bytes = bytes(wmi_dict["CreatorSID"])
+        wmi_dict["CreatorSID"] = BinarySIDtoStringSID(creator_sid_bytes)
+      except ValueError:
+        # We recover from corrupt SIDs by outputting it raw as a string
+        wmi_dict["CreatorSID"] = compatibility.Repr(wmi_dict["CreatorSID"])
+      except KeyError:
+        pass
 
-    for output_type in self.output_types:
-      anomalies = []
+      for output_type in self.output_types:
+        anomalies = []
 
-      output = rdfvalue.RDFValue.classes[output_type]()
-      for k, v in iteritems(wmi_dict):
-        try:
-          output.Set(k, v)
-        except AttributeError as e:
-          # Skip any attribute we don't know about
-          anomalies.append("Unknown field %s, with value %s" % (k, v))
-        except ValueError as e:
-          anomalies.append("Invalid value %s for field %s: %s" % (v, k, e))
+        output = rdfvalue.RDFValue.classes[output_type]()
+        for k, v in iteritems(wmi_dict):
+          try:
+            output.Set(k, v)
+          except AttributeError as e:
+            # Skip any attribute we don't know about
+            anomalies.append("Unknown field %s, with value %s" % (k, v))
+          except ValueError as e:
+            anomalies.append("Invalid value %s for field %s: %s" % (v, k, e))
 
-      # Yield anomalies first to help with debugging
-      if anomalies:
-        yield rdf_anomaly.Anomaly(
-            type="PARSER_ANOMALY",
-            generated_by=self.__class__.__name__,
-            finding=anomalies)
+        # Yield anomalies first to help with debugging
+        if anomalies:
+          yield rdf_anomaly.Anomaly(
+              type="PARSER_ANOMALY",
+              generated_by=self.__class__.__name__,
+              finding=anomalies)
 
-      # Raise if the parser generated no output but there were fields.
-      if wmi_dict and not output:
-        raise ValueError("Non-empty dict %s returned empty output." % wmi_dict)
+        # Raise if the parser generated no output but there were fields.
+        if wmi_dict and not output:
+          raise ValueError("Non-empty dict %s returned empty output." %
+                           wmi_dict)
 
-      yield output
+        yield output
 
 
 class WMIActiveScriptEventConsumerParser(WMIEventConsumerParser):
@@ -157,27 +159,31 @@ class WMICommandLineEventConsumerParser(WMIEventConsumerParser):
 
 
 class WMIInstalledSoftwareParser(parser.WMIQueryParser):
-  """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
+  """Parser for WMI output. Yields a SoftwarePackages rdfvalue."""
 
-  output_types = [rdf_client.SoftwarePackage.__name__]
+  output_types = [rdf_client.SoftwarePackages.__name__]
   supported_artifacts = ["WMIInstalledSoftware"]
 
-  def Parse(self, result):
+  def ParseMultiple(self, result_dicts):
     """Parse the WMI packages output."""
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    soft = rdf_client.SoftwarePackage(
-        name=result["Name"],
-        description=result["Description"],
-        version=result["Version"],
-        install_state=status)
+    packages = []
+    for result_dict in result_dicts:
+      packages.append(
+          rdf_client.SoftwarePackage(
+              name=result_dict["Name"],
+              description=result_dict["Description"],
+              version=result_dict["Version"],
+              install_state=status))
 
-    yield soft
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)
 
 
 class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = [rdf_client.SoftwarePackage.__name__]
+  output_types = [rdf_client.SoftwarePackages.__name__]
   supported_artifacts = ["WMIHotFixes"]
 
   def AmericanDateToEpoch(self, date_str):
@@ -188,20 +194,26 @@ class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
     except ValueError:
       return 0
 
-  def Parse(self, result):
+  def ParseMultiple(self, result_dicts):
     """Parse the WMI packages output."""
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    result = result.ToDict()
 
-    # InstalledOn comes back in a godawful format such as '7/10/2013'.
-    installed_on = self.AmericanDateToEpoch(result.get("InstalledOn", ""))
-    soft = rdf_client.SoftwarePackage(
-        name=result.get("HotFixID"),
-        description=result.get("Caption"),
-        installed_by=result.get("InstalledBy"),
-        install_state=status,
-        installed_on=installed_on)
-    yield soft
+    packages = []
+    for result_dict in result_dicts:
+      result = result_dict.ToDict()
+
+      # InstalledOn comes back in a godawful format such as '7/10/2013'.
+      installed_on = self.AmericanDateToEpoch(result.get("InstalledOn", ""))
+      packages.append(
+          rdf_client.SoftwarePackage(
+              name=result.get("HotFixID"),
+              description=result.get("Caption"),
+              installed_by=result.get("InstalledBy"),
+              install_state=status,
+              installed_on=installed_on))
+
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)
 
 
 class WMIUserParser(parser.WMIQueryParser):
@@ -221,20 +233,21 @@ class WMIUserParser(parser.WMIQueryParser):
       "LocalPath": "homedir"
   }
 
-  def Parse(self, result):
+  def ParseMultiple(self, result_dicts):
     """Parse the WMI Win32_UserAccount output."""
-    kb_user = rdf_client.User()
-    for wmi_key, kb_key in iteritems(self.account_mapping):
-      try:
-        kb_user.Set(kb_key, result[wmi_key])
-      except KeyError:
-        pass
-    # We need at least a sid or a username.  If these are missing its likely we
-    # retrieved just the userdomain for an AD account that has a name collision
-    # with a local account that is correctly populated.  We drop the bogus
-    # domain account.
-    if kb_user.sid or kb_user.username:
-      yield kb_user
+    for result_dict in result_dicts:
+      kb_user = rdf_client.User()
+      for wmi_key, kb_key in iteritems(self.account_mapping):
+        try:
+          kb_user.Set(kb_key, result_dict[wmi_key])
+        except KeyError:
+          pass
+      # We need at least a sid or a username.  If these are missing its likely
+      # we retrieved just the userdomain for an AD account that has a name
+      # collision with a local account that is correctly populated.  We drop the
+      # bogus domain account.
+      if kb_user.sid or kb_user.username:
+        yield kb_user
 
 
 class WMILogicalDisksParser(parser.WMIQueryParser):
@@ -243,34 +256,34 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
   output_types = [rdf_client_fs.Volume.__name__]
   supported_artifacts = ["WMILogicalDisks"]
 
-  def Parse(self, result):
+  def ParseMultiple(self, result_dicts):
     """Parse the WMI packages output."""
-    result = result.ToDict()
-    winvolume = rdf_client_fs.WindowsVolume(
-        drive_letter=result.get("DeviceID"), drive_type=result.get("DriveType"))
+    for result_dict in result_dicts:
+      result = result_dict.ToDict()
+      winvolume = rdf_client_fs.WindowsVolume(
+          drive_letter=result.get("DeviceID"),
+          drive_type=result.get("DriveType"))
 
-    try:
-      size = int(result.get("Size"))
-    except (ValueError, TypeError):
-      size = None
+      try:
+        size = int(result.get("Size"))
+      except (ValueError, TypeError):
+        size = None
 
-    try:
-      free_space = int(result.get("FreeSpace"))
-    except (ValueError, TypeError):
-      free_space = None
+      try:
+        free_space = int(result.get("FreeSpace"))
+      except (ValueError, TypeError):
+        free_space = None
 
-    # Since we don't get the sector sizes from WMI, we just set them at 1 byte
-    volume = rdf_client_fs.Volume(
-        windowsvolume=winvolume,
-        name=result.get("VolumeName"),
-        file_system_type=result.get("FileSystem"),
-        serial_number=result.get("VolumeSerialNumber"),
-        sectors_per_allocation_unit=1,
-        bytes_per_sector=1,
-        total_allocation_units=size,
-        actual_available_allocation_units=free_space)
-
-    yield volume
+      # Since we don't get the sector sizes from WMI, we just set them at 1 byte
+      yield rdf_client_fs.Volume(
+          windowsvolume=winvolume,
+          name=result.get("VolumeName"),
+          file_system_type=result.get("FileSystem"),
+          serial_number=result.get("VolumeSerialNumber"),
+          sectors_per_allocation_unit=1,
+          bytes_per_sector=1,
+          total_allocation_units=size,
+          actual_available_allocation_units=free_space)
 
 
 class WMIComputerSystemProductParser(parser.WMIQueryParser):
@@ -279,16 +292,17 @@ class WMIComputerSystemProductParser(parser.WMIQueryParser):
   output_types = [rdf_client.HardwareInfo.__name__]
   supported_artifacts = ["WMIComputerSystemProduct"]
 
-  def Parse(self, result):
+  def ParseMultiple(self, result_dicts):
     """Parse the WMI output to get Identifying Number."""
-    # Currently we are only grabbing the Identifying Number
-    # as the serial number (catches the unique number for VMs).
-    # This could be changed to include more information from
-    # Win32_ComputerSystemProduct.
+    for result_dict in result_dicts:
+      # Currently we are only grabbing the Identifying Number
+      # as the serial number (catches the unique number for VMs).
+      # This could be changed to include more information from
+      # Win32_ComputerSystemProduct.
 
-    yield rdf_client.HardwareInfo(
-        serial_number=result["IdentifyingNumber"],
-        system_manufacturer=result["Vendor"])
+      yield rdf_client.HardwareInfo(
+          serial_number=result_dict["IdentifyingNumber"],
+          system_manufacturer=result_dict["Vendor"])
 
 
 class WMIInterfacesParser(parser.WMIQueryParser):
@@ -305,6 +319,7 @@ class WMIInterfacesParser(parser.WMIQueryParser):
 
     Args:
       timestr: WMI time string
+
     Returns:
       rdfvalue.RDFDatetime
 
@@ -342,26 +357,27 @@ class WMIInterfacesParser(parser.WMIQueryParser):
       output_dict[outputkey] = addresses
     return output_dict
 
-  def Parse(self, result):
+  def ParseMultiple(self, result_dicts):
     """Parse the WMI packages output."""
-    args = {"ifname": result["Description"]}
-    args["mac_address"] = binascii.unhexlify(result["MACAddress"].replace(
-        ":", ""))
+    for result_dict in result_dicts:
+      args = {"ifname": result_dict["Description"]}
+      args["mac_address"] = binascii.unhexlify(
+          result_dict["MACAddress"].replace(":", ""))
 
-    self._ConvertIPs([("IPAddress", "addresses"),
-                      ("DefaultIPGateway", "ip_gateway_list"),
-                      ("DHCPServer", "dhcp_server_list")], result, args)
+      self._ConvertIPs([("IPAddress", "addresses"),
+                        ("DefaultIPGateway", "ip_gateway_list"),
+                        ("DHCPServer", "dhcp_server_list")], result_dict, args)
 
-    if "DHCPLeaseExpires" in result:
-      args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(
-          result["DHCPLeaseExpires"])
+      if "DHCPLeaseExpires" in result_dict:
+        args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(
+            result_dict["DHCPLeaseExpires"])
 
-    if "DHCPLeaseObtained" in result:
-      args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
-          result["DHCPLeaseObtained"])
+      if "DHCPLeaseObtained" in result_dict:
+        args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
+            result_dict["DHCPLeaseObtained"])
 
-    yield rdf_client_network.Interface(**args)
+      yield rdf_client_network.Interface(**args)
 
-    yield rdf_client_network.DNSClientConfiguration(
-        dns_server=result["DNSServerSearchOrder"],
-        dns_suffix=result["DNSDomainSuffixSearchOrder"])
+      yield rdf_client_network.DNSClientConfiguration(
+          dns_server=result_dict["DNSServerSearchOrder"],
+          dns_suffix=result_dict["DNSDomainSuffixSearchOrder"])

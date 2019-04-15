@@ -49,6 +49,8 @@ class DefaultMasterWatcher(with_metaclass(registry.MetaclassRegistry, object)):
       self.is_master = False
 
 
+# TODO: MasterWatchers are deprecated. `IsMaster` is not respected
+# by AdminUI and Worker any longer and other components will follow.
 MASTER_WATCHER = None
 
 

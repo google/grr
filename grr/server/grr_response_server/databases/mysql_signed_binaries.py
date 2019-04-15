@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 from typing import Sequence, Tuple
 
 from grr_response_core.lib import rdfvalue
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -69,8 +69,8 @@ class MySQLDBSignedBinariesMixin(object):
     return references, mysql_utils.MysqlToRDFDatetime(timestamp)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadIDsForAllSignedBinaries(
-      self, cursor=None):
+  def ReadIDsForAllSignedBinaries(self, cursor=None
+                                 ):
     """Returns ids for all signed binaries in the DB."""
     cursor.execute(
         "SELECT binary_type, binary_path FROM signed_binary_references")

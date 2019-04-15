@@ -1,0 +1,45 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+# export DH_VERBOSE=1
+
+%:
+	dh $@
+
+override_dh_clean:
+	# Nothing to do here, directory is already wiped and set up.
+
+override_dh_build:
+	# Nothing to do here, directory is already wiped and set up.
+
+override_dh_prep:
+	# Nothing to do here, directory is already wiped and set up.
+
+override_dh_link:
+	dh_link "%(ClientBuilder.target_dir)/%(Client.binary_name)" "%(ClientBuilder.daemon_link)"
+
+override_dh_strip:
+	# Necessary otherwise the PyInstaller build executables will not run
+
+override_dh_makeshlibs:
+	# These add a lot of unnecessary dependencies to the deb package because
+	# it just looks for .so files and adds them as dependencies. Since we
+	# are shipping our .so's with Pyinstaller this is unnecessary
+
+override_dh_shlibdeps:
+	# These add a lot of unnecessary dependencies to the deb package because
+	# it just looks for .so files and adds them as dependencies. Since we
+	# are shipping our .so's with Pyinstaller this is unnecessary
+
+override_dh_builddeb:
+	# Older distros don't support xz so we use gzip instead.
+	dh_builddeb -- -Zgzip
+
+override_dh_installdeb:
+	dh_installdeb
+	# Fleetspeak configs typically get placed in the /etc directory. We want
+	# GRR's Fleetspeak config to be deleted when GRR is removed [without purging],
+	# otherwise Fleetspeak will keep trying to launch GRR after the latter has been
+	# uninstalled. Since debhelper v3, dh_installdeb automatically places all files
+	# installed into the /etc directory into conffiles, so we undo that here.
+	find ${CURDIR}/debian/*/DEBIAN -name conffiles -delete

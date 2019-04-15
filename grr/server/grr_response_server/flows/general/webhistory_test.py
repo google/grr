@@ -18,8 +18,8 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
+from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import webhistory
 from grr.test_lib import action_mocks
@@ -87,7 +87,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
             fs_path.replace("\\", "/"))
 
     # Check if the History file is created.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       cp = db.ClientPath.TSK(self.client_id.Basename(),
                              tuple(output_path.Split()[3:]))
       fd = file_store.OpenFile(cp)
@@ -122,7 +122,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
          "test_img.dd"])).Add(fs_path.replace("\\", "/"))
 
     # Check if the History file is created.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       cp = db.ClientPath.TSK(self.client_id.Basename(),
                              tuple(output_path.Split()[3:]))
       rel_fd = file_store.OpenFile(cp)

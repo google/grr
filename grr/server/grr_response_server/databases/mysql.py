@@ -23,18 +23,18 @@ import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
 
 from grr_response_core import config
-from grr_response_server import db as db_module
 from grr_response_server import threadpool
+from grr_response_server.databases import db as db_module
 from grr_response_server.databases import mysql_artifacts
 from grr_response_server.databases import mysql_blobs
 from grr_response_server.databases import mysql_client_reports
 from grr_response_server.databases import mysql_clients
 from grr_response_server.databases import mysql_cronjobs
-from grr_response_server.databases import mysql_ddl
 from grr_response_server.databases import mysql_events
 from grr_response_server.databases import mysql_flows
 from grr_response_server.databases import mysql_foreman_rules
 from grr_response_server.databases import mysql_hunts
+from grr_response_server.databases import mysql_migration
 from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_signed_binaries
@@ -230,17 +230,6 @@ def _CheckForSSL(cursor):
     raise RuntimeError("Unable to establish SSL connection to MySQL.")
 
 
-def _InitializeSchema(cursor):
-  """Initialize the database's schema."""
-  for command in mysql_ddl.SCHEMA_SETUP:
-    try:
-      cursor.execute(command)
-    except MySQLdb.MySQLError as e:
-      raise SchemaInitializationError(
-          "{}. Error occurred during execution of {}".format(
-              e, command.strip()))
-
-
 def _SetupDatabase(host, port, user, passwd, db, **kwargs):
   """Connect to the given MySQL host and create a utf8mb4_unicode_ci database.
 
@@ -253,17 +242,9 @@ def _SetupDatabase(host, port, user, passwd, db, **kwargs):
     **kwargs: Further MySQL connection arguments.
   """
   with contextlib.closing(
-      MySQLdb.Connect(host=host, port=port, user=user, passwd=passwd,
-                      **kwargs)) as conn:
+      _Connect(host=host, port=port, user=user, passwd=passwd,
+               **kwargs)) as conn:
     with contextlib.closing(conn.cursor()) as cursor:
-      _CheckForSSL(cursor)
-      _SetMariaDBMode(cursor)
-      _SetBinlogFormat(cursor)
-      _SetPacketSizeForFollowingConnections(cursor)
-      _SetEncoding(cursor)
-      _CheckConnectionEncoding(cursor)
-      _CheckLogFileSize(cursor)
-
       try:
         cursor.execute(CREATE_DATABASE_QUERY.format(db))
       except MySQLdb.MySQLError as e:
@@ -273,7 +254,13 @@ def _SetupDatabase(host, port, user, passwd, db, **kwargs):
 
       cursor.execute("USE {}".format(db))
       _CheckCollation(cursor)
-      _InitializeSchema(cursor)
+
+  def _MigrationConnect():
+    return _Connect(
+        host=host, port=port, user=user, passwd=passwd, database=db, **kwargs)
+
+  mysql_migration.ProcessMigrations(_MigrationConnect,
+                                    config.CONFIG["Mysql.migrations_dir"])
 
 
 def _Connect(*args, **kwargs):
@@ -281,12 +268,13 @@ def _Connect(*args, **kwargs):
   conn = MySQLdb.Connect(*args, **kwargs)
   with contextlib.closing(conn.cursor()) as cursor:
     _CheckForSSL(cursor)
-    _SetEncoding(cursor)
-    _CheckConnectionEncoding(cursor)
-    _CheckDatabaseEncoding(cursor)
     _SetMariaDBMode(cursor)
     _SetBinlogFormat(cursor)
-    _CheckPacketSize(cursor)
+    _SetPacketSizeForFollowingConnections(cursor)
+    _SetEncoding(cursor)
+    _CheckConnectionEncoding(cursor)
+    _CheckLogFileSize(cursor)
+
   return conn
 
 

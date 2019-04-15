@@ -11,7 +11,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
@@ -29,7 +29,11 @@ class InMemoryDBHuntMixin(object):
   @utils.Synchronized
   def WriteHuntObject(self, hunt_obj):
     """Writes a hunt object to the database."""
+    if hunt_obj.hunt_id in self.hunts:
+      raise db.DuplicatedHuntError(hunt_id=hunt_obj.hunt_id)
+
     clone = self._DeepCopy(hunt_obj)
+    clone.create_time = rdfvalue.RDFDatetime.Now()
     clone.last_update_time = rdfvalue.RDFDatetime.Now()
     self.hunts[(hunt_obj.hunt_id)] = clone
 
@@ -55,7 +59,8 @@ class InMemoryDBHuntMixin(object):
       hunt_obj.init_start_time = hunt_obj.init_start_time or start_time
       hunt_obj.last_start_time = start_time
 
-    self.WriteHuntObject(hunt_obj)
+    hunt_obj.last_update_time = rdfvalue.RDFDatetime.Now()
+    self.hunts[hunt_obj.hunt_id] = hunt_obj
 
   @utils.Synchronized
   def ReadHuntOutputPluginsStates(self, hunt_id):

@@ -190,7 +190,7 @@ class OSXLaunchdPlistParser(parser.FileParser):
 class OSXInstallHistoryPlistParser(parser.FileParser):
   """Parse InstallHistory plist files into SoftwarePackage objects."""
 
-  output_types = [rdf_client.SoftwarePackage.__name__]
+  output_types = [rdf_client.SoftwarePackages.__name__]
   supported_artifacts = ["MacOSInstallationHistory"]
 
   def Parse(self, statentry, file_object, knowledge_base):
@@ -202,14 +202,19 @@ class OSXInstallHistoryPlistParser(parser.FileParser):
       raise parser.ParseError(
           "InstallHistory plist is a '%s', expecting a list" % type(plist))
 
+    packages = []
     for sw in plist:
-      yield rdf_client.SoftwarePackage(
-          name=sw.get("displayName"),
-          version=sw.get("displayVersion"),
-          description=",".join(sw.get("packageIdentifiers")),
-          # TODO(hanuszczak): make installed_on an RDFDatetime
-          installed_on=_DateToEpoch(sw.get("date")),
-          install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED)
+      packages.append(
+          rdf_client.SoftwarePackage(
+              name=sw.get("displayName"),
+              version=sw.get("displayVersion"),
+              description=",".join(sw.get("packageIdentifiers")),
+              # TODO(hanuszczak): make installed_on an RDFDatetime
+              installed_on=_DateToEpoch(sw.get("date")),
+              install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED))
+
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)
 
 
 def _DateToEpoch(date):

@@ -11,8 +11,8 @@ from typing import Text
 
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import server_startup
+from grr_response_server.databases import db
 
 
 def _MigrateArtifact(artifact):

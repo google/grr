@@ -403,6 +403,10 @@ message SoftwarePackage {
   optional string installed_by = 8;
 }
 
+message SoftwarePackages {
+  repeated SoftwarePackage packages = 1;
+}
+
 // An item from the browser history.
 message BrowserHistoryItem {
   optional string url = 1 [(sem_type) = {

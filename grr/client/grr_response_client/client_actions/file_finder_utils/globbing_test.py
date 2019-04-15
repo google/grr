@@ -15,8 +15,6 @@ from absl.testing import absltest
 from future.builtins import zip
 
 from grr_response_client.client_actions.file_finder_utils import globbing
-# TODO: Test requires side effects from the following import.
-from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
 from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 

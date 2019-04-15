@@ -18,6 +18,7 @@ from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -33,6 +34,7 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.check_lib import checks
 from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -256,7 +258,7 @@ class ExportTest(ExportTestBase):
 
     urn = pathspec.AFF4Path(self.client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       path_info = data_store.REL_DB.ReadPathInfo(
           self.client_id.Basename(),
           rdf_objects.PathInfo.PathType.TSK,
@@ -308,7 +310,7 @@ class ExportTest(ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
                                                  path_info.path_type,
@@ -508,7 +510,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[1].ctime, 0)
 
   def testRDFURNConverterWithURNPointingToFile(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.skipTest("This converter is used with AFF4 only.")
 
     urn = self.client_id.Add("fs/os/some/path")
@@ -831,6 +833,48 @@ class ExportTest(ExportTestBase):
                          "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
         self.assertEqual(export_result.pecoff_hash_sha1,
                          "1dd6bee591dfcb6d75eb705405302c3eab65e21a")
+
+  def testFileFinderResultExportConverterConvertsContent(self):
+    client_mock = action_mocks.FileFinderClientMockWithTimestamps()
+
+    action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
+
+    path = os.path.join(self.base_path, "winexec_img.dd")
+    flow_id = flow_test_lib.TestFlowHelper(
+        file_finder.FileFinder.__name__,
+        client_mock,
+        client_id=self.client_id,
+        paths=[path],
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        action=action,
+        token=self.token)
+
+    flow_results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(flow_results, 1)
+
+    converter = export.FileFinderResultConverter()
+    results = list(
+        converter.Convert(self.metadata, flow_results[0], token=self.token))
+
+    self.assertLen(results, 1)
+
+    self.assertEqual(results[0].basename, "winexec_img.dd")
+
+    # Check that by default file contents are not exported
+    self.assertFalse(results[0].content)
+    self.assertFalse(results[0].content_sha256)
+
+    # Convert again, now specifying export_files_contents=True in options.
+    converter = export.FileFinderResultConverter(
+        options=export.ExportOptions(export_files_contents=True))
+    results = list(
+        converter.Convert(self.metadata, flow_results[0], token=self.token))
+    self.assertTrue(results[0].content)
+
+    self.assertEqual(
+        results[0].content_sha256,
+        "0652da33d5602c165396856540c173cd37277916fba07a9bf3080bc5a6236f03")
 
   def testRDFBytesConverter(self):
     data = rdfvalue.RDFBytes(b"foobar")
@@ -1207,6 +1251,72 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
     self.assertEqual(downloader_exports[0].downloaded_file.basename, "foo")
 
 
+class SoftwarePackageConverterTest(ExportTestBase):
+
+  def testConvertsCorrectly(self):
+    result = rdf_client.SoftwarePackage(
+        name="foo",
+        version="ver1",
+        architecture="i386",
+        publisher="somebody",
+        install_state=rdf_client.SoftwarePackage.InstallState.PENDING,
+        description="desc",
+        installed_on=42,
+        installed_by="user")
+
+    converter = export.SoftwarePackageConverter()
+    converted = list(converter.Convert(self.metadata, result, token=self.token))
+
+    self.assertLen(converted, 1)
+    self.assertEqual(
+        converted[0],
+        export.ExportedSoftwarePackage(
+            metadata=self.metadata,
+            name="foo",
+            version="ver1",
+            architecture="i386",
+            publisher="somebody",
+            install_state=export.ExportedSoftwarePackage.InstallState.PENDING,
+            description="desc",
+            installed_on=42,
+            installed_by="user"))
+
+
+class SoftwarePackagesConverterTest(ExportTestBase):
+
+  def testConvertsCorrectly(self):
+    result = rdf_client.SoftwarePackages()
+    for i in range(10):
+      result.packages.append(
+          rdf_client.SoftwarePackage(
+              name="foo_%d" % i,
+              version="ver_%d" % i,
+              architecture="i386_%d" % i,
+              publisher="somebody_%d" % i,
+              install_state=rdf_client.SoftwarePackage.InstallState.PENDING,
+              description="desc_%d" % i,
+              installed_on=42 + i,
+              installed_by="user_%d" % i))
+
+    converter = export.SoftwarePackagesConverter()
+    converted = list(converter.Convert(self.metadata, result, token=self.token))
+
+    self.assertLen(converted, 10)
+    for i, r in enumerate(converted):
+      self.assertEqual(
+          r,
+          export.ExportedSoftwarePackage(
+              metadata=self.metadata,
+              name="foo_%d" % i,
+              version="ver_%d" % i,
+              architecture="i386_%d" % i,
+              publisher="somebody_%d" % i,
+              install_state=export.ExportedSoftwarePackage.InstallState.PENDING,
+              description="desc_%d" % i,
+              installed_on=42 + i,
+              installed_by="user_%d" % i))
+
+
 class YaraProcessScanResponseConverterTest(ExportTestBase):
   """Tests for YaraProcessScanResponseConverter."""
 
@@ -1545,6 +1655,42 @@ class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
     metadata = export.GetMetadata(
         client_id, data_store.REL_DB.ReadClientFullInfo(client_id))
     self.assertFalse(metadata.usernames)
+
+  def testGetMetadataWithoutCloudInstanceSet(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+
+    metadata = export.GetMetadata(
+        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+    self.assertFalse(metadata.HasField("cloud_instance_type"))
+    self.assertFalse(metadata.HasField("cloud_instance_id"))
+
+  def testGetMetadataWithGoogleCloudInstanceID(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    snapshot.cloud_instance = rdf_cloud.CloudInstance(
+        cloud_type=rdf_cloud.CloudInstance.InstanceType.GOOGLE,
+        google=rdf_cloud.GoogleCloudInstance(unique_id="foo/bar"))
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    metadata = export.GetMetadata(
+        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+    self.assertEqual(metadata.cloud_instance_type,
+                     metadata.CloudInstanceType.GOOGLE)
+    self.assertEqual(metadata.cloud_instance_id, "foo/bar")
+
+  def testGetMetadataWithAmazonCloudInstanceID(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    snapshot.cloud_instance = rdf_cloud.CloudInstance(
+        cloud_type=rdf_cloud.CloudInstance.InstanceType.AMAZON,
+        amazon=rdf_cloud.AmazonCloudInstance(instance_id="foo/bar"))
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    metadata = export.GetMetadata(
+        self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
+    self.assertEqual(metadata.cloud_instance_type,
+                     metadata.CloudInstanceType.AMAZON)
+    self.assertEqual(metadata.cloud_instance_id, "foo/bar")
 
 
 def main(argv):

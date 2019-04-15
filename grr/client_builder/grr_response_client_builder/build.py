@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Classes for handling build and repackaging of clients.
 
 This handles invocations for the build across the supported platforms including
@@ -499,9 +500,10 @@ class WindowsClientRepacker(ClientRepacker):
     return self.MakeSelfExtractingZip(zip_data.getvalue(), output_path)
 
   def _GenerateFleetspeakServiceConfig(self, zip_file):
-    orig_fs_config_path = config.CONFIG["ClientBuilder.fleetspeak_config_path"]
-    final_fs_config_fname = config.CONFIG[
-        "Client.fleetspeak_unsigned_config_fname"]
+    orig_fs_config_path = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_config_path", context=self.context)
+    final_fs_config_fname = config.CONFIG.Get(
+        "Client.fleetspeak_unsigned_config_fname", context=self.context)
     if orig_fs_config_path.endswith(".in"):
       logging.info("Interpolating %s", orig_fs_config_path)
       logging.warning("Backslashes will be naively re-escaped after "
@@ -702,6 +704,12 @@ class LinuxClientRepacker(ClientRepacker):
     utils.EnsureDirExists(
         os.path.join(template_path, "dist/debian/%s/usr/sbin" % package_name))
 
+    if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
+      self._GenerateFleetspeakConfig(template_path)
+      shutil.rmtree(deb_in_dir)
+      shutil.rmtree(os.path.join(template_path, "dist", "fleetspeak"))
+      return
+
     # Generate the nanny template. This only exists from client version 3.1.2.5
     # onwards.
     if config.CONFIG["Template.version_numeric"] >= 3125:
@@ -733,6 +741,27 @@ class LinuxClientRepacker(ClientRepacker):
     shutil.rmtree(os.path.join(template_path, "dist/debian/systemd.in"))
 
   # pytype: enable=wrong-arg-types
+
+  def _GenerateFleetspeakConfig(self, build_dir):
+    """Generates a Fleetspeak config for GRR in the debian build dir."""
+    source_config = os.path.join(
+        build_dir, "dist", "fleetspeak",
+        os.path.basename(
+            config.CONFIG.Get(
+                "ClientBuilder.fleetspeak_config_path", context=self.context)))
+    fleetspeak_service_dir = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_service_dir", context=self.context)
+    package_name = config.CONFIG.Get(
+        "ClientBuilder.package_name", context=self.context)
+    dest_config_dir = os.path.join(build_dir, "dist", "debian", package_name,
+                                   fleetspeak_service_dir[1:])
+    utils.EnsureDirExists(dest_config_dir)
+    dest_config_path = os.path.join(
+        dest_config_dir,
+        config.CONFIG.Get(
+            "Client.fleetspeak_unsigned_config_fname", context=self.context))
+    self.GenerateFile(
+        input_filename=source_config, output_filename=dest_config_path)
 
   def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template and create a .deb."""
@@ -975,7 +1004,8 @@ class CentosClientRepacker(LinuxClientRepacker):
     source_config = os.path.join(
         template_dir, "fleetspeak",
         os.path.basename(
-            config.CONFIG.Get("ClientBuilder.fleetspeak_config_path")))
+            config.CONFIG.Get(
+                "ClientBuilder.fleetspeak_config_path", context=self.context)))
     fleetspeak_service_dir = config.CONFIG.Get(
         "ClientBuilder.fleetspeak_service_dir", context=self.context)
     dest_config_dir = os.path.join(rpm_build_dir, fleetspeak_service_dir[1:])

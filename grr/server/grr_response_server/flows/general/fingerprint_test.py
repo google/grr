@@ -62,7 +62,7 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(
           str(reply.hash_entry.md5), "12be1109aa3d3b46c9398972af2008e1")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
       path_info = data_store.REL_DB.ReadPathInfo(
           client_id.Basename(),

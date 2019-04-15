@@ -6,32 +6,35 @@ method:
       os: ['Linux']
     hint:
       problem: 'l337 software installed'
-      format: '{name} {version} is installed'
+      format: '{item.name} {item.version} is installed'
     probe:
       - artifact: 'DebianPackagesStatus'
-        mode: 'PARALLEL'
         filters:
+          - type: 'ForEach'
+            expression: packages
           - type: 'ObjectFilter'
-            expression: 'name contains "netcat"'
-          - type: 'ObjectFilter'
-            expression: 'name contains "ncat"'
+            expression: 'item.name contains "netcat"'
   - match: 'ANY'
     target:
       os: ['Windows']
     hint:
       problem: 'Malicious software.'
-      format: '{name} {version} is installed'
+      format: '{item.name} {item.version} is installed'
     probe:
       - artifact: 'WMIInstalledSoftware'
         filters:
+          - type: 'ForEach'
+            expression: packages
           - type: 'ObjectFilter'
-            expression: 'name contains "Java"'
+            expression: 'item.name contains "Java"'
         hint:
           problem: 'Old Java installation.'
       - artifact: 'WMIInstalledSoftware'
         filters:
+          - type: 'ForEach'
+            expression: packages
           - type: 'ObjectFilter'
-            expression: 'name contains "Adware"'
+            expression: 'item.name contains "Adware"'
   - match: 'ANY'
     target:
       label: ['foo']
@@ -41,5 +44,7 @@ method:
       - artifact: 'DebianPackagesStatus'
         match: 'NONE'
         filters:
+          - type: 'ForEach'
+            expression: packages
           - type: 'ObjectFilter'
-            expression: 'name contains "sudo"'
+            expression: 'item.name contains "sudo"'

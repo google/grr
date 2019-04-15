@@ -36,7 +36,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
     self.labels_owners_whitelist = ["GRR"]
 
   def _AddLabel(self, name, owner=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.AddClientLabels(self.client_urn.Basename(), owner,
                                         [name])
     else:
@@ -159,7 +159,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     super(ApiLabelsRestrictedCallRouterTest, self).setUp()
 
     self.client_urn = self.SetupClient(0)
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.AddClientLabels(self.client_urn.Basename(), "GRR",
                                         ["foo"])
     else:

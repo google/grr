@@ -50,7 +50,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                         reference)
     ns = self.GetUserNotifications(self.token.username)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       # Treat the notification as an object coming from REL_DB.
       return user_plugin.ApiNotification().InitFromUserNotification(ns[0])
     else:
@@ -389,7 +389,7 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler.Handle(self.args, self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(
           client_id=str(self.args.client_id))
       flow_class_names = [f.flow_class_name for f in flows]
@@ -711,14 +711,16 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
-    # Check that settings for user "foo" were applied.
-    fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)
-    self.assertEqual(fd.Get(fd.Schema.GUI_SETTINGS), settings)
+    if data_store.AFF4Enabled():
+      # Check that settings for user "foo" were applied.
+      fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)
+      self.assertEqual(fd.Get(fd.Schema.GUI_SETTINGS), settings)
 
-    # Check that settings were applied in relational db.
-    u = data_store.REL_DB.ReadGRRUser(u"foo")
-    self.assertEqual(settings.mode, u.ui_mode)
-    self.assertEqual(settings.canary_mode, u.canary_mode)
+    if data_store.RelationalDBEnabled():
+      # Check that settings were applied in relational db.
+      u = data_store.REL_DB.ReadGRRUser(u"foo")
+      self.assertEqual(settings.mode, u.ui_mode)
+      self.assertEqual(settings.canary_mode, u.canary_mode)
 
 
 class ApiDeletePendingUserNotificationHandlerTest(

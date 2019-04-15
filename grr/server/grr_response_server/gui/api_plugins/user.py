@@ -27,7 +27,6 @@ from grr_response_proto.api import user_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import notification as notification_lib
@@ -35,6 +34,7 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import security as aff4_security
 from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.databases import db
 from grr_response_server.flows.general import administrative
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import approval_checks
@@ -514,7 +514,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
     original_object = approval_subject_obj.runner_args.original_object
     if original_object.object_type == "FLOW_REFERENCE":
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         original_flow = data_store.REL_DB.ReadFlowObject(
             original_object.flow_reference.client_id,
             original_object.flow_reference.flow_id)
@@ -541,7 +541,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       if not approval_subject_obj:
         approval_subject_obj = data_store.REL_DB.ReadHuntObject(
             db_obj.subject_id)
@@ -562,7 +562,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
       original_object = approval_subject_obj.runner_args.original_object
 
     if original_object.object_type == "FLOW_REFERENCE":
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         original_flow = data_store.REL_DB.ReadFlowObject(
             original_object.flow_reference.client_id,
             original_object.flow_reference.flow_id)
@@ -574,7 +574,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
         self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
             original_flow, flow_id=original_flow.urn.Basename())
     elif original_object.object_type == "HUNT_REFERENCE":
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         original_hunt = data_store.REL_DB.ReadHuntObject(
             original_object.hunt_reference.hunt_id)
         original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
@@ -734,17 +734,17 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         email_cc_addresses=args.approval.email_cc_addresses,
         subject_id=args.BuildSubjectId(),
         expiration_time=rdfvalue.RDFDatetime.Now() + expiry,
-        email_message_id=email.utils.make_msgid(),
-        grants=[
-            rdf_objects.ApprovalGrant(
-                grantor_username=token.username,
-                timestamp=rdfvalue.RDFDatetime.Now())
-        ])
+        email_message_id=email.utils.make_msgid())
     request.approval_id = data_store.REL_DB.WriteApprovalRequest(request)
+
+    data_store.REL_DB.GrantApproval(
+        approval_id=request.approval_id,
+        requestor_username=token.username,
+        grantor_username=token.username)
 
     # Only return the object if database reads are enabled, since
     # initializing the approval also requires reading its subject.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.__class__.result_type().InitFromDatabaseObject(request)
 
   def SendApprovalEmail(self, approval):
@@ -812,7 +812,7 @@ here
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       result = self.HandleRelationalDB(args, token=token)
     else:
       result = self.HandleLegacy(args, token=token)
@@ -964,7 +964,7 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1079,7 +1079,7 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
     if not args.username:
       raise ValueError("username can't be empty.")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       result = self.HandleRelationalDB(args, token=token)
     else:
       result = self.HandleLegacy(args, token=token)
@@ -1131,7 +1131,7 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
         args, token=token)
 
     if args.keep_client_alive:
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         flow.StartFlow(
             client_id=str(args.client_id),
             flow_cls=administrative.KeepAlive,
@@ -1286,7 +1286,7 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     return ApiListClientApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1419,7 +1419,7 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
     return ApiListHuntApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1556,7 +1556,7 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
     return ApiListCronJobApprovalsResult(items=items)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1576,7 +1576,7 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     result = ApiGrrUser(username=token.username)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       user_record = data_store.REL_DB.ReadGRRUser(token.username)
       result.InitFromDatabaseObject(user_record)
     else:
@@ -1613,7 +1613,7 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
           token=token) as user_fd:
         user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteGRRUser(
           token.username,
           ui_mode=args.settings.mode,
@@ -1649,7 +1649,7 @@ class ApiGetPendingUserNotificationsCountHandler(
 
   def Handle(self, args, token=None):
     """Fetches the pending notification count."""
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1715,7 +1715,7 @@ class ApiListPendingUserNotificationsHandler(
 
   def Handle(self, args, token=None):
     """Fetches the pending notifications."""
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1749,7 +1749,7 @@ class ApiDeletePendingUserNotificationHandler(
 
   def Handle(self, args, token=None):
     """Deletes the notification from the pending notifications."""
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.HandleRelationalDB(args, token=token)
     else:
       self.HandleLegacy(args, token=token)
@@ -1848,7 +1848,7 @@ class ApiListAndResetUserNotificationsHandler(
 
   def Handle(self, args, token=None):
     """Fetches the user notifications."""
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -1870,7 +1870,7 @@ class ApiListApproverSuggestionsResult(rdf_structs.RDFProtoStruct):
 
 
 def _GetAllUsernames():
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     users = data_store.REL_DB.ReadGRRUsers()
     usernames = [user.username for user in users]
   else:

@@ -983,9 +983,11 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     with self.assertRaises(hunt.VariableHuntCanNotHaveClientRateError):
       hunt.StartHunt(hunt_obj.hunt_id)
 
-    hunt_obj.client_rate = 0
+    hunt_obj = rdf_hunt_objects.Hunt(client_rate=0)
+    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
+
     data_store.REL_DB.WriteHuntObject(hunt_obj)
-    hunt.StartHunt(hunt_obj.hunt_id)
+    hunt.StartHunt(hunt_obj.hunt_id)  # Should not raise.
 
   def testVariableHuntSchedulesAllFlowsOnStart(self):
     client_ids = self.SetupClients(10)

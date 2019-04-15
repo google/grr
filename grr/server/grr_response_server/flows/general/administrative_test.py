@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import os
 import subprocess
 import sys
 
@@ -76,13 +75,14 @@ class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Tests for the KeepAlive flow."""
 
   def testKeepAliveRunsSuccessfully(self):
-    client_ids = self.SetupClients(1)
+    client_id = self.SetupClient(0)
     client_mock = action_mocks.ActionMock(admin.Echo)
-    flow_test_lib.StartAndRunFlow(
-        administrative.KeepAlive,
+    flow_test_lib.TestFlowHelper(
+        compatibility.GetName(administrative.KeepAlive),
         duration=rdfvalue.Duration("1s"),
-        client_id=client_ids[0].Basename(),
-        client_mock=client_mock)
+        client_id=client_id,
+        client_mock=client_mock,
+        token=self.token)
 
 
 class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
@@ -91,11 +91,12 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(TestAdministrativeFlows, self).setUp()
 
-    test_tmp = os.environ.get("TEST_TMPDIR")
-    if test_tmp:
-      tempdir_overrider = test_lib.ConfigOverrider({})
-      tempdir_overrider.Start()
-      self.addCleanup(tempdir_overrider.Stop)
+    # Make sure that Client.tempdir_roots are unique. Otherwise parallel tests
+    # execution may lead to races.
+    tempdir_overrider = test_lib.ConfigOverrider(
+        {"Client.tempdir_roots": [self.temp_dir]})
+    tempdir_overrider.Start()
+    self.addCleanup(tempdir_overrider.Stop)
 
   def testUpdateConfig(self):
     """Ensure we can retrieve and update the config."""
@@ -133,7 +134,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
       config_dat = {item.key: item.value for item in client.grr_configuration}
       # The grr_configuration only contains strings.
@@ -188,7 +189,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("http://localhost:8000/#/clients/C.1000000000000000",
                   email_message["message"])
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       self.assertIn(client_id.Basename(), email_message["title"])
       rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id.Basename(),
                                                       flow_id)
@@ -260,7 +261,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   def testNannyMessageFlow(self):
     client_id = self.SetupClient(0)
     email_dict = {}
-    with test_lib.ConfigOverrider({"Database.useForReads": False}):
+    with test_lib.ConfigOverrider({"Database.enabled": False}):
       nanny_message = "Oh no!"
       self.SendResponse(
           session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
@@ -289,7 +290,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
     # Make sure the message is included in the email message.
     self.assertIn(nanny_message, email_dict["message"])
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.assertIn(client_id, email_dict["title"])
       crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
     else:
@@ -311,7 +312,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
   def testClientAlertFlow(self):
     client_id = self.SetupClient(0)
     email_dict = {}
-    with test_lib.ConfigOverrider({"Database.useForReads": False}):
+    with test_lib.ConfigOverrider({"Database.enabled": False}):
       client_message = "Oh no!"
       self.SendResponse(
           session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
@@ -337,7 +338,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(
         email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.assertIn(client_id, email_dict["title"])
     else:
       self.assertIn(client_id.Basename(), email_dict["title"])
@@ -356,89 +357,54 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
   def testStartupFlow(self):
-    with test_lib.ConfigOverrider({"Database.useForReads": False}):
-      client_id = self.SetupClient(0)
-      rel_client_id = client_id.Basename()
-      data_store.REL_DB.WriteClientMetadata(
-          rel_client_id, fleetspeak_enabled=False)
+    client_id = self.SetupClient(0)
 
+    self._RunSendStartupInfo(client_id)
+
+    # Check the client's boot time and info.
+    fd = aff4.FACTORY.Open(client_id, token=self.token)
+    client_info = fd.Get(fd.Schema.CLIENT_INFO)
+    boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
+
+    self.assertEqual(client_info.client_name, config.CONFIG["Client.name"])
+    self.assertEqual(client_info.client_description,
+                     config.CONFIG["Client.description"])
+
+    # Check that the boot time is accurate.
+    self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsSinceEpoch())
+
+    # Run it again - this should not update any record.
+    self._RunSendStartupInfo(client_id)
+
+    fd = aff4.FACTORY.Open(client_id, token=self.token)
+    self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
+    self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
+
+    # Simulate a reboot.
+    current_boot_time = psutil.boot_time()
+    with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
+
+      # Run it again - this should now update the boot time.
       self._RunSendStartupInfo(client_id)
 
-      # AFF4 client.
-
-      # Check the client's boot time and info.
+      # Ensure only this attribute is updated.
       fd = aff4.FACTORY.Open(client_id, token=self.token)
-      client_info = fd.Get(fd.Schema.CLIENT_INFO)
-      boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
+      self.assertNotEqual(
+          int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
+      self.assertEqual(
+          int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
-      self.assertEqual(client_info.client_name, config.CONFIG["Client.name"])
-      self.assertEqual(client_info.client_description,
-                       config.CONFIG["Client.description"])
+      # Now set a new client build time.
+      build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
+      with test_lib.ConfigOverrider({"Client.build_time": build_time}):
 
-      # Check that the boot time is accurate.
-      self.assertAlmostEqual(psutil.boot_time(),
-                             boot_time.AsSecondsSinceEpoch())
-
-      # objects.ClientSnapshot.
-
-      si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-      self.assertIsNotNone(si)
-      self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
-      self.assertEqual(si.client_info.client_description,
-                       config.CONFIG["Client.description"])
-
-      # Run it again - this should not update any record.
-      self._RunSendStartupInfo(client_id)
-
-      # AFF4 client.
-      fd = aff4.FACTORY.Open(client_id, token=self.token)
-      self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
-      self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
-
-      # objects.ClientSnapshot.
-
-      new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-      self.assertEqual(new_si, si)
-
-      # Simulate a reboot.
-      current_boot_time = psutil.boot_time()
-      with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
-
-        # Run it again - this should now update the boot time.
+        # Run it again - this should now update the client info.
         self._RunSendStartupInfo(client_id)
 
-        # AFF4 client.
-
-        # Ensure only this attribute is updated.
+        # Ensure the client info attribute is updated.
         fd = aff4.FACTORY.Open(client_id, token=self.token)
         self.assertNotEqual(
-            int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
-        self.assertEqual(
             int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
-
-        # objects.ClientSnapshot.
-        new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-        self.assertIsNotNone(new_si)
-        self.assertNotEqual(new_si.boot_time, si.boot_time)
-
-        # Now set a new client build time.
-        build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
-        with test_lib.ConfigOverrider({"Client.build_time": build_time}):
-
-          # Run it again - this should now update the client info.
-          self._RunSendStartupInfo(client_id)
-
-          # AFF4 client.
-
-          # Ensure the client info attribute is updated.
-          fd = aff4.FACTORY.Open(client_id, token=self.token)
-          self.assertNotEqual(
-              int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
-
-          # objects.ClientSnapshot.
-          new_si = data_store.REL_DB.ReadClientStartupInfo(rel_client_id)
-          self.assertIsNotNone(new_si)
-          self.assertNotEqual(new_si.client_info, si.client_info)
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)
@@ -649,7 +615,7 @@ sys.test_code_ran_here = True
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       samples = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
@@ -734,7 +700,7 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
 
   def testStartupHandler(self):
     with test_lib.ConfigOverrider({
-        "Database.useForReads": True,
+        "Database.enabled": True,
     }):
       client_id = self.SetupClient(0).Basename()
 
@@ -784,7 +750,7 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
           dict(address=address, sender=sender, title=title, message=message))
 
     with test_lib.ConfigOverrider({
-        "Database.useForReads": True,
+        "Database.enabled": True,
     }):
       with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
         flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
@@ -808,7 +774,7 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
           dict(address=address, sender=sender, title=title, message=message))
 
     with test_lib.ConfigOverrider({
-        "Database.useForReads": True,
+        "Database.enabled": True,
     }):
       with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
         flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
@@ -827,7 +793,7 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
     # Make sure the message is included in the email message.
     self.assertIn(nanny_message, email_dict["message"])
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.assertIn(client_id, email_dict["title"])
     else:
       self.assertIn(client_id.Basename(), email_dict["title"])
@@ -842,7 +808,7 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
           dict(address=address, sender=sender, title=title, message=message))
 
     with test_lib.ConfigOverrider({
-        "Database.useForReads": True,
+        "Database.enabled": True,
     }):
       with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
         flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(

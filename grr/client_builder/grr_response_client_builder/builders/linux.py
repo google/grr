@@ -69,6 +69,14 @@ class LinuxClientBuilder(build.ClientBuilder):
 
   def CopyFiles(self):
     """This sets up the template directory."""
+    if self.fleetspeak_enabled:
+      # Copy files needed for dpkg-buildpackage.
+      shutil.copytree(
+          config_lib.Resource().Filter(
+              "install_data/debian/dpkg_client/fleetspeak-debian"),
+          os.path.join(self.package_dir, "debian/debian.in"))
+      return
+
     # Copy the nanny binary.
     shutil.copy(
         package.ResourcePath("grr-response-core",

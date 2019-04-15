@@ -30,7 +30,6 @@ from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import client_index
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
@@ -41,6 +40,7 @@ from grr_response_server import timeseries
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard
 from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.databases import db
 from grr_response_server.flows.general import audit
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_handler_base
@@ -306,7 +306,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     api_clients = []
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       index = client_index.ClientIndex()
 
       # LookupClients returns a sorted list of client ids.
@@ -371,7 +371,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
     keywords = compatibility.ShlexSplit(args.query)
     api_clients = []
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       index = client_index.ClientIndex()
 
       # TODO(amoser): We could move the label verification into the
@@ -442,7 +442,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
     else:
       age = rdfvalue.RDFDatetime(args.timestamp)
     api_client = None
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client_id = str(args.client_id)
       info = data_store.REL_DB.ReadClientFullInfo(client_id)
       if info is None:
@@ -497,7 +497,7 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
     items = []
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client_id = str(args.client_id)
       history = data_store.REL_DB.ReadClientSnapshotHistory(
           client_id, timerange=(start_time, end_time))
@@ -543,7 +543,7 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetClientVersionTimesResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       # TODO(amoser): Again, this is rather inefficient,if we moved
       # this call to the datastore we could make it much
       # faster. However, there is a chance that this will not be
@@ -583,7 +583,7 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(
           flow_cls=discovery.Interrogate, client_id=str(args.client_id))
 
@@ -618,7 +618,7 @@ class ApiGetInterrogateOperationStateHandler(
   result_type = ApiGetInterrogateOperationStateResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       client_id = str(args.client_id)
       flow_id = str(args.operation_id)
       # TODO(user): test both exception scenarios below.
@@ -685,7 +685,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     client_id = str(args.client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       md = data_store.REL_DB.ReadClientMetadata(client_id)
       if md.fleetspeak_enabled:
         ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
@@ -736,7 +736,7 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListClientCrashesResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       crashes = data_store.REL_DB.ReadClientCrashInfoHistory(
           str(args.client_id))
       total_count = len(crashes)
@@ -793,7 +793,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           index.AddClient(client_obj)
           client_obj.Close()
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         for api_client_id in args.client_ids:
           cid = unicode(api_client_id)
           try:
@@ -852,7 +852,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
           index.AddClient(client_obj)
           client_obj.Close()
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         for client_id in args.client_ids:
           cid = unicode(client_id)
           data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
@@ -912,7 +912,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         items=sorted(label_objects, key=lambda l: l.name))
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self.HandleRelationalDB(args, token=token)
     else:
       return self.HandleLegacy(args, token=token)
@@ -955,7 +955,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
   REQUESTS_NUM_LIMIT = 1000
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleAFF4(args, token=token)
@@ -1061,7 +1061,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
     if not start_time:
       start_time = end_time - rdfvalue.Duration("30m")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       stat_values = data_store.REL_DB.ReadClientStats(
           client_id=str(args.client_id),
           min_timestamp=start_time,

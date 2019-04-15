@@ -70,6 +70,9 @@ class FindFilesMixin(object):
   def Start(self):
     """Issue the find request to the client."""
 
+    # In newer clients, this action is not an iterator anymore so this field is
+    # unused. We set it anyways for legacy clients.
+    # TODO(amoser): Remove this no later than April, 2022.
     self.args.findspec.iterator.number = self.MAX_FILES_TO_CHECK
 
     # Convert the filename glob to a regular expression.
@@ -87,11 +90,17 @@ class FindFilesMixin(object):
 
     with data_store.DB.GetMutationPool() as pool:
       for response in responses:
+
+        # TODO(amoser): FindSpec is only returned by legacy clients. Remove this
+        # no later than April, 2022.
+        if isinstance(response, rdf_client_fs.FindSpec):
+          response = response.hit
+
         if data_store.AFF4Enabled():
           # Create the file in the VFS
-          vfs_urn = response.hit.pathspec.AFF4Path(self.client_urn)
+          vfs_urn = response.pathspec.AFF4Path(self.client_urn)
 
-          if stat.S_ISDIR(response.hit.st_mode):
+          if stat.S_ISDIR(response.st_mode):
             fd = aff4.FACTORY.Create(
                 vfs_urn,
                 standard.VFSDirectory,
@@ -102,13 +111,13 @@ class FindFilesMixin(object):
                 vfs_urn, aff4_grr.VFSFile, mutation_pool=pool, token=self.token)
 
           with fd:
-            stat_response = fd.Schema.STAT(response.hit)
+            stat_response = fd.Schema.STAT(response)
             fd.Set(stat_response)
-            fd.Set(fd.Schema.PATHSPEC(response.hit.pathspec))
+            fd.Set(fd.Schema.PATHSPEC(response.pathspec))
 
-        if data_store.RelationalDBWriteEnabled():
-          path_info = rdf_objects.PathInfo.FromStatEntry(response.hit)
+        if data_store.RelationalDBEnabled():
+          path_info = rdf_objects.PathInfo.FromStatEntry(response)
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
         # Send the stat to the parent flow.
-        self.SendReply(response.hit)
+        self.SendReply(response)

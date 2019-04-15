@@ -39,7 +39,7 @@ class ApiSearchClientsHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client_obj = self.SetupTestClientObject(0)
         client_id = client_obj.client_id
       else:
@@ -60,7 +60,7 @@ class ApiGetClientHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client_obj = self.SetupTestClientObject(
             0, memory_size=4294967296, add_cert=False)
         client_id = client_obj.client_id
@@ -79,7 +79,7 @@ class ApiGetClientVersionsRegressionTestMixin(object):
 
   def _SetupTestClient(self):
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
 
       with test_lib.FakeTime(42):
         client_obj = self.SetupTestClientObject(
@@ -160,7 +160,7 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client_obj = self.SetupTestClientObject(0)
         client_id = client_obj.client_id
 
@@ -219,7 +219,7 @@ class ApiListClientCrashesHandlerRegressionTest(
   aff4_flows_only_test = True
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = self.SetupTestClientObject(0)
       client_id = client.client_id
       client_ids = [rdf_client.ClientURN(client_id)]
@@ -238,7 +238,7 @@ class ApiListClientCrashesHandlerRegressionTest(
       hunt_test_lib.TestHuntHelperWithMultipleMocks({client_id: client_mock},
                                                     False, self.token)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(client_id))
     else:
       crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
@@ -274,7 +274,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
   handler = client_plugin.ApiListClientActionRequestsHandler
 
   def _StartFlow(self, client_id, flow_cls, **kw):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kw)
       # Lease the client message.
       data_store.REL_DB.LeaseClientMessages(
@@ -361,7 +361,7 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
               mode="rw") as stats_fd:
             stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       for st in stats:
         with test_lib.FakeTime(st.cpu_samples[0].timestamp):
           data_store.REL_DB.WriteClientStats(

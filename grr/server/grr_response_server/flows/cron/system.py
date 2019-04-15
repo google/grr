@@ -26,7 +26,6 @@ from grr_response_server import aff4
 from grr_response_server import client_report_utils
 from grr_response_server import cronjobs
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import export_utils
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
@@ -34,6 +33,7 @@ from grr_response_server import hunt
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery as flows_discovery
 from grr_response_server.hunts import implementation as hunts_implementation
 from grr_response_server.hunts import standard as hunts_standard
@@ -360,7 +360,7 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
 
       processed_count = 0
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         for client_info_batch in _IterateAllClients(
             recency_window=self.recency_window):
           for client_info in client_info_batch:
@@ -555,7 +555,7 @@ class InterrogationHuntMixin(object):
     flow_args = flows_discovery.InterrogateArgs(lightweight=False)
     description = "Interrogate run by cron to keep host info fresh."
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunt_id = hunt.CreateAndStartHunt(
           flow_name,
           flow_args,
@@ -637,7 +637,7 @@ class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
               end=end.AsMicrosecondsSinceEpoch())
       self.HeartBeat()
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       total_deleted_count = 0
       for deleted_count in data_store.REL_DB.DeleteOldClientStats(
           yield_after_count=_STATS_DELETION_BATCH_SIZE, retention_time=end):
@@ -667,7 +667,7 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
                 end=end.AsMicrosecondsSinceEpoch())
         self.HeartBeat()
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       total_deleted_count = 0
       for deleted_count in data_store.REL_DB.DeleteOldClientStats(
           yield_after_count=_STATS_DELETION_BATCH_SIZE, retention_time=end):
@@ -689,7 +689,7 @@ class UpdateFSLastPingTimestamps(cronjobs.SystemCronJobBase):
       self.Log("Fleetspeak has not been initialized. Will do nothing.")
       return
 
-    if not data_store.RelationalDBWriteEnabled():
+    if not data_store.RelationalDBEnabled():
       raise NotImplementedError(
           "Cronjob does not support the legacy datastore.")
 

@@ -43,13 +43,13 @@ from grr_response_proto import export_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import sequential_collection
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.check_lib import checks
+from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors as flow_collectors
 from grr_response_server.hunts import results as hunt_results
 
@@ -213,6 +213,13 @@ class ExportedArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
       ExportedFile,
       ExportedMetadata,
       ExportedRegistryKey,
+  ]
+
+
+class ExportedSoftwarePackage(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedSoftwarePackage
+  rdf_deps = [
+      ExportedMetadata,
   ]
 
 
@@ -609,7 +616,8 @@ class StatEntryToExportedFileConverter(ExportConverter):
           pathspec_by_client_path[client_path] = stat_entry.pathspec
 
         data_by_pathspec = {}
-        for chunk in file_store.StreamFilesChunks(pathspec_by_client_path):
+        for chunk in file_store.StreamFilesChunks(
+            pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE):
           pathspec = pathspec_by_client_path[chunk.client_path]
           data_by_pathspec.setdefault(pathspec, []).append(chunk.data)
 
@@ -639,7 +647,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
       Resulting ExportedFile values. Empty list is a valid result and means that
       conversion wasn't possible.
     """
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       result_generator = self._BatchConvertRelational(metadata_value_pairs)
     else:
       result_generator = self._BatchConvertLegacy(
@@ -892,13 +900,25 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
     retrieve it from the aff4 object.
 
     """
+    if data_store.RelationalDBEnabled():
+      result_generator = self._BatchConvertRelational(metadata_value_pairs)
+    else:
+      result_generator = self._BatchConvertLegacy(
+          metadata_value_pairs, token=token)
+
+    for r in result_generator:
+      yield r
+
+  def _BatchConvertLegacy(self, metadata_value_pairs, token=None):
     registry_pairs, file_pairs, match_pairs = self._SeparateTypes(
         metadata_value_pairs)
 
     # Export files first
-    fds_dict = self._OpenFilesForRead(
-        [(metadata, val.stat_entry) for metadata, val in file_pairs],
-        token=token)
+    fds_dict = None
+    if self.options.export_files_contents:
+      fds_dict = self._OpenFilesForRead(
+          [(metadata, val.stat_entry) for metadata, val in file_pairs],
+          token=token)
 
     for metadata, ff_result in file_pairs:
       result = self._CreateExportedFile(metadata, ff_result.stat_entry)
@@ -916,6 +936,56 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
         except KeyError:
           logging.warning("Couldn't open %s for export", urn)
       yield result
+
+    # Now export the registry keys
+    for result in ConvertValuesWithMetadata(
+        registry_pairs, token=token, options=self.options):
+      yield result
+
+    # Now export the grep matches.
+    for result in ConvertValuesWithMetadata(
+        match_pairs, token=token, options=self.options):
+      yield result
+
+  _BATCH_SIZE = 5000
+
+  def _BatchConvertRelational(self, metadata_value_pairs, token=None):
+    registry_pairs, file_pairs, match_pairs = self._SeparateTypes(
+        metadata_value_pairs)
+    for fp_batch in collection.Batch(file_pairs, self._BATCH_SIZE):
+
+      if self.options.export_files_contents:
+        pathspec_by_client_path = {}
+        for metadata, ff_result in fp_batch:
+          # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
+          # client_id (to be added).
+          client_path = db.ClientPath.FromPathSpec(
+              metadata.client_urn.Basename(), ff_result.stat_entry.pathspec)
+          pathspec_by_client_path[client_path] = ff_result.stat_entry.pathspec
+
+        data_by_pathspec = {}
+        for chunk in file_store.StreamFilesChunks(
+            pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE):
+          pathspec = pathspec_by_client_path[chunk.client_path]
+          data_by_pathspec.setdefault(pathspec, []).append(chunk.data)
+
+      for metadata, ff_result in fp_batch:
+        result = self._CreateExportedFile(metadata, ff_result.stat_entry)
+
+        # FileFinderResult has hashes in "hash_entry" attribute which is not
+        # passed to ConvertValuesWithMetadata call. We have to process these
+        # explicitly here.
+        self.ParseFileHash(ff_result.hash_entry, result)
+
+        if self.options.export_files_contents:
+          try:
+            data = data_by_pathspec[ff_result.stat_entry.pathspec]
+            result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
+            result.content_sha256 = hashlib.sha256(result.content).hexdigest()
+          except KeyError:
+            pass
+
+        yield result
 
     # Now export the registry keys
     for result in ConvertValuesWithMetadata(
@@ -1157,7 +1227,7 @@ class GrrMessageConverter(ExportConverter):
         metadata_to_fetch.append(client_urn)
 
     if metadata_to_fetch:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client_ids = set(urn.Basename() for urn in metadata_to_fetch)
         infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
 
@@ -1199,8 +1269,8 @@ class GrrMessageConverter(ExportConverter):
                 "batch_data": [(new_metadata, message.payload)]
             }
           else:
-            data_by_type[cls_name]["batch_data"].append((new_metadata,
-                                                         message.payload))
+            data_by_type[cls_name]["batch_data"].append(
+                (new_metadata, message.payload))
 
       except KeyError:
         pass
@@ -1403,6 +1473,47 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
       yield r
 
 
+class SoftwarePackageConverter(ExportConverter):
+  """Converter for rdf_client.SoftwarePackage structs."""
+
+  input_rdf_type = rdf_client.SoftwarePackage
+
+  _INSTALL_STATE_MAP = {
+      rdf_client.SoftwarePackage.InstallState.INSTALLED:
+          ExportedSoftwarePackage.InstallState.INSTALLED,
+      rdf_client.SoftwarePackage.InstallState.PENDING:
+          ExportedSoftwarePackage.InstallState.PENDING,
+      rdf_client.SoftwarePackage.InstallState.UNINSTALLED:
+          ExportedSoftwarePackage.InstallState.UNINSTALLED,
+      rdf_client.SoftwarePackage.InstallState.UNKNOWN:
+          ExportedSoftwarePackage.InstallState.UNKNOWN
+  }
+
+  def Convert(self, metadata, software_package, token=None):
+    yield ExportedSoftwarePackage(
+        metadata=metadata,
+        name=software_package.name,
+        version=software_package.version,
+        architecture=software_package.architecture,
+        publisher=software_package.publisher,
+        install_state=self._INSTALL_STATE_MAP[software_package.install_state],
+        description=software_package.description,
+        installed_on=software_package.installed_on,
+        installed_by=software_package.installed_by)
+
+
+class SoftwarePackagesConverter(ExportConverter):
+  """Converter for rdf_client.SoftwarePackages structs."""
+
+  input_rdf_type = rdf_client.SoftwarePackages
+
+  def Convert(self, metadata, software_packages, token=None):
+    conv = SoftwarePackageConverter(options=self.options)
+    for p in software_packages.packages:
+      for r in conv.Convert(metadata, p):
+        yield r
+
+
 class YaraProcessScanResponseConverter(ExportConverter):
   input_rdf_type = rdf_memory.YaraProcessScanMatch
 
@@ -1523,6 +1634,15 @@ def GetMetadata(client_id, client_full_info):
       metadata.mac_address = last_snapshot.GetMacAddresses().pop()
     metadata.hardware_info = last_snapshot.hardware_info
     metadata.kernel_version = last_snapshot.kernel
+
+    ci = last_snapshot.cloud_instance
+    if ci is not None:
+      if ci.cloud_type == ci.InstanceType.AMAZON:
+        metadata.cloud_instance_type = metadata.CloudInstanceType.AMAZON
+        metadata.cloud_instance_id = ci.amazon.instance_id
+      elif ci.cloud_type == ci.InstanceType.GOOGLE:
+        metadata.cloud_instance_type = metadata.CloudInstanceType.GOOGLE
+        metadata.cloud_instance_id = ci.google.unique_id
 
   system_labels = set()
   user_labels = set()

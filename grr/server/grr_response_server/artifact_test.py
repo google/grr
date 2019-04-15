@@ -33,10 +33,10 @@ from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import filesystem
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -92,27 +92,30 @@ WMI_SAMPLE = [
 # is deployed.
 class CmdProcessor(parser.CommandParser):
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["TestCmdArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
     _ = cmd, args, stdout, stderr, return_val, time_taken, knowledge_base
+    packages = []
     installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    soft = rdf_client.SoftwarePackage(
-        name="Package1",
-        description="Desc1",
-        version="1",
-        architecture="amd64",
-        install_state=installed)
-    yield soft
-    soft = rdf_client.SoftwarePackage(
-        name="Package2",
-        description="Desc2",
-        version="1",
-        architecture="i386",
-        install_state=installed)
-    yield soft
+    packages.append(
+        rdf_client.SoftwarePackage(
+            name="Package1",
+            description="Desc1",
+            version="1",
+            architecture="amd64",
+            install_state=installed))
+    packages.append(
+        rdf_client.SoftwarePackage(
+            name="Package2",
+            description="Desc2",
+            version="1",
+            architecture="i386",
+            install_state=installed))
+
+    yield rdf_client.SoftwarePackages(packages=packages)
 
     # Also yield something random so we can test return type filtering.
     yield rdf_client_fs.StatEntry()
@@ -407,9 +410,11 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           token=self.token)
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
-    self.assertLen(results, 3)
-    packages = [p for p in results if isinstance(p, rdf_client.SoftwarePackage)]
-    self.assertLen(packages, 2)
+    self.assertLen(results, 2)
+    packages = [
+        p for p in results if isinstance(p, rdf_client.SoftwarePackages)
+    ]
+    self.assertLen(packages, 1)
 
     anomalies = [a for a in results if isinstance(a, rdf_anomaly.Anomaly)]
     self.assertLen(anomalies, 1)
@@ -422,7 +427,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
       self.RunCollectorAndGetCollection(["TestFilesArtifact"],
                                         client_mock=self.client_mock,
                                         client_id=client_id)
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         cp = db.ClientPath.OS(client_id.Basename(), ("var", "log", "auth.log"))
         fd = file_store.OpenFile(cp)
         self.assertNotEmpty(fd.read())
@@ -497,8 +502,10 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     col = self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
                                             client_id=client_id)
 
-    self.assertLen(col, 3)
-    descriptions = [package.description for package in col]
+    self.assertLen(col, 1)
+    package_list = col[0]
+    self.assertLen(package_list.packages, 3)
+    descriptions = [package.description for package in package_list.packages]
     self.assertIn("Google Chrome", descriptions)
 
 
@@ -587,7 +594,7 @@ class GrrKbWindowsTest(GrrKbTest):
         token=self.token)
     path = paths[0].replace("\\", "/")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       path_info = data_store.REL_DB.ReadPathInfo(
           client_id.Basename(),
           rdf_objects.PathInfo.PathType.REGISTRY,

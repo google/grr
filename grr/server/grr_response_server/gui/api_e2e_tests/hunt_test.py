@@ -12,7 +12,7 @@ from absl import app
 
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.output_plugins import csv_plugin
@@ -63,7 +63,7 @@ class ApiClientLibHuntTest(
 
     self.api.Hunt(hunt_id).Delete()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       with self.assertRaises(db.UnknownHuntError):
         data_store.REL_DB.ReadHuntObject(hunt_id)
     else:
@@ -112,7 +112,7 @@ class ApiClientLibHuntTest(
   def testListLogsWithoutClientIds(self):
     hunt_urn = self.StartHunt()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client_ids = self.SetupClients(2)
       self.AssignTasksToClients(client_ids)
 
@@ -154,7 +154,7 @@ class ApiClientLibHuntTest(
     hunt_urn = self.StartHunt()
     client_ids = self.SetupClients(2)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       with test_lib.FakeTime(52):
         flow_id = flow_test_lib.StartFlow(
             flows_processes.ListProcesses,

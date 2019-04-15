@@ -28,7 +28,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def AddJobStatus(self, job_id, status):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       status = cron.ApiCronJob().status_map[status]
       data_store.REL_DB.UpdateCronJob(
           job_id,
@@ -54,7 +54,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     manager = cronjobs.GetCronManager()
     manager.RunOnce(token=self.token)
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       manager._GetThreadPool().Stop()
 
   def testCronView(self):
@@ -356,7 +356,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
       # Relational cron jobs will only be run the next time a worker checks in.
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         manager = cronjobs.GetCronManager()
         manager.RunOnce(token=self.token)
         manager._GetThreadPool().Stop()

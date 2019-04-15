@@ -46,7 +46,7 @@ from grr_response_server.flows.general import transfer
 
 
 def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False, token=None):
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     client = data_store.REL_DB.ReadClientSnapshot(client_id)
     return artifact.GetKnowledgeBase(
         client, allow_uninitialized=allow_uninitialized)
@@ -166,8 +166,8 @@ class ArtifactCollectorFlowMixin(object):
                                            self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s", artifact_name,
                       condition, self.client_id)
-        self.state.artifacts_skipped_due_to_condition.append((artifact_name,
-                                                              condition))
+        self.state.artifacts_skipped_due_to_condition.append(
+            (artifact_name, condition))
         return
 
     # Call the source defined action for each source.
@@ -218,8 +218,8 @@ class ArtifactCollectorFlowMixin(object):
         elif type_name == source_type.GRR_CLIENT_ACTION:
           self.RunGrrClientAction(source)
         else:
-          raise RuntimeError(
-              "Invalid type %s in %s" % (type_name, artifact_name))
+          raise RuntimeError("Invalid type %s in %s" %
+                             (type_name, artifact_name))
 
       else:
         logging.debug(
@@ -259,8 +259,8 @@ class ArtifactCollectorFlowMixin(object):
 
   def ProcessFileFinderResults(self, responses):
     if not responses.success:
-      self.Log(
-          "Failed to fetch files %s" % responses.request_data["artifact_name"])
+      self.Log("Failed to fetch files %s" %
+               responses.request_data["artifact_name"])
     else:
       self.CallStateInline(
           next_state="ProcessCollected",
@@ -476,9 +476,9 @@ class ArtifactCollectorFlowMixin(object):
             self.state.knowledge_base,
             ignore_errors=self.args.ignore_interpolation_errors))
     if len(results) > 1:
-      raise ValueError(
-          "Interpolation generated multiple results, use a"
-          " list for multi-value expansions. %s yielded: %s" % (value, results))
+      raise ValueError("Interpolation generated multiple results, use a"
+                       " list for multi-value expansions. %s yielded: %s" %
+                       (value, results))
     return results[0]
 
   def InterpolateDict(self, input_dict):

@@ -15,10 +15,10 @@ import unittest
 from absl import app
 from absl import flags
 from absl.testing import absltest
-from future.builtins import range
+from future import builtins
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
-from grr_response_server import db_test_mixin
+from grr_response_server.databases import db_test_mixin
 from grr_response_server.databases import mysql
 from grr_response_server.databases import mysql_utils
 from grr.test_lib import stats_test_lib
@@ -39,7 +39,8 @@ def _GetEnvironOrSkip(key):
 
 class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
 
-  def CreateDatabase(self):
+  @classmethod
+  def _CreateDatabase(cls):
 
     user = _GetEnvironOrSkip("MYSQL_TEST_USER")
     host = _GetEnvironOrSkip("MYSQL_TEST_HOST")
@@ -47,7 +48,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
     password = _GetEnvironOrSkip("MYSQL_TEST_PASS")
     database = "".join(
         random.choice(string.ascii_uppercase + string.digits)
-        for _ in range(10))
+        for _ in builtins.range(10))
 
     conn = mysql.MysqlDB(
         host=host, port=port, user=user, password=password, database=database)
@@ -62,6 +63,9 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
 
     return conn, Fin
     # pylint: enable=unreachable
+
+  def CreateDatabase(self):
+    return self.__class__._CreateDatabase()
 
   def CreateBlobStore(self):
     # Optimization: Since BlobStore and Database share the underlying MysqlDB
@@ -183,8 +187,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     # Both transaction should have succeeded
     users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
-    self.assertEqual(users, ((u"user1", "pw1-updated"),
-                             (u"user2", "pw2-updated")))
+    self.assertEqual(users,
+                     ((u"user1", "pw1-updated"), (u"user2", "pw2-updated")))
 
     # At least one should have been retried.
     self.assertGreater(sum(counts), 2)
@@ -193,100 +197,6 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     with self.assertStatsCounterDelta(
         1, "db_request_latency", fields=["ReadGRRUsers"]):
       self.db.ReadGRRUsers()
-
-  # Tests that we don't expect to pass yet.
-
-  # TODO(user): Finish implementation and enable these tests.
-
-  def testWriteStatHistory(self):
-    pass
-
-  def testWriteHashHistory(self):
-    pass
-
-  def testMultiWriteHistoryEmpty(self):
-    pass
-
-  def testMultiWriteHistoryStatAndHash(self):
-    pass
-
-  def testMultiWriteHistoryTwoPathTypes(self):
-    pass
-
-  def testMultiWriteHistoryTwoPaths(self):
-    pass
-
-  def testMultiWriteHistoryTwoClients(self):
-    pass
-
-  def testMultiWriteHistoryDoesNotAllowOverridingStat(self):
-    pass
-
-  def testMultiWriteHistoryDoesNotAllowOverridingHash(self):
-    pass
-
-  def testMultiWriteHistoryRaisesOnNonExistingPathsForStat(self):
-    pass
-
-  def testMultiWriteHistoryRaisesOnNonExistingPathForHash(self):
-    pass
-
-  # TODO(hanuszczak): Remove these once support for storing file hashes in
-  # the MySQL backend is ready.
-
-  def testInitPathInfosValidatesClient(self):
-    pass
-
-  def testInitPathInfosEmpty(self):
-    pass
-
-  def testInitPathInfosWriteSingle(self):
-    pass
-
-  def testInitPathInfosWriteMany(self):
-    pass
-
-  def testInitPathInfosTree(self):
-    pass
-
-  def testInitPathInfosClearsStatHistory(self):
-    pass
-
-  def testInitPathInfosClearsHashHistory(self):
-    pass
-
-  def testInitPathInfosRetainsIndirectPathHistory(self):
-    pass
-
-  def testMultiInitPathInfos(self):
-    pass
-
-  def testMultiInitPathInfosEmptyDoesNotThrow(self):
-    pass
-
-  def testMultiInitPathInfosNoPathsDoesNotThrow(self):
-    pass
-
-  def testClearPathHistoryEmpty(self):
-    pass
-
-  def testClearPathHistorySingle(self):
-    pass
-
-  def testClearPathHistoryManyRecords(self):
-    pass
-
-  def testClearPathHistoryOnlyDirect(self):
-    pass
-
-  def testMultiClearPathHistoryEmptyDoesNotRaise(self):
-    pass
-
-  def testMultiClearPathHistoryNoPathsDoesNotRaise(self):
-    pass
-
-  def testMultiClearPathHistoryClearsMultipleHistories(self):
-    pass
 
 
 if __name__ == "__main__":

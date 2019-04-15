@@ -70,7 +70,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
                 client_id=client_id.Basename(), flow_id=session_id)))
 
     # FlowError
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_base.TerminateFlow(client_id.Basename(), session_id,
                               "Fake flow error")
     else:

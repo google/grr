@@ -542,7 +542,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     return ("INSERT INTO aff4 (subject_hash, attribute_hash, "
             "timestamp, value) VALUES") + ", ".join([
                 "(unhex(md5(%s)), unhex(md5(%s)), "
-                "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
+                "if(%s is NULL,floor(UNIX_TIMESTAMP(NOW(6))*1000000),%s), "
                 "unhex(%s))"
             ] * (len(args) // 5))
 

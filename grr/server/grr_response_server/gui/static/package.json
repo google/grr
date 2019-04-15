@@ -10,7 +10,7 @@
     "angular-sanitize": "^1.7.5",
     "angular-ui-bootstrap": "2.4.0",
     "angular-ui-router": "0.4.2",
-    "bootstrap": "3.3.7",
+    "bootstrap": "3.4.1",
     "dygraphs": "1.1.1",
     "firebase": "3.7.8",
     "font-awesome": "4.6.3",

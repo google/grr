@@ -69,7 +69,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
     if data_store.AFF4Enabled():
       self.SetUpLegacy()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.SetUpRelationalDB()
 
     cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)

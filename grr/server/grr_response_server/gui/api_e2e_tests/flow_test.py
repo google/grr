@@ -92,7 +92,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
       self.assertEmpty(flows)
     else:
@@ -103,7 +103,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     result_flow = client_ref.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
       self.assertLen(flows, 1)
       self.assertEqual(flows[0].args, args)
@@ -119,7 +119,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
       self.assertEmpty(flows)
     else:
@@ -130,7 +130,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
     result_flow = client.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_urn.Basename())
       self.assertLen(flows, 1)
       self.assertEqual(flows[0].args, args)
@@ -199,7 +199,7 @@ class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
 
     def ProcessFlow():
       time.sleep(1)
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         flow_base.TerminateFlow(client_urn.Basename(), flow_id, "")
       else:
         with aff4.FACTORY.Open(

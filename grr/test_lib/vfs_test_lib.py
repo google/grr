@@ -14,10 +14,6 @@ import mock
 
 from grr_response_client import client_utils
 from grr_response_client import vfs
-# TODO(hanuszczak): This import is required because otherwise VFS handler
-# classes are not registered correctly and things start to fail. This is
-# terrible and has to be fixed as soon as possible.
-from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -28,11 +24,13 @@ from grr_response_core.lib.util import precondition
 from grr_response_server import aff4
 from grr_response_server import client_fixture
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+# pylint: mode=test
 
 
 class VFSOverrider(object):
@@ -46,6 +44,10 @@ class VFSOverrider(object):
     self.Start()
 
   def Start(self):
+    if not vfs.VFS_HANDLERS:
+      # Initialize VFS if not yet done, otherwise VFS will not initialize
+      # correctly when it is used for the first time in testing code.
+      vfs.Init()
     self._old_handler = vfs.VFS_HANDLERS.get(self._vfs_type)
     vfs.VFS_HANDLERS[self._vfs_type] = self._temp_handler
 
@@ -63,8 +65,8 @@ class FakeTestDataVFSOverrider(VFSOverrider):
   """A context to temporarily change VFS handler to `FakeTestDataVFSHandler`."""
 
   def __init__(self):
-    super_class = super(FakeTestDataVFSOverrider, self)
-    super_class.__init__(rdf_paths.PathSpec.PathType.OS, FakeTestDataVFSHandler)
+    super(FakeTestDataVFSOverrider,
+          self).__init__(rdf_paths.PathSpec.PathType.OS, FakeTestDataVFSHandler)
 
   def __enter__(self):
     super(FakeTestDataVFSOverrider, self).__enter__()
@@ -121,10 +123,14 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
   def __init__(self,
                base_fd=None,
                prefix=None,
+               handlers=None,
                pathspec=None,
                progress_callback=None):
     super(ClientVFSHandlerFixture, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd,
+        handlers=handlers,
+        pathspec=pathspec,
+        progress_callback=progress_callback)
 
     self.prefix = self.prefix or prefix
     self.pathspec.Append(pathspec)
@@ -271,11 +277,15 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
 
   def __init__(self,
                base_fd=None,
+               handlers=None,
                prefix=None,
                pathspec=None,
                progress_callback=None):
     super(FakeTestDataVFSHandler, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd,
+        handlers=handlers,
+        pathspec=pathspec,
+        progress_callback=progress_callback)
     # This should not really be done since there might be more information
     # in the pathspec than the path but here in the test is ok.
     if not base_fd:
@@ -468,7 +478,8 @@ class RegistryVFSStubber(object):
     self.stubber.Start()
 
     # Add the Registry handler to the vfs.
-    vfs.VFSInit().Run()
+    vfs.VFS_HANDLERS[
+        registry.RegistryFile.supported_pathtype] = registry.RegistryFile
 
   def Stop(self):
     """Uninstall the stubs."""
@@ -497,7 +508,7 @@ def CreateFile(client_path, content=b"", token=None):
       st_mode=33206,
       st_size=len(content))
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     data_store.BLOBS.WriteBlobs({blob_id: content})
     blob_ref = rdf_objects.BlobReference(
         size=len(content), offset=0, blob_id=blob_id)
@@ -547,7 +558,7 @@ def CreateDirectory(client_path, token=None):
           path="/".join(client_path.components)),
       st_mode=16895)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
 
     path_info = rdf_objects.PathInfo()
     path_info.path_type = client_path.path_type

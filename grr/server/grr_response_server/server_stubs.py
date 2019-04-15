@@ -196,11 +196,6 @@ class SendStartupInfo(ClientActionStub):
   out_rdfvalues = [rdf_client.StartupInfo]
 
 
-# from enrol.py
-class SaveCert(ClientActionStub):
-  """Accepts a signed certificate from the server and saves it to disk."""
-
-
 # from plist.py
 class PlistQuery(ClientActionStub):
   """Parses the plist request specified and returns the results."""
@@ -346,7 +341,7 @@ class Find(ClientActionStub):
   """Recurses through a directory returning files which match conditions."""
 
   in_rdfvalue = rdf_client_fs.FindSpec
-  out_rdfvalues = [rdf_client_fs.FindSpec]
+  out_rdfvalues = [rdf_client_fs.FindSpec, rdf_client_fs.StatEntry]
 
 
 class Grep(ClientActionStub):

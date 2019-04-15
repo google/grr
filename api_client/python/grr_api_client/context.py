@@ -51,7 +51,7 @@ class GrrApiContext(object):
     else:
       pages = self._GeneratePages(handler_name, args)
 
-      first_page = pages.next()
+      first_page = next(pages)
       total_count = getattr(first_page, "total_count", None)
 
       page_items = lambda page: page.items

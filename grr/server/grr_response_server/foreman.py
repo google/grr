@@ -10,9 +10,9 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import hunt
 from grr_response_server import message_handlers
+from grr_response_server.databases import db
 
 
 class Error(Exception):
@@ -24,7 +24,7 @@ class UnknownHuntTypeError(Error):
 
 
 def GetForeman(token=None):
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     return Foreman()
   else:
     return aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=token)
@@ -38,7 +38,7 @@ class Foreman(object):
 
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = hunt_id
       if hunt.IsLegacyHunt(hunt_id):
         # Strip "H:" prefix.

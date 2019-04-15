@@ -13,7 +13,7 @@ import stat
 from future.builtins import filter
 from future.builtins import range
 
-from grr_response_client import vfs
+from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -251,8 +251,8 @@ def EnumValue(key, index):
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
-  return (value.value, _Reg2Py(data, tmp_data_size.value, data_type.value),
-          data_type.value)
+  return (value.value, _Reg2Py(data, tmp_data_size.value,
+                               data_type.value), data_type.value)
 
 
 def _Reg2Py(data, size, data_type):
@@ -273,7 +273,7 @@ def _Reg2Py(data, size, data_type):
     return ctypes.string_at(data, size)
 
 
-class RegistryFile(vfs.VFSHandler):
+class RegistryFile(vfs_base.VFSHandler):
   """Emulate registry access through the VFS."""
 
   supported_pathtype = rdf_paths.PathSpec.PathType.REGISTRY
@@ -281,22 +281,32 @@ class RegistryFile(vfs.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      winreg.REG_NONE: rdf_client_fs.StatEntry.RegistryType.REG_NONE,
-      winreg.REG_SZ: rdf_client_fs.StatEntry.RegistryType.REG_SZ,
-      winreg.REG_EXPAND_SZ: rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
-      winreg.REG_BINARY: rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
-      winreg.REG_DWORD: rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
-      winreg.REG_DWORD_LITTLE_ENDIAN: (
-          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
-      winreg.REG_DWORD_BIG_ENDIAN: (
-          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
-      winreg.REG_LINK: rdf_client_fs.StatEntry.RegistryType.REG_LINK,
-      winreg.REG_MULTI_SZ: rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
+      winreg.REG_NONE:
+          rdf_client_fs.StatEntry.RegistryType.REG_NONE,
+      winreg.REG_SZ:
+          rdf_client_fs.StatEntry.RegistryType.REG_SZ,
+      winreg.REG_EXPAND_SZ:
+          rdf_client_fs.StatEntry.RegistryType.REG_EXPAND_SZ,
+      winreg.REG_BINARY:
+          rdf_client_fs.StatEntry.RegistryType.REG_BINARY,
+      winreg.REG_DWORD:
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD,
+      winreg.REG_DWORD_LITTLE_ENDIAN:
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN,
+      winreg.REG_DWORD_BIG_ENDIAN:
+          rdf_client_fs.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN,
+      winreg.REG_LINK:
+          rdf_client_fs.StatEntry.RegistryType.REG_LINK,
+      winreg.REG_MULTI_SZ:
+          rdf_client_fs.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
     super(RegistryFile, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd,
+        handlers=handlers,
+        pathspec=pathspec,
+        progress_callback=progress_callback)
 
     self.value = None
     self.value_type = winreg.REG_NONE

@@ -12,7 +12,7 @@ import threading
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.databases import mem_artifacts
 from grr_response_server.databases import mem_blobs
 from grr_response_server.databases import mem_client_reports
@@ -56,7 +56,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.clients = {}
     self.client_messages = {}
     self.client_message_leases = {}
-    self.client_stats = collections.defaultdict(dict)
+    self.client_stats = collections.defaultdict(collections.OrderedDict)
     self.crash_history = {}
     self.cronjob_leases = {}
     self.cronjobs = {}

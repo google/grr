@@ -35,7 +35,7 @@ class TestClientLoadView(TestInspectViewBase):
     self.client_id = self.SetupClient(0).Basename()
 
   def CreateLeasedClientRequest(self, client_id=None, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       flow.StartFlow(
           client_id=client_id.Basename(), flow_cls=processes.ListProcesses)
       client_messages = data_store.REL_DB.LeaseClientMessages(
@@ -76,7 +76,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
 
     self.RequestAndGrantClientApproval(client_id)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(
           client_id=client_id, flow_cls=flow_discovery.Interrogate)
       status = rdf_flow_objects.FlowStatus(

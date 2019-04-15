@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
+import platform
 
 from absl.testing import absltest
 from typing import Text
@@ -179,7 +180,12 @@ class UnescapeStringTest(absltest.TestCase):
 class EnvironTest(absltest.TestCase):
 
   def testStandard(self):
-    self.assertIsInstance(compatibility.Environ("HOME", default=None), Text)
+    if platform.system() == "Windows":
+      key = "HOMEPATH"
+    else:
+      key = "HOME"
+    self.assertIsInstance(compatibility.Environ(key, default=None), Text)
+
     self.assertIsInstance(compatibility.Environ("PATH", default=None), Text)
 
   def testDefault(self):

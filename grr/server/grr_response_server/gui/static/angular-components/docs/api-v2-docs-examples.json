@@ -269,7 +269,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "foo",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -1559,7 +1559,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt1",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -1641,7 +1641,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt2",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -1714,7 +1714,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "original hunt",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -1785,7 +1785,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "copied hunt",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -1896,7 +1896,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt started from flow",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -2226,7 +2226,7 @@
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": "1209642000000",
+        "duration": "1209600",
         "flowArgs": {
           "@type": "type.googleapis.com/GetFileArgs",
           "pathspec": {
@@ -2307,7 +2307,7 @@
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": "1209642000000",
+        "duration": "1209600",
         "flowArgs": {
           "@type": "type.googleapis.com/GetFileArgs",
           "pathspec": {
@@ -2386,7 +2386,7 @@
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": "1209642000000",
+        "duration": "1209600",
         "flowArgs": {
           "@type": "type.googleapis.com/GetFileArgs",
           "pathspec": {
@@ -3308,7 +3308,7 @@
           "created": "42000000",
           "creator": "api_test_user",
           "description": "a hunt",
-          "expires": "1209642000000",
+          "duration": "1209600",
           "flowArgs": {
             "@type": "type.googleapis.com/GetFileArgs",
             "pathspec": {
@@ -4366,7 +4366,7 @@
               "created": "42000000",
               "creator": "api_test_user",
               "description": "foo",
-              "expires": "1209642000000",
+              "duration": "1209600",
               "flowArgs": {
                 "@type": "type.googleapis.com/GetFileArgs",
                 "pathspec": {
@@ -4779,7 +4779,7 @@
             "created": "2000000000",
             "creator": "api_test_user",
             "description": "hunt_1",
-            "expires": "1211600000000",
+            "duration": "1209600",
             "huntId": "H:000001",
             "isRobot": false,
             "name": "GenericHunt",
@@ -4798,7 +4798,7 @@
             "created": "1000000000",
             "creator": "api_test_user",
             "description": "hunt_0",
-            "expires": "1210600000000",
+            "duration": "1209600",
             "huntId": "H:000000",
             "isRobot": false,
             "name": "GenericHunt",
@@ -4827,7 +4827,7 @@
             "created": "2000000000",
             "creator": "api_test_user",
             "description": "hunt_1",
-            "expires": "1211600000000",
+            "duration": "1209600",
             "huntId": "H:000001",
             "isRobot": false,
             "name": "GenericHunt",
@@ -4856,7 +4856,7 @@
             "created": "1000000000",
             "creator": "api_test_user",
             "description": "hunt_0",
-            "expires": "1210600000000",
+            "duration": "1209600",
             "huntId": "H:000000",
             "isRobot": false,
             "name": "GenericHunt",
@@ -5204,7 +5204,7 @@
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": "1209642000000",
+        "duration": "1209600",
         "flowArgs": {
           "@type": "type.googleapis.com/GetFileArgs",
           "pathspec": {
@@ -5276,7 +5276,7 @@
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": "1209642000000",
+        "duration": "1209600",
         "flowArgs": {
           "@type": "type.googleapis.com/GetFileArgs",
           "pathspec": {

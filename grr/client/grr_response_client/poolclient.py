@@ -21,6 +21,7 @@ from grr_response_client import client_plugins
 from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import vfs
+from grr_response_client.vfs_handlers import files as vfs_files
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -186,6 +187,11 @@ def CheckLocation():
   exit()
 
 
+class _UseOSForTSKFile(vfs_files.File):
+  """OS-file handler to be used for TSK files, since TSK is not threadsafe."""
+  supported_pathtype = rdf_paths.PathSpec.PathType.TSK
+
+
 def main(argv):
   del argv  # Unused.
   config.CONFIG.AddContext(contexts.POOL_CLIENT_CONTEXT,
@@ -199,9 +205,7 @@ def main(argv):
 
   # Let the OS handler also handle sleuthkit requests since sleuthkit is not
   # thread safe.
-  tsk = rdf_paths.PathSpec.PathType.TSK
-  os = rdf_paths.PathSpec.PathType.OS
-  vfs.VFS_HANDLERS[tsk] = vfs.VFS_HANDLERS[os]
+  vfs.VFS_HANDLERS[_UseOSForTSKFile.supported_pathtype] = _UseOSForTSKFile
 
   CreateClientPool(flags.FLAGS.nrclients)
 

@@ -31,7 +31,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       session_id = session_id.Basename()
 
     self.Open("/#/clients/%s/flows" % self.client_id)

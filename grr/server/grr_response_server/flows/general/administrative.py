@@ -30,8 +30,6 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
-from grr_response_server import db_compat
 from grr_response_server import email_alerts
 from grr_response_server import events
 from grr_response_server import flow
@@ -42,6 +40,8 @@ from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.databases import db
+from grr_response_server.databases import db_compat
 from grr_response_server.flows.general import discovery
 from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -74,7 +74,7 @@ def WriteAllCrashDetails(client_id,
           client_crashes, crash_details, mutation_pool=pool)
 
   # Relational db.
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     try:
       data_store.REL_DB.WriteClientCrashInfo(client_id, crash_details)
     except db.UnknownClientError:
@@ -83,7 +83,7 @@ def WriteAllCrashDetails(client_id,
   if not flow_session_id:
     return
 
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     flow_id = flow_session_id.Basename()
     data_store.REL_DB.UpdateFlow(
         client_id, flow_id, client_crash_info=crash_details)
@@ -95,7 +95,7 @@ def WriteAllCrashDetails(client_id,
 
   # TODO(amoser): Registering crashes in hunts is currently not implemented for
   # the relational db.
-  if not data_store.RelationalDBFlowsEnabled():
+  if not data_store.RelationalDBEnabled():
     with aff4.FACTORY.Open(
         flow_session_id,
         flow.GRRFlow,
@@ -152,7 +152,7 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
       stats_collector_instance.Get().IncrementCounter("grr_client_crashes")
 
       # Write crash data.
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         client = data_store.REL_DB.ReadClientSnapshot(client_id)
         if client:
           crash_details.client_info = client.startup_info.client_info
@@ -175,7 +175,7 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
         termination_msg = "Client crashed."
 
       # Terminate the flow.
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         flow_id = session_id.Basename()
         flow_base.TerminateFlow(
             client_id,
@@ -248,7 +248,7 @@ class GetClientStatsProcessResponseMixin(object):
         # Only keep the average of all values that fall within one minute.
         stats_fd.AddAttribute(stats_fd.Schema.STATS, downsampled)
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteClientStats(client_id, downsampled)
 
     return downsampled
@@ -603,7 +603,7 @@ class OnlineNotificationMixin(object):
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
     if responses.success:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
         hostname = client.knowledge_base.fqdn
       else:
@@ -694,8 +694,8 @@ class UpdateClientMixin(object):
 
   def CheckUpdateAgent(self, responses):
     if not responses.success:
-      raise flow.FlowError(
-          "Error while calling UpdateAgent: %s" % responses.status)
+      raise flow.FlowError("Error while calling UpdateAgent: %s" %
+                           responses.status)
 
   def Interrogate(self, responses):
     if not responses.success:
@@ -739,7 +739,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
     hostname = None
 
     # Write crash data.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(client_id)
       if client is not None:
         client_info = client.startup_info.client_info
@@ -843,7 +843,7 @@ class ClientStartupHandlerMixin(object):
     """Handle a startup event."""
     drift = rdfvalue.Duration("5m")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
 
       # We write the updated record if the client_info has any changes
@@ -879,7 +879,7 @@ class ClientStartupHandlerMixin(object):
           client.Set(client.Schema.LAST_BOOT_TIME(new_si.boot_time))
           changes = True
 
-      if data_store.RelationalDBWriteEnabled() and changes:
+      if data_store.RelationalDBEnabled() and changes:
         try:
           data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
         except db.UnknownClientError:

@@ -17,14 +17,16 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.
 class YumListCmdParser(parser.CommandParser):
-  """Parser for yum list output. Yields SoftwarePackage rdfvalues.
+  """Parser for yum list output.
+
+  Yields SoftwarePackage rdfvalues.
 
   We read the output of yum rather than rpm because it has publishers, and we
   don't use bdb because it's a world of hurt and appears to use different,
   incompatible versions across OS revisions.
   """
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["RedhatYumPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -32,22 +34,29 @@ class YumListCmdParser(parser.CommandParser):
     """Parse the yum output."""
     _ = stderr, time_taken, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
+    packages = []
     for line in stdout.decode("utf-8").splitlines()[1:]:  # Ignore first line
       cols = line.split()
       name_arch, version, source = cols
       name, arch = name_arch.split(".")
 
       status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-      yield rdf_client.SoftwarePackage(
-          name=name,
-          publisher=source,
-          version=version,
-          architecture=arch,
-          install_state=status)
+      packages.append(
+          rdf_client.SoftwarePackage(
+              name=name,
+              publisher=source,
+              version=version,
+              architecture=arch,
+              install_state=status))
+
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)
 
 
 class YumRepolistCmdParser(parser.CommandParser):
-  """Parser for yum repolist output. Yields PackageRepository.
+  """Parser for yum repolist output.
+
+  Yields PackageRepository.
 
   Parse all enabled repositories as output by yum repolist -q -v.
   """
@@ -95,7 +104,7 @@ class YumRepolistCmdParser(parser.CommandParser):
 class RpmCmdParser(parser.CommandParser):
   """Parser for rpm qa output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["RedhatPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -104,13 +113,18 @@ class RpmCmdParser(parser.CommandParser):
     _ = time_taken, args, knowledge_base  # Unused.
     rpm_re = re.compile(r"^(\w[-\w\+]+?)-(\d.*)$")
     self.CheckReturn(cmd, return_val)
+    packages = []
     for line in stdout.splitlines():
       pkg_match = rpm_re.match(line.strip())
       if pkg_match:
         name, version = pkg_match.groups()
         status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-        yield rdf_client.SoftwarePackage(
-            name=name, version=version, install_state=status)
+        packages.append(
+            rdf_client.SoftwarePackage(
+                name=name, version=version, install_state=status))
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)
+
     for line in stderr.splitlines():
       if "error: rpmdbNextIterator: skipping h#" in line:
         yield rdf_anomaly.Anomaly(
@@ -121,7 +135,7 @@ class RpmCmdParser(parser.CommandParser):
 class DpkgCmdParser(parser.CommandParser):
   """Parser for dpkg output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["DebianPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -141,35 +155,43 @@ class DpkgCmdParser(parser.CommandParser):
           column_lengths.append(len(col))
         break
 
-    if column_lengths:
-      remaining_lines = stdout.splitlines()[i + 1:]
-      for i, line in enumerate(remaining_lines):
-        cols = line.split(None, len(column_lengths))
+    if not column_lengths:
+      return
 
-        # The status column is ignored in column_lengths.
-        if len(column_lengths) == 4:
-          # Installed, Name, Version, Architecture, Description
-          status, name, version, arch, desc = cols
-        elif len(column_lengths) == 3:
-          # Older versions of dpkg don't print Architecture
-          status, name, version, desc = cols
-          arch = None
-        else:
-          raise ValueError("Bad number of columns in dpkg --list output: %s" %
-                           len(column_lengths))
+    packages = []
 
-        # Status is potentially 3 columns, but always at least two, desired and
-        # actual state. We only care about actual state.
-        if status[1] == "i":
-          status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-        else:
-          status = rdf_client.SoftwarePackage.InstallState.UNKNOWN
-        yield rdf_client.SoftwarePackage(
-            name=name,
-            description=desc,
-            version=version,
-            architecture=arch,
-            install_state=status)
+    remaining_lines = stdout.splitlines()[i + 1:]
+    for i, line in enumerate(remaining_lines):
+      cols = line.split(None, len(column_lengths))
+
+      # The status column is ignored in column_lengths.
+      if len(column_lengths) == 4:
+        # Installed, Name, Version, Architecture, Description
+        status, name, version, arch, desc = cols
+      elif len(column_lengths) == 3:
+        # Older versions of dpkg don't print Architecture
+        status, name, version, desc = cols
+        arch = None
+      else:
+        raise ValueError("Bad number of columns in dpkg --list output: %s" %
+                         len(column_lengths))
+
+      # Status is potentially 3 columns, but always at least two, desired and
+      # actual state. We only care about actual state.
+      if status[1] == "i":
+        status = rdf_client.SoftwarePackage.InstallState.INSTALLED
+      else:
+        status = rdf_client.SoftwarePackage.InstallState.UNKNOWN
+      packages.append(
+          rdf_client.SoftwarePackage(
+              name=name,
+              description=desc,
+              version=version,
+              architecture=arch,
+              install_state=status))
+
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)
 
 
 class DmidecodeCmdParser(parser.CommandParser):

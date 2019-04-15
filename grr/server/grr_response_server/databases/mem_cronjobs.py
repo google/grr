@@ -8,7 +8,7 @@ from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_server import db
+from grr_response_server.databases import db
 
 
 class InMemoryDBCronJobMixin(object):
@@ -31,8 +31,8 @@ class InMemoryDBCronJobMixin(object):
         try:
           res.append(self.cronjobs[job_id].Copy())
         except KeyError:
-          raise db.UnknownCronJobError(
-              "Cron job with id %s not found." % job_id)
+          raise db.UnknownCronJobError("Cron job with id %s not found." %
+                                       job_id)
 
     for job in res:
       lease = self.cronjob_leases.get(job.cron_job_id)
@@ -133,14 +133,14 @@ class InMemoryDBCronJobMixin(object):
       del self.cronjob_leases[returned_job.cron_job_id]
 
     if errored_jobs:
-      raise ValueError("Some jobs could not be returned: %s" % ",".join(
-          job.cron_job_id for job in errored_jobs))
+      raise ValueError("Some jobs could not be returned: %s" %
+                       ",".join(job.cron_job_id for job in errored_jobs))
 
   def WriteCronJobRun(self, run_object):
     """Stores a cron job run object in the database."""
     if run_object.cron_job_id not in self.cronjobs:
-      raise db.UnknownCronJobError(
-          "Job with id %s not found." % run_object.cron_job_id)
+      raise db.UnknownCronJobError("Job with id %s not found." %
+                                   run_object.cron_job_id)
 
     clone = run_object.Copy()
     clone.timestamp = rdfvalue.RDFDatetime.Now()

@@ -20,10 +20,10 @@ from grr_response_server import artifact
 from grr_response_server import client_fixture
 from grr_response_server import client_index
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -71,12 +71,13 @@ class LegacyClientFixture(object):
     """Make a new client object."""
 
     # First remove the old fixture just in case its still there.
-    aff4.FACTORY.Delete(self.client_id, token=self.token)
+    if data_store.AFF4Enabled():
+      aff4.FACTORY.Delete(self.client_id, token=self.token)
 
     # Create the fixture at a fixed time.
     with test_lib.FakeTime(self.age):
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         # Constructing a client snapshot from the aff4 fixture is only possible
         # using aff4. Using a serialized string instead.
         data_store.REL_DB.WriteClientMetadata(
@@ -99,7 +100,7 @@ class LegacyClientFixture(object):
 
         path_info = None
 
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           components = [component for component in path.split("/") if component]
           if (len(components) > 1 and components[0] == "fs" and
               components[1] in ["os", "tsk"]):
@@ -182,7 +183,7 @@ class LegacyClientFixture(object):
 
           if (isinstance(rdfvalue_object, rdf_client_fs.StatEntry) and
               rdfvalue_object.pathspec.pathtype != "UNSET"):
-            if data_store.RelationalDBWriteEnabled():
+            if data_store.RelationalDBEnabled():
               path_info = rdf_objects.PathInfo.FromStatEntry(rdfvalue_object)
               data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 

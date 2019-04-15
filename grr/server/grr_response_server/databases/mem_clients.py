@@ -16,7 +16,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -358,7 +358,7 @@ class InMemoryDBClientMixin(object):
     if client_id not in self.ReadAllClientIDs():
       raise db.UnknownClientError(client_id)
 
-    self.client_stats[client_id][stats.create_time] = stats
+    self.client_stats[client_id][rdfvalue.RDFDatetime.Now()] = stats
 
   @utils.Synchronized
   def ReadClientStats(self, client_id,
@@ -367,16 +367,15 @@ class InMemoryDBClientMixin(object):
                      ):
     """Reads ClientStats for a given client and time range."""
     results = []
-    for stats in itervalues(self.client_stats[client_id]):
-      if min_timestamp <= stats.create_time <= max_timestamp:
+    for timestamp, stats in iteritems(self.client_stats[client_id]):
+      if min_timestamp <= timestamp <= max_timestamp:
         results.append(stats)
-    results.sort(key=lambda stats: stats.create_time)
     return results
 
   @utils.Synchronized
-  def DeleteOldClientStats(
-      self, yield_after_count,
-      retention_time):
+  def DeleteOldClientStats(self, yield_after_count,
+                           retention_time
+                          ):
     """Deletes ClientStats older than a given timestamp."""
     deleted_count = 0
     yielded = False

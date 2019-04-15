@@ -17,3 +17,8 @@ def EndToEndTests():
 def ApiRegressionTestsGenerate():
   from grr_response_test import api_regression_test_generate
   app.run(api_regression_test_generate.main)
+
+
+def DumpMySQLSchema():
+  from grr_response_test import dump_mysql_schema
+  app.run(dump_mysql_schema.main)

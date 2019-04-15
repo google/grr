@@ -597,7 +597,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testMessageHandlers(self):
     with test_lib.ConfigOverrider({
-        "Database.useForReads": True,
+        "Database.enabled": True,
     }):
       self._testProcessMessagesWellKnown()
 
@@ -611,7 +611,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     session_id = administrative.GetClientStatsAuto.well_known_session_id
     client_id = self.SetupClient(100)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       done = threading.Event()
 
       def handle(l):
@@ -641,7 +641,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       results = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
@@ -659,7 +659,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
     self.assertIsNone(notifications)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.UnregisterMessageHandler(timeout=60)
 
   def testWellKnownFlowResponsesAreProcessedOnlyOnce(self):
@@ -1109,7 +1109,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
   def testForemanMessageHandler(self):
     with test_lib.ConfigOverrider({
-        "Database.useForReads": True,
+        "Database.enabled": True,
     }):
       with mock.patch.object(foreman.Foreman, "AssignTasksToClient") as instr:
         worker_obj = self._TestWorker()

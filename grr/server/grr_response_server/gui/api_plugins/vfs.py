@@ -33,12 +33,12 @@ from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db
 from grr_response_server import decoders
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_handler_base
@@ -474,7 +474,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetFileDetailsResult(file=file_obj)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -674,7 +674,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
         items=[ApiFile().InitFromAff4Object(c) for c in children])
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -769,8 +769,8 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     if file_content_missing:
       raise FileContentNotFoundError(
           "File %s with timestamp %s wasn't found on client %s" %
-          (utils.SmartStr(args.file_path), utils.SmartStr(args.timestamp),
-           utils.SmartStr(args.client_id)))
+          (utils.SmartStr(args.file_path), utils.SmartStr(
+              args.timestamp), utils.SmartStr(args.client_id)))
 
     byte_content = _Aff4Read(file_obj, offset=args.offset, length=args.length)
 
@@ -812,7 +812,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetFileTextResult(total_size=fd.size, content=text_content)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -860,8 +860,8 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     if file_content_missing:
       raise FileContentNotFoundError(
           "File %s with timestamp %s wasn't found on client %s" %
-          (utils.SmartStr(args.file_path), utils.SmartStr(args.timestamp),
-           utils.SmartStr(args.client_id)))
+          (utils.SmartStr(args.file_path), utils.SmartStr(
+              args.timestamp), utils.SmartStr(args.client_id)))
 
     total_size = _Aff4Size(file_obj)
     if not args.length:
@@ -895,7 +895,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
         content_length=size)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -952,7 +952,7 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetFileVersionTimesResult(times=times)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1076,7 +1076,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1152,7 +1152,7 @@ class ApiGetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler
                                            args.operation_id)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1279,7 +1279,7 @@ def _GetTimelineStatEntriesRelDB(api_client_id, file_path, with_history=True):
 def _GetTimelineStatEntries(client_id, file_path, with_history=True):
   """Gets timeline entries from the appropriate data source (AFF4 or REL_DB)."""
 
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     fn = _GetTimelineStatEntriesRelDB
   else:
     fn = _GetTimelineStatEntriesLegacy
@@ -1472,7 +1472,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1497,7 +1497,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     flow_args = transfer.MultiGetFileArgs(
         pathspecs=[path_info.stat_entry.pathspec])
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(
           client_id=str(args.client_id),
           flow_cls=transfer.MultiGetFile,
@@ -1573,7 +1573,7 @@ class ApiGetVfsFileContentUpdateStateHandler(
     return result
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1726,7 +1726,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         prefix + ".zip", content_generator=content_generator)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1762,7 +1762,7 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
     for decoder_name in decoders.FACTORY.Names():
       decoder = decoders.FACTORY.Create(decoder_name)
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         filedesc = file_store.OpenFile(client_path)
         filectx = context.NullContext(filedesc)
       else:
@@ -1806,7 +1806,7 @@ class ApiGetDecodedFileHandler(api_call_handler_base.ApiCallHandler):
         content_generator=decoder.Decode(fd))
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)

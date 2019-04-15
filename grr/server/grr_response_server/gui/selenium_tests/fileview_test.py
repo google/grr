@@ -15,7 +15,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import vfs as api_vfs
@@ -291,7 +291,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # an HTTP 500.
     with self.DisableHttpErrorChecks():
       self.Click("css=button:contains(\"Collect from the client\")")
-      if not data_store.RelationalDBReadEnabled():
+      if not data_store.RelationalDBEnabled():
         # Wait until the error is processed before we leave the
         # DisableHttpErrorChecks context.
         self.WaitUntil(self.GetHttpErrors)

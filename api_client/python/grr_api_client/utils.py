@@ -51,8 +51,12 @@ class ItemsIterator(object):
     for i in self.items:
       yield i
 
+  def __next__(self):
+    return next(self.items)
+
+  # TODO: Compatibility method for Python 2.
   def next(self):
-    return self.items.next()
+    return self.__next__()
 
 
 def MapItemsIterator(function, items):
@@ -84,12 +88,16 @@ class BinaryChunkIterator(object):
       yield c
     self.Close()
 
-  def next(self):
+  def __next__(self):
     try:
-      return self.chunks.next()
+      return next(self.chunks)
     except StopIteration:
       self.Close()
       raise
+
+  # TODO: Compatibility method for Python 2.
+  def next(self):
+    return self.__next__()
 
   def WriteToStream(self, out):
     for c in self.chunks:

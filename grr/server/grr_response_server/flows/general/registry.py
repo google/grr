@@ -157,7 +157,7 @@ class CollectRunKeyBinariesMixin(object):
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
     filenames = []
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
       kb = client.knowledge_base
     else:

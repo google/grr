@@ -27,11 +27,13 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     out = list(
         parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0, 5,
                      None))
-    self.assertLen(out, 2)
-    self.assertIsInstance(out[0], rdf_client.SoftwarePackage)
-    self.assertEqual(out[0].name, "ConsoleKit")
-    self.assertEqual(out[0].architecture, "x86_64")
-    self.assertEqual(out[0].publisher, "@base")
+    self.assertLen(out, 1)
+    self.assertLen(out[0].packages, 2)
+    package = out[0].packages[0]
+    self.assertIsInstance(package, rdf_client.SoftwarePackage)
+    self.assertEqual(package.name, "ConsoleKit")
+    self.assertEqual(package.architecture, "x86_64")
+    self.assertEqual(package.publisher, "@base")
 
   def testYumRepolistCmdParser(self):
     """Test to see if we can get data from yum repolist output."""
@@ -68,14 +70,21 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """
     stderr = "error: rpmdbNextIterator: skipping h#"
     out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
-    software = {
-        o.name: o.version
-        for o in out
-        if isinstance(o, rdf_client.SoftwarePackage)
-    }
+    # A package list and an Anomaly.
+    self.assertLen(out, 2)
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
-    self.assertLen(software, 7)
     self.assertLen(anomaly, 1)
+
+    package_lists = [
+        o for o in out if isinstance(o, rdf_client.SoftwarePackages)
+    ]
+    self.assertLen(package_lists, 1)
+
+    package_list = package_lists[0]
+
+    self.assertLen(package_list.packages, 7)
+
+    software = {o.name: o.version for o in package_list.packages}
     expected = {
         "glib2": "2.12.3-4.el5_3.1",
         "elfutils-libelf": "0.137-3.el5",
@@ -95,9 +104,10 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
                    "rb").read()
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
-    self.assertLen(out, 181)
-    self.assertIsInstance(out[1], rdf_client.SoftwarePackage)
-    self.assertTrue(out[0].name, "acpi-support-base")
+    self.assertLen(out, 1)
+    package_list = out[0]
+    self.assertLen(package_list.packages, 181)
+    self.assertEqual(package_list.packages[0].name, "acpi-support-base")
 
   def testDpkgCmdParserPrecise(self):
     """Ensure we can extract packages from dpkg output on ubuntu precise."""
@@ -107,9 +117,10 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
         "rb").read()
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
-    self.assertLen(out, 30)
-    self.assertIsInstance(out[1], rdf_client.SoftwarePackage)
-    self.assertTrue(out[0].name, "adduser")
+    self.assertLen(out, 1)
+    package_list = out[0]
+    self.assertLen(package_list.packages, 30)
+    self.assertEqual(package_list.packages[0].name, "adduser")
 
   def testDmidecodeParser(self):
     """Test to see if we can get data from dmidecode output."""

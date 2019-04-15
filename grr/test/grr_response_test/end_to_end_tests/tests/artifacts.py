@@ -25,8 +25,8 @@ class TestDarwinPersistenceMechanisms(test_base.EndToEndTest):
       if r.payload.pathspec.path == launchservices:
         return
 
-    self.fail(
-        "Service listing does not contain launchservices: %s." % launchservices)
+    self.fail("Service listing does not contain launchservices: %s." %
+              launchservices)
 
 
 class TestRootDiskVolumeUsage(test_base.EndToEndTest):
@@ -103,7 +103,7 @@ class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
-  kb_attributes = ["fqdn", "os", "os_major_version", "os_minor_version"]
+  kb_attributes = ["os", "os_major_version", "os_minor_version"]
 
   # TODO(user): time_zone, environ_path, and environ_temp are currently only
   # implemented for Windows, move to kb_attributes once available on other OSes.

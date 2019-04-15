@@ -22,7 +22,7 @@ class RootApiUserManagementTest(api_e2e_test_lib.RootApiE2ETest):
   """E2E test for root API user management calls."""
 
   def _GetPassword(self, username):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       user = data_store.REL_DB.ReadGRRUser(username)
       return user.password if user.HasField("password") else None
     else:
@@ -75,7 +75,7 @@ class RootApiUserManagementTest(api_e2e_test_lib.RootApiE2ETest):
     self.assertTrue(password.CheckPassword("ohno"))
 
   def testUsersAreCorrectlyListed(self):
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
       self.skipTest("AFF4 edge case: user that issues request is somewhat "
                     "created but not listed in ListGrrUsers.")
 

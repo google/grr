@@ -13,9 +13,9 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server.aff4_objects import user_managers
+from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
@@ -148,7 +148,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     cls = ApiCallRouterWithApprovalChecks
 
     if cls.access_checker is None:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         cls.access_checker = RelDBChecker()
       else:
         cls.access_checker = LegacyChecker()
@@ -539,7 +539,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ModifyHunt(args, token=token)
 
   def _GetHuntObj(self, hunt_id, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       try:
         return data_store.REL_DB.ReadHuntObject(str(hunt_id))
       except db.UnknownHuntError:

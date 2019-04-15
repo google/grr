@@ -24,11 +24,11 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore
 from grr_response_server.bin import frontend
+from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
@@ -133,13 +133,13 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
             r.stat_entry.pathspec.AFF4Path(self.client_id), token=self.token)
         self.assertEqual(aff4_obj.Read(100), data[:100])
 
-        if not data_store.RelationalDBReadEnabled():
+        if not data_store.RelationalDBEnabled():
           hash_obj = data_store_utils.GetFileHashEntry(aff4_obj)
           self.assertEqual(hash_obj.sha1, hashlib.sha1(data).digest())
           self.assertEqual(hash_obj.sha256, hashlib.sha256(data).digest())
           self.assertEqual(hash_obj.md5, hashlib.md5(data).digest())
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         fd = file_store.OpenFile(
             db.ClientPath.FromPathSpec(self.client_id.Basename(),
                                        r.stat_entry.pathspec))
@@ -254,7 +254,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
           # There is a STAT entry.
           self.assertTrue(aff4_obj.Get(aff4_obj.Schema.STAT))
 
-          if not data_store.RelationalDBReadEnabled():
+          if not data_store.RelationalDBEnabled():
             # Make sure the HashFileStore has references to this file for
             # all hashes.
             hash_entry = data_store_utils.GetFileHashEntry(aff4_obj)

@@ -19,7 +19,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
@@ -27,6 +26,7 @@ from grr_response_server import grr_collections
 from grr_response_server import hunt
 from grr_response_server import output_plugin
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
 from grr_response_server.hunts import implementation
 from grr_response_server.hunts import process_results
@@ -186,7 +186,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
     # Run the clients and worker until nothing changes any more.
     while iteration_limit is None or num_iterations < iteration_limit:
       worker_processed = []
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
         worker_processed = rel_db_worker.ResetProcessedFlows()
 
@@ -286,7 +286,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
     client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       token = token or self.token
 
       hunt_args = rdf_hunt_objects.HuntArguments(
@@ -316,7 +316,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         **kwargs)
 
   def StartHunt(self, paused=False, **kwargs):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunt_id = self.CreateHunt(**kwargs)
       if not paused:
         hunt.StartHunt(hunt_id)
@@ -328,7 +328,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       return hunt_obj.urn
 
   def FindForemanRules(self, hunt_obj, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       rules = data_store.REL_DB.ReadAllForemanRules()
       return [
           rule for rule in rules
@@ -403,7 +403,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       for value in values:
@@ -431,7 +431,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       data_store.REL_DB.WriteFlowLogEntries([
@@ -461,7 +461,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -486,7 +486,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     if isinstance(hunt_id, rdfvalue.RDFURN):
       hunt_id = hunt_id.Basename()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
     else:
       hunt_obj = aff4.FACTORY.Open(rdfvalue.RDFURN("hunts").Add(hunt_id))
@@ -499,11 +499,11 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       # No processing needed for new style hunts.
       return
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       job = rdf_cronjobs.CronJob(
           cron_job_id="some/id", lifetime=rdfvalue.Duration("1h"))
       run_state = rdf_cronjobs.CronJobRun(

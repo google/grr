@@ -32,6 +32,7 @@ class HuntContext(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_client_stats.ClientResources,
       rdf_stats.ClientResourcesStats,
+      rdfvalue.Duration,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,
   ]

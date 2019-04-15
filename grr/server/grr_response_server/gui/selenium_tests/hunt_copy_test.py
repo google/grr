@@ -161,7 +161,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)
@@ -276,7 +276,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)
@@ -409,7 +409,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     # Close the window and check that the hunt was created.
     self.Click("css=button.Next")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)
@@ -526,7 +526,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hunts_list = sorted(
           data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
           key=lambda x: x.create_time)

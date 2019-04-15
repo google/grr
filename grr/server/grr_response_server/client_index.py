@@ -312,7 +312,7 @@ def GetClientURNsForHostnames(hostnames, token=None):
     A dict with a list of all known GRR client_ids for each hostname.
   """
 
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     index = ClientIndex()
   else:
     index = CreateClientIndex(token=token)

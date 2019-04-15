@@ -322,32 +322,3 @@ class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
       return self.message.network_bytes_limit
     except AttributeError:
       return None
-
-
-class IteratedAction(ActionPlugin):
-  """An action which can restore its state from an iterator.
-
-  Implement iterating actions by extending this class and overriding the
-  Iterate() method.
-  """
-
-  __abstract = True  # pylint: disable=invalid-name
-
-  def Run(self, request):
-    """Munge the iterator to the server and abstract it away."""
-    # Pass the client_state as a dict to the action. This is often more
-    # efficient than manipulating a protobuf.
-    client_state = request.iterator.client_state.ToDict()
-
-    # Derived classes should implement this.
-    self.Iterate(request, client_state)
-
-    # Update the iterator client_state from the dict.
-    request.iterator.client_state = client_state
-
-    # Return the iterator
-    self.SendReply(
-        request.iterator, message_type=rdf_flows.GrrMessage.Type.ITERATOR)
-
-  def Iterate(self, request, client_state):
-    """Actions should override this."""

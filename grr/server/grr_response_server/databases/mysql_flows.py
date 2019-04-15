@@ -19,8 +19,8 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
-from grr_response_server import db
-from grr_response_server import db_utils
+from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
@@ -543,7 +543,7 @@ class MySQLDBFlowMixin(object):
     if not updates:
       return
 
-    query = "UPDATE flows SET last_update=now(6), "
+    query = "UPDATE flows SET last_update=NOW(6), "
     query += ", ".join(updates)
     query += " WHERE client_id=%s AND flow_id=%s"
 
@@ -662,7 +662,7 @@ class MySQLDBFlowMixin(object):
     templates = []
     args = []
     for r in responses:
-      templates.append("(%s, %s, %s, %s, %s, %s, %s, now(6))")
+      templates.append("(%s, %s, %s, %s, %s, %s, %s, NOW(6))")
       client_id_int = db_utils.ClientIDToInt(r.client_id)
       flow_id_int = db_utils.FlowIDToInt(r.flow_id)
 
@@ -890,7 +890,7 @@ class MySQLDBFlowMixin(object):
 
   @db_utils.CallLoggedAndAccounted
   def WriteFlowResponses(self, responses):
-    """Writes flow responses and updates corresponding requests."""
+    """Writes FlowMessages and updates corresponding requests."""
 
     if not responses:
       return
@@ -1164,9 +1164,9 @@ class MySQLDBFlowMixin(object):
       SET leased_until=FROM_UNIXTIME(%(expiry)s), leased_by=%(id)s
       WHERE
        (delivery_time IS NULL OR
-        delivery_time <= now(6)) AND
+        delivery_time <= NOW(6)) AND
        (leased_until IS NULL OR
-        leased_until < now(6))
+        leased_until < NOW(6))
       LIMIT %(limit)s
     """
 

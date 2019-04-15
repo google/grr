@@ -18,8 +18,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
-from grr_response_server import db
-from grr_response_server import db_utils
+from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -391,7 +391,7 @@ class InMemoryDBFlowMixin(object):
 
   @utils.Synchronized
   def WriteFlowResponses(self, responses):
-    """Writes a list of flow responses to the database."""
+    """Writes FlowMessages and updates corresponding requests."""
     status_available = set()
     requests_updated = set()
     task_ids_by_request = {}

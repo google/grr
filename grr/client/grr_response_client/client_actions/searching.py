@@ -13,20 +13,19 @@ from grr_response_client import actions
 from grr_response_client import vfs
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
 
-class Find(actions.IteratedAction):
+class Find(actions.ActionPlugin):
   """Recurses through a directory returning files which match conditions."""
   in_rdfvalue = rdf_client_fs.FindSpec
-  out_rdfvalues = [rdf_client_fs.FindSpec]
+  out_rdfvalues = [rdf_client_fs.FindSpec, rdf_client_fs.StatEntry]
 
   # The filesystem we are limiting ourselves to, if cross_devs is false.
   filesystem_id = None
 
-  def ListDirectory(self, pathspec, state, depth=0):
+  def ListDirectory(self, pathspec, depth=0):
     """A recursive generator of files."""
     # Limit recursion depth
     if depth >= self.request.max_depth:
@@ -53,30 +52,16 @@ class Find(actions.IteratedAction):
       dir_stat = fd.Stat()
       self.filesystem_id = dir_stat.st_dev
 
-    # Recover the start point for this directory from the state dict so we can
-    # resume.
-    start = state.get(pathspec.CollapsePath(), 0)
-
-    for i, file_stat in enumerate(files):
-      # Skip the files we already did before
-      if i < start:
-        continue
+    for file_stat in files:
 
       if stat.S_ISDIR(int(file_stat.st_mode)):
         # Do not traverse directories in a different filesystem.
-        if self.request.cross_devs or self.filesystem_id == file_stat.st_dev:
-          for child_stat in self.ListDirectory(file_stat.pathspec, state,
-                                               depth + 1):
+        is_same_fs = self.filesystem_id == file_stat.st_dev
+        if is_same_fs or self.request.cross_devs:
+          for child_stat in self.ListDirectory(file_stat.pathspec, depth + 1):
             yield child_stat
 
-      state[pathspec.CollapsePath()] = i + 1
       yield file_stat
-
-    # Now remove this from the state dict to prevent it from getting too large
-    try:
-      del state[pathspec.CollapsePath()]
-    except KeyError:
-      pass
 
   def TestFileContent(self, file_stat):
     """Checks the file for the presence of the regular expression."""
@@ -179,30 +164,27 @@ class Find(actions.IteratedAction):
 
     return result
 
-  def Iterate(self, request, client_state):
-    """Restores its way through the directory using an Iterator."""
+  # This limit is quite high but the conditions we check here could be fairly
+  # cheap - enumerating the whole filesystem, looking for a specific filename.
+  MAX_FILES_TO_CHECK = 10000000
+
+  def Run(self, request):
+    """Runs the Find action."""
+
     self.request = request
     filters = self.BuildChecks(request)
-    limit = request.iterator.number
 
-    # TODO(user): What is a reasonable measure of work here?
-    for count, f in enumerate(
-        self.ListDirectory(request.pathspec, client_state)):
+    files_checked = 0
+    for f in self.ListDirectory(request.pathspec):
       self.Progress()
 
       # Ignore this file if any of the checks fail.
       if not any((check(f) for check in filters)):
-        self.SendReply(rdf_client_fs.FindSpec(hit=f))
+        self.SendReply(f)
 
-      # We only check a limited number of files in each iteration. This might
-      # result in returning an empty response - but the iterator is not yet
-      # complete. Flows must check the state of the iterator explicitly.
-      if count >= limit - 1:
-        logging.debug("Processed %s entries, quitting", count)
+      files_checked += 1
+      if files_checked >= self.MAX_FILES_TO_CHECK:
         return
-
-    # End this iterator
-    request.iterator.state = rdf_client_action.Iterator.State.FINISHED
 
 
 class Grep(actions.ActionPlugin):

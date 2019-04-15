@@ -14,9 +14,9 @@ from grr_response_proto.api import cron_pb2
 from grr_response_server import aff4
 from grr_response_server import cronjobs
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
+from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui.api_plugins import flow as api_plugins_flow
@@ -328,7 +328,7 @@ class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListCronJobRunsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       runs = cronjobs.CronManager().ReadJobRuns(str(args.cron_job_id))
       start = args.offset
       if args.count:
@@ -367,7 +367,7 @@ class ApiGetCronJobRunHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiCronJobRun
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       run = cronjobs.CronManager().ReadJobRun(
           str(args.cron_job_id), str(args.run_id))
       if not run:
@@ -450,7 +450,7 @@ class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     job_id = str(args.cron_job_id)
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       aff4_cronjobs.GetCronManager().RequestForcedRun(job_id)
     else:
       aff4_cronjobs.GetCronManager().RunOnce(

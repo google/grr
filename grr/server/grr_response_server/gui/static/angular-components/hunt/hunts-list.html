@@ -81,7 +81,7 @@
         <th>Hunt ID</th>
         <th>Name</th>
         <th>Start Time</th>
-        <th>Expires</th>
+        <th>Duration</th>
         <th>Client Limit</th>
         <th>Creator</th>
         <th>Description</th>
@@ -99,7 +99,9 @@
         <td>{$ ::item.value.hunt_id.value $}</td>
         <td>{$ ::item.value.name.value $}</td>
         <td><grr-timestamp value="::item.value.created" /></td>
-        <td><grr-timestamp value="::item.value.expires" /></td>
+        <!-- TODO: If the hunt has been started, expiration time should
+             also be shown. Once this is implemented, extend this test to check it. -->
+        <td><grr-duration value="::item.value.duration" /></td>
         <td>{$ ::item.value.client_limit.value $}</td>
         <td>{$ ::item.value.creator.value $}</td>
         <td>{$ ::item.value.description.value $}</td>

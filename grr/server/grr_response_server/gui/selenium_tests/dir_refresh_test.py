@@ -72,7 +72,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Make sure that the flow has started (when button is clicked, the HTTP
     # API request is sent asynchronously).
     def MultiGetFileStarted():
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         return compatibility.GetName(transfer.MultiGetFile) in [
             f.flow_class_name for f in data_store.REL_DB.ReadAllFlowObjects(
                 client_id=client_id.Basename())

@@ -27,12 +27,12 @@ from grr_response_core.lib.util import temp
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import standard as aff4_standard
+from grr_response_server.databases import db
 # TODO(user):
 # TestFileFinderFlow.testTreatsGlobsAsPathsWhenMemoryPathTypeIsUsed expects
 # auditing system to work. Refactor and remove the unused import
@@ -89,7 +89,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         raise RuntimeError("Can't check unexpected result for correct "
                            "hashes: %s" % fname)
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         path_info = data_store.REL_DB.ReadPathInfo(
             self.client_id.Basename(),
             rdf_objects.PathInfo.PathType.OS,
@@ -106,7 +106,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def CheckFilesNotHashed(self, fnames):
     for fname in fnames:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         try:
           path_info = data_store.REL_DB.ReadPathInfo(
               self.client_id.Basename(),
@@ -122,7 +122,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def CheckFilesDownloaded(self, fnames):
     for fname in fnames:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         path_info = data_store.REL_DB.ReadPathInfo(
             self.client_id.Basename(),
             rdf_objects.PathInfo.PathType.OS,
@@ -139,7 +139,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
       self.assertEqual(size, len(test_data))
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         fd = file_store.OpenFile(
             db.ClientPath(
                 self.client_id.Basename(),
@@ -151,7 +151,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
   def CheckFilesNotDownloaded(self, fnames):
     for fname in fnames:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         try:
           file_store.OpenFile(
               db.ClientPath(
@@ -270,6 +270,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
     self.client_id = self.SetupClient(0)
+    vfs.Init()
 
   def testFileFinderStatActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
@@ -581,7 +582,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     for action in [hash_action, download_action]:
       results = self.RunFlow(paths=[image_path], action=action)
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         with self.assertRaises(file_store.FileHasNoContentError):
           self._ReadTestFile(["test_img.dd"],
                              path_type=rdf_objects.PathInfo.PathType.OS)
@@ -619,7 +620,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     d.update(expected_data)
     expected_hash = d.digest()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data = self._ReadTestFile(["test_img.dd"],
                                 path_type=rdf_objects.PathInfo.PathType.OS)
       self.assertEqual(data, expected_data)
@@ -741,10 +742,9 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           non_expected_files=non_expected_files)
 
   def _RunTSKFileFinder(self, paths):
-
     image_path = os.path.join(self.base_path, "ntfs_img.dd")
     with utils.Stubber(
-        vfs, "VFS_VIRTUALROOTS", {
+        vfs, "_VFS_VIRTUALROOTS", {
             rdf_paths.PathSpec.PathType.TSK:
                 rdf_paths.PathSpec(
                     path=image_path, pathtype="OS", offset=63 * 512)
@@ -799,7 +799,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self._CheckDir()
 
   def _CheckDir(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self._CheckDirRelational()
     else:
       self._CheckDirAFF4()
@@ -844,7 +844,7 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.read(100), "This is the dir ads")
 
   def _CheckSubdir(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self._CheckSubdirRelational()
     else:
       self._CheckSubdirAFF4()
@@ -899,7 +899,7 @@ class RelationalFlowFileFinderTest(db_test_lib.RelationalDBEnabledMixin,
   flow_base_cls = flow_base.FlowBase
 
   def testUseExternalStores(self):
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
       self.skipTest("Test uses relational filestore.")
 
     with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
@@ -993,7 +993,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     ])
 
   def testUseExternalStores(self):
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
       self.skipTest("Test uses relational filestore.")
 
     paths = [os.path.join(self.base_path, "test.plist")]
@@ -1037,7 +1037,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(efs.call_count, 1)
 
   def _VerifyDownloadedFiles(self, results):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       for r in results:
         original_path = r.stat_entry.pathspec.path
         fd = file_store.OpenFile(

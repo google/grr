@@ -8,7 +8,7 @@ import MySQLdb
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import random
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -39,14 +39,14 @@ def _ResponseToApprovalsWithGrants(response):
       cur_approval_request = mysql_utils.StringToRDFProto(
           rdf_objects.ApprovalRequest, approval_request_bytes)
       cur_approval_request.approval_id = _IntToApprovalID(approval_id_int)
-      cur_approval_request.timestamp = mysql_utils.MysqlToRDFDatetime(
+      cur_approval_request.timestamp = mysql_utils.TimestampToRDFDatetime(
           approval_timestamp)
 
     if grantor_username and grant_timestamp:
       cur_approval_request.grants.append(
           rdf_objects.ApprovalGrant(
               grantor_username=grantor_username,
-              timestamp=mysql_utils.MysqlToRDFDatetime(grant_timestamp)))
+              timestamp=mysql_utils.TimestampToRDFDatetime(grant_timestamp)))
 
   if cur_approval_request:
     yield cur_approval_request
@@ -149,47 +149,43 @@ class MySQLDBUsersMixin(object):
     approval_request = approval_request.Copy()
     # Generate random approval id.
     approval_id_int = random.UInt64()
-    now_str = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
 
     grants = approval_request.grants
     approval_request.grants = None
 
+    expiry_time = approval_request.expiration_time
+
     args = {
-        "username_hash":
-            mysql_utils.Hash(approval_request.requestor_username),
-        "approval_type":
-            int(approval_request.approval_type),
-        "subject_id":
-            approval_request.subject_id,
-        "approval_id":
-            approval_id_int,
-        "timestamp":
-            now_str,
-        "expiration_time":
-            mysql_utils.RDFDatetimeToMysqlString(
-                approval_request.expiration_time),
-        "approval_request":
-            approval_request.SerializeToString()
+        "username_hash": mysql_utils.Hash(approval_request.requestor_username),
+        "approval_type": int(approval_request.approval_type),
+        "subject_id": approval_request.subject_id,
+        "approval_id": approval_id_int,
+        "expiration_time": mysql_utils.RDFDatetimeToTimestamp(expiry_time),
+        "approval_request": approval_request.SerializeToString()
     }
-    query = ("INSERT INTO approval_request {columns} VALUES {values}".format(
-        columns=mysql_utils.Columns(args),
-        values=mysql_utils.NamedPlaceholders(args)))
+    query = """
+    INSERT INTO approval_request (username_hash, approval_type,
+                                  subject_id, approval_id, expiration_time,
+                                  approval_request)
+    VALUES (%(username_hash)s, %(approval_type)s,
+            %(subject_id)s, %(approval_id)s, FROM_UNIXTIME(%(expiration_time)s),
+            %(approval_request)s)
+    """
     cursor.execute(query, args)
 
     for grant in grants:
       self._GrantApproval(approval_request.requestor_username, approval_id_int,
-                          grant.grantor_username, now_str, cursor)
+                          grant.grantor_username, cursor)
 
     return _IntToApprovalID(approval_id_int)
 
   def _GrantApproval(self, requestor_username, approval_id, grantor_username,
-                     timestamp, cursor):
+                     cursor):
     """Grants approval for a given request."""
     grant_args = {
         "username_hash": mysql_utils.Hash(requestor_username),
         "approval_id": approval_id,
         "grantor_username_hash": mysql_utils.Hash(grantor_username),
-        "timestamp": timestamp
     }
     grant_query = (
         "INSERT INTO approval_grant {columns} VALUES {values}".format(
@@ -206,7 +202,6 @@ class MySQLDBUsersMixin(object):
     """Grants approval for a given request using given username."""
     self._GrantApproval(
         requestor_username, _ApprovalIDToInt(approval_id), grantor_username,
-        mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now()),
         cursor)
 
   @mysql_utils.WithTransaction(readonly=True)
@@ -216,10 +211,10 @@ class MySQLDBUsersMixin(object):
     query = ("""
         SELECT
             ar.approval_id,
-            ar.timestamp,
+            UNIX_TIMESTAMP(ar.timestamp),
             ar.approval_request,
             u.username,
-            ag.timestamp
+            UNIX_TIMESTAMP(ag.timestamp)
         FROM approval_request ar
         LEFT JOIN approval_grant ag USING (username_hash, approval_id)
         LEFT JOIN grr_users u ON u.username_hash = ag.grantor_username_hash
@@ -232,15 +227,15 @@ class MySQLDBUsersMixin(object):
          mysql_utils.Hash(requestor_username)])
     res = cursor.fetchall()
     if not res:
-      raise db.UnknownApprovalRequestError(
-          "Approval '%s' not found." % approval_id)
+      raise db.UnknownApprovalRequestError("Approval '%s' not found." %
+                                           approval_id)
 
     approval_id_int, timestamp, approval_request_bytes, _, _ = res[0]
 
     approval_request = mysql_utils.StringToRDFProto(rdf_objects.ApprovalRequest,
                                                     approval_request_bytes)
     approval_request.approval_id = _IntToApprovalID(approval_id_int)
-    approval_request.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
+    approval_request.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
 
     for _, _, _, grantor_username, timestamp in res:
       if not grantor_username:
@@ -251,7 +246,7 @@ class MySQLDBUsersMixin(object):
       approval_request.grants.append(
           rdf_objects.ApprovalGrant(
               grantor_username=grantor_username,
-              timestamp=mysql_utils.MysqlToRDFDatetime(timestamp)))
+              timestamp=mysql_utils.TimestampToRDFDatetime(timestamp)))
 
     return approval_request
 
@@ -267,10 +262,10 @@ class MySQLDBUsersMixin(object):
     query = """
         SELECT
             ar.approval_id,
-            ar.timestamp,
+            UNIX_TIMESTAMP(ar.timestamp),
             ar.approval_request,
             u.username,
-            ag.timestamp
+            UNIX_TIMESTAMP(ag.timestamp)
         FROM approval_request ar
         LEFT JOIN approval_grant AS ag USING (username_hash, approval_id)
         LEFT JOIN grr_users u ON u.username_hash = ag.grantor_username_hash
@@ -297,16 +292,9 @@ class MySQLDBUsersMixin(object):
   def WriteUserNotification(self, notification, cursor=None):
     """Writes a notification for a given user."""
     # Copy the notification to ensure we don't modify the source object.
-    notification = notification.Copy()
-
-    if not notification.timestamp:
-      notification.timestamp = rdfvalue.RDFDatetime.Now()
-
     args = {
         "username_hash":
             mysql_utils.Hash(notification.username),
-        "timestamp":
-            mysql_utils.RDFDatetimeToMysqlString(notification.timestamp),
         "notification_state":
             int(notification.state),
         "notification":
@@ -328,7 +316,8 @@ class MySQLDBUsersMixin(object):
                             cursor=None):
     """Reads notifications scheduled for a user within a given timerange."""
 
-    query = ("SELECT timestamp, notification_state, notification "
+    query = ("SELECT UNIX_TIMESTAMP(timestamp), "
+             "       notification_state, notification "
              "FROM user_notification "
              "WHERE username_hash = %s ")
     args = [mysql_utils.Hash(username)]
@@ -341,12 +330,12 @@ class MySQLDBUsersMixin(object):
       time_from, time_to = timerange  # pylint: disable=unpacking-non-sequence
 
       if time_from is not None:
-        query += "AND timestamp >= %s "
-        args.append(mysql_utils.RDFDatetimeToMysqlString(time_from))
+        query += "AND timestamp >= FROM_UNIXTIME(%s) "
+        args.append(mysql_utils.RDFDatetimeToTimestamp(time_from))
 
       if time_to is not None:
-        query += "AND timestamp <= %s "
-        args.append(mysql_utils.RDFDatetimeToMysqlString(time_to))
+        query += "AND timestamp <= FROM_UNIXTIME(%s) "
+        args.append(mysql_utils.RDFDatetimeToTimestamp(time_to))
 
     query += "ORDER BY timestamp DESC "
 
@@ -355,7 +344,7 @@ class MySQLDBUsersMixin(object):
 
     for timestamp, state, notification_ser in cursor.fetchall():
       n = rdf_objects.UserNotification.FromSerializedString(notification_ser)
-      n.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
+      n.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       n.state = state
       ret.append(n)
 
@@ -371,11 +360,12 @@ class MySQLDBUsersMixin(object):
 
     query = ("UPDATE user_notification "
              "SET notification_state = %s "
-             "WHERE username_hash = %s AND timestamp IN {}").format(
+             "WHERE username_hash = %s"
+             "AND UNIX_TIMESTAMP(timestamp) IN {}").format(
                  mysql_utils.Placeholders(len(timestamps)))
 
     args = [
         int(state),
         mysql_utils.Hash(username),
-    ] + [mysql_utils.RDFDatetimeToMysqlString(t) for t in timestamps]
+    ] + [mysql_utils.RDFDatetimeToTimestamp(t) for t in timestamps]
     cursor.execute(query, args)

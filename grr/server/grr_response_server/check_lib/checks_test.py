@@ -55,8 +55,7 @@ def GetWMIData():
   parser = wmi_parser.WMIInstalledSoftwareParser()
   test_data = os.path.join(CHECKS_DIR, "data/wmi_sw.yaml")
   wmi = yaml.ReadFromPath(test_data)
-  for sw in wmi:
-    WMI_SW.extend(parser.Parse(sw))
+  WMI_SW.extend(parser.ParseMultiple(wmi))
 
   return WMI_SW
 
@@ -560,7 +559,7 @@ class HintDefinitionTests(ChecksTestBase):
     # Adding newlines to ensure they get stripped (can happen when reading from
     # YAML).
     lin_problem = "l337 software installed\n"
-    lin_format = "{name} {version} is installed\n"
+    lin_format = "{item.name} {item.version} is installed\n"
     # Methods should not have a hint template.
     self.assertEqual(lin_problem.strip(), self.lin_method.hint.problem)
     self.assertFalse(self.lin_method.hint.hinter.template)
@@ -583,7 +582,7 @@ class HintDefinitionTests(ChecksTestBase):
     # YAML).
     generic_problem = "Malicious software.\n"
     java_problem = "Old Java installation.\n"
-    generic_format = "{name} {version} is installed\n"
+    generic_format = "{item.name} {item.version} is installed\n"
     # Methods should not have a hint template.
     self.assertEqual(generic_problem.strip(), self.win_method.hint.problem)
     self.assertFalse(self.win_method.hint.hinter.template)

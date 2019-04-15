@@ -109,7 +109,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     if not args.flow.name:
       raise RuntimeError("Flow name is not specified.")
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       delegate = api_flow.ApiCreateFlowHandler()
       # Note that runner_args are dropped. From all the arguments We use only
       # the flow name and the arguments.
@@ -240,7 +240,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is
     # equal to the user making the request.
     # TODO(user): get rid of robot id logic as soon as AFF4 is gone.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(str(client_id), str(flow_id))
       if flow_obj.creator != token.username:
         raise access_control.UnauthorizedAccess(

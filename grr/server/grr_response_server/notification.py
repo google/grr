@@ -19,7 +19,7 @@ def _HostPrefix(client_id):
     return ""
 
   hostname = None
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     client_snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
     if client_snapshot:
       hostname = client_snapshot.knowledge_base.fqdn
@@ -218,7 +218,7 @@ def _Notify(username, notification_type, message, object_reference):
 
 
 def Notify(username, notification_type, message, object_reference):
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     _Notify(username, notification_type, message, object_reference)
 
   if data_store.AFF4Enabled():

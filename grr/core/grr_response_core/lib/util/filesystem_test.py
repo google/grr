@@ -139,6 +139,8 @@ class StatTest(absltest.TestCase):
       self.assertFalse(stat.GetOsxFlags() & self.UF_IMMUTABLE)
       self.assertEqual(stat.GetLinuxFlags(), 0)
 
+  @unittest.skipIf(platform.system() == "Windows",
+                   "Windows does not support os.symlink().")
   def testGetFlagsSymlink(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath, \
         temp.AutoTempFilePath() as temp_filepath:
@@ -150,6 +152,8 @@ class StatTest(absltest.TestCase):
       self.assertEqual(stat.GetLinuxFlags(), 0)
       self.assertEqual(stat.GetOsxFlags(), 0)
 
+  @unittest.skipIf(platform.system() == "Windows",
+                   "Windows does not support socket.AF_UNIX.")
   def testGetFlagsSocket(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       temp_socketpath = os.path.join(temp_dirpath, "foo")
@@ -238,6 +242,8 @@ class StatCacheTest(absltest.TestCase):
       self.assertEqual(other_baz_stat.GetSize(), 9)
       self.assertFalse(stat_mock.FromPath.called)
 
+  @unittest.skipIf(platform.system() == "Windows",
+                   "Windows does not support os.symlink().")
   def testFollowSymlink(self):
     with io.open(self.Path("foo"), "wb") as fd:
       fd.write(b"123456")

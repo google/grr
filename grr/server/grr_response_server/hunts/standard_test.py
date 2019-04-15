@@ -163,7 +163,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.RunHunt(
         user_cpu_time=0, system_cpu_time=0, network_bytes_sent=0, failrate=2)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       for client_id in self.client_ids:
         flows = data_store.REL_DB.ReadAllFlowObjects(
             client_id=client_id.Basename())

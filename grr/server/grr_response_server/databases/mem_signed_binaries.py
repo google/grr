@@ -10,18 +10,18 @@ from typing import Sequence, Text, Tuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def _SignedBinaryKeyFromID(
-    binary_id):
+def _SignedBinaryKeyFromID(binary_id
+                          ):
   """Converts a binary id to an equivalent dict key (tuple)."""
   return binary_id.binary_type.SerializeToDataStore(), binary_id.path
 
 
-def _SignedBinaryIDFromKey(
-    binary_key):
+def _SignedBinaryIDFromKey(binary_key
+                          ):
   """Converts a tuple representing a signed binary to a SignedBinaryID."""
   return rdf_objects.SignedBinaryID(
       binary_type=binary_key[0], path=binary_key[1])

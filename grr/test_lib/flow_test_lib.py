@@ -373,7 +373,7 @@ class MockClient(object):
     message.auth_state = "AUTHENTICATED"
     session_id = message.session_id
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       handler_name = queue_manager.session_id_map.get(session_id, None)
       if handler_name is None:
         raise ValueError("Unknown well known session id in msg %s" % message)
@@ -409,7 +409,7 @@ class MockClient(object):
     # delivered to a client. Messages for hunts have to be delivered
     # using the legacy queue manager until REL_DB hunts implementation
     # is complete.
-    if data_store.RelationalDBFlowsEnabled() and str(
+    if data_store.RelationalDBEnabled() and str(
         message.session_id).startswith("aff4:/C."):
       data_store.REL_DB.WriteFlowResponses(
           [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
@@ -419,7 +419,7 @@ class MockClient(object):
   def Next(self):
     """Grab tasks for us from the server's queue."""
     with queue_manager.QueueManager(token=self.token) as manager:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         request_tasks = data_store.REL_DB.LeaseClientMessages(
             self.client_id.Basename(),
             lease_time=rdfvalue.Duration("10000s"),
@@ -496,7 +496,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
     The session id of the flow that was run.
   """
 
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     if isinstance(client_id, rdfvalue.RDFURN):
       client_id = client_id.Basename()
 
@@ -557,7 +557,7 @@ def StartFlow(flow_cls, client_id=None, flow_args=None, creator=None, **kwargs):
   if isinstance(client_id, rdfvalue.RDFURN):
     client_id = client_id.Basename()
 
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     try:
       del kwargs["notify_to_user"]
     except KeyError:
@@ -705,7 +705,7 @@ def GetFlowResults(client_id, flow_id):
   if isinstance(flow_id, rdfvalue.RDFURN):
     flow_id = flow_id.Basename()
 
-  if not data_store.RelationalDBFlowsEnabled():
+  if not data_store.RelationalDBEnabled():
     coll = flow.GRRFlow.ResultCollectionForFID(
         rdf_client.ClientURN(client_id).Add("flows").Add(flow_id))
     return list(coll.GenerateItems())
@@ -729,7 +729,7 @@ def FinishAllFlowsOnClient(client_id, **kwargs):
   if isinstance(client_id, rdfvalue.RDFURN):
     client_id = client_id.Basename()
 
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     for cur_flow in data_store.REL_DB.ReadAllFlowObjects(client_id=client_id):
       RunFlow(client_id, cur_flow.flow_id, **kwargs)
   else:
@@ -744,7 +744,7 @@ def FinishAllFlowsOnClient(client_id, **kwargs):
 
 
 def GetFlowState(client_id, flow_id, token=None):
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
     return rdf_flow.persistent_data
   else:
@@ -753,7 +753,7 @@ def GetFlowState(client_id, flow_id, token=None):
 
 
 def GetFlowObj(client_id, flow_id, token=None):
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
     return rdf_flow
   else:

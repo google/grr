@@ -12,9 +12,10 @@ import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -304,7 +305,7 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     self.assertEqual(hash_ids[bar_path], bar_hash_id)
 
 
-class OpenFileTest(test_lib.GRRBaseTest):
+class OpenFileTest(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
   """Tests for OpenFile."""
 
   def setUp(self):
@@ -400,7 +401,8 @@ class OpenFileTest(test_lib.GRRBaseTest):
     self.assertEqual(fd.read(), self.data)
 
 
-class StreamFilesChunksTest(test_lib.GRRBaseTest):
+class StreamFilesChunksTest(db_test_lib.RelationalDBEnabledMixin,
+                            test_lib.GRRBaseTest):
   """Tests for StreamFilesChunks."""
 
   def _WriteFile(self, client_path, blobs_range=None):

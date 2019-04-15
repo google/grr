@@ -38,7 +38,7 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
     response = rdf_client_action.ExecuteResponse(
         stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteFlowResults([
           rdf_flow_objects.FlowResult(
               client_id=self.client_id, flow_id=flow_id, payload=response)

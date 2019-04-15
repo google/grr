@@ -192,7 +192,7 @@ class HuntBase(object):
     return HuntApproval(
         data=data, username=self._context.username, context=self._context)
 
-  def Modify(self, client_limit=None, client_rate=None, expires=None):
+  def Modify(self, client_limit=None, client_rate=None, duration=None):
     """Modifies a number of hunt arguments."""
     args = hunt_pb2.ApiModifyHuntArgs(hunt_id=self.hunt_id)
 
@@ -202,8 +202,8 @@ class HuntBase(object):
     if client_rate is not None:
       args.client_rate = client_rate
 
-    if expires is not None:
-      args.expires = expires
+    if duration is not None:
+      args.duration = duration
 
     data = self._context.SendRequest("ModifyHunt", args)
     return Hunt(data=data, context=self._context)

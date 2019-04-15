@@ -16,8 +16,8 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server.aff4_objects import collects
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -95,7 +95,7 @@ def WriteSignedBinary(binary_urn,
         private_key=private_key,
         public_key=public_key)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     blob_references = rdf_objects.BlobReferences()
     for chunk_offset in range(0, len(binary_content), chunk_size):
       chunk = binary_content[chunk_offset:chunk_offset + chunk_size]
@@ -135,7 +135,7 @@ def WriteSignedBinaryBlobs(binary_urn,
         for blob in blobs:
           fd.Add(blob, mutation_pool=mutation_pool)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     blob_references = rdf_objects.BlobReferences()
     current_offset = 0
     for blob in blobs:
@@ -168,7 +168,7 @@ def DeleteSignedBinary(binary_urn,
       raise SignedBinaryNotFoundError(binary_urn)
     aff4.FACTORY.Delete(binary_urn, token=token)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     try:
       data_store.REL_DB.ReadSignedBinaryReferences(
           _SignedBinaryIDFromURN(binary_urn))
@@ -311,4 +311,4 @@ def _ShouldUseLegacyDatastore():
   reading from the legacy DB until a config option specific to signed binaries
   is enabled. When that happens, we will also stop writing to the legacy DB.
   """
-  return not data_store.RelationalDBReadEnabled()
+  return not data_store.RelationalDBEnabled()

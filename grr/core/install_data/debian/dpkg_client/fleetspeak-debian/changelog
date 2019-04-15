@@ -1,0 +1,5 @@
+%(ClientBuilder.package_name) \(%(ClientBuilder.debian_version)\) unstable; urgency=low
+
+  * Initial release
+
+ -- %(ClientBuilder.maintainer)  %(ClientBuilder.debian_build_time)

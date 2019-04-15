@@ -116,7 +116,7 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
           mutation_pool=mutation_pool,
           token=token)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     path_infos = [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
     # NOTE: TSK may return duplicate entries. This is may be either due to
     # a bug in TSK implementation, or due to the fact that TSK is capable
@@ -201,7 +201,7 @@ class ListDirectoryMixin(object):
           fd.Set(fd.Schema.PATHSPEC(self.state.stat.pathspec))
           fd.Set(fd.Schema.STAT(self.state.stat))
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
         data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
@@ -625,7 +625,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
       fd.Set(fd.Schema.STAT, client_stat)
       fd.Flush()
 
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         path_info = rdf_objects.PathInfo.FromStatEntry(client_stat)
         data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
     else:

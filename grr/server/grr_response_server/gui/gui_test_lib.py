@@ -34,12 +34,12 @@ from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow_base
 from grr_response_server import foreman_rules
 from grr_response_server import output_plugin
 from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.aff4_objects import users
+from grr_response_server.databases import db
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_auth_manager
@@ -128,7 +128,7 @@ def CreateFolder(client_id, path, timestamp, token=None):
           token=token):
         pass
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       path_type, components = rdf_objects.ParseCategorizedPath(path)
 
       path_info = rdf_objects.PathInfo()
@@ -284,8 +284,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       msgs.append(msg)
 
     if msgs:
-      self.fail(
-          "Javascript error encountered during test: %s" % "\n\t".join(msgs))
+      self.fail("Javascript error encountered during test: %s" %
+                "\n\t".join(msgs))
 
   def DisableHttpErrorChecks(self):
     self.ignore_http_errors = True
@@ -604,8 +604,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
       time.sleep(self.sleep_time)
 
-    self.fail(
-        "condition not met. got: %r, does not contain: %s" % (data, target))
+    self.fail("condition not met. got: %r, does not contain: %s" %
+              (data, target))
 
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
@@ -617,7 +617,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # Make the user use the advanced gui so we can test it.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteGRRUser(
           self.token.username, ui_mode=users.GUISettings.UIMode.ADVANCED)
     else:
@@ -655,7 +655,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     iterations = 50
     for _ in range(iterations):
       try:
-        if data_store.RelationalDBReadEnabled():
+        if data_store.RelationalDBEnabled():
           pending_notifications = data_store.REL_DB.ReadUserNotifications(
               username, state=rdf_objects.UserNotification.State.STATE_PENDING)
           if pending_notifications:
@@ -731,8 +731,8 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
     if values is None:
       values = [
           rdfvalue.RDFURN("aff4:/sample/1"),
-          rdfvalue.RDFURN(
-              "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0].Basename()),
+          rdfvalue.RDFURN("aff4:/%s/fs/os/c/bin/bash" %
+                          self.client_ids[0].Basename()),
           rdfvalue.RDFURN("aff4:/sample/3")
       ]
 

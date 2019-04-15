@@ -10,9 +10,9 @@ from grr_response_proto.api.root import user_management_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import events
 from grr_response_server.aff4_objects import users
+from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import user as api_user
 
@@ -34,7 +34,7 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if args.user_type != args.UserType.USER_TYPE_ADMIN:
       args.user_type = args.UserType.USER_TYPE_STANDARD
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleAff4(args, token)
@@ -87,7 +87,7 @@ class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if not args.username:
       raise ValueError("username can't be empty.")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self._HandleRelational(args)
     else:
       self._HandleAff4(args, token)
@@ -133,7 +133,7 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
         "user_type") and args.user_type != args.UserType.USER_TYPE_ADMIN:
       args.user_type = args.UserType.USER_TYPE_STANDARD
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleAff4(args, token)
@@ -199,7 +199,7 @@ class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListGrrUsersResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleAff4(args, token)
@@ -243,7 +243,7 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if not args.username:
       raise ValueError("username can't be empty.")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleAff4(args, token)

@@ -5,306 +5,80 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-import abc
 import functools
-import os
+import platform
 
 
-from future.builtins import filter
-from future.utils import itervalues
-from future.utils import with_metaclass
-from typing import Optional, Callable
+from typing import Any, Optional, Callable, Dict, Type
 
-from grr_response_client import client_utils
+from grr_response_client.vfs_handlers import base as vfs_base
+from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
+from grr_response_client.vfs_handlers import sleuthkit  # pylint: disable=unused-import
+# pylint: disable=g-import-not-at-top
+if platform.system() == "Windows":
+  from grr_response_client.vfs_handlers import registry as vfs_registry  # pylint: disable=unused-import
+else:
+  vfs_registry = None
 from grr_response_core import config
-from grr_response_core.lib import registry
-from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import context
 from grr_response_core.lib.util import precondition
+# pylint: enable=g-import-not-at-top
 
-# A central Cache for vfs handlers. This can be used to keep objects alive
-# for a limited time.
-DEVICE_CACHE = utils.TimeBasedCache()
-
-
-class VFSHandler(with_metaclass(registry.MetaclassRegistry, object)):
-  """Base class for handling objects in the VFS."""
-  supported_pathtype = -1
-
-  # Should this handler be auto-registered?
-  auto_register = False
-
-  size = 0
-  offset = 0
-
-  # This is the VFS path to this specific handler.
-  path = "/"
-
-  # This will be set by the VFSOpen factory to the pathspec of the final
-  # destination of this handler. This pathspec will be case corrected and
-  # updated to reflect any potential recursion.
-  pathspec = None
-  base_fd = None
-
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
-    """Constructor.
-
-    Args:
-      base_fd: A handler to the predecessor handler.
-      pathspec: The pathspec to open.
-      progress_callback: A callback to indicate that the open call is still
-        working but needs more time.
-
-    Raises:
-      IOError: if this handler can not be instantiated over the
-      requested path.
-    """
-    _ = pathspec
-    self.base_fd = base_fd
-    self.progress_callback = progress_callback
-    if base_fd is None:
-      self.pathspec = rdf_paths.PathSpec()
-    else:
-      # Make a copy of the base pathspec.
-      self.pathspec = base_fd.pathspec.Copy()
-    self.metadata = {}
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    self.Close()
-    return False
-
-  def Seek(self, offset, whence=os.SEEK_SET):
-    """Seek to an offset in the file."""
-    if whence == os.SEEK_SET:
-      self.offset = offset
-    elif whence == os.SEEK_CUR:
-      self.offset += offset
-    elif whence == os.SEEK_END:
-      self.offset = self.size + offset
-    else:
-      raise ValueError("Illegal whence value %s" % whence)
-
-  @abc.abstractmethod
-  def Read(self, length):
-    """Reads some data from the file."""
-    raise NotImplementedError
-
-  @abc.abstractmethod
-  def Stat(self, ext_attrs = False):
-    """Returns a StatEntry about this file."""
-    raise NotImplementedError
-
-  @abc.abstractmethod
-  def IsDirectory(self):
-    """Returns true if this object can contain other objects."""
-    raise NotImplementedError
-
-  def Tell(self):
-    return self.offset
-
-  def Close(self):
-    """Close internal file descriptors."""
-
-  def OpenAsContainer(self):
-    """Guesses a container from the current object."""
-    if self.IsDirectory():
-      return self
-
-    # TODO(user): Add support for more containers here (e.g. registries, zip
-    # files etc).
-    else:  # For now just guess TSK.
-      return VFS_HANDLERS[rdf_paths.PathSpec.PathType.TSK](
-          self,
-          rdf_paths.PathSpec(
-              path="/", pathtype=rdf_paths.PathSpec.PathType.TSK),
-          progress_callback=self.progress_callback)
-
-  def MatchBestComponentName(self, component):
-    """Returns the name of the component which matches best our base listing.
-
-    In order to do the best case insensitive matching we list the files in the
-    base handler and return the base match for this component.
-
-    Args:
-      component: A component name which should be present in this directory.
-
-    Returns:
-      the best component name.
-    """
-    fd = self.OpenAsContainer()
-
-    # Adjust the component casing
-    file_listing = set(fd.ListNames())
-
-    # First try an exact match
-    if component not in file_listing:
-      # Now try to match lower case
-      lower_component = component.lower()
-      for x in file_listing:
-        if lower_component == x.lower():
-          component = x
-          break
-
-    if fd.supported_pathtype != self.pathspec.pathtype:
-      new_pathspec = rdf_paths.PathSpec(
-          path=component, pathtype=fd.supported_pathtype)
-    else:
-      new_pathspec = self.pathspec.last.Copy()
-      new_pathspec.path = component
-
-    return new_pathspec
-
-  def ListFiles(self, ext_attrs=False):
-    """An iterator over all VFS files contained in this directory.
-
-    Generates a StatEntry for each file or directory.
-
-    Args:
-      ext_attrs: Whether stat entries should contain extended attributes.
-
-    Raises:
-      IOError: if this fails.
-    """
-    del ext_attrs  # Unused.
-
-  def ListNames(self):
-    """A generator for all names in this directory."""
-    return []
-
-  # These are file object conformant namings for library functions that
-  # grr uses, and that expect to interact with 'real' file objects.
-  read = utils.Proxy("Read")
-  seek = utils.Proxy("Seek")
-  stat = utils.Proxy("Stat")
-  tell = utils.Proxy("Tell")
-  close = utils.Proxy("Close")
-
-  @classmethod
-  def Open(cls, fd, component, pathspec=None, progress_callback=None):
-    """Try to correct the casing of component.
-
-    This method is called when we failed to open the component directly. We try
-    to transform the component into something which is likely to work.
-
-    In this implementation, we correct the case of the component until we can
-    not open the path any more.
-
-    Args:
-      fd: The base fd we will use.
-      component: The component we should open.
-      pathspec: The rest of the pathspec object.
-      progress_callback: A callback to indicate that the open call is still
-        working but needs more time.
-
-    Returns:
-      A file object.
-
-    Raises:
-      IOError: If nothing could be opened still.
-    """
-    # The handler for this component
-    try:
-      handler = VFS_HANDLERS[component.pathtype]
-    except KeyError:
-      raise IOError("VFS handler %d not supported." % component.pathtype)
-
-    # We will not do any case folding unless requested.
-    if component.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
-      return handler(base_fd=fd, pathspec=component)
-
-    path_components = client_utils.LocalPathToCanonicalPath(component.path)
-    path_components = ["/"] + list(filter(None, path_components.split("/")))
-    for i, path_component in enumerate(path_components):
-      try:
-        if fd:
-          new_pathspec = fd.MatchBestComponentName(path_component)
-        else:
-          new_pathspec = component
-          new_pathspec.path = path_component
-
-        # The handler for this component
-        try:
-          handler = VFS_HANDLERS[new_pathspec.pathtype]
-        except KeyError:
-          raise IOError("VFS handler %d not supported." % new_pathspec.pathtype)
-
-        fd = handler(
-            base_fd=fd,
-            pathspec=new_pathspec,
-            progress_callback=progress_callback)
-      except IOError as e:
-        # Can not open the first component, we must raise here.
-        if i <= 1:
-          raise IOError("File not found: {}".format(component))
-
-        # Do not try to use TSK to open a not-found registry entry, fail
-        # instead. Using TSK would lead to confusing error messages, hiding
-        # the fact that the Registry entry is simply not there.
-        if component.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
-          raise IOError("Registry entry not found: {}".format(e))
-
-        # Insert the remaining path at the front of the pathspec.
-        pathspec.Insert(
-            0,
-            path=utils.JoinPath(*path_components[i:]),
-            pathtype=rdf_paths.PathSpec.PathType.TSK)
-        break
-
-    return fd
-
-  def GetMetadata(self):
-    return self.metadata
-
+VFSHandler = vfs_base.VFSHandler
+UnsupportedHandlerError = vfs_base.UnsupportedHandlerError
 
 # A registry of all VFSHandler registered
-VFS_HANDLERS = {}
+# TODO: Dictionary keys are of type rdf_paths.PathSpec.PathType,
+# but this is currently not representable as type information in Python.
+VFS_HANDLERS = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
 
 # The paths we should use as virtual root for VFS operations.
-VFS_VIRTUALROOTS = {}
+_VFS_VIRTUALROOTS = {}
 
 
-class VFSInit(registry.InitHook):
+def Init():
   """Register all known vfs handlers to open a pathspec types."""
+  VFS_HANDLERS.clear()
+  _VFS_VIRTUALROOTS.clear()
+  vfs_virtualroots = config.CONFIG["Client.vfs_virtualroots"]
 
-  def Run(self):
-    VFS_HANDLERS.clear()
-    for handler in itervalues(VFSHandler.classes):
-      if handler.auto_register:
-        VFS_HANDLERS[handler.supported_pathtype] = handler
+  VFS_HANDLERS[files.File.supported_pathtype] = files.File
+  VFS_HANDLERS[files.TempFile.supported_pathtype] = files.TempFile
+  VFS_HANDLERS[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
+  if vfs_registry is not None:
+    VFS_HANDLERS[vfs_registry.RegistryFile
+                 .supported_pathtype] = vfs_registry.RegistryFile
 
-    VFS_VIRTUALROOTS.clear()
-    vfs_virtualroots = config.CONFIG["Client.vfs_virtualroots"]
-    for vfs_virtualroot in vfs_virtualroots:
-      try:
-        handler_string, root = vfs_virtualroot.split(":", 1)
-      except ValueError:
-        raise ValueError(
-            "Badly formatted vfs virtual root: %s. Correct format is "
-            "os:/path/to/virtual_root" % vfs_virtualroot)
+  for vfs_virtualroot in vfs_virtualroots:
+    try:
+      handler_string, root = vfs_virtualroot.split(":", 1)
+    except ValueError:
+      raise ValueError(
+          "Badly formatted vfs virtual root: %s. Correct format is "
+          "os:/path/to/virtual_root" % vfs_virtualroot)
 
-      handler_string = handler_string.upper()
-      handler = rdf_paths.PathSpec.PathType.enum_dict.get(handler_string)
-      if handler is None:
-        raise ValueError("Unsupported vfs handler: %s." % handler_string)
+    handler_string = handler_string.upper()
+    handler = rdf_paths.PathSpec.PathType.enum_dict.get(handler_string)
+    if handler is None:
+      raise ValueError(
+          "VFSHandler {} could not be registered, because it was not found in"
+          " PathSpec.PathType {}".format(handler_string,
+                                         rdf_paths.PathSpec.PathType.enum_dict))
 
-      # We need some translation here, TSK needs an OS virtual root base. For
-      # every other handler we can just keep the type the same.
-      base_types = {
-          rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec.PathType.OS
-      }
-      base_type = base_types.get(handler, handler)
-      VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
-          path=root, pathtype=base_type, is_virtualroot=True)
+    # We need some translation here, TSK needs an OS virtual root base. For
+    # every other handler we can just keep the type the same.
+    if handler == rdf_paths.PathSpec.PathType.TSK:
+      base_type = rdf_paths.PathSpec.PathType.OS
+    else:
+      base_type = handler
+    _VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
+        path=root, pathtype=base_type, is_virtualroot=True)
 
 
-def VFSOpen(
-    pathspec,
-    progress_callback = None):
+def VFSOpen(pathspec,
+            progress_callback = None
+           ):
   """Expands pathspec to return an expanded Path.
 
   A pathspec is a specification of how to access the file by recursively opening
@@ -385,10 +159,14 @@ def VFSOpen(
     IOError: if one of the path components can not be opened.
 
   """
+  # Initialize the dictionary of VFS handlers lazily, if not yet done.
+  if not VFS_HANDLERS:
+    Init()
+
   fd = None
 
   # Adjust the pathspec in case we are using a vfs_virtualroot.
-  vroot = VFS_VIRTUALROOTS.get(pathspec.pathtype)
+  vroot = _VFS_VIRTUALROOTS.get(pathspec.pathtype)
 
   # If we have a virtual root for this vfs handler, we need to prepend
   # it to the incoming pathspec except if the pathspec is explicitly
@@ -412,12 +190,13 @@ def VFSOpen(
     try:
       handler = VFS_HANDLERS[component.pathtype]
     except KeyError:
-      raise IOError("VFS handler %d not supported." % component.pathtype)
+      raise UnsupportedHandlerError(component.pathtype)
 
     # Open the component.
     fd = handler.Open(
-        fd,
-        component,
+        fd=fd,
+        component=component,
+        handlers=dict(VFS_HANDLERS),
         pathspec=working_pathspec,
         progress_callback=progress_callback)
 

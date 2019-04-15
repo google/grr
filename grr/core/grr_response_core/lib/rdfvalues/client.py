@@ -485,9 +485,13 @@ class SoftwarePackage(rdf_structs.RDFProtoStruct):
   protobuf = sysinfo_pb2.SoftwarePackage
 
 
-class SoftwarePackages(rdf_protodict.RDFValueArray):
+class SoftwarePackages(rdf_structs.RDFProtoStruct):
   """A list of installed packages on the system."""
-  rdf_type = SoftwarePackage
+  protobuf = sysinfo_pb2.SoftwarePackages
+
+  rdf_deps = [
+      SoftwarePackage,
+  ]
 
 
 class LogMessage(rdf_structs.RDFProtoStruct):

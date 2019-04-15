@@ -24,7 +24,6 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import file_store
 from grr_response_server import flow
@@ -34,6 +33,7 @@ from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import filestore as legacy_filestore
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -163,7 +163,7 @@ class GetFileMixin(object):
 
         # TODO(user): when all the code can read files from REL_DB,
         # protect this with:
-        # if not data_store.RelationalDBReadEnabled():
+        # if not data_store.RelationalDBEnabled():
         if data_store.AFF4Enabled():
           with aff4.FACTORY.Create(
               urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
@@ -174,12 +174,12 @@ class GetFileMixin(object):
               fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
               fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
           # Adding files to filestore requires reading data from RELDB,
           # thus protecting this code with a filestore-read-enabled check.
-          if data_store.RelationalDBReadEnabled():
+          if data_store.RelationalDBEnabled():
             blob_refs = []
             offset = 0
             for data, size in self.state.blobs:
@@ -565,7 +565,7 @@ class MultiGetFileLogic(object):
           if new_fd.size == 0:
             new_fd.size = (file_tracker["bytes_read"] or stat_entry.st_size)
 
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
           path_info.hash_entry = hash_obj
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
@@ -631,7 +631,7 @@ class MultiGetFileLogic(object):
     hash. Otherwise, we request the client to hash every block in the file,
     and add it to the file tracking queue (self.state.pending_files).
     """
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
       return self._LegacyCheckHashesWithFileStore()
 
     if not self.state.pending_hashes:
@@ -839,12 +839,12 @@ class MultiGetFileLogic(object):
               digest, length = blob_dict[index]
               fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
 
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
           # Adding files to filestore requires reading data from RELDB,
           # thus protecting this code with a filestore-read-enabled check.
-          if data_store.RelationalDBReadEnabled():
+          if data_store.RelationalDBEnabled():
             blob_refs = []
             offset = 0
             for index in sorted(blob_dict):
@@ -873,7 +873,7 @@ class MultiGetFileLogic(object):
 
           data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-        if (not data_store.RelationalDBReadEnabled() and
+        if (not data_store.RelationalDBEnabled() and
             self.state.use_external_stores):
           # Publish the new file event to cause the file to be added to the
           # filestore.

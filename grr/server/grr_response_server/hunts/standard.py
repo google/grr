@@ -39,7 +39,7 @@ class RunHunt(cronjobs.CronJobBase):
   """A cron job that starts a hunt."""
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       hra = self.job.args.hunt_cron_action.hunt_runner_args
       anbpcl = hra.avg_network_bytes_per_client_limit
       hunt.CreateAndStartHunt(
@@ -268,7 +268,7 @@ class GenericHunt(implementation.GRRHunt):
             reason="Parent hunt stopped."))
 
   def Stop(self, reason=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       self._StopRelational(reason=reason)
     else:
       self._StopLegacy(reason=reason)

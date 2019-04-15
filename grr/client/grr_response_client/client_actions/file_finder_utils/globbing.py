@@ -147,7 +147,16 @@ class GlobComponent(PathComponent):
     pathspec = rdf_paths.PathSpec(path=new_path, pathtype=self.opts.pathtype)
     try:
       fd = vfs.VFSOpen(pathspec)
-      return os.path.basename(fd.path)
+
+      if fd.path == "/" and new_path != "/":
+        # TODO: VFSHandler has path = "/" as default. Thus, if we
+        # encounter "/", it could either mean the path never has been assigned
+        # or the path is literally "/". Thus, we return None if the path is "/"
+        # because it has never been set, by cross-referencing with the path we
+        # glob for.
+        return None
+      else:
+        return os.path.basename(fd.path)
     except IOError:
       return None  # Indicate "File not found" by returning None.
 

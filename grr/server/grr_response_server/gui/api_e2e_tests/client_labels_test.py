@@ -39,7 +39,7 @@ class ApiClientLibLabelsTest(api_e2e_test_lib.ApiE2ETest):
 
   def testRemoveLabels(self):
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.AddClientLabels(self.client_urn.Basename(),
                                           self.token.username, ["bar", "foo"])
       else:

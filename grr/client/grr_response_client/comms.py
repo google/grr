@@ -619,7 +619,7 @@ class GRRClientWorker(threading.Thread):
       request_id: The id of the request this is a response to.
       response_id: The id of this response.
       session_id: The session id of the flow.
-      message_type: The contents of this message, MESSAGE, STATUS, ITERATOR or
+      message_type: The contents of this message, MESSAGE, STATUS or
         RDF_VALUE.
       name: The name of the client action that sends this response.
       require_fastpoll: If set, this will set the client to fastpoll mode after

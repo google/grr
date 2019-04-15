@@ -16,10 +16,10 @@ from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_server import aff4
 from grr_response_server import client_report_utils
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server.aff4_objects import stats as aff4_stats
+from grr_response_server.databases import db
 from grr_response_server.flows.cron import system
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr.test_lib import db_test_lib
@@ -37,6 +37,7 @@ class SystemCronTestMixin(object):
     one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h")
     eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
     ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("61d")
+
     self.SetupClientsWithIndices(
         range(0, 10), system="Windows", ping=eight_day_ping)
     self.SetupClientsWithIndices(
@@ -58,9 +59,10 @@ class SystemCronTestMixin(object):
           client.AddLabels([u"Label1", u"Label2"], owner=u"GRR")
           client.AddLabel(u"UserLabel", owner=u"jim")
 
-      data_store.REL_DB.AddClientLabels(client_id, u"GRR",
-                                        [u"Label1", u"Label2"])
-      data_store.REL_DB.AddClientLabels(client_id, u"jim", [u"UserLabel"])
+      if data_store.RelationalDBEnabled():
+        data_store.REL_DB.AddClientLabels(client_id, u"GRR",
+                                          [u"Label1", u"Label2"])
+        data_store.REL_DB.AddClientLabels(client_id, u"jim", [u"UserLabel"])
 
   def _CheckVersionGraph(self, graph, expected_title, expected_count):
     self.assertEqual(graph.title, expected_title)
@@ -198,10 +200,10 @@ class SystemCronTestMixin(object):
               mode="rw") as stats_fd:
             stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
-        if data_store.RelationalDBWriteEnabled():
+        if data_store.RelationalDBEnabled():
           data_store.REL_DB.WriteClientStats(client_id.Basename(), st)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       stat_entries = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
@@ -215,7 +217,7 @@ class SystemCronTestMixin(object):
     with test_lib.FakeTime(2.51 * max_age):
       self._RunPurgeClientStats()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       stat_entries = data_store.REL_DB.ReadClientStats(
           client_id=client_id.Basename(),
           min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
@@ -254,8 +256,8 @@ class SystemCronFlowTest(SystemCronTestMixin, flow_test_lib.FlowTestsBaseclass):
         system.PurgeClientStats.__name__, None, token=self.token)
 
 
-@db_test_lib.DualDBTest
-class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
+class SystemCronJobTest(db_test_lib.RelationalDBEnabledMixin,
+                        SystemCronTestMixin, test_lib.GRRBaseTest):
   """Test system cron jobs."""
 
   def testGRRVersionBreakDown(self):
@@ -290,14 +292,11 @@ class SystemCronJobTest(SystemCronTestMixin, test_lib.GRRBaseTest):
     system.PurgeClientStatsCronJob(run, job).Run()
 
 
-@db_test_lib.DualDBTest
-class UpdateFSLastPingTimestampsTest(test_lib.GRRBaseTest):
+class UpdateFSLastPingTimestampsTest(db_test_lib.RelationalDBEnabledMixin,
+                                     test_lib.GRRBaseTest):
 
   @mock.patch.object(fleetspeak_connector, "CONN")
   def testCronJob(self, fs_conn_mock):
-    if not data_store.RelationalDBReadEnabled():
-      self.skipTest("Test is only for the relational DB. Skipping...")
-
     client_id1 = "C.0000000000000001"
     client_id2 = "C.0000000000000002"
     client_id3 = "C.0000000000000003"

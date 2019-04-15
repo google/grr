@@ -178,7 +178,7 @@ class CronManager(object):
 
 
 def GetCronManager():
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     return cronjobs.CronManager()
   return CronManager()
 
@@ -254,7 +254,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
 def ScheduleSystemCronFlows(names=None, token=None):
   """Schedule all the SystemCronFlows found."""
 
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     return cronjobs.ScheduleSystemCronJobs(names=names)
 
   errors = []

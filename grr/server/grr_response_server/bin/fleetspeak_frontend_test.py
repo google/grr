@@ -166,7 +166,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       self.assertEqual(stored_message, want_message)
 
   def testReceiveMessages_Relational(self):
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       self.skipTest("Rel-db-only test.")
 
     fs_server = fs_frontend_tool.GRRFSServer()
@@ -277,7 +277,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
       self.assertEqual(stored_message, want_message)
 
   def testReceiveMessageList_Relational(self):
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       self.skipTest("Rel-db-only test.")
 
     fs_server = fs_frontend_tool.GRRFSServer()
@@ -330,7 +330,7 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     self.assertLen(flow_responses, 9)
 
   def testWriteLastPingForNewClients(self):
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       self.skipTest("Rel-db-only test.")
 
     fs_server = fs_frontend_tool.GRRFSServer()

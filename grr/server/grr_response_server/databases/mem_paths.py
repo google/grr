@@ -12,7 +12,7 @@ from future.utils import iterkeys
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -107,8 +107,8 @@ class _PathRecord(object):
       raise ValueError(message % (self._components, path_info.components))
 
     if path_info.timestamp in self._path_infos:
-      raise ValueError(
-          "PathInfo with timestamp %r was added before." % path_info.timestamp)
+      raise ValueError("PathInfo with timestamp %r was added before." %
+                       path_info.timestamp)
 
     new_path_info = path_info.Copy()
     if new_path_info.timestamp is None:

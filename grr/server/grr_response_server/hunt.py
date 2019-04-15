@@ -181,11 +181,10 @@ def CompleteHuntIfExpirationTimeReached(hunt_obj):
   """Marks the hunt as complete if it's past its expiry time."""
   # TODO(hanuszczak): This should not set the hunt state to `COMPLETED` but we
   # should have a sparate `EXPIRED` state instead and set that.
-  expiry_time = hunt_obj.init_start_time + hunt_obj.duration
   if (hunt_obj.hunt_state not in [
       rdf_hunt_objects.Hunt.HuntState.STOPPED,
       rdf_hunt_objects.Hunt.HuntState.COMPLETED
-  ] and expiry_time < rdfvalue.RDFDatetime.Now()):
+  ] and hunt_obj.expired):
     StopHunt(hunt_obj.hunt_id, reason="Hunt completed.")
 
     data_store.REL_DB.UpdateHuntObject(

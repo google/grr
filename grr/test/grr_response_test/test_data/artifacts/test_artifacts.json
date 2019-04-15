@@ -36,7 +36,7 @@
         "attributes": { "cmd": "/usr/bin/dpkg",
                   "args": ["--list"]
         },
-        "returned_types": [ "SoftwarePackage" ]
+        "returned_types": [ "SoftwarePackages" ]
       }
     ],
     "doc": "Test command artifact for dpkg.",
@@ -234,7 +234,7 @@
         "attributes": { "cmd": "/bin/echo",
           "args": ["1"]
         },
-        "returned_types": [ "SoftwarePackage" ]
+        "returned_types": [ "SoftwarePackages" ]
       }
     ],
     "doc": "Test echo command artifact.",
@@ -248,7 +248,7 @@
         "attributes": { "cmd": "/bin/echo",
           "args": ["1"]
         },
-        "returned_types": [ "SoftwarePackage" ]
+        "returned_types": [ "SoftwarePackages" ]
       }
     ],
     "doc": "Test echo command artifact.",

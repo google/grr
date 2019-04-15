@@ -30,13 +30,13 @@ from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import instant_output_plugin
 from grr_response_server import notification
 from grr_response_server import output_plugin
 from grr_response_server import queue_manager
+from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
@@ -194,8 +194,8 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     return "\n".join(output)
 
   def _GetFlowDocumentation(self, flow_cls):
-    return "%s\n\n%s" % (getattr(flow_cls, "__doc__", ""),
-                         self._GetFlowArgsHelpAsString(flow_cls))
+    return "%s\n\n%s" % (getattr(flow_cls, "__doc__",
+                                 ""), self._GetFlowArgsHelpAsString(flow_cls))
 
   def InitFromFlowClass(self, flow_cls, token=None):
     if not token:
@@ -483,7 +483,7 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiFlow
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(
           str(args.client_id), str(args.flow_id))
       return ApiFlow().InitFromFlowObject(flow_obj, with_state_and_context=True)
@@ -518,7 +518,7 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowRequestsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleAFF4(args, token=token)
@@ -623,7 +623,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowResultsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       results = data_store.REL_DB.ReadFlowResults(
           str(args.client_id),
           str(args.flow_id),
@@ -668,7 +668,7 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowLogsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       count = args.count or db.MAX_COUNT
 
       logs = data_store.REL_DB.ReadFlowLogEntries(
@@ -820,7 +820,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     return Predicate
 
   def _GetFlow(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       client_id = str(args.client_id)
       flow_id = str(args.flow_id)
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -894,7 +894,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowOutputPluginsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(
           str(args.client_id), str(args.flow_id))
       output_plugins_states = flow_obj.output_plugins_states
@@ -1043,7 +1043,7 @@ class ApiListFlowOutputPluginLogsHandlerBase(
     if not self.attribute_name:
       raise ValueError("attribute_name can't be None")
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args)
     else:
       return self._HandleLegacy(args, token=token)
@@ -1235,7 +1235,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListFlowsResult(items=result)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._BuildRelationalFlowList(
           str(args.client_id), args.offset, args.count)
     else:
@@ -1285,7 +1285,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
           flow_id=utils.SmartStr(args.original_flow.flow_id),
           client_id=utils.SmartStr(args.original_flow.client_id))
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
       cpu_limit = None
       if runner_args.HasField("cpu_limit"):
@@ -1338,7 +1338,7 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     reason = "Cancelled in GUI"
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_base.TerminateFlow(
           str(args.client_id), str(args.flow_id), reason=reason)
     else:
@@ -1366,7 +1366,7 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     """Renders list of descriptors for all the flows."""
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_iterator = iteritems(registry.FlowRegistry.FLOW_REGISTRY)
     else:
       flow_iterator = iteritems(registry.AFF4FlowRegistry.FLOW_REGISTRY)
@@ -1403,6 +1403,8 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetExportedFlowResultsArgs
 
+  _RESULTS_PAGE_SIZE = 1000
+
   def _HandleLegacy(self, args, token=None):
     iop_cls = instant_output_plugin.InstantOutputPlugin
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
@@ -1431,12 +1433,24 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     types = data_store.REL_DB.CountFlowResultsByType(client_id, flow_id)
 
     def FetchFn(type_name):
-      for r in data_store.REL_DB.ReadFlowResults(
-          client_id, flow_id, offset=0, count=db.MAX_COUNT,
-          with_type=type_name):
-        msg = r.AsLegacyGrrMessage()
-        msg.source = client_id
-        yield msg
+      """Fetches all flow results of a given type."""
+      offset = 0
+      while True:
+        results = data_store.REL_DB.ReadFlowResults(
+            client_id,
+            flow_id,
+            offset=offset,
+            count=self._RESULTS_PAGE_SIZE,
+            with_type=type_name)
+        if not results:
+          break
+
+        for r in results:
+          msg = r.AsLegacyGrrMessage()
+          msg.source = client_id
+          yield msg
+
+        offset += self._RESULTS_PAGE_SIZE
 
     content_generator = instant_output_plugin.ApplyPluginToTypedCollection(
         plugin, types, FetchFn)
@@ -1445,7 +1459,7 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         plugin.output_file_name, content_generator=content_generator)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return self._HandleRelational(args, token=token)
     else:
       return self._HandleLegacy(args, token=token)

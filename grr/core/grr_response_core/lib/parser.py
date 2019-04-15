@@ -220,18 +220,18 @@ class FileMultiParser(Parser, MultiFileParser):
 
 
 # TODO(hanuszczak): This class should implement only one interface.
-class WMIQueryParser(Parser, SingleResponseParser):
+class WMIQueryParser(Parser, MultiResponseParser):
   """Abstract parser for processing WMI query output."""
 
   # TODO(hanuszczak): Make this abstract.
-  def Parse(self, result_dict):
+  def ParseMultiple(self, result_dicts):
     """Take the output of the query, and yield RDFValues."""
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del knowledge_base, path_type  # Unused.
-    precondition.AssertType(response, rdf_protodict.Dict)
+  def ParseResponses(self, knowledge_base, responses):
+    del knowledge_base  # Unused.
+    precondition.AssertIterableType(responses, rdf_protodict.Dict)
 
-    return self.Parse(response)
+    return self.ParseMultiple(responses)
 
 
 # TODO(hanuszczak): This class should implement only one interface.

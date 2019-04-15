@@ -23,10 +23,10 @@ from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server.databases import db
 
 
 def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
@@ -255,8 +255,8 @@ class KnowledgeBaseInitializationFlowMixin(object):
               "KnowledgeBase initialization failed as the "
               "following artifacts had dependencies that could"
               " not be fulfilled %s. Missing: %s" %
-              ([utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts],
-               missing_deps))
+              ([utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts
+               ], missing_deps))
         else:
           self.Log("Storing incomplete KnowledgeBase. The following artifacts "
                    "had dependencies that could not be fulfilled %s. "
@@ -433,7 +433,7 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   if has_single_file_parsers or has_multi_file_parsers:
     precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
     pathspecs = [response.pathspec for response in responses]
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       # TODO(amoser): This is not super efficient, AFF4 provided an api to open
       # all pathspecs at the same time, investigate if optimizing this is worth
       # it.
@@ -499,7 +499,7 @@ def UploadArtifactYamlFile(file_content,
           overwrite_system_artifacts=overwrite_system_artifacts)
 
       artifact_coll.Add(artifact_value, mutation_pool=pool)
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         data_store.REL_DB.WriteArtifact(artifact_value)
 
       loaded_artifacts.append(artifact_value)

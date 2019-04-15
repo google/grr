@@ -54,7 +54,7 @@ class FlowThrottler(object):
       token: acl token
     Yields: flow_objects.Flow objects
     """
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       if isinstance(client_id, rdfvalue.RDFURN):
         client_id = client_id.Basename()
 
@@ -119,8 +119,8 @@ class FlowThrottler(object):
       if (flow_obj.create_time > dup_boundary and
           flow_obj.flow_class_name == flow_name and flow_obj.args == flow_args):
         raise DuplicateFlowError(
-            "Identical %s already run on %s at %s" % (flow_name, client_id,
-                                                      flow_obj.create_time),
+            "Identical %s already run on %s at %s" %
+            (flow_name, client_id, flow_obj.create_time),
             flow_id=flow_obj.flow_id)
 
       # Filter for flows started by user within the 1 day window.
@@ -130,5 +130,5 @@ class FlowThrottler(object):
     # If limit is set, enforce it.
     if self.daily_req_limit and flow_count >= self.daily_req_limit:
       raise DailyFlowRequestLimitExceededError(
-          "%s flows run since %s, limit: %s" % (flow_count, yesterday,
-                                                self.daily_req_limit))
+          "%s flows run since %s, limit: %s" %
+          (flow_count, yesterday, self.daily_req_limit))

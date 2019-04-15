@@ -24,11 +24,11 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import decoders
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
@@ -72,7 +72,7 @@ class VfsTestMixin(object):
   def CreateRecursiveListFlow(self, client_id, token):
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return flow.StartFlow(
           client_id=client_id.Basename(),
           flow_cls=filesystem.RecursiveListDirectory,
@@ -89,7 +89,7 @@ class VfsTestMixin(object):
         path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       return flow.StartFlow(
           client_id=client_id.Basename(),
           flow_cls=transfer.MultiGetFile,
@@ -507,7 +507,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         client_id=self.client_id, file_path=self.file_path, max_depth=1)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
                                                   result.operation_id)
       self.assertEqual(flow_obj.flow_class_name, "ListDirectory")
@@ -525,7 +525,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         client_id=self.client_id, file_path=self.file_path, max_depth=5)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
                                                   result.operation_id)
       self.assertEqual(flow_obj.flow_class_name, "RecursiveListDirectory")
@@ -547,7 +547,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         notify_user=True)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_test_lib.RunFlow(
           self.client_id, result.operation_id, check_flow_errors=False)
     else:
@@ -566,7 +566,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     self.assertIn("Recursive Directory Listing complete",
                   pending_notifications[0].message)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       self.assertEqual(
           pending_notifications[0].reference.vfs_file.path_components,
           ["Users", "Shared"])
@@ -597,7 +597,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
     else:
       flow_urn = self.client_id.Add("flows").Add(flow_id)
@@ -612,7 +612,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(
           client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
     else:
@@ -673,7 +673,7 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
         client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
                                                   result.operation_id)
       self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
@@ -709,7 +709,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
     else:
       flow_urn = self.client_id.Add("flows").Add(flow_id)
@@ -724,7 +724,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(
           client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
     else:
@@ -792,7 +792,7 @@ class VfsTimelineTestMixin(object):
         if hash_entry is not None:
           fd.Set(fd.Schema.HASH, hash_entry)
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       client_id = client_urn.Basename()
       if stat_entry:
         path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)

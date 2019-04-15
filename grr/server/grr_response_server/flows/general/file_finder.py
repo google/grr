@@ -17,13 +17,13 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import fingerprint
 from grr_response_server.flows.general import transfer
@@ -63,8 +63,8 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
           type_enum.INODE_CHANGE_TIME: (self.InodeChangeTimeCondition, 0),
           type_enum.SIZE: (self.SizeCondition, 0),
           type_enum.CONTENTS_REGEX_MATCH: (self.ContentsRegexMatchCondition, 1),
-          type_enum.CONTENTS_LITERAL_MATCH: (self.ContentsLiteralMatchCondition,
-                                             1)
+          type_enum.CONTENTS_LITERAL_MATCH:
+              (self.ContentsLiteralMatchCondition, 1)
       }
     return self._condition_handlers
 
@@ -405,7 +405,7 @@ class ClientFileFinderMixin(object):
       if data_store.AFF4Enabled():
         self._WriteFilesContentAff4(
             transferred_file_responses, mutation_pool=pool)
-      if data_store.RelationalDBWriteEnabled():
+      if data_store.RelationalDBEnabled():
         self._WriteFilesContentRel(transferred_file_responses)
 
       self._WriteStatEntries(stat_entries, mutation_pool=pool)
@@ -420,7 +420,7 @@ class ClientFileFinderMixin(object):
     # TODO(amoser): This might be broken. Files that haven't been downloaded are
     # published here to LegacyFileStore and the use_external_stores flag is
     # ignored. Not worth fixing anymore, this is going away soon.
-    if files_to_publish and not data_store.RelationalDBReadEnabled():
+    if files_to_publish and not data_store.RelationalDBEnabled():
       events.Events.PublishMultipleEvents(
           {"LegacyFileStore.AddFileToStore": files_to_publish})
 
@@ -471,7 +471,7 @@ class ClientFileFinderMixin(object):
       client_path_path_info[client_path] = path_info
       client_path_blob_refs[client_path] = blob_refs
 
-    if (data_store.RelationalDBReadEnabled() and client_path_blob_refs):
+    if (data_store.RelationalDBEnabled() and client_path_blob_refs):
       use_external_stores = self.args.action.download.use_external_stores
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
           client_path_blob_refs, use_external_stores=use_external_stores)

@@ -140,8 +140,8 @@ class DumpACPITableMixin(object):
     table_signature = responses.request_data["table_signature"]
 
     if not responses.success:
-      self.Log(
-          "Error retrieving ACPI table with signature %s" % table_signature)
+      self.Log("Error retrieving ACPI table with signature %s" %
+               table_signature)
       return
 
     response = responses.First()
@@ -158,12 +158,12 @@ class DumpACPITableMixin(object):
     # Writing files (or symlinks) into random places is not supported anymore in
     # the relational db schema. We are going to replace this with annotations
     # for collected temp files soon.
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
 
       with data_store.DB.GetMutationPool() as mutation_pool:
         # TODO(amoser): Make this work in the UI!?
-        collection_urn = self.client_urn.Add(
-            "devices/chipsec/acpi/tables/%s" % table_signature)
+        collection_urn = self.client_urn.Add("devices/chipsec/acpi/tables/%s" %
+                                             table_signature)
         for acpi_table_response in response.acpi_tables:
           acpi_table_response.table_signature = table_signature
           hardware.ACPITableDataCollection.StaticAdd(

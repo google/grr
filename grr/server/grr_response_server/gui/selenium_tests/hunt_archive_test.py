@@ -283,7 +283,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       fd = file_store.OpenFile(
           flow_export.CollectionItemToClientPath(results[0]))
     else:

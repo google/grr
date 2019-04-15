@@ -230,9 +230,9 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     """Tests message handlers."""
     with utils.MultiStubber((queue_manager, "session_id_map", {
         flow_test_lib.WellKnownSessionTest.well_known_session_id: "Test"
-    }), (data_store, "RelationalDBFlowsEnabled", lambda: True)):
+    }), (data_store, "RelationalDBEnabled", lambda: True)):
       with test_lib.ConfigOverrider({
-          "Database.useForReads": True,
+          "Database.enabled": True,
       }):
         session_id = self._ReceiveWKFMessages()
 
@@ -477,14 +477,15 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
 
     ReceiveMessages(client_urn, messages)
 
-    client = aff4.FACTORY.Open(client_urn)
-    crash_details = client.Get(client.Schema.LAST_CRASH)
-    self.assertTrue(crash_details)
-    self.assertEqual(crash_details.session_id, session_id)
-
-    crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
-    self.assertTrue(crash_details_rel)
-    self.assertEqual(crash_details_rel.session_id, session_id)
+    if data_store.RelationalDBEnabled():
+      crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
+      self.assertTrue(crash_details_rel)
+      self.assertEqual(crash_details_rel.session_id, session_id)
+    else:
+      client = aff4.FACTORY.Open(client_urn)
+      crash_details = client.Get(client.Schema.LAST_CRASH)
+      self.assertTrue(crash_details)
+      self.assertEqual(crash_details.session_id, session_id)
 
 
 class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,

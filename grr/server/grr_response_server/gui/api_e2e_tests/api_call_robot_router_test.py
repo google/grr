@@ -66,16 +66,16 @@ users:
     self.client_id = self.SetupClient(0)
 
   def testCreatingArbitraryFlowDoesNotWork(self):
-    self.InitRouterConfig(
-        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
     with self.assertRaises(RuntimeError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
   def testFileFinderWorkflowWorks(self):
-    self.InitRouterConfig(
-        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
 
@@ -91,7 +91,7 @@ users:
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     # Now run the flow we just started.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_test_lib.RunFlow(
           flow_obj.client_id,
           flow_obj.flow_id,
@@ -144,8 +144,8 @@ users:
         sorted(namelist))
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
-    self.InitRouterConfig(
-        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
     flow_id = flow_test_lib.StartFlow(
         flow_cls=file_finder.FileFinder, client_id=self.client_id)
 
@@ -155,8 +155,8 @@ users:
       flow_ref.Get()
 
   def testNoThrottlingDoneByDefault(self):
-    self.InitRouterConfig(
-        self.__class__.FILE_FINDER_ROUTER_CONFIG % self.token.username)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),

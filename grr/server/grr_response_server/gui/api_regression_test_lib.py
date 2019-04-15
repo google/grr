@@ -96,8 +96,6 @@ ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RegressionTestMixin)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RelationalDBRegressionTestMixin)
-ApiRegressionTestMetaclass.RegisterConnectionMixin(
-    api_regression_http.HttpApiV2StableRelationalDBRegressionTestMixin)
 
 
 @pytest.mark.small
@@ -324,7 +322,7 @@ def GetFlowTestReplaceDict(client_id=None,
                            replacement_flow_id="W:ABCDEF"):
   """Creates and returns a replacement dict for flow regression tests."""
   replace = {}
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     if client_id and flow_id:
       # New style session ids need to be converted.
       old_style_id = "%s/%s" % (client_id, flow_id)
@@ -341,7 +339,7 @@ def StartFlow(client_id, flow_cls, flow_args=None, token=None):
   """A test helper function to start a flow."""
   # TODO(amoser): Once AFF4 is removed, this method should be moved to
   # flow_test_lib.
-  if data_store.RelationalDBFlowsEnabled():
+  if data_store.RelationalDBEnabled():
     return flow.StartFlow(
         creator=token and token.username,
         flow_cls=flow_cls,

@@ -82,11 +82,9 @@ class CleanHuntsFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       for hunt_urn in hunts_urns:
         hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
-        runner = hunt_obj.GetRunner()
+        self.assertLess(hunt_obj.context.start_time + hunt_obj.context.duration,
+                        latest_timestamp)
 
-        self.assertLess(runner.context.expires, latest_timestamp)
-        self.assertGreaterEqual(runner.context.expires,
-                                latest_timestamp - rdfvalue.Duration("150s"))
     self._CheckLog("Deleted 8")
 
   def testNoTraceOfDeletedHuntIsLeftInTheDataStore(self):
@@ -188,10 +186,10 @@ class CleanCronJobsFlowTest(flow_test_lib.FlowTestsBaseclass):
     for i in range(self.NUM_CRON_RUNS):
       with test_lib.FakeTime(40 + 60 * i):
         manager.RunOnce(token=self.token)
-        if data_store.RelationalDBReadEnabled():
+        if data_store.RelationalDBEnabled():
           manager._GetThreadPool().Join()
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       manager._GetThreadPool().Stop()
 
   def _RunCleanup(self):

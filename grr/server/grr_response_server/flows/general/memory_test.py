@@ -22,9 +22,9 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.databases import db
 from grr_response_server.flows.general import memory
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
@@ -258,6 +258,23 @@ class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(matches, 1)
     match = matches[0]
     self.assertEqual(match.scan_time_us, 3 * 1e6)
+
+  def testScanResponseChunking(self):
+    with mock.patch.object(
+        memory_actions.YaraProcessScan, "_RESULTS_PER_RESPONSE", new=2):
+      with test_lib.Instrument(memory_actions.YaraProcessScan,
+                               "SendReply") as sr:
+        matches, errors, misses = self._RunYaraProcessScan(
+            self.procs,
+            include_misses_in_results=True,
+            include_errors_in_results=True)
+        # 6 results, 2 results per message -> 3 messages. The fourth message is
+        # the status.
+        self.assertEqual(sr.call_count, 4)
+
+    self.assertLen(matches, 2)
+    self.assertLen(errors, 2)
+    self.assertLen(misses, 2)
 
   def testPIDsRestriction(self):
     matches, errors, misses = self._RunYaraProcessScan(

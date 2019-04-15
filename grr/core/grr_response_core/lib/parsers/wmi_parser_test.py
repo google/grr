@@ -39,7 +39,7 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
         except TypeError:
           rdf_dict[key] = "Failed to encode: %s" % value
 
-    result_list = list(parser.Parse(rdf_dict))
+    result_list = list(parser.ParseMultiple([rdf_dict]))
     self.assertLen(result_list, 2)
     for result in result_list:
       if isinstance(result, rdf_client_network.Interface):
@@ -92,7 +92,7 @@ TargetEvent.TargetInstance.UserModeTime &_ "; KernelModeTime: " &
 TargetEvent.TargetInstance.KernelModeTime & " [hundreds of nanoseconds]"
 objFile.Close"""
 
-    result_list = list(parser.Parse(rdf_dict))
+    result_list = list(parser.ParseMultiple([rdf_dict]))
     self.assertLen(result_list, 1)
     result = result_list[0]
     self.assertEqual(result.CreatorSID,
@@ -107,7 +107,7 @@ objFile.Close"""
 
     for test in tests:
       rdf_dict["CreatorSID"] = test
-      result_list = list(parser.Parse(rdf_dict))
+      result_list = list(parser.ParseMultiple([rdf_dict]))
       self.assertLen(result_list, 1)
 
   def testWMIEventConsumerParserDoesntFailOnUnknownField(self):
@@ -115,7 +115,7 @@ objFile.Close"""
     rdf_dict = rdf_protodict.Dict()
     rdf_dict["NonexistentField"] = "Abcdef"
     rdf_dict["Name"] = "Test event consumer"
-    results = list(parser.Parse(rdf_dict))
+    results = list(parser.ParseMultiple([rdf_dict]))
     self.assertLen(results, 2)
     # Anomalies yield first
     self.assertEqual(results[0].__class__, rdf_anomaly.Anomaly)
@@ -124,7 +124,7 @@ objFile.Close"""
   def testWMIEventConsumerParser_EmptyConsumersYieldBlank(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
-    result_list = list(parser.Parse(rdf_dict))
+    result_list = list(parser.ParseMultiple([rdf_dict]))
     self.assertLen(result_list, 1)
     self.assertEqual(True, not result_list[0])
 
@@ -133,7 +133,7 @@ objFile.Close"""
     rdf_dict = rdf_protodict.Dict()
     rdf_dict["NonexistentField"] = "Abcdef"
     with self.assertRaises(ValueError):
-      for output in parser.Parse(rdf_dict):
+      for output in parser.ParseMultiple([rdf_dict]):
         self.assertEqual(output.__class__, rdf_anomaly.Anomaly)
 
   def testWMICommandLineEventConsumerParser(self):
@@ -170,7 +170,7 @@ objFile.Close"""
     rdf_dict["YNumCharacters"] = None
     rdf_dict["YSize"] = None
 
-    result_list = list(parser.Parse(rdf_dict))
+    result_list = list(parser.ParseMultiple([rdf_dict]))
     self.assertLen(result_list, 1)
     result = result_list[0]
     self.assertEqual(result.CreatorSID,

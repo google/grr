@@ -2,7 +2,10 @@
 """Rdfvalues for flows."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
+
+from typing import Optional
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -82,9 +85,6 @@ class Hunt(rdf_structs.RDFProtoStruct):
     if not self.HasField("hunt_state"):
       self.hunt_state = self.HuntState.PAUSED
 
-    if not self.HasField("create_time"):
-      self.create_time = rdfvalue.RDFDatetime.Now()
-
     if not self.HasField("duration"):
       self.duration = rdfvalue.Duration("2w")
 
@@ -111,6 +111,23 @@ class Hunt(rdf_structs.RDFProtoStruct):
 
     if not self.HasField("num_clients_at_start_time"):
       self.num_clients_at_start_time = 0
+
+  @property
+  def expiry_time(self):
+    """Returns the expiry time of the hunt."""
+    if self.init_start_time is not None:
+      return self.init_start_time + self.duration
+    else:
+      return None
+
+  @property
+  def expired(self):
+    """Checks if the hunt has expired."""
+    expiry_time = self.expiry_time
+    if expiry_time is not None:
+      return expiry_time < rdfvalue.RDFDatetime.Now()
+    else:
+      return False
 
 
 def IsHuntSuitableForFlowProcessing(hunt_state):

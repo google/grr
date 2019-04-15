@@ -11,12 +11,16 @@ import pytsk3
 from typing import Text
 
 from grr_response_client import client_utils
-from grr_response_client import vfs
+from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+
+# A central Cache for vfs handlers. This can be used to keep objects alive
+# for a limited time.
+DEVICE_CACHE = utils.TimeBasedCache()
 
 
 class CachedFilesystem(object):
@@ -50,7 +54,7 @@ class MyImgInfo(pytsk3.Img_Info):
     return 1e12
 
 
-class TSKFile(vfs.VFSHandler):
+class TSKFile(vfs_base.VFSHandler):
   """Read a regular file."""
 
   supported_pathtype = rdf_paths.PathSpec.PathType.TSK
@@ -95,11 +99,13 @@ class TSKFile(vfs.VFSHandler):
       stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
       | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
     """Use TSK to read the pathspec.
 
     Args:
       base_fd: The file like object we read this component from.
+      handlers: A mapping from rdf_paths.PathSpec.PathType to classes
+        implementing VFSHandler.
       pathspec: An optional pathspec to open directly.
       progress_callback: A callback to indicate that the open call is still
         working but needs more time.
@@ -108,7 +114,10 @@ class TSKFile(vfs.VFSHandler):
       IOError: If the file can not be opened.
     """
     super(TSKFile, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd,
+        handlers=handlers,
+        pathspec=pathspec,
+        progress_callback=progress_callback)
     if self.base_fd is None:
       raise IOError("TSK driver must have a file base.")
 
@@ -141,7 +150,7 @@ class TSKFile(vfs.VFSHandler):
 
     # Cache the filesystem using the path of the raw device
     try:
-      self.filesystem = vfs.DEVICE_CACHE.Get(fd_hash)
+      self.filesystem = DEVICE_CACHE.Get(fd_hash)
       self.fs = self.filesystem.fs
     except KeyError:
       self.img = MyImgInfo(
@@ -150,7 +159,7 @@ class TSKFile(vfs.VFSHandler):
       self.fs = pytsk3.FS_Info(self.img, 0)
       self.filesystem = CachedFilesystem(self.fs, self.img)
 
-      vfs.DEVICE_CACHE.Put(fd_hash, self.filesystem)
+      DEVICE_CACHE.Put(fd_hash, self.filesystem)
 
     # We prefer to open the file based on the inode because that is more
     # efficient.
@@ -190,11 +199,19 @@ class TSKFile(vfs.VFSHandler):
 
   def ListNames(self):
     directory_handle = self.fd.as_directory()
+    seen_names = set()
+
     for f in directory_handle:
       # TSK only deals with utf8 strings, but path components are always unicode
       # objects - so we convert to unicode as soon as we receive data from
       # TSK. Prefer to compare unicode objects to guarantee they are normalized.
-      yield utils.SmartUnicode(f.info.name.name)
+      name = f.info.name.name.decode("utf-8")
+
+      # TODO: TSK lists duplicate filenames. Only return unique
+      # names from ListNames(), because parts of the system fail otherwise.
+      if name not in seen_names:
+        seen_names.add(name)
+        yield name
 
   def MakeStatResponse(self, tsk_file, tsk_attribute=None, append_name=None):
     """Given a TSK info object make a StatEntry.
@@ -310,7 +327,7 @@ class TSKFile(vfs.VFSHandler):
 
     for f in self.fd.as_directory():
       try:
-        name = utils.SmartUnicode(f.info.name.name)
+        name = f.info.name.name.decode("utf-8")
         # Drop these useless entries.
         if name in [".", ".."] or name in self.BLACKLIST_FILES:
           continue
@@ -348,7 +365,7 @@ class TSKFile(vfs.VFSHandler):
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG
 
   @classmethod
-  def Open(cls, fd, component, pathspec=None, progress_callback=None):
+  def Open(cls, fd, component, handlers, pathspec=None, progress_callback=None):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
     if fd is None and component.pathtype == rdf_paths.PathSpec.PathType.TSK:
@@ -376,9 +393,14 @@ class TSKFile(vfs.VFSHandler):
 
     # If an inode is specified, just use it directly.
     elif component.HasField("inode"):
-      return TSKFile(fd, component, progress_callback=progress_callback)
+      return TSKFile(
+          fd, handlers, component, progress_callback=progress_callback)
 
     # Otherwise do the usual case folding.
     else:
-      return vfs.VFSHandler.Open(
-          fd, component, pathspec=pathspec, progress_callback=progress_callback)
+      return super(TSKFile, cls).Open(
+          fd=fd,
+          component=component,
+          handlers=handlers,
+          pathspec=pathspec,
+          progress_callback=progress_callback)

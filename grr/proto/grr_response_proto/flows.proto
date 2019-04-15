@@ -80,15 +80,18 @@ message FlowContext {
 }
 
 // The hunt context.
-// Next field: 17
+// Next field: 18
 message HuntContext {
   optional ClientResources client_resources = 1;
   optional uint64 create_time = 2 [(sem_type) = {
     type: "RDFDatetime",
   }];
   optional string creator = 3;
-  optional uint64 expires = 4 [(sem_type) = {
+  optional uint64 DEPRECATED_expires = 4 [(sem_type) = {
     type: "RDFDatetime",
+  }];
+  optional uint64 duration = 17 [(sem_type) = {
+    type: "Duration",
   }];
   optional uint64 network_bytes_sent = 5;
   optional uint64 next_client_due = 6 [(sem_type) = {

@@ -14,7 +14,7 @@ import zipfile
 from absl import app
 
 from grr_response_proto.api import vfs_pb2
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.gui import api_e2e_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib

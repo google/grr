@@ -31,9 +31,13 @@ class LinuxSoftwareParserTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "dpkg_status")
     with open(path, "rb") as data:
       out = list(parser.Parse(None, data, None))
-    self.assertLen(out, 2)
-    self.assertEqual(("t1", "v1"), (out[0].name, out[0].version))
-    self.assertEqual(("t2", "v2"), (out[1].name, out[1].version))
+    self.assertLen(out, 1)
+    package_list = out[0]
+    self.assertLen(package_list.packages, 2)
+    package0 = package_list.packages[0]
+    self.assertEqual(("t1", "v1"), (package0.name, package0.version))
+    package1 = package_list.packages[1]
+    self.assertEqual(("t2", "v2"), (package1.name, package1.version))
 
   def testDebianPackagesStatusParserBadInput(self):
     """If the status file is broken, fail nicely."""

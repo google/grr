@@ -225,7 +225,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
           (index + 2, nested_flow.flow_id))
 
   def testOverviewIsShownForNestedHuntFlows(self):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       # TODO(amoser): Hunts don't spawn relational flows yet.
       return
 
@@ -331,7 +331,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
   def testBrokenFlowsAreShown(self):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       # Breaking flows this way doesn't make much sense since relational flows
       # are a flat protobuf. Keeping the test for testing the legacy system
       # though.
@@ -482,7 +482,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def _TerminateFlow(self, flow_id):
     reason = "Because I said so"
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_base.TerminateFlow(self.client_id, flow_id, reason)
     else:
       flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
@@ -539,7 +539,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "tr:contains('Status'):contains('Because I said so')")
 
   def _AddLogToFlow(self, flow_id, log_string):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       entry = rdf_flow_objects.FlowLogEntry(
           client_id=self.client_id, flow_id=flow_id, message=log_string)
       data_store.REL_DB.WriteFlowLogEntries([entry])
@@ -576,7 +576,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "css=grr-flow-log td:contains('bar-log')")
 
   def _AddResultToFlow(self, flow_id, result):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_result = rdf_flow_objects.FlowResult(
           client_id=self.client_id, flow_id=flow_id, payload=result)
       data_store.REL_DB.WriteFlowResults([flow_result])
@@ -644,11 +644,6 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-results-collection grr-download-collection-files")
-
-
-class TestRelFlowManagement(db_test_lib.RelationalDBEnabledMixin,
-                            TestFlowManagement):
-  pass
 
 
 if __name__ == "__main__":

@@ -1,0 +1,13 @@
+Source: %(ClientBuilder.package_name)
+Section: misc
+Priority: extra
+Maintainer: %(ClientBuilder.maintainer)
+Build-Depends: debhelper \(>= 7.0.0\)
+Standards-Version: 3.9.2
+Homepage: https://github.com/google/grr
+
+Package: %(ClientBuilder.package_name)
+Architecture: any
+Depends: lsb-base \(>= 3.2-14\)
+Description: %(Client.name) Rapid Response Client
+ The %(Client.name) Rapid Response Client

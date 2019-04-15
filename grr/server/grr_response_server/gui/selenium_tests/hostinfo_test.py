@@ -33,7 +33,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
           fd.Set(fd.Schema.HOSTNAME(hostname))
           fd.Set(fd.Schema.MEMORY_SIZE(memory))
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
       with test_lib.FakeTime(timestamp):
         snapshot.os_version = version

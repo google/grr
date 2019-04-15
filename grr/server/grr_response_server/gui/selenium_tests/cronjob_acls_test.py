@@ -23,7 +23,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   reason = u"Cóż, po prostu taką miałem zachciankę."
 
   def _ScheduleCronJob(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       cron_job_id = compatibility.GetName(cron_system.OSBreakDownCronJob)
       cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
     else:

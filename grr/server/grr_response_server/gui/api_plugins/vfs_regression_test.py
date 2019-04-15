@@ -134,7 +134,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
     fixture_test_lib.ClientFixture(client_urn, token=self.token)
 
     def ReplaceFlowId():
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
         return {flows[0].flow_id: "W:ABCDEF"}
       else:
@@ -159,7 +159,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
   handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler
 
   def _KillFlow(self, client_id, flow_id):
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
           client_id, flow_id, rdfvalue.Duration("5m"))
       flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
@@ -239,7 +239,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
     fixture_test_lib.ClientFixture(client_urn, token=self.token)
 
     def ReplaceFlowId():
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
         return {flows[0].flow_id: "W:ABCDEF"}
       else:
@@ -277,7 +277,7 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     finished_flow_id = self.CreateMultiGetFileFlow(
         client_urn, file_path="fs/os/c/bin/bash", token=self.token)
 
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flow_base.TerminateFlow(client_id, finished_flow_id, reason="Fake Error")
 
       # Create an arbitrary flow to check on 404s.

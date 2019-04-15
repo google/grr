@@ -1,0 +1,10 @@
+# The PyInstaller build binary should not be stripped otherwise it stops
+# working.
+%(ClientBuilder.package_name) binary: unstripped-binary-or-object
+
+# The PyInstaller build package directory contains all its dependencies.
+# We cannot rely on the versions available on the system.
+%(ClientBuilder.package_name) binary: embedded-library
+
+# No bug to close.
+%(ClientBuilder.package_name) binary: new-package-should-close-itp-bug

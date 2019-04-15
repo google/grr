@@ -13,7 +13,7 @@ class NotificationTestMixin(object):
   """Test mixin for tests dealing with user notifications."""
 
   def GetUserNotifications(self, username):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return data_store.REL_DB.ReadUserNotifications(username)
     else:
       fd = aff4.FACTORY.Open(

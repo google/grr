@@ -18,8 +18,8 @@ from grr_response_server import access_control
 
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.databases import db
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -417,18 +417,24 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def testGrrUserIsCreatedOnMethodCall(self):
     request = self._CreateRequest("HEAD", "/test_sample/some/path")
 
-    self.assertFalse(
-        aff4.FACTORY.ExistsWithType(
-            "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
-    with self.assertRaises(db.UnknownGRRUserError):
-      data_store.REL_DB.ReadGRRUser(request.user)
+    if data_store.AFF4Enabled():
+      self.assertFalse(
+          aff4.FACTORY.ExistsWithType(
+              "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
+
+    if data_store.RelationalDBEnabled():
+      with self.assertRaises(db.UnknownGRRUserError):
+        data_store.REL_DB.ReadGRRUser(request.user)
 
     self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
 
-    self.assertTrue(
-        aff4.FACTORY.ExistsWithType(
-            "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
-    data_store.REL_DB.ReadGRRUser(request.user)
+    if data_store.AFF4Enabled():
+      self.assertTrue(
+          aff4.FACTORY.ExistsWithType(
+              "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
+
+    if data_store.RelationalDBEnabled():
+      data_store.REL_DB.ReadGRRUser(request.user)
 
 
 def main(argv):

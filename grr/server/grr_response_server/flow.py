@@ -66,7 +66,6 @@ from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db
 from grr_response_server import events
 from grr_response_server import flow_responses
 from grr_response_server import flow_runner
@@ -75,6 +74,7 @@ from grr_response_server import multi_type_collection
 from grr_response_server import notification as notification_lib
 from grr_response_server import queue_manager
 from grr_response_server import sequential_collection
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -195,8 +195,8 @@ def GetOutputPluginStates(output_plugins, source=None, token=None):
       _, plugin_state = plugin_class.CreatePluginAndDefaultState(
           source_urn=source, args=plugin_descriptor.plugin_args, token=token)
     except Exception as e:  # pylint: disable=broad-except
-      raise ValueError(
-          "Plugin %s failed to initialize (%s)" % (plugin_class, e))
+      raise ValueError("Plugin %s failed to initialize (%s)" %
+                       (plugin_class, e))
 
     # TODO(amoser): Those do not need to be inside the state, they
     # could be part of the plugin descriptor.
@@ -286,8 +286,8 @@ def StartAFF4Flow(args=None,
   # At this point we should exhaust all the keyword args. If any are left
   # over, we do not know what to do with them so raise.
   if kwargs:
-    raise type_info.UnknownArg(
-        "Unknown parameters to StartAFF4Flow: %s" % kwargs)
+    raise type_info.UnknownArg("Unknown parameters to StartAFF4Flow: %s" %
+                               kwargs)
 
   # Create a flow runner to run this flow with.
   if parent_flow:

@@ -11,8 +11,6 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_client import vfs
-# TODO: Test requires side effects from the following import.
-from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib

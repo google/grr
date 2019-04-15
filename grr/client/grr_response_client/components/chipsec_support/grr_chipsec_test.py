@@ -11,8 +11,6 @@ import sys
 from absl import app
 import mock
 
-from chipsec.helper import oshelper
-
 from grr_response_client import vfs
 # If grr_response_client.components.chipsec_support.actions.grr_chipsec is
 # imported here, it will import
@@ -28,6 +26,7 @@ from grr_response_client.components.chipsec_support import actions  # pylint: di
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
+from chipsec.helper import oshelper
 
 
 class MockUnknownChipsetError(RuntimeError):

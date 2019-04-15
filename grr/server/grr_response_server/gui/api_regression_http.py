@@ -126,8 +126,8 @@ class HttpApiRegressionTestMixinBase(object):
       request, prepped_request = self._PrepareV2Request(
           method_metadata.name, args=args)
     else:
-      raise ValueError(
-          "api_version may be only 1 or 2, not %d" % flags.FLAGS.api_version)
+      raise ValueError("api_version may be only 1 or 2, not %d" %
+                       flags.FLAGS.api_version)
 
     session = requests.Session()
     response = session.send(prepped_request)
@@ -162,8 +162,7 @@ class HttpApiRegressionTestMixinBase(object):
 # Each mixin below configures a different way for regression tests to run. After
 # AFF4 is gone, there will be only 2 mixins left here (http API v1 and http
 # API v2). At the moment we have v1 with rel_db, v1 without, v2 with rel_db,
-# v2 without, v2 with "stable" configuration - i.e. with a current prod-tested
-# configuration.
+# and v2 without.
 #
 # Duplicated test methods are added to these classes explicitly to make sure
 # they were not misconfigured and REL_DB is enabled in tests that count on
@@ -183,7 +182,7 @@ class HttpApiV1RegressionTestMixin(HttpApiRegressionTestMixinBase):
   api_version = 1
 
   def testRelationalDBReadsDisabled(self):
-    self.assertFalse(data_store.RelationalDBReadEnabled())
+    self.assertFalse(data_store.RelationalDBEnabled())
 
   @property
   def output_file_name(self):
@@ -193,7 +192,7 @@ class HttpApiV1RegressionTestMixin(HttpApiRegressionTestMixinBase):
 
 class HttpApiV1RelationalDBRegressionTestMixin(
     db_test_lib.RelationalDBEnabledMixin, HttpApiRegressionTestMixinBase):
-  """Test class for HTTP v1 protocol with Database.useForReads=True."""
+  """Test class for HTTP v1 protocol with Database.enabled=True."""
 
   read_from_relational_db = True
   connection_type = "http_v1_rel_db"
@@ -203,7 +202,7 @@ class HttpApiV1RelationalDBRegressionTestMixin(
 
   def testRelationalDBReadsEnabled(self):
     if not getattr(self, "aff4_only_test", False):
-      self.assertTrue(data_store.RelationalDBReadEnabled())
+      self.assertTrue(data_store.RelationalDBEnabled())
 
   @property
   def output_file_name(self):
@@ -219,7 +218,7 @@ class HttpApiV2RegressionTestMixin(HttpApiRegressionTestMixinBase):
   api_version = 2
 
   def testRelationalDBReadsDisabled(self):
-    self.assertFalse(data_store.RelationalDBReadEnabled())
+    self.assertFalse(data_store.RelationalDBEnabled())
 
   @property
   def output_file_name(self):
@@ -229,7 +228,7 @@ class HttpApiV2RegressionTestMixin(HttpApiRegressionTestMixinBase):
 
 class HttpApiV2RelationalDBRegressionTestMixin(
     db_test_lib.RelationalDBEnabledMixin, HttpApiRegressionTestMixinBase):
-  """Test class for HTTP v2 protocol with Database.useForReads=True."""
+  """Test class for HTTP v2 protocol with Database.enabled=True."""
 
   read_from_relational_db = True
   connection_type = "http_v2_rel_db"
@@ -239,27 +238,7 @@ class HttpApiV2RelationalDBRegressionTestMixin(
 
   def testRelationalDBReadsEnabled(self):
     if not getattr(self, "aff4_only_test", False):
-      self.assertTrue(data_store.RelationalDBReadEnabled())
-
-  @property
-  def output_file_name(self):
-    return os.path.join(DOCUMENT_ROOT,
-                        "angular-components/docs/api-v2-docs-examples.json")
-
-
-class HttpApiV2StableRelationalDBRegressionTestMixin(
-    db_test_lib.StableRelationalDBEnabledMixin, HttpApiRegressionTestMixinBase):
-  """Test class for HTTP v2 protocol with relational flows enabled."""
-
-  read_from_relational_db = True
-  connection_type = "http_v2_rel_db_stable"
-  use_golden_files_of = "http_v2"
-  skip_legacy_dynamic_proto_tests = True
-  api_version = 2
-
-  def testRelationalDBReadsEnabled(self):
-    if not getattr(self, "aff4_only_test", False):
-      self.assertTrue(data_store.RelationalDBReadEnabled())
+      self.assertTrue(data_store.RelationalDBEnabled())
 
   @property
   def output_file_name(self):

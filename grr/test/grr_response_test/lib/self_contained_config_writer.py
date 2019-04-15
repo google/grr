@@ -41,8 +41,13 @@ def main(argv):
   config_lib.LoadConfig(config.CONFIG, source_server_config_path)
   config.CONFIG.SetWriteBack(flags.FLAGS.dest_server_config_path)
 
-  config.CONFIG.Set("Datastore.implementation", "SharedFakeDataStore")
-  config.CONFIG.Set("SharedFakeDataStore.port", datastore_port)
+  # TODO(user): remove when AFF4 is gone.
+  config.CONFIG.Set("Database.aff4_enabled", False)
+  config.CONFIG.Set("Database.enabled", True)
+
+  config.CONFIG.Set("Blobstore.implementation", "DbBlobStore")
+  config.CONFIG.Set("Database.implementation", "SharedMemoryDB")
+  config.CONFIG.Set("SharedMemoryDB.port", datastore_port)
   config.CONFIG.Set("AdminUI.port", admin_ui_port)
   config.CONFIG.Set("AdminUI.headless", True)
   config.CONFIG.Set("Frontend.bind_address", "127.0.0.1")

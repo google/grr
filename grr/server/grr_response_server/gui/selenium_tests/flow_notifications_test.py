@@ -43,7 +43,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       session_id = session_id.Basename()
 
     # Clicking on this should show the notifications table.
@@ -70,7 +70,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       session_id = session_id.Basename()
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -104,7 +104,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         pathspec=pathspec,
         token=self.token)
-    if not data_store.RelationalDBFlowsEnabled():
+    if not data_store.RelationalDBEnabled():
       session_id = session_id.Basename()
 
     self.Open("/#/clients/%s" % self.client_id)

@@ -35,7 +35,7 @@ def CheckClientLabels(client_id,
   labels_whitelist = labels_whitelist or []
   labels_owners_whitelist = labels_owners_whitelist or []
 
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     labels = data_store.REL_DB.ReadClientLabels(str(client_id))
   else:
     with aff4.FACTORY.Open(
@@ -73,7 +73,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
                                        ["GRR"])
 
     if not access_checker:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         access_checker = api_call_router_with_approval_checks.RelDBChecker()
       else:
         access_checker = api_call_router_with_approval_checks.LegacyChecker()

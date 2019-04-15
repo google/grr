@@ -6,9 +6,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import sys
+import unittest
+
 
 from absl import app
 from absl.testing import absltest
+from future.builtins import int
 from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
@@ -71,6 +75,12 @@ class RDFStringTest(absltest.TestCase):
     self.assertGreater(rdfvalue.RDFString(u"xyz"), b"ghi")
     self.assertLess(rdfvalue.RDFString(u"012"), b"\x80\x81\x81")
 
+  # TODO: Python on Windows ships with UCS-2 by default, which does
+  # not properly support unicode.
+  @unittest.skipIf(
+      sys.maxunicode <= 65535,
+      "Your Python installation does not properly support Unicode (likely: "
+      "Python with no UCS4 support on Windows.")
   def testLenOfEmoji(self):
     self.assertLen(rdfvalue.RDFString("🚀🚀"), 2)
 
@@ -204,10 +214,29 @@ class DurationTest(absltest.TestCase):
     self.assertEqual(duration.microseconds, 3600 * 1000 * 1000)
 
   def testFromHours(self):
-    self.assertEqual(rdfvalue.Duration.FromHours(3).seconds, 3 * 3600)
+    self.assertEqual(rdfvalue.Duration.FromDays(2), rdfvalue.Duration("2d"))
+    self.assertEqual(rdfvalue.Duration.FromDays(31), rdfvalue.Duration("31d"))
 
   def testFromDays(self):
-    self.assertEqual(rdfvalue.Duration.FromDays(5).seconds, 5 * 24 * 3600)
+    self.assertEqual(rdfvalue.Duration.FromHours(48), rdfvalue.Duration("48h"))
+    self.assertEqual(rdfvalue.Duration.FromHours(24), rdfvalue.Duration("24h"))
+
+  def testFromSeconds(self):
+    self.assertEqual(rdfvalue.Duration.FromSeconds(1337).seconds, 1337)
+
+  def testFromMicroseconds(self):
+    duration = rdfvalue.Duration.FromMicroseconds(3000000)
+    self.assertEqual(duration.microseconds, 3000000)
+    self.assertEqual(duration.seconds, 3)
+
+    # In general `int(•)` should not be used—one should use unit conversion
+    # functions instead. However, API value renderers currently use that logic
+    # so we verify that the call actually return an `int`.
+    self.assertIsInstance(int(duration), int)
+
+  def testFloatConstructorRaises(self):
+    with self.assertRaises(TypeError):
+      rdfvalue.Duration(3.14)
 
 
 def main(argv):

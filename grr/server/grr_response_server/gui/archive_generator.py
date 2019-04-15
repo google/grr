@@ -35,7 +35,7 @@ def CompatCollectionArchiveGenerator(*args, **kwargs):
 
 def GetCompatClass():
   """Returns the (Aff4)CollectionArchiveGenerator class."""
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     return CollectionArchiveGenerator
   else:
     return Aff4CollectionArchiveGenerator
@@ -140,8 +140,8 @@ class CollectionArchiveGenerator(object):
     manifest_fd.write(yaml.Dump(manifest).encode("utf-8"))
 
     manifest_fd.seek(0)
-    st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0,
-                         0, 0))
+    st = os.stat_result(
+        (0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0, 0))
 
     for chunk in self.archive_generator.WriteFromFD(
         manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):

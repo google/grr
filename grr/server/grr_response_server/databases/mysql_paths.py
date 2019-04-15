@@ -11,8 +11,8 @@ import MySQLdb
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_server import db
-from grr_response_server import db_utils
+from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -39,16 +39,16 @@ class MySQLDBPathMixin(object):
       return path_info
 
     query = """
-    SELECT directory, unix_timestamp(p.timestamp),
-           stat_entry, unix_timestamp(last_stat_entry_timestamp),
-           hash_entry, unix_timestamp(last_hash_entry_timestamp)
+    SELECT directory, UNIX_TIMESTAMP(p.timestamp),
+           stat_entry, UNIX_TIMESTAMP(last_stat_entry_timestamp),
+           hash_entry, UNIX_TIMESTAMP(last_hash_entry_timestamp)
       FROM client_paths as p
  LEFT JOIN (SELECT client_id, path_type, path_id, stat_entry
               FROM client_path_stat_entries
              WHERE client_id = %(client_id)s
                AND path_type = %(path_type)s
                AND path_id = %(path_id)s
-               AND unix_timestamp(timestamp) <= %(timestamp)s
+               AND UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
           ORDER BY timestamp DESC
              LIMIT 1) AS s
         ON p.client_id = s.client_id
@@ -59,7 +59,7 @@ class MySQLDBPathMixin(object):
              WHERE client_id = %(client_id)s
                AND path_type = %(path_type)s
                AND path_id = %(path_id)s
-               AND unix_timestamp(timestamp) <= %(timestamp)s
+               AND UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
           ORDER BY timestamp DESC
              LIMIT 1) AS h
         ON p.client_id = h.client_id
@@ -122,9 +122,9 @@ class MySQLDBPathMixin(object):
     path_infos = {components: None for components in components_list}
 
     query = """
-    SELECT path, directory, unix_timestamp(client_paths.timestamp),
-           stat_entry, unix_timestamp(last_stat_entry_timestamp),
-           hash_entry, unix_timestamp(last_hash_entry_timestamp)
+    SELECT path, directory, UNIX_TIMESTAMP(client_paths.timestamp),
+           stat_entry, UNIX_TIMESTAMP(last_stat_entry_timestamp),
+           hash_entry, UNIX_TIMESTAMP(last_hash_entry_timestamp)
       FROM client_paths
  LEFT JOIN client_path_stat_entries ON
            (client_paths.client_id = client_path_stat_entries.client_id AND
@@ -364,9 +364,9 @@ class MySQLDBPathMixin(object):
     }
 
     query += """
-    SELECT path, directory, unix_timestamp(p.timestamp),
-           stat_entry, unix_timestamp(last_stat_entry_timestamp),
-           hash_entry, unix_timestamp(last_hash_entry_timestamp)
+    SELECT path, directory, UNIX_TIMESTAMP(p.timestamp),
+           stat_entry, UNIX_TIMESTAMP(last_stat_entry_timestamp),
+           hash_entry, UNIX_TIMESTAMP(last_hash_entry_timestamp)
       FROM client_paths AS p
     """
     if timestamp is None:
@@ -390,7 +390,7 @@ class MySQLDBPathMixin(object):
              INNER JOIN (SELECT client_id, path_type, path_id,
                                 MAX(timestamp) AS max_timestamp
                            FROM client_path_stat_entries
-                          WHERE unix_timestamp(timestamp) <= %(timestamp)s
+                          WHERE UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
                        GROUP BY client_id, path_type, path_id) AS st
                      ON sr.client_id = st.client_id
                     AND sr.path_type = st.path_type
@@ -404,7 +404,7 @@ class MySQLDBPathMixin(object):
              INNER JOIN (SELECT client_id, path_type, path_id,
                                 MAX(timestamp) AS max_timestamp
                            FROM client_path_hash_entries
-                          WHERE unix_timestamp(timestamp) <= %(timestamp)s
+                          WHERE UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
                        GROUP BY client_id, path_type, path_id) AS ht
                      ON hr.client_id = ht.client_id
                     AND hr.path_type = ht.path_type
@@ -512,8 +512,8 @@ class MySQLDBPathMixin(object):
 
     # MySQL does not support full outer joins, so we emulate them with a union.
     query = """
-    SELECT s.path_id, s.stat_entry, unix_timestamp(s.timestamp),
-           h.path_id, h.hash_entry, unix_timestamp(h.timestamp)
+    SELECT s.path_id, s.stat_entry, UNIX_TIMESTAMP(s.timestamp),
+           h.path_id, h.hash_entry, UNIX_TIMESTAMP(h.timestamp)
       FROM client_path_stat_entries AS s
  LEFT JOIN client_path_hash_entries AS h
         ON s.client_id = h.client_id
@@ -524,8 +524,8 @@ class MySQLDBPathMixin(object):
        AND s.path_type = %(path_type)s
        AND s.path_id IN %(path_ids)s
      UNION
-    SELECT s.path_id, s.stat_entry, unix_timestamp(s.timestamp),
-           h.path_id, h.hash_entry, unix_timestamp(h.timestamp)
+    SELECT s.path_id, s.stat_entry, UNIX_TIMESTAMP(s.timestamp),
+           h.path_id, h.hash_entry, UNIX_TIMESTAMP(h.timestamp)
       FROM client_path_hash_entries AS h
  LEFT JOIN client_path_stat_entries AS s
         ON h.client_id = s.client_id
@@ -596,7 +596,7 @@ class MySQLDBPathMixin(object):
 
     params = []
     query = """
-    SELECT t.client_id, t.path_type, t.path_id, unix_timestamp(t.timestamp),
+    SELECT t.client_id, t.path_type, t.path_id, UNIX_TIMESTAMP(t.timestamp),
            s.stat_entry, h.hash_entry
       FROM (SELECT h.client_id, h.path_type, h.path_id,
                    MAX(h.timestamp) AS timestamp
@@ -631,7 +631,7 @@ class MySQLDBPathMixin(object):
 
     conditions = " OR ".join(path_conditions)
     if max_timestamp is not None:
-      conditions = "({}) AND unix_timestamp(timestamp) <= %s".format(conditions)
+      conditions = "({}) AND UNIX_TIMESTAMP(timestamp) <= %s".format(conditions)
       params.append(mysql_utils.RDFDatetimeToTimestamp(max_timestamp))
 
     cursor.execute(query.format(conditions=conditions), params)

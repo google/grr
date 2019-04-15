@@ -22,8 +22,8 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import file_store
+from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
@@ -48,8 +48,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     else:
       digest = None
 
-    if data_store.RelationalDBReadEnabled():
-      self.assertTrue(data_store.RelationalDBWriteEnabled())
+    if data_store.RelationalDBEnabled():
+      self.assertTrue(data_store.RelationalDBEnabled())
       self.assertTrue(hashing)
     else:
       with aff4.FACTORY.Create(path, aff4_type, token=self.token) as fd:
@@ -58,7 +58,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         if digest:
           fd.Set(fd.Schema.HASH, rdf_crypto.Hash(sha256=digest))
 
-    if data_store.RelationalDBWriteEnabled() and hashing:
+    if data_store.RelationalDBEnabled() and hashing:
       client_id, vfs_path = path.Split(2)
       path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
 
@@ -231,7 +231,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     # TODO(user): This divergence in behavior is not nice.
     # To be removed with AFF4.
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       with mock.patch.object(
           file_store, "StreamFilesChunks", side_effect=Exception("foobar")):
         with self.assertRaises(Exception) as context:

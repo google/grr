@@ -25,6 +25,7 @@ from grr_api_client import api
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
+from grr_response_core.lib.util import compatibility
 
 
 class Error(Exception):
@@ -108,8 +109,12 @@ def _RunServerComponent(name, import_main_fn, args):
       which is passed in the "name" argument).
   """
   # pylint: disable=g-import-not-at-top,unused-variable
-  from grr_response_test.lib import shared_fake_data_store
+  from grr_response_test.lib import shared_mem_db
+  from grr_response_server.databases import registry_init as db_registry_init
   # pylint: enable=g-import-not-at-top,unused-variable
+
+  db_registry_init.REGISTRY[compatibility.GetName(
+      shared_mem_db.SharedMemoryDB)] = shared_mem_db.SharedMemoryDB
 
   main_fn = import_main_fn()
 
@@ -228,12 +233,12 @@ def ImportSelfContainedConfigWriter():
   return self_contained_config_writer.main
 
 
-def ImportSharedFakeDataStoreServer():
+def ImportSharedMemoryDBServer():
   """Imports data server main module, to be used with StartServerComponent."""
   # pylint: disable=g-import-not-at-top,unused-variable
-  from grr_response_test.lib import shared_fake_data_store_server
+  from grr_response_test.lib import shared_mem_db_server
   # pylint: enable=g-import-not-at-top,unused-variable
-  return shared_fake_data_store_server.main
+  return shared_mem_db_server.main
 
 
 def ImportRunEndToEndTests():
@@ -262,8 +267,8 @@ def DieIfSubProcessDies(processes):
         # DieIfSubProcessDies runs in a background thread, raising an exception
         # will just kill the thread while what we want is to fail the whole
         # process.
-        print(
-            "Subprocess %s died unexpectedly. Killing main process..." % p.name)
+        print("Subprocess %s died unexpectedly. Killing main process..." %
+              p.name)
         sys.exit(1)
     time.sleep(_PROCESS_CHECK_INTERVAL)
 
@@ -404,10 +409,10 @@ def main(argv):
   server_config = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(),
                                         built_server_config_path)
 
-  # Start SharedFakeDataStoreServer and wait for it to come up.
-  dp = StartServerComponent("DataStoreServer", ImportSharedFakeDataStoreServer,
+  # Start SharedMemoryDbServer and wait for it to come up.
+  dp = StartServerComponent("DBServer", ImportSharedMemoryDBServer,
                             GetServerComponentArgs(built_server_config_path))
-  WaitForTCPPort(server_config["SharedFakeDataStore.port"])
+  WaitForTCPPort(server_config["SharedMemoryDB.port"])
 
   # Start all remaining server components.
   processes = [

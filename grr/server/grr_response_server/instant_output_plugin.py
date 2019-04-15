@@ -108,8 +108,8 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
   BATCH_SIZE = 5000
 
   def __init__(self, *args, **kwargs):
-    super(InstantOutputPluginWithExportConversion, self).__init__(
-        *args, **kwargs)
+    super(InstantOutputPluginWithExportConversion,
+          self).__init__(*args, **kwargs)
     self._cached_metadata = {}
 
   def _GetMetadataForClients(self, client_urns):
@@ -125,7 +125,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
         metadata_to_fetch.add(urn)
 
     if metadata_to_fetch:
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         client_ids = set(urn.Basename() for urn in metadata_to_fetch)
         infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
 

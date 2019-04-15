@@ -42,8 +42,8 @@ class GRRFSServer(object):
         private_key=config.CONFIG["PrivateKeys.server_key"],
         max_queue_size=config.CONFIG["Frontend.max_queue_size"],
         message_expiry_time=config.CONFIG["Frontend.message_expiry_time"],
-        max_retransmission_time=config.CONFIG[
-            "Frontend.max_retransmission_time"])
+        max_retransmission_time=config
+        .CONFIG["Frontend.max_retransmission_time"])
 
   @stats_utils.Counted("frontend_request_count", fields=["fleetspeak"])
   @stats_utils.Timed("frontend_request_latency", fields=["fleetspeak"])
@@ -84,7 +84,7 @@ class GRRFSServer(object):
       grr_message.auth_state = (
           rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
     client_is_new = self.frontend.EnrolFleetspeakClient(client_id=grr_client_id)
-    if not client_is_new and data_store.RelationalDBReadEnabled():
+    if not client_is_new and data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteClientMetadata(
           grr_client_id, last_ping=rdfvalue.RDFDatetime.Now())
     self.frontend.ReceiveMessages(

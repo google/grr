@@ -242,7 +242,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
       config_updater_util.GetUserSummary("foo_user")
 
   def _AssertStoredUserDetailsAre(self, username, password, is_admin):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       user = data_store.REL_DB.ReadGRRUser(username)
       self.assertTrue(user.password.CheckPassword(password))
       if is_admin:

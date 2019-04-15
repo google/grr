@@ -10,8 +10,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_server import db
-from grr_response_server import db_utils
+from grr_response_server.databases import db
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -48,56 +48,32 @@ class MySQLDBHuntMixin(object):
   @mysql_utils.WithTransaction()
   def WriteHuntObject(self, hunt_obj, cursor=None):
     """Writes a hunt object to the database."""
-
     query = """
-    INSERT INTO hunts (hunt_id, creator, description,
-                       duration_micros,
-                       hunt_state, hunt_state_comment,
-                       client_rate, client_limit, num_clients_at_start_time,
+    INSERT INTO hunts (hunt_id, creator, description, duration_micros,
+                       hunt_state,
+                       client_rate, client_limit,
                        hunt)
-    VALUES (%(hunt_id)s, %(creator)s, %(description)s,
-            %(duration_micros)s,
-            %(hunt_state)s, %(hunt_state_comment)s,
-            %(client_rate)s, %(client_limit)s, %(num_clients_at_start_time)s,
+    VALUES (%(hunt_id)s, %(creator)s, %(description)s, %(duration_micros)s,
+            %(hunt_state)s,
+            %(client_rate)s, %(client_limit)s,
             %(hunt)s)
-    ON DUPLICATE KEY UPDATE
-      last_update_timestamp = NOW(6),
-      description = VALUES(description),
-      duration_micros = VALUES(duration_micros),
-      hunt_state = VALUES(hunt_state),
-      hunt_state_comment = VALUES(hunt_state_comment),
-      client_rate = VALUES(client_rate),
-      client_limit = VALUES(client_limit),
-      num_clients_at_start_time = VALUES(num_clients_at_start_time),
-      hunt = VALUES(hunt)
     """
 
     args = {
         "hunt_id": db_utils.HuntIDToInt(hunt_obj.hunt_id),
+        "creator": hunt_obj.creator,
+        "description": hunt_obj.description,
         "duration_micros": hunt_obj.duration.microseconds,
+        "hunt_state": int(rdf_hunt_objects.Hunt.HuntState.PAUSED),
         "client_rate": hunt_obj.client_rate,
         "client_limit": hunt_obj.client_limit,
-        "num_clients_at_start_time": hunt_obj.num_clients_at_start_time,
-        "hunt_state": int(hunt_obj.hunt_state),
         "hunt": hunt_obj.SerializeToString(),
     }
 
-    if hunt_obj.HasField("creator"):
-      args["creator"] = hunt_obj.creator
-    else:
-      args["creator"] = None
-
-    if hunt_obj.HasField("hunt_state_comment"):
-      args["hunt_state_comment"] = hunt_obj.hunt_state_comment
-    else:
-      args["hunt_state_comment"] = None
-
-    if hunt_obj.HasField("description"):
-      args["description"] = hunt_obj.description
-    else:
-      args["description"] = None
-
-    cursor.execute(query, args)
+    try:
+      cursor.execute(query, args)
+    except MySQLdb.IntegrityError as error:
+      raise db.DuplicatedHuntError(hunt_id=hunt_obj.hunt_id, cause=error)
 
   @mysql_utils.WithTransaction()
   def UpdateHuntObject(self,

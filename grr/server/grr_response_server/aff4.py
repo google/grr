@@ -277,8 +277,8 @@ def _ValidateAFF4Type(aff4_type):
   if not isinstance(aff4_type, type):
     raise TypeError("aff4_type=%s must be a type" % aff4_type)
   if not issubclass(aff4_type, AFF4Object):
-    raise TypeError(
-        "aff4_type=%s must be a subclass of AFF4Object." % aff4_type)
+    raise TypeError("aff4_type=%s must be a subclass of AFF4Object." %
+                    aff4_type)
 
 
 class Factory(object):
@@ -760,8 +760,8 @@ class Factory(object):
       try:
         result = result.Upgrade(AFF4Object.classes[existing_type])
       except KeyError:
-        raise InstantiationError(
-            "Unable to open %s, type %s unknown." % (urn, existing_type))
+        raise InstantiationError("Unable to open %s, type %s unknown." %
+                                 (urn, existing_type))
 
     if aff4_type is not None and not isinstance(result, aff4_type):
       raise InstantiationError(
@@ -778,6 +778,9 @@ class Factory(object):
                 age=NEWEST_TIME,
                 follow_symlinks=True):
     """Opens a bunch of urns efficiently."""
+
+    if not data_store.AFF4Enabled():
+      raise NotImplementedError("AFF4 data store has been disabled.")
 
     if token is None:
       token = data_store.default_token
@@ -1512,8 +1515,8 @@ class AFF4Attribute(rdfvalue.RDFString):
     try:
       Attribute.GetAttributeByName(self._value)
     except (AttributeError, KeyError):
-      raise type_info.TypeValueError(
-          "Value %s is not an AFF4 attribute name" % self._value)
+      raise type_info.TypeValueError("Value %s is not an AFF4 attribute name" %
+                                     self._value)
 
 
 class ClassProperty(property):
@@ -1855,8 +1858,8 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
                  expired.
     """
     if not self.locked:
-      raise LockError(
-          "Object must be locked to update the lease: %s." % self.urn)
+      raise LockError("Object must be locked to update the lease: %s." %
+                      self.urn)
 
     if self.CheckLease() == 0:
       self._RaiseLockError("UpdateLease")
@@ -1941,8 +1944,10 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
       # object version. The type of an object is versioned and represents a
       # version point in the life of the object.
       if self._new_version:
-        to_set[self.Schema.TYPE] = [(utils.SmartUnicode(
-            self.__class__.__name__), rdfvalue.RDFDatetime.Now())]
+        to_set[self.Schema.TYPE] = [
+            (utils.SmartUnicode(self.__class__.__name__),
+             rdfvalue.RDFDatetime.Now())
+        ]
 
       # We only update indexes if the schema does not forbid it and we are not
       # sure that the object already exists.
@@ -1998,8 +2003,8 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
        AttributeError: When the attribute is not of type Attribute().
     """
     if not isinstance(attribute, Attribute):
-      raise AttributeError(
-          "Attribute %s must be of type aff4.Attribute()" % attribute)
+      raise AttributeError("Attribute %s must be of type aff4.Attribute()" %
+                           attribute)
 
     if not isinstance(value, attribute.attribute_type):
       raise ValueError("Value for attribute %s must be of type %s()" %
@@ -2130,8 +2135,8 @@ class AFF4Object(with_metaclass(registry.MetaclassRegistry, object)):
     # specified. It is ok to read new attributes though.
     if "r" not in self.mode and (attribute not in self.new_attributes and
                                  attribute not in self.synced_attributes):
-      raise IOError(
-          "Fetching %s from object not opened for reading." % attribute)
+      raise IOError("Fetching %s from object not opened for reading." %
+                    attribute)
 
     for result in self.GetValuesForAttribute(attribute, only_one=True):
       try:

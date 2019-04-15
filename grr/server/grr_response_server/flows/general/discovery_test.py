@@ -334,7 +334,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
           token=self.token):
         pass
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
     return client_id, client_urn
@@ -360,7 +360,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               token=self.token,
               client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = self._OpenClient(client_id)
       self._CheckCloudMetadataRelational(client)
     else:
@@ -385,7 +385,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               token=self.token,
               client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = self._OpenClient(client_id)
       self._CheckCloudMetadataRelational(client)
     else:
@@ -413,7 +413,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               token=self.token,
               client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = self._OpenClient(client_id)
       self._CheckBasicInfoRelational(client, "test_node.test", "Linux",
                                      100 * 1000000)
@@ -487,7 +487,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
             token=self.token,
             client_id=client_id)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client = self._OpenClient(client_id)
       self._CheckBasicInfoRelational(client, "test_node.test", "Windows",
                                      100 * 1000000)

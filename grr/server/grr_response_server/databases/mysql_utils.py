@@ -15,7 +15,7 @@ from typing import Optional, Sequence, Text, Iterable
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_server import db_utils
+from grr_response_server.databases import db_utils
 
 
 def StringToRDFProto(proto_type, value):

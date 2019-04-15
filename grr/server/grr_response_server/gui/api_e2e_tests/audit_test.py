@@ -17,8 +17,8 @@ class AuditTest(db_test_lib.RelationalDBEnabledMixin,
                 api_e2e_test_lib.ApiE2ETest):
 
   def testFlowIsAudited(self):
-    self.assertTrue(data_store.RelationalDBReadEnabled())
-    self.assertTrue(data_store.RelationalDBWriteEnabled())
+    self.assertTrue(data_store.RelationalDBEnabled())
+    self.assertTrue(data_store.RelationalDBEnabled())
 
     self.api.SearchClients(query=".")
 

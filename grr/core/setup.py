@@ -159,7 +159,7 @@ setup_args = dict(
         "python-dateutil==2.6.1",
         "pytsk3==20170802",
         "pytz==2017.3",
-        "PyYAML==3.12",
+        "PyYAML==5.1",
         "requests==2.21.0",
         "typing==3.6.4",
         "virtualenv==15.0.3",

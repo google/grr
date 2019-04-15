@@ -30,8 +30,9 @@ class ResultsProcessingError(Exception):
     super(ResultsProcessingError, self).__init__()
 
   def RegisterSubException(self, hunt_urn, plugin_name, exception):
-    self.exceptions_by_hunt.setdefault(hunt_urn, {}).setdefault(
-        plugin_name, []).append(exception)
+    self.exceptions_by_hunt.setdefault(hunt_urn,
+                                       {}).setdefault(plugin_name,
+                                                      []).append(exception)
 
   def __repr__(self):
     messages = []
@@ -179,14 +180,18 @@ class ProcessHuntResultCollectionsCronJob(object):
 
     if exceptions_by_plugin:
       for plugin, exceptions in iteritems(exceptions_by_plugin):
-        exceptions_by_hunt.setdefault(hunt_urn, {}).setdefault(
-            plugin, []).extend(exceptions)
+        exceptions_by_hunt.setdefault(hunt_urn,
+                                      {}).setdefault(plugin,
+                                                     []).extend(exceptions)
 
     logging.debug("Processed %d results.", num_processed_for_hunt)
     return len(results)
 
   def Run(self):
     """Run this cron job."""
+    if data_store.RelationalDBEnabled():
+      return
+
     self.start_time = rdfvalue.RDFDatetime.Now()
 
     exceptions_by_hunt = {}

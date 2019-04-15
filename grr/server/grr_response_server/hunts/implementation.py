@@ -539,7 +539,7 @@ class HuntRunner(object):
     Raises:
        RuntimeError: In case of no cpu quota left to start more clients.
     """
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       if request_data is not None:
         raise ValueError("Hunt's CallFlow does not support 'request_data' arg "
                          "when REL_DB is enabled.")
@@ -784,7 +784,7 @@ class HuntRunner(object):
     context = rdf_hunts.HuntContext(
         create_time=rdfvalue.RDFDatetime.Now(),
         creator=self.token.username,
-        expires=args.expiry_time.Expiry(),
+        duration=args.expiry_time,
         start_time=rdfvalue.RDFDatetime.Now(),
         usage_stats=rdf_stats.ClientResourcesStats())
 
@@ -815,7 +815,7 @@ class HuntRunner(object):
       return
 
     # Determine when this hunt will expire.
-    self.context.expires = self.runner_args.expiry_time.Expiry()
+    self.context.duration = self.runner_args.expiry_time
 
     # When the next client can be scheduled. Implements gradual client
     # recruitment rate according to the client_rate.
@@ -832,11 +832,11 @@ class HuntRunner(object):
 
   def _AddForemanRule(self):
     """Adds a foreman rule for this hunt."""
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       # Relational DB uses ForemanCondition objects.
       foreman_condition = foreman_rules.ForemanCondition(
           creation_time=rdfvalue.RDFDatetime.Now(),
-          expiration_time=self.context.expires,
+          expiration_time=self.context.init_start_time + self.context.duration,
           description="Hunt %s %s" %
           (self.session_id, self.runner_args.hunt_name),
           client_rule_set=self.runner_args.client_rule_set,
@@ -850,7 +850,9 @@ class HuntRunner(object):
     else:
       foreman_rule = foreman_rules.ForemanRule(
           created=rdfvalue.RDFDatetime.Now(),
-          expires=self.context.expires,
+          # TODO: Hunt context should differentiate between initial
+          # and last start time (similarly to normal hunt objects).
+          expires=self.context.create_time + self.context.duration,
           description="Hunt %s %s" %
           (self.session_id, self.runner_args.hunt_name),
           client_rule_set=self.runner_args.client_rule_set)
@@ -875,7 +877,7 @@ class HuntRunner(object):
 
   def _RemoveForemanRule(self):
     """Removes the foreman rule corresponding to this hunt."""
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.RemoveForemanRule(hunt_id=self.session_id.Basename())
       return
 
@@ -927,7 +929,10 @@ class HuntRunner(object):
     return self.hunt_obj.Get(self.hunt_obj.Schema.STATE) == "COMPLETED"
 
   def IsHuntExpired(self):
-    return self.context.expires < rdfvalue.RDFDatetime.Now()
+    # TODO: Hunt context should differentiate between initial and
+    # last start time (similarly to normal hunt objects).
+    expiry_time = self.context.create_time + self.context.duration
+    return expiry_time < rdfvalue.RDFDatetime.Now()
 
   def IsHuntStarted(self):
     """Is this hunt considered started?
@@ -1394,9 +1399,8 @@ class GRRHunt(flow.FlowBase):
           self.runner_args.avg_results_per_client_limit):
         # Stop the hunt since we get too many results per client.
         reason = ("Hunt %s reached the average results per client "
-                  "limit of %d and was stopped.") % (
-                      self.urn.Basename(),
-                      self.runner_args.avg_results_per_client_limit)
+                  "limit of %d and was stopped.") % (self.urn.Basename(
+                  ), self.runner_args.avg_results_per_client_limit)
         self.Stop(reason=reason)
 
     # Check average per-client CPU seconds limit.
@@ -1409,9 +1413,8 @@ class GRRHunt(flow.FlowBase):
           self.runner_args.avg_cpu_seconds_per_client_limit):
         # Stop the hunt since we use too many CPUs per client.
         reason = ("Hunt %s reached the average CPU seconds per client "
-                  "limit of %d and was stopped.") % (
-                      self.urn.Basename(),
-                      self.runner_args.avg_cpu_seconds_per_client_limit)
+                  "limit of %d and was stopped.") % (self.urn.Basename(
+                  ), self.runner_args.avg_cpu_seconds_per_client_limit)
         self.Stop(reason=reason)
 
     # Check average per-client network bytes limit.
@@ -1424,9 +1427,8 @@ class GRRHunt(flow.FlowBase):
         # Stop the hunt since we use too many network bytes sent
         # per client.
         reason = ("Hunt %s reached the average network bytes per client "
-                  "limit of %d and was stopped.") % (
-                      self.urn.Basename(),
-                      self.runner_args.avg_network_bytes_per_client_limit)
+                  "limit of %d and was stopped.") % (self.urn.Basename(
+                  ), self.runner_args.avg_network_bytes_per_client_limit)
         self.Stop(reason=reason)
 
   def AddResultsToCollection(self, responses, client_id):

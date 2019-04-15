@@ -43,7 +43,7 @@ class CleanHuntsMixin(object):
         continue
 
       runner = hunt.GetRunner()
-      if runner.context.expires < deadline:
+      if runner.context.create_time + runner.context.duration < deadline:
         aff4.FACTORY.Delete(hunt.urn, token=self.token)
         hunts_deleted += 1
         self.HeartBeat()
@@ -93,7 +93,7 @@ class CleanCronJobs(aff4_cronjobs.SystemCronFlow):
 
     manager = aff4_cronjobs.GetCronManager()
     cutoff_timestamp = rdfvalue.RDFDatetime.Now() - cron_jobs_ttl
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       deletion_count = manager.DeleteOldRuns(cutoff_timestamp=cutoff_timestamp)
 
     else:

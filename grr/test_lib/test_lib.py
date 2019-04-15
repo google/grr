@@ -125,7 +125,7 @@ class GRRBaseTest(absltest.TestCase):
 
     if self.use_relational_reads:
       self.relational_read_stubber = utils.Stubber(
-          data_store, "RelationalDBReadEnabled", lambda: True)
+          data_store, "RelationalDBEnabled", lambda: True)
       self.relational_read_stubber.Start()
       self.addCleanup(self.relational_read_stubber.Stop)
 
@@ -182,11 +182,11 @@ class GRRBaseTest(absltest.TestCase):
         fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
         fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
       fd.Set(
-          fd.Schema.MAC_ADDRESS(
-              "aabbccddee%02x\nbbccddeeff%02x" % (client_nr, client_nr)))
+          fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" %
+                                (client_nr, client_nr)))
       fd.Set(
-          fd.Schema.HOST_IPS(
-              "192.168.0.%d\n2001:abcd::%x" % (client_nr, client_nr)))
+          fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" %
+                             (client_nr, client_nr)))
 
       if system:
         fd.Set(fd.Schema.SYSTEM(system))
@@ -264,7 +264,7 @@ class GRRBaseTest(absltest.TestCase):
       rdf_client.ClientURN
     """
     res = None
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       client = self.SetupTestClientObject(
           client_nr,
           add_cert=add_cert,
@@ -437,7 +437,7 @@ class GRRBaseTest(absltest.TestCase):
     return client
 
   def AddClientLabel(self, client_id, owner, name):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       if hasattr(client_id, "Basename"):
         client_id = client_id.Basename()
 
@@ -782,8 +782,8 @@ def RequiresPackage(package_name):
       try:
         pkg_resources.get_distribution(package_name)
       except pkg_resources.DistributionNotFound:
-        raise unittest.SkipTest(
-            "Skipping, package %s not installed" % package_name)
+        raise unittest.SkipTest("Skipping, package %s not installed" %
+                                package_name)
       return test_function(*args, **kwargs)
 
     return Wrapper

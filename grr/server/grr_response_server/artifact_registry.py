@@ -148,7 +148,7 @@ class ArtifactRegistry(object):
     for artifact_coll_urn in self._sources.GetDatastores():
       artifact_coll = ArtifactCollection(artifact_coll_urn)
 
-      if data_store.RelationalDBReadEnabled():
+      if data_store.RelationalDBEnabled():
         artifact_list = data_store.REL_DB.ReadAllArtifacts()
       else:
         artifact_list = list(artifact_coll)
@@ -564,7 +564,7 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
     for artifact_value in filtered_artifacts:
       store.Add(artifact_value, mutation_pool=pool)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     for artifact_name in to_delete:
       data_store.REL_DB.DeleteArtifact(str(artifact_name))
 

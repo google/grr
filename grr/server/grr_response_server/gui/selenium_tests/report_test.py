@@ -34,7 +34,7 @@ def AddFakeAuditLog(description=None,
           flow_name=flow_name),
       token=token)
 
-  if data_store.RelationalDBWriteEnabled():
+  if data_store.RelationalDBEnabled():
     data_store.REL_DB.WriteAPIAuditEntry(
         rdf_objects.APIAuditEntry(
             username=user,

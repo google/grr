@@ -12,14 +12,19 @@ import sys
 import threading
 
 from grr_response_client import client_utils
-from grr_response_client import vfs
+from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
 
-# File handles are cached here. They expire after a couple minutes so
-# we don't keep files locked on the client.
-FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=300)
+# File handles are cached here. After expiration, the file handle is garbage
+# collected, which implicitly unlocks the file on Windows. Although a cache is
+# not optimal, it is currently the best solution: TSK as example mounts Windows
+# drives using the OS handler and performs frequent reads to read the file
+# tables. Since VFSHandlers have no de-facto support for context managers, it is
+# hard to determine when the file can be freed again, thus this caching is hard
+# to remove.
+FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=30)
 
 
 class LockedFileHandle(object):
@@ -66,7 +71,7 @@ class FileHandleManager(object):
     self.fd.lock.release()
 
 
-class File(vfs.VFSHandler):
+class File(vfs_base.VFSHandler):
   """Read a regular file."""
 
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
@@ -81,9 +86,12 @@ class File(vfs.VFSHandler):
   alignment = 1
   file_offset = 0
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None):
+  def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
     super(File, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback)
+        base_fd,
+        handlers=handlers,
+        pathspec=pathspec,
+        progress_callback=progress_callback)
     if base_fd is None:
       self.pathspec.Append(pathspec)
 
@@ -279,14 +287,17 @@ class File(vfs.VFSHandler):
     return self.size is None
 
   def StatFS(self, path=None):
-    """Call os.statvfs for a given list of rdf_paths. OS X and Linux only.
+    """Call os.statvfs for a given list of rdf_paths.
+
+    OS X and Linux only.
 
     Note that a statvfs call for a network filesystem (e.g. NFS) that is
     unavailable, e.g. due to no network, will result in the call blocking.
 
     Args:
-      path: a Unicode string containing the path or None.
-            If path is None the value in self.path is used.
+      path: a Unicode string containing the path or None. If path is None the
+        value in self.path is used.
+
     Returns:
       posix.statvfs_result object
     Raises:
@@ -303,8 +314,8 @@ class File(vfs.VFSHandler):
     """Walk back from the path to find the mount point.
 
     Args:
-      path: a Unicode string containing the path or None.
-            If path is None the value in self.path is used.
+      path: a Unicode string containing the path or None. If path is None the
+        value in self.path is used.
 
     Returns:
       path string of the mount point

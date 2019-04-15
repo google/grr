@@ -142,7 +142,7 @@ def thread_leak_check(request):
       # tearDownClass so they are not real leaks.
       "api_e2e_server",
       "GRRHTTPServerTestThread",
-      "SharedFDSTestThread",
+      "SharedMemDBTestThread",
 
       # Python specialty, sometimes it misreports threads using this name.
       "Dummy-1",

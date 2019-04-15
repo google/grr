@@ -16,8 +16,8 @@ from grr_response_proto import jobs_pb2
 
 
 # Cannot use data_store here, because of circular dependency.
-def RelationalDBReadEnabled():
-  return config.CONFIG["Database.useForReads"]
+def RelationalDBEnabled():
+  return config.CONFIG["Database.enabled"]
 
 
 # TODO(amoser): Rename client_obj once relational db becomes standard.
@@ -29,7 +29,7 @@ class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
 
     Args:
       client_obj: Either an aff4 client object or a `db.ClientFullInfo` instance
-                  if the relational db is used for reading.
+        if the relational db is used for reading.
 
     Returns:
       A bool value of the evaluation.
@@ -45,7 +45,7 @@ class ForemanOsClientRule(ForemanClientRuleBase):
   protobuf = jobs_pb2.ForemanOsClientRule
 
   def Evaluate(self, client_obj):
-    if RelationalDBReadEnabled():
+    if RelationalDBEnabled():
       value = client_obj.last_snapshot.knowledge_base.os
     else:
       value = client_obj.Get(client_obj.Schema.SYSTEM)
@@ -79,7 +79,7 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
     else:
       raise ValueError("Unexpected match mode value: %s" % self.match_mode)
 
-    if RelationalDBReadEnabled():
+    if RelationalDBEnabled():
       client_label_names = [label.name for label in client_obj.labels]
     else:
       client_label_names = set(client_obj.GetLabelsNames())
@@ -184,7 +184,7 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
     return utils.SmartStr(res)
 
   def Evaluate(self, client_obj):
-    if RelationalDBReadEnabled():
+    if RelationalDBEnabled():
       value = self._ResolveField(self.field, client_obj)
     else:
       value = self._ResolveFieldAFF4(self.field, client_obj)
@@ -197,8 +197,7 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
 
 
 class ForemanIntegerClientRule(ForemanClientRuleBase):
-  """This rule will fire if the expression operator(attribute, value) is true.
-  """
+  """This rule will fire if the expression operator(attribute, value) is true."""
   protobuf = jobs_pb2.ForemanIntegerClientRule
   rdf_deps = []
 
@@ -246,7 +245,7 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
     return res.AsSecondsSinceEpoch()
 
   def Evaluate(self, client_obj):
-    if RelationalDBReadEnabled():
+    if RelationalDBEnabled():
       value = self._ResolveField(self.field, client_obj)
     else:
       value = self._ResolveFieldAFF4(self.field, client_obj)
@@ -307,8 +306,7 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
 
     Args:
       client_obj: Either an aff4 client object or a client_info dict as returned
-                  by ReadFullInfoClient if the relational db is used for
-                  reading.
+        by ReadFullInfoClient if the relational db is used for reading.
 
     Returns:
       A bool value of the evaluation.

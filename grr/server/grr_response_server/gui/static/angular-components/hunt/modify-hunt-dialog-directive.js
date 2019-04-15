@@ -57,7 +57,7 @@ ModifyHuntDialogController.prototype.onHuntIdChange_ = function(newValue) {
         }
       };
 
-      angular.forEach(['client_limit', 'client_rate', 'expires'], function(k) {
+      angular.forEach(['client_limit', 'client_rate', 'duration'], function(k) {
         var v = hunt['value'][k];
 
         if (v) {

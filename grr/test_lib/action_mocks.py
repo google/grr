@@ -15,10 +15,6 @@ from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
-# TODO(user): find a uniform way to register client specific classes
-# needed for tests. We shouldn't do this at import time, but rather fill
-# registries at runtime.
-from grr_response_client.vfs_handlers import registry_init  # pylint: disable=unused-import
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -180,9 +176,10 @@ class MemoryClientMock(ActionMock):
   """A mock of client state including memory actions."""
 
   def __init__(self, *args, **kwargs):
-    super(MemoryClientMock, self).__init__(
-        standard.HashBuffer, standard.HashFile, standard.GetFileStat,
-        standard.TransferBuffer, *args, **kwargs)
+    super(MemoryClientMock,
+          self).__init__(standard.HashBuffer, standard.HashFile,
+                         standard.GetFileStat, standard.TransferBuffer, *args,
+                         **kwargs)
 
 
 class GetFileClientMock(ActionMock):
@@ -196,10 +193,11 @@ class GetFileClientMock(ActionMock):
 class FileFinderClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderClientMock, self).__init__(
-        file_fingerprint.FingerprintFile, searching.Find, searching.Grep,
-        standard.HashBuffer, standard.HashFile, standard.GetFileStat,
-        standard.TransferBuffer, *args, **kwargs)
+    super(FileFinderClientMock,
+          self).__init__(file_fingerprint.FingerprintFile, searching.Find,
+                         searching.Grep, standard.HashBuffer, standard.HashFile,
+                         standard.GetFileStat, standard.TransferBuffer, *args,
+                         **kwargs)
 
 
 class FileFinderClientMockWithTimestamps(FileFinderClientMock):
@@ -215,22 +213,19 @@ class FileFinderClientMockWithTimestamps(FileFinderClientMock):
         "dpkg_false.log": (1555555550, 1555555552, 1555555554)
     }
 
-    processed_responses = []
-
     for response in responses:
       payload = response.payload
-      if isinstance(payload, rdf_client_fs.FindSpec):
-        basename = payload.hit.pathspec.Basename()
+      if isinstance(payload, rdf_client_fs.StatEntry):
+        basename = payload.pathspec.Basename()
         try:
-          payload.hit.st_atime = predefined_values[basename][0]
-          payload.hit.st_mtime = predefined_values[basename][1]
-          payload.hit.st_ctime = predefined_values[basename][2]
+          payload.st_atime = predefined_values[basename][0]
+          payload.st_mtime = predefined_values[basename][1]
+          payload.st_ctime = predefined_values[basename][2]
           response.payload = payload
         except KeyError:
           pass
-      processed_responses.append(response)
 
-    return processed_responses
+    return responses
 
 
 class ListProcessesMock(FileFinderClientMock):
@@ -254,17 +249,18 @@ class ClientFileFinderClientMock(ActionMock):
 class MultiGetFileClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(MultiGetFileClientMock, self).__init__(
-        standard.HashFile, standard.GetFileStat, standard.HashBuffer,
-        standard.TransferBuffer, file_fingerprint.FingerprintFile, *args,
-        **kwargs)
+    super(MultiGetFileClientMock,
+          self).__init__(standard.HashFile, standard.GetFileStat,
+                         standard.HashBuffer, standard.TransferBuffer,
+                         file_fingerprint.FingerprintFile, *args, **kwargs)
 
 
 class ListDirectoryClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(ListDirectoryClientMock, self).__init__(
-        standard.ListDirectory, standard.GetFileStat, *args, **kwargs)
+    super(ListDirectoryClientMock,
+          self).__init__(standard.ListDirectory, standard.GetFileStat, *args,
+                         **kwargs)
 
 
 class GlobClientMock(ActionMock):
@@ -277,10 +273,11 @@ class GlobClientMock(ActionMock):
 class GrepClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(GrepClientMock, self).__init__(
-        file_fingerprint.FingerprintFile, searching.Find, searching.Grep,
-        standard.HashBuffer, standard.GetFileStat, standard.TransferBuffer,
-        *args, **kwargs)
+    super(GrepClientMock,
+          self).__init__(file_fingerprint.FingerprintFile, searching.Find,
+                         searching.Grep, standard.HashBuffer,
+                         standard.GetFileStat, standard.TransferBuffer, *args,
+                         **kwargs)
 
 
 class UpdateAgentClientMock(ActionMock):
@@ -308,11 +305,13 @@ class InterrogatedClient(ActionMock):
   """A mock of client state."""
 
   def __init__(self, *args, **kwargs):
-    super(InterrogatedClient, self).__init__(
-        admin.GetLibraryVersions, file_fingerprint.FingerprintFile,
-        searching.Find, standard.GetMemorySize, standard.HashBuffer,
-        standard.HashFile, standard.ListDirectory, standard.GetFileStat,
-        standard.TransferBuffer, *args, **kwargs)
+    super(InterrogatedClient,
+          self).__init__(admin.GetLibraryVersions,
+                         file_fingerprint.FingerprintFile, searching.Find,
+                         standard.GetMemorySize, standard.HashBuffer,
+                         standard.HashFile, standard.ListDirectory,
+                         standard.GetFileStat, standard.TransferBuffer, *args,
+                         **kwargs)
 
   def InitializeClient(self,
                        system="Linux",

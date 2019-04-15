@@ -164,7 +164,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         "tr:contains('ListProcesses'):nth(0).row-selected")
 
     # Now open the last flow and check that it has the changes we made.
-    if data_store.RelationalDBFlowsEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(
           client_id=self.client_id.Basename())
       flows.sort(key=lambda f: f.create_time)

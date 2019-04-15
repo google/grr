@@ -57,19 +57,19 @@ def Register():
       "Netgroup", linux_file_parser.NetgroupBufferParser)
 
   # WMI query parsers.
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiEventConsumer", wmi_parser.WMIEventConsumerParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiInstalledSoftware", wmi_parser.WMIInstalledSoftwareParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiHotfixesSoftware", wmi_parser.WMIHotfixesSoftwareParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiUser", wmi_parser.WMIUserParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiLogicalDisks", wmi_parser.WMILogicalDisksParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiCsp", wmi_parser.WMIComputerSystemProductParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WmiInterfaces", wmi_parser.WMIInterfacesParser)
 
   # Registry value parsers.

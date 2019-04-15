@@ -67,7 +67,7 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import blob_store
-from grr_response_server import db
+from grr_response_server.databases import db
 from grr_response_server.databases import registry_init
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 
@@ -86,27 +86,13 @@ REL_DB = None  # type: Optional[db.Database]
 BLOBS = None  # type: Optional[blob_store.BlobStore]
 
 
-def RelationalDBWriteEnabled():
-  """Returns True if write to a relational database are enabled."""
-  return bool(REL_DB)
-
-
-def RelationalDBReadEnabled():
-  """Returns True if reads from a relational database are enabled.
+def RelationalDBEnabled():
+  """Returns True if the relational database is enabled.
 
   Returns:
-    True if reads are enabled, False otherwise.
+    True if the relational database is enabled, False otherwise.
   """
-  return config.CONFIG["Database.useForReads"]
-
-
-def RelationalDBFlowsEnabled():
-  """Returns True if relational flows are enabled.
-
-  Returns: True if relational flows are enabled.
-
-  """
-  return config.CONFIG["Database.useForReads"]
+  return config.CONFIG["Database.enabled"]
 
 
 def AFF4Enabled():
@@ -1469,8 +1455,8 @@ class DataStore(with_metaclass(registry.MetaclassRegistry, object)):
     for subject, matches in results:
       children = []
       for predicate, _, timestamp in matches:
-        children.append((predicate[len(DataStore.AFF4_INDEX_DIR_PREFIX):],
-                         timestamp))
+        children.append(
+            (predicate[len(DataStore.AFF4_INDEX_DIR_PREFIX):], timestamp))
       yield (subject, children)
 
 

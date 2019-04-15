@@ -130,11 +130,21 @@ class YaraProcessScan(actions.ActionPlugin):
 
     return matches
 
+  # We don't want individual response messages to get too big so we send
+  # multiple responses for 100 processes each.
+  _RESULTS_PER_RESPONSE = 100
+
   def Run(self, args):
     result = rdf_memory.YaraProcessScanResponse()
     for p in ProcessIterator(args.pids, args.process_regex,
                              args.ignore_grr_process, result.errors):
       self.Progress()
+
+      n_results = len(result.errors) + len(result.matches) + len(result.misses)
+      if n_results >= self._RESULTS_PER_RESPONSE:
+        self.SendReply(result)
+        result = rdf_memory.YaraProcessScanResponse()
+
       rdf_process = rdf_client.Process.FromPsutilProcess(p)
 
       start_time = time.time()

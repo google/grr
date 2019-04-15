@@ -963,9 +963,9 @@
                 "type": "unicode",
                 "value": "foo"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -1135,7 +1135,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "foo",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -5218,9 +5218,9 @@
                 "type": "unicode",
                 "value": "hunt1"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -5387,7 +5387,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt1",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -5544,9 +5544,9 @@
                 "type": "unicode",
                 "value": "hunt2"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -5713,7 +5713,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt2",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -5839,9 +5839,9 @@
                 "type": "unicode",
                 "value": "original hunt"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -6072,9 +6072,9 @@
                 "type": "unicode",
                 "value": "copied hunt"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -6263,7 +6263,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "original hunt",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -6334,7 +6334,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "copied hunt",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -6560,9 +6560,9 @@
                 "type": "unicode",
                 "value": "hunt started from flow"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -6785,7 +6785,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt started from flow",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -7163,9 +7163,9 @@
             "type": "unicode",
             "value": "the hunt"
           },
-          "expires": {
-            "type": "RDFDatetime",
-            "value": 1209642000000
+          "duration": {
+            "type": "Duration",
+            "value": 1209600
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -7356,7 +7356,7 @@
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": 1209642000000,
+        "duration": 1209600,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -7485,9 +7485,9 @@
             "type": "unicode",
             "value": "the hunt"
           },
-          "expires": {
-            "type": "RDFDatetime",
-            "value": 1209642000000
+          "duration": {
+            "type": "Duration",
+            "value": 1209600
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -7670,7 +7670,7 @@
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": 1209642000000,
+        "duration": 1209600,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -7797,9 +7797,9 @@
             "type": "unicode",
             "value": "the hunt"
           },
-          "expires": {
-            "type": "RDFDatetime",
-            "value": 1209642000000
+          "duration": {
+            "type": "Duration",
+            "value": 1209600
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -7950,7 +7950,7 @@
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": 1209642000000,
+        "duration": 1209600,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -10529,9 +10529,9 @@
                 "type": "unicode",
                 "value": "a hunt"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1209642000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -10698,7 +10698,7 @@
           "created": 42000000,
           "creator": "api_test_user",
           "description": "a hunt",
-          "expires": 1209642000000,
+          "duration": 1209600,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -14178,9 +14178,9 @@
                     "type": "unicode",
                     "value": "foo"
                   },
-                  "expires": {
-                    "type": "RDFDatetime",
-                    "value": 1209642000000
+                  "duration": {
+                    "type": "Duration",
+                    "value": 1209600
                   },
                   "flow_args": {
                     "type": "GetFileArgs",
@@ -14351,7 +14351,7 @@
               "created": 42000000,
               "creator": "api_test_user",
               "description": "foo",
-              "expires": 1209642000000,
+              "duration": 1209600,
               "flow_args": {
                 "pathspec": {
                   "path": "/tmp/evil.txt",
@@ -15591,9 +15591,9 @@
                 "type": "unicode",
                 "value": "hunt_1"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1211600000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -15664,9 +15664,9 @@
                 "type": "unicode",
                 "value": "hunt_0"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1210600000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -15716,7 +15716,7 @@
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
-            "expires": 1211600000000,
+            "duration": 1209600,
             "hunt_id": "H:000001",
             "is_robot": false,
             "name": "GenericHunt",
@@ -15735,7 +15735,7 @@
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
-            "expires": 1210600000000,
+            "duration": 1209600,
             "hunt_id": "H:000000",
             "is_robot": false,
             "name": "GenericHunt",
@@ -15789,9 +15789,9 @@
                 "type": "unicode",
                 "value": "hunt_1"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1211600000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -15841,7 +15841,7 @@
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
-            "expires": 1211600000000,
+            "duration": 1209600,
             "hunt_id": "H:000001",
             "is_robot": false,
             "name": "GenericHunt",
@@ -15895,9 +15895,9 @@
                 "type": "unicode",
                 "value": "hunt_0"
               },
-              "expires": {
-                "type": "RDFDatetime",
-                "value": 1210600000000
+              "duration": {
+                "type": "Duration",
+                "value": 1209600
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -15947,7 +15947,7 @@
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
-            "expires": 1210600000000,
+            "duration": 1209600,
             "hunt_id": "H:000000",
             "is_robot": false,
             "name": "GenericHunt",
@@ -17079,9 +17079,9 @@
             "type": "unicode",
             "value": "the hunt"
           },
-          "expires": {
-            "type": "RDFDatetime",
-            "value": 1209642000000
+          "duration": {
+            "type": "Duration",
+            "value": 1209600
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -17236,7 +17236,7 @@
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": 1209642000000,
+        "duration": 1209600,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -17356,9 +17356,9 @@
             "type": "unicode",
             "value": "the hunt"
           },
-          "expires": {
-            "type": "RDFDatetime",
-            "value": 1209642000000
+          "duration": {
+            "type": "Duration",
+            "value": 1209600
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -17513,7 +17513,7 @@
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
-        "expires": 1209642000000,
+        "duration": 1209600,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",

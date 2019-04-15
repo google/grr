@@ -466,7 +466,7 @@ class HttpRequestHandler(object):
           },
           replace=True)
 
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteGRRUser(request.user)
 
     handler = None

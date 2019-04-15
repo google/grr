@@ -32,12 +32,12 @@ from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import db
 from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server import grr_collections
 from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import standard
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -258,7 +258,7 @@ class VFSGRRClient(standard.VFSDirectory):
 
   def Update(self, attribute=None):
     if attribute == "CONTAINS":
-      if data_store.RelationalDBFlowsEnabled():
+      if data_store.RelationalDBEnabled():
         # TODO(user): dependency loop with flows/general/discover.py
         flow_cls = registry.FlowRegistry.FlowClassByName("Interrogate")
         return flow.StartFlow(
@@ -551,7 +551,7 @@ class GRRForeman(aff4.AFF4Object):
     if not rules:
       return 0
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       last_foreman_run = self._GetLastForemanRunTimeRelational(client_id)
     else:
       last_foreman_run = self._GetLastForemanRunTime(client_id)
@@ -562,7 +562,7 @@ class GRRForeman(aff4.AFF4Object):
       return 0
 
     # Update the latest checked rule on the client.
-    if data_store.RelationalDBWriteEnabled():
+    if data_store.RelationalDBEnabled():
       try:
         self._SetLastForemanRunTimeRelational(client_id, latest_rule)
       except db.UnknownClientError:
@@ -570,7 +570,7 @@ class GRRForeman(aff4.AFF4Object):
 
     # If the relational db is used for reads, we don't have to update the
     # aff4 object.
-    if not data_store.RelationalDBReadEnabled():
+    if not data_store.RelationalDBEnabled():
       self._SetLastForemanRunTime(client_id, latest_rule)
 
     relevant_rules = []
@@ -587,7 +587,7 @@ class GRRForeman(aff4.AFF4Object):
 
       relevant_rules.append(rule)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       client_data = data_store.REL_DB.ReadClientFullInfo(client_id)
       if client_data is None:
         return
@@ -612,7 +612,7 @@ class GRRAFF4Init(registry.InitHook):
   pre = [aff4.AFF4InitHook]
 
   def Run(self):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       return
 
     try:

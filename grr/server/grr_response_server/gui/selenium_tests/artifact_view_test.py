@@ -23,7 +23,7 @@ from grr.test_lib import test_lib
 
 class TestCmdProcessor(parser.CommandParser):
 
-  output_types = ["SoftwarePackage"]
+  output_types = ["SoftwarePackages"]
   supported_artifacts = ["TestCmdArtifact"]
 
 

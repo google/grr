@@ -21,12 +21,12 @@ from grr_response_server import access_control
 from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
-from grr_response_server import db_compat
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_responses
 from grr_response_server import notification as notification_lib
 from grr_response_server.aff4_objects import users as aff4_users
+from grr_response_server.databases import db_compat
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -205,8 +205,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     """
     if action_cls.in_rdfvalue is None:
       if request:
-        raise ValueError(
-            "Client action %s does not expect args." % action_cls.__name__)
+        raise ValueError("Client action %s does not expect args." %
+                         action_cls.__name__)
     else:
       if request is None:
         # Create a new rdf request.

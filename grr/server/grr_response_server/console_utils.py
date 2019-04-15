@@ -32,7 +32,6 @@ from grr_response_core.lib.util import csv
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import client_index
-from grr_response_server import data_migration
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import queue_manager
@@ -71,13 +70,10 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
     aff4_path: Any aff4 path as a string
     output_dir: A local directory to write to, will be created if not there.
     bufsize: Buffer size to use.
-    preserve_path: If set all paths will be created.
-
-  Note that this works for collections as well. It will download all
-  files in the collection.
-
-  This only downloads files that are already in the datastore, it doesn't
-  queue anything on the client.
+    preserve_path: If set all paths will be created.  Note that this works for
+      collections as well. It will download all files in the collection.  This
+      only downloads files that are already in the datastore, it doesn't queue
+      anything on the client.
   """
   if not os.path.isdir(output_dir):
     os.makedirs(output_dir)
@@ -228,7 +224,7 @@ def ApprovalCreateRaw(aff4_path,
     reason: The reason to put in the token.
     expire_in: Expiry in seconds to use in the token.
     token: The token that will be used. If this is specified reason and expiry
-        are ignored.
+      are ignored.
     approval_type: The type of the approval to create.
 
   Returns:
@@ -334,6 +330,7 @@ def FindClonedClients(token=None):
 
   Args:
     token: datastore token.
+
   Returns:
     A list of clients that report alternating hardware ids.
   """
@@ -500,10 +497,8 @@ def ExportClientsByKeywords(keywords, filename, token=None):
 
   Args:
     keywords: a list of keywords to search for
-
     filename: the name of the file to write to, will be replaced if already
       present
-
     token: datastore token.
   """
   index = client_index.CreateClientIndex(token=token)
@@ -541,10 +536,6 @@ def ExportClientsByKeywords(keywords, filename, token=None):
 
   with io.open(filename, "w") as csv_out:
     csv_out.write(writer.Content())
-
-
-# Pull this into the console.
-ConvertVFSGRRClient = data_migration.ConvertVFSGRRClient  # pylint: disable=invalid-name
 
 
 def StartFlowAndWorker(client_id, flow_name, **kwargs):

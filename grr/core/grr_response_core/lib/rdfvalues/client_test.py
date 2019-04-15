@@ -389,11 +389,15 @@ class ProcessTest(absltest.TestCase):
     ]
 
     for field in int_fields:
-      self.assertGreater(getattr(res, field), 0)
+      self.assertGreater(
+          getattr(res, field), 0,
+          "rdf_client.Process.{} is not greater than 0.".format(field))
 
     string_fields = ["name", "exe", "cmdline", "cwd", "username", "terminal"]
     for field in string_fields:
-      self.assertNotEqual(getattr(res, field), "")
+      self.assertNotEqual(
+          getattr(res, field), "",
+          "rdf_client.Process.{} is the empty string.".format(field))
 
     self.assertEqual(res.status, "running")
 

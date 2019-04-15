@@ -33,7 +33,7 @@ def _LoadAuditEvents(handlers,
   if transformers is None:
     transformers = {}
 
-  if data_store.RelationalDBReadEnabled():
+  if data_store.RelationalDBEnabled():
     entries = data_store.REL_DB.ReadAPIAuditEntries(
         min_timestamp=get_report_args.start_time,
         max_timestamp=get_report_args.start_time + get_report_args.duration,
@@ -222,7 +222,7 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
   REQUIRES_TIME_RANGE = True
 
   def _GetUserCounts(self, get_report_args, token=None):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       counter = collections.Counter()
       entries = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
           min_timestamp=get_report_args.start_time,
@@ -263,7 +263,7 @@ class BaseUserFlowReportPlugin(report_plugin_base.ReportPluginBase):
   def _GetFlows(self, get_report_args, token):
     counts = collections.defaultdict(collections.Counter)
 
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       flows = data_store.REL_DB.ReadAllFlowObjects(
           min_create_time=get_report_args.start_time,
           max_create_time=get_report_args.start_time + get_report_args.duration,
@@ -344,7 +344,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
   REQUIRES_TIME_RANGE = True
 
   def _LoadUserActivity(self, start_time, end_time, token):
-    if data_store.RelationalDBReadEnabled():
+    if data_store.RelationalDBEnabled():
       counts = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
           min_timestamp=start_time, max_timestamp=end_time)
       for (username, day), count in iteritems(counts):
@@ -363,8 +363,8 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
         representation_type=RepresentationType.STACK_CHART)
 
     week_duration = rdfvalue.Duration("7d")
-    num_weeks = math.ceil(
-        get_report_args.duration.seconds / week_duration.seconds)
+    num_weeks = math.ceil(get_report_args.duration.seconds /
+                          week_duration.seconds)
     weeks = range(0, num_weeks)
     start_time = get_report_args.start_time
     end_time = start_time + num_weeks * week_duration
