@@ -403,6 +403,7 @@ class ClientPath(object):
     path_type: A type of the path.
     components: A tuple of path components.
     basename: A basename of the path.
+    path_id: A path id of the path (corresponding to the path components).
   """
 
   def __init__(self, client_id, path_type, components):
@@ -454,6 +455,10 @@ class ClientPath(object):
   @property
   def components(self):
     return self._repr[2]
+
+  @property
+  def path_id(self):
+    return rdf_objects.PathID.FromComponents(self.components)
 
   @property
   def vfs_path(self):

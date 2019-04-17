@@ -35,13 +35,13 @@ class MySQLDBFlowMixin(object):
     """Writes a list of message handler requests to the database."""
     query = ("INSERT IGNORE INTO message_handler_requests "
              "(handlername, timestamp, request_id, request) VALUES ")
-    now = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
+    now = mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
 
     value_templates = []
     args = []
     for r in requests:
       args.extend([r.handler_name, now, r.request_id, r.SerializeToString()])
-      value_templates.append("(%s, %s, %s, %s)")
+      value_templates.append("(%s, FROM_UNIXTIME(%s), %s, %s)")
 
     query += ",".join(value_templates)
     cursor.execute(query, args)
@@ -50,7 +50,8 @@ class MySQLDBFlowMixin(object):
   def ReadMessageHandlerRequests(self, cursor=None):
     """Reads all message handler requests from the database."""
 
-    query = ("SELECT timestamp, request, leased_until, leased_by "
+    query = ("SELECT UNIX_TIMESTAMP(timestamp), request,"
+             "       UNIX_TIMESTAMP(leased_until), leased_by "
              "FROM message_handler_requests "
              "ORDER BY timestamp DESC")
 
@@ -59,9 +60,9 @@ class MySQLDBFlowMixin(object):
     res = []
     for timestamp, request, leased_until, leased_by in cursor.fetchall():
       req = rdf_objects.MessageHandlerRequest.FromSerializedString(request)
-      req.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
+      req.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       req.leased_by = leased_by
-      req.leased_until = mysql_utils.MysqlToRDFDatetime(leased_until)
+      req.leased_until = mysql_utils.TimestampToRDFDatetime(leased_until)
       res.append(req)
     return res
 
@@ -114,14 +115,14 @@ class MySQLDBFlowMixin(object):
     """Leases a number of message handler requests up to the indicated limit."""
 
     now = rdfvalue.RDFDatetime.Now()
-    now_str = mysql_utils.RDFDatetimeToMysqlString(now)
+    now_str = mysql_utils.RDFDatetimeToTimestamp(now)
 
     expiry = now + lease_time
-    expiry_str = mysql_utils.RDFDatetimeToMysqlString(expiry)
+    expiry_str = mysql_utils.RDFDatetimeToTimestamp(expiry)
 
     query = ("UPDATE message_handler_requests "
-             "SET leased_until=%s, leased_by=%s "
-             "WHERE leased_until IS NULL OR leased_until < %s "
+             "SET leased_until=FROM_UNIXTIME(%s), leased_by=%s "
+             "WHERE leased_until IS NULL OR leased_until < FROM_UNIXTIME(%s) "
              "LIMIT %s")
 
     id_str = utils.ProcessIdString()
@@ -132,13 +133,14 @@ class MySQLDBFlowMixin(object):
       return []
 
     cursor.execute(
-        "SELECT timestamp, request FROM message_handler_requests "
-        "WHERE leased_by=%s AND leased_until=%s LIMIT %s",
+        "SELECT UNIX_TIMESTAMP(timestamp), request "
+        "FROM message_handler_requests "
+        "WHERE leased_by=%s AND leased_until=FROM_UNIXTIME(%s) LIMIT %s",
         (id_str, expiry_str, updated))
     res = []
     for timestamp, request in cursor.fetchall():
       req = rdf_objects.MessageHandlerRequest.FromSerializedString(request)
-      req.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
+      req.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       req.leased_until = expiry
       req.leased_by = id_str
       res.append(req)

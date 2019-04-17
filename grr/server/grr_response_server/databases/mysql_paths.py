@@ -591,8 +591,7 @@ class MySQLDBPathMixin(object):
 
     path_id_components = {}
     for client_path in client_paths:
-      path_id = rdf_objects.PathID.FromComponents(client_path.components)
-      path_id_components[path_id] = client_path.components
+      path_id_components[client_path.path_id] = client_path.components
 
     params = []
     query = """
@@ -620,14 +619,12 @@ class MySQLDBPathMixin(object):
     path_conditions = []
 
     for client_path in client_paths:
-      path_id = rdf_objects.PathID.FromComponents(client_path.components)
-
       path_conditions.append("""
       (client_id = %s AND path_type = %s AND path_id = %s)
       """)
       params.append(db_utils.ClientIDToInt(client_path.client_id))
       params.append(int(client_path.path_type))
-      params.append(path_id.AsBytes())
+      params.append(client_path.path_id.AsBytes())
 
     conditions = " OR ".join(path_conditions)
     if max_timestamp is not None:

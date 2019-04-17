@@ -48,12 +48,12 @@ class MySQLDBEventMixin(object):
       values.extend(router_method_names)
 
     if min_timestamp is not None:
-      conditions.append("timestamp >= %s")
-      values.append(mysql_utils.RDFDatetimeToMysqlString(min_timestamp))
+      conditions.append("timestamp >= FROM_UNIXTIME(%s)")
+      values.append(mysql_utils.RDFDatetimeToTimestamp(min_timestamp))
 
     if max_timestamp is not None:
-      conditions.append("timestamp <= %s")
-      values.append(mysql_utils.RDFDatetimeToMysqlString(max_timestamp))
+      conditions.append("timestamp <= FROM_UNIXTIME(%s)")
+      values.append(mysql_utils.RDFDatetimeToTimestamp(max_timestamp))
 
     if conditions:
       where = "WHERE " + " AND ".join(conditions)
@@ -73,7 +73,13 @@ class MySQLDBEventMixin(object):
                                        cursor=None):
     """Returns audit entry counts grouped by user and calendar day."""
     query = """
-        SELECT username, CAST(timestamp AS DATE) AS day, COUNT(*)
+        -- Timestamps are timezone-agnostic whereas dates are not. Hence, we are
+        -- forced to pick some timezone, in order to extract the day. We choose
+        -- UTC ('+00:00') as it is the most sane default.
+        SELECT username,
+               CAST(CONVERT_TZ(timestamp, @@SESSION.time_zone, '+00:00')
+                    AS DATE) AS day,
+               COUNT(*)
         FROM api_audit_entry
         {WHERE_PLACEHOLDER}
         GROUP BY username, day
@@ -83,12 +89,12 @@ class MySQLDBEventMixin(object):
     where = ""
 
     if min_timestamp is not None:
-      conditions.append("timestamp >= %s")
-      values.append(mysql_utils.RDFDatetimeToMysqlString(min_timestamp))
+      conditions.append("timestamp >= FROM_UNIXTIME(%s)")
+      values.append(mysql_utils.RDFDatetimeToTimestamp(min_timestamp))
 
     if max_timestamp is not None:
-      conditions.append("timestamp <= %s")
-      values.append(mysql_utils.RDFDatetimeToMysqlString(max_timestamp))
+      conditions.append("timestamp <= FROM_UNIXTIME(%s)")
+      values.append(mysql_utils.RDFDatetimeToTimestamp(max_timestamp))
 
     if conditions:
       where = "WHERE " + " AND ".join(conditions)
@@ -110,9 +116,12 @@ class MySQLDBEventMixin(object):
         "details":
             entry.SerializeToString(),
         "timestamp":
-            mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
+            mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now()),
     }
-    query = "INSERT INTO api_audit_entry {columns} VALUES {values}".format(
-        columns=mysql_utils.Columns(args),
-        values=mysql_utils.NamedPlaceholders(args))
+    query = """
+    INSERT INTO api_audit_entry (username, router_method_name, details,
+                                 timestamp)
+    VALUES (%(username)s, %(router_method_name)s, %(details)s,
+            FROM_UNIXTIME(%(timestamp)s))
+    """
     cursor.execute(query, args)

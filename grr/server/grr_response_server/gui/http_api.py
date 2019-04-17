@@ -25,8 +25,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import json
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util.compat import json
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import data_store

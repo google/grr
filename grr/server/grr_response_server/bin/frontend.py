@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import cgi
 import io
 import logging
 import pdb
@@ -16,6 +15,7 @@ import threading
 from absl import app
 from absl import flags
 from future.builtins import range
+from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from http import server as http_server
 import ipaddress
@@ -36,7 +36,6 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
 from grr_response_server import aff4
 from grr_response_server import frontend_lib
-from grr_response_server import master
 from grr_response_server import server_logging
 from grr_response_server import server_startup
 
@@ -221,17 +220,9 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
   @stats_utils.Timed("frontend_request_latency", fields=["http"])
   def Control(self):
     """Handle POSTS."""
-    if not master.MASTER_WATCHER.IsMaster():
-      # We shouldn't be getting requests from the client unless we
-      # are the active instance.
-      stats_collector_instance.Get().IncrementCounter(
-          "frontend_inactive_request_count", fields=["http"])
-      logging.info("Request sent to inactive frontend from %s",
-                   self.client_address[0])
-
     # Get the api version
     try:
-      api_version = int(cgi.parse_qs(self.path.split("?")[1])["api"][0])
+      api_version = int(urlparse.parse_qs(self.path.split("?")[1])["api"][0])
     except (ValueError, KeyError, IndexError):
       # The oldest api version we support if not specified.
       api_version = 3

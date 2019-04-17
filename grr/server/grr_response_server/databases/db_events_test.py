@@ -109,27 +109,28 @@ class DatabaseTestEventsMixin(object):
 
   def testReadEntriesFilterTimestamp(self):
     self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="OK"))
+    ok_timestamp = rdfvalue.RDFDatetime.Now()
+
     self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="ERROR"))
+    error_timestamp = rdfvalue.RDFDatetime.Now()
+
     self.db.WriteAPIAuditEntry(self._MakeEntry(response_code="NOT_FOUND"))
+    not_found_timestamp = rdfvalue.RDFDatetime.Now()
 
-    tomorrow = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
-
-    entries = self.db.ReadAPIAuditEntries(min_timestamp=tomorrow)
+    entries = self.db.ReadAPIAuditEntries(min_timestamp=not_found_timestamp)
     self.assertEmpty(entries)
 
-    entries = self.db.ReadAPIAuditEntries(max_timestamp=tomorrow)
+    entries = self.db.ReadAPIAuditEntries(max_timestamp=not_found_timestamp)
     self.assertLen(entries, 3)
 
-    timestamps = [e.timestamp for e in entries]
-
-    entries = self.db.ReadAPIAuditEntries(min_timestamp=timestamps[1])
+    entries = self.db.ReadAPIAuditEntries(min_timestamp=ok_timestamp)
     self.assertEqual([e.response_code for e in entries], ["ERROR", "NOT_FOUND"])
 
-    entries = self.db.ReadAPIAuditEntries(max_timestamp=timestamps[1])
+    entries = self.db.ReadAPIAuditEntries(max_timestamp=error_timestamp)
     self.assertEqual([e.response_code for e in entries], ["OK", "ERROR"])
 
     entries = self.db.ReadAPIAuditEntries(
-        min_timestamp=timestamps[1], max_timestamp=timestamps[1])
+        min_timestamp=ok_timestamp, max_timestamp=error_timestamp)
     self.assertEqual([e.response_code for e in entries], ["ERROR"])
 
   def testCountEntries(self):

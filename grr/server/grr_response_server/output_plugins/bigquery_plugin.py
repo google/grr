@@ -16,7 +16,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import json
+from grr_response_core.lib.util.compat import json
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import bigquery
 from grr_response_server import export

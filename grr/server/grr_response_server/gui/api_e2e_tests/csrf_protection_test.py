@@ -10,7 +10,7 @@ import requests
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import json
+from grr_response_core.lib.util.compat import json
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp

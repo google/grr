@@ -12,7 +12,7 @@ from future.utils import iterkeys
 from future.utils import itervalues
 import yaml as pyyaml
 
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import yaml
 from grr_response_server.authorization import groups
 
 

@@ -18,8 +18,8 @@ from typing import Text
 from grr_response_client import actions
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
-from grr_response_core.lib.util import json
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util.compat import json
 
 # pylint: disable=g-import-not-at-top
 try:

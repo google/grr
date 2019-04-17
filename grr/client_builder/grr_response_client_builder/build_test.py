@@ -17,7 +17,7 @@ from grr_response_client_builder import build
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import yaml
 from grr.test_lib import test_lib
 
 

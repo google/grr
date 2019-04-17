@@ -51,6 +51,17 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
     f = h.Handle(args=args, token=self.token)
     self.assertEqual(f.args.paths, ["foo"])
 
+  def testOverridesFlowNameIfOverrideArgIsSpecified(self):
+    h = rr.ApiRobotCreateFlowHandler(
+        robot_id="foo", override_flow_name=AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
+
+    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id.Basename())
+    args.flow.name = file_finder.FileFinder.__name__
+    args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
+
+    f = h.Handle(args=args, token=self.token)
+    self.assertEqual(f.name, AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
+
   def testOverridesFlowArgsThroughIfOverridesSpecified(self):
     override_flow_args = rdf_file_finder.FileFinderArgs(paths=["bar"])
     h = rr.ApiRobotCreateFlowHandler(
@@ -153,25 +164,33 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         file_finder_flow=rr.RobotRouterFileFinderFlowParams(enabled=True))
     Check("%%users.homedir%%/foo")
 
-  def testFileFinderFlowNameCanBeOverriden(self):
+  def testFileFinderFlowNameCanBeOverridden(self):
     router = self._CreateRouter(
         file_finder_flow=rr.RobotRouterFileFinderFlowParams(
             enabled=True, file_finder_flow_name=AnotherFileFinder.__name__))  # pylint: disable=undefined-variable
 
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      router.CreateFlow(
-          api_flow.ApiCreateFlowArgs(
-              flow=api_flow.ApiFlow(name=file_finder.FileFinder.__name__),
-              client_id=self.client_id),
-          token=self.token)
-
-    router.CreateFlow(
+    handler = router.CreateFlow(
         api_flow.ApiCreateFlowArgs(
             flow=api_flow.ApiFlow(name=AnotherFileFinder.__name__),  # pylint: disable=undefined-variable
             client_id=self.client_id),
         token=self.token)
 
-  def testFileFinderHashMaxFileSizeCanBeOverriden(self):
+    self.assertEqual(handler.override_flow_name, AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
+
+  def testOverriddenFileFinderFlowCanBeCreatedUsingOriginalFileFinderName(self):
+    router = self._CreateRouter(
+        file_finder_flow=rr.RobotRouterFileFinderFlowParams(
+            enabled=True, file_finder_flow_name=AnotherFileFinder.__name__))  # pylint: disable=undefined-variable
+
+    handler = router.CreateFlow(
+        api_flow.ApiCreateFlowArgs(
+            flow=api_flow.ApiFlow(name=file_finder.FileFinder.__name__),
+            client_id=self.client_id),
+        token=self.token)
+
+    self.assertEqual(handler.override_flow_name, AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
+
+  def testFileFinderHashMaxFileSizeCanBeOverridden(self):
     router = self._CreateRouter(
         file_finder_flow=rr.RobotRouterFileFinderFlowParams(
             enabled=True, max_file_size=42))
@@ -196,7 +215,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(ha.oversized_file_policy, ha.OversizedFilePolicy.SKIP)
     self.assertEqual(ha.max_size, 42)
 
-  def testFileFinderDownloadMaxFileSizeCanBeOverriden(self):
+  def testFileFinderDownloadMaxFileSizeCanBeOverridden(self):
     router = self._CreateRouter(
         file_finder_flow=rr.RobotRouterFileFinderFlowParams(
             enabled=True, max_file_size=42))
@@ -273,25 +292,36 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
             enabled=True, artifacts_whitelist=["bar", "blah"]))
     Check(["foo", "bar"])
 
-  def testArtifactCollectorFlowNameCanBeOverriden(self):
+  def testArtifactCollectorFlowNameCanBeOverridden(self):
     router = self._CreateRouter(
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
             enabled=True,
             artifact_collector_flow_name=AnotherArtifactCollector.__name__))  # pylint: disable=undefined-variable
 
-    with self.assertRaises(access_control.UnauthorizedAccess):
-      router.CreateFlow(
-          api_flow.ApiCreateFlowArgs(
-              flow=api_flow.ApiFlow(
-                  name=collectors.ArtifactCollectorFlow.__name__),
-              client_id=self.client_id),
-          token=self.token)
-
-    router.CreateFlow(
+    handler = router.CreateFlow(
         api_flow.ApiCreateFlowArgs(
             flow=api_flow.ApiFlow(name=AnotherArtifactCollector.__name__),  # pylint: disable=undefined-variable
             client_id=self.client_id),
         token=self.token)
+
+    self.assertEqual(handler.override_flow_name,
+                     AnotherArtifactCollector.__name__)  # pylint: disable=undefined-variable
+
+  def testOverriddenArtifactCollectorFlowCanBeCreatedUsingOriginalName(self):
+    router = self._CreateRouter(
+        artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
+            enabled=True,
+            artifact_collector_flow_name=AnotherArtifactCollector.__name__))  # pylint: disable=undefined-variable
+
+    handler = router.CreateFlow(
+        api_flow.ApiCreateFlowArgs(
+            flow=api_flow.ApiFlow(
+                name=collectors.ArtifactCollectorFlow.__name__),
+            client_id=self.client_id),
+        token=self.token)
+
+    self.assertEqual(handler.override_flow_name,
+                     AnotherArtifactCollector.__name__)  # pylint: disable=undefined-variable
 
   def testOnlyFileFinderAndArtifactCollectorFlowsAreAllowed(self):
     router = self._CreateRouter(
@@ -490,8 +520,8 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     router = self._CreateRouter()
 
     unchecked_methods = (
-        set(iterkeys(router.__class__.GetAnnotatedMethods())) - set(
-            self.IMPLEMENTED_METHODS))
+        set(iterkeys(router.__class__.GetAnnotatedMethods())) -
+        set(self.IMPLEMENTED_METHODS))
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:

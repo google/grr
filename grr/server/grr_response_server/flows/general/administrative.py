@@ -654,43 +654,104 @@ class UpdateClientMixin(object):
 
   args_type = UpdateClientArgs
 
-  def Start(self):
-    """Start."""
-    binary_path = self.args.blob_path
-    if not binary_path:
-      raise flow.FlowError("Please specify an installer binary.")
-
-    binary_urn = rdfvalue.RDFURN(binary_path)
+  def _BlobIterator(self, binary_urn):
     try:
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
           binary_urn, token=self.token)
     except signed_binary_utils.SignedBinaryNotFoundError:
-      raise flow.FlowError("%s is not a valid signed binary." % binary_path)
+      raise flow.FlowError("%s is not a valid signed binary." %
+                           self.args.blob_path)
+    return blob_iterator
 
-    offset = 0
-    write_path = "%d_%s" % (time.time(), binary_urn.Basename())
+  def Start(self):
+    """Start."""
+    if not self.args.blob_path:
+      raise flow.FlowError("Installer binary path is not specified.")
+
+    binary_urn = rdfvalue.RDFURN(self.args.blob_path)
+    self.state.write_path = "%d_%s" % (int(time.time()), binary_urn.Basename())
+
+    blob_iterator = self._BlobIterator(binary_urn)
+    try:
+      first_blob = next(blob_iterator)
+    except StopIteration:
+      raise flow.FlowError("File %s is empty." % self.args.blob_path)
 
     try:
-      current_blob = next(blob_iterator)
+      next(blob_iterator)
     except StopIteration:
-      current_blob = None
-
-    while current_blob is not None:
-      try:
-        next_blob = next(blob_iterator)
-      except StopIteration:
-        next_blob = None
-      more_data = next_blob is not None
+      # This is the simple case where the binary fits into a single blob. We can
+      # do all work in a single call to the client.
       self.CallClient(
           server_stubs.UpdateAgent,
-          executable=current_blob,
-          more_data=more_data,
-          offset=offset,
-          write_path=write_path,
-          next_state=("CheckUpdateAgent" if more_data else "Interrogate"),
+          executable=first_blob,
+          more_data=False,
+          offset=0,
+          write_path=self.state.write_path,
+          next_state="Interrogate",
           use_client_env=False)
-      offset += len(current_blob.data)
-      current_blob = next_blob
+      return
+
+    self.CallClient(
+        server_stubs.UpdateAgent,
+        executable=first_blob,
+        more_data=True,
+        offset=0,
+        write_path=self.state.write_path,
+        next_state="SendBlobs",
+        use_client_env=False)
+
+  def SendBlobs(self, responses):
+    """Sends all blobs that are not the first or the last."""
+    if not responses.success:
+      raise flow.FlowError("Error while calling UpdateAgent: %s" %
+                           responses.status)
+
+    binary_urn = rdfvalue.RDFURN(self.args.blob_path)
+    blobs = list(self._BlobIterator(binary_urn))
+    to_send = blobs[1:-1]
+
+    if not to_send:
+      self.CallStateInline(next_state="SendLastBlob")
+      return
+    offset = len(blobs[0].data)
+
+    for i, blob in enumerate(to_send):
+      if i == len(to_send) - 1:
+        next_state = "SendLastBlob"
+      else:
+        next_state = "CheckUpdateAgent"
+
+      self.CallClient(
+          server_stubs.UpdateAgent,
+          executable=blob,
+          more_data=True,
+          offset=offset,
+          write_path=self.state.write_path,
+          next_state=next_state,
+          use_client_env=False)
+      offset += len(blob.data)
+
+  def SendLastBlob(self, responses):
+    """Sends the last blob."""
+    if not responses.success:
+      raise flow.FlowError("Error while calling UpdateAgent: %s" %
+                           responses.status)
+
+    binary_urn = rdfvalue.RDFURN(self.args.blob_path)
+    blobs = list(self._BlobIterator(binary_urn))
+    offset = 0
+    for b in blobs[:-1]:
+      offset += len(b.data)
+
+    self.CallClient(
+        server_stubs.UpdateAgent,
+        executable=blobs[-1],
+        more_data=False,
+        offset=offset,
+        write_path=self.state.write_path,
+        next_state="Interrogate",
+        use_client_env=False)
 
   def CheckUpdateAgent(self, responses):
     if not responses.success:
@@ -957,38 +1018,108 @@ class LaunchBinaryMixin(object):
 
   args_type = LaunchBinaryArgs
 
-  def Start(self):
-    """The start method."""
-    binary_urn = rdfvalue.RDFURN(self.args.binary)
+  def _BlobIterator(self, binary_urn):
     try:
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
           binary_urn, token=self.token)
     except signed_binary_utils.SignedBinaryNotFoundError:
       raise flow.FlowError("Executable binary %s not found." % self.args.binary)
 
-    try:
-      current_blob = next(blob_iterator)
-    except StopIteration:
-      current_blob = None
+    return blob_iterator
 
-    offset = 0
-    write_path = "%d" % time.time()
-    while current_blob is not None:
-      try:
-        next_blob = next(blob_iterator)
-      except StopIteration:
-        next_blob = None
+  def Start(self):
+    """The start method."""
+    if not self.args.binary:
+      raise flow.FlowError("Please specify a binary.")
+
+    binary_urn = rdfvalue.RDFURN(self.args.binary)
+    self.state.write_path = "%d_%s" % (time.time(), binary_urn.Basename())
+
+    blob_iterator = self._BlobIterator(binary_urn)
+    try:
+      first_blob = next(blob_iterator)
+    except StopIteration:
+      raise flow.FlowError("File %s is empty." % self.args.binary)
+
+    try:
+      next(blob_iterator)
+    except StopIteration:
+      # This is the simple case where the binary fits into a single blob. We can
+      # do all work in a single call to the client.
       self.CallClient(
           server_stubs.ExecuteBinaryCommand,
-          executable=current_blob,
-          more_data=next_blob is not None,
+          executable=first_blob,
+          more_data=False,
           args=shlex.split(self.args.command_line),
-          offset=offset,
-          write_path=write_path,
+          offset=0,
+          write_path=self.state.write_path,
           next_state="End")
+      return
 
-      offset += len(current_blob.data)
-      current_blob = next_blob
+    self.CallClient(
+        server_stubs.ExecuteBinaryCommand,
+        executable=first_blob,
+        more_data=True,
+        offset=0,
+        write_path=self.state.write_path,
+        next_state="SendBlobs")
+
+  def SendBlobs(self, responses):
+    """Sends all blobs that are not the first or the last."""
+    if not responses.success:
+      raise flow.FlowError("Error while calling UpdateAgent: %s" %
+                           responses.status)
+
+    binary_urn = rdfvalue.RDFURN(self.args.binary)
+    blobs = list(self._BlobIterator(binary_urn))
+    to_send = blobs[1:-1]
+
+    if not to_send:
+      self.CallStateInline(next_state="SendLastBlob")
+      return
+    offset = len(blobs[0].data)
+
+    for i, blob in enumerate(to_send):
+      if i == len(to_send) - 1:
+        next_state = "SendLastBlob"
+      else:
+        next_state = "CheckResponse"
+
+      self.CallClient(
+          server_stubs.ExecuteBinaryCommand,
+          executable=blob,
+          more_data=True,
+          offset=offset,
+          write_path=self.state.write_path,
+          next_state=next_state)
+      offset += len(blob.data)
+
+  def SendLastBlob(self, responses):
+    """Sends the last blob."""
+    if not responses.success:
+      raise flow.FlowError("Error while calling UpdateAgent: %s" %
+                           responses.status)
+
+    binary_urn = rdfvalue.RDFURN(self.args.binary)
+    blobs = list(self._BlobIterator(binary_urn))
+    offset = 0
+    for b in blobs[:-1]:
+      offset += len(b.data)
+
+    self.CallClient(
+        server_stubs.ExecuteBinaryCommand,
+        executable=blobs[-1],
+        more_data=False,
+        args=shlex.split(self.args.command_line),
+        offset=offset,
+        write_path=self.state.write_path,
+        next_state="End",
+        use_client_env=False)
+
+  def CheckResponse(self, responses):
+    if not responses.success:
+      raise flow.FlowError("Error while calling ExecuteBinaryCommand: %s" %
+                           responses.status)
 
   def _SanitizeOutput(self, data):
     if len(data) > 2000:

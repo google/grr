@@ -332,15 +332,6 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
 
   def WriteBlobToFile(self, request):
     """Writes the blob to a file and returns its path."""
-    lifetime = 0
-    # Only set the lifetime thread on the last chunk written.
-    if not request.more_data:
-      lifetime = request.time_limit
-
-      # Keep the file for at least 5 seconds after execution.
-      if lifetime > 0:
-        lifetime += 5
-
     # First chunk truncates the file, later chunks append.
     if request.offset == 0:
       mode = "w+b"

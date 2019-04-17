@@ -13,7 +13,7 @@ import yaml
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util import csv
+from grr_response_core.lib.util.compat import csv
 from grr_response_server import instant_output_plugin
 
 

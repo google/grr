@@ -296,8 +296,21 @@ class UpdateAgentClientMock(ActionMock):
   def GetDownloadedFileContents(self):
     """Returns the raw contents of the file sent by the server."""
     bytes_buffer = io.BytesIO()
-    for request in self._requests:
-      bytes_buffer.write(request.executable.data)
+    requests_by_offset = {request.offset: request for request in self._requests}
+
+    offsets = [r.offset for r in self._requests]
+    if offsets[0] != 0 or max(offsets) != offsets[-1]:
+      raise ValueError("Received blobs in the wrong order.")
+
+    requests_by_offset = {request.offset: request for request in self._requests}
+
+    expected_offset = 0
+    while expected_offset in requests_by_offset:
+      request = requests_by_offset[expected_offset]
+      data = request.executable.data
+      expected_offset += len(data)
+      bytes_buffer.write(data)
+
     return bytes_buffer.getvalue()
 
 

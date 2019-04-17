@@ -198,11 +198,14 @@ def _IsMariaDB(cursor):
 
 
 def _SetBinlogFormat(cursor):
-  # We use some queries that are deemed unsafe for statement
-  # based logging. MariaDB >= 10.2.4 has MIXED logging as a
-  # default, for earlier versions we set it explicitly but that
-  # requires SUPER privileges.
-  if _ReadVariable("binlog_format", cursor) == "MIXED":
+  """Sets database's binlog_format, if needed."""
+  # We use some queries that are deemed unsafe for statement based logging.
+  # MariaDB >= 10.2.4 has MIXED logging as a default, CloudSQL has ROW
+  # logging preconfigured (and that can't be changed).
+  #
+  # If neither MIXED nor ROW logging is used, we set binlog_format explicitly
+  # (requires SUPER privileges).
+  if _ReadVariable("binlog_format", cursor) in ["MIXED", "ROW"]:
     return
 
   logging.info("Setting mysql server binlog_format to MIXED")
@@ -230,42 +233,121 @@ def _CheckForSSL(cursor):
     raise RuntimeError("Unable to establish SSL connection to MySQL.")
 
 
-def _SetupDatabase(host, port, user, passwd, db, **kwargs):
+def _SetupDatabase(host=None,
+                   port=None,
+                   user=None,
+                   password=None,
+                   database=None,
+                   client_key_path=None,
+                   client_cert_path=None,
+                   ca_cert_path=None):
   """Connect to the given MySQL host and create a utf8mb4_unicode_ci database.
 
   Args:
     host: The hostname to connect to.
     port: The port to connect to.
     user: The username to connect as.
-    passwd: The password to connect with.
-    db: The database name to create.
-    **kwargs: Further MySQL connection arguments.
+    password: The password to connect with.
+    database: The database name to create.
+    client_key_path: The path of the client private key file.
+    client_cert_path: The path of the client public key certificate file.
+    ca_cert_path: The path of the Certificate Authority (CA) certificate file.
   """
   with contextlib.closing(
-      _Connect(host=host, port=port, user=user, passwd=passwd,
-               **kwargs)) as conn:
+      _Connect(
+          host=host,
+          port=port,
+          user=user,
+          password=password,
+          # No database should be specified in a connection that intends
+          # to create a database.
+          database=None,
+          client_key_path=client_key_path,
+          client_cert_path=client_cert_path,
+          ca_cert_path=ca_cert_path)) as conn:
     with contextlib.closing(conn.cursor()) as cursor:
       try:
-        cursor.execute(CREATE_DATABASE_QUERY.format(db))
+        cursor.execute(CREATE_DATABASE_QUERY.format(database))
       except MySQLdb.MySQLError as e:
         #  Statement might fail if database exists, this is fine.
         if e.args[0] != mysql_error_constants.DB_CREATE_EXISTS:
           raise
 
-      cursor.execute("USE {}".format(db))
+      cursor.execute("USE {}".format(database))
       _CheckCollation(cursor)
 
   def _MigrationConnect():
     return _Connect(
-        host=host, port=port, user=user, passwd=passwd, database=db, **kwargs)
+        host=host,
+        port=port,
+        user=user,
+        password=password,
+        database=database,
+        client_key_path=client_key_path,
+        client_cert_path=client_cert_path,
+        ca_cert_path=ca_cert_path)
 
   mysql_migration.ProcessMigrations(_MigrationConnect,
                                     config.CONFIG["Mysql.migrations_dir"])
 
 
-def _Connect(*args, **kwargs):
+def _GetConnectionArgs(host=None,
+                       port=None,
+                       user=None,
+                       password=None,
+                       database=None,
+                       client_key_path=None,
+                       client_cert_path=None,
+                       ca_cert_path=None):
+  """Builds connection arguments for MySQLdb.Connect function."""
+  connection_args = dict(
+      autocommit=False, use_unicode=True, charset=CHARACTER_SET)
+
+  if host is not None:
+    connection_args["host"] = host
+
+  if port is not None:
+    connection_args["port"] = port
+
+  if user is not None:
+    connection_args["user"] = user
+
+  if password is not None:
+    connection_args["passwd"] = password
+
+  if database is not None:
+    connection_args["db"] = database
+
+  if client_key_path is not None:
+    connection_args["ssl"] = {
+        "key": client_key_path,
+        "cert": client_cert_path,
+        "ca": ca_cert_path,
+    }
+
+  return connection_args
+
+
+def _Connect(host=None,
+             port=None,
+             user=None,
+             password=None,
+             database=None,
+             client_key_path=None,
+             client_cert_path=None,
+             ca_cert_path=None):
   """Connect to MySQL and check if server fulfills requirements."""
-  conn = MySQLdb.Connect(*args, **kwargs)
+  connection_args = _GetConnectionArgs(
+      host=host,
+      port=port,
+      user=user,
+      password=password,
+      database=database,
+      client_key_path=client_key_path,
+      client_cert_path=client_cert_path,
+      ca_cert_path=ca_cert_path)
+
+  conn = MySQLdb.Connect(**connection_args)
   with contextlib.closing(conn.cursor()) as cursor:
     _CheckForSSL(cursor)
     _SetMariaDBMode(cursor)
@@ -332,10 +414,22 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
       warnings.filterwarnings(
           "ignore", category=MySQLdb.Warning, message=message)
 
-    self._args = self._GetConnectionArgs(
-        host=host, port=port, user=user, password=password, database=database)
+    self._connect_args = dict(
+        host=host or config.CONFIG["Mysql.host"],
+        port=port or config.CONFIG["Mysql.port"],
+        user=user or config.CONFIG["Mysql.username"],
+        password=password or config.CONFIG["Mysql.password"],
+        database=database or config.CONFIG["Mysql.database"])
 
-    _SetupDatabase(**self._args)
+    client_key_path = config.CONFIG["Mysql.client_key_path"]
+    if client_key_path is not None:
+      logging.debug("Client key file configured, trying to use SSL.")
+      self._connect_args["client_key_path"] = client_key_path
+      self._connect_args["client_cert_path"] = config.CONFIG[
+          "Mysql.client_cert_path"]
+      self._connect_args["ca_cert_path"] = config.CONFIG["Mysql.ca_cert_path"]
+
+    _SetupDatabase(**self._connect_args)
 
     max_pool_size = config.CONFIG.Get("Mysql.conn_pool_max", 10)
     self.pool = mysql_pool.Pool(self._Connect, max_size=max_pool_size)
@@ -351,47 +445,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     self.flow_processing_request_handler_pool.Start()
 
   def _Connect(self):
-    return _Connect(**self._args)
-
-  def _GetConnectionArgs(self,
-                         host=None,
-                         port=None,
-                         user=None,
-                         password=None,
-                         database=None):
-    connection_args = dict(
-        host=host,
-        port=port,
-        user=user,
-        passwd=password,
-        db=database,
-        autocommit=False,
-        use_unicode=True,
-        charset=CHARACTER_SET)
-
-    if host is None:
-      connection_args["host"] = config.CONFIG["Mysql.host"]
-    if port is None:
-      connection_args["port"] = config.CONFIG["Mysql.port"]
-    if user is None:
-      connection_args["user"] = config.CONFIG["Mysql.username"]
-    if password is None:
-      connection_args["passwd"] = config.CONFIG["Mysql.password"]
-    if database is None:
-      connection_args["db"] = config.CONFIG["Mysql.database"]
-
-    key_path = config.CONFIG["Mysql.client_key_path"]
-    if key_path:
-      cert_path = config.CONFIG["Mysql.client_cert_path"]
-      ca_cert_path = config.CONFIG["Mysql.ca_cert_path"]
-      logging.debug("Client key file configured, trying to use SSL.")
-
-      connection_args["ssl"] = {
-          "key": key_path,
-          "cert": cert_path,
-          "ca": ca_cert_path,
-      }
-    return connection_args
+    return _Connect(**self._connect_args)
 
   def Close(self):
     self.pool.close()

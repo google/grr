@@ -48,8 +48,8 @@ class Pool(object):
     """Gets a connection.
 
     Args:
-      blocking: Whether to block when max_size connections are already in
-        use. If false, may return None.
+      blocking: Whether to block when max_size connections are already in use.
+        If false, may return None.
 
     Returns:
       A connection to the database.

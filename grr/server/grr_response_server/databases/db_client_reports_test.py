@@ -74,23 +74,24 @@ class DatabaseTestClientReportsMixin(object):
             _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.OS_TYPE))
 
   def testReadAllClientGraphSeries_InTimeRange(self):
+    date = rdfvalue.RDFDatetime.FromHumanReadable("2017-10-02")
+
     graph_series_list = _CreateGRRVersionGraphSeries(10)
     for i, graph_series in enumerate(graph_series_list):
-      with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(i)):
+      with test_lib.FakeTime(date + rdfvalue.Duration.FromDays(i)):
         self.db.WriteClientGraphSeries(graph_series, _TEST_LABEL)
 
-    time_range = time_utils.TimeRange(
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(6),
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10))
+    time_range = time_utils.TimeRange(date + rdfvalue.Duration.FromDays(6),
+                                      date + rdfvalue.Duration.FromDays(10))
     fetched_data = self.db.ReadAllClientGraphSeries(
         _TEST_LABEL,
         rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION,
         time_range=time_range)
     expected_data = {
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(6): graph_series_list[6],
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(7): graph_series_list[7],
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(8): graph_series_list[8],
-        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(9): graph_series_list[9],
+        date + rdfvalue.Duration.FromDays(6): graph_series_list[6],
+        date + rdfvalue.Duration.FromDays(7): graph_series_list[7],
+        date + rdfvalue.Duration.FromDays(8): graph_series_list[8],
+        date + rdfvalue.Duration.FromDays(9): graph_series_list[9],
     }
     self.assertDictEqual(fetched_data, expected_data)
 

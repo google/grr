@@ -2326,5 +2326,29 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(results[path].hash_entry, path_info.hash_entry)
     self.assertTrue(results[path].timestamp)
 
+  def testWriteLongPathInfosWithCommonPrefix(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    prefix = ("foobarbaz",) * 303
+    quux_components = prefix + ("quux",)
+    norf_components = prefix + ("norf",)
+
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=quux_components),
+        rdf_objects.PathInfo.OS(components=norf_components),
+    ])
+
+    quux_path_info = self.db.ReadPathInfo(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=quux_components)
+    self.assertEqual(quux_path_info.components, quux_components)
+
+    norf_path_info = self.db.ReadPathInfo(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=norf_components)
+    self.assertEqual(norf_path_info.components, norf_components)
+
 
 # This file is a test library and thus does not require a __main__ block.

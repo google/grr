@@ -93,13 +93,17 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = api_flow.ApiCreateFlowArgs
   result_type = api_flow.ApiFlow
 
-  def __init__(self, robot_id=None, override_flow_args=None):
+  def __init__(self,
+               robot_id=None,
+               override_flow_name=None,
+               override_flow_args=None):
     super(ApiRobotCreateFlowHandler, self).__init__()
 
     if not robot_id:
       raise ValueError("Robot id can't be empty.")
     self.robot_id = robot_id
 
+    self.override_flow_name = override_flow_name
     self.override_flow_args = override_flow_args
 
   def Handle(self, args, token=None):
@@ -114,13 +118,13 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
       # Note that runner_args are dropped. From all the arguments We use only
       # the flow name and the arguments.
       delegate_args = api_flow.ApiCreateFlowArgs(client_id=args.client_id)
-      delegate_args.flow.name = args.flow.name
+      delegate_args.flow.name = self.override_flow_name or args.flow.name
       delegate_args.flow.args = self.override_flow_args or args.flow.args
       return delegate.Handle(delegate_args, token=token)
     else:
       flow_id = flow.StartAFF4Flow(
           client_id=args.client_id.ToClientURN(),
-          flow_name=args.flow.name,
+          flow_name=self.override_flow_name or args.flow.name,
           token=token,
           args=self.override_flow_args or args.flow.args)
 
@@ -175,12 +179,30 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     self.delegate = delegate
 
   @property
-  def file_finder_flow_name(self):
+  def allowed_file_finder_flow_names(self):
+    result = [file_finder.FileFinder.__name__]
+    if self.params.file_finder_flow.file_finder_flow_name:
+      result.append(self.params.file_finder_flow.file_finder_flow_name)
+
+    return result
+
+  @property
+  def allowed_artifact_collector_flow_names(self):
+    result = [collectors.ArtifactCollectorFlow.__name__]
+
+    if self.params.artifact_collector_flow.artifact_collector_flow_name:
+      result.append(
+          self.params.artifact_collector_flow.artifact_collector_flow_name)
+
+    return result
+
+  @property
+  def effective_file_finder_flow_name(self):
     return (self.params.file_finder_flow.file_finder_flow_name or
             file_finder.FileFinder.__name__)
 
   @property
-  def artifact_collector_flow_name(self):
+  def effective_artifact_collector_flow_name(self):
     return (self.params.artifact_collector_flow.artifact_collector_flow_name or
             collectors.ArtifactCollectorFlow.__name__)
 
@@ -284,14 +306,15 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     if not args.client_id:
       raise ValueError("client_id must be provided")
 
-    override_flow_args = None
-    throttler = None
-    if args.flow.name == self.file_finder_flow_name:
+    if args.flow.name in self.allowed_file_finder_flow_names:
       self._CheckFileFinderArgs(args.flow.args)
+      override_flow_name = self.effective_file_finder_flow_name
       override_flow_args = self._FixFileFinderArgs(args.flow.args)
       throttler = self._GetFileFinderThrottler()
-    elif args.flow.name == self.artifact_collector_flow_name:
+    elif args.flow.name in self.allowed_artifact_collector_flow_names:
       self._CheckArtifactCollectorFlowArgs(args.flow.args)
+      override_flow_name = self.effective_artifact_collector_flow_name
+      override_flow_args = None
       throttler = self._GetArtifactCollectorFlowThrottler()
     else:
       raise access_control.UnauthorizedAccess(
@@ -312,7 +335,9 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       raise access_control.UnauthorizedAccess(str(e))
 
     return ApiRobotCreateFlowHandler(
-        robot_id=self.params.robot_id, override_flow_args=override_flow_args)
+        robot_id=self.params.robot_id,
+        override_flow_name=override_flow_name,
+        override_flow_args=override_flow_args)
 
   def GetFlow(self, args, token=None):
     if not self.params.get_flow.enabled:
@@ -352,7 +377,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     options = self.params.get_flow_files_archive
 
     if (options.skip_glob_checks_for_artifact_collector and
-        flow_name == self.artifact_collector_flow_name):
+        flow_name == self.effective_artifact_collector_flow_name):
       return api_flow.ApiGetFlowFilesArchiveHandler()
     else:
       return api_flow.ApiGetFlowFilesArchiveHandler(

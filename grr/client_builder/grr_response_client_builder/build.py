@@ -55,7 +55,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.local import plugins
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import yaml
 
 # pylint: enable=g-import-not-at-top,unused-import
 

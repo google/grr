@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import stat
 
 import pytsk3
@@ -21,6 +22,15 @@ from grr_response_core.lib.util import precondition
 # A central Cache for vfs handlers. This can be used to keep objects alive
 # for a limited time.
 DEVICE_CACHE = utils.TimeBasedCache()
+
+
+def _DecodeUTF8WithWarning(string):
+  try:
+    return string.decode("utf-8")
+  except UnicodeDecodeError as e:
+    result = string.decode("utf-8", "replace")
+    logging.warn("%s. Decoded %r to %r", e, string, result)
+    return result
 
 
 class CachedFilesystem(object):
@@ -205,7 +215,7 @@ class TSKFile(vfs_base.VFSHandler):
       # TSK only deals with utf8 strings, but path components are always unicode
       # objects - so we convert to unicode as soon as we receive data from
       # TSK. Prefer to compare unicode objects to guarantee they are normalized.
-      name = f.info.name.name.decode("utf-8")
+      name = _DecodeUTF8WithWarning(f.info.name.name)
 
       # TODO: TSK lists duplicate filenames. Only return unique
       # names from ListNames(), because parts of the system fail otherwise.
@@ -327,7 +337,7 @@ class TSKFile(vfs_base.VFSHandler):
 
     for f in self.fd.as_directory():
       try:
-        name = f.info.name.name.decode("utf-8")
+        name = _DecodeUTF8WithWarning(f.info.name.name)
         # Drop these useless entries.
         if name in [".", ".."] or name in self.BLACKLIST_FILES:
           continue

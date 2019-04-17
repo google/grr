@@ -5,7 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-from typing import Dict, Optional, Text
+from typing import cast, Dict, Optional, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import time_utils
@@ -29,17 +29,17 @@ class MySQLDBClientReportsMixin(object):
     args = {
         "client_label": client_label,
         "report_type": graph_series.report_type.SerializeToDataStore(),
-        "timestamp": mysql_utils.RDFDatetimeToMysqlString(timestamp),
+        "timestamp": mysql_utils.RDFDatetimeToTimestamp(timestamp),
         "graph_series": graph_series.SerializeToString(),
     }
 
     query = """
-      INSERT INTO client_report_graphs {cols}
-      VALUES {vals}
+      INSERT INTO client_report_graphs (client_label, report_type, timestamp,
+                                        graph_series)
+      VALUES (%(client_label)s, %(report_type)s, FROM_UNIXTIME(%(timestamp)s),
+              %(graph_series)s)
       ON DUPLICATE KEY UPDATE graph_series = VALUES(graph_series)
-    """.format(
-        cols=mysql_utils.Columns(args),
-        vals=mysql_utils.NamedPlaceholders(args))
+    """
 
     cursor.execute(query, args)
 
@@ -52,24 +52,29 @@ class MySQLDBClientReportsMixin(object):
       cursor=None):
     """Reads graph series for the given label and report-type from the DB."""
     query = """
-      SELECT timestamp, graph_series
+      SELECT UNIX_TIMESTAMP(timestamp), graph_series
       FROM client_report_graphs
       WHERE client_label = %s AND report_type = %s
     """
     args = [client_label, report_type.SerializeToDataStore()]
 
     if time_range is not None:
-      query += " AND `timestamp` BETWEEN %s AND %s"
+      query += "AND `timestamp` BETWEEN FROM_UNIXTIME(%s) AND FROM_UNIXTIME(%s)"
       args += [
-          mysql_utils.RDFDatetimeToMysqlString(time_range.start),
-          mysql_utils.RDFDatetimeToMysqlString(time_range.end)
+          mysql_utils.RDFDatetimeToTimestamp(time_range.start),
+          mysql_utils.RDFDatetimeToTimestamp(time_range.end)
       ]
 
     cursor.execute(query, args)
     results = {}
     for timestamp, raw_series in cursor.fetchall():
+      # TODO(hanuszczak): pytype does not seem to understand overloads, so it is
+      # not possible to correctly annotate `TimestampToRDFDatetime`.
+      timestamp = cast(rdfvalue.RDFDatetime,
+                       mysql_utils.TimestampToRDFDatetime(timestamp))
+
       series = rdf_stats.ClientGraphSeries.FromSerializedString(raw_series)
-      results[mysql_utils.MysqlToRDFDatetime(timestamp)] = series
+      results[timestamp] = series
     return results
 
   @mysql_utils.WithTransaction(readonly=True)

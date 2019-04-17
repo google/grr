@@ -12,7 +12,7 @@ import mock
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util import json
+from grr_response_core.lib.util.compat import json
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 

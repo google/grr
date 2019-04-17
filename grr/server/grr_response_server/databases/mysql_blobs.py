@@ -38,7 +38,7 @@ def _Insert(cursor, table, values):
                        "Expecting columns {!r}, but got value {!r}".format(
                            column_names, value_dict))
 
-  query = "INSERT INTO %s {cols} VALUES {vals}" % table
+  query = "INSERT IGNORE INTO %s {cols} VALUES {vals}" % table
   query = query.format(
       cols=mysql_utils.Columns(column_names),
       vals=mysql_utils.Placeholders(num=len(column_names), values=len(values)))
@@ -96,6 +96,9 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadBlobs(self, blob_ids, cursor=None):
     """Reads given blobs."""
+    if not blob_ids:
+      return {}
+
     query = ("SELECT blob_id, blob_chunk "
              "FROM blobs "
              "FORCE INDEX (PRIMARY) "
@@ -115,6 +118,9 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   @mysql_utils.WithTransaction(readonly=True)
   def CheckBlobsExist(self, blob_ids, cursor=None):
     """Checks if given blobs exist."""
+    if not blob_ids:
+      return {}
+
     exists = {blob_id: False for blob_id in blob_ids}
     query = ("SELECT blob_id "
              "FROM blobs "

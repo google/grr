@@ -15,7 +15,7 @@ import mock
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import json
+from grr_response_core.lib.util.compat import json
 from grr_response_server import bigquery
 from grr.test_lib import test_lib
 

@@ -63,42 +63,45 @@ def ProcessMigrations(open_conn_fn,
     open_conn_fn: A function to open new database connection.
     migrations_root: A path to folder with migration files.
   """
-  with contextlib.closing(open_conn_fn()) as update_conn:
-    with contextlib.closing(open_conn_fn()) as lock_conn:
-      with contextlib.closing(update_conn.cursor()) as update_cursor:
-        with contextlib.closing(lock_conn.cursor()) as lock_cursor:
+  with contextlib.closing(open_conn_fn()) as conn:
+    conn.autocommit(True)
 
-          lock_cursor.execute("""CREATE TABLE IF NOT EXISTS _migrations(
-            migration_id INT UNSIGNED PRIMARY KEY,
-            timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6)
-            )""")
+    with contextlib.closing(conn.cursor()) as cursor:
+      cursor.execute("""CREATE TABLE IF NOT EXISTS _migrations(
+        migration_id INT UNSIGNED PRIMARY KEY,
+        timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6)
+        )""")
 
-          lock_cursor.execute("LOCK TABLE _migrations WRITE")
+    with contextlib.closing(conn.cursor()) as cursor:
+      cursor.execute('SELECT GET_LOCK("grr_migration", 3600)')
 
-          try:
-            current_migration = GetLatestMigrationNumber(lock_cursor)
-            to_process = ListMigrationsToProcess(migrations_root,
-                                                 current_migration)
-            logging.info("Will execute following DB migrations: %s",
-                         ", ".join(to_process))
+    try:
+      with contextlib.closing(conn.cursor()) as cursor:
+        current_migration = GetLatestMigrationNumber(cursor)
 
-            for fname in to_process:
-              start_time = time.time()
-              logging.info("Starting migration %s", fname)
+      to_process = ListMigrationsToProcess(migrations_root, current_migration)
+      logging.info("Will execute following DB migrations: %s",
+                   ", ".join(to_process))
 
-              with open(os.path.join(migrations_root, fname)) as fd:
-                sql = fd.read()
-                update_cursor.execute(sql)
+      for fname in to_process:
+        start_time = time.time()
+        logging.info("Starting migration %s", fname)
 
-              logging.info("Migration %s is done. Took %.2fs", fname,
-                           time.time() - start_time)
+        with open(os.path.join(migrations_root, fname)) as fd:
+          sql = fd.read()
+          with contextlib.closing(conn.cursor()) as cursor:
+            cursor.execute(sql)
 
-              # Update _migrations table with the latest migration.
-              lock_cursor.execute(
-                  "INSERT INTO _migrations (migration_id) VALUES (%s)",
-                  [_MigrationFilenameToInt(fname)])
-          finally:
-            lock_cursor.execute("UNLOCK TABLES")
+        logging.info("Migration %s is done. Took %.2fs", fname,
+                     time.time() - start_time)
+
+        # Update _migrations table with the latest migration.
+        with contextlib.closing(conn.cursor()) as cursor:
+          cursor.execute("INSERT INTO _migrations (migration_id) VALUES (%s)",
+                         [_MigrationFilenameToInt(fname)])
+    finally:
+      with contextlib.closing(conn.cursor()) as cursor:
+        cursor.execute('SELECT RELEASE_LOCK("grr_migration")')
 
 
 def DumpCurrentSchema(cursor):

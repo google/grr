@@ -10,7 +10,8 @@ import io
 from absl.testing import absltest
 from typing import Text
 
-from grr_response_core.lib.util import yaml
+
+from grr_response_core.lib.util.compat import yaml  # pylint: disable=g-import-not-at-top
 
 
 # TODO: Add tests with 4-byte unicode characters once we switch to

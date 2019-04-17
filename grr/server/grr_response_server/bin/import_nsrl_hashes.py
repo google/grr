@@ -16,7 +16,7 @@ from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import csv
+from grr_response_core.lib.util.compat import csv
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import server_startup

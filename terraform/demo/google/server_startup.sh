@@ -3,10 +3,24 @@ set -e
 
 WINDOWS_INSTALLER_UPLOAD_URL=$(curl http://metadata.google.internal/computeMetadata/v1/project/attributes//windows_installer_upload_url -H "Metadata-Flavor: Google")
 LINUX_INSTALLER_UPLOAD_URL=$(curl http://metadata.google.internal/computeMetadata/v1/project/attributes//linux_installer_upload_url -H "Metadata-Flavor: Google")
+if [[ "${grr_version}" = "latest" ]]; then
+  wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-241.0.0-linux-x86_64.tar.gz"
+  tar -xzf ./google-cloud-sdk-241.0.0-linux-x86_64.tar.gz -C .
+  ./google-cloud-sdk/bin/gsutil cp gs://autobuilds.grr-response.com/_latest_server_deb/*.deb .
+  GRR_VERSION=$(ls *.deb | sed 's/.*\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\-\([0-9]\+\).*/\1.\2.\3.\4/')
+else
+  GRR_VERSION="${grr_version}"
+fi
+GRR_DEB_VERSION=$(echo "$${GRR_VERSION}" | sed -e 's/\.\([0-9]\+\)$/-\1/')
 
 apt-get -y update
-wget "https://storage.googleapis.com/releases.grr-response.com/grr-server_3.2.1-1_amd64.deb"
-env DEBIAN_FRONTEND=noninteractive apt install -y ./grr-server_3.2.1-1_amd64.deb
+# If grr_version is "latest", the DEB should already be downloaded (and it's
+# not going to be present in releases.grr-response.com anyway, since the
+# corresponding version was not released yet).
+if [[ "${grr_version}" != "latest" ]]; then
+  wget "https://storage.googleapis.com/releases.grr-response.com/grr-server_$${GRR_DEB_VERSION}_amd64.deb"
+fi
+env DEBIAN_FRONTEND=noninteractive apt install -y ./grr-server_$${GRR_DEB_VERSION}_amd64.deb
 service grr-server stop
 
 apt-get -y install nginx
@@ -16,7 +30,7 @@ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -subj "/C=US/ST=Denial/L=Spr
 cat <<"EOF" > /etc/nginx/sites-enabled/default
 server {
     listen 80;
-    return 301 https://$$host$$request_uri;
+    return 301 https://$host$request_uri;
 }
 
 server {
@@ -36,10 +50,10 @@ server {
 
     location / {
 
-      proxy_set_header        Host $$host;
-      proxy_set_header        X-Real-IP $$remote_addr;
-      proxy_set_header        X-Forwarded-For $$proxy_add_x_forwarded_for;
-      proxy_set_header        X-Forwarded-Proto $$scheme;
+      proxy_set_header        Host $host;
+      proxy_set_header        X-Real-IP $remote_addr;
+      proxy_set_header        X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header        X-Forwarded-Proto $scheme;
 
       # Fix the 'It appears that your reverse proxy set up is broken' error.
       proxy_pass          http://localhost:8000;
@@ -53,12 +67,14 @@ sudo service nginx restart
 
 
 cat << EOF > /etc/grr/server.local.yaml
-Datastore.implementation: MySQLAdvancedDataStore
+Database.aff4_enabled: False
+Database.enabled: True
+Database.implementation: MysqlDB
 Mysql.host: ${mysql_host}
 Mysql.port: 3306
-Mysql.database_name: grr-db
-Mysql.database_username: grr
-Mysql.database_password: grrpassword
+Mysql.database: grr
+Mysql.username: grr
+Mysql.password: grrpassword
 
 Client.server_urls: http://${server_host}:8080/
 Frontend.bind_port: 8080
@@ -80,5 +96,5 @@ grr_config_updater add_user --password admin admin
 
 service grr-server start
 
-curl -X PUT -T - "$$WINDOWS_INSTALLER_UPLOAD_URL" < /usr/share/grr-server/executables/installers/GRR_3.2.1.1_amd64.exe
-curl -X PUT -T - "$$LINUX_INSTALLER_UPLOAD_URL" < /usr/share/grr-server/executables/installers/grr_3.2.1.1_amd64.deb
+curl -X PUT -T - "$${WINDOWS_INSTALLER_UPLOAD_URL}" < /usr/share/grr-server/executables/installers/GRR_$${GRR_VERSION}_amd64.exe
+curl -X PUT -T - "$${LINUX_INSTALLER_UPLOAD_URL}" < /usr/share/grr-server/executables/installers/grr_$${GRR_VERSION}_amd64.deb

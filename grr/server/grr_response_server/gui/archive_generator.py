@@ -13,7 +13,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import yaml
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.flows.general import export as flow_export

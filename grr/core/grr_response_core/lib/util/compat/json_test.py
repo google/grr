@@ -12,8 +12,8 @@ from absl.testing import absltest
 from typing import Any
 from typing import Text
 
-from grr_response_core.lib.util import json
 from grr_response_core.lib.util import temp
+from grr_response_core.lib.util.compat import json
 
 
 class ParseTest(absltest.TestCase):

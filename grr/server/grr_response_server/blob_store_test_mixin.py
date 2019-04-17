@@ -35,6 +35,12 @@ class BlobStoreTestMixin(with_metaclass(abc.ABCMeta)):
       self.addCleanup(cleanup)
     self.blob_store = blob_store.BlobStoreValidationWrapper(bs)
 
+  def testCheckBlobsExistOnEmptyListReturnsEmptyDict(self):
+    self.assertEqual(self.blob_store.CheckBlobsExist([]), {})
+
+  def testReadBlobsOnEmptyListReturnsEmptyDict(self):
+    self.assertEqual(self.blob_store.ReadBlobs([]), {})
+
   def testReadingNonExistentBlobReturnsNone(self):
     blob_id = rdf_objects.BlobID(b"01234567" * 4)
     result = self.blob_store.ReadBlobs([blob_id])
@@ -95,3 +101,10 @@ class BlobStoreTestMixin(with_metaclass(abc.ABCMeta)):
     self.blob_store.WriteBlobs({blob_id: blob_data})
     result = self.blob_store.ReadBlobs([blob_id])
     self.assertEqual({blob_id: blob_data}, result)
+
+  def testOverwritingExistingBlobDoesNotRaise(self):
+    blob_id = rdf_objects.BlobID(b"01234567" * 4)
+    blob_data = b"abcdef"
+
+    for _ in range(2):
+      self.blob_store.WriteBlobs({blob_id: blob_data})

@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 from absl.testing import absltest
 
-from grr_response_core.lib.util import csv
+from grr_response_core.lib.util.compat import csv
 
 
 class CsvReaderTest(absltest.TestCase):

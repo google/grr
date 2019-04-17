@@ -5,7 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-from typing import Sequence, Tuple
+from typing import cast, Sequence, Tuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server.databases import db
@@ -29,8 +29,6 @@ class MySQLDBSignedBinariesMixin(object):
             binary_id.path,
         "binary_path_hash":
             mysql_utils.Hash(binary_id.path),
-        "timestamp":
-            mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now()),
         "blob_references":
             references.SerializeToString()
     }
@@ -38,7 +36,6 @@ class MySQLDBSignedBinariesMixin(object):
       INSERT INTO signed_binary_references {cols}
       VALUES {vals}
       ON DUPLICATE KEY UPDATE
-        timestamp = VALUES(timestamp),
         blob_references = VALUES(blob_references)
     """.format(
         cols=mysql_utils.Columns(args),
@@ -52,7 +49,7 @@ class MySQLDBSignedBinariesMixin(object):
     """Reads blob references for the signed binary with the given id."""
     cursor.execute(
         """
-      SELECT blob_references, timestamp
+      SELECT blob_references, UNIX_TIMESTAMP(timestamp)
       FROM signed_binary_references
       WHERE binary_type = %s AND binary_path_hash = %s
     """, [
@@ -65,8 +62,13 @@ class MySQLDBSignedBinariesMixin(object):
       raise db.UnknownSignedBinaryError(binary_id)
 
     raw_references, timestamp = row
+    # TODO(hanuszczak): pytype does not understand overloads, so we have to cast
+    # to a non-optional object.
+    datetime = cast(rdfvalue.RDFDatetime,
+                    mysql_utils.TimestampToRDFDatetime(timestamp))
+
     references = rdf_objects.BlobReferences.FromSerializedString(raw_references)
-    return references, mysql_utils.MysqlToRDFDatetime(timestamp)
+    return references, datetime
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadIDsForAllSignedBinaries(self, cursor=None

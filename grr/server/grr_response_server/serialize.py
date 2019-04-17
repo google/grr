@@ -9,7 +9,7 @@ from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import yaml
 from grr_response_server import aff4
 
 

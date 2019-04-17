@@ -39,7 +39,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import yaml
 
 # Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string(
@@ -68,6 +68,7 @@ flags.DEFINE_multi_string(
     help="Global override of config values. "
     "For example -p DataStore.implementation=MySQLDataStore",
     short_name="p")
+
 
 
 class Error(Exception):

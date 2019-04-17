@@ -20,8 +20,8 @@ from google.protobuf import json_format
 
 from grr_api_client.connectors import http_connector
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import json
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util.compat import json
 from grr_response_server import data_store
 from grr_response_server import gui
 from grr_response_server.gui import api_auth_manager

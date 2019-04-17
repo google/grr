@@ -4,6 +4,14 @@ variable "gce_region" {
   default = "europe-west1"
 }
 
+variable "grr_version" {
+  // Should match an existing GRR release (i.e. "3.2.1.1") or
+  // have a value of "latest".
+  // "latest" means that the latest successfully built DEB (matching
+  // the HEAD version on GitHub) will be used.
+  default = "latest"
+}
+
 variable "windows_client_count" {
   default = "1"
 }
@@ -52,8 +60,10 @@ resource "google_sql_user" "users" {
 }
 
 resource "google_sql_database" "grr-db" {
-  name     = "grr-db"
+  name     = "grr"
   instance = "${google_sql_database_instance.grr-db.name}"
+  charset   = "utf8mb4"
+  collation = "utf8mb4_unicode_ci"
 }
 
 resource "google_compute_address" "grr-address" {
@@ -64,6 +74,7 @@ data "template_file" "grr-startup" {
   template = "${file("${path.module}/server_startup.sh")}"
 
   vars {
+    grr_version = "${var.grr_version}"
     server_host = "${google_compute_address.grr-address.address}"
     mysql_host  = "${google_sql_database_instance.grr-db.ip_address.0.ip_address}"
   }
@@ -93,25 +104,25 @@ resource "google_storage_bucket" "installers-store" {
 
 data "google_storage_object_signed_url" "windows-installer-put" {
   bucket      = "${google_storage_bucket.installers-store.name}"
-  path        = "dbg_GRR_3.2.1.1_amd64.exe"
+  path        = "dbg_GRR_${var.grr_version}_amd64.exe"
   http_method = "PUT"
 }
 
 data "google_storage_object_signed_url" "windows-installer-get" {
   bucket      = "${google_storage_bucket.installers-store.name}"
-  path        = "dbg_GRR_3.2.1.1_amd64.exe"
+  path        = "dbg_GRR_${var.grr_version}_amd64.exe"
   http_method = "GET"
 }
 
 data "google_storage_object_signed_url" "linux-installer-put" {
   bucket      = "${google_storage_bucket.installers-store.name}"
-  path        = "grr_3.2.1.1_amd64.deb"
+  path        = "grr_${var.grr_version}_amd64.deb"
   http_method = "PUT"
 }
 
 data "google_storage_object_signed_url" "linux-installer-get" {
   bucket      = "${google_storage_bucket.installers-store.name}"
-  path        = "grr_3.2.1.1_amd64.deb"
+  path        = "grr_${var.grr_version}_amd64.deb"
   http_method = "GET"
 }
 

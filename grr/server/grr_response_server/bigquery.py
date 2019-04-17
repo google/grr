@@ -14,7 +14,7 @@ from googleapiclient import http
 import httplib2
 
 from grr_response_core import config
-from grr_response_core.lib.util import json
+from grr_response_core.lib.util.compat import json
 
 # pylint: disable=g-import-not-at-top
 try:

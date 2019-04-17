@@ -21,7 +21,6 @@ from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import hunts
 from grr_response_server import ip_resolver
-from grr_response_server import master
 from grr_response_server import output_plugin
 from grr_response_server import output_plugins
 from grr_response_server import stats_server

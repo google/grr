@@ -19,8 +19,8 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import json
-from grr_response_core.lib.util import yaml
+from grr_response_core.lib.util.compat import json
+from grr_response_core.lib.util.compat import yaml
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
 

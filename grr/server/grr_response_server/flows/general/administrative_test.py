@@ -464,6 +464,13 @@ sys.test_code_ran_here = True
     maintenance_utils.UploadSignedConfigBlob(
         code, aff4_path=upload_path, token=self.token)
 
+    binary_urn = rdfvalue.RDFURN(upload_path)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+        binary_urn, token=self.token)
+
+    # There should be only a single part to this binary.
+    self.assertLen(list(blob_iterator), 1)
+
     # This flow has an acl, the user needs to be admin.
     acl_test_lib.CreateAdminUser(self.token.username)
 
@@ -574,6 +581,32 @@ sys.test_code_ran_here = True
         config.CONFIG["Client.platform"]).Add("test.deb")
     maintenance_utils.UploadSignedConfigBlob(
         fake_installer, aff4_path=upload_path, limit=100, token=self.token)
+
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+        upload_path, token=self.token)
+    self.assertLen(list(blob_list), 4)
+
+    acl_test_lib.CreateAdminUser(self.token.username)
+
+    flow_test_lib.TestFlowHelper(
+        administrative.UpdateClient.__name__,
+        client_mock,
+        client_id=self.SetupClient(0, system=""),
+        blob_path=upload_path,
+        token=self.token)
+    self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
+
+  def testUpdateClientSingleBlob(self):
+    client_mock = action_mocks.UpdateAgentClientMock()
+    fake_installer = b"FakeGRRDebInstaller" * 20
+    upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
+        config.CONFIG["Client.platform"]).Add("test.deb")
+    maintenance_utils.UploadSignedConfigBlob(
+        fake_installer, aff4_path=upload_path, limit=1000, token=self.token)
+
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+        upload_path, token=self.token)
+    self.assertLen(list(blob_list), 1)
 
     acl_test_lib.CreateAdminUser(self.token.username)
 

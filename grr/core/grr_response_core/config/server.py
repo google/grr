@@ -130,8 +130,8 @@ config_lib.DEFINE_bool(
     "Server.initialized", False, "True once config_updater initialize has been "
     "run at least once.")
 
-config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
-                         "The master watcher class to use.")
+config_lib.DEFINE_string("Server.master_watcher_class", "",
+                         "Unused, deprecated.")
 
 config_lib.DEFINE_string("Server.ip_resolver_class", "IPResolver",
                          "The ip resolver class to use.")

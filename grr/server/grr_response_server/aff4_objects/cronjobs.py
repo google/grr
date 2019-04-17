@@ -24,7 +24,6 @@ from grr_response_server import aff4
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import flow
-from grr_response_server import master
 from grr_response_server import queue_manager
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -326,9 +325,6 @@ class CronWorker(object):
     ScheduleSystemCronFlows(token=self.token)
 
     while True:
-      if not master.MASTER_WATCHER.IsMaster():
-        time.sleep(self.sleep)
-        continue
       try:
         GetCronManager().RunOnce(token=self.token)
       except Exception as e:  # pylint: disable=broad-except
@@ -546,7 +542,7 @@ class CronJob(aff4.AFF4Volume):
 class CronHook(registry.InitHook):
   """Init hook for cron job metrics."""
 
-  pre = [aff4.AFF4InitHook, master.MasterInit]
+  pre = [aff4.AFF4InitHook]
 
   def RunOnce(self):
     """Main CronHook method."""

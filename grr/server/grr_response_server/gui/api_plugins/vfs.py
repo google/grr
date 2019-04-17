@@ -27,7 +27,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import context
-from grr_response_core.lib.util import csv
+from grr_response_core.lib.util.compat import csv
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
