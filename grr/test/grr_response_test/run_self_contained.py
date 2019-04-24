@@ -25,7 +25,6 @@ from grr_api_client import api
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
-from grr_response_core.lib.util import compatibility
 
 
 class Error(Exception):
@@ -118,14 +117,6 @@ def _RunServerComponent(name, import_main_fn, args):
     args: An iterable with program arguments (not containing the program name,
       which is passed in the "name" argument).
   """
-  # pylint: disable=g-import-not-at-top,unused-variable
-  from grr_response_test.lib import shared_mem_db
-  from grr_response_server.databases import registry_init as db_registry_init
-  # pylint: enable=g-import-not-at-top,unused-variable
-
-  db_registry_init.REGISTRY[compatibility.GetName(
-      shared_mem_db.SharedMemoryDB)] = shared_mem_db.SharedMemoryDB
-
   main_fn = import_main_fn()
 
   # Result of the invocation of a main function is passed to the `sys.exit`. In
