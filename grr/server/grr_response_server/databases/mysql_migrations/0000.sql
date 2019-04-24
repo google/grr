@@ -183,12 +183,16 @@ CREATE TABLE IF NOT EXISTS user_notification(
 CREATE TABLE IF NOT EXISTS api_audit_entry(
     -- Entries are retained after user deletion. Thus, do not use a FOREIGN KEY
     -- to grr_users.username_hash.
+    entry_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     username VARCHAR(254),
     router_method_name VARCHAR(128),
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     details MEDIUMBLOB,
-    PRIMARY KEY (username(191), timestamp)
+    PRIMARY KEY (entry_id)
 );
+
+CREATE INDEX IF NOT EXISTS api_audit_entry_by_username_timestamp
+    ON api_audit_entry(username(191), timestamp);
 
 CREATE INDEX IF NOT EXISTS timestamp_idx
     ON api_audit_entry(timestamp);
@@ -246,9 +250,9 @@ CREATE TABLE IF NOT EXISTS cron_job_runs(
 CREATE TABLE IF NOT EXISTS client_messages(
     client_id BIGINT UNSIGNED,
     message_id BIGINT UNSIGNED,
-    timestamp DATETIME(6),
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6) ON UPDATE NOW(6),
     message MEDIUMBLOB,
-    leased_until DATETIME(6),
+    leased_until TIMESTAMP(6) NULL DEFAULT NULL,
     leased_by VARCHAR(128),
     leased_count INT DEFAULT 0,
     PRIMARY KEY (client_id, message_id),
@@ -343,6 +347,7 @@ CREATE INDEX IF NOT EXISTS flow_processing_requests_by_lease
     ON flow_processing_requests(leased_until, leased_by);
 
 CREATE TABLE IF NOT EXISTS flow_results(
+    result_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
     hunt_id BIGINT UNSIGNED,
@@ -350,7 +355,7 @@ CREATE TABLE IF NOT EXISTS flow_results(
     payload MEDIUMBLOB,
     type VARCHAR(128),
     tag VARCHAR(128),
-    PRIMARY KEY (client_id, flow_id, timestamp),
+    PRIMARY KEY (result_id),
     FOREIGN KEY (client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
@@ -358,6 +363,9 @@ CREATE TABLE IF NOT EXISTS flow_results(
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 );
+
+CREATE INDEX IF NOT EXISTS flow_results_by_client_id_flow_id_timestamp
+    ON flow_results(client_id, flow_id, timestamp);
 
 CREATE INDEX IF NOT EXISTS flow_results_hunt_id_flow_id_timestamp
     ON flow_results(hunt_id, flow_id, timestamp);

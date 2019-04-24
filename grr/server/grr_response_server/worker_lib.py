@@ -399,8 +399,6 @@ class GRRWorker(object):
     client_id = flow_processing_request.client_id
     flow_id = flow_processing_request.flow_id
 
-    logging.info("Processing flow %s/%s.", client_id, flow_id)
-
     data_store.REL_DB.AckFlowProcessingRequests([flow_processing_request])
 
     try:
@@ -409,6 +407,9 @@ class GRRWorker(object):
     except db.ParentHuntIsNotRunningError:
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return
+
+    logging.info("Processing Flow %s/%s (%s).", client_id, flow_id,
+                 rdf_flow.flow_class_name)
 
     flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
     flow_obj = flow_cls(rdf_flow)

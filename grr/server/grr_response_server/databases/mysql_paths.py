@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import contextlib
+
 from future.utils import iteritems
 from future.utils import iterkeys
 
@@ -197,7 +199,7 @@ class MySQLDBPathMixin(object):
       raise db.AtLeastOneUnknownClientError(client_ids=client_ids, cause=error)
 
   @mysql_utils.WithTransaction()
-  def _MultiWritePathInfos(self, path_infos, cursor=None):
+  def _MultiWritePathInfos(self, path_infos, connection=None):
     """Writes a collection of path info records for specified clients."""
     query = ""
 
@@ -329,11 +331,19 @@ class MySQLDBPathMixin(object):
          AND client_path_infos.hash_entry IS NOT NULL;
       """
 
-    query += """
-    DROP TEMPORARY TABLE client_path_infos;
-    """
-
-    cursor.execute(query, path_info_values + parent_path_info_values)
+    try:
+      with contextlib.closing(connection.cursor()) as cursor:
+        cursor.execute(query, path_info_values + parent_path_info_values)
+    finally:
+      # Drop the temporary table in a separate cursor. This ensures that
+      # even if the previous cursor.execute fails mid-way leaving the
+      # temporary table created (as table creation can't be rolled back), the
+      # table would still be correctly dropped.
+      #
+      # This is important since connections are reused in the MySQL connection
+      # pool.
+      with contextlib.closing(connection.cursor()) as cursor:
+        cursor.execute("DROP TEMPORARY TABLE IF EXISTS client_path_infos")
 
   def ClearPathHistory(self, client_id, path_infos):
     """Clears path history for specified paths of given client."""

@@ -51,6 +51,16 @@ flags.DEFINE_list(
     "A comma-separated list of extra tests to run (such tests are not run by "
     "default and have to be manually enabled with this flag).")
 
+flags.DEFINE_string("mysql_database", "grr_test_db",
+                    "MySQL database name to use.")
+
+flags.DEFINE_string("mysql_username", None, "MySQL username to use.")
+
+flags.DEFINE_string("mysql_password", None, "MySQL password to use.")
+
+flags.DEFINE_string("logging_path", None,
+                    "Base logging path for server components to use.")
+
 
 def GetServerComponentArgs(config_path):
   """Returns a set of command line arguments for server components.
@@ -233,14 +243,6 @@ def ImportSelfContainedConfigWriter():
   return self_contained_config_writer.main
 
 
-def ImportSharedMemoryDBServer():
-  """Imports data server main module, to be used with StartServerComponent."""
-  # pylint: disable=g-import-not-at-top,unused-variable
-  from grr_response_test.lib import shared_mem_db_server
-  # pylint: enable=g-import-not-at-top,unused-variable
-  return shared_mem_db_server.main
-
-
 def ImportRunEndToEndTests():
   """Imports e2e runner main module, to be used with StartServerComponent."""
   # pylint: disable=g-import-not-at-top,unused-variable
@@ -323,12 +325,12 @@ def WaitForClientToEnroll(admin_ui_port):
   api_endpoint = "http://localhost:%d" % admin_ui_port
 
   start_time = time.time()
-  while time.time() - start_time < _CLIENT_ENROLLMENT_WAIT_TIMEOUT_SECS:
+  while time.time() - start_time < _CLIENT_ENROLLMENT_WAIT_TIMEOUT_SECS * 10:
     try:
       api_client = api.InitHttp(api_endpoint=api_endpoint)
       clients = list(api_client.SearchClients(query="."))
     except requests.exceptions.ConnectionError:
-      print("Connection error (%s), waiting..." % api_endpoint)
+      #      print("Connection error (%s), waiting..." % api_endpoint)
       time.sleep(_CLIENT_ENROLLMENT_CHECK_INTERVAL)
       continue
 
@@ -377,6 +379,9 @@ def GetRunEndToEndTestsArgs(client_id, server_config):
 def main(argv):
   del argv  # Unused.
 
+  if flags.FLAGS.mysql_username is None:
+    raise ValueError("--mysql_username has to be specified.")
+
   # Create 2 temporary files to contain server and client configuration files
   # that we're about to generate.
   #
@@ -396,12 +401,29 @@ def main(argv):
   atexit.register(CleanUpConfigs)
 
   # Generate server and client configs.
-  p = StartServerComponent("ConfigWriter", ImportSelfContainedConfigWriter, [
+  config_writer_flags = [
       "--dest_server_config_path",
       built_server_config_path,
       "--dest_client_config_path",
       built_client_config_path,
-  ])
+      "--config_mysql_database",
+      flags.FLAGS.mysql_database,
+  ]
+
+  if flags.FLAGS.mysql_username is not None:
+    config_writer_flags.extend(
+        ["--config_mysql_username", flags.FLAGS.mysql_username])
+
+  if flags.FLAGS.mysql_password is not None:
+    config_writer_flags.extend(
+        ["--config_mysql_password", flags.FLAGS.mysql_password])
+
+  if flags.FLAGS.logging_path is not None:
+    config_writer_flags.extend(
+        ["--config_logging_path", flags.FLAGS.logging_path])
+
+  p = StartServerComponent("ConfigWriter", ImportSelfContainedConfigWriter,
+                           config_writer_flags)
   p.join()
   if p.exitcode != 0:
     raise RuntimeError("ConfigWriter execution failed: {}".format(p.exitcode))
@@ -409,14 +431,8 @@ def main(argv):
   server_config = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(),
                                         built_server_config_path)
 
-  # Start SharedMemoryDbServer and wait for it to come up.
-  dp = StartServerComponent("DBServer", ImportSharedMemoryDBServer,
-                            GetServerComponentArgs(built_server_config_path))
-  WaitForTCPPort(server_config["SharedMemoryDB.port"])
-
   # Start all remaining server components.
   processes = [
-      dp,
       StartServerComponent("AdminUI", ImportAdminUI,
                            GetServerComponentArgs(built_server_config_path)),
       StartServerComponent("Frontend", ImportFrontend,

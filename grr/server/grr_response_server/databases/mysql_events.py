@@ -29,6 +29,7 @@ class MySQLDBEventMixin(object):
 
     query = """SELECT details, timestamp
         FROM api_audit_entry
+        FORCE INDEX (api_audit_entry_by_username_timestamp)
         {WHERE_PLACEHOLDER}
         ORDER BY timestamp ASC
     """
@@ -81,6 +82,7 @@ class MySQLDBEventMixin(object):
                     AS DATE) AS day,
                COUNT(*)
         FROM api_audit_entry
+        FORCE INDEX (api_audit_entry_by_username_timestamp)
         {WHERE_PLACEHOLDER}
         GROUP BY username, day
     """
@@ -120,8 +122,8 @@ class MySQLDBEventMixin(object):
     }
     query = """
     INSERT INTO api_audit_entry (username, router_method_name, details,
-                                 timestamp)
+        timestamp)
     VALUES (%(username)s, %(router_method_name)s, %(details)s,
-            FROM_UNIXTIME(%(timestamp)s))
+        FROM_UNIXTIME(%(timestamp)s))
     """
     cursor.execute(query, args)

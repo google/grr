@@ -22,6 +22,21 @@ flags.DEFINE_string("dest_server_config_path", None,
 flags.DEFINE_string("dest_client_config_path", None,
                     "Where to write generated client configuration.")
 
+# We want the config writer to be a standalone executable and also to be
+# importable from run_self_contained.py. As run_self_contained.py already
+# defines --mysql_database, --mysql_username and --mysql_password flags,
+# we avoid name clash by using the "config_" prefix.
+flags.DEFINE_string("config_mysql_database", None,
+                    "MySQL database name to use.")
+
+flags.DEFINE_string("config_mysql_username", None, "MySQL username to use.")
+flags.mark_flag_as_required("config_mysql_username")
+
+flags.DEFINE_string("config_mysql_password", None, "MySQL password to use.")
+
+flags.DEFINE_string("config_logging_path", None,
+                    "Base logging path for server components to use.")
+
 
 def main(argv):
   del argv  # Unused.
@@ -34,7 +49,6 @@ def main(argv):
 
   admin_ui_port = portpicker.pick_unused_port()
   frontend_port = portpicker.pick_unused_port()
-  datastore_port = portpicker.pick_unused_port()
 
   source_server_config_path = package.ResourcePath(
       "grr-response-core", "install_data/etc/grr-server.yaml")
@@ -46,8 +60,12 @@ def main(argv):
   config.CONFIG.Set("Database.enabled", True)
 
   config.CONFIG.Set("Blobstore.implementation", "DbBlobStore")
-  config.CONFIG.Set("Database.implementation", "SharedMemoryDB")
-  config.CONFIG.Set("SharedMemoryDB.port", datastore_port)
+  config.CONFIG.Set("Database.implementation", "MysqlDB")
+  config.CONFIG.Set("Mysql.database", flags.FLAGS.config_mysql_database)
+  if flags.FLAGS.config_mysql_username is not None:
+    config.CONFIG.Set("Mysql.username", flags.FLAGS.config_mysql_username)
+  if flags.FLAGS.config_mysql_password is not None:
+    config.CONFIG.Set("Mysql.password", flags.FLAGS.config_mysql_password)
   config.CONFIG.Set("AdminUI.port", admin_ui_port)
   config.CONFIG.Set("AdminUI.headless", True)
   config.CONFIG.Set("Frontend.bind_address", "127.0.0.1")
@@ -56,6 +74,8 @@ def main(argv):
   config.CONFIG.Set("Client.poll_max", 1)
   config.CONFIG.Set("Client.server_urls",
                     ["http://localhost:%d/" % frontend_port])
+  if flags.FLAGS.config_logging_path is not None:
+    config.CONFIG.Set("Logging.path", flags.FLAGS.config_logging_path)
 
   config_updater_keys_util.GenerateKeys(config.CONFIG)
   config.CONFIG.Write()

@@ -34,14 +34,13 @@ class MySQLDBFlowMixin(object):
   def WriteMessageHandlerRequests(self, requests, cursor=None):
     """Writes a list of message handler requests to the database."""
     query = ("INSERT IGNORE INTO message_handler_requests "
-             "(handlername, timestamp, request_id, request) VALUES ")
-    now = mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
+             "(handlername, request_id, request) VALUES ")
 
     value_templates = []
     args = []
     for r in requests:
-      args.extend([r.handler_name, now, r.request_id, r.SerializeToString()])
-      value_templates.append("(%s, FROM_UNIXTIME(%s), %s, %s)")
+      args.extend([r.handler_name, r.request_id, r.SerializeToString()])
+      value_templates.append("(%s, %s, %s)")
 
     query += ",".join(value_templates)
     cursor.execute(query, args)
@@ -151,7 +150,8 @@ class MySQLDBFlowMixin(object):
   def ReadClientMessages(self, client_id, cursor=None):
     """Reads all client messages available for a given client_id."""
 
-    query = ("SELECT message, leased_until, leased_by, leased_count "
+    query = ("SELECT "
+             "  message, UNIX_TIMESTAMP(leased_until), leased_by, leased_count "
              "FROM client_messages "
              "WHERE client_id = %s")
 
@@ -162,7 +162,7 @@ class MySQLDBFlowMixin(object):
       message = rdf_flows.GrrMessage.FromSerializedString(msg)
       if leased_until:
         message.leased_by = leased_by
-        message.leased_until = mysql_utils.MysqlToRDFDatetime(leased_until)
+        message.leased_until = mysql_utils.TimestampToRDFDatetime(leased_until)
       message.ttl = db.Database.CLIENT_MESSAGES_TTL - leased_count
       ret.append(message)
 
@@ -192,25 +192,26 @@ class MySQLDBFlowMixin(object):
     """Leases available client messages for the client with the given id."""
 
     now = rdfvalue.RDFDatetime.Now()
-    now_str = mysql_utils.RDFDatetimeToMysqlString(now)
+    now_str = mysql_utils.RDFDatetimeToTimestamp(now)
     expiry = now + lease_time
-    expiry_str = mysql_utils.RDFDatetimeToMysqlString(expiry)
+    expiry_str = mysql_utils.RDFDatetimeToTimestamp(expiry)
     proc_id_str = utils.ProcessIdString()
     client_id_int = db_utils.ClientIDToInt(client_id)
 
-    query = ("UPDATE client_messages "
-             "SET leased_until=%s, leased_by=%s, leased_count=leased_count+1 "
-             "WHERE client_id=%s AND "
-             "(leased_until IS NULL OR leased_until < %s) "
-             "LIMIT %s")
+    query = (
+        "UPDATE client_messages SET leased_until=FROM_UNIXTIME(%s), "
+        "leased_by=%s, leased_count=leased_count+1 WHERE client_id=%s AND "
+        "(leased_until IS NULL OR leased_until < FROM_UNIXTIME(%s)) LIMIT %s")
     args = [expiry_str, proc_id_str, client_id_int, now_str, limit]
 
     num_leased = cursor.execute(query, args)
     if num_leased == 0:
       return []
 
-    query = ("SELECT message, leased_count FROM client_messages "
-             "WHERE client_id=%s AND leased_until=%s AND leased_by=%s")
+    query = (
+        "SELECT message, leased_count FROM client_messages "
+        "WHERE client_id=%s AND leased_until=FROM_UNIXTIME(%s) AND leased_by=%s"
+    )
 
     cursor.execute(query, [client_id_int, expiry_str, proc_id_str])
 
@@ -237,10 +238,9 @@ class MySQLDBFlowMixin(object):
     """Writes messages that should go to the client to the db."""
 
     query = ("INSERT IGNORE INTO client_messages "
-             "(client_id, message_id, timestamp, message) "
+             "(client_id, message_id, message) "
              "VALUES %s ON DUPLICATE KEY UPDATE "
-             "timestamp=VALUES(timestamp), message=VALUES(message)")
-    now = mysql_utils.RDFDatetimeToMysqlString(rdfvalue.RDFDatetime.Now())
+             "message=VALUES(message)")
 
     client_ids = set()
 
@@ -250,8 +250,8 @@ class MySQLDBFlowMixin(object):
       cid = db_utils.ClientIdFromGrrMessage(m)
       client_ids.add(cid)
       client_id_int = db_utils.ClientIDToInt(cid)
-      args.extend([client_id_int, m.task_id, now, m.SerializeToString()])
-      value_templates.append("(%s, %s, %s, %s)")
+      args.extend([client_id_int, m.task_id, m.SerializeToString()])
+      value_templates.append("(%s, %s, %s)")
 
     query %= ",".join(value_templates)
     try:
@@ -920,8 +920,8 @@ class MySQLDBFlowMixin(object):
       for request_key in completed_requests:
         if request_key in task_ids_by_request:
           client_id, _, _ = request_key
-          client_messages_to_delete.add((client_id,
-                                         task_ids_by_request[request_key]))
+          client_messages_to_delete.add(
+              (client_id, task_ids_by_request[request_key]))
 
       if client_messages_to_delete:
         self._DeleteClientMessages(client_messages_to_delete)
@@ -1253,7 +1253,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def WriteFlowResults(self, results, cursor=None):
     """Writes flow results for a given flow."""
-    query = ("INSERT IGNORE INTO flow_results "
+    query = ("INSERT INTO flow_results "
              "(client_id, flow_id, hunt_id, timestamp, payload, type, tag) "
              "VALUES ")
     templates = []
@@ -1295,6 +1295,7 @@ class MySQLDBFlowMixin(object):
 
     query = ("SELECT payload, type, UNIX_TIMESTAMP(timestamp), tag "
              "FROM flow_results "
+             "FORCE INDEX (flow_results_by_client_id_flow_id_timestamp) "
              "WHERE client_id = %s AND flow_id = %s ")
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
 
@@ -1344,6 +1345,7 @@ class MySQLDBFlowMixin(object):
     """Counts flow results of a given flow using given query options."""
     query = ("SELECT COUNT(*) "
              "FROM flow_results "
+             "FORCE INDEX (flow_results_by_client_id_flow_id_timestamp) "
              "WHERE client_id = %s AND flow_id = %s ")
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
 
@@ -1362,6 +1364,7 @@ class MySQLDBFlowMixin(object):
   def CountFlowResultsByType(self, client_id, flow_id, cursor=None):
     """Returns counts of flow results grouped by result type."""
     query = ("SELECT type, COUNT(*) FROM flow_results "
+             "FORCE INDEX (flow_results_by_client_id_flow_id_timestamp) "
              "WHERE client_id = %s AND flow_id = %s "
              "GROUP BY type")
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
@@ -1373,7 +1376,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def WriteFlowLogEntries(self, entries, cursor=None):
     """Writes flow log entries for a given flow."""
-    query = ("INSERT IGNORE INTO flow_log_entries "
+    query = ("INSERT INTO flow_log_entries "
              "(client_id, flow_id, hunt_id, message) "
              "VALUES ")
     templates = []
@@ -1447,7 +1450,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction()
   def WriteFlowOutputPluginLogEntries(self, entries, cursor=None):
     """Writes flow output plugin log entries for a given flow."""
-    query = ("INSERT IGNORE INTO flow_output_plugin_log_entries "
+    query = ("INSERT INTO flow_output_plugin_log_entries "
              "(client_id, flow_id, hunt_id, output_plugin_id, "
              "log_entry_type, message) "
              "VALUES ")
