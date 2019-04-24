@@ -22,6 +22,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import context
+from grr_response_server import action_registry
 from grr_response_server import server_stubs
 
 from grr.test_lib import test_lib
@@ -278,6 +279,9 @@ class Test(server_stubs.ClientActionStub):
   """A test action which can be used in mocks."""
   in_rdfvalue = rdf_protodict.DataBlob
   out_rdfvalues = [rdf_protodict.DataBlob]
+
+
+action_registry.RegisterAdditionalTestClientAction(Test)
 
 
 def import_to_registry(data):

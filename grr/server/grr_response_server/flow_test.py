@@ -9,9 +9,11 @@ from future.builtins import str
 
 import mock
 
+from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -29,20 +31,23 @@ from grr.test_lib import test_lib
 from grr.test_lib import test_output_plugins
 
 
+class ReturnHello(actions.ActionPlugin):
+  """A test client action."""
+
+  out_rdfvalues = [rdfvalue.RDFString]
+
+  def Run(self, _):
+    self.SendReply(rdfvalue.RDFString("Hello World"))
+
+
+action_registry.RegisterAdditionalTestClientAction(ReturnHello)
+
+
 class ClientMock(action_mocks.ActionMock):
   """Mock of client actions."""
 
-  in_rdfvalue = None
-  out_rdfvalues = [rdfvalue.RDFString]
-
   def __init__(self):
-    # Register us as an action plugin.
-    # TODO(user): this is a hacky shortcut and should be fixed.
-    server_stubs.ClientActionStub.classes["ReturnHello"] = self
-    self.__name__ = "ReturnHello"
-
-  def ReturnHello(self, _):
-    return [rdfvalue.RDFString("Hello World")]
+    super(ClientMock, self).__init__(ReturnHello)
 
 
 class CallStateFlow(flow_base.FlowBase):
@@ -106,9 +111,7 @@ class ChildFlow(flow_base.FlowBase):
   """This flow will be called by our parent."""
 
   def Start(self):
-    self.CallClient(
-        server_stubs.ClientActionStub.classes["ReturnHello"],
-        next_state="ReceiveHello")
+    self.CallClient(ReturnHello, next_state="ReceiveHello")
 
   def ReceiveHello(self, responses):
     # Relay the client's message to our parent

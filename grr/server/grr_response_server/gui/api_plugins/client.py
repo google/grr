@@ -26,6 +26,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import client_pb2
+from grr_response_server import action_registry
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
 from grr_response_server import client_index
@@ -992,30 +993,37 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
   def _HandleRelational(self, args):
     result = ApiListClientActionRequestsResult()
 
-    for task in data_store.REL_DB.ReadClientMessages(str(args.client_id)):
+    request_cache = {}
+
+    for r in data_store.REL_DB.ReadAllClientActionRequests(str(args.client_id)):
+      stub = action_registry.ACTION_STUB_BY_ID[r.action_identifier]
+      client_action = compatibility.GetName(stub)
+
       request = ApiClientActionRequest(
-          leased_until=task.leased_until,
-          session_id=task.session_id,
-          client_action=task.name)
+          leased_until=r.leased_until,
+          session_id="%s/%s" % (r.client_id, r.flow_id),
+          client_action=client_action)
       result.items.append(request)
 
-      if args.fetch_responses:
-        # TODO(amoser): This is slightly wasteful but this api method is not
-        # used too frequently.
-        requests_responses = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-            str(args.client_id), task.session_id.Basename())
+      if not args.fetch_responses:
+        continue
 
-        for req, responses in requests_responses:
-          if req.request_id == task.request_id:
-            res = []
-            for resp_id in sorted(responses):
-              m = responses[resp_id].AsLegacyGrrMessage()
-              # TODO(amoser): Once AFF4 is gone, leaving this as 0 is ok.
-              if m.args_age == 0:
-                m.args_age = None
-              res.append(m)
+      if r.flow_id not in request_cache:
+        req_res = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+            str(args.client_id), r.flow_id)
+        request_cache[r.flow_id] = req_res
 
-            request.responses = res
+      for req, responses in request_cache[r.flow_id]:
+        if req.request_id == r.request_id:
+          res = []
+          for resp_id in sorted(responses):
+            m = responses[resp_id].AsLegacyGrrMessage()
+            # TODO(amoser): Once AFF4 is gone, leaving this as 0 is ok.
+            if m.args_age == 0:
+              m.args_age = None
+            res.append(m)
+
+          request.responses = res
 
     return result
 

@@ -579,19 +579,38 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     ReceiveMessages(client_id, messages)
 
   def testDrainTaskSchedulerQueue(self):
-    client_id = "C.1234567890123456"
+    client_id = u"C.1234567890123456"
+    flow_id = flow.RandomFlowId()
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
-    msgs = [
-        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
-        for _ in range(3)
-    ]
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow_id,
+        create_time=rdfvalue.RDFDatetime.Now())
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
 
-    data_store.REL_DB.WriteClientMessages(msgs)
+    action_requests = []
+    for i in range(3):
+      data_store.REL_DB.WriteFlowRequests([
+          rdf_flow_objects.FlowRequest(
+              client_id=client_id, flow_id=flow_id, request_id=i)
+      ])
 
+      action_requests.append(
+          rdf_flows.ClientActionRequest(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=i,
+              action_identifier="WmiQuery"))
+
+    data_store.REL_DB.WriteClientActionRequests(action_requests)
     server = TestServer()
 
     res = server.DrainTaskSchedulerQueueForClient(rdfvalue.RDFURN(client_id))
+    msgs = [
+        rdf_flow_objects.GRRMessageFromClientActionRequest(r)
+        for r in action_requests
+    ]
     self.assertItemsEqual(res, msgs)
 
 

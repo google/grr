@@ -1,21 +1,21 @@
-CREATE TABLE IF NOT EXISTS artifacts(
+CREATE TABLE artifacts(
     name VARCHAR(100) PRIMARY KEY,
     definition MEDIUMBLOB
 );
 
-CREATE TABLE IF NOT EXISTS blobs(
+CREATE TABLE blobs(
     blob_id BINARY(32),
     chunk_index INT UNSIGNED,
     blob_chunk MEDIUMBLOB,
     PRIMARY KEY (blob_id, chunk_index)
 );
 
-CREATE TABLE IF NOT EXISTS hash_blob_references(
+CREATE TABLE hash_blob_references(
     hash_id BINARY(32) PRIMARY KEY,
     blob_references MEDIUMBLOB
 );
 
-CREATE TABLE IF NOT EXISTS clients(
+CREATE TABLE clients(
     client_id BIGINT UNSIGNED PRIMARY KEY,
     last_snapshot_timestamp TIMESTAMP(6) NULL DEFAULT NULL,
     last_startup_timestamp TIMESTAMP(6) NULL DEFAULT NULL,
@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS clients(
     last_platform_release VARCHAR(256)
 );
 
-CREATE TABLE IF NOT EXISTS client_labels(
+CREATE TABLE client_labels(
     client_id BIGINT UNSIGNED,
     owner_username_hash BINARY(32),
     label VARCHAR(100),
@@ -44,10 +44,10 @@ CREATE TABLE IF NOT EXISTS client_labels(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS owner_label_idx
+CREATE INDEX owner_label_idx
     ON client_labels(owner_username(191), label);
 
-CREATE TABLE IF NOT EXISTS client_snapshot_history(
+CREATE TABLE client_snapshot_history(
     client_id BIGINT UNSIGNED,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     client_snapshot MEDIUMBLOB,
@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS client_snapshot_history(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS client_startup_history(
+CREATE TABLE client_startup_history(
     client_id BIGINT UNSIGNED,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     startup_info MEDIUMBLOB,
@@ -67,7 +67,7 @@ CREATE TABLE IF NOT EXISTS client_startup_history(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS client_crash_history(
+CREATE TABLE client_crash_history(
     client_id BIGINT UNSIGNED,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     crash_info MEDIUMBLOB,
@@ -89,7 +89,7 @@ ALTER TABLE clients
     ADD FOREIGN KEY (client_id, last_crash_timestamp)
     REFERENCES client_crash_history(client_id, timestamp);
 
-CREATE TABLE IF NOT EXISTS client_keywords(
+CREATE TABLE client_keywords(
     client_id BIGINT UNSIGNED,
     keyword_hash BINARY(32),
     keyword VARCHAR(255),
@@ -100,10 +100,10 @@ CREATE TABLE IF NOT EXISTS client_keywords(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS client_index_by_keyword_hash
+CREATE INDEX client_index_by_keyword_hash
     ON client_keywords(keyword_hash);
 
-CREATE TABLE IF NOT EXISTS client_stats(
+CREATE TABLE client_stats(
     client_id BIGINT UNSIGNED,
     payload MEDIUMBLOB,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS client_stats(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS client_report_graphs(
+CREATE TABLE client_report_graphs(
     client_label VARCHAR(100) NOT NULL,
     report_type INT UNSIGNED NOT NULL,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS client_report_graphs(
     PRIMARY KEY (client_label, report_type, timestamp)
 );
 
-CREATE TABLE IF NOT EXISTS grr_users(
+CREATE TABLE grr_users(
     username_hash BINARY(32) PRIMARY KEY,
     username VARCHAR(254),
     password VARBINARY(255),
@@ -133,9 +133,9 @@ CREATE TABLE IF NOT EXISTS grr_users(
     user_type INT UNSIGNED
 );
 
-CREATE INDEX IF NOT EXISTS username_idx ON grr_users(username(191));
+CREATE INDEX username_idx ON grr_users(username(191));
 
-CREATE TABLE IF NOT EXISTS approval_request(
+CREATE TABLE approval_request(
     username_hash BINARY(32),
     approval_type INT UNSIGNED,
     subject_id VARCHAR(128),
@@ -149,10 +149,10 @@ CREATE TABLE IF NOT EXISTS approval_request(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS by_username_type_subject
+CREATE INDEX by_username_type_subject
     ON approval_request(username_hash, approval_type, subject_id);
 
-CREATE TABLE IF NOT EXISTS approval_grant(
+CREATE TABLE approval_grant(
     username_hash BINARY(32),
     approval_id BIGINT UNSIGNED,
     grantor_username_hash BINARY(32),
@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS approval_grant(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS user_notification(
+CREATE TABLE user_notification(
     username_hash BINARY(32),
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     notification_state INT UNSIGNED,
@@ -180,7 +180,7 @@ CREATE TABLE IF NOT EXISTS user_notification(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS api_audit_entry(
+CREATE TABLE api_audit_entry(
     -- Entries are retained after user deletion. Thus, do not use a FOREIGN KEY
     -- to grr_users.username_hash.
     entry_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -191,16 +191,16 @@ CREATE TABLE IF NOT EXISTS api_audit_entry(
     PRIMARY KEY (entry_id)
 );
 
-CREATE INDEX IF NOT EXISTS api_audit_entry_by_username_timestamp
+CREATE INDEX api_audit_entry_by_username_timestamp
     ON api_audit_entry(username(191), timestamp);
 
-CREATE INDEX IF NOT EXISTS timestamp_idx
+CREATE INDEX timestamp_idx
     ON api_audit_entry(timestamp);
 
-CREATE INDEX IF NOT EXISTS router_method_name_idx
+CREATE INDEX router_method_name_idx
     ON api_audit_entry(router_method_name);
 
-CREATE TABLE IF NOT EXISTS message_handler_requests(
+CREATE TABLE message_handler_requests(
     handlername VARCHAR(128),
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     request_id INT UNSIGNED,
@@ -210,17 +210,17 @@ CREATE TABLE IF NOT EXISTS message_handler_requests(
     PRIMARY KEY (request_id)
 );
 
-CREATE INDEX IF NOT EXISTS message_handler_requests_by_lease
+CREATE INDEX message_handler_requests_by_lease
     ON message_handler_requests(leased_until, leased_by);
 
-CREATE TABLE IF NOT EXISTS foreman_rules(
+CREATE TABLE foreman_rules(
     hunt_id VARCHAR(128),
     expiration_time TIMESTAMP(6) NOT NULL DEFAULT 0,
     rule MEDIUMBLOB,
     PRIMARY KEY (hunt_id)
 );
 
-CREATE TABLE IF NOT EXISTS cron_jobs(
+CREATE TABLE cron_jobs(
     job_id VARCHAR(100),
     job MEDIUMBLOB,
     create_time TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
@@ -235,10 +235,10 @@ CREATE TABLE IF NOT EXISTS cron_jobs(
     PRIMARY KEY (job_id)
 );
 
-CREATE INDEX IF NOT EXISTS cron_jobs_by_lease
+CREATE INDEX cron_jobs_by_lease
     ON cron_jobs(leased_until, leased_by);
 
-CREATE TABLE IF NOT EXISTS cron_job_runs(
+CREATE TABLE cron_job_runs(
     job_id VARCHAR(100),
     run_id INT UNSIGNED,
     write_time TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
@@ -247,21 +247,7 @@ CREATE TABLE IF NOT EXISTS cron_job_runs(
     FOREIGN KEY (job_id) REFERENCES cron_jobs (job_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS client_messages(
-    client_id BIGINT UNSIGNED,
-    message_id BIGINT UNSIGNED,
-    timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6) ON UPDATE NOW(6),
-    message MEDIUMBLOB,
-    leased_until TIMESTAMP(6) NULL DEFAULT NULL,
-    leased_by VARCHAR(128),
-    leased_count INT DEFAULT 0,
-    PRIMARY KEY (client_id, message_id),
-    FOREIGN KEY (client_id)
-        REFERENCES clients(client_id)
-        ON DELETE CASCADE
-);
-
-CREATE TABLE IF NOT EXISTS flows(
+CREATE TABLE flows(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
     long_flow_id VARCHAR(255),
@@ -287,11 +273,11 @@ CREATE TABLE IF NOT EXISTS flows(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS timestamp_idx ON flows(timestamp);
+CREATE INDEX timestamp_idx ON flows(timestamp);
 
-CREATE INDEX IF NOT EXISTS flows_by_hunt ON flows(parent_hunt_id);
+CREATE INDEX flows_by_hunt ON flows(parent_hunt_id);
 
-CREATE TABLE IF NOT EXISTS flow_requests(
+CREATE TABLE flow_requests(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
     request_id BIGINT UNSIGNED,
@@ -308,7 +294,7 @@ CREATE TABLE IF NOT EXISTS flow_requests(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS flow_responses(
+CREATE TABLE flow_responses(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
     request_id BIGINT UNSIGNED,
@@ -326,7 +312,22 @@ CREATE TABLE IF NOT EXISTS flow_responses(
         ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS flow_processing_requests(
+CREATE TABLE client_action_requests(
+    client_id BIGINT UNSIGNED,
+    flow_id BIGINT UNSIGNED,
+    request_id BIGINT UNSIGNED,
+    timestamp TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    request MEDIUMBLOB NOT NULL,
+    leased_until TIMESTAMP(6) NULL DEFAULT NULL,
+    leased_by VARCHAR(128),
+    leased_count INT DEFAULT 0,
+    PRIMARY KEY (client_id, flow_id, request_id),
+    FOREIGN KEY (client_id, flow_id, request_id)
+        REFERENCES flow_requests (client_id, flow_id, request_id)
+        ON DELETE CASCADE
+);
+
+CREATE TABLE flow_processing_requests(
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
@@ -343,10 +344,10 @@ CREATE TABLE IF NOT EXISTS flow_processing_requests(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS flow_processing_requests_by_lease
+CREATE INDEX flow_processing_requests_by_lease
     ON flow_processing_requests(leased_until, leased_by);
 
-CREATE TABLE IF NOT EXISTS flow_results(
+CREATE TABLE flow_results(
     result_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
@@ -364,16 +365,16 @@ CREATE TABLE IF NOT EXISTS flow_results(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS flow_results_by_client_id_flow_id_timestamp
+CREATE INDEX flow_results_by_client_id_flow_id_timestamp
     ON flow_results(client_id, flow_id, timestamp);
 
-CREATE INDEX IF NOT EXISTS flow_results_hunt_id_flow_id_timestamp
+CREATE INDEX flow_results_hunt_id_flow_id_timestamp
     ON flow_results(hunt_id, flow_id, timestamp);
 
-CREATE INDEX IF NOT EXISTS flow_results_hunt_id_flow_id_type_tag_timestamp
+CREATE INDEX flow_results_hunt_id_flow_id_type_tag_timestamp
     ON flow_results(hunt_id, flow_id, type, tag, timestamp);
 
-CREATE TABLE IF NOT EXISTS flow_log_entries(
+CREATE TABLE flow_log_entries(
     log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
@@ -389,13 +390,13 @@ CREATE TABLE IF NOT EXISTS flow_log_entries(
         ON DELETE CASCADE
 );
 
-CREATE INDEX IF NOT EXISTS flow_log_entries_by_flow
+CREATE INDEX flow_log_entries_by_flow
     ON flow_log_entries(client_id, flow_id, log_id);
 
-CREATE INDEX IF NOT EXISTS flow_log_entries_by_hunt
+CREATE INDEX flow_log_entries_by_hunt
     ON flow_log_entries(hunt_id, flow_id, log_id);
 
-CREATE TABLE IF NOT EXISTS flow_output_plugin_log_entries(
+CREATE TABLE flow_output_plugin_log_entries(
     log_id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED,
     flow_id BIGINT UNSIGNED,
@@ -413,15 +414,15 @@ CREATE TABLE IF NOT EXISTS flow_output_plugin_log_entries(
         ON DELETE CASCADE
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS flow_output_plugin_log_entries_by_flow
+CREATE UNIQUE INDEX flow_output_plugin_log_entries_by_flow
     ON flow_output_plugin_log_entries(
         client_id, flow_id, output_plugin_id, log_entry_type, log_id);
 
-CREATE UNIQUE INDEX IF NOT EXISTS flow_output_plugin_log_entries_by_hunt
+CREATE UNIQUE INDEX flow_output_plugin_log_entries_by_hunt
     ON flow_output_plugin_log_entries(
         hunt_id, output_plugin_id, log_entry_type, log_id);
 
-CREATE TABLE IF NOT EXISTS signed_binary_references(
+CREATE TABLE signed_binary_references(
     binary_type INT UNSIGNED NOT NULL,
     binary_path_hash BINARY(32) NOT NULL,
     binary_path TEXT NOT NULL,
@@ -430,7 +431,7 @@ CREATE TABLE IF NOT EXISTS signed_binary_references(
     PRIMARY KEY (binary_type, binary_path_hash)
 );
 
-CREATE TABLE IF NOT EXISTS client_paths(
+CREATE TABLE client_paths(
     client_id BIGINT UNSIGNED NOT NULL,
     path_type INT UNSIGNED NOT NULL,
     path_id BINARY(32) NOT NULL,
@@ -445,10 +446,10 @@ CREATE TABLE IF NOT EXISTS client_paths(
     CHECK (depth = length(path) - length(replace(path, '/', '')))
 );
 
-CREATE INDEX IF NOT EXISTS client_paths_idx
+CREATE INDEX client_paths_idx
     ON client_paths(client_id, path_type, path(128));
 
-CREATE TABLE IF NOT EXISTS client_path_stat_entries(
+CREATE TABLE client_path_stat_entries(
     client_id BIGINT UNSIGNED NOT NULL,
     path_type INT UNSIGNED NOT NULL,
     path_id BINARY(32) NOT NULL,
@@ -459,7 +460,7 @@ CREATE TABLE IF NOT EXISTS client_path_stat_entries(
     REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS client_path_hash_entries(
+CREATE TABLE client_path_hash_entries(
     client_id BIGINT UNSIGNED NOT NULL,
     path_type INT UNSIGNED NOT NULL,
     path_id BINARY(32) NOT NULL,
@@ -479,7 +480,7 @@ ALTER TABLE client_paths
     ADD FOREIGN KEY (client_id, path_type, path_id, last_hash_entry_timestamp)
     REFERENCES client_path_hash_entries(client_id, path_type, path_id, timestamp);
 
-CREATE TABLE IF NOT EXISTS hunts(
+CREATE TABLE hunts(
     hunt_id BIGINT UNSIGNED NOT NULL,
     create_timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     last_update_timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
@@ -497,7 +498,7 @@ CREATE TABLE IF NOT EXISTS hunts(
     PRIMARY KEY (hunt_id)
 );
 
-CREATE TABLE IF NOT EXISTS hunt_output_plugins_states(
+CREATE TABLE hunt_output_plugins_states(
     hunt_id BIGINT UNSIGNED NOT NULL,
     plugin_id BIGINT UNSIGNED NOT NULL,
     plugin_name VARCHAR(128),

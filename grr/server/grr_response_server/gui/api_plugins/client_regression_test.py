@@ -277,18 +277,42 @@ class ApiListClientActionRequestsHandlerRegressionTest(
     if data_store.RelationalDBEnabled():
       flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kw)
       # Lease the client message.
-      data_store.REL_DB.LeaseClientMessages(
+      data_store.REL_DB.LeaseClientActionRequests(
           client_id, lease_time=rdfvalue.Duration("10000s"))
-      # Write some responses.
+      # Write some responses. In the relational db, the client queue will be
+      # cleaned up as soon as all responses are available. Therefore we cheat
+      # here and make it look like the request needs more responses so it's not
+      # considered complete.
+
+      # Write the status first. This will mark the request as waiting for 2
+      # responses.
+      status = rdf_flow_objects.FlowStatus(
+          client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
+      data_store.REL_DB.WriteFlowResponses([status])
+
+      # Now we read the request, adjust the number, and write it back.
+      reqs = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
+          client_id, flow_id)
+      req = reqs[0][0]
+
+      req.nr_responses_expected = 99
+
+      data_store.REL_DB.WriteFlowRequests([req])
+
+      # This response now won't trigger any deletion of client messages.
       response = rdf_flow_objects.FlowResponse(
           client_id=client_id,
           flow_id=flow_id,
           request_id=1,
           response_id=1,
           payload=rdf_client.Process(name="test_process"))
-      status = rdf_flow_objects.FlowStatus(
-          client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
-      data_store.REL_DB.WriteFlowResponses([response, status])
+      data_store.REL_DB.WriteFlowResponses([response])
+
+      # This is not strictly needed as we don't display this information in the
+      # UI.
+      req.nr_responses_expected = 2
+      data_store.REL_DB.WriteFlowRequests([req])
+
       return flow_id
 
     else:

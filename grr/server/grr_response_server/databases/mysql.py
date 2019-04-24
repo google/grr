@@ -422,7 +422,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         database=database or config.CONFIG["Mysql.database"])
 
     client_key_path = config.CONFIG["Mysql.client_key_path"]
-    if client_key_path is not None:
+    if client_key_path:
       logging.debug("Client key file configured, trying to use SSL.")
       self._connect_args["client_key_path"] = client_key_path
       self._connect_args["client_cert_path"] = config.CONFIG[

@@ -54,8 +54,8 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.artifacts = {}
     self.approvals_by_username = {}
     self.clients = {}
-    self.client_messages = {}
-    self.client_message_leases = {}
+    self.client_action_requests = {}
+    self.client_action_request_leases = {}
     self.client_stats = collections.defaultdict(collections.OrderedDict)
     self.crash_history = {}
     self.cronjob_leases = {}

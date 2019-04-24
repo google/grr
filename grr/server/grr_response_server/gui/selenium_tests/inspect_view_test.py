@@ -38,7 +38,7 @@ class TestClientLoadView(TestInspectViewBase):
     if data_store.RelationalDBEnabled():
       flow.StartFlow(
           client_id=client_id.Basename(), flow_cls=processes.ListProcesses)
-      client_messages = data_store.REL_DB.LeaseClientMessages(
+      client_messages = data_store.REL_DB.LeaseClientActionRequests(
           client_id.Basename(), lease_time=rdfvalue.Duration("10000s"))
       self.assertNotEmpty(client_messages)
     else:
@@ -80,7 +80,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
       flow_id = flow.StartFlow(
           client_id=client_id, flow_cls=flow_discovery.Interrogate)
       status = rdf_flow_objects.FlowStatus(
-          client_id=client_id, flow_id=flow_id, request_id=1, response_id=1)
+          client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
       data_store.REL_DB.WriteFlowResponses([status])
     else:
       session_id = flow.StartAFF4Flow(
@@ -89,7 +89,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
           token=self.token)
       status = rdf_flows.GrrMessage(
           request_id=1,
-          response_id=1,
+          response_id=2,
           session_id=session_id,
           type=rdf_flows.GrrMessage.Type.STATUS,
           auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)

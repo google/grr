@@ -255,6 +255,9 @@ class ApiRegressionTest(
     # Make sure that this test has generated some checks.
     self.assertTrue(self.checks)
 
+    # Always show the full diff, even when it's a bit larger.
+    self.maxDiff = 100000  # pylint: disable=invalid-name
+
     self.assertEqual(self.checks, relevant_checks)
 
 

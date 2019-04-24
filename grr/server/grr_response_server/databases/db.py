@@ -309,6 +309,18 @@ class UnknownFlowRequestError(NotFoundError):
         "does not exist" % (self.request_id, self.client_id, self.flow_id))
 
 
+class AtLeastOneUnknownRequestError(NotFoundError):
+
+  def __init__(self, request_keys, cause=None):
+    super(AtLeastOneUnknownRequestError, self).__init__(
+        request_keys, cause=cause)
+
+    self.request_keys = request_keys
+
+    self.message = ("At least one request with client id/flow_id/request_id in "
+                    "'%s' does not exist" % (self.request_keys))
+
+
 class ParentHuntIsNotRunningError(Error):
   """Exception indicating that a hunt-induced flow is not processable."""
 
@@ -1833,44 +1845,44 @@ class Database(with_metaclass(abc.ABCMeta, object)):
   CLIENT_MESSAGES_TTL = 5
 
   @abc.abstractmethod
-  def WriteClientMessages(self, messages):
+  def WriteClientActionRequests(self, requests):
     """Writes messages that should go to the client to the db.
 
     Args:
-      messages: A list of GrrMessage objects to write.
+      requests: A list of ClientActionRequest objects to write.
     """
 
   @abc.abstractmethod
-  def LeaseClientMessages(self, client_id, lease_time=None, limit=None):
-    """Leases available client messages for the client with the given id.
+  def LeaseClientActionRequests(self, client_id, lease_time=None, limit=None):
+    """Leases available client action requests for the client with the given id.
 
     Args:
-      client_id: The client for which the messages should be leased.
+      client_id: The client for which the requests should be leased.
       lease_time: rdfvalue.Duration indicating how long the lease should be
         valid.
-      limit: Lease at most <limit> messages.
+      limit: Lease at most <limit> requests.
 
     Returns:
-      A list of GrrMessage objects.
+      A list of ClientActionRequest objects.
     """
 
   @abc.abstractmethod
-  def ReadClientMessages(self, client_id):
-    """Reads all client messages available for a given client_id.
+  def ReadAllClientActionRequests(self, client_id):
+    """Reads all client action requests available for a given client_id.
 
     Args:
-      client_id: The client for which the messages should be read.
+      client_id: The client for which the requests should be read.
 
     Returns:
-      A list of GrrMessage objects.
+      A list of ClientActionRequest objects.
     """
 
   @abc.abstractmethod
-  def DeleteClientMessages(self, messages):
-    """Deletes a list of client messages from the db.
+  def DeleteClientActionRequests(self, requests):
+    """Deletes a list of client action requests from the db.
 
     Args:
-      messages: A list of GrrMessage objects to delete.
+      requests: A list of ClientActionRequest objects to delete.
     """
 
   @abc.abstractmethod
@@ -3406,25 +3418,26 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertIterableType(hashes, rdf_objects.SHA256HashID)
     return self.delegate.ReadHashBlobReferences(hashes)
 
-  def WriteClientMessages(self, messages):
-    for message in messages:
-      precondition.AssertType(message, rdf_flows.GrrMessage)
-    return self.delegate.WriteClientMessages(messages)
+  def WriteClientActionRequests(self, requests):
+    for request in requests:
+      precondition.AssertType(request, rdf_flows.ClientActionRequest)
+    return self.delegate.WriteClientActionRequests(requests)
 
-  def LeaseClientMessages(self, client_id, lease_time=None, limit=1000000):
+  def LeaseClientActionRequests(self, client_id, lease_time=None,
+                                limit=1000000):
     _ValidateClientId(client_id)
     _ValidateDuration(lease_time)
-    return self.delegate.LeaseClientMessages(
+    return self.delegate.LeaseClientActionRequests(
         client_id, lease_time=lease_time, limit=limit)
 
-  def ReadClientMessages(self, client_id):
+  def ReadAllClientActionRequests(self, client_id):
     _ValidateClientId(client_id)
-    return self.delegate.ReadClientMessages(client_id)
+    return self.delegate.ReadAllClientActionRequests(client_id)
 
-  def DeleteClientMessages(self, messages):
-    for message in messages:
-      precondition.AssertType(message, rdf_flows.GrrMessage)
-    return self.delegate.DeleteClientMessages(messages)
+  def DeleteClientActionRequests(self, requests):
+    for request in requests:
+      precondition.AssertType(request, rdf_flows.ClientActionRequest)
+    return self.delegate.DeleteClientActionRequests(requests)
 
   def WriteFlowObject(self, flow_obj):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)

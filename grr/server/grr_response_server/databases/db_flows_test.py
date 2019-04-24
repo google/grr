@@ -21,7 +21,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_server import flow
 from grr_response_server.databases import db
-from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -48,68 +47,78 @@ class DatabaseTestFlowMixin(object):
 
     return client_id, flow_id
 
-  def testClientMessageStorage(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    msg = rdf_flows.GrrMessage(
-        queue=client_id,
-        ttl=db.Database.CLIENT_MESSAGES_TTL,
-        generate_task_id=True)
+  def testClientActionRequestStorage(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    self.db.WriteFlowRequests([
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=1)
+    ])
+    req = rdf_flows.ClientActionRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
 
-    self.db.WriteClientMessages([msg])
+    self.db.WriteClientActionRequests([req])
 
-    read_msgs = self.db.ReadClientMessages(client_id)
-    self.assertLen(read_msgs, 1)
-    self.assertEqual(msg, read_msgs[0])
+    read_reqs = self.db.ReadAllClientActionRequests(client_id)
+    self.assertLen(read_reqs, 1)
+    self.assertEqual(req, read_reqs[0])
 
-    self.db.DeleteClientMessages([msg])
-    read_msgs = self.db.ReadClientMessages(client_id)
-    self.assertEmpty(read_msgs)
+    self.db.DeleteClientActionRequests([req])
+    read_reqs = self.db.ReadAllClientActionRequests(client_id)
+    self.assertEmpty(read_reqs)
 
     # Extra delete should not raise.
-    self.db.DeleteClientMessages([msg])
+    self.db.DeleteClientActionRequests([req])
 
     # Deleting the same message multiple times is an error.
     with self.assertRaises(ValueError):
-      self.db.DeleteClientMessages([msg, msg])
+      self.db.DeleteClientActionRequests([req, req])
 
-  def testWriteClientMessagesRaisesOnUnknownClientID(self):
-    msg = rdf_flows.GrrMessage(
-        queue=u"C.1234567890000000", generate_task_id=True)
-    with self.assertRaises(db.AtLeastOneUnknownClientError):
-      self.db.WriteClientMessages([msg])
+  def testWriteClientActionRequestsRaisesOnUnknownRequest(self):
+    req = rdf_flows.ClientActionRequest(
+        client_id=u"C.1234567890000000", flow_id="ABCD1234", request_id=5)
+    with self.assertRaises(db.AtLeastOneUnknownRequestError):
+      self.db.WriteClientActionRequests([req])
 
-  def testClientMessageUpdate(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    msg = rdf_flows.GrrMessage(
-        queue=client_id,
-        ttl=db.Database.CLIENT_MESSAGES_TTL,
-        generate_task_id=True)
+  def testClientActionRequestUpdate(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    req = rdf_flows.ClientActionRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
+    self.db.WriteFlowRequests([
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=1)
+    ])
 
-    cpu_limit = msg.cpu_limit
-    self.assertGreater(cpu_limit, 1000)
+    cpu_limit = req.cpu_limit_ms
+    self.assertGreater(cpu_limit, 1000000)
 
     for _ in range(5):
-      msg.cpu_limit -= 100
-      self.db.WriteClientMessages([msg])
-      read_msgs = self.db.ReadClientMessages(client_id)
-      self.assertLen(read_msgs, 1)
-      self.assertEqual(msg, read_msgs[0])
+      req.cpu_limit_ms -= 100000
+      self.db.WriteClientActionRequests([req])
+      read_reqs = self.db.ReadAllClientActionRequests(client_id)
+      self.assertLen(read_reqs, 1)
+      self.assertEqual(req, read_reqs[0])
 
-  def testClientMessageLeasing(self):
+  def testClientActionRequestLeasing(self):
 
-    client_id = db_test_utils.InitializeClient(self.db)
-    messages = [
-        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
-        for _ in range(10)
-    ]
+    client_id, flow_id = self._SetupClientAndFlow()
+    flow_requests = []
+    client_requests = []
+    for i in range(10):
+      flow_requests.append(
+          rdf_flow_objects.FlowRequest(
+              client_id=client_id, flow_id=flow_id, request_id=i))
+      client_requests.append(
+          rdf_flows.ClientActionRequest(
+              client_id=client_id, flow_id=flow_id, request_id=i))
+
     lease_time = rdfvalue.Duration("5m")
-
-    self.db.WriteClientMessages(messages)
+    self.db.WriteFlowRequests(flow_requests)
+    self.db.WriteClientActionRequests(client_requests)
 
     t0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000)
     with test_lib.FakeTime(t0):
       t0_expiry = t0 + lease_time
-      leased = self.db.LeaseClientMessages(
+      leased = self.db.LeaseClientActionRequests(
           client_id, lease_time=lease_time, limit=5)
 
       self.assertLen(leased, 5)
@@ -121,7 +130,7 @@ class DatabaseTestFlowMixin(object):
     t1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 100)
     with test_lib.FakeTime(t1):
       t1_expiry = t1 + lease_time
-      leased = self.db.LeaseClientMessages(
+      leased = self.db.LeaseClientActionRequests(
           client_id, lease_time=lease_time, limit=5)
 
       self.assertLen(leased, 5)
@@ -131,12 +140,12 @@ class DatabaseTestFlowMixin(object):
         self.assertEqual(request.leased_by, utils.ProcessIdString())
 
       # Nothing left to lease.
-      leased = self.db.LeaseClientMessages(
+      leased = self.db.LeaseClientActionRequests(
           client_id, lease_time=lease_time, limit=2)
 
       self.assertEmpty(leased)
 
-    read = self.db.ReadClientMessages(client_id)
+    read = self.db.ReadAllClientActionRequests(client_id)
 
     self.assertLen(read, 10)
     for r in read:
@@ -148,51 +157,38 @@ class DatabaseTestFlowMixin(object):
     # Half the leases expired.
     t2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 350)
     with test_lib.FakeTime(t2):
-      leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
+      leased = self.db.LeaseClientActionRequests(
+          client_id, lease_time=lease_time)
 
       self.assertLen(leased, 5)
 
     # All of them expired.
     t3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 10350)
     with test_lib.FakeTime(t3):
-      leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
+      leased = self.db.LeaseClientActionRequests(
+          client_id, lease_time=lease_time)
 
       self.assertLen(leased, 10)
 
-  def testClientMessagesAreSorted(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    messages = [
-        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
-        for _ in range(10)
-    ]
+  def testClientActionRequestsTTL(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    flow_requests = []
+    client_requests = []
+    for i in range(10):
+      flow_requests.append(
+          rdf_flow_objects.FlowRequest(
+              client_id=client_id, flow_id=flow_id, request_id=i))
+      client_requests.append(
+          rdf_flows.ClientActionRequest(
+              client_id=client_id, flow_id=flow_id, request_id=i))
+    self.db.WriteFlowRequests(flow_requests)
+    self.db.WriteClientActionRequests(client_requests)
 
-    random.shuffle(messages)
+    reqs = self.db.ReadAllClientActionRequests(client_id)
+    self.assertLen(reqs, 10)
 
-    self.db.WriteClientMessages(messages)
-
-    read = self.db.ReadClientMessages(client_id)
-
-    self.assertLen(read, 10)
-    task_ids = [m.task_id for m in read]
-    self.assertEqual(task_ids, sorted(task_ids))
-
-    lease_time = rdfvalue.Duration("10m")
-    leased = self.db.LeaseClientMessages(client_id, lease_time=lease_time)
-    task_ids = [m.task_id for m in leased]
-    self.assertEqual(task_ids, sorted(task_ids))
-
-  def testClientMessagesTTL(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    messages = [
-        rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
-        for _ in range(10)
-    ]
-    self.db.WriteClientMessages(messages)
-    msgs = self.db.ReadClientMessages(client_id)
-    self.assertLen(msgs, 10)
-
-    for message in msgs:
-      self.assertEqual(message.ttl, db.Database.CLIENT_MESSAGES_TTL)
+    for request in reqs:
+      self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL)
 
     now = rdfvalue.RDFDatetime.Now()
     lease_time = rdfvalue.Duration("60s")
@@ -200,29 +196,29 @@ class DatabaseTestFlowMixin(object):
     for i in range(db.Database.CLIENT_MESSAGES_TTL):
       now += rdfvalue.Duration("120s")
       with test_lib.FakeTime(now):
-        leased = self.db.LeaseClientMessages(
+        leased = self.db.LeaseClientActionRequests(
             client_id, lease_time=lease_time, limit=10)
         self.assertLen(leased, 10)
 
         # Check that the ttl is read.
-        for message in leased:
-          self.assertEqual(message.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
+        for request in leased:
+          self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
 
-        msgs = self.db.ReadClientMessages(client_id)
-        self.assertLen(msgs, 10)
+        reqs = self.db.ReadAllClientActionRequests(client_id)
+        self.assertLen(reqs, 10)
 
-        for message in msgs:
-          self.assertEqual(message.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
+        for request in reqs:
+          self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
 
     now += rdfvalue.Duration("120s")
     with test_lib.FakeTime(now):
-      leased = self.db.LeaseClientMessages(
+      leased = self.db.LeaseClientActionRequests(
           client_id, lease_time=lease_time, limit=10)
       self.assertEmpty(leased)
 
-    # ReadClientMessages includes also messages whose TTL has expired. Make sure
-    # that the messages have been deleted from the db.
-    self.assertEqual(self.db.ReadClientMessages(client_id), [])
+    # ReadAllClientActionRequests includes also requests whose TTL has
+    # expired. Make sure that the requests have been deleted from the db.
+    self.assertEqual(self.db.ReadAllClientActionRequests(client_id), [])
 
   def testFlowWritingUnknownClient(self):
     flow_id = u"1234ABCD"
@@ -913,16 +909,20 @@ class DatabaseTestFlowMixin(object):
             response_id=num_responses + 1)
     ]
 
-  def _WriteRequestAndCompleteResponses(self,
-                                        client_id,
-                                        flow_id,
-                                        request_id,
-                                        num_responses,
-                                        task_id=None):
+  def _WriteRequestAndCompleteResponses(self, client_id, flow_id, request_id,
+                                        num_responses):
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=request_id)
     self.db.WriteFlowRequests([request])
 
+    return self._WriteCompleteResponses(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        num_responses=num_responses)
+
+  def _WriteCompleteResponses(self, client_id, flow_id, request_id,
+                              num_responses):
     # Write <num_responses> responses and a status in random order.
     responses = self._ResponsesAndStatus(client_id, flow_id, request_id,
                                          num_responses)
@@ -933,9 +933,6 @@ class DatabaseTestFlowMixin(object):
       self.assertIsNotNone(request)
       # This is false up to the moment when we write the last response.
       self.assertFalse(request.needs_processing)
-
-      if task_id:
-        response.task_id = task_id
 
       self.db.WriteFlowResponses([response])
 
@@ -1047,19 +1044,25 @@ class DatabaseTestFlowMixin(object):
       if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
         self.fail("Flow request was not processed in time.")
 
-  def testResponsesAnyRequestTriggerClientMessageDeletion(self):
+  def testResponsesAnyRequestTriggerClientActionRequestDeletion(self):
     # Write a flow that is waiting for request #2.
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    for i in range(5):
+      self.db.WriteFlowRequests([
+          rdf_flow_objects.FlowRequest(
+              client_id=client_id, flow_id=flow_id, request_id=i)
+      ])
 
-    msg = rdf_flows.GrrMessage(queue=client_id, generate_task_id=True)
-    self.db.WriteClientMessages([msg])
+    req = rdf_flows.ClientActionRequest(
+        client_id=client_id, flow_id=flow_id, request_id=3)
+    self.db.WriteClientActionRequests([req])
 
-    self.assertTrue(self.db.ReadClientMessages(client_id))
+    self.assertTrue(self.db.ReadAllClientActionRequests(client_id))
 
-    self._WriteRequestAndCompleteResponses(
-        client_id, flow_id, request_id=1, num_responses=3, task_id=msg.task_id)
+    self._WriteCompleteResponses(
+        client_id, flow_id, request_id=3, num_responses=3)
 
-    self.assertFalse(self.db.ReadClientMessages(client_id))
+    self.assertFalse(self.db.ReadAllClientActionRequests(client_id))
 
   def _WriteResponses(self, num):
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)

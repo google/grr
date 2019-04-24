@@ -13,8 +13,10 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_server import action_registry
 from grr_response_server import output_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -204,8 +206,8 @@ def FlowResponseForLegacyResponse(legacy_msg):
   elif legacy_msg.type == legacy_msg.Type.STATUS:
     legacy_status = legacy_msg.payload
     if legacy_status.status not in status_map:
-      raise ValueError(
-          "Unable to convert returned status: %s" % legacy_status.status)
+      raise ValueError("Unable to convert returned status: %s" %
+                       legacy_status.status)
     response = FlowStatus(
         client_id=_ClientIDFromSessionID(legacy_msg.session_id),
         flow_id=legacy_msg.session_id.Basename(),
@@ -225,13 +227,19 @@ def FlowResponseForLegacyResponse(legacy_msg):
   else:
     raise ValueError("Unknown message type: %d" % legacy_msg.type)
 
-  # TODO(amoser): The current datastore api uses task ids as keys (instead of
-  # the much more intuitive (client_id, flow_id, request_id) so we need to
-  # propagate the task_id here. This can be removed once client messages are
-  # stored properly.
-  try:
-    response.task_id = legacy_msg.task_id
-  except ValueError:
-    pass
-
   return response
+
+
+def GRRMessageFromClientActionRequest(request):
+  stub = action_registry.ACTION_STUB_BY_ID[request.action_identifier]
+  name = compatibility.GetName(stub)
+
+  return rdf_flows.GrrMessage(
+      session_id="%s/%s" % (request.client_id, request.flow_id),
+      name=name,
+      request_id=request.request_id,
+      queue=rdf_client.ClientURN(request.client_id),
+      payload=request.action_args,
+      cpu_limit=request.cpu_limit_ms / 1000.0,
+      network_bytes_limit=request.network_bytes_limit,
+      generate_task_id=False)

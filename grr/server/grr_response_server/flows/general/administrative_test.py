@@ -525,7 +525,7 @@ sys.test_code_ran_here = True
 
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
       flow_test_lib.TestFlowHelper(
-          administrative.LaunchBinary.__name__,
+          compatibility.GetName(administrative.LaunchBinary),
           client_mock,
           client_id=self.SetupClient(0),
           binary=upload_path,
@@ -611,7 +611,7 @@ sys.test_code_ran_here = True
     acl_test_lib.CreateAdminUser(self.token.username)
 
     flow_test_lib.TestFlowHelper(
-        administrative.UpdateClient.__name__,
+        compatibility.GetName(administrative.UpdateClient),
         client_mock,
         client_id=self.SetupClient(0, system=""),
         blob_path=upload_path,

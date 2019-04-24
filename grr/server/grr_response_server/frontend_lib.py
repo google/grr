@@ -448,10 +448,14 @@ class FrontEndServer(object):
     start_time = time.time()
     # Drain the queue for this client
     if data_store.RelationalDBEnabled():
-      result = data_store.REL_DB.LeaseClientMessages(
+      action_requests = data_store.REL_DB.LeaseClientActionRequests(
           client.Basename(),
           lease_time=rdfvalue.Duration.FromSeconds(self.message_expiry_time),
           limit=max_count)
+      result = [
+          rdf_flow_objects.GRRMessageFromClientActionRequest(r)
+          for r in action_requests
+      ]
     else:
       new_tasks = queue_manager.QueueManager(token=self.token).QueryAndOwn(
           queue=client.Queue(),

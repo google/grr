@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_server import action_registry
 from grr_response_server import client_fixture
 from grr_response_server import server_stubs
 from grr.test_lib import client_test_lib
@@ -69,7 +70,7 @@ class ActionMock(object):
         name=message.name,
         response_id=response_id,
         request_id=message.request_id,
-        task_id=message.task_id,
+        task_id=message.Get("task_id"),
         payload=rdf_flows.GrrStatus(
             status=status or rdf_flows.GrrStatus.ReturnedStatus.OK),
         type=rdf_flows.GrrMessage.Type.STATUS)
@@ -83,7 +84,7 @@ class ActionMock(object):
           rdf_flows.GrrMessage(
               session_id=message.session_id,
               request_id=message.request_id,
-              task_id=message.task_id,
+              task_id=message.Get("task_id"),
               name=message.name,
               response_id=i + 1,
               payload=r,
@@ -117,6 +118,14 @@ class ActionMock(object):
     return self.client_worker.Drain()
 
 
+class Store(server_stubs.ClientActionStub):
+  """A test client action."""
+  pass
+
+
+action_registry.RegisterAdditionalTestClientAction(Store)
+
+
 class CPULimitClientMock(ActionMock):
   """A mock for testing resource limits."""
 
@@ -129,9 +138,6 @@ class CPULimitClientMock(ActionMock):
                system_cpu_usage=None,
                network_usage=None):
     super(CPULimitClientMock, self).__init__()
-    # Register us as an action plugin.
-    # TODO(user): this is a hacky shortcut and should be fixed.
-    server_stubs.ClientActionStub.classes["Store"] = self
     if storage is not None:
       self.storage = storage
     else:

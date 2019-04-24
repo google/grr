@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 
+from future.utils import iteritems
 from future.utils import itervalues
 from typing import List, Optional, Text
 
@@ -19,7 +20,6 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_server.databases import db
-from grr_response_server.databases import db_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -127,94 +127,99 @@ class InMemoryDBFlowMixin(object):
     return leased_requests
 
   @utils.Synchronized
-  def ReadClientMessages(self, client_id):
-    """Reads all client messages available for a given client_id."""
+  def ReadAllClientActionRequests(self, client_id):
+    """Reads all client action requests available for a given client_id."""
     res = []
-    for msgs_by_id in itervalues(self.client_messages):
-      for orig_msg in sorted(itervalues(msgs_by_id), key=lambda m: m.task_id):
-        if db_utils.ClientIdFromGrrMessage(orig_msg) != client_id:
-          continue
-        msg = orig_msg.Copy()
-        current_lease = self.client_message_leases.get(msg.task_id)
-        msg.ttl = db.Database.CLIENT_MESSAGES_TTL
-        if current_lease:
-          msg.leased_until, msg.leased_by, lease_count = current_lease
-          msg.ttl -= lease_count
-        res.append(msg)
+    for key, orig_request in iteritems(self.client_action_requests):
+      request_client_id, _, _ = key
+      if request_client_id != client_id:
+        continue
+
+      request = orig_request.Copy()
+      current_lease = self.client_action_request_leases.get(key)
+      request.ttl = db.Database.CLIENT_MESSAGES_TTL
+      if current_lease is not None:
+        request.leased_until, request.leased_by, leased_count = current_lease
+        request.ttl -= leased_count
+      else:
+        request.leased_until = None
+        request.leased_by = None
+      res.append(request)
 
     return res
 
-  def _DeleteClientMessage(self, client_id, task_id):
-    tasks = self.client_messages.get(client_id)
-    if not tasks or task_id not in tasks:
-      # TODO(amoser): Once new flows are in, reevaluate if we can raise on
-      # deletion request for unknown messages.
-      return
-    del tasks[task_id]
-    if task_id in self.client_message_leases:
-      del self.client_message_leases[task_id]
+  def _DeleteClientActionRequest(self, client_id, flow_id, request_id):
+    key = (client_id, flow_id, request_id)
+    self.client_action_requests.pop(key, None)
+    self.client_action_request_leases.pop(key, None)
 
   @utils.Synchronized
-  def DeleteClientMessages(self, messages):
-    """Deletes a list of client messages from the db."""
+  def DeleteClientActionRequests(self, requests):
+    """Deletes a list of client action requests from the db."""
     to_delete = []
-    for m in messages:
-      client_id = db_utils.ClientIdFromGrrMessage(m)
-      to_delete.append((client_id, m.task_id))
+    for r in requests:
+      to_delete.append((r.client_id, r.flow_id, r.request_id))
 
     if len(set(to_delete)) != len(to_delete):
       raise ValueError(
-          "Received multiple copies of the same message to delete.")
+          "Received multiple copies of the same action request to delete.")
 
-    for client_id, task_id in to_delete:
-      self._DeleteClientMessage(client_id, task_id)
+    for client_id, flow_id, request_id in to_delete:
+      self._DeleteClientActionRequest(client_id, flow_id, request_id)
 
   @utils.Synchronized
-  def LeaseClientMessages(self, client_id, lease_time=None, limit=sys.maxsize):
-    """Leases available client messages for the client with the given id."""
-    leased_messages = []
+  def LeaseClientActionRequests(self,
+                                client_id,
+                                lease_time=None,
+                                limit=sys.maxsize):
+    """Leases available client action requests for a client."""
+
+    leased_requests = []
 
     now = rdfvalue.RDFDatetime.Now()
     expiration_time = now + lease_time
     process_id_str = utils.ProcessIdString()
 
-    leases = self.client_message_leases
-    for msgs_by_id in itervalues(self.client_messages):
-      for msg in sorted(itervalues(msgs_by_id), key=lambda m: m.task_id):
-        if db_utils.ClientIdFromGrrMessage(msg) != client_id:
-          continue
+    leases = self.client_action_request_leases
+    # Can't use an iterator here since the dict might change when requests get
+    # deleted.
+    for key, request in sorted(self.client_action_requests.items()):
+      if key[0] != client_id:
+        continue
 
-        existing_lease = leases.get(msg.task_id)
-        if not existing_lease or existing_lease[0] < now:
-          if existing_lease:
-            lease_count = existing_lease[-1] + 1
-            if lease_count > db.Database.CLIENT_MESSAGES_TTL:
-              self._DeleteClientMessage(client_id, msg.task_id)
-              continue
-          else:
-            lease_count = 1
+      existing_lease = leases.get(key)
+      if not existing_lease or existing_lease[0] < now:
+        if existing_lease:
+          lease_count = existing_lease[-1] + 1
+          if lease_count > db.Database.CLIENT_MESSAGES_TTL:
+            self._DeleteClientActionRequest(*key)
+            continue
+        else:
+          lease_count = 1
 
-          leases[msg.task_id] = (expiration_time, process_id_str, lease_count)
-          msg.leased_until = expiration_time
-          msg.leased_by = process_id_str
-          msg.ttl = db.Database.CLIENT_MESSAGES_TTL - lease_count
-          leased_messages.append(msg)
-          if len(leased_messages) >= limit:
-            break
+        leases[key] = (expiration_time, process_id_str, lease_count)
+        request.leased_until = expiration_time
+        request.leased_by = process_id_str
+        request.ttl = db.Database.CLIENT_MESSAGES_TTL - lease_count
+        leased_requests.append(request)
+        if len(leased_requests) >= limit:
+          break
 
-    return leased_messages
+    return leased_requests
 
   @utils.Synchronized
-  def WriteClientMessages(self, messages):
+  def WriteClientActionRequests(self, requests):
     """Writes messages that should go to the client to the db."""
-    client_ids = [db_utils.ClientIdFromGrrMessage(msg) for msg in messages]
-    for client_id in client_ids:
-      if client_id not in self.metadatas:
-        raise db.AtLeastOneUnknownClientError(client_ids=client_ids)
+    for r in requests:
+      req_dict = self.flow_requests.get((r.client_id, r.flow_id), {})
+      if r.request_id not in req_dict:
+        request_keys = [(r.client_id, r.flow_id, r.request_id) for r in requests
+                       ]
+        raise db.AtLeastOneUnknownRequestError(request_keys)
 
-    for m in messages:
-      client_id = db_utils.ClientIdFromGrrMessage(m)
-      self.client_messages.setdefault(client_id, {})[m.task_id] = m
+    for r in requests:
+      request_key = (r.client_id, r.flow_id, r.request_id)
+      self.client_action_requests[request_key] = r
 
   @utils.Synchronized
   def WriteFlowObject(self, flow_obj):
@@ -444,9 +449,7 @@ class InMemoryDBFlowMixin(object):
 
         if len(responses) == request.nr_responses_expected:
           request.needs_processing = True
-          task_id = task_ids_by_request.get((client_id, flow_id, request_id))
-          if task_id:
-            self._DeleteClientMessage(client_id, task_id)
+          self._DeleteClientActionRequest(client_id, flow_id, request_id)
 
           flow = self.flows[flow_key]
           if flow.next_request_to_process == request_id:

@@ -18,6 +18,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.utils import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
+from grr_response_server import action_registry
 from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -105,7 +106,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     self.rdf_flow = rdf_flow
     self.flow_requests = []
     self.flow_responses = []
-    self.client_messages = []
+    self.client_action_requests = []
     self.completed_requests = []
     self.replies_to_process = []
     self.replies_to_write = []
@@ -203,10 +204,14 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
        ValueError: The request passed to the client does not have the correct
                    type.
     """
+    try:
+      action_identifier = action_registry.ID_BY_ACTION_STUB[action_cls]
+    except KeyError:
+      raise ValueError("Action class %s not known." % action_cls)
+
     if action_cls.in_rdfvalue is None:
       if request:
-        raise ValueError("Client action %s does not expect args." %
-                         action_cls.__name__)
+        raise ValueError("Client action %s does not expect args." % action_cls)
     else:
       if request is None:
         # Create a new rdf request.
@@ -229,34 +234,38 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     if request_data is not None:
       flow_request.request_data = rdf_protodict.Dict().FromDict(request_data)
 
-    msg = rdf_flows.GrrMessage(
-        session_id=self.rdf_flow.long_flow_id,
-        name=action_cls.__name__,
-        request_id=outbound_id,
-        queue=self.rdf_flow.client_id,
-        payload=request,
-        generate_task_id=True)
+    cpu_limit_ms = None
+    network_bytes_limit = None
 
     if self.rdf_flow.cpu_limit:
       cpu_usage = self.rdf_flow.cpu_time_used
-      msg.cpu_limit = max(
+      cpu_limit_ms = 1000 * max(
           self.rdf_flow.cpu_limit - cpu_usage.user_cpu_time -
           cpu_usage.system_cpu_time, 0)
 
-      if msg.cpu_limit == 0:
+      if cpu_limit_ms == 0:
         raise flow.FlowError("CPU limit exceeded for {} {}.".format(
             self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     if self.rdf_flow.network_bytes_limit:
-      msg.network_bytes_limit = max(
+      network_bytes_limit = max(
           self.rdf_flow.network_bytes_limit - self.rdf_flow.network_bytes_sent,
           0)
-      if msg.network_bytes_limit == 0:
+      if network_bytes_limit == 0:
         raise flow.FlowError("Network limit exceeded for {} {}.".format(
             self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
+    client_action_request = rdf_flows.ClientActionRequest(
+        client_id=self.rdf_flow.client_id,
+        flow_id=self.rdf_flow.flow_id,
+        request_id=outbound_id,
+        action_identifier=action_identifier,
+        action_args=request,
+        cpu_limit_ms=cpu_limit_ms,
+        network_bytes_limit=network_bytes_limit)
+
     self.flow_requests.append(flow_request)
-    self.client_messages.append(msg)
+    self.client_action_requests.append(client_action_request)
 
   def CallFlow(self,
                flow_name=None,
@@ -506,7 +515,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     Args:
       method_name: The name of the state method to call.
       request: A RequestState protobuf.
-      responses: A list of GrrMessages responding to the request.
+      responses: A list of FlowMessages responding to the request.
     """
     if self.rdf_flow.pending_termination:
       self.Error(error_message=self.rdf_flow.pending_termination.reason)
@@ -641,15 +650,16 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       data_store.REL_DB.WriteFlowResponses(self.flow_responses)
       self.flow_responses = []
 
-    if self.client_messages:
+    if self.client_action_requests:
       client_id = self.rdf_flow.client_id
       if fleetspeak_utils.IsFleetspeakEnabledClient(client_id):
-        for task in self.client_messages:
-          fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, task)
+        for request in self.client_action_requests:
+          msg = rdf_flow_objects.GRRMessageFromClientActionRequest(request)
+          fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, msg)
       else:
-        data_store.REL_DB.WriteClientMessages(self.client_messages)
+        data_store.REL_DB.WriteClientActionRequests(self.client_action_requests)
 
-      self.client_messages = []
+      self.client_action_requests = []
 
     if self.completed_requests:
       data_store.REL_DB.DeleteFlowRequests(self.completed_requests)
@@ -766,8 +776,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     flow_obj.flow_requests = []
     self.flow_responses.extend(flow_obj.flow_responses)
     flow_obj.flow_responses = []
-    self.client_messages.extend(flow_obj.client_messages)
-    flow_obj.client_messages = []
+    self.client_action_requests.extend(flow_obj.client_action_requests)
+    flow_obj.client_action_requests = []
     self.completed_requests.extend(flow_obj.completed_requests)
     flow_obj.completed_requests = []
     self.replies_to_write.extend(flow_obj.replies_to_write)

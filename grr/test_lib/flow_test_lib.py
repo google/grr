@@ -420,10 +420,14 @@ class MockClient(object):
     """Grab tasks for us from the server's queue."""
     with queue_manager.QueueManager(token=self.token) as manager:
       if data_store.RelationalDBEnabled():
-        request_tasks = data_store.REL_DB.LeaseClientMessages(
+        request_tasks = data_store.REL_DB.LeaseClientActionRequests(
             self.client_id.Basename(),
             lease_time=rdfvalue.Duration("10000s"),
             limit=1)
+        request_tasks = [
+            rdf_flow_objects.GRRMessageFromClientActionRequest(r)
+            for r in request_tasks
+        ]
       else:
         request_tasks = manager.QueryAndOwn(
             self.client_id.Queue(), limit=1, lease_seconds=10000)
