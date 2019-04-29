@@ -176,51 +176,58 @@ HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
 
 Platform:Darwin:
-  Client.name: grr
+  Client Context:
+    Client.name: grr
 
-  Client.platform: darwin
+    Client.platform: darwin
 
-  Logging.engines: stderr,file,syslog
+    Logging.engines: stderr,file,syslog
 
-  Logging.syslog_path: /var/run/syslog
+    Logging.syslog_path: /var/run/syslog
 
 Platform:Linux:
-  Client.binary_name: grrd
+  Client Context:
+    Client.binary_name: grrd
 
-  Client.platform: linux
+    Client.platform: linux
 
-  Logging.engines: stderr,file,syslog
+    Logging.engines: stderr,file,syslog
 
-  Logging.syslog_path: /dev/log
+    Logging.syslog_path: /dev/log
 
-  Commandline Context:
-    Logging.engines: stderr
+    Commandline Context:
+      Logging.engines: stderr
 
-    Logging.verbose: False
+      Logging.verbose: False
 
 
 Platform:Windows:
-  Client.binary_name: |
-      %(Client.name).exe
+  Client Context:
+    Client.binary_name: |
+        %(Client.name).exe
 
-  Client.install_path: |
-    %(SystemRoot|env)\\System32\\%(Client.name)\\%(Source.version_string)
+    Client.install_path: |
+      %(SystemRoot|env)\\System32\\%(Client.name)\\%(Source.version_string)
 
-  Client.platform: windows
+    Client.platform: windows
 
-  # Windows services has an insecure temp directory so we use our installation
-  # path.
-  Client.tempdir_roots:
-    - "%(install_path)"
-  Client.grr_tempdir: "Temp"
+    # Windows services has an insecure temp directory so we use our installation
+    # path.
+    Client.tempdir_roots:
+      - "%(install_path)"
+    Client.grr_tempdir: "Temp"
 
-  Logging.engines: file,stderr,event_log
+    Logging.engines: file,stderr,event_log
 
-  Logging.filename: |
-    %(path)\\%(Client.name).log
+    Logging.filename: |
+      %(path)\\%(Client.name).log
 
-  Logging.path: |
-    %(WINDIR|env)\\System32\\logfiles\\
+    Logging.path: |
+      %(WINDIR|env)\\System32\\logfiles\\
+
+    # This is where the client will write back volatile configuration data. On
+    # windows we write configuration into the registry.
+    Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
 
   Arch:amd64:
     ClientBuilder.vs_arch: x64
@@ -233,10 +240,6 @@ Platform:Windows:
 
     ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\vcvars32.bat"
 
-  Client Context:
-    # This is where the client will write back volatile configuration data. On
-    # windows we write configuration into the registry.
-    Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
 
 Worker Context:
   Cron.active: True

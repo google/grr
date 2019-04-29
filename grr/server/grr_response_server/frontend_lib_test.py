@@ -611,6 +611,11 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
         rdf_flow_objects.GRRMessageFromClientActionRequest(r)
         for r in action_requests
     ]
+    for r in res:
+      r.task_id = 0
+    for m in msgs:
+      m.task_id = 0
+
     self.assertItemsEqual(res, msgs)
 
 

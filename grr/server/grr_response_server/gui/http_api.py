@@ -444,27 +444,29 @@ class HttpRequestHandler(object):
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
 
-    # TODO:
-    # AFF4 edge case: if a user is issuing a request, before they are created
-    # using CreateGRRUser (e.g. in E2E tests or with single sign-on),
-    # AFF4's ReadGRRUsers will NEVER contain the user, because the creation
-    # done in the following lines does not add the user to the /users/
-    # collection. Furthermore, subsequent CreateGrrUserHandler calls fail,
-    # because the user technically already exists.
+    if data_store.AFF4Enabled():
+      # TODO:
+      # AFF4 edge case: if a user is issuing a request, before they are created
+      # using CreateGRRUser (e.g. in E2E tests or with single sign-on),
+      # AFF4's ReadGRRUsers will NEVER contain the user, because the creation
+      # done in the following lines does not add the user to the /users/
+      # collection. Furthermore, subsequent CreateGrrUserHandler calls fail,
+      # because the user technically already exists.
 
-    # We send a blind-write request to ensure that the user object is created
-    # for a user specified by the username.
-    user_urn = rdfvalue.RDFURN("aff4:/users/").Add(request.user)
-    # We can't use conventional AFF4 interface, since aff4.FACTORY.Create will
-    # create a new version of the object for every call.
-    with data_store.DB.GetMutationPool() as pool:
-      pool.MultiSet(
-          user_urn, {
-              aff4_users.GRRUser.SchemaCls.TYPE: [aff4_users.GRRUser.__name__],
-              aff4_users.GRRUser.SchemaCls.LAST:
-                  [rdfvalue.RDFDatetime.Now().SerializeToDataStore()]
-          },
-          replace=True)
+      # We send a blind-write request to ensure that the user object is created
+      # for a user specified by the username.
+      user_urn = rdfvalue.RDFURN("aff4:/users/").Add(request.user)
+      # We can't use conventional AFF4 interface, since aff4.FACTORY.Create will
+      # create a new version of the object for every call.
+      with data_store.DB.GetMutationPool() as pool:
+        pool.MultiSet(
+            user_urn, {
+                aff4_users.GRRUser.SchemaCls.TYPE:
+                    [aff4_users.GRRUser.__name__],
+                aff4_users.GRRUser.SchemaCls.LAST:
+                    [rdfvalue.RDFDatetime.Now().SerializeToDataStore()]
+            },
+            replace=True)
 
     if data_store.RelationalDBEnabled():
       data_store.REL_DB.WriteGRRUser(request.user)

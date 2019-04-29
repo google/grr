@@ -852,7 +852,7 @@ message Collection {
 }
 
 // Windows WMI Request.
-message WmiRequest {
+message WMIRequest {
   optional string query = 1;
   optional string base_object = 2;
 }

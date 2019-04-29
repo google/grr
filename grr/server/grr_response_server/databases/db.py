@@ -1860,7 +1860,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       client_id: The client for which the requests should be leased.
       lease_time: rdfvalue.Duration indicating how long the lease should be
         valid.
-      limit: Lease at most <limit> requests.
+      limit: Lease at most <limit> requests. If set, must be less than 10000.
+        Default is 5000.
 
     Returns:
       A list of ClientActionRequest objects.
@@ -3423,10 +3424,13 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertType(request, rdf_flows.ClientActionRequest)
     return self.delegate.WriteClientActionRequests(requests)
 
-  def LeaseClientActionRequests(self, client_id, lease_time=None,
-                                limit=1000000):
+  def LeaseClientActionRequests(self, client_id, lease_time=None, limit=5000):
     _ValidateClientId(client_id)
     _ValidateDuration(lease_time)
+    precondition.AssertType(limit, int)
+    if limit >= 10000:
+      raise ValueError("Limit of %d is too high.")
+
     return self.delegate.LeaseClientActionRequests(
         client_id, lease_time=lease_time, limit=limit)
 

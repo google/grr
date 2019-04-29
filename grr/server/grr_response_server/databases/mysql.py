@@ -410,6 +410,11 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
         ".*Table '.*' already exists",
         # And CREATE INDEX IF NOT EXISTS.
         ".*Duplicate key name.*",
+        # TODO: this is caused by an old version of the MySQLdb
+        # library that doesn't wrap bytes SQL arguments with the _binary()
+        # type hint. This issue should go away when a new version of the
+        # MySQLdb is used with Python 3.
+        ".*Invalid.*character string.*",
     ]:
       warnings.filterwarnings(
           "ignore", category=MySQLdb.Warning, message=message)

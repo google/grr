@@ -242,4 +242,6 @@ def GRRMessageFromClientActionRequest(request):
       payload=request.action_args,
       cpu_limit=request.cpu_limit_ms / 1000.0,
       network_bytes_limit=request.network_bytes_limit,
-      generate_task_id=False)
+      # Legacy clients will fail if the task id is not set.
+      # TODO(amoser): Remove task ids after April 2021.
+      generate_task_id=True)

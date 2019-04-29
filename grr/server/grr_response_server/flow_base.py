@@ -752,6 +752,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
         created_output_plugins.append(output_plugin)
       except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Plugin %s failed to process %d replies: %s",
+                          plugin_descriptor, len(replies),
+                          traceback.format_exc())
         created_output_plugins.append(None)
 
         data_store.REL_DB.WriteFlowOutputPluginLogEntries([

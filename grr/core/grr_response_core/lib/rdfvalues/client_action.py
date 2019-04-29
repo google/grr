@@ -133,7 +133,7 @@ class FingerprintResponse(rdf_structs.RDFProtoStruct):
 
 
 class WMIRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.WmiRequest
+  protobuf = jobs_pb2.WMIRequest
 
 
 class StatFSRequest(rdf_structs.RDFProtoStruct):
