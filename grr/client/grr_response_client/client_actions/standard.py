@@ -7,7 +7,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import ctypes
-import gzip
 import hashlib
 import io
 import logging
@@ -158,78 +157,6 @@ class HashFile(actions.ActionPlugin):
         bytes_read=hash_object.num_bytes,
         hash=hash_object)
     self.SendReply(response)
-
-
-class CopyPathToFile(actions.ActionPlugin):
-  """Copy contents of a pathspec to a file on disk."""
-  in_rdfvalue = rdf_client_action.CopyPathToFileRequest
-  out_rdfvalues = [rdf_client_action.CopyPathToFileRequest]
-
-  BLOCK_SIZE = 10 * 1024 * 1024
-
-  def _Copy(self, src_fd, dest_fd, length):
-    """Copy from VFS to file until no more data or length is reached.
-
-    Args:
-      src_fd: File object to read from.
-      dest_fd: File object to write to.
-      length: Number of bytes to write.
-
-    Returns:
-      Bytes written.
-    """
-    written = 0
-    while written < length:
-      to_read = min(length - written, self.BLOCK_SIZE)
-      data = src_fd.read(to_read)
-      if not data:
-        break
-
-      dest_fd.write(data)
-      written += len(data)
-
-      # Send heartbeats for long files.
-      self.Progress()
-    return written
-
-  def Run(self, args):
-    """Read from a VFS file and write to a GRRTempFile on disk.
-
-    If file writing doesn't complete files won't be cleaned up.
-
-    Args:
-      args: see CopyPathToFile in jobs.proto
-    """
-    src_fd = vfs.VFSOpen(args.src_path, progress_callback=self.Progress)
-    src_fd.Seek(args.offset)
-    offset = src_fd.Tell()
-
-    length = args.length or (1024**4)  # 1 TB
-
-    suffix = ".gz" if args.gzip_output else ""
-
-    dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS(
-        lifetime=args.lifetime, suffix=suffix)
-
-    dest_file = dest_fd.name
-    with dest_fd:
-
-      if args.gzip_output:
-        gzip_fd = gzip.GzipFile(dest_file, "wb", 9, dest_fd)
-
-        # Gzip filehandle needs its own close method called
-        with gzip_fd:
-          written = self._Copy(src_fd, gzip_fd, length)
-      else:
-        written = self._Copy(src_fd, dest_fd, length)
-
-    self.SendReply(
-        rdf_client_action.CopyPathToFileRequest(
-            offset=offset,
-            length=written,
-            src_path=args.src_path,
-            dest_path=dest_pathspec,
-            gzip_output=args.gzip_output))
 
 
 class ListDirectory(ReadBuffer):

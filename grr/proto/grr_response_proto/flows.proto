@@ -2588,3 +2588,6 @@ message FlowOutputPluginLogEntry {
   }];
   optional string message = 7;
 }
+
+message EmptyFlowArgs {
+}

@@ -221,6 +221,21 @@ def _SetMariaDBMode(cursor):
                    "',NO_DUP_KEY_WARNINGS_WITH_IGNORE');")
 
 
+def _SetSqlMode(cursor):
+  """Sets session-level sql_mode variable to a well defined value."""
+  # Explicitly set sql mode to ensure compatibility between MySQL and MariaDB
+  # servers.
+  # Using MariaDB 10.2.4 default sql mode as a source of truth (see
+  # https://mariadb.com/kb/en/library/sql-mode/ for details).
+  mode = ",".join([
+      "STRICT_TRANS_TABLES",
+      "ERROR_FOR_DIVISION_BY_ZERO",
+      "NO_AUTO_CREATE_USER",
+      "NO_ENGINE_SUBSTITUTION",
+  ])
+  cursor.execute("SET sql_mode = %s;", [mode])
+
+
 def _CheckForSSL(cursor):
   key_path = config.CONFIG["Mysql.client_key_path"]
   if not key_path:
@@ -351,6 +366,7 @@ def _Connect(host=None,
   with contextlib.closing(conn.cursor()) as cursor:
     _CheckForSSL(cursor)
     _SetMariaDBMode(cursor)
+    _SetSqlMode(cursor)
     _SetBinlogFormat(cursor)
     _SetPacketSizeForFollowingConnections(cursor)
     _SetEncoding(cursor)

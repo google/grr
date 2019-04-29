@@ -463,38 +463,6 @@ message EchoRequest {
   optional string data = 2;
 }
 
-// CopyPathToFile request and response.
-// Request:
-//  - offset: byte offset inside src file to start copying from
-//  - length: total number of bytes to copy (default 0 will copy whole file)
-//  - block_size: how many bytes to copy at a time (default 10 MB)
-//  - src_path: source pathspec to copy from
-//  - dest_path: unset (GRRTempfile will create a random filename in dest_dir)
-//  - gzip_output: if true, output file will be gzipped (default true)
-//  - lifetime: number of seconds the file will stay on disk before being
-//  deleted (default of 0 means don't delete)
-//
-// Response:
-//  - offset: byte offset from request
-//  - length: total bytes copied
-//  - block_size: unused
-//  - src_path: source pathspec from request
-//  - dest_dir: destination dir from request
-//  - dest_path: on-disk output pathspec
-//  - gzip_output: if true, output file is gzipped
-//  - lifetime: unused
-//
-message CopyPathToFile {
-  optional uint64 offset = 1 [default = 0];
-  optional uint64 length = 2 [default = 0];
-  optional PathSpec src_path = 3;
-  // DEPRECATED, goes to the GRR temp dir by default.
-  // optional string dest_dir = 4;
-  optional PathSpec dest_path = 5;
-  optional bool gzip_output = 6 [default = true];
-  optional float lifetime = 7 [default = 0];
-}
-
 // Pass a buffer back.
 
 //   This protobuf is used for both the request and response.

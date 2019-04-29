@@ -391,6 +391,7 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
   main reason we used this in the past).
   """
   protobuf = jobs_pb2.BlobArray
+  allow_custom_class_name = True
   rdf_deps = [
       DataBlob,
   ]

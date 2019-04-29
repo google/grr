@@ -47,13 +47,6 @@ class ExecuteRequest(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteRequest
 
 
-class CopyPathToFileRequest(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.CopyPathToFile
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
 class ExecuteResponse(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ExecuteResponse
   rdf_deps = [

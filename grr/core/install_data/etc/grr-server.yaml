@@ -176,20 +176,21 @@ HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
 
 Platform:Darwin:
+  Client.name: grr
+
+  Client.platform: darwin
+
   Client Context:
-    Client.name: grr
-
-    Client.platform: darwin
-
     Logging.engines: stderr,file,syslog
 
     Logging.syslog_path: /var/run/syslog
 
 Platform:Linux:
-  Client Context:
-    Client.binary_name: grrd
+  Client.binary_name: grrd
 
-    Client.platform: linux
+  Client.platform: linux
+
+  Client Context:
 
     Logging.engines: stderr,file,syslog
 
@@ -202,32 +203,19 @@ Platform:Linux:
 
 
 Platform:Windows:
-  Client Context:
-    Client.binary_name: |
-        %(Client.name).exe
+  Client.binary_name: |
+      %(Client.name).exe
 
-    Client.install_path: |
-      %(SystemRoot|env)\\System32\\%(Client.name)\\%(Source.version_string)
+  Client.install_path: |
+    %(SystemRoot|env)\\System32\\%(Client.name)\\%(Source.version_string)
 
-    Client.platform: windows
+  Client.platform: windows
 
-    # Windows services has an insecure temp directory so we use our installation
-    # path.
-    Client.tempdir_roots:
-      - "%(install_path)"
-    Client.grr_tempdir: "Temp"
-
-    Logging.engines: file,stderr,event_log
-
-    Logging.filename: |
-      %(path)\\%(Client.name).log
-
-    Logging.path: |
-      %(WINDIR|env)\\System32\\logfiles\\
-
-    # This is where the client will write back volatile configuration data. On
-    # windows we write configuration into the registry.
-    Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
+  # Windows services has an insecure temp directory so we use our installation
+  # path.
+  Client.tempdir_roots:
+    - "%(install_path)"
+  Client.grr_tempdir: "Temp"
 
   Arch:amd64:
     ClientBuilder.vs_arch: x64
@@ -239,6 +227,19 @@ Platform:Windows:
     ClientBuilder.vs_arch: Win32
 
     ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\vcvars32.bat"
+
+  Client Context:
+    Logging.engines: file,stderr,event_log
+
+    Logging.filename: |
+      %(path)\\%(Client.name).log
+
+    Logging.path: |
+      %(WINDIR|env)\\System32\\logfiles\\
+
+    # This is where the client will write back volatile configuration data. On
+    # windows we write configuration into the registry.
+    Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
 
 
 Worker Context:

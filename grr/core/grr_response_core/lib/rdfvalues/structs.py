@@ -890,8 +890,8 @@ class ProtoBoolean(ProtoEnum):
 
   def ConvertFromWireFormat(self, value, container=None):
     return rdfvalue.RDFBool(
-        super(ProtoBoolean, self).ConvertFromWireFormat(
-            value, container=container))
+        super(ProtoBoolean,
+              self).ConvertFromWireFormat(value, container=container))
 
 
 class ProtoEmbedded(ProtoType):
@@ -963,8 +963,8 @@ class ProtoEmbedded(ProtoType):
       TypeError: If the target class is not of the expected type.
     """
     if not issubclass(target, RDFProtoStruct):
-      raise TypeError(
-          "Field %s expects a protobuf, but target is %s" % (self, target))
+      raise TypeError("Field %s expects a protobuf, but target is %s" %
+                      (self, target))
 
     self.late_bound = False
 
@@ -992,16 +992,16 @@ class ProtoEmbedded(ProtoType):
 
   def Validate(self, value, **_):
     if isinstance(value, string_types):
-      raise type_info.TypeValueError(
-          "Field %s must be of type %s" % (self.name, self.type.__name__))
+      raise type_info.TypeValueError("Field %s must be of type %s" %
+                                     (self.name, self.type.__name__))
 
     # We may coerce it to the correct type.
     if value.__class__ is not self.type:
       try:
         value = self.type(value)
       except rdfvalue.InitializeError:
-        raise type_info.TypeValueError(
-            "Field %s must be of type %s" % (self.name, self.type.__name__))
+        raise type_info.TypeValueError("Field %s must be of type %s" %
+                                       (self.name, self.type.__name__))
 
     return value
 
@@ -1153,8 +1153,8 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
                    wrapper_cls.__name__)
       data = wrapped_data.SerializeToString()
     else:
-      raise ValueError(
-          "Can't convert value %s to an protobuf.Any value." % value)
+      raise ValueError("Can't convert value %s to an protobuf.Any value." %
+                       value)
 
     any_value = AnyValue(type_url=type_name, value=data)
     output = _SerializeEntries(_GetOrderedEntries(any_value.GetRawData()))
@@ -1705,8 +1705,8 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
               "Field %s refers to an as yet undefined Semantic Type." %
               self.late_bound_type_infos[arg])
 
-        raise AttributeError(
-            "Proto %s has no field %s" % (self.__class__.__name__, arg))
+        raise AttributeError("Proto %s has no field %s" %
+                             (self.__class__.__name__, arg))
 
       # Call setattr to allow the class to define @property psuedo fields which
       # can also be initialized.
@@ -1849,8 +1849,8 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format, wire_format, type_descriptor) in sorted(
-        iteritems(self.GetRawData())):
+    for k, (python_format, wire_format,
+            type_descriptor) in sorted(iteritems(self.GetRawData())):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)
@@ -2056,9 +2056,9 @@ class RDFProtoStruct(RDFStruct):
     for dynamic_field in dynamic_fields:
       nested_value = dynamic_field.GetDefault(container=self)
       if nested_value is None:
-        raise RuntimeError(
-            "Can't initialize dynamic field %s, probably some "
-            "necessary fields weren't supplied." % dynamic_field.name)
+        raise RuntimeError("Can't initialize dynamic field %s, probably some "
+                           "necessary fields weren't supplied." %
+                           dynamic_field.name)
       nested_value.FromDict(dictionary[dynamic_field.name])
       self.Set(dynamic_field.name, nested_value)
 
@@ -2208,3 +2208,4 @@ class SemanticDescriptor(RDFProtoStruct):
 class AnyValue(RDFProtoStruct):
   """Protobuf with arbitrary serialized proto and its type."""
   protobuf = any_pb2.Any
+  allow_custom_class_name = True

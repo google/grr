@@ -61,7 +61,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import random
 from grr_response_core.stats import stats_collector_instance
-from grr_response_proto import jobs_pb2
+from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -119,7 +119,7 @@ class AttributedDict(dict):
 
 class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
   """Some flows do not take argumentnts."""
-  protobuf = jobs_pb2.EmptyMessage
+  protobuf = flows_pb2.EmptyFlowArgs
 
 
 # TODO(hanuszczak): Consider refactoring the interface of this class.

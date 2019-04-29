@@ -5,13 +5,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import gzip
 import hashlib
 import io
-import os
 import sys
-import time
-
 
 from absl import app
 import mock
@@ -209,67 +205,6 @@ utils.TEST_VAL = py_args[43]
     self.assertEqual(utils.TEST_VAL, "dict_arg2")
 
 
-class TestCopyPathToFile(client_test_lib.EmptyActionTest):
-  """Test CopyPathToFile client actions."""
-
-  def setUp(self):
-    super(TestCopyPathToFile, self).setUp()
-    self.path_in = os.path.join(self.base_path, "morenumbers.txt")
-    self.hash_in = hashlib.sha1(open(self.path_in, "rb").read()).hexdigest()
-    self.pathspec = rdf_paths.PathSpec(
-        path=self.path_in, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-  def testCopyPathToFile(self):
-    request = rdf_client_action.CopyPathToFileRequest(
-        offset=0, length=0, src_path=self.pathspec, gzip_output=False)
-    result = self.RunAction(standard.CopyPathToFile, request)[0]
-    hash_out = hashlib.sha1(open(result.dest_path.path,
-                                 "rb").read()).hexdigest()
-    self.assertEqual(self.hash_in, hash_out)
-
-  def testCopyPathToFileLimitLength(self):
-    request = rdf_client_action.CopyPathToFileRequest(
-        offset=0, length=23, src_path=self.pathspec, gzip_output=False)
-    result = self.RunAction(standard.CopyPathToFile, request)[0]
-    output = open(result.dest_path.path, "rb").read()
-    self.assertLen(output, 23)
-
-  def testCopyPathToFileOffsetandLimit(self):
-
-    with open(self.path_in, "rb") as f:
-      f.seek(38)
-      out = f.read(25)
-      hash_in = hashlib.sha1(out).hexdigest()
-
-    request = rdf_client_action.CopyPathToFileRequest(
-        offset=38, length=25, src_path=self.pathspec, gzip_output=False)
-    result = self.RunAction(standard.CopyPathToFile, request)[0]
-    output = open(result.dest_path.path, "rb").read()
-    self.assertLen(output, 25)
-    hash_out = hashlib.sha1(output).hexdigest()
-    self.assertEqual(hash_in, hash_out)
-
-  def testCopyPathToFileGzip(self):
-    request = rdf_client_action.CopyPathToFileRequest(
-        offset=0, length=0, src_path=self.pathspec, gzip_output=True)
-    result = self.RunAction(standard.CopyPathToFile, request)[0]
-    self.assertEqual(
-        hashlib.sha1(gzip.open(result.dest_path.path).read()).hexdigest(),
-        self.hash_in)
-
-  def testCopyPathToFileLifetimeLimit(self):
-    request = rdf_client_action.CopyPathToFileRequest(
-        offset=0,
-        length=23,
-        src_path=self.pathspec,
-        gzip_output=False,
-        lifetime=0.1)
-    result = self.RunAction(standard.CopyPathToFile, request)[0]
-    self.assertTrue(os.path.exists(result.dest_path.path))
-    time.sleep(1)
-    self.assertFalse(os.path.exists(result.dest_path.path))
-
-
 class GetFileStatTest(client_test_lib.EmptyActionTest):
 
   def testStatSize(self):
@@ -320,7 +255,7 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
 
 
 class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
-  """Test CopyPathToFile client actions."""
+  """Test TransferBuffer network byte limits."""
 
   def setUp(self):
     super(TestNetworkByteLimits, self).setUp()

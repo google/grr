@@ -14,7 +14,6 @@ ACTION_STUB_BY_ID = {
     "Bloat": server_stubs.Bloat,
     "BusyHang": server_stubs.BusyHang,
     "CheckFreeGRRTempSpace": server_stubs.CheckFreeGRRTempSpace,
-    "CopyPathToFile": server_stubs.CopyPathToFile,
     "DeleteGRRTempFiles": server_stubs.DeleteGRRTempFiles,
     "DumpACPITable": server_stubs.DumpACPITable,
     "DumpFlashImage": server_stubs.DumpFlashImage,

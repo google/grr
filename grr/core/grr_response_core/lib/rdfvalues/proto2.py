@@ -13,6 +13,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import inspect
 import logging
 
 from future.builtins import str
@@ -20,6 +21,15 @@ from future.builtins import str
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_proto import semantic_pb2
+
+
+class Error(Exception):
+  """Base error class for this module."""
+
+
+class ProtobufNameMustMatchClassOrParentClassError(Error):
+  pass
+
 
 # Field types present in the proto2 field descriptors.
 TYPE_DOUBLE = 1
@@ -80,7 +90,19 @@ def DefineFromProtobuf(cls, protobuf):
     cls: The class to add fields descriptors to (i.e. the new semantic class).
     protobuf: A generated proto2 protocol buffer class as produced by the
       standard Google protobuf compiler.
+
+  Raises:
+    ProtobufNameMustMatchClassOrParentClassError: if cls and protobuf have
+    different names.
   """
+  mro_chain = [c.__name__ for c in inspect.getmro(cls)]
+  if (protobuf.__name__ not in mro_chain and
+      not getattr(cls, "allow_custom_class_name", False)):
+    raise ProtobufNameMustMatchClassOrParentClassError(
+        "Can't define RDFProtoStruct class %s from proto %s "
+        "(proto name must match one of the classes in the MRO chain: %s)" %
+        (cls.__name__, protobuf.__name__, ", ".join(mro_chain)))
+
   cls.recorded_rdf_deps = set()
 
   # Parse message level options.
@@ -134,8 +156,8 @@ def DefineFromProtobuf(cls, protobuf):
         if required_field_type != field.type:
           raise rdfvalue.InitializeError(
               ("%s: .proto file uses incorrect field to store Semantic Value "
-               "%s: Should be %s") % (cls.__name__, field.name,
-                                      rdf_type.data_store_type))
+               "%s: Should be %s") %
+              (cls.__name__, field.name, rdf_type.data_store_type))
 
       type_descriptor = classes_dict["ProtoRDFValue"](
           rdf_type=options.type, **kwargs)
@@ -145,8 +167,8 @@ def DefineFromProtobuf(cls, protobuf):
     elif options.type and field.type == TYPE_MESSAGE:
       raise rdfvalue.InitializeError(
           ("%s: .proto file specified both Semantic Value type %s and "
-           "Semantic protobuf %s") % (cls.__name__, options.type,
-                                      field.message_type.name))
+           "Semantic protobuf %s") %
+          (cls.__name__, options.type, field.message_type.name))
 
     # Try to figure out what this field actually is from the descriptor.
     elif field.type == TYPE_DOUBLE:
@@ -306,5 +328,6 @@ def DefineFromProtobuf(cls, protobuf):
     for d in cls.recorded_rdf_deps:
       leftover_deps.remove(d)
     if leftover_deps:
-      raise rdfvalue.InitializeError("Found superfluous dependencies for %s: %s"
-                                     % (cls.__name__, ",".join(leftover_deps)))
+      raise rdfvalue.InitializeError(
+          "Found superfluous dependencies for %s: %s" %
+          (cls.__name__, ",".join(leftover_deps)))

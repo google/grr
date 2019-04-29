@@ -233,13 +233,6 @@ class HashFile(ClientActionStub):
   out_rdfvalues = [rdf_client_action.FingerprintResponse]
 
 
-class CopyPathToFile(ClientActionStub):
-  """Copy contents of a pathspec to a file on disk."""
-
-  in_rdfvalue = rdf_client_action.CopyPathToFileRequest
-  out_rdfvalues = [rdf_client_action.CopyPathToFileRequest]
-
-
 class ListDirectory(ClientActionStub):
   """Lists all the files in a directory."""
 
