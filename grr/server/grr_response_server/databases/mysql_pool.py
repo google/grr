@@ -18,6 +18,10 @@ class PoolAlreadyClosedError(Error):
   pass
 
 
+class SemicolonNotAllowedInQueryError(Error):
+  pass
+
+
 class Pool(object):
   """A Pool of database connections.
 
@@ -166,7 +170,49 @@ class _CursorProxy(object):
     return self._forward(self.cursor.callproc, procname, args=args)
 
   def execute(self, query, args=None):
-    return self._forward(self.cursor.execute, query, args=args)
+    """Executes a given query with given arguments."""
+    # When talking to MariaDB, MySQLdb code seems to have no problem
+    # with sending multiple statements in a single cursor.execute()
+    # call. MySQL, on the other hand, doesn't tolerate such behavior.
+    # It returns "Commands out of sync" error.
+    #
+    # It seems that according to the official spec, cursor.execute()
+    # can accept a single statement only. See:
+    # https://www.python.org/dev/peps/pep-0249/#id15
+    # ".execute(): prepare and execute a database operation
+    # (query or command)."
+    #
+    # And:
+    # https://stackoverflow.com/questions/20518677/mysqldb-cursor-execute-cant-run-multiple-queries
+    if ";" in query:
+      # NOTE: query doesn't contain actual data (the template substitution
+      # is done at a later stage), so there's practically no danger of a false
+      # positive in this check.
+      raise SemicolonNotAllowedInQueryError(
+          "cursor.execute() can execute a single SQL statement only")
+
+    try:
+      return self._forward(self.cursor.execute, query, args=args)
+    except Warning as e:
+      # TODO: check if newer versions of mysqlclient report
+      # integrity errors as MySQLdb.IntegrityError exceptions and
+      # not simply as warnings.
+      #
+      # MySQL error code 1452: Cannot add or update a child row:
+      # a foreign key constraint fails
+      if e.args[0] == 1452:
+        raise MySQLdb.IntegrityError(e.message)
+
+      # TODO: check if newer versions of mysqlclient report the
+      # unknown table warning (that's thrown even if DROP TABLE IF EXISTS
+      # syntax is used, see
+      # https://dev.mysql.com/doc/refman/5.7/en/drop-table.html)
+      #
+      # MySQL error code 1051: Unknown table.
+      if e.args[0] == 1051:
+        return None
+
+      raise
 
   def executemany(self, query, args):
     return self._forward(self.cursor.executemany, query, args)

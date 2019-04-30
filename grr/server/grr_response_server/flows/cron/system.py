@@ -10,10 +10,7 @@ import logging
 
 from future.builtins import zip
 from future.utils import iteritems
-from future.utils import iterkeys
 from future.utils import itervalues
-
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -21,14 +18,11 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import aff4
 from grr_response_server import client_report_utils
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import export_utils
-from grr_response_server import fleetspeak_connector
-from grr_response_server import fleetspeak_utils
 from grr_response_server import hunt
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
@@ -675,47 +669,3 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
         total_deleted_count += deleted_count
         self.Log("Deleted %d ClientStats that expired before %s",
                  total_deleted_count, end)
-
-
-class UpdateFSLastPingTimestamps(cronjobs.SystemCronJobBase):
-  """Cronjob that updates last-ping timestamps for Fleetspeak clients."""
-
-  frequency = rdfvalue.Duration("6h")
-  lifetime = rdfvalue.Duration("5h")
-
-  def Run(self):
-    if not fleetspeak_connector.CONN or not fleetspeak_connector.CONN.outgoing:
-      # Nothing to do if Fleetspeak is not enabled.
-      self.Log("Fleetspeak has not been initialized. Will do nothing.")
-      return
-
-    if not data_store.RelationalDBEnabled():
-      raise NotImplementedError(
-          "Cronjob does not support the legacy datastore.")
-
-    age_threshold = config.CONFIG["Server.fleetspeak_last_ping_threshold"]
-    max_last_ping = rdfvalue.RDFDatetime.Now() - age_threshold
-    last_pings = data_store.REL_DB.ReadClientLastPings(
-        max_last_ping=max_last_ping, fleetspeak_enabled=True)
-
-    num_clients_updated = 0
-    batch_size = config.CONFIG["Server.fleetspeak_list_clients_batch_size"]
-    for client_ids in collection.Batch(iterkeys(last_pings), batch_size):
-      fs_ids = [fleetspeak_utils.GRRIDToFleetspeakID(i) for i in client_ids]
-      request_start = rdfvalue.RDFDatetime.Now()
-      fs_result = fleetspeak_connector.CONN.outgoing.ListClients(
-          admin_pb2.ListClientsRequest(client_ids=fs_ids))
-      latency = rdfvalue.RDFDatetime.Now() - request_start
-      logging.info("Fleetspeak ListClients() took %s.", latency)
-      stats_collector_instance.Get().RecordEvent(
-          "fleetspeak_last_ping_latency_millis", latency.milliseconds)
-
-      for fs_client in fs_result.clients:
-        grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client.client_id)
-        new_last_ping = fleetspeak_utils.TSToRDFDatetime(
-            fs_client.last_contact_time)
-        if last_pings[grr_id] is None or last_pings[grr_id] < new_last_ping:
-          data_store.REL_DB.WriteClientMetadata(grr_id, last_ping=new_last_ping)
-          num_clients_updated += 1
-
-      self.Log("Updated timestamps for %d clients.", num_clients_updated)

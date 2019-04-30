@@ -108,15 +108,15 @@ class DatabaseTestClientReportsMixin(object):
 
   def testReadMostRecentClientGraphSeries(self):
     graph_series_list = _CreateGRRVersionGraphSeries(5)
-    with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000)):
       self.db.WriteClientGraphSeries(graph_series_list[0], _TEST_LABEL)
-    with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2000)):
       self.db.WriteClientGraphSeries(graph_series_list[1], _TEST_LABEL)
-    with test_lib.FakeTime(rdfvalue.RDFDatetime(3000)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3000)):
       self.db.WriteClientGraphSeries(graph_series_list[2], _TEST_LABEL)
-    with test_lib.FakeTime(rdfvalue.RDFDatetime(4000)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4000)):
       self.db.WriteClientGraphSeries(graph_series_list[3], "custom-label")
-    with test_lib.FakeTime(rdfvalue.RDFDatetime(5000)):
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5000)):
       self.db.WriteClientGraphSeries(graph_series_list[4], "custom-label")
     self.assertEqual(
         self.db.ReadMostRecentClientGraphSeries(

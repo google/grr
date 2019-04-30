@@ -201,8 +201,6 @@ class MySQLDBPathMixin(object):
   @mysql_utils.WithTransaction()
   def _MultiWritePathInfos(self, path_infos, connection=None):
     """Writes a collection of path info records for specified clients."""
-    query = ""
-
     path_info_count = 0
     path_info_values = []
 
@@ -251,89 +249,90 @@ class MySQLDBPathMixin(object):
 
           parent_path_info_count += 1
 
-    query += """
-    CREATE TEMPORARY TABLE client_path_infos(
-      client_id BIGINT UNSIGNED NOT NULL,
-      path_type INT UNSIGNED NOT NULL,
-      path_id BINARY(32) NOT NULL,
-      path TEXT NOT NULL,
-      directory BOOLEAN NOT NULL,
-      depth INT NOT NULL,
-      stat_entry MEDIUMBLOB NULL,
-      hash_entry MEDIUMBLOB NULL,
-      sha256 BINARY(32) NULL,
-      timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6)
-    );"""
-
-    if path_info_count > 0:
-      query += """
-      INSERT INTO client_path_infos(client_id, path_type, path_id,
-                                    path, directory, depth,
-                                    stat_entry, hash_entry, sha256)
-      VALUES {};
-      """.format(mysql_utils.Placeholders(num=9, values=path_info_count))
-
-      query += """
-      INSERT INTO client_paths(client_id, path_type, path_id, path,
-                               directory, depth)
-           SELECT client_id, path_type, path_id, path, directory, depth
-             FROM client_path_infos
-      ON DUPLICATE KEY UPDATE
-        client_paths.directory = client_paths.directory OR VALUES(client_paths.directory),
-        client_paths.timestamp = now(6);
-      """
-
-    if parent_path_info_count > 0:
-      placeholders = ["(%s, %s, %s, %s, TRUE, %s)"] * parent_path_info_count
-
-      query += """
-      INSERT INTO client_paths(client_id, path_type, path_id, path,
-                               directory, depth)
-      VALUES {}
-      ON DUPLICATE KEY UPDATE
-        directory = TRUE,
-        timestamp = now();
-      """.format(", ".join(placeholders))
-
-    if has_stat_entries:
-      query += """
-      INSERT INTO client_path_stat_entries(client_id, path_type, path_id,
-                                           stat_entry, timestamp)
-           SELECT client_id, path_type, path_id, stat_entry, timestamp
-             FROM client_path_infos
-            WHERE stat_entry IS NOT NULL;
-      """
-
-      query += """
-      UPDATE client_paths, client_path_infos
-         SET client_paths.last_stat_entry_timestamp = client_path_infos.timestamp
-       WHERE client_paths.client_id = client_path_infos.client_id
-         AND client_paths.path_type = client_path_infos.path_type
-         AND client_paths.path_id = client_path_infos.path_id
-         AND client_path_infos.stat_entry IS NOT NULL;
-      """
-
-    if has_hash_entries:
-      query += """
-      INSERT INTO client_path_hash_entries(client_id, path_type, path_id,
-                                           hash_entry, sha256, timestamp)
-           SELECT client_id, path_type, path_id, hash_entry, sha256, timestamp
-             FROM client_path_infos
-            WHERE hash_entry IS NOT NULL;
-      """
-
-      query += """
-      UPDATE client_paths, client_path_infos
-         SET client_paths.last_hash_entry_timestamp = client_path_infos.timestamp
-       WHERE client_paths.client_id = client_path_infos.client_id
-         AND client_paths.path_type = client_path_infos.path_type
-         AND client_paths.path_id = client_path_infos.path_id
-         AND client_path_infos.hash_entry IS NOT NULL;
-      """
-
     try:
       with contextlib.closing(connection.cursor()) as cursor:
-        cursor.execute(query, path_info_values + parent_path_info_values)
+        cursor.execute("""
+        CREATE TEMPORARY TABLE client_path_infos(
+          client_id BIGINT UNSIGNED NOT NULL,
+          path_type INT UNSIGNED NOT NULL,
+          path_id BINARY(32) NOT NULL,
+          path TEXT NOT NULL,
+          directory BOOLEAN NOT NULL,
+          depth INT NOT NULL,
+          stat_entry MEDIUMBLOB NULL,
+          hash_entry MEDIUMBLOB NULL,
+          sha256 BINARY(32) NULL,
+          timestamp TIMESTAMP(6) NOT NULL DEFAULT now(6)
+        )""")
+
+        if path_info_count > 0:
+          cursor.execute(
+              """
+          INSERT INTO client_path_infos(client_id, path_type, path_id,
+                                        path, directory, depth,
+                                        stat_entry, hash_entry, sha256)
+          VALUES {}
+          """.format(mysql_utils.Placeholders(num=9, values=path_info_count)),
+              path_info_values)
+
+          cursor.execute("""
+          INSERT INTO client_paths(client_id, path_type, path_id, path,
+                                   directory, depth)
+               SELECT client_id, path_type, path_id, path, directory, depth
+                 FROM client_path_infos
+          ON DUPLICATE KEY UPDATE
+            client_paths.directory = client_paths.directory OR VALUES(client_paths.directory),
+            client_paths.timestamp = now(6)
+          """)
+
+        if parent_path_info_count > 0:
+          placeholders = ["(%s, %s, %s, %s, TRUE, %s)"] * parent_path_info_count
+
+          cursor.execute(
+              """
+          INSERT INTO client_paths(client_id, path_type, path_id, path,
+                                   directory, depth)
+          VALUES {}
+          ON DUPLICATE KEY UPDATE
+            directory = TRUE,
+            timestamp = now()
+          """.format(", ".join(placeholders)), parent_path_info_values)
+
+        if has_stat_entries:
+          cursor.execute("""
+          INSERT INTO client_path_stat_entries(client_id, path_type, path_id,
+                                               stat_entry, timestamp)
+               SELECT client_id, path_type, path_id, stat_entry, timestamp
+                 FROM client_path_infos
+                WHERE stat_entry IS NOT NULL
+          """)
+
+          cursor.execute("""
+          UPDATE client_paths, client_path_infos
+             SET client_paths.last_stat_entry_timestamp = client_path_infos.timestamp
+           WHERE client_paths.client_id = client_path_infos.client_id
+             AND client_paths.path_type = client_path_infos.path_type
+             AND client_paths.path_id = client_path_infos.path_id
+             AND client_path_infos.stat_entry IS NOT NULL
+          """)
+
+        if has_hash_entries:
+          cursor.execute("""
+          INSERT INTO client_path_hash_entries(client_id, path_type, path_id,
+                                               hash_entry, sha256, timestamp)
+               SELECT client_id, path_type, path_id, hash_entry, sha256, timestamp
+                 FROM client_path_infos
+                WHERE hash_entry IS NOT NULL
+          """)
+
+          cursor.execute("""
+          UPDATE client_paths, client_path_infos
+             SET client_paths.last_hash_entry_timestamp = client_path_infos.timestamp
+           WHERE client_paths.client_id = client_path_infos.client_id
+             AND client_paths.path_type = client_path_infos.path_type
+             AND client_paths.path_id = client_path_infos.path_id
+             AND client_path_infos.hash_entry IS NOT NULL
+          """)
     finally:
       # Drop the temporary table in a separate cursor. This ensures that
       # even if the previous cursor.execute fails mid-way leaving the

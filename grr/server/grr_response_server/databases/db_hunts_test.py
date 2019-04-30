@@ -105,7 +105,7 @@ class DatabaseTestHuntMixin(object):
         client_limit=48,
         hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED,
         hunt_state_comment="foo",
-        start_time=rdfvalue.RDFDatetime(43),
+        start_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(43),
         num_clients_at_start_time=44)
 
     updated_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
@@ -115,8 +115,10 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(updated_hunt_obj.hunt_state,
                      rdf_hunt_objects.Hunt.HuntState.STOPPED)
     self.assertEqual(updated_hunt_obj.hunt_state_comment, "foo")
-    self.assertEqual(updated_hunt_obj.init_start_time, rdfvalue.RDFDatetime(43))
-    self.assertEqual(updated_hunt_obj.last_start_time, rdfvalue.RDFDatetime(43))
+    self.assertEqual(updated_hunt_obj.init_start_time,
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(43))
+    self.assertEqual(updated_hunt_obj.last_start_time,
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(43))
     self.assertEqual(updated_hunt_obj.num_clients_at_start_time, 44)
 
   def testUpdateHuntObjectCorrectlyUpdatesInitAndLastStartTime(self):

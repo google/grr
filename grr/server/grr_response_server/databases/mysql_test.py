@@ -11,6 +11,7 @@ import random
 import string
 import threading
 import unittest
+import warnings
 
 from absl import app
 from absl import flags
@@ -156,22 +157,22 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       counts[0] += 1
       cursor = connection.cursor()
       cursor.execute(
-          "SELECT password FROM grr_users WHERE username = 'user1' FOR UPDATE;")
+          "SELECT password FROM grr_users WHERE username = 'user1' FOR UPDATE")
       t1_halfway.set()
       self.assertTrue(t2_halfway.wait(5))
       cursor.execute("UPDATE grr_users SET password = 'pw2-updated' "
-                     "WHERE username = 'user2';")
+                     "WHERE username = 'user2'")
       cursor.close()
 
     def Transaction2(connection):
       counts[1] += 1
       cursor = connection.cursor()
       cursor.execute(
-          "SELECT password FROM grr_users WHERE username = 'user2' FOR UPDATE;")
+          "SELECT password FROM grr_users WHERE username = 'user2' FOR UPDATE")
       t2_halfway.set()
       self.assertTrue(t1_halfway.wait(5))
       cursor.execute("UPDATE grr_users SET password = 'pw1-updated' "
-                     "WHERE username = 'user1';")
+                     "WHERE username = 'user1'")
       cursor.close()
 
     thread_1 = threading.Thread(

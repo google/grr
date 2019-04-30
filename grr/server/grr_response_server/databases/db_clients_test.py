@@ -1268,7 +1268,7 @@ class DatabaseTestClientsMixin(object):
 
     stats = self.db.ReadClientStats(
         client_id=client_id_1,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(stats[0].RSS_size, 1)
     self.assertEqual(stats[0].VMS_size, 5)
     self.assertEqual(stats[1].RSS_size, 2)
@@ -1276,7 +1276,7 @@ class DatabaseTestClientsMixin(object):
 
     stats = self.db.ReadClientStats(
         client_id=client_id_2,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(stats[0].RSS_size, 3)
     self.assertEqual(stats[0].VMS_size, 7)
     self.assertEqual(stats[1].RSS_size, 4)
@@ -1290,7 +1290,7 @@ class DatabaseTestClientsMixin(object):
 
     stats = self.db.ReadClientStats(
         client_id=client_id,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     stats_sorted = list(sorted(stats, key=lambda st: st.create_time))
     self.assertEqual(stats, stats_sorted)
 
@@ -1328,12 +1328,15 @@ class DatabaseTestClientsMixin(object):
 
       stats = self.db.ReadClientStats(
           client_id="C.0000000000000001",
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+          # MySQL TIMESTAMP's valid range starts from 1970-01-01 00:00:01,
+          # hence we have to specify the minimal min_timestamp as
+          # 1 seconds from epoch.
+          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
       self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
 
       stats = self.db.ReadClientStats(
           client_id="C.0000000000000002",
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
       self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
 
   def _TestDeleteOldClientStatsYields(self, total, yield_after_count,
@@ -1355,7 +1358,10 @@ class DatabaseTestClientsMixin(object):
 
     stats = self.db.ReadClientStats(
         client_id="C.0000000000000001",
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+        # MySQL TIMESTAMP's valid range starts from 1970-01-01 00:00:01,
+        # hence we have to specify the minimal min_timestamp as
+        # 1 seconds from epoch.
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEmpty(stats)
 
   def testDeleteOldClientStatsYieldsZeroIfEmpty(self):

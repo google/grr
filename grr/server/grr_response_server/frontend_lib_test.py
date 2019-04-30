@@ -242,6 +242,28 @@ class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
     relational_requests = data_store.REL_DB.ReadMessageHandlerRequests()
     self.assertLen(relational_requests, 9)
 
+  def testLegacyWellKnownSessionIDs(self):
+    with test_lib.ConfigOverrider({
+        "Database.enabled": True,
+    }):
+      server = TestServer()
+
+      messages = []
+      for session_id in list(server.legacy_well_known_session_ids):
+        messages.append(
+            rdf_flows.GrrMessage(
+                source=test_lib.TEST_CLIENT_ID,
+                request_id=0,
+                response_id=0,
+                session_id=session_id,
+                auth_state="AUTHENTICATED",
+                payload=rdfvalue.RDFInteger(1)))
+
+      # Responses received from ancient clients still using those old session
+      # ids will be dropped by the server. All we need to really make sure here
+      # is that the server does not raise when it encounters such messages.
+      server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
+
   def _ReceiveWKFMessages(self):
     flow_test_lib.WellKnownSessionTest.messages = []
     session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id

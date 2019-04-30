@@ -548,6 +548,11 @@ class FrontEndServer(object):
     events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
     return True
 
+  legacy_well_known_session_ids = set([
+      rdfvalue.SessionID(flow_name="Foreman", queue=rdfvalue.RDFURN("W")),
+      rdfvalue.SessionID(flow_name="Stats", queue=rdfvalue.RDFURN("W"))
+  ])
+
   def ReceiveMessagesRelationalFlows(self, client_id, messages):
     """Receives and processes messages for flows stored in the relational db.
 
@@ -578,6 +583,9 @@ class FrontEndServer(object):
                   handler_name=queue_manager.session_id_map[session_id],
                   request_id=msg.response_id,
                   request=msg.payload))
+        elif session_id in self.legacy_well_known_session_ids:
+          logging.debug("Dropping message for legacy well known session id %s",
+                        session_id)
         else:
           unprocessed_msgs.append(msg)
 

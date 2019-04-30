@@ -60,7 +60,7 @@ _RETRYABLE_ERRORS = {
 CHARACTER_SET = "utf8mb4"
 COLLATION = "utf8mb4_unicode_ci"
 CREATE_DATABASE_QUERY = (
-    "CREATE DATABASE {} CHARACTER SET {} COLLATE {};".format(
+    "CREATE DATABASE {} CHARACTER SET {} COLLATE {}".format(
         "{}", CHARACTER_SET, COLLATION))  # Keep first placeholder for later.
 
 
@@ -124,6 +124,23 @@ def _CheckCollation(cursor):
 def _SetEncoding(cursor):
   """Sets MySQL encoding and collation for current connection."""
   cursor.execute("SET NAMES '{}' COLLATE '{}'".format(CHARACTER_SET, COLLATION))
+
+
+def _SetSqlMode(cursor):
+  """Sets session-level sql_mode variable to a well defined value."""
+  incompatible_modes = [
+      "NO_ZERO_IN_DATE",
+      "NO_ZERO_DATE",
+      "ERROR_FOR_DIVISION_BY_ZERO",
+      "STRICT_TRANS_TABLES",
+  ]
+
+  sql_mode = _ReadVariable("sql_mode", cursor)
+  components = [x.strip() for x in sql_mode.split(",")]
+  filtered_components = [
+      x for x in components if x.upper() not in incompatible_modes
+  ]
+  cursor.execute("SET SESSION sql_mode = %s", [",".join(filtered_components)])
 
 
 def _CheckConnectionEncoding(cursor):
@@ -190,7 +207,7 @@ def _CheckLogFileSize(cursor):
 def _IsMariaDB(cursor):
   """Checks if we are running against MariaDB."""
   for variable in ["version", "version_comment"]:
-    cursor.execute("SHOW VARIABLES LIKE %s;", (variable,))
+    cursor.execute("SHOW VARIABLES LIKE %s", (variable,))
     version = cursor.fetchone()
     if version and "MariaDB" in version[1]:
       return True
@@ -218,22 +235,7 @@ def _SetMariaDBMode(cursor):
   # consistency.
   if _IsMariaDB(cursor):
     cursor.execute("SET @@OLD_MODE = CONCAT(@@OLD_MODE, "
-                   "',NO_DUP_KEY_WARNINGS_WITH_IGNORE');")
-
-
-def _SetSqlMode(cursor):
-  """Sets session-level sql_mode variable to a well defined value."""
-  # Explicitly set sql mode to ensure compatibility between MySQL and MariaDB
-  # servers.
-  # Using MariaDB 10.2.4 default sql mode as a source of truth (see
-  # https://mariadb.com/kb/en/library/sql-mode/ for details).
-  mode = ",".join([
-      "STRICT_TRANS_TABLES",
-      "ERROR_FOR_DIVISION_BY_ZERO",
-      "NO_AUTO_CREATE_USER",
-      "NO_ENGINE_SUBSTITUTION",
-  ])
-  cursor.execute("SET sql_mode = %s;", [mode])
+                   "',NO_DUP_KEY_WARNINGS_WITH_IGNORE')")
 
 
 def _CheckForSSL(cursor):
@@ -316,7 +318,10 @@ def _GetConnectionArgs(host=None,
                        ca_cert_path=None):
   """Builds connection arguments for MySQLdb.Connect function."""
   connection_args = dict(
-      autocommit=False, use_unicode=True, charset=CHARACTER_SET)
+      autocommit=False,
+      use_unicode=True,
+      charset=CHARACTER_SET,
+  )
 
   if host is not None:
     connection_args["host"] = host
@@ -366,12 +371,12 @@ def _Connect(host=None,
   with contextlib.closing(conn.cursor()) as cursor:
     _CheckForSSL(cursor)
     _SetMariaDBMode(cursor)
-    _SetSqlMode(cursor)
     _SetBinlogFormat(cursor)
     _SetPacketSizeForFollowingConnections(cursor)
     _SetEncoding(cursor)
     _CheckConnectionEncoding(cursor)
     _CheckLogFileSize(cursor)
+    _SetSqlMode(cursor)
 
   return conn
 
@@ -493,9 +498,9 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
 
     Raises: Any exception raised by function.
     """
-    start_query = "START TRANSACTION;"
+    start_query = "START TRANSACTION"
     if readonly:
-      start_query = "START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY;"
+      start_query = "START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY"
 
     for retry_count in range(_MAX_RETRY_COUNT):
       with contextlib.closing(self.pool.get()) as connection:

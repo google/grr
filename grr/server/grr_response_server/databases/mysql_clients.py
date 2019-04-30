@@ -246,71 +246,65 @@ class MySQLDBClientMixin(object):
     client_id = clients[0].client_id
     latest_timestamp = max(client.timestamp for client in clients)
 
-    query = ""
-    params = {
+    base_params = {
         "client_id": db_utils.ClientIDToInt(client_id),
         "latest_timestamp": mysql_utils.RDFDatetimeToTimestamp(latest_timestamp)
     }
 
-    for idx, client in enumerate(clients):
-      startup_info = client.startup_info
-      client.startup_info = None
-
-      query += """
-      INSERT INTO client_snapshot_history (client_id, timestamp,
-                                           client_snapshot)
-      VALUES (%(client_id)s, FROM_UNIXTIME(%(timestamp_{idx})s),
-              %(client_snapshot_{idx})s);
-
-      INSERT INTO client_startup_history (client_id, timestamp,
-                                          startup_info)
-      VALUES (%(client_id)s, FROM_UNIXTIME(%(timestamp_{idx})s),
-              %(startup_info_{idx})s);
-      """.format(idx=idx)
-
-      params.update({
-          "timestamp_{idx}".format(idx=idx):
-              mysql_utils.RDFDatetimeToTimestamp(client.timestamp),
-          "client_snapshot_{idx}".format(idx=idx):
-              client.SerializeToString(),
-          "startup_info_{idx}".format(idx=idx):
-              startup_info.SerializeToString(),
-      })
-
-      client.startup_info = startup_info
-
-    query += """
-    UPDATE clients
-       SET last_snapshot_timestamp = FROM_UNIXTIME(%(latest_timestamp)s)
-     WHERE client_id = %(client_id)s
-       AND (last_snapshot_timestamp IS NULL OR
-            last_snapshot_timestamp < FROM_UNIXTIME(%(latest_timestamp)s));
-
-    UPDATE clients
-       SET last_startup_timestamp = FROM_UNIXTIME(%(latest_timestamp)s)
-     WHERE client_id = %(client_id)s
-       AND (last_startup_timestamp IS NULL OR
-            last_startup_timestamp < FROM_UNIXTIME(%(latest_timestamp)s));
-    """
-
     try:
-      cursor.execute(query, params)
+      for client in clients:
+        startup_info = client.startup_info
+        client.startup_info = None
+
+        params = base_params.copy()
+        params.update({
+            "timestamp": mysql_utils.RDFDatetimeToTimestamp(client.timestamp),
+            "client_snapshot": client.SerializeToString(),
+            "startup_info": startup_info.SerializeToString(),
+        })
+
+        cursor.execute(
+            """
+        INSERT INTO client_snapshot_history (client_id, timestamp,
+                                             client_snapshot)
+        VALUES (%(client_id)s, FROM_UNIXTIME(%(timestamp)s),
+                %(client_snapshot)s)
+        """, params)
+
+        cursor.execute(
+            """
+        INSERT INTO client_startup_history (client_id, timestamp,
+                                            startup_info)
+        VALUES (%(client_id)s, FROM_UNIXTIME(%(timestamp)s),
+                %(startup_info)s)
+        """, params)
+
+        client.startup_info = startup_info
+
+      cursor.execute(
+          """
+      UPDATE clients
+         SET last_snapshot_timestamp = FROM_UNIXTIME(%(latest_timestamp)s)
+       WHERE client_id = %(client_id)s
+         AND (last_snapshot_timestamp IS NULL OR
+              last_snapshot_timestamp < FROM_UNIXTIME(%(latest_timestamp)s))
+      """, base_params)
+
+      cursor.execute(
+          """
+      UPDATE clients
+         SET last_startup_timestamp = FROM_UNIXTIME(%(latest_timestamp)s)
+       WHERE client_id = %(client_id)s
+         AND (last_startup_timestamp IS NULL OR
+              last_startup_timestamp < FROM_UNIXTIME(%(latest_timestamp)s))
+      """, base_params)
     except MySQLdb.IntegrityError as error:
       raise db.UnknownClientError(client_id, cause=error)
 
   @mysql_utils.WithTransaction()
   def WriteClientStartupInfo(self, client_id, startup_info, cursor=None):
     """Writes a new client startup record."""
-    query = """
-    SET @now = NOW(6);
-
-    INSERT INTO client_startup_history (client_id, timestamp, startup_info)
-         VALUES (%(client_id)s, @now, %(startup_info)s);
-
-    UPDATE clients
-       SET last_startup_timestamp = @now
-     WHERE client_id = %(client_id)s;
-    """
+    cursor.execute("SET @now = NOW(6)")
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
@@ -318,7 +312,20 @@ class MySQLDBClientMixin(object):
     }
 
     try:
-      cursor.execute(query, params)
+      cursor.execute(
+          """
+      INSERT INTO client_startup_history
+        (client_id, timestamp, startup_info)
+      VALUES
+        (%(client_id)s, @now, %(startup_info)s)
+          """, params)
+
+      cursor.execute(
+          """
+      UPDATE clients
+         SET last_startup_timestamp = @now
+       WHERE client_id = %(client_id)s
+      """, params)
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 
@@ -625,16 +632,7 @@ class MySQLDBClientMixin(object):
   @mysql_utils.WithTransaction()
   def WriteClientCrashInfo(self, client_id, crash_info, cursor=None):
     """Writes a new client crash record."""
-    query = """
-    SET @now = NOW(6);
-
-    INSERT INTO client_crash_history (client_id, timestamp, crash_info)
-         VALUES (%(client_id)s, @now, %(crash_info)s);
-
-    UPDATE clients
-       SET last_crash_timestamp = @now
-     WHERE client_id = %(client_id)s
-    """
+    cursor.execute("SET @now = NOW(6)")
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
@@ -642,7 +640,19 @@ class MySQLDBClientMixin(object):
     }
 
     try:
-      cursor.execute(query, params)
+      cursor.execute(
+          """
+      INSERT INTO client_crash_history (client_id, timestamp, crash_info)
+           VALUES (%(client_id)s, @now, %(crash_info)s)
+      """, params)
+
+      cursor.execute(
+          """
+      UPDATE clients
+         SET last_crash_timestamp = @now
+       WHERE client_id = %(client_id)s
+      """, params)
+
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 

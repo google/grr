@@ -50,11 +50,15 @@ class DatabaseTestEventsMixin(object):
     self.assertCountEqual(entries, [entry])
 
   def testWriteEntriesWithMicrosecondDifference(self):
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(1)):
+    # MySQL TIMESTAMP's valid range starts from 1970-01-01 00:00:01,
+    # hence we have to set the time to at least 1 second from epoch.
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(1000000 + 1)):
       self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
       self.db.WriteAPIAuditEntry(self._MakeEntry(username="user2"))
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(2)):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(1000000 + 2)):
       self.db.WriteAPIAuditEntry(self._MakeEntry(username="user1"))
 
     entries = self.db.ReadAPIAuditEntries()
