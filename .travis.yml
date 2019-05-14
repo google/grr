@@ -138,6 +138,9 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           virtualenv "/home/${DOCKER_USER}/INSTALL"
+        - >-
+          sudo docker exec --user "${DOCKER_USER}""${DOCKER_CONTAINER}"
+          yum remove -y sqlite-devel || true
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
@@ -226,6 +229,9 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           linux32 virtualenv "/home/${DOCKER_USER}/INSTALL"
+        - >-
+          sudo docker exec --user "${DOCKER_USER}""${DOCKER_CONTAINER}"
+          yum remove -y sqlite-devel || true
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
