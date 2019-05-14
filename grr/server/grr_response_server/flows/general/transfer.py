@@ -816,82 +816,84 @@ class MultiGetFileLogic(object):
 
     response = responses.First()
     file_tracker = self.state.pending_files.get(index)
-    if file_tracker:
-      blob_dict = file_tracker.setdefault("blobs", {})
-      blob_index = responses.request_data["blob_index"]
-      blob_dict[blob_index] = (response.data, response.length)
+    if not file_tracker:
+      return
 
-      if len(blob_dict) == len(file_tracker["hash_list"]):
-        # Write the file to the data store.
-        stat_entry = file_tracker["stat_entry"]
-        urn = stat_entry.pathspec.AFF4Path(self.client_urn)
+    blob_dict = file_tracker.setdefault("blobs", {})
+    blob_index = responses.request_data["blob_index"]
+    blob_dict[blob_index] = (response.data, response.length)
 
-        if data_store.AFF4Enabled():
-          with aff4.FACTORY.Create(
-              urn, aff4_grr.VFSBlobImage, mode="w", token=self.token) as fd:
+    if len(blob_dict) != len(file_tracker["hash_list"]):
+      # We need more data before we can write the file.
+      return
 
-            fd.SetChunksize(self.CHUNK_SIZE)
-            fd.Set(fd.Schema.STAT(stat_entry))
-            fd.Set(fd.Schema.PATHSPEC(stat_entry.pathspec))
-            fd.Set(fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
+    # Write the file to the data store.
+    stat_entry = file_tracker["stat_entry"]
+    urn = stat_entry.pathspec.AFF4Path(self.client_urn)
 
-            for index in sorted(blob_dict):
-              digest, length = blob_dict[index]
-              fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
+    if data_store.AFF4Enabled():
+      with aff4.FACTORY.Create(
+          urn, aff4_grr.VFSBlobImage, mode="w", token=self.token) as fd:
 
-        if data_store.RelationalDBEnabled():
-          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+        fd.SetChunksize(self.CHUNK_SIZE)
+        fd.Set(fd.Schema.STAT(stat_entry))
+        fd.Set(fd.Schema.PATHSPEC(stat_entry.pathspec))
+        fd.Set(fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
 
-          # Adding files to filestore requires reading data from RELDB,
-          # thus protecting this code with a filestore-read-enabled check.
-          if data_store.RelationalDBEnabled():
-            blob_refs = []
-            offset = 0
-            for index in sorted(blob_dict):
-              digest, size = blob_dict[index]
-              blob_refs.append(
-                  rdf_objects.BlobReference(
-                      offset=offset,
-                      size=size,
-                      blob_id=rdf_objects.BlobID.FromBytes(digest)))
-              offset += size
+        for index in sorted(blob_dict):
+          digest, length = blob_dict[index]
+          fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
 
-            hash_obj = file_tracker["hash_obj"]
+    if data_store.RelationalDBEnabled():
+      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
-            client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-            hash_id = file_store.AddFileWithUnknownHash(
-                client_path,
-                blob_refs,
-                use_external_stores=self.state.use_external_stores)
-            # If the hash that we've calculated matches what we got from the
-            # client, then simply store the full hash entry.
-            # Otherwise store just the hash that we've calculated.
-            if hash_id.AsBytes() == hash_obj.sha256:
-              path_info.hash_entry = hash_obj
-            else:
-              path_info.hash_entry.sha256 = hash_id.AsBytes()
+      blob_refs = []
+      offset = 0
+      for index in sorted(blob_dict):
+        digest, size = blob_dict[index]
+        blob_refs.append(
+            rdf_objects.BlobReference(
+                offset=offset,
+                size=size,
+                blob_id=rdf_objects.BlobID.FromBytes(digest)))
+        offset += size
 
-          data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+      hash_obj = file_tracker["hash_obj"]
 
-        if (not data_store.RelationalDBEnabled() and
-            self.state.use_external_stores):
-          # Publish the new file event to cause the file to be added to the
-          # filestore.
-          events.Events.PublishEvent(
-              "LegacyFileStore.AddFileToStore", urn, token=self.token)
+      client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+      hash_id = file_store.AddFileWithUnknownHash(
+          client_path,
+          blob_refs,
+          use_external_stores=self.state.use_external_stores)
+      # If the hash that we've calculated matches what we got from the
+      # client, then simply store the full hash entry.
+      # Otherwise store just the hash that we've calculated.
+      if hash_id.AsBytes() == hash_obj.sha256:
+        path_info.hash_entry = hash_obj
+      else:
+        path_info.hash_entry.sha256 = hash_id.AsBytes()
 
-        # Save some space.
-        del file_tracker["blobs"]
-        del file_tracker["hash_list"]
+      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-        # File done, remove from the store and close it.
-        self._ReceiveFetchedFile(file_tracker)
+    if (not data_store.RelationalDBEnabled() and
+        self.state.use_external_stores):
+      # Publish the new file event to cause the file to be added to the
+      # filestore.
+      events.Events.PublishEvent(
+          "LegacyFileStore.AddFileToStore", urn, token=self.token)
 
-        self.state.files_fetched += 1
+    # Save some space.
+    del file_tracker["blobs"]
+    del file_tracker["hash_list"]
 
-        if not self.state.files_fetched % 100:
-          self.Log("Fetched %d of %d files.", self.state.files_fetched,
-                   self.state.files_to_fetch)
+    # File done, remove from the store and close it.
+    self._ReceiveFetchedFile(file_tracker)
+
+    self.state.files_fetched += 1
+
+    if not self.state.files_fetched % 100:
+      self.Log("Fetched %d of %d files.", self.state.files_fetched,
+               self.state.files_to_fetch)
 
   def End(self, responses):
     # There are some files still in flight.

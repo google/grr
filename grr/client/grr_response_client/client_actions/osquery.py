@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import os
 
 from future.builtins import map
 from future.utils import iterkeys
@@ -74,6 +75,10 @@ class Osquery(actions.ActionPlugin):
     if not config.CONFIG["Osquery.path"]:
       raise RuntimeError("The `Osquery` action invoked on a client without "
                          "osquery path specified.")
+
+    if not os.path.exists(config.CONFIG["Osquery.path"]):
+      raise RuntimeError("The `Osquery` action invoked on a client where "
+                         "osquery executable is not available.")
 
     if not args.query:
       raise ValueError("The `Osquery` was invoked with an empty query.")

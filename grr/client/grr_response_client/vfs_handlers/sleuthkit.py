@@ -175,8 +175,14 @@ class TSKFile(vfs_base.VFSHandler):
     # efficient.
     if pathspec.HasField("inode"):
       self.fd = self.fs.open_meta(pathspec.inode)
-      self.tsk_attribute = self.GetAttribute(pathspec.ntfs_type,
-                                             pathspec.ntfs_id)
+      # NTFS_ID is only required when reading ADSs. If it's not provided, we
+      # just get the first attribute with matching type.
+      if pathspec.HasField("ntfs_id"):
+        self.tsk_attribute = self.GetAttribute(pathspec.ntfs_type,
+                                               pathspec.ntfs_id)
+      else:
+        self.tsk_attribute = self.GetAttribute(pathspec.ntfs_type)
+
       if self.tsk_attribute:
         self.size = self.tsk_attribute.info.size
       else:
@@ -196,11 +202,11 @@ class TSKFile(vfs_base.VFSHandler):
       self.size = self.fd.info.meta.size
       self.pathspec.last.inode = self.fd.info.meta.addr
 
-  def GetAttribute(self, ntfs_type, ntfs_id):
+  def GetAttribute(self, ntfs_type, ntfs_id=None):
     for attribute in self.fd:
       if attribute.info.type == ntfs_type:
         # If ntfs_id is specified it has to also match.
-        if ntfs_id != 0 and attribute.info.id != ntfs_id:
+        if ntfs_id is not None and attribute.info.id != ntfs_id:
           continue
 
         return attribute
@@ -312,9 +318,15 @@ class TSKFile(vfs_base.VFSHandler):
     if available > 0:
       # This raises a RuntimeError in some situations.
       try:
-        data = self.fd.read_random(self.offset, available,
-                                   self.pathspec.last.ntfs_type,
-                                   self.pathspec.last.ntfs_id)
+        # NTFS_ID is only required when reading ADSs. If it's is not provided,
+        # we just let pytsk use the default.
+        if self.pathspec.last.HasField("ntfs_id"):
+          data = self.fd.read_random(self.offset, available,
+                                     self.pathspec.last.ntfs_type,
+                                     self.pathspec.last.ntfs_id)
+        else:
+          data = self.fd.read_random(self.offset, available,
+                                     self.pathspec.last.ntfs_type)
       except RuntimeError as e:
         raise IOError(e)
 

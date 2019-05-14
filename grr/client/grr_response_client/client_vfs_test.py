@@ -247,7 +247,6 @@ class VFSTest(test_lib.GRRBaseTest):
     ps2 = rdf_paths.PathSpec(
         inode=65,
         ntfs_type=128,
-        ntfs_id=0,
         path="/this/will/be/ignored",
         pathtype=rdf_paths.PathSpec.PathType.TSK)
 

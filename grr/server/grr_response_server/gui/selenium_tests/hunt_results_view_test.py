@@ -24,14 +24,15 @@ from grr.test_lib import test_lib
 class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntResultsView(self):
-    self.CreateGenericHuntWithCollection()
+    hunt_urn, _ = self.CreateGenericHuntWithCollection()
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
-    self.Click("css=td:contains('GenericHunt')")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click the Results tab.
     self.Click("css=li[heading=Results]")
@@ -62,6 +63,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
   def testResultsViewGetsAutoRefreshed(self):
     hunt_urn, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -69,7 +71,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
         "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
 
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsElementPresent,

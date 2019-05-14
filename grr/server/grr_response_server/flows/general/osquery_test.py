@@ -8,7 +8,6 @@ import datetime
 import hashlib
 import io
 import os
-import unittest
 
 from absl import app
 from future.builtins import range
@@ -21,23 +20,18 @@ from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
+from grr.test_lib import skip
 from grr.test_lib import test_lib
 
 
 @db_test_lib.DualDBTest
+@skip.Unless(lambda: config.CONFIG["Osquery.path"],
+             "osquery path not specified")
 class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   # TODO: Add tests for headers. Currently headers are unordered
   # because they are determined from the JSON output. This is less than ideal
   # and they should be ordered the same way they are in the query.
-
-  @classmethod
-  def setUpClass(cls):
-    if not config.CONFIG["Osquery.path"]:
-      raise unittest.SkipTest("`Osquery.path` not specified")
-
-    # TODO: `skipTest` has to execute before `setUpClass`.
-    super(OsqueryFlowTest, cls).setUpClass()
 
   def setUp(self):
     super(OsqueryFlowTest, self).setUp()

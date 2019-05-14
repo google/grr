@@ -13,7 +13,6 @@ import hashlib
 import io
 import os
 import socket
-import unittest
 
 from absl import flags
 from absl.testing import absltest
@@ -27,6 +26,7 @@ from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import filesystem
 from grr_response_core.lib.util import temp
 from grr.test_lib import osquery_test_lib
+from grr.test_lib import skip
 from grr.test_lib import test_lib
 
 FLAGS = flags.FLAGS
@@ -37,18 +37,15 @@ def _Query(query, **kwargs):
   return list(osquery.Osquery().Process(args))
 
 
+@skip.Unless(lambda: config.CONFIG["Osquery.path"],
+             "osquery path not specified")
 class OsqueryTest(absltest.TestCase):
 
   @classmethod
   def setUpClass(cls):
+    super(OsqueryTest, cls).setUpClass()
     if not config.CONFIG.initialized:
       config.CONFIG.Initialize(FLAGS.config)
-
-    if not config.CONFIG["Osquery.path"]:
-      raise unittest.SkipTest("`osquery_path` not specified")
-
-    # TODO: `skipTest` has to execute before `setUpClass`.
-    super(OsqueryTest, cls).setUpClass()
 
   def testPid(self):
     results = _Query("""

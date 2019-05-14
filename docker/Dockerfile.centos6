@@ -17,7 +17,7 @@ WORKDIR /tmp/grrdocker-scratch
 
 # Install pre-requisites for building Python, as well as GRR prerequisites.
 RUN yum update -y && yum install -y zlib-devel bzip2-devel ncurses-devel \
-  sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel \
+  readline-devel tk-devel gdbm-devel db4-devel libpcap-devel \
   xz-devel epel-release python-devel wget which java-1.8.0-openjdk \
   libffi-devel openssl-devel zip git gcc gcc-c++ redhat-rpm-config rpm-build \
   rpm-sign

@@ -485,16 +485,37 @@ class MySQLDBClientMixin(object):
     cursor.execute(query, values)
     return dict(self._ResponseToClientsFullInfo(cursor.fetchall()))
 
-  @mysql_utils.WithTransaction(readonly=True)
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
                           fleetspeak_enabled=None,
-                          cursor=None):
-    """Reads client ids for all clients in the database."""
-    query = "SELECT client_id, UNIX_TIMESTAMP(last_ping) FROM clients "
-    query_values = []
-    where_filters = []
+                          batch_size=db.CLIENT_IDS_BATCH_SIZE):
+    """Yields dicts of last-ping timestamps for clients in the DB."""
+    last_client_id = db_utils.IntToClientID(0)
+
+    while True:
+      last_client_id, last_pings = self._ReadClientLastPings(
+          last_client_id,
+          batch_size,
+          min_last_ping=min_last_ping,
+          max_last_ping=max_last_ping,
+          fleetspeak_enabled=fleetspeak_enabled)
+      if last_pings:
+        yield last_pings
+      if len(last_pings) < batch_size:
+        break
+
+  @mysql_utils.WithTransaction(readonly=True)
+  def _ReadClientLastPings(self,
+                           last_client_id,
+                           count,
+                           min_last_ping=None,
+                           max_last_ping=None,
+                           fleetspeak_enabled=None,
+                           cursor=None):
+    """Yields dicts of last-ping timestamps for clients in the DB."""
+    where_filters = ["client_id > %s"]
+    query_values = [db_utils.ClientIDToInt(last_client_id)]
     if min_last_ping is not None:
       where_filters.append("last_ping >= FROM_UNIXTIME(%s) ")
       query_values.append(mysql_utils.RDFDatetimeToTimestamp(min_last_ping))
@@ -509,14 +530,20 @@ class MySQLDBClientMixin(object):
         where_filters.append(
             "(fleetspeak_enabled IS NULL OR fleetspeak_enabled IS FALSE)")
 
-    if where_filters:
-      query += "WHERE " + "AND ".join(where_filters)
-    cursor.execute(query, query_values)
+    query = """
+      SELECT client_id, UNIX_TIMESTAMP(last_ping)
+      FROM clients
+      WHERE {}
+      ORDER BY client_id
+      LIMIT %s""".format(" AND ".join(where_filters))
+
+    cursor.execute(query, query_values + [count])
     last_pings = {}
+    last_client_id = None
     for int_client_id, last_ping in cursor.fetchall():
-      client_id = db_utils.IntToClientID(int_client_id)
-      last_pings[client_id] = mysql_utils.TimestampToRDFDatetime(last_ping)
-    return last_pings
+      last_client_id = db_utils.IntToClientID(int_client_id)
+      last_pings[last_client_id] = mysql_utils.TimestampToRDFDatetime(last_ping)
+    return last_client_id, last_pings
 
   @mysql_utils.WithTransaction()
   def AddClientKeywords(self, client_id, keywords, cursor=None):
@@ -744,18 +771,14 @@ class MySQLDBClientMixin(object):
                           ):
     """Deletes ClientStats older than a given timestamp."""
 
-    yielded = False
-
     while True:
       deleted_count = self._DeleteClientStats(
           limit=yield_after_count, retention_time=retention_time)
 
-      # Do not yield a trailing 0 after any non-zero count has been yielded.
-      # A trailing zero occurs, when an exact multiple of `yield_after_count`
-      # rows were in the table.
-      if not yielded or deleted_count > 0:
+      # Do not yield a trailing 0 which occurs when an exact multiple of
+      # `yield_after_count` rows were in the table.
+      if deleted_count > 0:
         yield deleted_count
-        yielded = True
 
       # Return, when no more rows can be deleted, indicated by a transaction
       # that does not reach the deletion limit.

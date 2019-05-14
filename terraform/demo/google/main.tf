@@ -20,6 +20,10 @@ variable "linux_client_count" {
   default = "1"
 }
 
+variable "linux_poolclient_count" {
+  default = "0"
+}
+
 provider "google" {
   project = "${var.gce_project}"
   region  = "${var.gce_region}"
@@ -48,6 +52,16 @@ resource "google_sql_database_instance" "grr-db" {
     database_flags {
       name  = "max_allowed_packet"
       value = "1073741824"
+    }
+
+    database_flags {
+      name  = "log_output"
+      value = "FILE"
+    }
+
+    database_flags {
+      name  = "slow_query_log"
+      value = "on"
     }
   }
 }
@@ -92,6 +106,15 @@ data "template_file" "linux_client_install" {
   template = "${file("${path.module}/client_install.sh")}"
 
   vars {
+    linux_installer_download_url = "${data.google_storage_object_signed_url.linux-installer-get.signed_url}"
+  }
+}
+
+data "template_file" "linux_poolclient_install" {
+  template = "${file("${path.module}/poolclient_install.sh")}"
+
+  vars {
+    num_clients = 100
     linux_installer_download_url = "${data.google_storage_object_signed_url.linux-installer-get.signed_url}"
   }
 }
@@ -241,6 +264,34 @@ resource "google_compute_instance" "linux-client" {
   metadata {}
 
   metadata_startup_script = "${data.template_file.linux_client_install.rendered}"
+
+  service_account {
+    scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+  }
+}
+
+resource "google_compute_instance" "linux-poolclient" {
+  count = "${var.linux_poolclient_count}"
+
+  name         = "linux-poolclient-${count.index}"
+  machine_type = "n1-standard-8"
+  zone         = "${var.gce_region}-b"
+
+  boot_disk {
+    initialize_params {
+      image = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20180126"
+    }
+  }
+
+  network_interface {
+    network = "default"
+
+    access_config {}
+  }
+
+  metadata {}
+
+  metadata_startup_script = "${data.template_file.linux_poolclient_install.rendered}"
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]

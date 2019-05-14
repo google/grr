@@ -28,8 +28,8 @@ const UploadArtifactDialogController =
   /** @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} */
   this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 
-  /** @export {Object} */
-  this.file;
+  /** @export {?string} */
+  this.artifact = null;
 
   /** @export {boolean} */
   this.inProgress = false;
@@ -40,13 +40,17 @@ const UploadArtifactDialogController =
 /**
  * Sends /label/add request to the server.
  *
- * @param {Array<File>} files Value of the input[type=file].
+ * @param {!FileList} files Value of the input[type=file].
  * @export
  */
 UploadArtifactDialogController.prototype.onFileSet = function(files) {
-  this.scope_.$apply(function() {
-    this.file = files[0];
-  }.bind(this));
+  this.scope_.$apply(() => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      this.artifact = event.target.result;
+    };
+    reader.readAsText(files[0], 'UTF-8');
+  });
 };
 
 /**
@@ -61,7 +65,7 @@ UploadArtifactDialogController.prototype.proceed = function() {
 
   this.inProgress = true;
   this.grrApiService_.post(
-    '/artifacts', {}, false, {'artifact': this.file}).then(
+    '/artifacts', {'artifact': this.artifact}, false, {}).then(
       function success() {
         deferred.resolve('Artifact was successfully uploaded.');
         this.grrArtifactDescriptorsService_.clearCache();

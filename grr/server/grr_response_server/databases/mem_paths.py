@@ -313,47 +313,6 @@ class InMemoryDBPathMixin(object):
         self._WritePathInfo(client_id, ancestor_path_info)
 
   @utils.Synchronized
-  def MultiClearPathHistory(self, path_infos):
-    """Clears path history for specified paths of given clients."""
-    for client_id, client_path_infos in iteritems(path_infos):
-      self.ClearPathHistory(client_id, client_path_infos)
-
-  @utils.Synchronized
-  def ClearPathHistory(self, client_id, path_infos):
-    """Clears path history for specified paths of given client."""
-    for path_info in path_infos:
-      path_record = self._GetPathRecord(client_id, path_info)
-      path_record.ClearHistory()
-
-  @utils.Synchronized
-  def MultiWritePathHistory(self, client_path_histories):
-    """Writes a collection of hash and stat entries observed for given paths."""
-    for client_path, client_path_history in iteritems(client_path_histories):
-      if client_path.client_id not in self.metadatas:
-        raise db.UnknownClientError(client_path.client_id)
-
-      path_info = rdf_objects.PathInfo(
-          path_type=client_path.path_type, components=client_path.components)
-
-      for timestamp, stat_entry in iteritems(client_path_history.stat_entries):
-        path_record = self._GetPathRecord(
-            client_path.client_id, path_info, set_default=False)
-        if path_record is None:
-          # TODO(hanuszczak): Provide more details about paths that caused that.
-          raise db.AtLeastOneUnknownPathError([])
-
-        path_record.AddStatEntry(stat_entry, timestamp)
-
-      for timestamp, hash_entry in iteritems(client_path_history.hash_entries):
-        path_record = self._GetPathRecord(
-            client_path.client_id, path_info, set_default=False)
-        if path_record is None:
-          # TODO(hanuszczak): Provide more details about paths that caused that.
-          raise db.AtLeastOneUnknownPathError([])
-
-        path_record.AddHashEntry(hash_entry, timestamp)
-
-  @utils.Synchronized
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
     """Reads a collection of hash and stat entries for given paths."""
     results = {}

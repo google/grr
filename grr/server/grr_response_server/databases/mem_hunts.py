@@ -14,6 +14,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 
 
 class InMemoryDBHuntMixin(object):
@@ -125,7 +126,7 @@ class InMemoryDBHuntMixin(object):
                       with_creator=None,
                       created_after=None,
                       with_description_match=None):
-    """Reads all hunt objects from the database."""
+    """Reads metadata for hunt objects from the database."""
     filter_fns = []
     if with_creator is not None:
       filter_fns.append(lambda h: h.creator == with_creator)
@@ -136,6 +137,33 @@ class InMemoryDBHuntMixin(object):
     filter_fn = lambda h: all(f(h) for f in filter_fns)
 
     result = [self._DeepCopy(h) for h in self.hunts.values() if filter_fn(h)]
+    return sorted(
+        result, key=lambda h: h.create_time,
+        reverse=True)[offset:offset + (count or db.MAX_COUNT)]
+
+  @utils.Synchronized
+  def ListHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None):
+    """Reads all hunt objects from the database."""
+    filter_fns = []
+    if with_creator is not None:
+      filter_fns.append(lambda h: h.creator == with_creator)
+    if created_after is not None:
+      filter_fns.append(lambda h: h.create_time > created_after)
+    if with_description_match is not None:
+      filter_fns.append(lambda h: with_description_match in h.description)
+    filter_fn = lambda h: all(f(h) for f in filter_fns)
+
+    result = []
+    for h in self.hunts.values():
+      if not filter_fn(h):
+        continue
+      result.append(rdf_hunt_objects.HuntMetadata.FromHunt(h))
+
     return sorted(
         result, key=lambda h: h.create_time,
         reverse=True)[offset:offset + (count or db.MAX_COUNT)]

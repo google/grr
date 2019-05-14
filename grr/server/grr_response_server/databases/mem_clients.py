@@ -16,6 +16,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.util import collection
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -151,8 +152,9 @@ class InMemoryDBClientMixin(object):
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None):
-    """Reads last-ping timestamps for clients in the DB."""
+                          fleetspeak_enabled=None,
+                          batch_size=db.CLIENT_IDS_BATCH_SIZE):
+    """Yields dicts of last-ping timestamps for clients in the DB."""
     last_pings = {}
     for client_id, metadata in iteritems(self.metadatas):
       last_ping = metadata.get("ping", rdfvalue.RDFDatetime(0))
@@ -166,7 +168,13 @@ class InMemoryDBClientMixin(object):
         continue
       else:
         last_pings[client_id] = metadata.get("ping", None)
-    return last_pings
+
+        if len(last_pings) == batch_size:
+          yield last_pings
+          last_pings = {}
+
+    if last_pings:
+      yield last_pings
 
   @utils.Synchronized
   def WriteClientSnapshotHistory(self, clients):
@@ -355,7 +363,7 @@ class InMemoryDBClientMixin(object):
   def WriteClientStats(self, client_id,
                        stats):
     """Stores a ClientStats instance."""
-    if client_id not in self.ReadAllClientIDs():
+    if client_id not in collection.Flatten(self.ReadAllClientIDs()):
       raise db.UnknownClientError(client_id)
 
     self.client_stats[client_id][rdfvalue.RDFDatetime.Now()] = stats
@@ -378,7 +386,6 @@ class InMemoryDBClientMixin(object):
                           ):
     """Deletes ClientStats older than a given timestamp."""
     deleted_count = 0
-    yielded = False
 
     for stats_dict in itervalues(self.client_stats):
       for timestamp in list(stats_dict.keys()):
@@ -388,10 +395,9 @@ class InMemoryDBClientMixin(object):
 
           if deleted_count >= yield_after_count:
             yield deleted_count
-            yielded = True
             deleted_count = 0
 
-    if deleted_count > 0 or not yielded:
+    if deleted_count > 0:
       yield deleted_count
 
   @utils.Synchronized

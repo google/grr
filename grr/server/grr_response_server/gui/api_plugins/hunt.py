@@ -330,6 +330,28 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
     return self
 
+  def InitFromHuntMetadata(self, hunt_metadata):
+    """Initialize API hunt object from a hunt metadata object.
+
+    Args:
+      hunt_metadata: rdf_hunt_objects.HuntMetadata to read the data from.
+
+    Returns:
+      Self.
+    """
+    self.urn = rdfvalue.RDFURN("hunts").Add(str(hunt_metadata.hunt_id))
+    self.hunt_id = hunt_metadata.hunt_id
+    self.state = str(hunt_metadata.hunt_state)
+    self.client_limit = hunt_metadata.client_limit
+    self.client_rate = hunt_metadata.client_rate
+    self.created = hunt_metadata.create_time
+    self.duration = hunt_metadata.duration
+    self.creator = hunt_metadata.creator
+    self.description = hunt_metadata.description
+    self.is_robot = hunt_metadata.creator in ["GRRWorker", "Cron"]
+
+    return self
+
   def ObjectReference(self):
     return rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.HUNT,
@@ -470,7 +492,17 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
         reverse=True,
         key=lambda h: h.GetRunner().context.create_time)
 
-    return [ApiHunt().InitFromAff4Object(hunt_obj) for hunt_obj in hunt_list]
+    result = [ApiHunt().InitFromAff4Object(hunt_obj) for hunt_obj in hunt_list]
+    # Not supported in the relational db ListHuntObjects call.
+    for r in result:
+      r.clients_queued_count = None
+      r.clients_with_results_count = None
+      r.crash_limit = None
+      r.name = None
+      r.results_count = None
+      r.total_cpu_usage = None
+      r.total_net_usage = None
+    return result
 
   def _CreatedByFilterLegacy(self, username, hunt_obj):
     return hunt_obj.context.creator == username
@@ -624,15 +656,15 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     if args.active_within:
       kw_args["created_after"] = rdfvalue.RDFDatetime.Now() - args.active_within
 
-    hunt_objs = data_store.REL_DB.ReadHuntObjects(args.offset, args.count or
-                                                  db.MAX_COUNT, **kw_args)
+    hunt_metadatas = data_store.REL_DB.ListHuntObjects(
+        args.offset, args.count or db.MAX_COUNT, **kw_args)
 
     # TODO(user): total_count is not returned by the current implementation.
     # It's not clear, if it's needed - GRR UI doesn't show total number of
     # available hunts anywhere. Adding it would require implementing
     # an additional data_store.REL_DB.CountHuntObjects method.
     return ApiListHuntsResult(
-        items=[ApiHunt().InitFromHuntObject(h) for h in hunt_objs])
+        items=[ApiHunt().InitFromHuntMetadata(h) for h in hunt_metadatas])
 
   def Handle(self, args, token=None):
     if data_store.RelationalDBEnabled():

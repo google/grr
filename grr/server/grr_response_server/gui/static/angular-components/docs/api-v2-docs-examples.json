@@ -4773,39 +4773,25 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
-            "clientsQueuedCount": "0",
-            "clientsWithResultsCount": "0",
-            "crashLimit": "100",
             "created": "2000000000",
             "creator": "api_test_user",
             "description": "hunt_1",
             "duration": "1209600",
             "huntId": "H:000001",
             "isRobot": false,
-            "name": "GenericHunt",
-            "resultsCount": "0",
             "state": "STOPPED",
-            "totalCpuUsage": 0.0,
-            "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000001"
           },
           {
             "clientLimit": "100",
             "clientRate": 0.0,
-            "clientsQueuedCount": "0",
-            "clientsWithResultsCount": "0",
-            "crashLimit": "100",
             "created": "1000000000",
             "creator": "api_test_user",
             "description": "hunt_0",
             "duration": "1209600",
             "huntId": "H:000000",
             "isRobot": false,
-            "name": "GenericHunt",
-            "resultsCount": "0",
             "state": "PAUSED",
-            "totalCpuUsage": 0.0,
-            "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000000"
           }
         ]
@@ -4821,20 +4807,13 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
-            "clientsQueuedCount": "0",
-            "clientsWithResultsCount": "0",
-            "crashLimit": "100",
             "created": "2000000000",
             "creator": "api_test_user",
             "description": "hunt_1",
             "duration": "1209600",
             "huntId": "H:000001",
             "isRobot": false,
-            "name": "GenericHunt",
-            "resultsCount": "0",
             "state": "STOPPED",
-            "totalCpuUsage": 0.0,
-            "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000001"
           }
         ]
@@ -4850,20 +4829,13 @@
           {
             "clientLimit": "100",
             "clientRate": 0.0,
-            "clientsQueuedCount": "0",
-            "clientsWithResultsCount": "0",
-            "crashLimit": "100",
             "created": "1000000000",
             "creator": "api_test_user",
             "description": "hunt_0",
             "duration": "1209600",
             "huntId": "H:000000",
             "isRobot": false,
-            "name": "GenericHunt",
-            "resultsCount": "0",
             "state": "PAUSED",
-            "totalCpuUsage": 0.0,
-            "totalNetUsage": "0",
             "urn": "aff4:/hunts/H:000000"
           }
         ]

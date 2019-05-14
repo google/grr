@@ -31,11 +31,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "42423")
@@ -43,11 +44,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                       "Files referenced in this collection can be downloaded")
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
-    self.CreateGenericHuntWithCollection([])
+    hunt_urn, _ = self.CreateGenericHuntWithCollection([])
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "Value")
@@ -60,11 +62,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent,
@@ -78,11 +81,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent,
@@ -95,8 +99,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
     hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
-    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_id)
     self.Click("link=Show export command")
 
     self.WaitUntil(
@@ -107,8 +112,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
   def testExportCommandIsNotShownWhenNoResults(self):
     hunt_urn, _ = self.CreateGenericHuntWithCollection([])
+    hunt_id = hunt_urn.Basename()
 
-    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_id)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-hunt-results:contains('Value')")
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
@@ -117,8 +123,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
     hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
-    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_id)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-hunt-results:contains('Value')")
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
@@ -129,23 +136,25 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
 
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.Basename())
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
+    self.RequestAndGrantHuntApproval(hunt_id)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
 
@@ -153,24 +162,26 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
-    hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.Basename())
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
+    self.RequestAndGrantHuntApproval(hunt_id)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
     self.WaitUntil(self.IsUserNotificationPresent,
-                   "Downloaded archive of hunt %s" % hunt.Basename())
+                   "Downloaded archive of hunt %s" % hunt_id)
     # Check that the archive generating flow does not end with an error.
     self.WaitUntilNot(self.IsUserNotificationPresent, "terminated due to error")
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
-    hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.Basename())
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
+    self.RequestAndGrantHuntApproval(hunt_id)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -179,7 +190,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                        RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
-      self.Click("css=td:contains('GenericHunt')")
+      self.Click("css=td:contains('%s')" % hunt_id)
       self.Click("css=li[heading=Results]")
       self.Click("css=button.DownloadButton")
       self.WaitUntil(self.IsTextPresent,
@@ -188,8 +199,9 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                      "Archive generation failed for hunt")
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
-    hunt = self._CreateHuntWithDownloadedFile()
-    self.RequestAndGrantHuntApproval(hunt.Basename())
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
+    self.RequestAndGrantHuntApproval(hunt_id)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       yield b"foo"
@@ -200,7 +212,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
                        RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
-      self.Click("css=td:contains('GenericHunt')")
+      self.Click("css=td:contains('%s')" % hunt_id)
       self.Click("css=li[heading=Results]")
       self.Click("css=button.DownloadButton")
       self.WaitUntil(self.IsUserNotificationPresent,
@@ -213,11 +225,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDoesNotShowPerFileDownloadButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(self.IsTextPresent, "42423")
@@ -231,11 +244,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(
@@ -250,11 +264,12 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
 
-    self.CreateGenericHuntWithCollection(values=values)
+    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     self.WaitUntil(
@@ -262,25 +277,27 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testHuntAuthorizationIsRequiredToDownloadSingleHuntFile(self):
-    self._CreateHuntWithDownloadedFile()
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
     self.Click("css=grr-results-collection button:has(span.glyphicon-download)")
 
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
-    hunt = self._CreateHuntWithDownloadedFile()
-    results = self.GetHuntResults(hunt)
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
+    results = self.GetHuntResults(hunt_urn)
 
-    self.RequestAndGrantHuntApproval(hunt.Basename())
+    self.RequestAndGrantHuntApproval(hunt_id)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
     if data_store.RelationalDBEnabled():
@@ -296,21 +313,22 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(lambda: mock_obj.called)
 
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
-    hunt = self._CreateHuntWithDownloadedFile()
-    results = self.GetHuntResults(hunt)
+    hunt_urn = self._CreateHuntWithDownloadedFile()
+    hunt_id = hunt_urn.Basename()
+    results = self.GetHuntResults(hunt_urn)
     original_result = results[0]
 
     payload = original_result.payload.Copy()
     payload.pathspec.path += "blah"
 
     client_id = self.SetupClients(1)[0]
-    self.AddResultsToHunt(hunt, client_id, [payload])
+    self.AddResultsToHunt(hunt_urn, client_id, [payload])
 
-    self.RequestAndGrantHuntApproval(hunt.Basename())
+    self.RequestAndGrantHuntApproval(hunt_id)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
     self.Click(
         "css=grr-results-collection button:has(span.glyphicon-download):last")

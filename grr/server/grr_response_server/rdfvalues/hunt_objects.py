@@ -132,3 +132,27 @@ class Hunt(rdf_structs.RDFProtoStruct):
 
 def IsHuntSuitableForFlowProcessing(hunt_state):
   return hunt_state in [Hunt.HuntState.PAUSED, Hunt.HuntState.STARTED]
+
+
+class HuntMetadata(rdf_structs.RDFProtoStruct):
+  protobuf = hunts_pb2.HuntMetadata
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+      rdfvalue.Duration,
+  ]
+
+  @classmethod
+  def FromHunt(cls, h):
+    return cls(
+        hunt_id=h.hunt_id,
+        description=h.description or None,
+        create_time=h.create_time,
+        creator=h.creator,
+        duration=h.duration,
+        client_rate=h.client_rate,
+        client_limit=h.client_limit,
+        hunt_state=h.hunt_state,
+        hunt_state_comment=h.hunt_state_comment or None,
+        last_update_time=h.last_update_time,
+        init_start_time=h.init_start_time,
+        last_start_time=h.last_start_time)

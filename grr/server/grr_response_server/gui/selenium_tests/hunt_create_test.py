@@ -242,7 +242,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=button.Next")
 
     # Select newly created hunt.
-    self.Click("css=grr-hunts-list td:contains('GenericHunt')")
+    self.Click("css=grr-hunts-list td:contains('gui_user')")
 
     # Check that correct details are displayed in hunt details tab.
     self.WaitUntil(self.IsElementPresent,

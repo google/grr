@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.util import collection
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -58,6 +59,14 @@ z5KjO8gWio6YOhsDwrketcBcIANMDYws2+TzrLs9ttuHNS0=
 
 def _DaysSinceEpoch(days):
   return rdfvalue.RDFDatetime(rdfvalue.Duration.FromDays(days).microseconds)
+
+
+def _FlattenDicts(dicts):
+  """Merges an iterable of dicts into one dict."""
+  result = {}
+  for dict_obj in dicts:
+    result.update(dict_obj)
+  return result
 
 
 class DatabaseTestClientsMixin(object):
@@ -175,15 +184,39 @@ class DatabaseTestClientsMixin(object):
 
   def testReadAllClientIDsEmpty(self):
     result = list(self.db.ReadAllClientIDs())
-    self.assertCountEqual(result, [])
+    self.assertEmpty(result)
 
   def testReadAllClientIDsSome(self):
     client_a_id = db_test_utils.InitializeClient(self.db)
     client_b_id = db_test_utils.InitializeClient(self.db)
     client_c_id = db_test_utils.InitializeClient(self.db)
 
-    self.assertCountEqual(self.db.ReadAllClientIDs(),
+    client_ids = list(self.db.ReadAllClientIDs())
+    self.assertLen(client_ids, 1)
+    self.assertCountEqual(client_ids[0],
                           [client_a_id, client_b_id, client_c_id])
+
+  def testReadAllClientIDsNotEvenlyDivisibleByBatchSize(self):
+    client_a_id = db_test_utils.InitializeClient(self.db)
+    client_b_id = db_test_utils.InitializeClient(self.db)
+    client_c_id = db_test_utils.InitializeClient(self.db)
+
+    client_ids = list(self.db.ReadAllClientIDs(batch_size=2))
+    self.assertEqual([len(batch) for batch in client_ids], [2, 1])
+    self.assertCountEqual(
+        collection.Flatten(client_ids), [client_a_id, client_b_id, client_c_id])
+
+  def testReadAllClientIDsEvenlyDivisibleByBatchSize(self):
+    client_a_id = db_test_utils.InitializeClient(self.db)
+    client_b_id = db_test_utils.InitializeClient(self.db)
+    client_c_id = db_test_utils.InitializeClient(self.db)
+    client_d_id = db_test_utils.InitializeClient(self.db)
+
+    client_ids = list(self.db.ReadAllClientIDs(batch_size=2))
+    self.assertEqual([len(batch) for batch in client_ids], [2, 2])
+    self.assertCountEqual(
+        collection.Flatten(client_ids),
+        [client_a_id, client_b_id, client_c_id, client_d_id])
 
   def testReadAllClientIDsFilterLastPing(self):
     self.db.WriteClientMetadata("C.0000000000000001", fleetspeak_enabled=True)
@@ -198,16 +231,61 @@ class DatabaseTestClientsMixin(object):
         last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4))
     client_ids = self.db.ReadAllClientIDs(
         min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
-    self.assertCountEqual(client_ids,
-                          ["C.0000000000000003", "C.0000000000000004"])
+    self.assertCountEqual(
+        collection.Flatten(client_ids),
+        ["C.0000000000000003", "C.0000000000000004"])
+
+  def testReadClientLastPings_ResultsDivisibleByBatchSize(self):
+    client_ids = self._WriteClientLastPingData()
+    (client_id5, client_id6, client_id7, client_id8, client_id9,
+     client_id10) = client_ids[4:]
+
+    results = list(
+        self.db.ReadClientLastPings(
+            min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            batch_size=3))
+
+    self.assertEqual([len(batch) for batch in results], [3, 3])
+
+    self.assertEqual(
+        _FlattenDicts(results), {
+            client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+            client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+            client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+            client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+        })
+
+  def testReadClientLastPings_ResultsNotDivisibleByBatchSize(self):
+    client_ids = self._WriteClientLastPingData()
+    (client_id5, client_id6, client_id7, client_id8, client_id9,
+     client_id10) = client_ids[4:]
+
+    results = list(
+        self.db.ReadClientLastPings(
+            min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            batch_size=4))
+
+    self.assertEqual([len(batch) for batch in results], [4, 2])
+
+    self.assertEqual(
+        _FlattenDicts(results), {
+            client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+            client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+            client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+            client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+            client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+        })
 
   def testReadClientLastPings_NoFilter(self):
     client_ids = self._WriteClientLastPingData()
     (client_id1, client_id2, client_id3, client_id4, client_id5, client_id6,
      client_id7, client_id8, client_id9, client_id10) = client_ids
 
-    self.assertDictEqual(
-        self.db.ReadClientLastPings(), {
+    self.assertEqual(
+        list(self.db.ReadClientLastPings()), [{
             client_id1: None,
             client_id2: None,
             client_id3: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
@@ -218,7 +296,7 @@ class DatabaseTestClientsMixin(object):
             client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
             client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
             client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
-        })
+        }])
 
   def testReadClientLastPings_AllFiltersFleetspeak(self):
     client_ids = self._WriteClientLastPingData()
@@ -229,11 +307,11 @@ class DatabaseTestClientsMixin(object):
         min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
         fleetspeak_enabled=True)
-    expected_data = {
+    expected_data = [{
         client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
-    }
-    self.assertDictEqual(actual_data, expected_data)
+    }]
+    self.assertEqual(list(actual_data), expected_data)
 
   def testReadClientLastPings_AllFiltersNoFleetspeak(self):
     client_ids = self._WriteClientLastPingData()
@@ -244,11 +322,11 @@ class DatabaseTestClientsMixin(object):
         min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
         fleetspeak_enabled=False)
-    expected_data = {
+    expected_data = [{
         client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
-    }
-    self.assertDictEqual(actual_data, expected_data)
+    }]
+    self.assertEqual(list(actual_data), expected_data)
 
   def testReadClientLastPings_MinPingFleetspeakFilters(self):
     client_ids = self._WriteClientLastPingData()
@@ -259,12 +337,12 @@ class DatabaseTestClientsMixin(object):
     actual_data = self.db.ReadClientLastPings(
         min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         fleetspeak_enabled=False)
-    expected_data = {
+    expected_data = [{
         client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
         client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
-    }
-    self.assertDictEqual(actual_data, expected_data)
+    }]
+    self.assertEqual(list(actual_data), expected_data)
 
   def testReadClientLastPings_MaxPingFleetspeakFilters(self):
     client_ids = self._WriteClientLastPingData()
@@ -275,12 +353,12 @@ class DatabaseTestClientsMixin(object):
     actual_data = self.db.ReadClientLastPings(
         max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         fleetspeak_enabled=True)
-    expected_data = {
+    expected_data = [{
         client_id2: None,
         client_id4: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
         client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-    }
-    self.assertDictEqual(actual_data, expected_data)
+    }]
+    self.assertEqual(list(actual_data), expected_data)
 
   def _WriteClientLastPingData(self):
     """Writes test data for ReadClientLastPings() tests."""
@@ -1364,9 +1442,9 @@ class DatabaseTestClientsMixin(object):
         min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEmpty(stats)
 
-  def testDeleteOldClientStatsYieldsZeroIfEmpty(self):
+  def testDeleteOldClientStatsDoesNotYieldIfEmpty(self):
     self._TestDeleteOldClientStatsYields(
-        total=0, yield_after_count=10, yields_expected=[0])
+        total=0, yield_after_count=10, yields_expected=[])
 
   def testDeleteOldClientStatsYieldsExactMatch(self):
     self._TestDeleteOldClientStatsYields(

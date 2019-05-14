@@ -1123,6 +1123,24 @@ class DatabaseTestFlowMixin(object):
                                                    request.flow_id)
     self.assertEmpty(arrp)
 
+  def testDeleteFlowRequestsHandles11000Requests(self):
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+
+    requests = [
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=i)
+        for i in range(2, 11002)
+    ]
+    self.db.WriteFlowRequests(requests)
+
+    self.assertLen(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id), 11000)
+
+    self.db.DeleteFlowRequests(requests)
+
+    self.assertEmpty(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id))
+
   def testLeaseFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
     hunt_obj = rdf_hunt_objects.Hunt()
     self.db.WriteHuntObject(hunt_obj)

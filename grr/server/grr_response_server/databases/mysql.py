@@ -404,6 +404,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     pass
 
   _WRITE_ROWS_BATCH_SIZE = 10000
+  _DELETE_ROWS_BATCH_SIZE = 5000
 
   def __init__(self,
                host=None,

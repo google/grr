@@ -918,19 +918,24 @@ class MySQLDBFlowMixin(object):
     if not requests:
       return
 
-    conditions = []
-    args = []
-    for r in requests:
-      conditions.append("(client_id=%s AND flow_id=%s AND request_id=%s)")
-      args.append(db_utils.ClientIDToInt(r.client_id))
-      args.append(db_utils.FlowIDToInt(r.flow_id))
-      args.append(r.request_id)
+    for batch in collection.Batch(requests, self._DELETE_ROWS_BATCH_SIZE):
+      # Each iteration might delete more than BATCH_SIZE flow_responses.
+      # This is acceptable, because batching should only prevent the statement
+      # size from growing too large.
+      conditions = []
+      args = []
 
-    req_query = "DELETE FROM flow_requests WHERE " + " OR ".join(conditions)
-    res_query = "DELETE FROM flow_responses WHERE " + " OR ".join(conditions)
+      for r in batch:
+        conditions.append("(client_id=%s AND flow_id=%s AND request_id=%s)")
+        args.append(db_utils.ClientIDToInt(r.client_id))
+        args.append(db_utils.FlowIDToInt(r.flow_id))
+        args.append(r.request_id)
 
-    cursor.execute(res_query, args)
-    cursor.execute(req_query, args)
+      req_query = "DELETE FROM flow_requests WHERE " + " OR ".join(conditions)
+      res_query = "DELETE FROM flow_responses WHERE " + " OR ".join(conditions)
+
+      cursor.execute(res_query, args)
+      cursor.execute(req_query, args)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowRequestsAndResponses(self, client_id, flow_id, cursor=None):

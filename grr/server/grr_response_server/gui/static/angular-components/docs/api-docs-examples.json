@@ -15567,18 +15567,6 @@
                 "type": "float",
                 "value": 0.0
               },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
-              "clients_with_results_count": {
-                "type": "long",
-                "value": 0
-              },
-              "crash_limit": {
-                "type": "long",
-                "value": 100
-              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 2000000000
@@ -15603,25 +15591,9 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "name": {
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "results_count": {
-                "type": "long",
-                "value": 0
-              },
               "state": {
                 "type": "EnumNamedValue",
                 "value": "STOPPED"
-              },
-              "total_cpu_usage": {
-                "type": "long",
-                "value": 0
-              },
-              "total_net_usage": {
-                "type": "long",
-                "value": 0
               },
               "urn": {
                 "type": "SessionID",
@@ -15639,18 +15611,6 @@
               "client_rate": {
                 "type": "float",
                 "value": 0.0
-              },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
-              "clients_with_results_count": {
-                "type": "long",
-                "value": 0
-              },
-              "crash_limit": {
-                "type": "long",
-                "value": 100
               },
               "created": {
                 "type": "RDFDatetime",
@@ -15676,25 +15636,9 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "name": {
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "results_count": {
-                "type": "long",
-                "value": 0
-              },
               "state": {
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
-              },
-              "total_cpu_usage": {
-                "type": "long",
-                "value": 0
-              },
-              "total_net_usage": {
-                "type": "long",
-                "value": 0
               },
               "urn": {
                 "type": "SessionID",
@@ -15710,39 +15654,25 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
-            "clients_queued_count": 0,
-            "clients_with_results_count": 0,
-            "crash_limit": 100,
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
             "duration": 1209600,
             "hunt_id": "H:000001",
             "is_robot": false,
-            "name": "GenericHunt",
-            "results_count": 0,
             "state": "STOPPED",
-            "total_cpu_usage": 0,
-            "total_net_usage": 0,
             "urn": "aff4:/hunts/H:000001"
           },
           {
             "client_limit": 100,
             "client_rate": 0.0,
-            "clients_queued_count": 0,
-            "clients_with_results_count": 0,
-            "crash_limit": 100,
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
             "duration": 1209600,
             "hunt_id": "H:000000",
             "is_robot": false,
-            "name": "GenericHunt",
-            "results_count": 0,
             "state": "PAUSED",
-            "total_cpu_usage": 0,
-            "total_net_usage": 0,
             "urn": "aff4:/hunts/H:000000"
           }
         ]
@@ -15765,18 +15695,6 @@
                 "type": "float",
                 "value": 0.0
               },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
-              "clients_with_results_count": {
-                "type": "long",
-                "value": 0
-              },
-              "crash_limit": {
-                "type": "long",
-                "value": 100
-              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 2000000000
@@ -15801,25 +15719,9 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "name": {
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "results_count": {
-                "type": "long",
-                "value": 0
-              },
               "state": {
                 "type": "EnumNamedValue",
                 "value": "STOPPED"
-              },
-              "total_cpu_usage": {
-                "type": "long",
-                "value": 0
-              },
-              "total_net_usage": {
-                "type": "long",
-                "value": 0
               },
               "urn": {
                 "type": "SessionID",
@@ -15835,20 +15737,13 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
-            "clients_queued_count": 0,
-            "clients_with_results_count": 0,
-            "crash_limit": 100,
             "created": 2000000000,
             "creator": "api_test_user",
             "description": "hunt_1",
             "duration": 1209600,
             "hunt_id": "H:000001",
             "is_robot": false,
-            "name": "GenericHunt",
-            "results_count": 0,
             "state": "STOPPED",
-            "total_cpu_usage": 0,
-            "total_net_usage": 0,
             "urn": "aff4:/hunts/H:000001"
           }
         ]
@@ -15870,18 +15765,6 @@
               "client_rate": {
                 "type": "float",
                 "value": 0.0
-              },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
-              "clients_with_results_count": {
-                "type": "long",
-                "value": 0
-              },
-              "crash_limit": {
-                "type": "long",
-                "value": 100
               },
               "created": {
                 "type": "RDFDatetime",
@@ -15907,25 +15790,9 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "name": {
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "results_count": {
-                "type": "long",
-                "value": 0
-              },
               "state": {
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
-              },
-              "total_cpu_usage": {
-                "type": "long",
-                "value": 0
-              },
-              "total_net_usage": {
-                "type": "long",
-                "value": 0
               },
               "urn": {
                 "type": "SessionID",
@@ -15941,20 +15808,13 @@
           {
             "client_limit": 100,
             "client_rate": 0.0,
-            "clients_queued_count": 0,
-            "clients_with_results_count": 0,
-            "crash_limit": 100,
             "created": 1000000000,
             "creator": "api_test_user",
             "description": "hunt_0",
             "duration": 1209600,
             "hunt_id": "H:000000",
             "is_robot": false,
-            "name": "GenericHunt",
-            "results_count": 0,
             "state": "PAUSED",
-            "total_cpu_usage": 0,
-            "total_net_usage": 0,
             "urn": "aff4:/hunts/H:000000"
           }
         ]

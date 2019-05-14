@@ -100,7 +100,7 @@ class _ActiveCounter(object):
       client_report_utils.WriteGraphSeries(graph_series, label, token=token)
 
 
-CLIENT_READ_BATCH_SIZE = 50000
+_CLIENT_READ_BATCH_SIZE = 50000
 
 
 def _IterateAllClients(recency_window=None):
@@ -112,18 +112,16 @@ def _IterateAllClients(recency_window=None):
       longer than the given period will be skipped. If recency_window is None,
       all clients will be iterated.
 
-  Yields:
-    Batches (lists) of ClientFullInfo objects.
+  Returns:
+    Generator, yielding ClientFullInfo objects.
   """
   if recency_window is None:
     min_last_ping = None
   else:
     min_last_ping = rdfvalue.RDFDatetime.Now() - recency_window
-  client_ids = data_store.REL_DB.ReadAllClientIDs(min_last_ping=min_last_ping)
-  for client_id_batch in collection.Batch(client_ids, CLIENT_READ_BATCH_SIZE):
-    client_info_dict = data_store.REL_DB.MultiReadClientFullInfo(
-        client_id_batch)
-    yield list(itervalues(client_info_dict))
+
+  return data_store.REL_DB.IterateAllClientsFullInfo(min_last_ping,
+                                                     _CLIENT_READ_BATCH_SIZE)
 
 
 class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
@@ -168,13 +166,16 @@ class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
 
       processed_count = 0
 
-      for client_info_batch in _IterateAllClients(
-          recency_window=self.recency_window):
-        for client_info in client_info_batch:
-          self.ProcessClientFullInfo(client_info)
-        processed_count += len(client_info_batch)
+      for client_info in _IterateAllClients(recency_window=self.recency_window):
+        self.ProcessClientFullInfo(client_info)
+        processed_count += 1
+
+        if processed_count % _CLIENT_READ_BATCH_SIZE == 0:
+          self.Log("Processed %d clients.", processed_count)
+          self.HeartBeat()
+
+      if processed_count != 0:
         self.Log("Processed %d clients.", processed_count)
-        self.HeartBeat()
 
       self.FinishProcessing()
       for fd in itervalues(self.stats):
@@ -355,17 +356,22 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
       processed_count = 0
 
       if data_store.RelationalDBEnabled():
-        for client_info_batch in _IterateAllClients(
+        for client_info in _IterateAllClients(
             recency_window=self.recency_window):
-          for client_info in client_info_batch:
-            self.ProcessClientFullInfo(client_info)
-          processed_count += len(client_info_batch)
+          self.ProcessClientFullInfo(client_info)
+          processed_count += 1
+
+          if processed_count % _CLIENT_READ_BATCH_SIZE == 0:
+            self.Log("Processed %d clients.", processed_count)
+            self.HeartBeat()
+
+        if processed_count != 0:
           self.Log("Processed %d clients.", processed_count)
-          self.HeartBeat()
+
       else:
         root_children = aff4.FACTORY.Open(
             aff4.ROOT_URN, token=self.token).OpenChildren(mode="r")
-        for batch in collection.Batch(root_children, CLIENT_READ_BATCH_SIZE):
+        for batch in collection.Batch(root_children, _CLIENT_READ_BATCH_SIZE):
           for child in batch:
             if not isinstance(child, aff4_grr.VFSGRRClient):
               continue

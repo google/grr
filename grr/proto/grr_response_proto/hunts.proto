@@ -148,3 +148,42 @@ message Hunt {
   reserved 31;
   reserved 32;
 }
+
+message HuntMetadata {
+  optional string hunt_id = 1;
+  optional string description = 2;
+  optional uint64 create_time = 3 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+
+  optional string creator = 4;
+  optional uint64 duration = 5 [(sem_type) = {
+    type: "Duration",
+    description: "A maximum allowed duration after which the hunt is expired.",
+  }];
+  optional float client_rate = 6 [(sem_type) = {
+    description: "The maximum number of clients to engage per minute. "
+                 "A rate of 0 means to schedule clients as fast as possible."
+  }];
+
+  optional uint64 client_limit = 7 [(sem_type) = {
+    description: "Maximum number of clients participating in the hunt. "
+                 "Best practice is for all hunts to use a limit to start with "
+                 "and remove it only when client impact has been assessed by "
+                 "looking at hunt stats. Note that this limit can be overshot "
+                 "by a small number of clients if there are multiple workers "
+                 "running.",
+  }];
+  optional Hunt.HuntState hunt_state = 9;
+  optional string hunt_state_comment = 10;
+
+  optional uint64 last_update_time = 11 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  optional uint64 init_start_time = 12 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  optional uint64 last_start_time = 13 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+}

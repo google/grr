@@ -408,8 +408,8 @@ class GRRWorker(object):
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return
 
-    logging.info("Processing Flow %s/%s (%s).", client_id, flow_id,
-                 rdf_flow.flow_class_name)
+    logging.info("Processing Flow %s/%s/%d (%s).", client_id, flow_id,
+                 rdf_flow.next_request_to_process, rdf_flow.flow_class_name)
 
     flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
     flow_obj = flow_cls(rdf_flow)

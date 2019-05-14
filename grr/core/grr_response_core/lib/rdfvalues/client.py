@@ -384,6 +384,13 @@ class Process(rdf_structs.RDFProtoStruct):
         response.cmdline = list(map(_DecodeArgument, psutil_process.cmdline()))
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
+      except Exception as e:  # pylint: disable=broad-except
+        # Windows now has Virtual Secure Mode (VSM) processes that have
+        # additional memory protection. For those, cmdline() and cwd() will
+        # raise a Windows Error 998 (ERROR_NOACCESS, Invalid access to memory
+        # location).
+        if not hasattr(e, "winerror") or e.winerror != 998:
+          raise
 
       try:
         response.nice = psutil_process.nice()
@@ -418,6 +425,13 @@ class Process(rdf_structs.RDFProtoStruct):
       # error.
       except OSError:
         pass
+      except Exception as e:  # pylint: disable=broad-except
+        # Windows now has Virtual Secure Mode (VSM) processes that have
+        # additional memory protection. For those, cmdline() and cwd() will
+        # raise a Windows Error 998 (ERROR_NOACCESS, Invalid access to memory
+        # location).
+        if not hasattr(e, "winerror") or e.winerror != 998:
+          raise
 
       try:
         response.num_threads = psutil_process.num_threads()

@@ -41,6 +41,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
   def testConfigureMySQLDatastore(self, getpass_mock, connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
+        "Y",  # Use REL_DB as the primary data store.
         "",  # MySQL hostname (the default is localhost).
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.
@@ -72,6 +73,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
   def testConfigureMySQLDatastoreWithSSL(self, getpass_mock, connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
+        "Y",  # Use REL_DB as the primary data store.
         "",  # MySQL hostname (the default is localhost).
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.
@@ -123,6 +125,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
                                                   connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
+        "Y",  # Use REL_DB as the primary data store.
         "",  # MySQL hostname (the default is localhost).
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.
@@ -258,6 +261,68 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         self.assertListEqual(user_labels, ["admin"])
       else:
         self.assertListEqual(user_labels, [])
+
+  @db_test_lib.LegacyDataStoreOnly
+  def testSwitchToRelDBDoesNothingIfRelDBIsEnabled(self):
+    with test_lib.ConfigOverrider({"Database.enabled": True}):
+      config = grr_config.CONFIG.CopyConfig()
+      config_updater_util.SwitchToRelDB(config)
+
+    # If REL_DB is already enabled, SwitchToRelDB should immediately bail out.
+    self.input_mock.assert_not_called()
+
+  @db_test_lib.LegacyDataStoreOnly
+  def testSwitchToRelDBReusesExistingDatabaseNameAndCredentials(self):
+    with test_lib.ConfigOverrider({
+        "Mysql.database_username": "foo",
+        "Mysql.database_password": "bar",
+        "Mysql.database_name": "db",
+        "Blobstore.implementation": "Foo",
+    }):
+      self.input_mock.side_effect = [
+          "Y",  # Yes, continue.
+          "Y",  # Yes, use DbBlobStore.
+          "N",  # No, use the same DB name.
+          "Y",  # Yes, reuse database credentials.
+      ]
+
+      config = grr_config.CONFIG.CopyConfig()
+      config_updater_util.SwitchToRelDB(config)
+
+      self.assertTrue(config["Database.enabled"])
+      self.assertEqual(config["Database.implementation"], "MysqlDB")
+      self.assertEqual(config["Mysql.database"], "db")
+      self.assertEqual(config["Mysql.username"], "foo")
+      self.assertEqual(config["Mysql.password"], "bar")
+
+  @db_test_lib.LegacyDataStoreOnly
+  @mock.patch.object(getpass, "getpass")
+  def testSwitchToRelDBAllowsSettingCustomDbNameAndCredentials(
+      self, getpass_mock):
+    with test_lib.ConfigOverrider({
+        "Mysql.database_username": "foo",
+        "Mysql.database_password": "bar",
+        "Mysql.database_name": "db",
+        "Blobstore.implementation": "Foo",
+    }):
+      self.input_mock.side_effect = [
+          "Y",  # Yes, continue.
+          "N",  # No, keep current blobstore.
+          "Y",  # Yes, use custom db name.
+          "db2",  # DB name.
+          "N",  # No, use custom DB credentials.
+          "user",  # Username.
+      ]
+      getpass_mock.return_value = "pass"  # DB password for GRR.
+
+      config = grr_config.CONFIG.CopyConfig()
+      config_updater_util.SwitchToRelDB(config)
+
+      self.assertTrue(config["Database.enabled"])
+      self.assertEqual(config["Database.implementation"], "MysqlDB")
+      self.assertEqual(config["Mysql.database"], "db2")
+      self.assertEqual(config["Mysql.username"], "user")
+      self.assertEqual(config["Mysql.password"], "pass")
 
 
 def main(argv):

@@ -253,6 +253,78 @@ class MySQLDBHuntMixin(object):
     cursor.execute(query, args)
     return [self._HuntObjectFromRow(row) for row in cursor.fetchall()]
 
+  @mysql_utils.WithTransaction(readonly=True)
+  def ListHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None,
+                      cursor=None):
+    """Reads metadata for hunt objects from the database."""
+    query = """
+    SELECT
+      hunt_id,
+      UNIX_TIMESTAMP(create_timestamp),
+      UNIX_TIMESTAMP(last_update_timestamp),
+      creator,
+      duration_micros,
+      client_rate,
+      client_limit,
+      hunt_state,
+      hunt_state_comment,
+      UNIX_TIMESTAMP(init_start_time),
+      UNIX_TIMESTAMP(last_start_time),
+      description
+    FROM hunts """
+    args = []
+
+    components = []
+    if with_creator is not None:
+      components.append("creator = %s ")
+      args.append(with_creator)
+
+    if created_after is not None:
+      components.append("create_timestamp > FROM_UNIXTIME(%s) ")
+      args.append(mysql_utils.RDFDatetimeToTimestamp(created_after))
+
+    if with_description_match is not None:
+      components.append("description LIKE %s")
+      args.append("%" + with_description_match + "%")
+
+    if components:
+      query += "WHERE " + " AND ".join(components)
+
+    query += " ORDER BY create_timestamp DESC LIMIT %s OFFSET %s"
+    args.append(count)
+    args.append(offset)
+
+    cursor.execute(query, args)
+    result = []
+    for row in cursor.fetchall():
+      (hunt_id, create_timestamp, last_update_timestamp, creator,
+       duration_micros, client_rate, client_limit, hunt_state,
+       hunt_state_comment, init_start_time, last_start_time, description) = row
+      result.append(
+          rdf_hunt_objects.HuntMetadata(
+              hunt_id=db_utils.IntToHuntID(hunt_id),
+              description=description or None,
+              create_time=mysql_utils.TimestampToRDFDatetime(create_timestamp),
+              creator=creator,
+              duration=rdfvalue.Duration.FromMicroseconds(duration_micros),
+              client_rate=client_rate,
+              client_limit=client_limit,
+              hunt_state=hunt_state,
+              hunt_state_comment=hunt_state_comment or None,
+              last_update_time=mysql_utils.TimestampToRDFDatetime(
+                  last_update_timestamp),
+              init_start_time=mysql_utils.TimestampToRDFDatetime(
+                  init_start_time),
+              last_start_time=mysql_utils.TimestampToRDFDatetime(
+                  last_start_time)))
+
+    return result
+
   def _HuntOutputPluginStateFromRow(self, row):
     """Builds OutputPluginState object from a DB row."""
     plugin_name, plugin_args_bytes, plugin_state_bytes = row

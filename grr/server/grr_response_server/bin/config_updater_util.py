@@ -251,9 +251,20 @@ def CheckMySQLConnection(db_options):
 
 def ConfigureMySQLDatastore(config):
   """Prompts the user for configuration details for a MySQL datastore."""
+  db_options = {}
+
+  use_rel_db = RetryBoolQuestion(
+      "Do you want to use REL_DB - the new optimized datastore "
+      "implementation?\n"
+      "(if not, a legacy datastore will be used)", False)
+  if use_rel_db:
+    db_options["Database.enabled"] = True
+    db_options["Database.aff4_enabled"] = False
+    db_options["Database.implementation"] = "MysqlDB"
+    db_options["Blobstore.implementation"] = "DbBlobStore"
+
   print("GRR will use MySQL as its database backend. Enter connection details:")
   datastore_init_complete = False
-  db_options = {}
   while not datastore_init_complete:
     db_options["Datastore.implementation"] = "MySQLAdvancedDataStore"
     db_options["Mysql.host"] = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
@@ -261,15 +272,19 @@ def ConfigureMySQLDatastore(config):
     db_options["Mysql.port"] = int(
         RetryQuestion("MySQL Port (0 for local socket)", "^[0-9]+$",
                       config["Mysql.port"]))
-    db_options["Mysql.database_name"] = RetryQuestion(
-        "MySQL Database", "^[A-Za-z0-9-]+$", config["Mysql.database_name"])
-    db_options["Mysql.database_username"] = RetryQuestion(
+    db_options["Mysql.database"] = RetryQuestion("MySQL Database",
+                                                 "^[A-Za-z0-9-]+$",
+                                                 config["Mysql.database_name"])
+    db_options["Mysql.database_name"] = db_options["Mysql.database"]
+    db_options["Mysql.username"] = RetryQuestion(
         "MySQL Username", "[A-Za-z0-9-@]+$", config["Mysql.database_username"])
+    db_options["Mysql.database_username"] = db_options["Mysql.username"]
     # TODO(hanuszczak): Incorrect type specification for `getpass`.
     # pytype: disable=wrong-arg-types
-    db_options["Mysql.database_password"] = getpass.getpass(
+    db_options["Mysql.password"] = getpass.getpass(
         prompt="Please enter password for database user %s: " %
-        db_options["Mysql.database_username"])
+        db_options["Mysql.username"])
+    db_options["Mysql.database_password"] = db_options["Mysql.password"]
     # pytype: enable=wrong-arg-types
 
     use_ssl = RetryBoolQuestion("Configure SSL connections for MySQL?", False)
@@ -307,13 +322,17 @@ def ConfigureDatastore(config):
         "For GRR to work each GRR server has to be able to communicate with\n"
         "the datastore. To do this we need to configure a datastore.\n")
 
+  use_rel_db = grr_config.CONFIG.Get("Database.enabled")
   existing_datastore = grr_config.CONFIG.Get("Datastore.implementation")
 
   if not existing_datastore or existing_datastore == "FakeDataStore":
     ConfigureMySQLDatastore(config)
     return
 
-  print("Found existing settings:\n  Datastore: %s" % existing_datastore)
+  if use_rel_db:
+    print("Found existing settings:\n  REL_DB MySQL database")
+  else:
+    print("Found existing settings:\n  Datastore: %s" % existing_datastore)
   if existing_datastore == "SqliteDataStore":
     set_up_mysql = RetryBoolQuestion(
         "The SQLite datastore is no longer supported. Would you like to\n"
@@ -325,7 +344,7 @@ def ConfigureDatastore(config):
       ConfigureMySQLDatastore(config)
     else:
       raise ConfigInitError()
-  elif existing_datastore == "MySQLAdvancedDataStore":
+  elif use_rel_db or existing_datastore == "MySQLAdvancedDataStore":
     print("  MySQL Host: %s\n  MySQL Port: %s\n  MySQL Database: %s\n"
           "  MySQL Username: %s\n" %
           (grr_config.CONFIG.Get("Mysql.host"),
@@ -538,6 +557,7 @@ def Initialize(config=None,
 def InitializeNoPrompt(config=None,
                        external_hostname = None,
                        admin_password = None,
+                       use_rel_db = False,
                        mysql_hostname = None,
                        mysql_port = None,
                        mysql_username = None,
@@ -555,6 +575,7 @@ def InitializeNoPrompt(config=None,
     config: config object
     external_hostname: A hostname.
     admin_password: A password used for the admin user.
+    use_rel_db: If True, initialize REL_DB instead of AFF4.
     mysql_hostname: A hostname used for establishing connection to MySQL.
     mysql_port: A port used for establishing connection to MySQL.
     mysql_username: A username used for establishing connection to MySQL.
@@ -593,11 +614,18 @@ def InitializeNoPrompt(config=None,
     raise IOError("Config not writeable (need sudo?)")
 
   config_dict = {}
+  if use_rel_db:
+    config_dict["Database.enabled"] = True
+    config_dict["Database.aff4_enabled"] = False
+    config_dict["Database.implementation"] = "MysqlDB"
+    config_dict["Blobstore.implementation"] = "DbBlobStore"
+
   config_dict["Datastore.implementation"] = "MySQLAdvancedDataStore"
   config_dict["Mysql.host"] = mysql_hostname or config["Mysql.host"]
   config_dict["Mysql.port"] = mysql_port or config["Mysql.port"]
-  config_dict["Mysql.database_name"] = mysql_db or config["Mysql.database_name"]
-  config_dict["Mysql.database_username"] = (
+  config_dict["Mysql.database_name"] = config_dict[
+      "Mysql.database"] = mysql_db or config["Mysql.database_name"]
+  config_dict["Mysql.database_username"] = config_dict["Mysql.username"] = (
       mysql_username or config["Mysql.database_username"])
   config_dict["Client.server_urls"] = [
       "http://%s:%s/" % (external_hostname, config["Frontend.bind_port"])
@@ -611,7 +639,8 @@ def InitializeNoPrompt(config=None,
                                                       external_hostname)
   # Print all configuration options, except for the MySQL password.
   print("Setting configuration as:\n\n%s" % config_dict)
-  config_dict["Mysql.database_password"] = mysql_password
+  config_dict["Mysql.database_password"] = config_dict[
+      "Mysql.password"] = mysql_password
 
   if mysql_client_key_path is not None:
     config_dict["Mysql.client_key_path"] = mysql_client_key_path
@@ -763,3 +792,59 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
                                username)
     # pytype: enable=wrong-arg-types
   return user_type, password
+
+
+def SwitchToRelDB(config):
+  """Switches a given config from using AFF4 to using REL_DB."""
+  if config["Database.enabled"]:
+    print(
+        "New generation datastore (REL_DB) is already enabled in the config.\n"
+        "Nothing to do.")
+    return
+
+  print("***************************************************************\n"
+        "Make sure to back up the existing configuration writeback file,\n"
+        "you will need it if you decide to switch to the old datastore.\n"
+        "Writeback file path:\n%s\n"
+        "***************************************************************\n" %
+        config["Config.writeback"])
+  RetryBoolQuestion("Continue?", True)
+
+  config.Set("Database.enabled", True)
+  config.Set("Database.aff4_enabled", False)
+  config.Set("Database.implementation", "MysqlDB")
+
+  if (config["Blobstore.implementation"] == "MemoryStreamBlobStore" or
+      RetryBoolQuestion(
+          "You have a custom 'Blobstore.implementation' setting. Do you want to\n"
+          "switch to DbBlobStore (default option for REL_DB, meaning that blobs\n"
+          "will be stored inside the MySQL database)?", True)):
+    config.Set("Blobstore.implementation", "DbBlobStore")
+
+  if (RetryBoolQuestion(
+      "Do you want to use a different MySQL database for the REL_DB datastore?",
+      True)):
+    db_name = RetryQuestion("MySQL Database", "^[A-Za-z0-9-]+$",
+                            config["Mysql.database_name"])
+  else:
+    db_name = config["Mysql.database_name"]
+  config.Set("Mysql.database", db_name)
+
+  if (builtins.input(
+      "Do you want to use previously set up MySQL username and password\n"
+      "to connect to MySQL database '%s'? [Yn]: " % db_name).upper() or
+      "Y") == "Y":
+    username = config["Mysql.database_username"]
+    password = config["Mysql.database_password"]
+  else:
+    username = RetryQuestion("MySQL Username", "[A-Za-z0-9-@]+$",
+                             config["Mysql.database_username"])
+    # TODO(hanuszczak): Incorrect type specification for `getpass`.
+    # pytype: disable=wrong-arg-types
+    password = getpass.getpass(
+        prompt="Please enter password for database user %s: " % username)
+
+  config.Set("Mysql.username", username)
+  config.Set("Mysql.password", password)
+
+  print("Configuration updated.")

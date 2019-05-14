@@ -19,15 +19,16 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt start/stop/delete functionality."""
 
   def testToolbarStateForStoppedHunt(self):
-    self.CreateSampleHunt(stopped=True)
+    hunt_urn = self.CreateSampleHunt(stopped=True)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
     # Select a Hunt.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -41,15 +42,16 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
                    "css=button[name=ModifyHunt]:not([disabled])")
 
   def testToolbarStateForRunningHunt(self):
-    self.CreateSampleHunt(stopped=False)
+    hunt_urn = self.CreateSampleHunt(stopped=False)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
     # Select a Hunt.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Check we can now see the details.
     self.WaitUntil(self.IsElementPresent, "css=dl.dl-hunt")
@@ -64,14 +66,15 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
   def testRunHunt(self):
     hunt_urn = self.CreateSampleHunt(stopped=True)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
     # Select a Hunt.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on Run button and check that dialog appears.
     self.Click("css=button[name=RunHunt]")
@@ -112,14 +115,15 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
   def testStopHunt(self):
     hunt_urn = self.CreateSampleHunt(stopped=False)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
     # Select a Hunt.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on Stop button and check that dialog appears.
     self.Click("css=button[name=StopHunt]")
@@ -161,14 +165,15 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
   def testModifyHunt(self):
     hunt_urn = self.CreateSampleHunt(stopped=True)
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
     # Select a Hunt.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
@@ -220,7 +225,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
     self.WaitUntil(self.IsTextPresent, "4483")
     self.WaitUntil(self.IsTextPresent, "1337s")
 
@@ -233,14 +238,15 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     hunt_urn = self.CreateSampleHunt(
         stopped=True,
         token=access_control.ACLToken(username="random user", reason="test"))
+    hunt_id = hunt_urn.Basename()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
-    self.WaitUntil(self.IsTextPresent, "GenericHunt")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
     # Select a Hunt.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on delete button.
     self.Click("css=button[name=DeleteHunt]")
@@ -260,7 +266,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
 
     # Select a hunt again, as it's deselected after approval dialog
     # disappears. TODO(user): if this behavior is not convenient, fix it.
-    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteHunt]")

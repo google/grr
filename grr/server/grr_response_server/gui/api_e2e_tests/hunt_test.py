@@ -36,7 +36,7 @@ class ApiClientLibHuntTest(
     hs = list(self.api.ListHunts())
     self.assertLen(hs, 1)
     self.assertEqual(hs[0].hunt_id, hunt_urn.Basename())
-    self.assertEqual(hs[0].data.name, "GenericHunt")
+    self.assertEqual(hs[0].data.client_limit, 100)
 
   def testGetHunt(self):
     hunt_urn = self.StartHunt()

@@ -39,22 +39,15 @@ parser = argparse_flags.ArgumentParser(
 
 # Generic arguments.
 parser.add_argument(
-    "--share_dir",
-    default="/usr/share/grr",
-    help="Path to the directory containing grr data.")
+    "--version",
+    action="version",
+    version=config_server.VERSION["packageversion"],
+    help="Print config updater version number and exit immediately.")
 
 subparsers = parser.add_subparsers(
     title="subcommands", dest="subparser_name", description="valid subcommands")
 
 # Subparsers.
-
-# TODO: Before Python 3.3 there is no way to make subparsers
-# optional, so having a `--version` flag in a non-magic way (through `version`
-# action) is impossible. As a temporary hack we use `version` command instead
-# of a flag to achieve that. Once we migrate to Abseil this should no longer be
-# an issue and version should be declarable as an optional flag again.
-parser_version = subparsers.add_parser(
-    "version", help="Print config updater version number and exit immediately")
 
 parser_generate_keys = subparsers.add_parser(
     "generate_keys", help="Generate crypto keys in the configuration.")
@@ -67,6 +60,11 @@ parser_initialize = subparsers.add_parser(
     "initialize", help="Run all the required steps to setup a new GRR install.")
 
 parser_set_var = subparsers.add_parser("set_var", help="Set a config variable.")
+
+parser_switch_datastore = subparsers.add_parser(
+    "switch_datastore",
+    help="Switch from a legacy datastore (AFF4) "
+    "to the new optimized implementation (REL_DB).")
 
 # Update an existing user.
 parser_update_user = subparsers.add_parser(
@@ -158,6 +156,12 @@ parser_initialize.add_argument(
 parser_initialize.add_argument(
     "--mysql_ca_cert_path",
     help="The path name of the Certificate Authority (CA) certificate file.")
+
+parser_initialize.add_argument(
+    "--use_rel_db",
+    default=False,
+    action="store_true",
+    help="Use the new-generation datastore (REL_DB).")
 
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
@@ -266,12 +270,6 @@ parser_rotate_key.add_argument(
 
 def main(args):
   """Main."""
-
-  if args.subparser_name == "version":
-    version = config_server.VERSION["packageversion"]
-    print("GRR configuration updater {}".format(version))
-    return
-
   token = config_updater_util.GetToken()
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
@@ -291,6 +289,7 @@ def main(args):
           mysql_client_key_path=args.mysql_client_key_path,
           mysql_client_cert_path=args.mysql_client_cert_path,
           mysql_ca_cert_path=args.mysql_ca_cert_path,
+          use_rel_db=args.use_rel_db,
           redownload_templates=args.redownload_templates,
           repack_templates=not args.norepack_templates,
           token=token)
@@ -366,6 +365,10 @@ def main(args):
       val = val[1:-1].split(",")
     config.Set(var, val)
     config.Write()
+
+  elif args.subparser_name == "switch_datastore":
+    config_updater_util.SwitchToRelDB(grr_config.CONFIG)
+    grr_config.CONFIG.Write()
 
   elif args.subparser_name == "upload_artifact":
     with io.open(args.file, "r") as filedesc:

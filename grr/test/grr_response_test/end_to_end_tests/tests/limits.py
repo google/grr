@@ -31,5 +31,5 @@ class TestNetworkFlowLimit(test_base.EndToEndTest):
       self.assertAlmostEqual(
           e.flow.data.context.network_bytes_sent, 500 * 1024, delta=30000)
       self.assertTrue(e.flow.data.context.backtrace)
-      self.assertIn("Network bytes limit exceeded.",
+      self.assertIn("Network bytes limit exceeded",
                     e.flow.data.context.backtrace)

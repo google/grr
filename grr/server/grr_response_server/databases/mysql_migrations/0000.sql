@@ -450,27 +450,35 @@ CREATE INDEX client_paths_idx
     ON client_paths(client_id, path_type, path(128));
 
 CREATE TABLE client_path_stat_entries(
+    id BIGINT NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED NOT NULL,
     path_type INT UNSIGNED NOT NULL,
     path_id BINARY(32) NOT NULL,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     stat_entry MEDIUMBLOB NOT NULL,
-    PRIMARY KEY (client_id, path_type, path_id, timestamp),
+    PRIMARY KEY (id),
     FOREIGN KEY (client_id, path_type, path_id)
     REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
 );
 
+CREATE INDEX client_path_stat_entries_idx
+    ON client_path_stat_entries(client_id, path_type, path_id, timestamp);
+
 CREATE TABLE client_path_hash_entries(
+    id BIGINT NOT NULL AUTO_INCREMENT,
     client_id BIGINT UNSIGNED NOT NULL,
     path_type INT UNSIGNED NOT NULL,
     path_id BINARY(32) NOT NULL,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     hash_entry MEDIUMBLOB NOT NULL,
     sha256 BINARY(32) NOT NULL,
-    PRIMARY KEY (client_id, path_type, path_id, timestamp),
+    PRIMARY KEY (id),
     FOREIGN KEY (client_id, path_type, path_id)
     REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
 );
+
+CREATE INDEX client_path_hash_entries_idx
+    ON client_path_hash_entries(client_id, path_type, path_id, timestamp);
 
 ALTER TABLE client_paths
     ADD FOREIGN KEY (client_id, path_type, path_id, last_stat_entry_timestamp)

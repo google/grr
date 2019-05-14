@@ -221,6 +221,77 @@ class DatabaseTestHuntMixin(object):
             with_description_match="foo_4"),
         error_desc="ReadHuntObjects")
 
+  def testListHuntObjectsReturnsEmptyListWhenNoHunts(self):
+    self.assertEqual(self.db.ListHuntObjects(offset=0, count=db.MAX_COUNT), [])
+
+  def testListHuntObjectsWithoutFiltersReadsAllHunts(self):
+    expected = [
+        rdf_hunt_objects.HuntMetadata.FromHunt(h)
+        for h in self._CreateMultipleHunts()
+    ]
+    got = self.db.ListHuntObjects(0, db.MAX_COUNT)
+    self.assertListEqual(got, list(reversed(expected)))
+
+  def testListHuntObjectsWithCreatorFilterIsAppliedCorrectly(self):
+    all_hunts = [
+        rdf_hunt_objects.HuntMetadata.FromHunt(h)
+        for h in self._CreateMultipleHunts()
+    ]
+
+    got = self.db.ListHuntObjects(0, db.MAX_COUNT, with_creator="user-a")
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ListHuntObjects(0, db.MAX_COUNT, with_creator="user-b")
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+  def testListHuntObjectsCreatedAfterFilterIsAppliedCorrectly(self):
+    all_hunts = [
+        rdf_hunt_objects.HuntMetadata.FromHunt(h)
+        for h in self._CreateMultipleHunts()
+    ]
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        created_after=all_hunts[0].create_time - rdfvalue.Duration("1s"))
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, created_after=all_hunts[2].create_time)
+    self.assertListEqual(got, list(reversed(all_hunts[3:])))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, created_after=all_hunts[-1].create_time)
+    self.assertEmpty(got)
+
+  def testListHuntObjectsWithDescriptionMatchFilterIsAppliedCorrectly(self):
+    all_hunts = [
+        rdf_hunt_objects.HuntMetadata.FromHunt(h)
+        for h in self._CreateMultipleHunts()
+    ]
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, with_description_match="foo_")
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, with_description_match="blah")
+    self.assertEmpty(got)
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, with_description_match="foo_3")
+    self.assertListEqual(got, [all_hunts[3]])
+
+  def testListHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
+    expected = self._CreateMultipleHunts()
+    self.TestFilterCombinationsAndOffsetCount(
+        self.db.ListHuntObjects,
+        conditions=dict(
+            with_creator="user-a",
+            created_after=expected[2].create_time,
+            with_description_match="foo_4"),
+        error_desc="ListHuntObjects")
+
   def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
     self.db.WriteHuntObject(hunt_obj)

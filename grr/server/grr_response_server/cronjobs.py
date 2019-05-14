@@ -8,6 +8,7 @@ import abc
 import collections
 import logging
 import threading
+import traceback
 
 from future.utils import iterkeys
 
@@ -105,7 +106,7 @@ class CronJobBase(object):
       stats_collector_instance.Get().IncrementCounter(
           "cron_job_failure", fields=[self.job.cron_job_id])
       self.run_state.status = "ERROR"
-      self.run_state.backtrace = str(e)
+      self.run_state.backtrace = "{}\n\n{}".format(e, traceback.format_exc())
 
     finally:
       self.run_state.finished_at = rdfvalue.RDFDatetime.Now()

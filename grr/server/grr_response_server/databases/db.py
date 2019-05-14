@@ -34,7 +34,6 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_server import foreman_rules
@@ -65,6 +64,8 @@ _MAX_CLIENT_PLATFORM_RELEASE_LENGTH = 200
 # to have a reasonably large number that can be used to read all the records
 # using a particular DB API call.
 MAX_COUNT = 1024**3
+
+CLIENT_IDS_BATCH_SIZE = 500000
 
 
 class Error(Exception):
@@ -717,24 +718,32 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     except KeyError:
       raise UnknownClientError(client_id)
 
-  def ReadAllClientIDs(self, min_last_ping=None):
-    """Reads client ids for all clients in the database.
+  def ReadAllClientIDs(self,
+                       min_last_ping=None,
+                       batch_size=CLIENT_IDS_BATCH_SIZE):
+    """Yields lists of client ids for all clients in the database.
 
     Args:
       min_last_ping: If provided, only ids for clients with a last-ping
         timestamp newer than (or equal to) the given value will be returned.
+      batch_size: Integer, specifying the number of client ids to be queried at
+        a time.
 
-    Returns:
-      A list of client ids.
+    Yields:
+      Lists of client IDs.
     """
-    return list(iterkeys(self.ReadClientLastPings(min_last_ping=min_last_ping)))
+
+    for results in self.ReadClientLastPings(
+        min_last_ping=min_last_ping, batch_size=batch_size):
+      yield list(iterkeys(results))
 
   @abc.abstractmethod
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None):
-    """Reads last-ping timestamps for clients in the DB.
+                          fleetspeak_enabled=None,
+                          batch_size=CLIENT_IDS_BATCH_SIZE):
+    """Yields dicts of last-ping timestamps for clients in the DB.
 
     Args:
       min_last_ping: The minimum timestamp to fetch from the DB.
@@ -743,9 +752,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         Fleetspeak-enabled clients. If set to False, only return ids for
         non-Fleetspeak-enabled clients. If not set, return ids for both
         Fleetspeak-enabled and non-Fleetspeak-enabled clients.
+      batch_size: Integer, specifying the number of client pings to be queried
+        at a time.
 
-    Returns:
-      A dict mapping client ids to their last-ping timestamps.
+    Yields:
+      Dicts mapping client ids to their last-ping timestamps.
     """
 
   @abc.abstractmethod
@@ -997,8 +1008,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                           ):
     """Deletes ClientStats older than a given timestamp.
 
-    This function yields when no more ClientStats can be deleted or the number
-    of deleted ClientStats equals yield_after_count.
+    This function yields after deleting at most `yield_after_count` ClientStats.
 
     Args:
       yield_after_count: A positive integer, representing the maximum number of
@@ -1238,9 +1248,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Yields:
       An rdfvalues.objects.ClientFullInfo object for each client in the db.
     """
-    all_client_ids = self.ReadAllClientIDs(min_last_ping=min_last_ping)
 
-    for batch in collection.Batch(all_client_ids, batch_size):
+    for batch in self.ReadAllClientIDs(
+        min_last_ping=min_last_ping, batch_size=batch_size):
       res = self.MultiReadClientFullInfo(batch)
       for full_info in itervalues(res):
         yield full_info
@@ -1256,9 +1266,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Yields:
       An rdfvalues.objects.ClientSnapshot object for each client in the db.
     """
-    all_client_ids = self.ReadAllClientIDs(min_last_ping=min_last_ping)
-
-    for batch in collection.Batch(all_client_ids, batch_size):
+    for batch in self.ReadAllClientIDs(
+        min_last_ping=min_last_ping, batch_size=batch_size):
       res = self.MultiReadClientSnapshot(batch)
       for snapshot in itervalues(res):
         if snapshot:
@@ -1360,89 +1369,6 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
         instances.
     """
-
-  def InitPathInfos(self, client_id, path_infos):
-    """Initializes a collection of path info records for a client.
-
-    Unlike `WritePathInfo`, this method clears stat and hash histories of paths
-    associated with path info records. This method is intended to be used only
-    in the data migration scripts.
-
-    Args:
-      client_id: A client identifier for which the paths are to be initialized.
-      path_infos: A list of `rdf_objects.PathInfo` objects to write.
-    """
-    self.ClearPathHistory(client_id, path_infos)
-    self.WritePathInfos(client_id, path_infos)
-
-  def MultiInitPathInfos(self, path_infos):
-    """Initialize a collection of path info records for specified clients.
-
-    See documentation for `InitPathInfos` for more details.
-
-    Args:
-      path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
-        instances.
-    """
-    self.MultiClearPathHistory(path_infos)
-    self.MultiWritePathInfos(path_infos)
-
-  @abc.abstractmethod
-  def ClearPathHistory(self, client_id, path_infos):
-    """Clears path history for specified paths of given client.
-
-    Args:
-      client_id: A client identifier for which the path histories are about to
-        be cleared.
-      path_infos: A list of `rdf_objects.PathInfo` instances corresponding to
-        paths to clear the history for.
-    """
-
-  @abc.abstractmethod
-  def MultiClearPathHistory(self, path_infos):
-    """Clears path history for specified paths of given clients.
-
-    Args:
-      path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
-        instances corresponding to paths to clear the history for.
-    """
-
-  @abc.abstractmethod
-  def MultiWritePathHistory(self, client_path_histories):
-    """Writes a collection of hash and stat entries observed for given paths.
-
-    Args:
-      client_path_histories: A dictionary mapping `ClientPath` instances to
-        `ClientPathHistory` objects.
-    """
-
-  def WritePathStatHistory(self, client_path, stat_entries):
-    """Writes a collection of `StatEntry` observed for particular path.
-
-    Args:
-      client_path: A `ClientPath` instance.
-      stat_entries: A dictionary with timestamps as keys and `StatEntry`
-        instances as values.
-    """
-    client_path_history = ClientPathHistory()
-    for timestamp, stat_entry in iteritems(stat_entries):
-      client_path_history.AddStatEntry(timestamp, stat_entry)
-
-    self.MultiWritePathHistory({client_path: client_path_history})
-
-  def WritePathHashHistory(self, client_path, hash_entries):
-    """Writes a collection of `Hash` observed for particular path.
-
-    Args:
-      client_path: A `ClientPath` instance.
-      hash_entries: A dictionary with timestamps as keys and `Hash` instances as
-        values.
-    """
-    client_path_history = ClientPathHistory()
-    for timestamp, hash_entry in iteritems(hash_entries):
-      client_path_history.AddHashEntry(timestamp, hash_entry)
-
-    self.MultiWritePathHistory({client_path: client_path_history})
 
   @abc.abstractmethod
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
@@ -2500,6 +2426,33 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
+  def ListHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None):
+    """Reads metadata for hunt objects from the database.
+
+    Args:
+      offset: An integer specifying an offset to be used when reading hunt
+        metadata.
+      count: Number of hunt metadata objects to read.
+      with_creator: When specified, should be a string corresponding to a GRR
+        username. Only metadata for hunts created by the matching user will be
+        returned.
+      created_after: When specified, should be a rdfvalue.RDFDatetime. Only
+        metadata for hunts with create_time after created_after timestamp will
+        be returned.
+      with_description_match: When specified, will only return metadata for
+        hunts with descriptions containing a given substring.
+
+    Returns:
+      A list of rdf_hunt_objects.HuntMetadata objects sorted by create_time in
+      descending order.
+    """
+
+  @abc.abstractmethod
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
     """Reads hunt log entries of a given hunt using given query options.
 
@@ -2834,14 +2787,23 @@ class DatabaseValidationWrapper(Database):
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None):
+                          fleetspeak_enabled=None,
+                          batch_size=CLIENT_IDS_BATCH_SIZE):
     precondition.AssertOptionalType(min_last_ping, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_last_ping, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(fleetspeak_enabled, bool)
+    precondition.AssertType(batch_size, int)
+
+    if batch_size < 1:
+      raise ValueError(
+          "batch_size needs to be a positive integer, got {}".format(
+              batch_size))
+
     return self.delegate.ReadClientLastPings(
         min_last_ping=min_last_ping,
         max_last_ping=max_last_ping,
-        fleetspeak_enabled=fleetspeak_enabled)
+        fleetspeak_enabled=fleetspeak_enabled,
+        batch_size=batch_size)
 
   def WriteClientSnapshotHistory(self, clients):
     if not clients:
@@ -3838,6 +3800,25 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertOptionalType(with_description_match, Text)
 
     return self.delegate.ReadHuntObjects(
+        offset,
+        count,
+        with_creator=with_creator,
+        created_after=created_after,
+        with_description_match=with_description_match)
+
+  def ListHuntObjects(self,
+                      offset,
+                      count,
+                      with_creator=None,
+                      created_after=None,
+                      with_description_match=None):
+    precondition.AssertOptionalType(offset, int)
+    precondition.AssertOptionalType(count, int)
+    precondition.AssertOptionalType(with_creator, Text)
+    precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(with_description_match, Text)
+
+    return self.delegate.ListHuntObjects(
         offset,
         count,
         with_creator=with_creator,

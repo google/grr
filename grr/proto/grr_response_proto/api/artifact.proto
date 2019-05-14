@@ -22,7 +22,7 @@ message ApiListArtifactsResult {
 }
 
 message ApiUploadArtifactArgs {
-  optional bytes artifact = 1
+  optional string artifact = 1
       [(sem_type) = { description: "Artifact YAML definition." }];
 }
 

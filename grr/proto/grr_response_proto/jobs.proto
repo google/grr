@@ -679,6 +679,7 @@ message PathSpec {
 
   optional uint64 file_size_override = 13 [
     (sem_type) = {
+      label: ADVANCED,
       type: "ByteSize",
       description: "For files which are non seekable from their end "
                    "(e.g. /proc files), this is the minimum amount of bytes read.",

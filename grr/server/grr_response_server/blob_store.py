@@ -25,10 +25,10 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
 
   def WriteBlobsWithUnknownHashes(
       self, blobs_data):
-    """Calculates hash ids and writes contents of given data blobs.
+    """Writes the contents of the given blobs, using their hash as BlobID.
 
     Args:
-      blobs_data: An iterable of bytes.
+      blobs_data: An iterable of bytes objects.
 
     Returns:
       A list of rdf_objects.BlobID objects with each blob id corresponding
@@ -39,7 +39,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     return blobs_ids
 
   def WriteBlobWithUnknownHash(self, blob_data):
-    """Calculates hash id and writes a single gvien blob.
+    """Writes the content of the given blob, using its hash as BlobID.
 
     Args:
       blob_data: Blob contents as bytes.
@@ -50,7 +50,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     return self.WriteBlobsWithUnknownHashes([blob_data])[0]
 
   def ReadBlob(self, blob_id):
-    """Reads a blob corresponding to a given hash id.
+    """Reads the blob contents, identified by the given BlobID.
 
     Args:
       blob_id: rdf_objects.BlobID object identifying the blob.
@@ -62,7 +62,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     return self.ReadBlobs([blob_id])[blob_id]
 
   def CheckBlobExists(self, blob_id):
-    """Checks if a blob with a given hash id exists.
+    """Checks if a blob with a given BlobID exists.
 
     Args:
       blob_id: rdf_objects.BlobID object identifying the blob.
@@ -86,15 +86,15 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
   @abc.abstractmethod
   def ReadBlobs(self, blob_ids
                ):
-    """Reads blobs.
+    """Reads all blobs, specified by blob_ids, returning their contents.
 
     Args:
-      blob_ids: An iterable with blob hashes expressed as bytes.
+      blob_ids: An iterable of BlobIDs.
 
     Returns:
       A map of {blob_id: blob_data} where blob_data is blob bytes previously
-      written with WriteBlobs. If blob_data for particular blob are not found,
-      blob_data is expressed as None.
+      written with WriteBlobs. If a particular blob_id is not found, the
+      corresponding blob_data will be None.
     """
 
   @abc.abstractmethod
@@ -103,7 +103,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     """Checks if blobs for the given identifiers already exist.
 
     Args:
-      blob_ids: An iterable with blob hashes expressed as bytes.
+      blob_ids: An iterable of BlobIDs.
 
     Returns:
       A map of {blob_id: status} where status is a boolean (True if blob exists,
