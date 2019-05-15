@@ -60,6 +60,48 @@ class Counted(object):
     return Decorated
 
 
+class SuccessesCounted(object):
+  """A decorator that counts function calls that don't raise an exception."""
+
+  def __init__(self, metric_name, fields=None):
+    self._metric_name = metric_name
+    self._fields = fields or []
+
+  def __call__(self, func):
+
+    @functools.wraps(func)
+    def Decorated(*args, **kwargs):
+      """Calls a decorated function then increments a counter."""
+      result = func(*args, **kwargs)
+      stats_collector_instance.Get().IncrementCounter(
+          self._metric_name, fields=self._fields)
+      return result
+
+    return Decorated
+
+
+class ErrorsCounted(object):
+  """A decorator that counts function calls that raise an exception."""
+
+  def __init__(self, metric_name, fields=None):
+    self._metric_name = metric_name
+    self._fields = fields or []
+
+  def __call__(self, func):
+
+    @functools.wraps(func)
+    def Decorated(*args, **kwargs):
+      """Calls a decorated function then increments a counter."""
+      try:
+        return func(*args, **kwargs)
+      except Exception:  # pylint: disable=broad-except
+        stats_collector_instance.Get().IncrementCounter(
+            self._metric_name, fields=self._fields)
+        raise
+
+    return Decorated
+
+
 class CountingExceptionMixin(object):
   """An exception that increments a counter every time it is raised."""
 

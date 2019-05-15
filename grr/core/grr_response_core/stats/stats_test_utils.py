@@ -140,21 +140,21 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
     ])
 
     self.assertEqual(
-        0, collector.GetMetricValue(
-            int_gauge_name, fields=["dimension_value_1"]))
+        0,
+        collector.GetMetricValue(int_gauge_name, fields=["dimension_value_1"]))
     self.assertEqual(
-        0, collector.GetMetricValue(
-            int_gauge_name, fields=["dimesnioN_value_2"]))
+        0,
+        collector.GetMetricValue(int_gauge_name, fields=["dimesnioN_value_2"]))
 
     collector.SetGaugeValue(int_gauge_name, 1, fields=["dimension_value_1"])
     collector.SetGaugeValue(int_gauge_name, 2, fields=["dimension_value_2"])
 
     self.assertEqual(
-        1, collector.GetMetricValue(
-            int_gauge_name, fields=["dimension_value_1"]))
+        1,
+        collector.GetMetricValue(int_gauge_name, fields=["dimension_value_1"]))
     self.assertEqual(
-        2, collector.GetMetricValue(
-            int_gauge_name, fields=["dimension_value_2"]))
+        2,
+        collector.GetMetricValue(int_gauge_name, fields=["dimension_value_2"]))
 
   def testGaugeWithCallback(self):
     int_gauge_name = "testGaugeWithCallback_int_gauge"
@@ -380,6 +380,50 @@ class StatsCollectorTest(with_metaclass(abc.ABCMeta, absltest.TestCase)):
         CountedFunc()
 
     self.assertEqual(collector.GetMetricValue(counter_name), 10)
+
+  def testSuccessesCountingDecorator(self):
+    counter_name = "testCountingDecorator_successes_counter"
+
+    collector = self._CreateStatsCollector(
+        [stats_utils.CreateCounterMetadata(counter_name)])
+
+    @stats_utils.SuccessesCounted(counter_name)
+    def CountedFunc(should_raise):
+      if should_raise:
+        raise RuntimeError("foo")
+
+    with FakeStatsContext(collector):
+      for i in range(10):
+        if i % 2 == 0:
+          with self.assertRaises(RuntimeError):
+            CountedFunc(True)
+        else:
+          CountedFunc(False)
+
+    # Failing calls shouldn't increment the counter.
+    self.assertEqual(collector.GetMetricValue(counter_name), 5)
+
+  def testErrorsCountingDecorator(self):
+    counter_name = "testCountingDecorator_errors_counter"
+
+    collector = self._CreateStatsCollector(
+        [stats_utils.CreateCounterMetadata(counter_name)])
+
+    @stats_utils.SuccessesCounted(counter_name)
+    def CountedFunc(should_raise):
+      if should_raise:
+        raise RuntimeError("foo")
+
+    with FakeStatsContext(collector):
+      for i in range(10):
+        if i % 2 == 0:
+          with self.assertRaises(RuntimeError):
+            CountedFunc(True)
+        else:
+          CountedFunc(False)
+
+    # Non-failing calls shouldn't increment the counter.
+    self.assertEqual(collector.GetMetricValue(counter_name), 5)
 
   def testMaps(self):
     """Test binned timings."""
