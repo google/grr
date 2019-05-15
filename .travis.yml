@@ -231,7 +231,7 @@ matrix:
           linux32 virtualenv "/home/${DOCKER_USER}/INSTALL"
         - >-
           sudo docker exec "${DOCKER_CONTAINER}"
-          yum remove -y sqlite-devel || true
+          rm /usr/include/sqlite3.h /usr/include/sqlite3ext.h || true
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
