@@ -35,13 +35,13 @@ from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import grr_collections
+from grr_response_server import hunt
 from grr_response_server import message_handlers
 from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.databases import db
-from grr_response_server.databases import db_compat
 from grr_response_server.flows.general import discovery
 from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -89,13 +89,10 @@ def WriteAllCrashDetails(client_id,
         client_id, flow_id, client_crash_info=crash_details)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    if flow_obj.parent_hunt_id:
-      db_compat.ProcessHuntClientCrash(
-          flow_obj, client_crash_info=crash_details)
-
-  # TODO(amoser): Registering crashes in hunts is currently not implemented for
-  # the relational db.
-  if not data_store.RelationalDBEnabled():
+    if (flow_obj.parent_hunt_id and
+        not hunt.IsLegacyHunt(flow_obj.parent_hunt_id)):
+      hunt.StopHuntIfCrashLimitExceeded(flow_obj.parent_hunt_id)
+  else:
     with aff4.FACTORY.Open(
         flow_session_id,
         flow.GRRFlow,

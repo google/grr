@@ -23,8 +23,6 @@ from grr_response_server.flows.general import webhistory as flows_webhistory
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
@@ -225,17 +223,11 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
           (index + 2, nested_flow.flow_id))
 
   def testOverviewIsShownForNestedHuntFlows(self):
-    if data_store.RelationalDBEnabled():
-      # TODO(amoser): Hunts don't spawn relational flows yet.
-      return
-
-    with implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
+    self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=gui_test_lib.RecursiveTestFlow.__name__),
         client_rate=0,
-        token=self.token) as hunt:
-      hunt.Run()
+        token=self.token)
 
     self.RunHunt(failrate=2, client_ids=[self.client_id])
 
@@ -250,12 +242,6 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     # Nested flow should have Depth argument set to 1.
     self.WaitUntil(self.IsElementPresent,
                    "css=td:contains('Depth') ~ td:nth(0):contains('1')")
-
-    # Check that flow id of this flow has forward slash - i.e. consists of
-    # 2 components.
-    self.WaitUntil(self.IsTextPresent, "Flow ID")
-    flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
-    self.assertIn("/", flow_id)
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     api_regression_test_lib.StartFlow(

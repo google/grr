@@ -2498,7 +2498,7 @@ message ClientActionRequest {
   optional string action_identifier = 4;
   optional google.protobuf.Any action_args = 5;
   optional uint64 cpu_limit_ms = 6;
-  optional uint64 network_bytes_limit= 7;
+  optional uint64 network_bytes_limit = 7;
 }
 
 // Next id: 33
@@ -2589,5 +2589,4 @@ message FlowOutputPluginLogEntry {
   optional string message = 7;
 }
 
-message EmptyFlowArgs {
-}
+message EmptyFlowArgs {}

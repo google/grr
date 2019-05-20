@@ -15,7 +15,7 @@ import "grr_response_proto/semantic.proto";
 // Entities.
 //
 
-// Next id: 30
+// Next id: 32
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -65,6 +65,14 @@ message ApiHunt {
   optional uint64 created = 12 [(sem_type) = {
     type: "RDFDatetime",
     description: "Creation time of the hunt."
+  }];
+  optional uint64 init_start_time = 30 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The first time at which the hunt was started."
+  }];
+  optional uint64 last_start_time = 31 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The last time at which the hunt was started."
   }];
   optional uint64 DEPRECATED_expires = 13 [(sem_type) = {
     type: "RDFDatetime",

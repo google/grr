@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
+import logging
 
 from future.builtins import str
 
@@ -86,10 +87,15 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
 
     packed_bytes = self.packed_bytes.AsBytes()
 
-    if self.address_type == NetworkAddress.Family.INET:
-      return ipaddress.IPv4Address(packed_bytes)
-    if self.address_type == NetworkAddress.Family.INET6:
-      return ipaddress.IPv6Address(packed_bytes)
+    try:
+      if self.address_type == NetworkAddress.Family.INET:
+        return ipaddress.IPv4Address(packed_bytes)
+      if self.address_type == NetworkAddress.Family.INET6:
+        return ipaddress.IPv6Address(packed_bytes)
+    except ipaddress.AddressValueError:
+      logging.error("AddressValueError for %s (%s)", packed_bytes.encode("hex"),
+                    self.address_type)
+      raise
 
     message = "IP address has invalid type: {}".format(self.address_type)
     raise ValueError(message)

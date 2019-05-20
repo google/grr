@@ -269,6 +269,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
                  client_rule_set=None,
                  original_object=None,
                  client_rate=0,
+                 duration=None,
                  token=None,
                  **kwargs):
     # Only initialize default flow_args value if default flow_runner_args value
@@ -299,6 +300,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
           client_rule_set=client_rule_set,
           original_object=original_object,
           client_rate=client_rate,
+          duration=duration,
           args=hunt_args,
           **kwargs)
       hunt.CreateHunt(hunt_obj)

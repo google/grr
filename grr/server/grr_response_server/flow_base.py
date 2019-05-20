@@ -8,14 +8,14 @@ import logging
 import sys
 import traceback
 
+from future.builtins import str
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.utils import compatibility
+from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import action_registry
@@ -244,16 +244,18 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           cpu_usage.system_cpu_time, 0)
 
       if cpu_limit_ms == 0:
-        raise flow.FlowError("CPU limit exceeded for {} {}.".format(
-            self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
+        raise flow.FlowResourcesExceededError(
+            "CPU limit exceeded for {} {}.".format(
+                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     if self.rdf_flow.network_bytes_limit:
       network_bytes_limit = max(
           self.rdf_flow.network_bytes_limit - self.rdf_flow.network_bytes_sent,
           0)
       if network_bytes_limit == 0:
-        raise flow.FlowError("Network limit exceeded for {} {}.".format(
-            self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
+        raise flow.FlowResourcesExceededError(
+            "Network limit exceeded for {} {}.".format(
+                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     client_action_request = rdf_flows.ClientActionRequest(
         client_id=self.rdf_flow.client_id,
@@ -372,14 +374,16 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       system_cpu_total = self.rdf_flow.cpu_time_used.system_cpu_time
       if self.rdf_flow.cpu_limit < (user_cpu_total + system_cpu_total):
         # We have exceeded our limit, stop this flow.
-        raise flow.FlowError("CPU limit exceeded for {} {}.".format(
-            self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
+        raise flow.FlowResourcesExceededError(
+            "CPU limit exceeded for {} {}.".format(
+                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
     if (self.rdf_flow.network_bytes_limit and
         self.rdf_flow.network_bytes_limit < self.rdf_flow.network_bytes_sent):
       # We have exceeded our byte limit, stop this flow.
-      raise flow.FlowError("Network bytes limit exceeded {} {}.".format(
-          self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
+      raise flow.FlowResourcesExceededError(
+          "Network bytes limit exceeded {} {}.".format(
+              self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
   def Error(self, error_message=None, backtrace=None, status=None):
     """Terminates this flow with an error."""
@@ -567,17 +571,28 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
         self.replies_to_process = []
 
+    except flow.FlowResourcesExceededError as e:
+      stats_collector_instance.Get().IncrementCounter(
+          "flow_errors", fields=[self.rdf_flow.flow_class_name])
+      logging.info("Flow %s on %s exceeded resource limits: %s.",
+                   self.rdf_flow.flow_id, client_id, str(e))
+      self.Error(error_message=str(e), backtrace=traceback.format_exc())
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
     except Exception as e:  # pylint: disable=broad-except
-      # This flow will terminate now
+      # TODO(amoser): We don't know what's in this exception so we have to deal
+      # with all eventualities. Replace this code with a simple str(e) once
+      # Python 2 support has been dropped.
+      msg = compatibility.NativeStr(e)
+      if compatibility.PY2:
+        msg = msg.decode("utf-8", "replace")
+
       stats_collector_instance.Get().IncrementCounter(
           "flow_errors", fields=[self.rdf_flow.flow_class_name])
       logging.exception("Flow %s on %s raised %s.", self.rdf_flow.flow_id,
-                        client_id, utils.SmartUnicode(e))
+                        client_id, msg)
 
-      self.Error(
-          error_message=utils.SmartUnicode(e), backtrace=traceback.format_exc())
+      self.Error(error_message=msg, backtrace=traceback.format_exc())
 
   def ProcessAllReadyRequests(self):
     """Processes all requests that are due to run.

@@ -14,9 +14,11 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import hunt
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import db_test_lib
+from grr.test_lib import skip
 from grr.test_lib import test_lib
 
 
@@ -46,8 +48,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         self.assertEqual(hunt_counters.num_clients,
                          min(client_count, client_limit))
     else:
-      hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
-      all_count, _, _ = hunt.GetClientsCounts()
+      hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
+      all_count, _, _ = hunt_obj.GetClientsCounts()
       if client_limit == 0:
         # No limit, so we should have all the clients
         self.assertEqual(all_count, client_count)
@@ -182,8 +184,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       rdf_flow.network_bytes_sent = 1000000
       data_store.REL_DB.WriteFlowObject(rdf_flow)
     else:
-      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt:
-        hunt_stats = hunt.context.usage_stats
+      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt_obj:
+        hunt_stats = hunt_obj.context.usage_stats
         hunt_stats.user_cpu_stats.sum = 5000
         hunt_stats.network_bytes_sent_stats.sum = 1000000
 
@@ -215,8 +217,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       rdf_flow.network_bytes_sent = 1000000
       data_store.REL_DB.WriteFlowObject(rdf_flow)
     else:
-      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt:
-        hunt_stats = hunt.context.usage_stats
+      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt_obj:
+        hunt_stats = hunt_obj.context.usage_stats
         hunt_stats.user_cpu_stats.sum = 5000
         hunt_stats.network_bytes_sent_stats.sum = 1000000
 
@@ -243,13 +245,100 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       rdf_flow.network_bytes_sent = 10000000
       data_store.REL_DB.WriteFlowObject(rdf_flow)
     else:
-      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt:
-        hunt_stats = hunt.context.usage_stats
+      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt_obj:
+        hunt_stats = hunt_obj.context.usage_stats
         hunt_stats.user_cpu_stats.sum = 6000
         hunt_stats.network_bytes_sent_stats.sum = 11000000
 
     self.WaitUntil(self.IsTextPresent, "1h 40m")
     self.WaitUntil(self.IsTextPresent, "10.5MiB")
+
+  @skip.Unless(data_store.RelationalDBEnabled,
+               "Legacy data store not supported.")
+  def testHuntOverviewShowsStartAndExpirationTime(self):
+    duration = rdfvalue.Duration("3d")
+    init_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1973-01-01 08:34")
+    last_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1981-03-04 12:52")
+    expiration_time = init_start_time + duration
+
+    hunt_id = self.CreateHunt(duration=duration)
+
+    # Navigate to the hunt view.
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Click("css=a[grrtarget=hunts]")
+    self.WaitUntil(self.IsTextPresent, hunt_id)
+
+    # Select the hunt.
+    self.Click("css=td:contains('{}')".format(hunt_id))
+
+    self.RequestAndGrantHuntApproval(hunt_id)
+
+    self.assertFalse(self.IsTextPresent(str(init_start_time)))
+    self.assertFalse(self.IsTextPresent(str(expiration_time)))
+    self.assertFalse(self.IsTextPresent(str(last_start_time)))
+
+    with test_lib.FakeTime(init_start_time):
+      hunt.StartHunt(hunt_id)
+
+    self.Refresh()
+    self.WaitUntil(self.IsTextPresent, str(init_start_time))
+    self.WaitUntil(self.IsTextPresent, str(expiration_time))
+    self.assertFalse(self.IsTextPresent(str(last_start_time)))
+
+    with test_lib.FakeTime(last_start_time):
+      hunt.PauseHunt(hunt_id)
+      hunt.StartHunt(hunt_id)
+
+    self.Refresh()
+    self.WaitUntil(self.IsTextPresent, str(init_start_time))
+    self.WaitUntil(self.IsTextPresent, str(expiration_time))
+    self.WaitUntil(self.IsTextPresent, str(last_start_time))
+
+  @skip.Unless(data_store.RelationalDBEnabled,
+               "Legacy data store not supported.")
+  def testHuntListShowsStartAndExpirationTime(self):
+    hunt_1_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1992-11-11")
+    hunt_2_start_time = rdfvalue.RDFDatetime.FromHumanReadable("2001-05-03")
+
+    hunt_1_duration = rdfvalue.Duration("3d")
+    hunt_2_duration = rdfvalue.Duration("5h")
+
+    hunt_1_expiration_time = hunt_1_start_time + hunt_1_duration
+    hunt_2_expiration_time = hunt_2_start_time + hunt_2_duration
+
+    hunt_1_id = self.CreateHunt(duration=hunt_1_duration)
+    hunt_2_id = self.CreateHunt(duration=hunt_2_duration)
+
+    # Navigate to the hunt list.
+    self.Open("/")
+    self.WaitUntil(self.IsElementPresent, "client_query")
+    self.Click("css=a[grrtarget=hunts]")
+    self.WaitUntil(self.IsTextPresent, hunt_1_id)
+    self.WaitUntil(self.IsTextPresent, hunt_2_id)
+
+    self.assertFalse(self.IsTextPresent(str(hunt_1_start_time)))
+    self.assertFalse(self.IsTextPresent(str(hunt_1_expiration_time)))
+    self.assertFalse(self.IsTextPresent(str(hunt_2_start_time)))
+    self.assertFalse(self.IsTextPresent(str(hunt_2_expiration_time)))
+
+    with test_lib.FakeTime(hunt_1_start_time):
+      hunt.StartHunt(hunt_1_id)
+
+    self.Refresh()
+    self.WaitUntil(self.IsTextPresent, str(hunt_1_start_time))
+    self.WaitUntil(self.IsTextPresent, str(hunt_1_expiration_time))
+    self.assertFalse(self.IsTextPresent(str(hunt_2_start_time)))
+    self.assertFalse(self.IsTextPresent(str(hunt_2_expiration_time)))
+
+    with test_lib.FakeTime(hunt_2_start_time):
+      hunt.StartHunt(hunt_2_id)
+
+    self.Refresh()
+    self.WaitUntil(self.IsTextPresent, str(hunt_1_start_time))
+    self.WaitUntil(self.IsTextPresent, str(hunt_1_expiration_time))
+    self.WaitUntil(self.IsTextPresent, str(hunt_2_start_time))
+    self.WaitUntil(self.IsTextPresent, str(hunt_2_expiration_time))
 
   def testHuntStatsView(self):
     hunt_id = self.SetupTestHuntView()

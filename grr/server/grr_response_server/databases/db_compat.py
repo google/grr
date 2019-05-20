@@ -149,18 +149,3 @@ def ProcessHuntFlowLog(flow_obj, log_msg):
   with data_store.DB.GetMutationPool() as pool:
     grr_collections.LogCollection.StaticAdd(
         hunt_urn.Add("Logs"), log_entry, mutation_pool=pool)
-
-
-def ProcessHuntClientCrash(flow_obj, client_crash_info):
-  """Processes client crash triggerted by a given hunt-induced flow."""
-
-  if not hunt.IsLegacyHunt(flow_obj.parent_hunt_id):
-    hunt.StopHuntIfCrashLimitExceeded(flow_obj.parent_hunt_id)
-    return
-
-  hunt_urn = rdfvalue.RDFURN("hunts").Add(flow_obj.parent_hunt_id)
-
-  with aff4.FACTORY.Open(hunt_urn, mode="rw") as fd:
-    # Legacy AFF4 code expects token to be set.
-    fd.token = access_control.ACLToken(username=fd.creator)
-    fd.RegisterCrash(client_crash_info)

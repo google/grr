@@ -274,9 +274,10 @@ class KnowledgeBaseInitializationFlowMixin(object):
 
     for response in responses:
       if isinstance(response, rdf_anomaly.Anomaly):
-        logging.error("Artifact %s returned an Anomaly: %s", artifact_name,
-                      response)
+        logging.info("Artifact %s returned an Anomaly: %s", artifact_name,
+                     response)
         continue
+
       if isinstance(response, rdf_client.User):
         # MergeOrAddUser will update or add a user based on the attributes
         # returned by the artifact in the User.
@@ -287,37 +288,37 @@ class KnowledgeBaseInitializationFlowMixin(object):
           self.Log(
               "User merge conflict in %s. Old value: %s, "
               "Newly written value: %s", key, old_val, val)
+        continue
 
+      artifact_provides = artifact_obj.provides
+      if isinstance(response, rdf_protodict.Dict):
+        # Attempting to fulfil provides with a Dict response means we are
+        # supporting multiple provides based on the keys of the dict.
+        kb_dict = response.ToDict()
+      elif len(artifact_provides) == 1:
+        # If its not a dict we only support a single value.
+        kb_dict = {artifact_provides[0]: response}
+      elif not artifact_provides:
+        raise ValueError("Artifact %s does not have a provide clause and "
+                         "can't be used to populate a knowledge base value." %
+                         artifact_obj)
       else:
-        artifact_provides = artifact_obj.provides
-        if isinstance(response, rdf_protodict.Dict):
-          # Attempting to fulfil provides with a Dict response means we are
-          # supporting multiple provides based on the keys of the dict.
-          kb_dict = response.ToDict()
-        elif len(artifact_provides) == 1:
-          # If its not a dict we only support a single value.
-          kb_dict = {artifact_provides[0]: response}
-        elif not artifact_provides:
-          raise ValueError("Artifact %s does not have a provide clause and "
-                           "can't be used to populate a knowledge base value." %
-                           artifact_obj)
-        else:
-          raise ValueError("Attempt to set a knowledge base value with "
-                           "multiple provides clauses without using Dict."
-                           ": %s" % artifact_obj)
+        raise ValueError("Attempt to set a knowledge base value with "
+                         "multiple provides clauses without using Dict."
+                         ": %s" % artifact_obj)
 
-        for provides, value in iteritems(kb_dict):
-          if provides not in artifact_provides:
-            raise ValueError("Attempt to provide knowledge base value %s "
-                             "without this being set in the artifact "
-                             "provides setting: %s" % (provides, artifact_obj))
+      for provides, value in iteritems(kb_dict):
+        if provides not in artifact_provides:
+          raise ValueError("Attempt to provide knowledge base value %s "
+                           "without this being set in the artifact "
+                           "provides setting: %s" % (provides, artifact_obj))
 
-          if hasattr(value, "registry_data"):
-            value = value.registry_data.GetValue()
+        if hasattr(value, "registry_data"):
+          value = value.registry_data.GetValue()
 
-          if value:
-            self.state.knowledge_base.Set(provides, value)
-            provided.add(provides)
+        if value:
+          self.state.knowledge_base.Set(provides, value)
+          provided.add(provides)
 
     return provided
 

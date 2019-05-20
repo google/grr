@@ -9,6 +9,7 @@ from future.utils import iterkeys
 
 import MySQLdb
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server.databases import db
@@ -199,137 +200,118 @@ class MySQLDBPathMixin(object):
   @mysql_utils.WithTransaction()
   def _MultiWritePathInfos(self, path_infos, cursor=None):
     """Writes a collection of path info records for specified clients."""
-    path_info_count = 0
-    path_info_values = []
+    now = rdfvalue.RDFDatetime.Now()
 
-    parent_path_info_count = 0
+    path_info_values = []
     parent_path_info_values = []
 
-    has_stat_entries = False
-    has_hash_entries = False
+    stat_entry_keys = []
+    stat_entry_values = []
+
+    hash_entry_keys = []
+    hash_entry_values = []
 
     for client_id, client_path_infos in iteritems(path_infos):
       for path_info in client_path_infos:
         path = mysql_utils.ComponentsToPath(path_info.components)
 
-        path_info_values.append(db_utils.ClientIDToInt(client_id))
-        path_info_values.append(int(path_info.path_type))
-        path_info_values.append(path_info.GetPathID().AsBytes())
-        path_info_values.append(path)
-        path_info_values.append(bool(path_info.directory))
-        path_info_values.append(len(path_info.components))
+        key = (
+            db_utils.ClientIDToInt(client_id),
+            int(path_info.path_type),
+            path_info.GetPathID().AsBytes(),
+        )
+
+        path_info_values.append(key + (mysql_utils.RDFDatetimeToTimestamp(now),
+                                       path, bool(path_info.directory),
+                                       len(path_info.components)))
 
         if path_info.HasField("stat_entry"):
-          path_info_values.append(path_info.stat_entry.SerializeToString())
-          has_stat_entries = True
-        else:
-          path_info_values.append(None)
-        if path_info.HasField("hash_entry"):
-          path_info_values.append(path_info.hash_entry.SerializeToString())
-          path_info_values.append(path_info.hash_entry.sha256.AsBytes())
-          has_hash_entries = True
-        else:
-          path_info_values.append(None)
-          path_info_values.append(None)
+          stat_entry_keys.extend(key)
+          stat_entry_values.append(key +
+                                   (mysql_utils.RDFDatetimeToTimestamp(now),
+                                    path_info.stat_entry.SerializeToString()))
 
-        path_info_count += 1
+        if path_info.HasField("hash_entry"):
+          hash_entry_keys.extend(key)
+          hash_entry_values.append(key +
+                                   (mysql_utils.RDFDatetimeToTimestamp(now),
+                                    path_info.hash_entry.SerializeToString(),
+                                    path_info.hash_entry.sha256.AsBytes()))
 
         # TODO(hanuszczak): Implement a trie in order to avoid inserting
         # duplicated records.
         for parent_path_info in path_info.GetAncestors():
           path = mysql_utils.ComponentsToPath(parent_path_info.components)
+          parent_path_info_values.append((
+              db_utils.ClientIDToInt(client_id),
+              int(parent_path_info.path_type),
+              parent_path_info.GetPathID().AsBytes(),
+              path,
+              len(parent_path_info.components),
+          ))
 
-          parent_path_info_values.append(db_utils.ClientIDToInt(client_id))
-          parent_path_info_values.append(int(parent_path_info.path_type))
-          parent_path_info_values.append(parent_path_info.GetPathID().AsBytes())
-          parent_path_info_values.append(path)
-          parent_path_info_values.append(len(parent_path_info.components))
-
-          parent_path_info_count += 1
-
-    with mysql_utils.TemporaryTable(
-        cursor=cursor,
-        name="client_path_infos",
-        columns=[
-            ("client_id", "BIGINT UNSIGNED NOT NULL"),
-            ("path_type", "INT UNSIGNED NOT NULL"),
-            ("path_id", "BINARY(32) NOT NULL"),
-            ("path", "TEXT NOT NULL"),
-            ("directory", "BOOLEAN NOT NULL"),
-            ("depth", "INT NOT NULL"),
-            ("stat_entry", "MEDIUMBLOB NULL"),
-            ("hash_entry", "MEDIUMBLOB NULL"),
-            ("sha256", "BINARY(32) NULL"),
-            ("timestamp", "TIMESTAMP(6) NOT NULL DEFAULT now(6)"),
-        ]):
-      if path_info_count > 0:
-        query = """
-        INSERT INTO client_path_infos(client_id, path_type, path_id,
-                                      path, directory, depth,
-                                      stat_entry, hash_entry, sha256)
-        VALUES {}
-        """.format(mysql_utils.Placeholders(num=9, values=path_info_count))
-        cursor.execute(query, path_info_values)
-
-        cursor.execute("""
-        INSERT INTO client_paths(client_id, path_type, path_id, path,
-                                 directory, depth)
-             SELECT client_id, path_type, path_id, path, directory, depth
-               FROM client_path_infos
+    if path_info_values:
+      query = """
+        INSERT INTO client_paths(client_id, path_type, path_id,
+                                 timestamp,
+                                 path, directory, depth)
+        VALUES (%s, %s, %s, FROM_UNIXTIME(%s), %s, %s, %s)
         ON DUPLICATE KEY UPDATE
-          client_paths.directory = (client_paths.directory OR
-                                    VALUES(client_paths.directory)),
-          client_paths.timestamp = now(6)
-        """)
+          timestamp = VALUES(timestamp),
+          directory = directory OR VALUES(directory)
+      """
+      cursor.executemany(query, path_info_values)
 
-      if parent_path_info_count > 0:
-        placeholders = ["(%s, %s, %s, %s, TRUE, %s)"] * parent_path_info_count
-
-        cursor.execute(
-            """
+    if parent_path_info_values:
+      query = """
         INSERT INTO client_paths(client_id, path_type, path_id, path,
                                  directory, depth)
-        VALUES {}
+        VALUES (%s, %s, %s, %s, TRUE, %s)
         ON DUPLICATE KEY UPDATE
           directory = TRUE,
-          timestamp = now()
-        """.format(", ".join(placeholders)), parent_path_info_values)
+          timestamp = NOW(6)
+      """
+      cursor.executemany(query, parent_path_info_values)
 
-      if has_stat_entries:
-        cursor.execute("""
+    if stat_entry_values:
+      query = """
         INSERT INTO client_path_stat_entries(client_id, path_type, path_id,
-                                             stat_entry, timestamp)
-             SELECT client_id, path_type, path_id, stat_entry, timestamp
-               FROM client_path_infos
-              WHERE stat_entry IS NOT NULL
-        """)
+                                             timestamp,
+                                             stat_entry)
+        VALUES (%s, %s, %s, FROM_UNIXTIME(%s), %s)
+      """
+      cursor.executemany(query, stat_entry_values)
 
-        cursor.execute("""
-        UPDATE client_paths, client_path_infos
-           SET client_paths.last_stat_entry_timestamp = client_path_infos.timestamp
-         WHERE client_paths.client_id = client_path_infos.client_id
-           AND client_paths.path_type = client_path_infos.path_type
-           AND client_paths.path_id = client_path_infos.path_id
-           AND client_path_infos.stat_entry IS NOT NULL
-        """)
+      condition = "(client_id = %s AND path_type = %s AND path_id = %s)"
 
-      if has_hash_entries:
-        cursor.execute("""
+      query = """
+        UPDATE client_paths
+        SET last_stat_entry_timestamp = FROM_UNIXTIME(%s)
+        WHERE {}
+      """.format(" OR ".join([condition] * len(stat_entry_values)))
+
+      params = [mysql_utils.RDFDatetimeToTimestamp(now)] + stat_entry_keys
+      cursor.execute(query, params)
+
+    if hash_entry_values:
+      query = """
         INSERT INTO client_path_hash_entries(client_id, path_type, path_id,
-                                             hash_entry, sha256, timestamp)
-             SELECT client_id, path_type, path_id, hash_entry, sha256, timestamp
-               FROM client_path_infos
-              WHERE hash_entry IS NOT NULL
-        """)
+                                             timestamp,
+                                             hash_entry, sha256)
+        VALUES (%s, %s, %s, FROM_UNIXTIME(%s), %s, %s)
+      """
+      cursor.executemany(query, hash_entry_values)
 
-        cursor.execute("""
-        UPDATE client_paths, client_path_infos
-           SET client_paths.last_hash_entry_timestamp = client_path_infos.timestamp
-         WHERE client_paths.client_id = client_path_infos.client_id
-           AND client_paths.path_type = client_path_infos.path_type
-           AND client_paths.path_id = client_path_infos.path_id
-           AND client_path_infos.hash_entry IS NOT NULL
-        """)
+      condition = "(client_id = %s AND path_type = %s AND path_id = %s)"
+
+      query = """
+        UPDATE client_paths
+        SET last_hash_entry_timestamp = FROM_UNIXTIME(%s)
+        WHERE {}
+      """.format(" OR ".join([condition] * len(hash_entry_values)))
+
+      params = [mysql_utils.RDFDatetimeToTimestamp(now)] + hash_entry_keys
+      cursor.execute(query, params)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ListDescendentPathInfos(self,

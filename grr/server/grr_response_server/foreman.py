@@ -10,6 +10,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import flow
 from grr_response_server import hunt
 from grr_response_server import message_handlers
 from grr_response_server.databases import db
@@ -76,16 +77,20 @@ class Foreman(object):
             "Foreman: ignoring hunt %s on client %s: was started "
             "here before", client_id, rule.hunt_id)
       else:
-        logging.info("Foreman: Starting hunt %s on client %s.", rule.hunt_id,
-                     client_id)
-
         # hunt_name is only used for legacy hunts.
         if rule.hunt_name:
           flow_cls = registry.AFF4FlowRegistry.FlowClassByName(rule.hunt_name)
           hunt_urn = rdfvalue.RDFURN("aff4:/hunts/%s" % rule.hunt_id)
           flow_cls.StartClients(hunt_urn, [client_id])
         else:
-          hunt.StartHuntFlowOnClient(client_id, rule.hunt_id)
+          try:
+            hunt.StartHuntFlowOnClient(client_id, rule.hunt_id)
+            logging.info("Foreman: Started hunt %s on client %s.", rule.hunt_id,
+                         client_id)
+          except flow.CanNotStartFlowWithExistingIdError:
+            logging.info(
+                "Foreman: ignoring hunt %s on client %s: was started "
+                "here before", client_id, rule.hunt_id)
 
         actions_count += 1
 

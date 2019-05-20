@@ -7,11 +7,8 @@ from __future__ import unicode_literals
 from absl import app
 from absl.testing import absltest
 
-import MySQLdb
-
 from grr_response_server.databases import mysql_utils
 from grr.test_lib import test_lib
-
 
 
 class DocTest(test_lib.DocTest):
@@ -91,12 +88,6 @@ class ColumnsTest(absltest.TestCase):
   def testSortsRawNamesWithoutEscape(self):
     self.assertGreater("`", "_")
     self.assertEqual(mysql_utils.Columns(["a", "a_hash"]), "(`a`, `a_hash`)")
-
-
-class TemporaryTableTest(absltest.TestCase):
-
-  # TODO(hanuszczak): Make this test work also in the open-source environment.
-  pass  # pylint: disable=unnecessary-pass
 
 
 def main(argv):

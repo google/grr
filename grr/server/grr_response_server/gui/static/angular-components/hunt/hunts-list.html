@@ -79,8 +79,10 @@
       <tr>
         <th>Status</th>
         <th>Hunt ID</th>
+        <th>Creation time</th>
         <th>Start Time</th>
         <th>Duration</th>
+        <th>Expiration time</th>
         <th>Client Limit</th>
         <th>Creator</th>
         <th>Description</th>
@@ -97,9 +99,9 @@
         <td><grr-hunt-status-icon hunt="::item" /></td>
         <td>{$ ::item.value.hunt_id.value $}</td>
         <td><grr-timestamp value="::item.value.created" /></td>
-        <!-- TODO: If the hunt has been started, expiration time should
-             also be shown. Once this is implemented, extend this test to check it. -->
+        <td><grr-timestamp value="::item.value.last_start_time" /></td>
         <td><grr-duration value="::item.value.duration" /></td>
+        <td><grr-timestamp value="::item.value.expiration_time" /></td>
         <td>{$ ::item.value.client_limit.value $}</td>
         <td>{$ ::item.value.creator.value $}</td>
         <td>{$ ::item.value.description.value $}</td>

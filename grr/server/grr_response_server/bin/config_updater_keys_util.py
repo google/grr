@@ -27,12 +27,6 @@ def _GenerateCSRFKey(config):
   """Update a config with a random csrf key."""
   secret_key = config.Get("AdminUI.csrf_secret_key", None)
   if not secret_key:
-    # TODO(amoser): Remove support for django_secret_key.
-    secret_key = config.Get("AdminUI.django_secret_key", None)
-    if secret_key:
-      config.Set("AdminUI.csrf_secret_key", secret_key)
-
-  if not secret_key:
     key = utils.GeneratePassphrase(length=100)
     config.Set("AdminUI.csrf_secret_key", key)
   else:

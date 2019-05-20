@@ -827,17 +827,12 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
       result.downloaded_file = stat_entry
       self.SendReply(result)
 
-  def FileFetchFailed(self, pathspec, request_type, request_data=None):
+  def FileFetchFailed(self, pathspec, request_data=None):
     if not request_data:
       raise RuntimeError("Expected non-empty request_data")
 
-    # If file doesn't exist, FileFetchFailed will be called twice:
-    # once for StatFile client action, and then for HashFile client action (as
-    # they're scheduled in parallel). We do a request_type check here to
-    # avoid reporting same result twice.
-    if request_type == "StatFile":
-      for result in request_data["results"]:
-        self.SendReply(result)
+    for result in request_data["results"]:
+      self.SendReply(result)
 
 
 @flow_base.DualDBFlow

@@ -49,7 +49,7 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
         this.ReceiveFetchedFile(r, None, request_data=request_data)
 
       for r in self.failed_files:
-        this.FileFetchFailed(pathspec, "StatFile", request_data=request_data)
+        this.FileFetchFailed(pathspec, request_data=request_data)
 
     sff_stubber = utils.Stubber(transfer.MultiGetFileLogic, "StartFileFetch",
                                 StartFileFetch)

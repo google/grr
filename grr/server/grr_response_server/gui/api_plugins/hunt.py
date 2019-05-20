@@ -252,6 +252,8 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.created = hunt_obj.create_time
     self.duration = hunt_obj.duration
     self.creator = hunt_obj.creator
+    self.init_start_time = hunt_obj.init_start_time
+    self.last_start_time = hunt_obj.last_start_time
     self.description = hunt_obj.description
     self.is_robot = hunt_obj.creator in ["GRRWorker", "Cron"]
     if hunt_counters is not None:
@@ -345,6 +347,8 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.client_limit = hunt_metadata.client_limit
     self.client_rate = hunt_metadata.client_rate
     self.created = hunt_metadata.create_time
+    self.init_start_time = hunt_metadata.init_start_time
+    self.last_start_time = hunt_metadata.last_start_time
     self.duration = hunt_metadata.duration
     self.creator = hunt_metadata.creator
     self.description = hunt_metadata.description

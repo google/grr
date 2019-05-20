@@ -4,6 +4,7 @@ goog.module.declareLegacyNamespace();
 const {AclDialogService} = goog.require('grrUi.acl.aclDialogService');
 const {ApiService} = goog.require('grrUi.core.apiService');
 const {DialogService} = goog.require('grrUi.core.dialogService');
+const {huntExpirationTime} = goog.require('grrUi.hunt.utils');
 const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
 
@@ -309,6 +310,7 @@ HuntsListController.prototype.deleteHunt = function() {
  */
 HuntsListController.prototype.transformItems = function(items) {
   angular.forEach(items, function(item) {
+    item['value']['expiration_time'] = huntExpirationTime(item);
     this.huntsById[item['value']['hunt_id']['value']] = item;
   }.bind(this));
 

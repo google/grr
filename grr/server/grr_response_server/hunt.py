@@ -397,8 +397,8 @@ def StartHuntFlowOnClient(client_id, hunt_id):
       num_clients_diff = max(
           0,
           _GetNumClients(hunt_obj.hunt_id) - hunt_obj.num_clients_at_start_time)
-      next_client_due_msecs = int(
-          num_clients_diff / hunt_obj.client_rate * 60e6)
+      next_client_due_msecs = int(num_clients_diff / hunt_obj.client_rate *
+                                  60e6)
 
       start_at = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
           hunt_obj.last_start_time.AsMicrosecondsSinceEpoch() +
@@ -423,7 +423,10 @@ def StartHuntFlowOnClient(client_id, hunt_id):
 
     if hunt_obj.client_limit:
       if _GetNumClients(hunt_obj.hunt_id) >= hunt_obj.client_limit:
-        PauseHunt(hunt_id)
+        try:
+          PauseHunt(hunt_id)
+        except OnlyStartedHuntCanBePausedError:
+          pass
 
   elif hunt_obj.args.hunt_type == hunt_obj.args.HuntType.VARIABLE:
     raise NotImplementedError()

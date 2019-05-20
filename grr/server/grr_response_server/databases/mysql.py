@@ -6,6 +6,7 @@ See grr/server/db.py for interface.
 """
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import contextlib
@@ -21,6 +22,8 @@ from future.builtins import range
 # It is most likely not up-to-date because of our support for older OS.
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
+
+from typing import Callable
 
 from grr_response_core import config
 from grr_response_server import threadpool
@@ -85,6 +88,10 @@ def _ReadVariable(name, cursor):
 
 def _SetGlobalVariable(name, value, cursor):
   cursor.execute("SET GLOBAL {}=%s".format(name), [value])
+
+
+def _SetSessionVariable(name, value, cursor):
+  cursor.execute("SET {}=%s".format(name), [value])
 
 
 class Error(MySQLdb.Error):
@@ -477,7 +484,9 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
   def Close(self):
     self.pool.close()
 
-  def _RunInTransaction(self, function, readonly=False):
+  def _RunInTransaction(self,
+                        function,
+                        readonly = False):
     """Runs function within a transaction.
 
     Allocates a connection, begins a transaction on it and passes the connection
@@ -489,8 +498,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     database error is raised, the operation may be repeated.
 
     Args:
-      function: A function to be run, must accept a single MySQLdb.connection
-        parameter.
+      function: A function to be run.
       readonly: Indicates that only a readonly (snapshot) transaction is
         required.
 

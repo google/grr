@@ -147,7 +147,7 @@ exports.routingModule
           .state('manageBinaries', {
             url: '/manage-binaries',
             template: '<grr-config-binaries-view />',
-            title: 'Manage Binaries'
+            title: 'Binaries'
           })
           .state('config', {
             url: '/config',

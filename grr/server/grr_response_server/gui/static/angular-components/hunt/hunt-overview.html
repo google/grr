@@ -27,13 +27,29 @@
       <dt>Creator</dt>
       <dd><grr-semantic-value value="::controller.hunt.value.creator" /></dd>
 
-      <dt>Start Time</dt>
+      <dt>Creation time</dt>
       <dd><grr-timestamp value="controller.hunt.value.created" /></dd>
 
-      <!-- TODO: If the hunt has been started, expiration time should
-           also be shown. Once this is implemented, extend this test to check it. -->
+      <dt>Start time (initial)</dt>
+      <dd ng-if="::!controller.hunt.value.init_start_time">-</dd>
+      <dd ng-if="::controller.hunt.value.init_start_time">
+        <grr-timestamp value="controller.hunt.value.init_start_time"></grr-timestamp>
+      </dd>
+
+      <dt>Start time (last)</dt>
+      <dd ng-if="::!controller.hunt.value.last_start_time">-</dd>
+      <dd ng-if="::controller.hunt.value.last_start_time">
+        <grr-timestamp value="controller.hunt.value.last_start_time"></grr-timestamp>
+      </dd>
+
       <dt>Duration</dt>
       <dd><grr-duration value="controller.hunt.value.duration" /></dd>
+
+      <dt>Expiration time</dt>
+      <dd ng-if="::!controller.huntExpirationTime">-</dd>
+      <dd ng-if="::controller.huntExpirationTime">
+        <grr-timestamp value="controller.huntExpirationTime"></grr-timestamp>
+      </dd>
 
       <dt>Crash Limit</dt>
       <dd ng-if="::!controller.hunt.value.crash_limit">-</dd>

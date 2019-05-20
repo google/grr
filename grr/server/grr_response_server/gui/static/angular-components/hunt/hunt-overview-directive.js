@@ -1,6 +1,8 @@
 goog.module('grrUi.hunt.huntOverviewDirective');
 goog.module.declareLegacyNamespace();
 
+const {huntExpirationTime} = goog.require('grrUi.hunt.utils');
+
 
 
 /** @type {number} */
@@ -43,8 +45,11 @@ const HuntOverviewController = function(
   /** @export {string} */
   this.huntId;
 
-  /** @export {Object} */
+  /** @export {(!Object|undefined)} */
   this.hunt;
+
+  /** @export {(!Object|undefined)} */
+  this.huntExpirationTime;
 
   /** @private {!angular.$q.Promise|undefined} */
   this.pollPromise_;
@@ -74,12 +79,11 @@ HuntOverviewController.prototype.startPolling_ = function() {
     var interval = AUTO_REFRESH_INTERVAL_MS;
 
     this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
-    this.pollPromise_.then(
-        undefined,
-        undefined,
-        function notify(response) {
-          this.hunt = response['data'];
-        }.bind(this));
+    this.pollPromise_.then(undefined, undefined, (response) => {
+      const hunt = response['data'];
+      this.hunt = hunt;
+      this.huntExpirationTime = huntExpirationTime(hunt);
+    });
   }
 };
 

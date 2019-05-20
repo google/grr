@@ -49,9 +49,8 @@ def GenerateCSRFToken(user_id, time):
   time = time or rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 
   secret = config.CONFIG.Get("AdminUI.csrf_secret_key", None)
-  # TODO(amoser): Django is deprecated. Remove this at some point.
-  if not secret:
-    secret = config.CONFIG["AdminUI.django_secret_key"]
+  if secret is None:
+    raise ValueError("CSRF secret not available.")
   digester = hmac.new(secret.encode("ascii"), digestmod=hashlib.sha256)
   digester.update(user_id.encode("ascii"))
   digester.update(CSRF_DELIMITER)
@@ -353,8 +352,3 @@ class GuiPluginsInit(registry.InitHook):
     # pylint: disable=unused-variable,g-import-not-at-top
     from grr_response_server.gui import gui_plugins
     # pylint: enable=unused-variable,g-import-not-at-top
-
-    if config.CONFIG.Get("AdminUI.django_secret_key", None):
-      logging.warning(
-          "The AdminUI.django_secret_key option has been deprecated, "
-          "please use AdminUI.csrf_secret_key instead.")

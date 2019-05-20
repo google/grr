@@ -708,6 +708,7 @@ class DatabaseTestFlowMixin(object):
 
     requests = []
     responses = []
+    client_requests = []
     for request_id in range(1, 4):
       requests.append(
           rdf_flow_objects.FlowRequest(
@@ -718,9 +719,13 @@ class DatabaseTestFlowMixin(object):
               flow_id=flow_id,
               request_id=request_id,
               response_id=1))
+      client_requests.append(
+          rdf_flows.ClientActionRequest(
+              client_id=client_id, flow_id=flow_id, request_id=request_id))
 
     self.db.WriteFlowRequests(requests)
     self.db.WriteFlowResponses(responses)
+    self.db.WriteClientActionRequests(client_requests)
 
     request_list = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
     self.assertCountEqual([req.request_id for req, _ in request_list],
@@ -1432,6 +1437,25 @@ class DatabaseTestFlowMixin(object):
 
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id1, flow_id2)
     self.assertEqual(all_requests, [])
+
+  def testDeleteAllFlowRequestsAndResponsesWithClientRequests(self):
+    client_id = u"C.1234567890123456"
+    flow_id = u"1234ABCD"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+
+    self._WriteRequestAndResponses(client_id, flow_id)
+
+    req = rdf_flows.ClientActionRequest(
+        client_id=client_id, flow_id=flow_id, request_id=1)
+    self.db.WriteClientActionRequests([req])
+
+    self._CheckRequestsAndResponsesAreThere(client_id, flow_id)
+
+    self.db.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
+
+    self.assertEmpty(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id))
 
   def testReadFlowRequestsReadyForProcessing(self):
     client_id = u"C.1234567890000000"

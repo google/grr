@@ -37,7 +37,7 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
 @db_test_lib.DualDBTest
 class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                              api_config_test.ApiGrrBinaryTestMixin):
-  """Test the Manage Binaries GUI."""
+  """Test the Binaries GUI."""
 
   def setUp(self):
     super(TestManageBinariesView, self).setUp()
@@ -46,9 +46,8 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
   def testNotAccessibleForNonAdmins(self):
     self.Open("/")
 
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=li[grr-nav-link]:contains('Binaries') i.fa-lock")
 
   def testEachBinaryIsCorrectlyShown(self):
     self.CreateAdminUser(u"gui_user")
@@ -56,10 +55,9 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
     self.Open("/#/manage-binaries")
 
     self.WaitUntil(self.IsElementPresent,
-                   "css=li[grr-nav-link]:contains('Manage Binaries')")
-    self.WaitUntilNot(
-        self.IsElementPresent,
-        "css=li[grr-nav-link]:contains('Manage Binaries') i.fa-lock")
+                   "css=li[grr-nav-link]:contains('Binaries')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=li[grr-nav-link]:contains('Binaries') i.fa-lock")
 
     self.WaitUntil(
         self.IsElementPresent, "css=grr-config-binaries-view "

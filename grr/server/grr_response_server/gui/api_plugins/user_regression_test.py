@@ -225,8 +225,8 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
 
-      hunt1_id = self.StartHunt(description="hunt1").Basename()
-      hunt2_id = self.StartHunt(description="hunt2").Basename()
+      hunt1_id = self.StartHunt(description="hunt1", paused=True).Basename()
+      hunt2_id = self.StartHunt(description="hunt2", paused=True).Basename()
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestHuntApproval(
@@ -266,11 +266,13 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
 
-      hunt1_id = self.StartHunt(description="original hunt").Basename()
+      hunt1_id = self.StartHunt(
+          description="original hunt", paused=True).Basename()
 
       ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(hunt1_id)
       hunt2_id = self.StartHunt(
-          description="copied hunt", original_object=ref).Basename()
+          description="copied hunt", original_object=ref,
+          paused=True).Basename()
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -303,7 +305,9 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
           flow_id, client_urn.Basename())
       hunt_id = self.StartHunt(
-          description="hunt started from flow", original_object=ref).Basename()
+          description="hunt started from flow",
+          original_object=ref,
+          paused=True).Basename()
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -346,7 +350,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"requestor")
-      hunt_id = self.StartHunt(description="a hunt").Basename()
+      hunt_id = self.StartHunt(description="a hunt", paused=True).Basename()
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -377,7 +381,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateUser(u"approver")
-      hunt_id = self.StartHunt(description="foo").Basename()
+      hunt_id = self.StartHunt(description="foo", paused=True).Basename()
 
     def ReplaceHuntAndApprovalIds():
       approvals = self.ListHuntApprovals()

@@ -10,15 +10,10 @@ import functools
 import hashlib
 import inspect
 
-from MySQLdb import cursors
-
 from typing import Iterable
-from typing import Iterator
-from typing import List
 from typing import Optional
 from typing import Sequence
 from typing import Text
-from typing import Tuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility
@@ -264,36 +259,3 @@ class WithTransaction(object):
       return self._RunInTransaction(Closure, readonly)
 
     return db_utils.CallLoggedAndAccounted(Decorated)
-
-
-@contextlib.contextmanager
-def TemporaryTable(cursor, name,
-                   columns):
-  """A context manager for handling temporary tables.
-
-  A scope of this conext manager has a temporary table available that is then
-  dropped once the scope ends.
-
-  Args:
-    cursor: A MySQL cursor.
-    name: A name of the table to create.
-    columns: A list of pairs describing table columns (name and type).
-
-  Yields:
-    Nothing.
-  """
-  descriptors = []
-  for column_name, column_type in columns:
-    descriptor = "`{column_name}` {column_type}".format(
-        column_name=column_name, column_type=column_type)
-    descriptors.append(descriptor)
-
-  query = "CREATE TEMPORARY TABLE `{name}` ({descriptors})".format(
-      name=name, descriptors=", ".join(descriptors))
-  cursor.execute(query)
-
-  try:
-    yield
-  finally:
-    query = "DROP TEMPORARY TABLE IF EXISTS `{name}`".format(name=name)
-    cursor.execute(query)

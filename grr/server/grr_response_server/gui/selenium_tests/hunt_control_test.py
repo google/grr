@@ -229,9 +229,6 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "4483")
     self.WaitUntil(self.IsTextPresent, "1337s")
 
-    # TODO: If the hunt has been started, expiration time should
-    # also be shown. Once this is implemented, extend this test to check it.
-
   def testDeleteHunt(self):
     # This needs to be created by a different user so we can test the
     # approval dialog.

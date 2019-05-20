@@ -304,7 +304,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -1594,7 +1594,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -1676,7 +1676,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:567890"
@@ -1749,7 +1749,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:556677"
@@ -1831,7 +1831,7 @@
           },
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:DDEEFF"
@@ -1944,7 +1944,7 @@
           },
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:667788"
@@ -3343,7 +3343,7 @@
           "name": "GenericHunt",
           "remainingClientsCount": "0",
           "resultsCount": "0",
-          "state": "STARTED",
+          "state": "PAUSED",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"

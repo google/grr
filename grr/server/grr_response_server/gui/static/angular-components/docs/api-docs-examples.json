@@ -1077,7 +1077,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -1169,7 +1169,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -5332,7 +5332,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -5421,7 +5421,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -5658,7 +5658,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -5747,7 +5747,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:567890"
@@ -5953,7 +5953,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -6218,7 +6218,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -6297,7 +6297,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:556677"
@@ -6379,7 +6379,7 @@
           },
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:DDEEFF"
@@ -6714,7 +6714,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -6832,7 +6832,7 @@
           },
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:667788"
@@ -10643,7 +10643,7 @@
               },
               "state": {
                 "type": "EnumNamedValue",
-                "value": "STARTED"
+                "value": "PAUSED"
               },
               "total_cpu_usage": {
                 "type": "long",
@@ -10732,7 +10732,7 @@
           "name": "GenericHunt",
           "remaining_clients_count": 0,
           "results_count": 0,
-          "state": "STARTED",
+          "state": "PAUSED",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"

@@ -101,9 +101,8 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       # Now try to create the correct RDFValue.
       result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
 
-      result = result_cls.FromSerializedString(
+      return result_cls.FromSerializedString(
           self.Get("args"), age=self.args_age)
-      return result
 
   @payload.setter
   def payload(self, value):

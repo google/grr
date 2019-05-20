@@ -53,10 +53,6 @@ config_lib.DEFINE_string(
     "https://firebase.google.com/docs/auth/web/start). Used by "
     "FirebaseWebAuthManager.")
 
-# TODO(amoser): Deprecated, remove at some point.
-config_lib.DEFINE_string("AdminUI.django_secret_key", "CHANGE_ME",
-                         "This is deprecated. Used csrf_secret_key instead!.")
-
 config_lib.DEFINE_string(
     "AdminUI.csrf_secret_key", "CHANGE_ME",
     "This is a secret key that should be set in the server "

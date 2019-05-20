@@ -42,8 +42,6 @@ from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import audit as _
 # pylint: enable=unused-import
 from grr_response_server.flows.general import discovery
-from grr_response_server.hunts import implementation as hunts_implementation
-from grr_response_server.hunts import standard as hunts_standard
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -85,7 +83,8 @@ class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
 
-class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
+class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
+                              hunt_test_lib.StandardHuntTestMixin):
   """Tests the administrative flows."""
 
   def setUp(self):
@@ -238,20 +237,15 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass):
       self.email_messages.append(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with hunts_implementation.StartHunt(
-        hunt_name=hunts_standard.GenericHunt.__name__,
+    self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.FlowWithOneClientRequest.__name__),
         client_rate=0,
         crash_alert_email="crashes@example.com",
-        token=self.token) as hunt:
-      hunt.Run()
-      hunt.StartClients(hunt.session_id, [client_id])
+        token=self.token)
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      client = flow_test_lib.CrashClientMock(client_id, self.token)
-      hunt_test_lib.TestHuntHelper(
-          client, [client_id], token=self.token, check_flow_errors=False)
+      self.RunHuntWithClientCrashes([client_id])
 
     self.assertLen(self.email_messages, 2)
     self.assertListEqual(
@@ -727,8 +721,8 @@ class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
     pass
 
   def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
-    # Starting new style flows from hunts is not yet implemented.
-    # TODO(amoser): Fix this test once hunts are feature complete.
+    # This feature was removed while porting hunts to the relational db.
+    # TODO(amoser): Remove this test once AFF4 is gone.
     pass
 
   def testStartupHandler(self):

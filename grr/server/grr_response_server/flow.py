@@ -100,8 +100,12 @@ class CanNotStartFlowWithExistingIdError(Error):
     self.flow_id = flow_id
 
 
-class FlowError(Exception):
-  """Raised when we can not retrieve the flow."""
+class FlowError(Error):  # pylint: disable=g-bad-exception-name
+  """A generic flow error."""
+
+
+class FlowResourcesExceededError(Error):
+  """An error indicating that the flow used too many resources."""
 
 
 # This is an implementation of an AttributedDict taken from

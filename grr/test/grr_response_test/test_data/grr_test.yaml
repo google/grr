@@ -2,6 +2,7 @@
 # configuration file (which normally has no keys) to create a test working
 # configuration.
 
+AdminUI.csrf_secret_key: TESTKEYTESTKEYTESTKEY
 Client.private_key: |
  -----BEGIN PRIVATE KEY-----
  MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMdgLNxyvDnQsuqp

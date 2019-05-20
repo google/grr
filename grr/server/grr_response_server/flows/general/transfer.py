@@ -142,64 +142,66 @@ class GetFileMixin(object):
   def ReadBuffer(self, responses):
     """Read the buffer and write to the file."""
     # Did it work?
-    if responses.success:
-      response = responses.First()
-      if not response:
-        raise IOError("Missing hash for offset %s missing" % response.offset)
+    if not responses.success:
+      return
 
-      if response.offset <= self.state.max_chunk_number * self.CHUNK_SIZE:
-        # Response.data is the hash of the block (32 bytes) and
-        # response.length is the length of the block.
-        self.state.blobs.append((response.data, response.length))
-        self.Log("Received blob hash %s", response.data.encode("hex"))
+    response = responses.First()
+    if not response:
+      raise IOError("Missing hash for offset %s missing" % response.offset)
 
-        # Add one more chunk to the window.
-        self.FetchWindow(1)
+    if response.offset <= self.state.max_chunk_number * self.CHUNK_SIZE:
+      # Response.data is the hash of the block (32 bytes) and
+      # response.length is the length of the block.
+      self.state.blobs.append((response.data, response.length))
+      self.Log("Received blob hash %s", response.data.encode("hex"))
 
-      if response.offset + response.length >= self.state.file_size:
-        # File is complete.
-        stat_entry = self.state.stat_entry
-        urn = self.state.stat_entry.AFF4Path(self.client_urn)
+      # Add one more chunk to the window.
+      self.FetchWindow(1)
 
-        # TODO(user): when all the code can read files from REL_DB,
-        # protect this with:
-        # if not data_store.RelationalDBEnabled():
-        if data_store.AFF4Enabled():
-          with aff4.FACTORY.Create(
-              urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
-            fd.SetChunksize(self.CHUNK_SIZE)
-            fd.Set(fd.Schema.STAT(stat_entry))
+    if response.offset + response.length >= self.state.file_size:
+      # File is complete.
+      stat_entry = self.state.stat_entry
+      urn = self.state.stat_entry.AFF4Path(self.client_urn)
 
-            for data, length in self.state.blobs:
-              fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
-              fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+      # TODO(user): when all the code can read files from REL_DB,
+      # protect this with:
+      # if not data_store.RelationalDBEnabled():
+      if data_store.AFF4Enabled():
+        with aff4.FACTORY.Create(
+            urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
+          fd.SetChunksize(self.CHUNK_SIZE)
+          fd.Set(fd.Schema.STAT(stat_entry))
 
+          for data, length in self.state.blobs:
+            fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
+            fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+
+      if data_store.RelationalDBEnabled():
+        path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+
+        # Adding files to filestore requires reading data from RELDB,
+        # thus protecting this code with a filestore-read-enabled check.
         if data_store.RelationalDBEnabled():
-          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+          blob_refs = []
+          offset = 0
+          for data, size in self.state.blobs:
+            blob_refs.append(
+                rdf_objects.BlobReference(
+                    offset=offset,
+                    size=size,
+                    blob_id=rdf_objects.BlobID.FromBytes(data)))
+            offset += size
 
-          # Adding files to filestore requires reading data from RELDB,
-          # thus protecting this code with a filestore-read-enabled check.
-          if data_store.RelationalDBEnabled():
-            blob_refs = []
-            offset = 0
-            for data, size in self.state.blobs:
-              blob_refs.append(
-                  rdf_objects.BlobReference(
-                      offset=offset,
-                      size=size,
-                      blob_id=rdf_objects.BlobID.FromBytes(data)))
-              offset += size
+          client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+          hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
 
-            client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-            hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
+          path_info.hash_entry.sha256 = hash_id.AsBytes()
 
-            path_info.hash_entry.sha256 = hash_id.AsBytes()
+        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-          data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
-
-        # Save some space.
-        del self.state["blobs"]
-        self.state.success = True
+      # Save some space.
+      del self.state["blobs"]
+      self.state.success = True
 
   def NotifyAboutEnd(self):
     super(GetFileMixin, self).NotifyAboutEnd()
@@ -411,20 +413,22 @@ class MultiGetFileLogic(object):
         StartFileFetch call.
     """
 
-  def _FileFetchFailed(self, index, request_name):
+  def _FileFetchFailed(self, index):
     """Remove pathspec for this index and call the FileFetchFailed method."""
 
     pathspec, request_data = self._RemoveCompletedPathspec(index)
+    if pathspec is None:
+      # This was already reported as failed.
+      return
 
     # Report the request_data for this flow's caller.
-    self.FileFetchFailed(pathspec, request_name, request_data=request_data)
+    self.FileFetchFailed(pathspec, request_data=request_data)
 
-  def FileFetchFailed(self, pathspec, request_name, request_data=None):
+  def FileFetchFailed(self, pathspec, request_data=None):
     """This method will be called when stat or hash requests fail.
 
     Args:
       pathspec: Pathspec of a file that failed to be fetched.
-      request_name: Name of a failed client action.
       request_data: Arbitrary dictionary that was passed to the corresponding
         StartFileFetch call.
     """
@@ -435,7 +439,7 @@ class MultiGetFileLogic(object):
     if not responses.success:
       self.Log("Failed to stat file: %s", responses.status)
       # Report failure.
-      self._FileFetchFailed(index, responses.request_data["request_name"])
+      self._FileFetchFailed(index)
       return
 
     tracker = self.state.pending_hashes[index]
@@ -448,7 +452,7 @@ class MultiGetFileLogic(object):
       self.Log("Failed to hash file: %s", responses.status)
       self.state.pending_hashes.pop(index, None)
       # Report the error.
-      self._FileFetchFailed(index, "HashFile")
+      self._FileFetchFailed(index)
       return
 
     self.state.files_hashed += 1
@@ -479,7 +483,7 @@ class MultiGetFileLogic(object):
       tracker = self.state.pending_hashes[index]
     except KeyError:
       # Hashing the file failed, but we did stat it.
-      self._FileFetchFailed(index, responses.request.request.name)
+      self._FileFetchFailed(index)
       return
 
     tracker["hash_obj"] = hash_obj
@@ -751,7 +755,7 @@ class MultiGetFileLogic(object):
     if not responses.success or not hash_response:
       urn = file_tracker["stat_entry"].pathspec.AFF4Path(self.client_urn)
       self.Log("Failed to read %s: %s", urn, responses.status)
-      self._FileFetchFailed(index, responses.request.request.name)
+      self._FileFetchFailed(index)
       return
 
     file_tracker.setdefault("hash_list", []).append(hash_response)
@@ -811,7 +815,7 @@ class MultiGetFileLogic(object):
 
     # Failed to read the file - ignore it.
     if not responses.success:
-      self._FileFetchFailed(index, responses.request.request.name)
+      self._FileFetchFailed(index)
       return
 
     response = responses.First()
