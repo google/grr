@@ -15,6 +15,7 @@ grr-client-summary {
   .client-status,
   .client-ip-info {
     color: $color-infoline-color;
+    word-break: break-all;
   }
 
   grr-client-warnings {

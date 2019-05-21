@@ -1428,11 +1428,13 @@ message VerifyHuntOutputPluginsCronFlowArgs {
 
 // Next field ID: 4
 message ListProcessesArgs {
+  // TODO: Rename to filepath_regex.
   optional string filename_regex = 1 [
     (sem_type) = {
       type: "RegularExpression",
-      friendly_name: "Filename Regex",
-      description: "Regex used to filter the list of processes.",
+      friendly_name: "Filepath Regex",
+      description: "Regex used to filter the list of processes. The regex is "
+                   "applied to the full path and not only to the filename.",
     },
     default = "."
   ];

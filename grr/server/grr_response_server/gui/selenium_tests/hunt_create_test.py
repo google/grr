@@ -134,7 +134,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Select("css=grr-new-hunt-wizard-form select", "DummyOutputPlugin")
     self.Type(
         "css=grr-new-hunt-wizard-form "
-        "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
+        "grr-form-proto-single-field:has(label:contains('Filepath Regex')) "
         "input", "some regex")
 
     # Click on "Next" button

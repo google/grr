@@ -415,9 +415,10 @@ class GRRWorker(object):
     flow_obj = flow_cls(rdf_flow)
 
     if not flow_obj.IsRunning():
-      raise ValueError(
+      logging.info(
           "Received a request to process flow %s on client %s that is not "
-          "running." % (flow_id, client_id))
+          "running.", flow_id, client_id)
+      return
 
     processed = flow_obj.ProcessAllReadyRequests()
     if processed == 0:

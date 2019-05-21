@@ -256,7 +256,7 @@ def ConfigureMySQLDatastore(config):
   use_rel_db = RetryBoolQuestion(
       "Do you want to use REL_DB - the new optimized datastore "
       "implementation?\n"
-      "(if not, a legacy datastore will be used)", False)
+      "(if not, a legacy datastore will be used)", True)
   if use_rel_db:
     db_options["Database.enabled"] = True
     db_options["Database.aff4_enabled"] = False
@@ -557,7 +557,7 @@ def Initialize(config=None,
 def InitializeNoPrompt(config=None,
                        external_hostname = None,
                        admin_password = None,
-                       use_rel_db = False,
+                       use_rel_db = True,
                        mysql_hostname = None,
                        mysql_port = None,
                        mysql_username = None,

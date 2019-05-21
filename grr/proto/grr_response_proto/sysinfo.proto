@@ -96,7 +96,9 @@ message Process {
   optional uint32 pid = 1;
   optional uint32 ppid = 2;
   optional string name = 3;
-  optional string exe = 4;
+  optional string exe = 4 [
+    (sem_type) = { description: "The process executable as an absolute path." }
+  ];
   repeated string cmdline = 5;
   optional uint64 ctime = 6;
   optional uint32 real_uid = 7;

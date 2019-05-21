@@ -65,7 +65,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "Copy ListProcesses flow")
 
     self.WaitUntilEqual("test[a-z]*", self.GetValue,
-                        "css=label:contains('Filename Regex') ~ * input")
+                        "css=label:contains('Filepath Regex') ~ * input")
 
     self.WaitUntil(
         self.IsChecked, "css=label:contains('Fetch Binaries') "
@@ -139,7 +139,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     # Open wizard and change the arguments.
     self.Click("css=button[name=copy_flow]")
 
-    self.Type("css=label:contains('Filename Regex') ~ * input",
+    self.Type("css=label:contains('Filepath Regex') ~ * input",
               "somethingElse*")
 
     self.Click("css=label:contains('Fetch Binaries') ~ * input[type=checkbox]")
@@ -151,7 +151,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         "label:contains('Plugin') ~ * select:eq(0)", "DummyOutputPlugin")
     self.Type(
         "css=grr-output-plugin-descriptor-form "
-        "label:contains('Filename Regex'):eq(0) ~ * input:text", "foobar!")
+        "label:contains('Filepath Regex'):eq(0) ~ * input:text", "foobar!")
 
     self.Click("css=button:contains('Launch')")
 

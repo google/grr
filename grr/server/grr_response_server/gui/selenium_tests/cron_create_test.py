@@ -62,7 +62,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
                 gui_test_lib.DummyOutputPlugin.__name__)
     self.Type(
         "css=grr-new-cron-job-wizard-form "
-        "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
+        "grr-form-proto-single-field:has(label:contains('Filepath Regex')) "
         "input", "some regex")
 
     # Click on "Next" button

@@ -323,6 +323,10 @@ window.location = '%s' + friendly_hash;
     try:
       endpoint, _ = matcher.match(request.path, request.method)
       return endpoint(request)
+    except werkzeug_exceptions.NotFound as e:
+      logging.info("Request for non existent url: %s [%s]", request.path,
+                   request.method)
+      return e
     except werkzeug_exceptions.HTTPException as e:
       logging.exception("http exception: %s [%s]", request.path, request.method)
       return e

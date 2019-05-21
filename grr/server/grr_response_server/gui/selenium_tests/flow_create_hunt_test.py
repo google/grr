@@ -53,7 +53,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.Click("css=button[name=create_hunt]")
 
     self.WaitUntilEqual("test[a-z]*", self.GetValue,
-                        "css=label:contains('Filename Regex') ~ * input")
+                        "css=label:contains('Filepath Regex') ~ * input")
 
     self.WaitUntil(
         self.IsChecked, "css=label:contains('Fetch Binaries') "

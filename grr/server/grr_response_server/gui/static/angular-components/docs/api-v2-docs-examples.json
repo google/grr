@@ -4107,7 +4107,7 @@
             "defaultArgs": {
               "@type": "type.googleapis.com/ListProcessesArgs"
             },
-            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartAFF4Flow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartAFF4Flow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n",
             "name": "ListProcesses"
           }
         ]

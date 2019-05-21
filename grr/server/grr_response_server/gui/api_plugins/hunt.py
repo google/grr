@@ -897,7 +897,13 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   def _HandleRelational(self, args, token=None):
     used_names = collections.Counter()
     result = []
-    for s in data_store.REL_DB.ReadHuntOutputPluginsStates(str(args.hunt_id)):
+    try:
+      plugin_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
+          str(args.hunt_id))
+    except db.UnknownHuntError:
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              str(args.hunt_id))
+    for s in plugin_states:
       name = s.plugin_descriptor.plugin_name
       plugin_id = "%s_%d" % (name, used_names[name])
       used_names[name] += 1

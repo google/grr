@@ -89,7 +89,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntilEqual(
         "blah!", self.GetValue, "css=grr-new-hunt-wizard-form "
-        "label:contains('Filename Regex') ~ * input:text")
+        "label:contains('Filepath Regex') ~ * input:text")
 
     self.WaitUntil(
         self.IsElementPresent, "css=grr-new-hunt-wizard-form "
@@ -245,7 +245,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                 "DummyOutputPlugin")
     self.Type(
         "css=grr-configure-output-plugins-page "
-        "label:contains('Filename Regex'):eq(0) ~ * input:text", "foobar!")
+        "label:contains('Filepath Regex'):eq(0) ~ * input:text", "foobar!")
 
     # Click on "Next" button.
     self.Click("css=grr-new-hunt-wizard-form button.Next")
