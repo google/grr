@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 import logging
 import threading
 
+from future.utils import string_types
+
 import MySQLdb
 
 
@@ -211,6 +213,13 @@ class _CursorProxy(object):
       # MySQL error code 1051: Unknown table.
       if e.args[0] == 1051:
         return None
+
+      # TODO: check if newer versions of mysqlclient still report
+      # the CONSTRAINT...FOREIGN KEY warning as a warning and not as an
+      # integrity error.
+      if (isinstance(e.args[0], string_types) and "CONSTRAINT" in e.args[0] and
+          "FOREIGN KEY" in e.args[0]):
+        raise MySQLdb.IntegrityError(e.message)
 
       raise
 
