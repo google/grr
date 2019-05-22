@@ -7,10 +7,9 @@ from __future__ import unicode_literals
 import contextlib
 import logging
 import os
-import random
-import string
 import threading
 import unittest
+import uuid
 import warnings
 
 from absl import app
@@ -47,16 +46,15 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
     host = _GetEnvironOrSkip("MYSQL_TEST_HOST")
     port = _GetEnvironOrSkip("MYSQL_TEST_PORT")
     password = _GetEnvironOrSkip("MYSQL_TEST_PASS")
-    database = "".join(
-        random.choice(string.ascii_uppercase + string.digits)
-        for _ in builtins.range(10))
+    # Use dash character in database name to break queries that do not quote it.
+    database = "test-{}".format(builtins.str(uuid.uuid4())[-10])
 
     conn = mysql.MysqlDB(
         host=host, port=port, user=user, password=password, database=database)
     logging.info("Created test database: %s", database)
 
     def _Drop(cursor):
-      cursor.execute("DROP DATABASE {}".format(database))
+      cursor.execute("DROP DATABASE `{}`".format(database))
 
     def Fin():
       conn._RunInTransaction(_Drop)

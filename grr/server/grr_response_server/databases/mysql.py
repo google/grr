@@ -63,7 +63,7 @@ _RETRYABLE_ERRORS = {
 CHARACTER_SET = "utf8mb4"
 COLLATION = "utf8mb4_unicode_ci"
 CREATE_DATABASE_QUERY = (
-    "CREATE DATABASE {} CHARACTER SET {} COLLATE {}".format(
+    "CREATE DATABASE `{}` CHARACTER SET {} COLLATE {}".format(
         "{}", CHARACTER_SET, COLLATION))  # Keep first placeholder for later.
 
 
@@ -297,7 +297,7 @@ def _SetupDatabase(host=None,
         if e.args[0] != mysql_error_constants.DB_CREATE_EXISTS:
           raise
 
-      cursor.execute("USE {}".format(database))
+      cursor.execute("USE `{}`".format(database))
       _CheckCollation(cursor)
 
   def _MigrationConnect():
