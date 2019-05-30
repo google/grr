@@ -16,6 +16,7 @@ initialize() {
     if [[ "${EXTERNAL_HOSTNAME}" ]] && [[ "${ADMIN_PASSWORD}" ]]; then
       grr_config_updater initialize \
         --noprompt \
+        --use_rel_db \
         --external_hostname="${EXTERNAL_HOSTNAME}" \
         --admin_password="${ADMIN_PASSWORD}" \
         --mysql_hostname="${GRR_MYSQL_HOSTNAME}" \
