@@ -172,6 +172,7 @@ setup_args = dict(
         "portpicker==1.1.1",
         "prometheus_client==0.5.0",
         "pyjwt==1.7.1",
+        "pyopenssl=19.0.0",  # https://github.com/google/grr/issues/704
         "python-crontab==2.0.1",
         "python-debian==0.1.31",
         "Werkzeug==0.11.3",
