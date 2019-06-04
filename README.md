@@ -28,6 +28,7 @@ Contact Us
 * GRR Users mailing list: [grr-users](https://groups.google.com/forum/#!forum/grr-users)
 * Follow us [on twitter](https://twitter.com/grrresponse) for announcements of GRR user meetups. We use [a gitter chat room](https://gitter.im/google/grr) during meetups.
 
+
 Screenshots
 -----------
 [<img src="https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot from 2013-11-18 18-36-13.png" width="140" height="80" />](https://github.com/google/grr/blob/gh-pages/screenshots/Screenshot%20from%202013-11-18%2018-36-13.png)
