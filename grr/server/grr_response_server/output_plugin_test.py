@@ -44,8 +44,8 @@ class OutputPluginTest(test_lib.GRRBaseTest):
       deserialized = rdf_output_plugin.OutputPluginDescriptor()
       deserialized.ParseFromString(serialized)
 
-      self.assertTrue(deserialized.GetPluginClass(),
-                      output_plugin.UnknownOutputPlugin)
+      self.assertEqual(deserialized.GetPluginClass(),
+                       output_plugin.UnknownOutputPlugin)
       # UnknownOutputPlugin should just return serialized arguments as bytes.
       self.assertEqual(deserialized.plugin_args,
                        descriptor.plugin_args.SerializeToString())

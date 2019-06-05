@@ -93,7 +93,7 @@ WMI_SAMPLE = [
 # is deployed.
 class CmdProcessor(parser.CommandParser):
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestCmdArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -128,7 +128,7 @@ class CmdProcessor(parser.CommandParser):
 
 class MultiProvideParser(parser.RegistryValueParser):
 
-  output_types = ["Dict"]
+  output_types = [rdf_protodict.Dict]
   supported_artifacts = ["DepsProvidesMultiple"]
 
   def Parse(self, stat, knowledge_base):
@@ -251,7 +251,7 @@ class GRRArtifactTest(ArtifactTest):
       ]:
         self.assertRegexpMatches(yaml_data, snippet)
     finally:
-      artifact.ArtifactLoader().RunOnce()
+      artifact.LoadArtifactsOnce()
 
   def testUploadArtifactYamlFileMissingDoc(self):
     content = """name: Nodoc
@@ -649,7 +649,7 @@ class GrrKbWindowsTest(GrrKbTest):
             kb_init.state.awaiting_deps_artifacts,
             ["DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"])
     finally:
-      artifact.ArtifactLoader().RunOnce()
+      artifact.LoadArtifactsOnce()
 
   def _RunKBIFlow(self, artifact_list):
     self.LoadTestArtifacts()

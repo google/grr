@@ -5,8 +5,6 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-import collections
-
 
 from future.utils import iteritems
 from future.utils import itervalues
@@ -17,6 +15,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.util import collection
+from grr_response_server import fleet_utils
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -432,17 +431,20 @@ class InMemoryDBClientMixin(object):
       extract_statistic_fn: A function that extracts the statistic's value from
         a ClientFullInfo object.
     """
-    counts = collections.defaultdict(int)
+    fleet_stats_builder = fleet_utils.FleetStatsBuilder(day_buckets)
     now = rdfvalue.RDFDatetime.Now()
     for info in self.IterateAllClientsFullInfo(batch_size=db.MAX_COUNT):
       if not info.metadata.ping:
         continue
       statistic_value = extract_statistic_fn(info)
-      for client_label in info.GetLabelsNames(owner="GRR"):
-        for day_bucket in day_buckets:
-          time_boundary = now - rdfvalue.Duration.FromDays(day_bucket)
-          if info.metadata.ping > time_boundary:
-            # Count the client if it has been active in the last 'day_bucket'
-            # days.
-            counts[(statistic_value, client_label, day_bucket)] += 1
-    return dict(counts)
+
+      for day_bucket in day_buckets:
+        time_boundary = now - rdfvalue.Duration.FromDays(day_bucket)
+        if info.metadata.ping > time_boundary:
+          # Count the client if it has been active in the last 'day_bucket'
+          # days.
+          fleet_stats_builder.IncrementTotal(statistic_value, day_bucket)
+          for client_label in info.GetLabelsNames(owner="GRR"):
+            fleet_stats_builder.IncrementLabel(client_label, statistic_value,
+                                               day_bucket)
+    return fleet_stats_builder.Build()

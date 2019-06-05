@@ -29,7 +29,6 @@ from werkzeug import wsgi as werkzeug_wsgi
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
@@ -346,13 +345,3 @@ window.location = '%s' + friendly_hash;
     return werkzeug_wsgi.DispatcherMiddleware(self, {
         "/static": sdm,
     })
-
-
-class GuiPluginsInit(registry.InitHook):
-  """Initialize the GUI plugins."""
-
-  def RunOnce(self):
-    """Import the plugins once only."""
-    # pylint: disable=unused-variable,g-import-not-at-top
-    from grr_response_server.gui import gui_plugins
-    # pylint: enable=unused-variable,g-import-not-at-top

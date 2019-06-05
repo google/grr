@@ -15,7 +15,7 @@ from future.utils import iterkeys
 import yaml
 
 from grr_response_core import config
-from grr_response_core.lib import parser as parser_lib
+from grr_response_core.lib import parsers
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_service_parser
@@ -150,9 +150,9 @@ class HostCheckTest(test_lib.GRRBaseTest):
       stats.append(stat)
       file_obj = io.BytesIO(utils.SmartStr(lines))
       files.append(file_obj)
-      if isinstance(parser, parser_lib.SingleFileParser):
+      if isinstance(parser, parsers.SingleFileParser):
         rdfs.extend(parser.ParseFile(None, stat.pathspec, file_obj))
-    if isinstance(parser, parser_lib.MultiFileParser):
+    if isinstance(parser, parsers.MultiFileParser):
       pathspecs = [stat_entry.pathspec for stat_entry in stats]
       rdfs.extend(parser.ParseFiles(None, pathspecs, files))
     host_data[artifact] = self.SetArtifactData(
@@ -265,11 +265,11 @@ class HostCheckTest(test_lib.GRRBaseTest):
                                                    modes=file_modes)
 
     rdfs = []
-    if isinstance(parser, parser_lib.SingleFileParser):
+    if isinstance(parser, parsers.SingleFileParser):
       for stat_entry, filedesc in zip(stats, files):
         pathspec = stat_entry.pathspec
         rdfs.extend(parser.ParseFile(kb, pathspec, filedesc))
-    elif isinstance(parser, parser_lib.MultiFileParser):
+    elif isinstance(parser, parsers.MultiFileParser):
       pathspecs = [stat_entry.pathspec for stat_entry in stats]
       rdfs.extend(parser.ParseFiles(kb, pathspecs, files))
     else:

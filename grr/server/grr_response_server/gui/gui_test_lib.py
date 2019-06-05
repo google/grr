@@ -270,7 +270,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
     # Make sure ApiAuthManager is initialized with this configuration setting.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
   def _CheckJavascriptErrors(self):
     errors = self.driver.execute_script(

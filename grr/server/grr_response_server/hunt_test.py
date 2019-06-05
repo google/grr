@@ -124,7 +124,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     with self.assertRaises(hunt.OnlyPausedHuntCanBeStartedError):
       hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
     rules = data_store.REL_DB.ReadAllForemanRules()
-    self.assertEqual(len(rules), 1)
+    self.assertLen(rules, 1)
 
   def testForemanRulesAreCorrectlyRemovedWhenHuntIsStopped(self):
     client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[

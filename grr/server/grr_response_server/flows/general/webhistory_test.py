@@ -136,8 +136,8 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
     self.assertGreater(len(results), 3)
     data = "\n".join(map(str, results))
-    self.assertTrue(data.find("Welcome to Firefox") != -1)
-    self.assertTrue(data.find("sport.orf.at") != -1)
+    self.assertNotEqual(data.find("Welcome to Firefox"), -1)
+    self.assertNotEqual(data.find("sport.orf.at"), -1)
 
   def testCacheGrep(self):
     """Test the Cache Grep plugin."""

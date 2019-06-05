@@ -138,7 +138,7 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
 class LinuxReleaseParser(parser.FileMultiParser):
   """Parser for Linux distribution information."""
 
-  output_types = ['Dict']
+  output_types = [rdf_protodict.Dict]
   supported_artifacts = ['LinuxReleaseInfo']
 
   # Multiple files exist to define a Linux distribution, some of which are more

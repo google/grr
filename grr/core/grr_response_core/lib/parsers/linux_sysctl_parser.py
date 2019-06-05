@@ -17,7 +17,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 class ProcSysParser(parser.FileMultiParser):
   """Parser for /proc/sys entries."""
 
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["LinuxProcSysHardeningSettings"]
 
   def _Parse(self, stat, file_obj):
@@ -40,7 +40,7 @@ class ProcSysParser(parser.FileMultiParser):
 class SysctlCmdParser(parser.CommandParser):
   """Parser for sysctl -a output."""
 
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["LinuxSysctlCmd"]
 
   def __init__(self, *args, **kwargs):

@@ -4,18 +4,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import abc
-
-
-from future.utils import with_metaclass
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
+from grr_response_core.lib.parsers import abstract
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-# For CronTabFile, an artifact output type. pylint: disable=unused-import
-from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
-# pylint: enable=unused-import
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import precondition
@@ -37,122 +29,12 @@ class ParseError(Error):
   """An error that gets raised due to the parsing of the output failing."""
 
 
-class SingleResponseParser(with_metaclass(abc.ABCMeta)):
-  """An abstract class for parsers that are able to parse individual replies."""
-
-  # TODO(hanuszczak): `path_type` is part of the signature only because one of
-  # the parser classes needs that (`ArtifactFilesParser`). This is a very poor
-  # design and some other way to avoid having this parameter should be devised.
-  @abc.abstractmethod
-  def ParseResponse(self, knowledge_base, response, path_type):
-    """Parse a single response from the client.
-
-    Args:
-      knowledge_base: A knowledgebase for the client that provided the response.
-      response: An RDF value representing the result of artifact collection.
-      path_type: A path type information used by the `ArtifactFilesParser`.
-    """
-
-
-class SingleFileParser(with_metaclass(abc.ABCMeta)):
-  """An interface for parsers that read file content."""
-
-  # TODO(hanuszczak): Define a clear file reader interface.
-
-  @abc.abstractmethod
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
-    """Parses a single file from the client.
-
-    Args:
-      knowledge_base: A knowledgebase for the client to whom the file belongs.
-      pathspec: A pathspec corresponding to the parsed file.
-      filedesc: A file-like object to parse.
-
-    Yields:
-      RDF values with parsed data.
-    """
-
-
-class MultiResponseParser(with_metaclass(abc.ABCMeta)):
-  """An interface for parsers requiring all replies in order to parse them."""
-
-  @abc.abstractmethod
-  def ParseResponses(self, knowledge_base, responses):
-    """Parse responses from the client.
-
-    Args:
-      knowledge_base: A knowledgebase for the client that provided responses.
-      responses: A list of RDF values with results of artifact collection.
-    """
-
-
-class MultiFileParser(with_metaclass(abc.ABCMeta)):
-  """An interface for parsers that need to read content of multiple files."""
-
-  # TODO(hanuszczak): The file interface mentioned above should also have
-  # `pathspec` property. With the current solution there is no way to enforce
-  # on the type level that `pathspecs` and `filedescs` have the same length and
-  # there is no clear correlation between the two. One possible solution would
-  # be to use a list of pairs but this is ugly to document.
-
-  @abc.abstractmethod
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
-    """Parses multiple files from the client.
-
-    Args:
-      knowledge_base: A knowledgebase for the client to whome the files belong.
-      pathspecs: A list of pathspecs corresponding to the parsed files.
-      filedescs: A list fo file-like objects to parse.
-
-    Yields:
-      RDF values with parsed data.
-    """
-
-
-class Parser(with_metaclass(registry.MetaclassRegistry, object)):
-  """A class for looking up parsers.
-
-  Parsers may be in other libraries or third party code, this class keeps
-  references to each of them so they can be called by name by the artifacts.
-  """
-
-  # A list of string identifiers for artifacts that this parser can process.
-  supported_artifacts = []
-
-  # Any knowledgebase dependencies required by the parser. Dependencies required
-  # by the artifact itself will be inferred from the artifact definition.
-  knowledgebase_dependencies = []
-
-  # The semantic types that can be produced by this parser.
-  output_types = []
-
-  @classmethod
-  def GetClassesByArtifact(cls, artifact_name):
-    """Get the classes that support parsing a given artifact."""
-    return [
-        cls.classes[c]
-        for c in cls.classes
-        if artifact_name in cls.classes[c].supported_artifacts
-    ]
-
-  @classmethod
-  def GetDescription(cls):
-    if cls.__doc__:
-      return cls.__doc__.split("\n")[0]
-    else:
-      return ""
-
-
-# TODO(hanuszczak): This class should implement only one interface.
-class CommandParser(Parser, SingleResponseParser):
+class CommandParser(abstract.SingleResponseParser):
   """Abstract parser for processing command output.
 
   Must implement the Parse function.
 
   """
-
-  # Prevents this from automatically registering.
-  __abstract = True  # pylint: disable=g-bad-name
 
   # TODO(hanuszczak): This should probably be abstract or private.
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -181,14 +63,11 @@ class CommandParser(Parser, SingleResponseParser):
 
 # TODO(hanuszczak): This class should be removed - subclasses should implement
 # `SingleFileParser` directly.
-class FileParser(Parser, SingleFileParser):
+class FileParser(abstract.SingleFileParser):
   """Abstract parser for processing files output.
 
   Must implement the Parse function.
   """
-
-  # Prevents this from automatically registering.
-  __abstract = True  # pylint: disable=g-bad-name
 
   # TODO(hanuszczak): Make this abstract.
   # TODO(hanuszczak): Remove `knowledge_base` argument.
@@ -206,7 +85,7 @@ class FileParser(Parser, SingleFileParser):
 
 # TODO(hanuszczak): This class should be removed - subclasses should implement
 # `MultiFileParser` directly.
-class FileMultiParser(Parser, MultiFileParser):
+class FileMultiParser(abstract.MultiFileParser):
   """Abstract parser for processing files output."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -219,8 +98,7 @@ class FileMultiParser(Parser, MultiFileParser):
     return self.ParseMultiple(stat_entries, filedescs, knowledge_base)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class WMIQueryParser(Parser, MultiResponseParser):
+class WMIQueryParser(abstract.MultiResponseParser):
   """Abstract parser for processing WMI query output."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -234,8 +112,7 @@ class WMIQueryParser(Parser, MultiResponseParser):
     return self.ParseMultiple(responses)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class RegistryValueParser(Parser, SingleResponseParser):
+class RegistryValueParser(abstract.SingleResponseParser):
   """Abstract parser for processing Registry values."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -253,8 +130,7 @@ class RegistryValueParser(Parser, SingleResponseParser):
     return self.Parse(response, knowledge_base)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class RegistryParser(Parser, SingleResponseParser):
+class RegistryParser(abstract.SingleResponseParser):
   """Abstract parser for processing Registry values."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -269,8 +145,7 @@ class RegistryParser(Parser, SingleResponseParser):
     return self.Parse(response, knowledge_base)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class RegistryMultiParser(Parser, MultiResponseParser):
+class RegistryMultiParser(abstract.MultiResponseParser):
   """Abstract parser for processing registry values."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -283,8 +158,7 @@ class RegistryMultiParser(Parser, MultiResponseParser):
     return self.ParseMultiple(responses, knowledge_base)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class GrepParser(Parser, SingleResponseParser):
+class GrepParser(abstract.SingleResponseParser):
   """Parser for the results of grep artifacts."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -299,8 +173,7 @@ class GrepParser(Parser, SingleResponseParser):
     return self.Parse(response, knowledge_base)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class ArtifactFilesParser(Parser, SingleResponseParser):
+class ArtifactFilesParser(abstract.SingleResponseParser):
   """Abstract parser for processing artifact files."""
 
   # TODO(hanuszczak): Make this abstract.
@@ -312,8 +185,7 @@ class ArtifactFilesParser(Parser, SingleResponseParser):
     return self.Parse(response, knowledge_base, path_type)
 
 
-# TODO(hanuszczak): This class should implement only one interface.
-class ArtifactFilesMultiParser(Parser, MultiResponseParser):
+class ArtifactFilesMultiParser(abstract.MultiResponseParser):
   """Abstract multi-parser for processing artifact files."""
 
   # TODO(hanuszczak: Make this abstract.

@@ -55,7 +55,7 @@ class HttpApiRegressionTestMixinBase(object):
         logging.info("Picked free AdminUI port %d.", port)
 
         # Force creation of new APIAuthorizationManager.
-        api_auth_manager.APIACLInit.InitApiAuthManager()
+        api_auth_manager.InitializeApiAuthManager()
 
         trd = wsgiapp_testlib.ServerThread(
             port, name="ApiRegressionHttpConnectorV%d" % api_version)

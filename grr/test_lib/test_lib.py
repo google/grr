@@ -92,10 +92,10 @@ class GRRBaseTest(absltest.TestCase):
     aff4.FACTORY.Flush()
 
     # Create a Foreman and Filestores, they are used in many tests.
-    aff4_grr.GRRAFF4Init().Run()
-    filestore.FileStoreInit().Run()
-    hunts_results.ResultQueueInitHook().Run()
-    email_alerts.EmailAlerterInit().RunOnce()
+    aff4_grr.GRRAFF4Init()
+    filestore.FileStoreInit()
+    hunts_results.ResultQueueInit()
+    email_alerts.InitializeEmailAlerterOnce()
     audit.AuditEventListener._created_logs.clear()
 
     # Stub out the email function

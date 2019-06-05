@@ -4,8 +4,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_core.lib import parser
+from future.builtins import str
 
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import artifact_pb2
@@ -44,12 +45,11 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
           error_message=artifact_val.error_message,
           is_custom=artifact_val.loaded_from.startswith("datastore:"))
 
-      for processor in parser.Parser.GetClassesByArtifact(artifact_val.name):
+      factory = parsers.ArtifactParserFactory(str(artifact_val.name))
+      for parser in factory.AllParsers():
+        parser_cls = type(parser)
         descriptor.processors.append(
-            rdf_artifacts.ArtifactProcessorDescriptor(
-                name=processor.__name__,
-                output_types=processor.output_types,
-                description=processor.GetDescription()))
+            rdf_artifacts.ArtifactProcessorDescriptor.FromParser(parser_cls))
 
       result.append(descriptor)
 

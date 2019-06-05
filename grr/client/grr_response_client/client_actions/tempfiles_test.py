@@ -49,7 +49,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     fd = tempfiles.CreateGRRTempFile(filename="process.42.exe", mode="wb")
     fd.close()
     self.assertTrue(os.path.exists(fd.name))
-    self.assertTrue(os.path.basename(fd.name) == "process.42.exe")
+    self.assertEqual(os.path.basename(fd.name), "process.42.exe")
     tempfiles.DeleteGRRTempFile(fd.name)
     self.assertFalse(os.path.exists(fd.name))
 

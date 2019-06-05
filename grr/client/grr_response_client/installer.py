@@ -18,29 +18,20 @@ import sys
 
 
 from absl import flags
-from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import registry
 
-
-class Installer(
-    with_metaclass(registry.MetaclassRegistry, registry.HookRegistry)):
-  """A GRR installer plugin.
-
-  Modules can register special actions which only run on installation
-  by extending this base class. Execution order is controlled using
-  the same mechanism provided by HookRegistry - i.e. by declaring
-  "pre" and "order" attributes.
-  """
+if sys.platform == "darwin":
+  from grr_response_client.osx import installers  # pylint: disable=g-import-not-at-top
+elif sys.platform == "win32":
+  from grr_response_client.windows import installers  # pylint: disable=g-import-not-at-top
+else:
+  installers = None
 
 
 def RunInstaller():
-  """Run all registered installers.
-
-  Run all the current installers and then exit the process.
-  """
+  """Runs installers for the current platform."""
 
   try:
     os.makedirs(os.path.dirname(config.CONFIG["Installer.logfile"]))
@@ -66,16 +57,8 @@ def RunInstaller():
   config.CONFIG.AddContext(contexts.INSTALLER_CONTEXT,
                            "Context applied when we run the client installer.")
 
-  logging.warning("Starting installation procedure for GRR client.")
-  try:
-    Installer().Init()
-  except Exception as e:  # pylint: disable=broad-except
-    # Ouch! we failed to install... Not a lot we can do
-    # here - just log the error and give up.
-    logging.exception("Installation failed: %s", e)
-
-    # Error return status.
-    sys.exit(-1)
-
-  # Exit successfully.
-  sys.exit(0)
+  if installers is None:
+    logging.info("No installers found for %s.", sys.platform)
+  else:
+    logging.info("Starting installation procedure for GRR client.")
+    installers.Run()

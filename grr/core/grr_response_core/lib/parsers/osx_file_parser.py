@@ -22,7 +22,7 @@ from grr_response_core.lib.rdfvalues import plist as rdf_plist
 class OSXUsersParser(parser.ArtifactFilesMultiParser):
   """Parser for Glob of /Users/*."""
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["MacOSUsers"]
   blacklist = ["Shared"]
 
@@ -41,7 +41,7 @@ class OSXUsersParser(parser.ArtifactFilesMultiParser):
 
 class OSXSPHardwareDataTypeParser(parser.CommandParser):
   """Parser for the Hardware Data from System Profiler."""
-  output_types = ["HardwareInfo"]
+  output_types = [rdf_client.HardwareInfo]
   supported_artifacts = ["OSXSPHardwareDataType"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -69,7 +69,7 @@ class OSXSPHardwareDataTypeParser(parser.CommandParser):
 class OSXLaunchdPlistParser(parser.FileParser):
   """Parse Launchd plist files into LaunchdPlist objects."""
 
-  output_types = ["LaunchdPlist"]
+  output_types = [rdf_plist.LaunchdPlist]
   supported_artifacts = [
       "MacOSLaunchAgentsPlistFiles", "MacOSLaunchDaemonsPlistFiles"
   ]
@@ -190,7 +190,7 @@ class OSXLaunchdPlistParser(parser.FileParser):
 class OSXInstallHistoryPlistParser(parser.FileParser):
   """Parse InstallHistory plist files into SoftwarePackage objects."""
 
-  output_types = [rdf_client.SoftwarePackages.__name__]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["MacOSInstallationHistory"]
 
   def Parse(self, statentry, file_object, knowledge_base):

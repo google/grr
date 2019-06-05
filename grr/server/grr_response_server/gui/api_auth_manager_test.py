@@ -150,7 +150,7 @@ users:
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter2)
 
     router = auth_mgr.GetRouterForUser("u4")
-    self.assertTrue(router.__class__, DummyAuthManagerTestApiRouter3)
+    self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter3)
 
   def testMatchingByGroupWorks(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(

@@ -14,6 +14,7 @@ from google.oauth2 import id_token
 
 from grr_response_core import config
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
@@ -271,15 +272,14 @@ def SecurityCheck(func):
   return Wrapper
 
 
-class WebAuthInit(registry.InitHook):
+@utils.RunOnce
+def InitializeWebAuthOnce():
+  """Initializes WebAuth."""
+  global WEBAUTH_MANAGER  # pylint: disable=global-statement
 
-  def RunOnce(self):
-    """Run this once on init."""
-    global WEBAUTH_MANAGER  # pylint: disable=global-statement
+  # pylint: disable=g-bad-name
+  WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
+      config.CONFIG["AdminUI.webauth_manager"])()
 
-    # pylint: disable=g-bad-name
-    WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
-        config.CONFIG["AdminUI.webauth_manager"])()
-
-    # pylint: enable=g-bad-name
-    logging.info("Using webauth manager %s", WEBAUTH_MANAGER)
+  # pylint: enable=g-bad-name
+  logging.info("Using webauth manager %s", WEBAUTH_MANAGER)

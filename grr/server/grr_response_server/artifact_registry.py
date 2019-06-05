@@ -17,7 +17,7 @@ from future.utils import itervalues
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import objectfilter
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -145,31 +145,27 @@ class ArtifactRegistry(object):
     # to be deleted from the data store.
     to_delete = []
 
-    for artifact_coll_urn in self._sources.GetDatastores():
-      artifact_coll = ArtifactCollection(artifact_coll_urn)
+    artifact_list = []
 
-      if data_store.RelationalDBEnabled():
-        artifact_list = data_store.REL_DB.ReadAllArtifacts()
-      else:
-        artifact_list = list(artifact_coll)
+    if data_store.RelationalDBEnabled():
+      artifact_list = data_store.REL_DB.ReadAllArtifacts()
+    else:
+      for artifact_coll_urn in self._sources.GetDatastores():
+        artifact_list.extend(ArtifactCollection(artifact_coll_urn))
 
-      for artifact_value in artifact_list:
-        try:
-          self.RegisterArtifact(
-              artifact_value,
-              source="datastore:%s" % artifact_coll_urn,
-              overwrite_if_exists=True)
-          loaded_artifacts.append(artifact_value)
-          logging.debug("Loaded artifact %s from %s", artifact_value.name,
-                        artifact_coll_urn)
-        except rdf_artifacts.ArtifactDefinitionError as e:
-          # TODO(hanuszczak): String matching on exception message is rarely
-          # a good idea. Instead this should be refectored to some exception
-          # class and then handled separately.
-          if "system artifact" in str(e):
-            to_delete.append(artifact_value.name)
-          else:
-            raise
+    for artifact_value in artifact_list:
+      try:
+        self.RegisterArtifact(
+            artifact_value, source="datastore:", overwrite_if_exists=True)
+        loaded_artifacts.append(artifact_value)
+      except rdf_artifacts.ArtifactDefinitionError as e:
+        # TODO(hanuszczak): String matching on exception message is rarely
+        # a good idea. Instead this should be refectored to some exception
+        # class and then handled separately.
+        if "system artifact" in str(e):
+          to_delete.append(artifact_value.name)
+        else:
+          raise
 
     if to_delete:
       DeleteArtifactsFromDatastore(to_delete, reload_artifacts=False)
@@ -767,8 +763,9 @@ def GetArtifactParserDependencies(rdf_artifact):
     A set of strings for the required kb objects e.g.
     ["users.appdata", "systemroot"]
   """
+  factory = parsers.ArtifactParserFactory(str(rdf_artifact.name))
+
   deps = set()
-  processors = parser.Parser.GetClassesByArtifact(rdf_artifact.name)
-  for p in processors:
+  for p in factory.AllParsers():
     deps.update(p.knowledgebase_dependencies)
   return deps

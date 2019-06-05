@@ -422,14 +422,14 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
         cron_args=cron_args, token=self.token, job_id="TheJob")
     cron_job = cron_manager.ReadJob("TheJob", token=self.token)
     attr_values = list(cron_job.GetValuesForAttribute(cron_job.Schema.TYPE))
-    self.assertTrue(len(attr_values) == 1)
+    self.assertLen(attr_values, 1)
 
     # Reschedule the job. Check that we still have only one "TYPE" version.
     cron_manager.CreateJob(
         cron_args=cron_args, token=self.token, job_id="TheJob")
     cron_job = cron_manager.ReadJob("TheJob", token=self.token)
     attr_values = list(cron_job.GetValuesForAttribute(cron_job.Schema.TYPE))
-    self.assertTrue(len(attr_values) == 1)
+    self.assertLen(attr_values, 1)
 
   def testLastRunStatusGetsUpdatedOnEveryRun(self):
     job_id = "OccasionallyFailingFakeCronJob"

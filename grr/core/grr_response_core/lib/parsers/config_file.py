@@ -324,7 +324,7 @@ class KeyValueParser(FieldParser):
 class NfsExportsParser(parser.FileParser):
   """Parser for NFS exports."""
 
-  output_types = ["NfsExport"]
+  output_types = [rdf_config_file.NfsExport]
   supported_artifacts = ["NfsExportsFile"]
 
   def __init__(self, *args, **kwargs):
@@ -536,7 +536,7 @@ class SshdConfigParser(parser.FileParser):
   """A parser for sshd_config files."""
 
   supported_artifacts = ["SshdConfigFile"]
-  output_types = ["SshdConfig"]
+  output_types = [rdf_config_file.SshdConfig]
 
   def __init__(self, *args, **kwargs):
     super(SshdConfigParser, self).__init__(*args, **kwargs)
@@ -578,7 +578,7 @@ class SshdConfigCmdParser(parser.CommandParser):
   """A command parser for sshd -T output."""
 
   supported_artifacts = ["SshdConfigCmd"]
-  output_types = ["SshdConfig"]
+  output_types = [rdf_config_file.SshdConfig]
 
   def __init__(self, *args, **kwargs):
     super(SshdConfigCmdParser, self).__init__(*args, **kwargs)
@@ -598,7 +598,7 @@ class SshdConfigCmdParser(parser.CommandParser):
 
 class MtabParser(parser.FileParser):
   """Parser for mounted filesystem data acquired from /proc/mounts."""
-  output_types = ["Filesystem"]
+  output_types = [rdf_client_fs.Filesystem]
   supported_artifacts = ["LinuxProcMounts", "LinuxFstab"]
 
   def __init__(self, *args, **kwargs):
@@ -625,7 +625,7 @@ class MtabParser(parser.FileParser):
 
 class MountCmdParser(parser.CommandParser):
   """Parser for mounted filesystem data acquired from the mount command."""
-  output_types = ["Filesystem"]
+  output_types = [rdf_client_fs.Filesystem]
   supported_artifacts = ["LinuxMountCmd"]
 
   mount_re = re.compile(r"(.*) on (.*) type (.*) \((.*)\)")
@@ -709,7 +709,7 @@ class RsyslogFieldParser(FieldParser):
 class RsyslogParser(parser.FileMultiParser):
   """Artifact parser for syslog configurations."""
 
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["LinuxRsyslogConfigs"]
 
   def __init__(self, *args, **kwargs):
@@ -733,7 +733,7 @@ class RsyslogParser(parser.FileMultiParser):
 
 class PackageSourceParser(parser.FileParser):
   """Common code for APT and YUM source list parsing."""
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
 
   # Prevents this from automatically registering.
   __abstract = True  # pylint: disable=g-bad-name
@@ -841,7 +841,7 @@ class YumPackageSourceParser(PackageSourceParser):
 
 class CronAtAllowDenyParser(parser.FileParser):
   """Parser for /etc/cron.allow /etc/cron.deny /etc/at.allow & /etc/at.deny."""
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["CronAtAllowDenyFiles"]
 
   def Parse(self, stat, file_obj, unused_knowledge_base):
@@ -873,7 +873,7 @@ class CronAtAllowDenyParser(parser.FileParser):
 
 class NtpdFieldParser(FieldParser):
   """Field parser for ntpd.conf file."""
-  output_types = ["NtpConfig"]
+  output_types = [rdf_config_file.NtpConfig]
   supported_artifacts = ["NtpConfFile"]
 
   # The syntax is based on:
@@ -1149,7 +1149,7 @@ class SudoersFieldParser(FieldParser):
 class SudoersParser(parser.FileParser):
   """Artifact parser for privileged configuration files."""
 
-  output_types = ["SudoersConfig"]
+  output_types = [rdf_config_file.SudoersConfig]
   supported_artifacts = ["UnixSudoersConfiguration"]
 
   def __init__(self, *args, **kwargs):

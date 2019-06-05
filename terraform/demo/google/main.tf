@@ -186,7 +186,7 @@ resource "google_compute_instance" "grr-server" {
   depends_on = ["google_sql_database.grr-db"]
 
   name         = "grr-server"
-  machine_type = "n1-standard-1"
+  machine_type = "n1-standard-8"
   zone         = "${var.gce_region}-b"
 
   tags = ["admin-ui", "frontend"]

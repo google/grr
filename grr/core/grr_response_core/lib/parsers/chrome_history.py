@@ -19,7 +19,7 @@ from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 class ChromeHistoryParser(parser.FileParser):
   """Parse Chrome history files into BrowserHistoryItem objects."""
 
-  output_types = ["BrowserHistoryItem"]
+  output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["ChromeHistory"]
 
   def Parse(self, stat, file_object, knowledge_base):

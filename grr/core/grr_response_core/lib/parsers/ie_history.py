@@ -29,7 +29,7 @@ WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
 class IEHistoryParser(parser.FileParser):
   """Parse IE index.dat files into BrowserHistoryItem objects."""
 
-  output_types = ["BrowserHistoryItem"]
+  output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["InternetExplorerHistory"]
 
   def Parse(self, stat, file_object, knowledge_base):

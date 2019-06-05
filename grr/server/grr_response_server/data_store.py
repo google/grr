@@ -1532,61 +1532,59 @@ class DBSubjectLock(object):
     return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(self.expires / 1e6)
 
 
-class DataStoreInit(registry.InitHook):
+def _ListStorageOptions():
+  for name, cls in iteritems(DataStore.classes):
+    print("%s\t\t%s" % (name, cls.__doc__))
+
+
+def InitializeDataStore():
   """Initialize the data store.
 
   Depends on the stats module being initialized.
   """
+  global DB  # pylint: disable=global-statement
+  global REL_DB  # pylint: disable=global-statement
+  global BLOBS  # pylint: disable=global-statement
 
-  def _ListStorageOptions(self):
-    for name, cls in iteritems(DataStore.classes):
-      print("%s\t\t%s" % (name, cls.__doc__))
+  if flags.FLAGS.list_storage:
+    _ListStorageOptions()
+    sys.exit(0)
 
-  def Run(self):
-    """Initialize the data_store."""
-    global DB  # pylint: disable=global-statement
-    global REL_DB  # pylint: disable=global-statement
-    global BLOBS  # pylint: disable=global-statement
+  try:
+    cls = DataStore.GetPlugin(config.CONFIG["Datastore.implementation"])
+  except KeyError:
+    msg = ("No Storage System %s found." %
+           config.CONFIG["Datastore.implementation"])
+    if config.CONFIG["Datastore.implementation"] == "SqliteDataStore":
+      msg = "The SQLite datastore is no longer supported."
+    print(msg)
+    print("Available options:")
+    _ListStorageOptions()
+    raise ValueError(msg)
 
-    if flags.FLAGS.list_storage:
-      self._ListStorageOptions()
-      sys.exit(0)
+  DB = cls()  # pylint: disable=g-bad-name
+  DB.Initialize()
+  atexit.register(DB.Flush)
+  monitor_port = config.CONFIG["Monitoring.http_port"]
+  if monitor_port != 0:
+    DB.InitializeMonitorThread()
 
-    try:
-      cls = DataStore.GetPlugin(config.CONFIG["Datastore.implementation"])
-    except KeyError:
-      msg = ("No Storage System %s found." %
-             config.CONFIG["Datastore.implementation"])
-      if config.CONFIG["Datastore.implementation"] == "SqliteDataStore":
-        msg = "The SQLite datastore is no longer supported."
-      print(msg)
-      print("Available options:")
-      self._ListStorageOptions()
-      raise ValueError(msg)
+  # Initialize the blobstore.
+  blobstore_name = config.CONFIG.Get("Blobstore.implementation")
+  try:
+    cls = blob_store.REGISTRY[blobstore_name]
+  except KeyError:
+    raise ValueError("No blob store %s found." % blobstore_name)
+  BLOBS = blob_store.BlobStoreValidationWrapper(cls())
 
-    DB = cls()  # pylint: disable=g-bad-name
-    DB.Initialize()
-    atexit.register(DB.Flush)
-    monitor_port = config.CONFIG["Monitoring.http_port"]
-    if monitor_port != 0:
-      DB.InitializeMonitorThread()
+  # Initialize a relational DB if configured.
+  rel_db_name = config.CONFIG["Database.implementation"]
+  if not rel_db_name:
+    return
 
-    # Initialize the blobstore.
-    blobstore_name = config.CONFIG.Get("Blobstore.implementation")
-    try:
-      cls = blob_store.REGISTRY[blobstore_name]
-    except KeyError:
-      raise ValueError("No blob store %s found." % blobstore_name)
-    BLOBS = blob_store.BlobStoreValidationWrapper(cls())
-
-    # Initialize a relational DB if configured.
-    rel_db_name = config.CONFIG["Database.implementation"]
-    if not rel_db_name:
-      return
-
-    try:
-      cls = registry_init.REGISTRY[rel_db_name]
-    except KeyError:
-      raise ValueError("Database %s not found." % rel_db_name)
-    logging.info("Using database implementation %s", rel_db_name)
-    REL_DB = db.DatabaseValidationWrapper(cls())
+  try:
+    cls = registry_init.REGISTRY[rel_db_name]
+  except KeyError:
+    raise ValueError("Database %s not found." % rel_db_name)
+  logging.info("Using database implementation %s", rel_db_name)
+  REL_DB = db.DatabaseValidationWrapper(cls())

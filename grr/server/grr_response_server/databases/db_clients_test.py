@@ -9,6 +9,7 @@ from future.builtins import range
 from future.utils import iteritems
 from future.utils import iterkeys
 import mock
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1523,71 +1524,146 @@ class DatabaseTestClientsMixin(object):
         os_release="OSX",
         os_version="10.12.2",
         labels_dict={"GRR": ["grr-foo", "grr-bar", "grr-baz"]})
+    self._WriteTestClientsWithData(
+        range(13, 14),
+        last_ping=_DaysSinceEpoch(15),
+        client_name="GRR",
+        client_version=1111,
+        os="Darwin",
+        os_release="OSX",
+        os_version="10.12.2",
+        labels_dict={})  # Client has no labels.
+    self._WriteTestClientsWithData(
+        range(14, 15),
+        last_ping=_DaysSinceEpoch(15),
+        client_name="GRR",
+        client_version=1111,
+        os="Darwin",
+        os_release="OSX",
+        os_version="10.12.2",
+        labels_dict={"tester": ["tester-foo"]})  # Client has no GRR labels.
+    # Client with missing data.
+    self._WriteTestClientsWithData(
+        range(15, 16),
+        last_ping=_DaysSinceEpoch(15),
+        labels_dict={"GRR": ["grr-foo"]})
+    self._WriteTestClientsWithData(
+        range(16, 17),
+        last_ping=_DaysSinceEpoch(1),  # Ancient ping timestamp.
+        client_name="GRR",
+        client_version=1111,
+        os="Linux",
+        os_release="Ubuntu",
+        os_version="16.04",
+        labels_dict={"GRR": ["grr-foo", "grr-bar"]})
 
   def testCountClientVersionStringsByLabel(self):
     self._WriteTestDataForFleetStatsTesting()
     with test_lib.FakeTime(_DaysSinceEpoch(44)):
-      counts = self.db.CountClientVersionStringsByLabel({1, 2, 8, 30})
-      expected_counts = {
-          ("GRR 1111", "grr-foo", 2): 3,
-          ("GRR 1111", "grr-bar", 2): 3,
-          ("GRR 1111", "grr-baz", 2): 3,
-          ("GRR 1111", "grr-foo", 8): 3,
-          ("GRR 1111", "grr-bar", 8): 3,
-          ("GRR 1111", "grr-baz", 8): 3,
-          ("GRR 2222", "grr-foo", 8): 3,
-          ("GRR 2222", "grr-bar", 8): 3,
-          ("GRR 1111", "grr-foo", 30): 8,
-          ("GRR 1111", "grr-bar", 30): 8,
-          ("GRR 1111", "grr-baz", 30): 3,
-          ("GRR 2222", "grr-foo", 30): 3,
-          ("GRR 2222", "grr-bar", 30): 3,
+      fleet_stats = self.db.CountClientVersionStringsByLabel({1, 2, 8, 30})
+      for client_label in fleet_stats.GetAllLabels():
+        self.assertIsInstance(client_label, Text)
+      expected_label_counts = {
+          (2, "grr-foo", "GRR 1111"): 3,
+          (2, "grr-bar", "GRR 1111"): 3,
+          (2, "grr-baz", "GRR 1111"): 3,
+          (8, "grr-foo", "GRR 1111"): 3,
+          (8, "grr-bar", "GRR 1111"): 3,
+          (8, "grr-baz", "GRR 1111"): 3,
+          (8, "grr-foo", "GRR 2222"): 3,
+          (8, "grr-bar", "GRR 2222"): 3,
+          (30, "grr-foo", "GRR 1111"): 8,
+          (30, "grr-bar", "GRR 1111"): 8,
+          (30, "grr-baz", "GRR 1111"): 3,
+          (30, "grr-foo", "GRR 2222"): 3,
+          (30, "grr-bar", "GRR 2222"): 3,
+          (30, "grr-foo", " Unknown-GRR-version"): 1,
       }
-      self.assertDictEqual(counts, expected_counts)
+      expected_total_counts = {
+          (2, "GRR 1111"): 3,
+          (8, "GRR 1111"): 3,
+          (8, "GRR 2222"): 3,
+          (30, "GRR 1111"): 10,
+          (30, "GRR 2222"): 3,
+          (30, " Unknown-GRR-version"): 1,
+      }
+      self.assertDictEqual(fleet_stats.GetFlattenedLabelCounts(),
+                           expected_label_counts)
+      self.assertDictEqual(fleet_stats.GetFlattenedTotalCounts(),
+                           expected_total_counts)
 
   def testCountClientPlatformsByLabel(self):
     self._WriteTestDataForFleetStatsTesting()
     with test_lib.FakeTime(_DaysSinceEpoch(44)):
-      counts = self.db.CountClientPlatformsByLabel({1, 2, 8, 30})
-      expected_counts = {
-          ("Darwin", "grr-foo", 2): 3,
-          ("Darwin", "grr-bar", 2): 3,
-          ("Darwin", "grr-baz", 2): 3,
-          ("Darwin", "grr-foo", 8): 3,
-          ("Darwin", "grr-bar", 8): 3,
-          ("Darwin", "grr-baz", 8): 3,
-          ("Linux", "grr-foo", 8): 3,
-          ("Linux", "grr-bar", 8): 3,
-          ("Darwin", "grr-foo", 30): 3,
-          ("Darwin", "grr-bar", 30): 3,
-          ("Darwin", "grr-baz", 30): 3,
-          ("Linux", "grr-foo", 30): 8,
-          ("Linux", "grr-bar", 30): 8,
+      fleet_stats = self.db.CountClientPlatformsByLabel({1, 2, 8, 30})
+      for client_label in fleet_stats.GetAllLabels():
+        self.assertIsInstance(client_label, Text)
+      expected_label_counts = {
+          (2, "grr-foo", "Darwin"): 3,
+          (2, "grr-bar", "Darwin"): 3,
+          (2, "grr-baz", "Darwin"): 3,
+          (8, "grr-foo", "Darwin"): 3,
+          (8, "grr-bar", "Darwin"): 3,
+          (8, "grr-baz", "Darwin"): 3,
+          (8, "grr-foo", "Linux"): 3,
+          (8, "grr-bar", "Linux"): 3,
+          (30, "grr-foo", "Darwin"): 3,
+          (30, "grr-bar", "Darwin"): 3,
+          (30, "grr-baz", "Darwin"): 3,
+          (30, "grr-foo", "Linux"): 8,
+          (30, "grr-bar", "Linux"): 8,
+          (30, "grr-foo", ""): 1,
       }
-      self.assertDictEqual(counts, expected_counts)
+      expected_total_counts = {
+          (2, "Darwin"): 3,
+          (8, "Darwin"): 3,
+          (8, "Linux"): 3,
+          (30, "Darwin"): 5,
+          (30, "Linux"): 8,
+          (30, ""): 1,
+      }
+      self.assertDictEqual(fleet_stats.GetFlattenedLabelCounts(),
+                           expected_label_counts)
+      self.assertDictEqual(fleet_stats.GetFlattenedTotalCounts(),
+                           expected_total_counts)
 
   def testCountClientPlatformReleasesByLabel(self):
     self._WriteTestDataForFleetStatsTesting()
     with test_lib.FakeTime(_DaysSinceEpoch(44)):
-      counts = self.db.CountClientPlatformReleasesByLabel({1, 2, 8, 30})
-      expected_counts = {
-          ("Darwin-OSX-10.12.2", "grr-foo", 2): 3,
-          ("Darwin-OSX-10.12.2", "grr-bar", 2): 3,
-          ("Darwin-OSX-10.12.2", "grr-baz", 2): 3,
-          ("Darwin-OSX-10.12.2", "grr-foo", 8): 3,
-          ("Darwin-OSX-10.12.2", "grr-bar", 8): 3,
-          ("Darwin-OSX-10.12.2", "grr-baz", 8): 3,
-          ("Linux-Ubuntu-18.04", "grr-foo", 8): 3,
-          ("Linux-Ubuntu-18.04", "grr-bar", 8): 3,
-          ("Darwin-OSX-10.12.2", "grr-foo", 30): 3,
-          ("Darwin-OSX-10.12.2", "grr-bar", 30): 3,
-          ("Darwin-OSX-10.12.2", "grr-baz", 30): 3,
-          ("Linux-Ubuntu-18.04", "grr-foo", 30): 3,
-          ("Linux-Ubuntu-18.04", "grr-bar", 30): 3,
-          ("Linux-Ubuntu-16.04", "grr-foo", 30): 5,
-          ("Linux-Ubuntu-16.04", "grr-bar", 30): 5,
+      fleet_stats = self.db.CountClientPlatformReleasesByLabel({1, 2, 8, 30})
+      for client_label in fleet_stats.GetAllLabels():
+        self.assertIsInstance(client_label, Text)
+      expected_label_counts = {
+          (2, "grr-foo", "Darwin-OSX-10.12.2"): 3,
+          (2, "grr-bar", "Darwin-OSX-10.12.2"): 3,
+          (2, "grr-baz", "Darwin-OSX-10.12.2"): 3,
+          (8, "grr-foo", "Darwin-OSX-10.12.2"): 3,
+          (8, "grr-bar", "Darwin-OSX-10.12.2"): 3,
+          (8, "grr-baz", "Darwin-OSX-10.12.2"): 3,
+          (8, "grr-foo", "Linux-Ubuntu-18.04"): 3,
+          (8, "grr-bar", "Linux-Ubuntu-18.04"): 3,
+          (30, "grr-foo", "Darwin-OSX-10.12.2"): 3,
+          (30, "grr-bar", "Darwin-OSX-10.12.2"): 3,
+          (30, "grr-baz", "Darwin-OSX-10.12.2"): 3,
+          (30, "grr-foo", "Linux-Ubuntu-18.04"): 3,
+          (30, "grr-bar", "Linux-Ubuntu-18.04"): 3,
+          (30, "grr-foo", "Linux-Ubuntu-16.04"): 5,
+          (30, "grr-bar", "Linux-Ubuntu-16.04"): 5,
+          (30, "grr-foo", "--"): 1,
       }
-      self.assertDictEqual(counts, expected_counts)
+      expected_total_counts = {
+          (2, "Darwin-OSX-10.12.2"): 3,
+          (8, "Darwin-OSX-10.12.2"): 3,
+          (8, "Linux-Ubuntu-18.04"): 3,
+          (30, "Darwin-OSX-10.12.2"): 5,
+          (30, "Linux-Ubuntu-16.04"): 5,
+          (30, "Linux-Ubuntu-18.04"): 3,
+          (30, "--"): 1,
+      }
+      self.assertDictEqual(fleet_stats.GetFlattenedLabelCounts(),
+                           expected_label_counts)
+      self.assertDictEqual(fleet_stats.GetFlattenedTotalCounts(),
+                           expected_total_counts)
 
   @mock.patch.object(db, "_MAX_GRR_VERSION_LENGTH", 10)
   def testWriteClientSnapshotLongGRRVersion(self):

@@ -118,7 +118,7 @@ def GetRunlevelsNonLSB(states):
 class LinuxLSBInitParser(parser.FileMultiParser):
   """Parses LSB style /etc/init.d entries."""
 
-  output_types = ["LinuxServiceInformation"]
+  output_types = [rdf_client.LinuxServiceInformation]
   supported_artifacts = ["LinuxLSBInit"]
 
   def _Facilities(self, condition):
@@ -207,7 +207,7 @@ class LinuxLSBInitParser(parser.FileMultiParser):
 class LinuxXinetdParser(parser.FileMultiParser):
   """Parses xinetd entries."""
 
-  output_types = ["LinuxServiceInformation"]
+  output_types = [rdf_client.LinuxServiceInformation]
   supported_artifacts = ["LinuxXinetd"]
 
   def _ParseSection(self, section, cfg):
@@ -289,7 +289,7 @@ class LinuxSysVInitParser(parser.FileMultiParser):
     Anomalies if there are non-standard service startup definitions.
   """
 
-  output_types = ["LinuxServiceInformation"]
+  output_types = [rdf_client.LinuxServiceInformation]
   supported_artifacts = ["LinuxSysVInit"]
 
   runlevel_re = re.compile(r"/etc/rc(?:\.)?([0-6S]|local$)(?:\.d)?")

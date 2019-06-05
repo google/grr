@@ -526,7 +526,7 @@ class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
 class TestEchoCmdParser(parser.CommandParser):
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestEchoCmdArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -545,7 +545,7 @@ class TestEchoCmdParser(parser.CommandParser):
 
 class FakeFileParser(parser.FileParser):
 
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["FakeFileArtifact"]
 
   def Parse(self, stat, file_obj, knowledge_base):
@@ -564,7 +564,7 @@ class FakeFileParser(parser.FileParser):
 
 class FakeFileMultiParser(parser.FileMultiParser):
 
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["FakeFileArtifact2"]
 
   def ParseMultiple(self, stats, file_objects, knowledge_base):
@@ -587,7 +587,7 @@ class FakeFileMultiParser(parser.FileMultiParser):
 class ParseResponsesTest(client_test_lib.EmptyActionTest):
 
   @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parser.SingleResponseParser))
+                     factory.Factory(parsers.SingleResponseParser))
   def testCmdArtifactAction(self):
     """Test the actual client action with parsers."""
     parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("Cmd", TestEchoCmdParser)
@@ -616,7 +616,7 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     self.assertEqual(res.packages[0].description, "1\n")
 
   @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                     factory.Factory(parser.SingleFileParser))
+                     factory.Factory(parsers.SingleFileParser))
   def testFakeFileArtifactAction(self):
     """Test collecting a file artifact and parsing the response."""
     parsers.SINGLE_FILE_PARSER_FACTORY.Register("Fake", FakeFileParser)
@@ -642,7 +642,7 @@ class ParseResponsesTest(client_test_lib.EmptyActionTest):
     self.assertEqual(res.filename, file_path)
 
   @mock.patch.object(parsers, "MULTI_FILE_PARSER_FACTORY",
-                     factory.Factory(parser.MultiFileParser))
+                     factory.Factory(parsers.MultiFileParser))
   def testFakeFileArtifactActionProcessTogether(self):
     """Test collecting a file artifact and parsing the responses together."""
     parsers.MULTI_FILE_PARSER_FACTORY.Register("Fake", FakeFileMultiParser)

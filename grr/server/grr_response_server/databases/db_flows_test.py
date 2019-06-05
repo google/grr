@@ -1084,15 +1084,28 @@ class DatabaseTestFlowMixin(object):
 
     return request, responses
 
-  def test40000ResponsesCanBeWrittenAndRead(self):
-    request, responses = self._WriteResponses(40000)
+  def test40001RequestsCanBeWrittenAndRead(self):
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+
+    requests = [
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=i)
+        for i in range(40001)
+    ]
+    self.db.WriteFlowRequests(requests)
+
+    self.assertLen(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id), 40001)
+
+  def test40001ResponsesCanBeWrittenAndRead(self):
+    request, responses = self._WriteResponses(40001)
 
     expected_request = rdf_flow_objects.FlowRequest(
         client_id=request.client_id,
         flow_id=request.flow_id,
         request_id=request.request_id,
         needs_processing=True,
-        nr_responses_expected=40001)
+        nr_responses_expected=40002)
 
     rrp = self.db.ReadFlowRequestsReadyForProcessing(
         request.client_id,
@@ -2103,7 +2116,7 @@ class DatabaseTestFlowMixin(object):
     read_entries = self.db.ReadFlowOutputPluginLogEntries(
         client_id, flow_id, output_plugin_id, 0, 100)
 
-    self.assertEqual(len(written_entries), len(read_entries))
+    self.assertLen(written_entries, len(read_entries))
     self.assertEqual([e.message for e in written_entries],
                      [e.message for e in read_entries])
 
@@ -2139,7 +2152,7 @@ class DatabaseTestFlowMixin(object):
         0,
         100,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
-    self.assertEqual(len(read_entries), 4)
+    self.assertLen(read_entries, 4)
 
     read_entries = self.db.ReadFlowOutputPluginLogEntries(
         client_id,
@@ -2148,7 +2161,7 @@ class DatabaseTestFlowMixin(object):
         0,
         100,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
-    self.assertEqual(len(read_entries), 6)
+    self.assertLen(read_entries, 6)
 
   def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
     client_id, flow_id = self._SetupClientAndFlow()

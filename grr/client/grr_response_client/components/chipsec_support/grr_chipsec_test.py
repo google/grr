@@ -127,8 +127,8 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
     args = rdf_chipsec_types.DumpFlashImageRequest(log_level=1)
     self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
-    self.assertGreaterEqual(len(self.results), 1)
-    self.assertNotEquals(len(self.results[0].logs), 0)
+    self.assertNotEmpty(self.results)
+    self.assertNotEmpty(self.results[0].logs)
     self.assertEqual(self.results[0].path.path, "")
 
   def testDumpFlashImageOsHelperErrorChipset(self):
@@ -245,8 +245,8 @@ class TestDumpACPITable(GRRChipsecTest):
         table_signature="FACP", logging=True)
     self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
-    self.assertGreaterEqual(len(self.results), 1)
-    self.assertNotEquals(len(self.results[0].logs), 0)
+    self.assertNotEmpty(self.results)
+    self.assertNotEmpty(self.results[0].logs)
 
   def testDumpACPITableTriggeringDevMemError(self):
     """Tests the condition where OSError is triggered due to using /dev/mem.
@@ -257,8 +257,8 @@ class TestDumpACPITable(GRRChipsecTest):
     self.chipsec_mock.acpi.ACPI = MockACPIReadingRestrictedArea
     args = rdf_chipsec_types.DumpACPITableRequest(table_signature="FACP")
     self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
-    self.assertGreaterEqual(len(self.results), 1)
-    self.assertNotEquals(len(self.results[0].logs), 0)
+    self.assertNotEmpty(self.results)
+    self.assertNotEmpty(self.results[0].logs)
 
 
 def main(argv):

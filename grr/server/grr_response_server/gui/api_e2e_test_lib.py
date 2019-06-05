@@ -34,7 +34,7 @@ class ApiE2ETest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def setUp(self):
     super(ApiE2ETest, self).setUp()
 
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
     self.token.username = "api_test_robot_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
     self.CreateUser(self.token.username)
@@ -96,4 +96,4 @@ class RootApiE2ETest(ApiE2ETest):
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()

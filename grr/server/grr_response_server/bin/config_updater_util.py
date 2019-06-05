@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import argparse
 import getpass
 import os
 import re
@@ -21,6 +22,7 @@ import time
 from future import builtins
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
+from future.utils import string_types
 
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
@@ -36,6 +38,7 @@ from grr_response_server import server_plugins
 from grr_api_client import errors as api_errors
 from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
+from grr_response_core.lib.util import compatibility
 from grr_response_server import access_control
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
@@ -843,8 +846,41 @@ def SwitchToRelDB(config):
     # pytype: disable=wrong-arg-types
     password = getpass.getpass(
         prompt="Please enter password for database user %s: " % username)
+    # pytype: enable=wrong-arg-types
 
   config.Set("Mysql.username", username)
   config.Set("Mysql.password", password)
 
   print("Configuration updated.")
+
+
+def ArgparseBool(raw_value):
+  """Returns the boolean value of a raw argparse value.
+
+  When defining an argument with argparse, you would think it natural to
+  be able to set the type to 'bool' and then proceed to set it to
+  'True' and 'False' via the command line. Unfortunately, that is not possible.
+  Argparse will silently cast the raw string value of the argument by
+  calling 'bool()', meaning 'False' gets converted to True. This function is
+  meant to be used in place of the 'bool' builtin when defining argparse
+  arguments.
+
+  Args:
+    raw_value: The raw value of the argument, which is a string passed in via
+      the command line.
+
+  Raises:
+    ArgumentTypeError: If the raw value passed in is not a string equal to
+      'True' or 'False'.
+  """
+  if not isinstance(raw_value, string_types):
+    raise argparse.ArgumentTypeError("Unexpected type: %s. Expected a string." %
+                                     compatibility.GetName(type(raw_value)))
+
+  if raw_value.lower() == "true":
+    return True
+  elif raw_value.lower() == "false":
+    return False
+  else:
+    raise argparse.ArgumentTypeError(
+        "Invalid value encountered. Expected 'True' or 'False'.")

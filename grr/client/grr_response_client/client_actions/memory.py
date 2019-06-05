@@ -227,6 +227,9 @@ class YaraProcessDump(actions.ActionPlugin):
             return response
 
           end = start + length
+          # TODO: The filename is parsed on the server side to
+          # extract the memory address again. This should be changed by
+          # saving the `start` and `end` in YaraProcessDumpInformation.
           filename = "%s_%d_%x_%x.tmp" % (psutil_process.name(),
                                           psutil_process.pid, start, end)
           filepath = os.path.join(tmp_dir.path, filename)

@@ -52,7 +52,20 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
         "grr-form-proto-single-field:has(label:contains('Pathtype')) "
         "select", "TSK")
 
-    # Click on "Next" button
+    # Click on "Next" button. Expect "Hunt parameters" page.
+    self.Click("css=grr-new-cron-job-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Hunt parameters")
+
+    self.Type(
+        "css=grr-new-cron-job-wizard-form "
+        "grr-form-proto-single-field:has(label:contains('Description')) "
+        "input", "Periodical hunt")
+    self.Type(
+        "css=grr-new-cron-job-wizard-form "
+        "grr-form-proto-single-field:has(label:contains('Client Limit')) "
+        "input", "4242")
+
+    # Click on "Next" button. Expect "Output Processing" page.
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Output Processing")
 
@@ -65,7 +78,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
         "grr-form-proto-single-field:has(label:contains('Filepath Regex')) "
         "input", "some regex")
 
-    # Click on "Next" button
+    # Click on "Next" button. Expect "Where to run?" page.
     self.Click("css=.Wizard button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
 
@@ -100,13 +113,17 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-cron-job-wizard-form div.well "
                "label:contains('Os darwin') ~ * input[type=checkbox]")
 
-    # Click on "Next" button
+    # Click on "Next" button. Expect "Review" page.
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that the arguments summary is present.
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
+
+    # Check that hunt parameters are correct.
+    self.assertTrue(self.IsTextPresent("Periodical hunt"))
+    self.assertTrue(self.IsTextPresent("4242"))
 
     # Check that output plugins are shown.
     self.assertTrue(self.IsTextPresent("DummyOutputPlugin"))

@@ -22,7 +22,7 @@ from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import with_metaclass
-from typing import Generator, List, Optional, Text, Tuple, Iterable, Dict
+from typing import Generator, List, Optional, Set, Text, Tuple, Iterable, Dict
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import time_utils
@@ -36,6 +36,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_server import fleet_utils
 from grr_response_server import foreman_rules
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -1023,7 +1024,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def CountClientVersionStringsByLabel(self, day_buckets):
+  def CountClientVersionStringsByLabel(self, day_buckets
+                                      ):
     """Computes client-activity stats for all GRR versions in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1035,15 +1037,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         bucket.
 
     Returns:
-      A dict that maps 3-tuples to integer counts. Each tuple represents
-      dimensions by which clients in the DB were counted, which, in order, are:
-        - A GRR version string, e.g 'GRR windows amd64 3214'.
-        - A client label.
-        - An element of the 'day_buckets' set provided to the function.
+       A FleetStats object containing the results.
     """
 
   @abc.abstractmethod
-  def CountClientPlatformsByLabel(self, day_buckets):
+  def CountClientPlatformsByLabel(self, day_buckets
+                                 ):
     """Computes client-activity stats for all client platforms in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1055,15 +1054,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         bucket.
 
     Returns:
-      A dict that maps 3-tuples to integer counts. Each tuple represents
-      dimensions by which clients in the DB were counted, which, in order, are:
-        - A client platform, e.g. Linux.
-        - A client label.
-        - An element of the 'day_buckets' set provided to the function.
+       A FleetStats object containing the results.
     """
 
   @abc.abstractmethod
-  def CountClientPlatformReleasesByLabel(self, day_buckets):
+  def CountClientPlatformReleasesByLabel(self, day_buckets
+                                        ):
     """Computes client-activity stats for client OS-release strings in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1075,11 +1071,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         bucket.
 
     Returns:
-      A dict that maps 3-tuples to integer counts. Each tuple represents
-      dimensions by which clients in the DB were counted, which, in order, are:
-        - An OS-release string, e.g 'Linux-CentOS Linux-7.6.1810'.
-        - A client label.
-        - An element of the 'day_buckets' set provided to the function.
+       A FleetStats object containing the results.
     """
 
   @abc.abstractmethod
@@ -2980,15 +2972,18 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.WriteForemanRule(rule)
 
-  def CountClientVersionStringsByLabel(self, day_buckets):
+  def CountClientVersionStringsByLabel(self, day_buckets
+                                      ):
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientVersionStringsByLabel(day_buckets)
 
-  def CountClientPlatformsByLabel(self, day_buckets):
+  def CountClientPlatformsByLabel(self, day_buckets
+                                 ):
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientPlatformsByLabel(day_buckets)
 
-  def CountClientPlatformReleasesByLabel(self, day_buckets):
+  def CountClientPlatformReleasesByLabel(self, day_buckets
+                                        ):
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientPlatformReleasesByLabel(day_buckets)
 

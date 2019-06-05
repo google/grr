@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import pdb
+import sys
 
 from absl import app
 from absl import flags
@@ -36,6 +37,7 @@ def main(unused_args):
 
   if flags.FLAGS.install:
     installer.RunInstaller()
+    sys.exit(0)
 
   if not config.CONFIG["Client.fleetspeak_enabled"]:
     raise ValueError(

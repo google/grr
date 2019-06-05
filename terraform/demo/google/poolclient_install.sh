@@ -9,10 +9,12 @@ apt install -y ./grr_client.deb
 
 GRR_DIR_NAME=$(ls /usr/lib/grr)
 
-mkdir /tmp/writebacks
+mkdir -p /tmp/writebacks
+mkdir -p /tmp/transaction_logs
 for ((i=0; i<${num_clients}; i++))
 do
   /usr/lib/grr/$${GRR_DIR_NAME}/grrd \
     --config /usr/lib/grr/$${GRR_DIR_NAME}/grrd.yaml \
-    -p Config.writeback=/tmp/writebacks/$${i}.yaml &
+    -p Config.writeback=/tmp/writebacks/$${i}.yaml \
+    -p Client.transaction_log_file=/tmp/transaction_logs/$${i}.log &
 done

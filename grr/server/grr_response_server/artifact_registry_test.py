@@ -11,6 +11,9 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.util import temp
 from grr_response_server import artifact_registry as ar
+from grr_response_server import data_store
+from grr.test_lib import db_test_lib
+from grr.test_lib import skip
 from grr.test_lib import test_lib
 
 
@@ -272,6 +275,24 @@ class ArtifactSourceTest(absltest.TestCase):
     with self.assertRaisesRegexp(rdf_artifacts.ArtifactSourceSyntaxError,
                                  expected):
       source.Validate()
+
+
+@db_test_lib.DualDBTest
+class ArtifactRegistryTest(absltest.TestCase):
+
+  @skip.Unless(
+      data_store.RelationalDBEnabled,
+      reason="Case only applicable for relational database.")
+  def testDatabaseArtifactsAreLoadedEvenIfNoDatastoreIsRegistered(self):
+    rel_db = data_store.REL_DB
+
+    artifact = rdf_artifacts.Artifact(name="Foo")
+    rel_db.WriteArtifact(artifact)
+
+    registry = ar.ArtifactRegistry()
+    registry.ReloadDatastoreArtifacts()
+
+    self.assertIsNotNone(registry.GetArtifact("Foo"))
 
 
 if __name__ == "__main__":

@@ -78,12 +78,12 @@ class IPResolver(IPResolverBase):
 IP_RESOLVER = None
 
 
-class IPResolverInit(registry.InitHook):
+@utils.RunOnce
+def IPResolverInitOnce():
+  """Initializes IP resolver."""
+  global IP_RESOLVER
+  ip_resolver_cls_name = config.CONFIG["Server.ip_resolver_class"]
+  logging.debug("Using ip resolver: %s", ip_resolver_cls_name)
+  cls = IPResolverBase.GetPlugin(ip_resolver_cls_name)
 
-  def RunOnce(self):
-    global IP_RESOLVER
-    ip_resolver_cls_name = config.CONFIG["Server.ip_resolver_class"]
-    logging.debug("Using ip resolver: %s", ip_resolver_cls_name)
-    cls = IPResolverBase.GetPlugin(ip_resolver_cls_name)
-
-    IP_RESOLVER = cls()
+  IP_RESOLVER = cls()

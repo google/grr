@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.util import collection
+from grr_response_server import fleet_utils
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
@@ -130,23 +131,21 @@ class MySQLDBClientMixin(object):
 
     now = rdfvalue.RDFDatetime.Now()
 
-    client_platform = snapshot.knowledge_base.os
     current_timestamp = mysql_utils.RDFDatetimeToTimestamp(now)
     client_info = {
         "last_snapshot_timestamp": current_timestamp,
         "last_startup_timestamp": current_timestamp,
         "last_version_string": snapshot.GetGRRVersionString(),
+        "last_platform": snapshot.knowledge_base.os,
         "last_platform_release": snapshot.Uname(),
     }
     update_clauses = [
         "last_snapshot_timestamp = FROM_UNIXTIME(%(last_snapshot_timestamp)s)",
         "last_startup_timestamp = FROM_UNIXTIME(%(last_startup_timestamp)s)",
         "last_version_string = %(last_version_string)s",
+        "last_platform = %(last_platform)s",
         "last_platform_release = %(last_platform_release)s",
     ]
-    if client_platform:
-      client_info["last_platform"] = client_platform
-      update_clauses.append("last_platform = %(last_platform)s")
 
     update_query = (
         "UPDATE clients SET {} WHERE client_id = %(client_id)s".format(
@@ -840,6 +839,7 @@ class MySQLDBClientMixin(object):
       timestamp_buckets.append(
           mysql_utils.RDFDatetimeToTimestamp(timestamp_bucket))
 
+    # Count all clients with a label owned by 'GRR', aggregating by label.
     query = """
     SELECT j.{statistic}, j.label, {sum_clauses}
     FROM (
@@ -856,12 +856,38 @@ class MySQLDBClientMixin(object):
 
     cursor.execute(query, timestamp_buckets)
 
-    counts = {}
+    fleet_stats_builder = fleet_utils.FleetStatsBuilder(day_buckets)
     for response_row in cursor.fetchall():
       statistic_value, client_label = response_row[:2]
       for i, num_actives in enumerate(response_row[2:]):
         if num_actives <= 0:
           continue
-        stats_key = (statistic_value, client_label, day_buckets[i])
-        counts[stats_key] = num_actives
-    return counts
+        fleet_stats_builder.IncrementLabel(
+            client_label, statistic_value, day_buckets[i], delta=num_actives)
+
+    # Get n-day-active totals for the statistic across all clients (including
+    # those that do not have a 'GRR' label).
+    query = """
+    SELECT j.{statistic}, {sum_clauses}
+    FROM (
+      SELECT c.{statistic} AS {statistic}, {ping_cast_clauses}
+      FROM clients c
+      WHERE c.last_ping IS NOT NULL
+    ) AS j
+    GROUP BY j.{statistic}
+    """.format(
+        statistic=statistic,
+        sum_clauses=", ".join(sum_clauses),
+        ping_cast_clauses=", ".join(ping_cast_clauses))
+
+    cursor.execute(query, timestamp_buckets)
+
+    for response_row in cursor.fetchall():
+      statistic_value = response_row[0]
+      for i, num_actives in enumerate(response_row[1:]):
+        if num_actives <= 0:
+          continue
+        fleet_stats_builder.IncrementTotal(
+            statistic_value, day_buckets[i], delta=num_actives)
+
+    return fleet_stats_builder.Build()

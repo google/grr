@@ -152,7 +152,7 @@ class ApiRegressionTest(
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
     # Force creation of new APIAuthorizationManager.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
     config_overrider = test_lib.ConfigOverrider({
         # For regression tests we want to use a fixed version number instead of

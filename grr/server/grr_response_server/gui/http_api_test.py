@@ -162,7 +162,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     self.addCleanup(config_overrider.Stop)
 
     # Make sure ApiAuthManager is initialized with this configuration setting.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
     self.router_matcher = http_api.RouterMatcher()
 
@@ -229,7 +229,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
     # Make sure ApiAuthManager is initialized with this configuration setting.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
     self.request_handler = http_api.HttpRequestHandler()
 

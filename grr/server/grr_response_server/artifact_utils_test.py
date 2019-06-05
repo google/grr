@@ -8,17 +8,15 @@ import os
 
 from absl import app
 from future.builtins import str
-from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parser
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 
 
@@ -120,7 +118,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
         os_name="Windows", provides=["users.homedir", "domain"])
 
     self.assertCountEqual(set([a.name for a in result_objs]), results_names)
-    self.assertTrue(len(results_names))
+    self.assertNotEmpty(results_names)
 
     results_names = registry.GetArtifactNames(
         os_name="Darwin", provides=["users.username"])
@@ -275,23 +273,6 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
                           ["C:\\Users\\jason\\AppData\\Local\\Temp\\jason.txt"])
 
 
-class ArtifactParserTest(test_lib.GRRBaseTest):
-
-  def testParsersRetrieval(self):
-    """Check the parsers are valid."""
-    for processor in itervalues(parser.Parser.classes):
-      if (not hasattr(processor, "output_types") or
-          not isinstance(processor.output_types, (list, tuple))):
-        raise parser.ParserDefinitionError(
-            "Missing output_types on %s" % processor)
-
-      for output_type in processor.output_types:
-        if output_type not in rdfvalue.RDFValue.classes:
-          raise parser.ParserDefinitionError(
-              "Parser %s has an output type that is an unknown type %s" %
-              (processor, output_type))
-
-
 class UserMergeTest(test_lib.GRRBaseTest):
 
   def testUserMergeWindows(self):
@@ -353,6 +334,24 @@ class UserMergeTest(test_lib.GRRBaseTest):
         [("desktop", u"/home/blake/Desktop", u"/home/blakey/Desktop")])
 
 
+class Parser1(parsers.SingleResponseParser):
+
+  supported_artifacts = ["artifact"]
+  knowledgebase_dependencies = ["appdata", "sid"]
+
+  def ParseResponse(self, knowledge_base, response, path_type):
+    raise NotImplementedError()
+
+
+class Parser2(parsers.MultiFileParser):
+
+  supported_artifacts = ["artifact"]
+  knowledgebase_dependencies = ["sid", "desktop"]
+
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    raise NotImplementedError()
+
+
 class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test the Artifact implementation."""
 
@@ -367,6 +366,8 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         urls="http://blah")
     return result
 
+  @parser_test_lib.WithParser("Parser1", Parser1)
+  @parser_test_lib.WithParser("Parser2", Parser2)
   def testGetArtifactPathDependencies(self):
     sources = [{
         "type": rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
@@ -403,23 +404,11 @@ class ArtifactTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         [x["type"] for x in artifact.ToPrimitiveDict()["sources"]],
         ["REGISTRY_KEY", "WMI", "GREP"])
 
-    class Parser1(object):
-      knowledgebase_dependencies = ["appdata", "sid"]
-
-    class Parser2(object):
-      knowledgebase_dependencies = ["sid", "desktop"]
-
-    @classmethod
-    def MockGetClassesByArtifact(unused_cls, _):
-      return [Parser1, Parser2]
-
-    with utils.Stubber(parser.Parser, "GetClassesByArtifact",
-                       MockGetClassesByArtifact):
-      self.assertCountEqual(
-          ar.GetArtifactPathDependencies(artifact), [
-              "appdata", "sid", "desktop", "current_control_set", "users.sid",
-              "users.username"
-          ])
+    self.assertCountEqual(
+        ar.GetArtifactPathDependencies(artifact), [
+            "appdata", "sid", "desktop", "current_control_set", "users.sid",
+            "users.username"
+        ])
 
   def testValidateSyntax(self):
     sources = [{

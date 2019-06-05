@@ -289,7 +289,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
       self.assertEqual(hunt.args.standard.flow_args.pathtype,
                        rdf_paths.PathSpec.PathType.TSK)
       # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
-      self.assertTrue(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
+      self.assertEqual(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
 
       # Check that hunt was not started
       self.assertEqual(hunt.hunt_state, hunt.HuntState.PAUSED)
@@ -311,8 +311,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
       self.assertEqual(hunt.args.flow_args.pathtype,
                        rdf_paths.PathSpec.PathType.TSK)
       # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
-      self.assertTrue(hunt.runner_args.output_plugins[0].plugin_name,
-                      "DummyOutputPlugin")
+      self.assertEqual(hunt.runner_args.output_plugins[0].plugin_name,
+                       "DummyOutputPlugin")
 
       # Check that hunt was not started
       self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")

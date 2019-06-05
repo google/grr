@@ -9,7 +9,6 @@ import functools
 import mock
 
 from grr_response_core.lib import factory
-from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import all as all_parsers
 
@@ -43,13 +42,13 @@ def WithAllParsers(func):
   @functools.wraps(func)
   def Wrapper(*args, **kwargs):  # pylint: disable=missing-docstring
     with mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                           factory.Factory(parser.SingleResponseParser)),\
+                           factory.Factory(parsers.SingleResponseParser)),\
          mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                           factory.Factory(parser.SingleFileParser)),\
+                           factory.Factory(parsers.SingleFileParser)),\
          mock.patch.object(parsers, "MULTI_RESPONSE_PARSER_FACTORY",
-                           factory.Factory(parser.MultiResponseParser)),\
+                           factory.Factory(parsers.MultiResponseParser)),\
          mock.patch.object(parsers, "MULTI_FILE_PARSER_FACTORY",
-                           factory.Factory(parser.MultiFileParser)):
+                           factory.Factory(parsers.MultiFileParser)):
       all_parsers.Register()
       func(*args, **kwargs)
 
@@ -64,23 +63,23 @@ class _ParserContext(object):
     self._parser = parser_cls
 
   def __enter__(self):
-    if issubclass(self._parser, parser.SingleResponseParser):
+    if issubclass(self._parser, parsers.SingleResponseParser):
       parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(self._name, self._parser)
-    if issubclass(self._parser, parser.SingleFileParser):
+    if issubclass(self._parser, parsers.SingleFileParser):
       parsers.SINGLE_FILE_PARSER_FACTORY.Register(self._name, self._parser)
-    if issubclass(self._parser, parser.MultiResponseParser):
+    if issubclass(self._parser, parsers.MultiResponseParser):
       parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(self._name, self._parser)
-    if issubclass(self._parser, parser.MultiFileParser):
+    if issubclass(self._parser, parsers.MultiFileParser):
       parsers.MULTI_FILE_PARSER_FACTORY.Register(self._name, self._parser)
 
   def __exit__(self, exc_type, exc_value, traceback):
     del exc_type, exc_value, traceback  # Unused.
 
-    if issubclass(self._parser, parser.SingleResponseParser):
+    if issubclass(self._parser, parsers.SingleResponseParser):
       parsers.SINGLE_RESPONSE_PARSER_FACTORY.Unregister(self._name)
-    if issubclass(self._parser, parser.SingleFileParser):
+    if issubclass(self._parser, parsers.SingleFileParser):
       parsers.SINGLE_FILE_PARSER_FACTORY.Unregister(self._name)
-    if issubclass(self._parser, parser.MultiResponseParser):
+    if issubclass(self._parser, parsers.MultiResponseParser):
       parsers.MULTI_RESPONSE_PARSER_FACTORY.Unregister(self._name)
-    if issubclass(self._parser, parser.MultiFileParser):
+    if issubclass(self._parser, parsers.MultiFileParser):
       parsers.MULTI_FILE_PARSER_FACTORY.Unregister(self._name)

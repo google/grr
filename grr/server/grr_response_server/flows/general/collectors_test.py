@@ -23,6 +23,7 @@ from grr_response_core import config
 from grr_response_core.lib import factory
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -30,6 +31,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import aff4
 from grr_response_server import aff4_flows
@@ -475,6 +477,124 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.assertCountEqual(results_by_tag.keys(),
                             ["artifact:FakeArtifact", "artifact:FakeArtifact2"])
 
+  def testOldClientSnapshotFallbackIfInterpolationFails(self):
+    rel_db = data_store.REL_DB
+    client_id = "C.0123456789abcdef"
+
+    rel_db.WriteClientMetadata(client_id, first_seen=rdfvalue.RDFDatetime.Now())
+
+    # Write some fake snapshot history.
+    kb_0 = rdf_client.KnowledgeBase(os="Linux")
+    kb_0.users = [
+        rdf_client.User(username="user1"),
+        rdf_client.User(username="user2"),
+    ]
+    snapshot_0 = rdf_objects.ClientSnapshot(
+        client_id=client_id, knowledge_base=kb_0)
+    rel_db.WriteClientSnapshot(snapshot_0)
+
+    kb_1 = rdf_client.KnowledgeBase(os="Linux")
+    snapshot_1 = rdf_objects.ClientSnapshot(
+        client_id=client_id, knowledge_base=kb_1)
+    rel_db.WriteClientSnapshot(snapshot_1)
+
+    kb_2 = rdf_client.KnowledgeBase(os="Linux")
+    snapshot_2 = rdf_objects.ClientSnapshot(
+        client_id=client_id, knowledge_base=kb_2)
+    rel_db.WriteClientSnapshot(snapshot_2)
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+
+      filesystem_test_lib.CreateFile(
+          os.path.join(dirpath, "user1", "quux", "thud"))
+      filesystem_test_lib.CreateFile(
+          os.path.join(dirpath, "user2", "quux", "norf"))
+
+      # Write a fake artifact.
+      path = os.path.join(dirpath, "%%users.username%%", "quux", "*")
+      art = rdf_artifacts.Artifact(
+          name="Quux",
+          doc="Lorem ipsum.",
+          sources=[
+              rdf_artifacts.ArtifactSource(
+                  type=rdf_artifacts.ArtifactSource.SourceType.DIRECTORY,
+                  attributes={
+                      "paths": [path],
+                  }),
+          ])
+      rel_db.WriteArtifact(art)
+
+      artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(collectors.ArtifactCollectorFlow),
+          client_mock=action_mocks.GlobClientMock(),
+          client_id=client_id,
+          artifact_list=["Quux"],
+          old_client_snapshot_fallback=True,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    self.assertNotEmpty(results)
+
+    basenames = [os.path.basename(result.pathspec.path) for result in results]
+    self.assertCountEqual(basenames, ["thud", "norf"])
+
+  def testOldClientSnapshotFallbackUsesLatestApplicable(self):
+    rel_db = data_store.REL_DB
+    client_id = "C.0123456789abcdef"
+
+    rel_db.WriteClientMetadata(client_id, first_seen=rdfvalue.RDFDatetime.Now())
+
+    # Write some fake snapshot history.
+    kb_0 = rdf_client.KnowledgeBase(os="Linux", os_release="rel0")
+    snapshot_0 = rdf_objects.ClientSnapshot(
+        client_id=client_id, knowledge_base=kb_0)
+    rel_db.WriteClientSnapshot(snapshot_0)
+
+    kb_1 = rdf_client.KnowledgeBase(os="Linux", os_release="rel1")
+    snapshot_1 = rdf_objects.ClientSnapshot(
+        client_id=client_id, knowledge_base=kb_1)
+    rel_db.WriteClientSnapshot(snapshot_1)
+
+    kb_2 = rdf_client.KnowledgeBase(os="Linux")
+    snapshot_2 = rdf_objects.ClientSnapshot(
+        client_id=client_id, knowledge_base=kb_2)
+    rel_db.WriteClientSnapshot(snapshot_2)
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+
+      filesystem_test_lib.CreateFile(os.path.join(dirpath, "rel0", "quux"))
+      filesystem_test_lib.CreateFile(os.path.join(dirpath, "rel1", "norf"))
+
+      # Write a fake artifact.
+      art = rdf_artifacts.Artifact(
+          name="Quux",
+          doc="Lorem ipsum.",
+          sources=[
+              rdf_artifacts.ArtifactSource(
+                  type=rdf_artifacts.ArtifactSource.SourceType.DIRECTORY,
+                  attributes={
+                      "paths": [os.path.join(dirpath, "%%os_release%%", "*")],
+                  }),
+          ])
+      rel_db.WriteArtifact(art)
+
+      artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(collectors.ArtifactCollectorFlow),
+          client_mock=action_mocks.GlobClientMock(),
+          client_id=client_id,
+          artifact_list=["Quux"],
+          old_client_snapshot_fallback=True,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    self.assertNotEmpty(results)
+
+    basenames = [os.path.basename(result.pathspec.path) for result in results]
+    self.assertNotIn("quux", basenames)
+    self.assertIn("norf", basenames)
+
 
 class MeetsConditionsTest(test_lib.GRRBaseTest):
   """Test the module-level method `MeetsConditions`."""
@@ -719,7 +839,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
 
 class TestCmdParser(parser.CommandParser):
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestEchoArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -738,7 +858,7 @@ class TestCmdParser(parser.CommandParser):
 
 class TestFileParser(parser.FileParser):
 
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["TestFileArtifact"]
 
   def Parse(self, stat, file_obj, knowledge_base):
@@ -1032,7 +1152,7 @@ sources:
         self.assertEqual(artifact_response, expected)
 
   @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parser.SingleResponseParser))
+                     factory.Factory(parsers.SingleResponseParser))
   def testCmdArtifactWithParser(self):
     """Test a command artifact and parsing the response."""
 
@@ -1067,7 +1187,7 @@ sources:
       parsers.SINGLE_RESPONSE_PARSER_FACTORY.Unregister("TestCmd")
 
   @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                     factory.Factory(parser.SingleFileParser))
+                     factory.Factory(parsers.SingleFileParser))
   def testFileArtifactWithParser(self):
     """Test collecting a file artifact and parsing the response."""
     parsers.SINGLE_FILE_PARSER_FACTORY.Register("TestFile", TestFileParser)

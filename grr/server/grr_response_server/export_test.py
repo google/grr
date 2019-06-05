@@ -293,7 +293,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual("", results[0].metadata.annotations)
 
   def testStatEntryToExportedFileConverterWithHashedAFF4File(self):
-    filestore.FileStoreInit().Run()
+    filestore.FileStoreInit()
 
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -530,7 +530,7 @@ class ExportTest(ExportTestBase):
     converter = export.RDFURNConverter()
     results = list(converter.Convert(self.metadata, urn, token=self.token))
 
-    self.assertTrue(len(results))
+    self.assertNotEmpty(results)
 
     exported_files = [
         r for r in results if r.__class__.__name__ == "ExportedFile"
@@ -882,7 +882,7 @@ class ExportTest(ExportTestBase):
     converter = export.RDFBytesToExportedBytesConverter()
     results = list(converter.Convert(self.metadata, data, token=self.token))
 
-    self.assertTrue(len(results))
+    self.assertNotEmpty(results)
 
     exported_bytes = [
         r for r in results if r.__class__.__name__ == "ExportedBytes"

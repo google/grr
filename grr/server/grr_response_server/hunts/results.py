@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 from grr_response_server import access_control
@@ -124,19 +123,19 @@ class HuntResultCollection(sequential_collection.GrrMessageCollection):
     return ts
 
 
-class ResultQueueInitHook(registry.InitHook):
-  pre = [aff4.AFF4InitHook]
+def ResultQueueInit():
+  """Deprecated."""
+  # Requires aff4.AFF4Init.
 
-  def Run(self):
-    if not data_store.AFF4Enabled():
-      return
+  if not data_store.AFF4Enabled():
+    return
 
-    try:
-      with aff4.FACTORY.Create(
-          RESULT_NOTIFICATION_QUEUE,
-          HuntResultQueue,
-          mode="w",
-          token=aff4.FACTORY.root_token):
-        pass
-    except access_control.UnauthorizedAccess:
+  try:
+    with aff4.FACTORY.Create(
+        RESULT_NOTIFICATION_QUEUE,
+        HuntResultQueue,
+        mode="w",
+        token=aff4.FACTORY.root_token):
       pass
+  except access_control.UnauthorizedAccess:
+    pass

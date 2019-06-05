@@ -22,7 +22,6 @@ from google.protobuf import json_format
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
@@ -612,9 +611,9 @@ def RenderHttpResponse(request):
 HTTP_REQUEST_HANDLER = None
 
 
-class HttpApiInitHook(registry.InitHook):
+@utils.RunOnce
+def InitializeHttpRequestHandlerOnce():
   """Register HTTP API handlers."""
 
-  def RunOnce(self):
-    global HTTP_REQUEST_HANDLER
-    HTTP_REQUEST_HANDLER = HttpRequestHandler()
+  global HTTP_REQUEST_HANDLER
+  HTTP_REQUEST_HANDLER = HttpRequestHandler()

@@ -30,7 +30,7 @@ class ForemanTests(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ForemanTests, self).setUp()
-    aff4_grr.GRRAFF4Init().Run()
+    aff4_grr.GRRAFF4Init()
 
   def StartFlow(self, client_id, flow_name, token=None, **kw):
     # Make sure the foreman is launching these

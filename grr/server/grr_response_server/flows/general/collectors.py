@@ -509,6 +509,13 @@ class ArtifactCollectorFlowMixin(object):
     Returns:
       original list of values extended with strings interpolated
     """
+    # We want to ignore errors either when it was explicitly requested by the
+    # user or when the fallback mode is turned on (because one of the older
+    # snapshot might successfully interpolate without errors).
+    ignore_interpolation_errors = (
+        self.args.ignore_interpolation_errors or
+        self.args.old_client_snapshot_fallback)
+
     new_args = []
     for value in input_list:
       if isinstance(value, string_types):
@@ -516,7 +523,22 @@ class ArtifactCollectorFlowMixin(object):
             artifact_utils.InterpolateKbAttributes(
                 value,
                 self.state.knowledge_base,
-                ignore_errors=self.args.ignore_interpolation_errors))
+                ignore_errors=ignore_interpolation_errors))
+
+        if not results and self.args.old_client_snapshot_fallback:
+          client_id = self.client_id
+          snapshots = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
+
+          for snapshot in snapshots:
+            results = list(
+                artifact_utils.InterpolateKbAttributes(
+                    value,
+                    knowledge_base=snapshot.knowledge_base,
+                    ignore_errors=True))
+
+            if results:
+              break
+
         new_args.extend(results)
       else:
         new_args.extend(value)

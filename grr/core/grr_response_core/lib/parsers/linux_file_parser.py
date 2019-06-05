@@ -29,7 +29,7 @@ from grr_response_core.lib.util import precondition
 class PCIDevicesInfoParser(parser.FileMultiParser):
   """Parser for PCI devices' info files located in /sys/bus/pci/devices/*/*."""
 
-  output_types = ["PCIDevice"]
+  output_types = [rdf_client.PCIDevice]
   supported_artifacts = ["PCIDevicesInfoFiles"]
 
   def ParseMultiple(self, stats, file_objects, unused_knowledge_base):
@@ -93,7 +93,7 @@ class PCIDevicesInfoParser(parser.FileMultiParser):
 class PasswdParser(parser.FileParser):
   """Parser for passwd files. Yields User semantic values."""
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["UnixPasswd"]
 
   @classmethod
@@ -134,7 +134,7 @@ class PasswdParser(parser.FileParser):
 class PasswdBufferParser(parser.GrepParser):
   """Parser for lines grepped from passwd files."""
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["LinuxPasswdHomedirs", "NssCacheLinuxPasswdHomedirs"]
 
   def Parse(self, filefinderresult, knowledge_base):
@@ -173,7 +173,7 @@ class LinuxWtmpParser(parser.FileParser):
   Yields User semantic values for USER_PROCESS events.
   """
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["LinuxWtmp"]
 
   def Parse(self, stat, file_object, knowledge_base):
@@ -211,7 +211,7 @@ class LinuxWtmpParser(parser.FileParser):
 class NetgroupParser(parser.FileParser):
   """Parser that extracts users from a netgroup file."""
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["NetgroupConfiguration"]
   # From useradd man page
   USERNAME_REGEX = r"^[a-z_][a-z0-9_-]{0,30}[$]?$"
@@ -288,7 +288,7 @@ class NetgroupParser(parser.FileParser):
 class NetgroupBufferParser(parser.GrepParser):
   """Parser for lines grepped from /etc/netgroup files."""
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
 
   def Parse(self, filefinderresult, knowledge_base):
     _ = knowledge_base
@@ -426,7 +426,7 @@ class LinuxBaseShadowParser(parser.FileMultiParser):
 class LinuxSystemGroupParser(LinuxBaseShadowParser):
   """Parser for group files. Yields Group semantic values."""
 
-  output_types = ["Group"]
+  output_types = [rdf_client.Group]
   supported_artifacts = ["LoginPolicyConfiguration"]
 
   base_store = rdf_client.PwEntry.PwStore.GROUP
@@ -545,7 +545,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
 class LinuxSystemPasswdParser(LinuxBaseShadowParser):
   """Parser for local accounts."""
 
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["LoginPolicyConfiguration"]
 
   base_store = rdf_client.PwEntry.PwStore.PASSWD
@@ -719,7 +719,7 @@ class PathParser(parser.FileParser):
   rather, it is a best effort attempt to detect common misconfigurations. It is
   not intended to detect maliciously obfuscated path modifications.
   """
-  output_types = ["AttributedDict"]
+  output_types = [rdf_protodict.AttributedDict]
   # TODO(user): Modify once a decision is made on contextual selection of
   # parsed results for artifact data.
   supported_artifacts = [

@@ -1290,3 +1290,41 @@ def ReadFileBytesAsUnicode(file_obj):
   precondition.AssertType(data, bytes)
 
   return data.decode("utf-8")
+
+
+def RunOnce(fn):
+  """Returns a decorated function that will only pass through the first call.
+
+  At first execution, the return value or raised Exception is passed through and
+  cached. Further calls will not be passed to `fn` and will return or raise
+  the result of the first call.
+
+  Be cautious when returning an Iterator, Generator or mutable value, since the
+  result is shared by reference among all calls.
+
+  Args:
+    fn: The function to be decorated.
+
+  Returns:
+    A decorated function that will pass through only the first call.
+  """
+
+  @functools.wraps(fn)
+  def _OneTimeFunction(*args, **kwargs):
+    """Wrapper function that only passes through the first call."""
+    if not _OneTimeFunction.executed:
+      _OneTimeFunction.executed = True
+      try:
+        _OneTimeFunction.result = fn(*args, **kwargs)
+      except BaseException as e:  # pylint: disable=broad-except
+        _OneTimeFunction.exception = e
+
+    if _OneTimeFunction.exception is None:
+      return _OneTimeFunction.result
+    else:
+      raise _OneTimeFunction.exception
+
+  _OneTimeFunction.executed = False
+  _OneTimeFunction.exception = None
+  _OneTimeFunction.result = None
+  return _OneTimeFunction

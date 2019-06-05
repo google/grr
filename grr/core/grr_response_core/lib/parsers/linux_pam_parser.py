@@ -187,7 +187,7 @@ class PAMFieldParser(config_file.FieldParser):
 class PAMParser(parser.FileMultiParser):
   """Artifact parser for PAM configurations."""
 
-  output_types = ["PamConfig"]
+  output_types = [rdf_config_file.PamConfig]
   supported_artifacts = ["LinuxPamConfigs"]
 
   def __init__(self, *args, **kwargs):

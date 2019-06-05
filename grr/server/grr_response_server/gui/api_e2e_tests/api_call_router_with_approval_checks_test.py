@@ -42,7 +42,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
   def ClearCache(self):
     api_router.ApiCallRouterWithApprovalChecks.ClearCache()
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
   def CreateHuntApproval(self, hunt_id, token, admin=False):
     approval_id = self.RequestHuntApproval(hunt_id, requestor=token.username)

@@ -16,7 +16,6 @@ from future.utils import iteritems
 
 from grr_response_core.lib import fingerprint
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import nsrl as rdf_nsrl
 from grr_response_server import access_control
 from grr_response_server import aff4
@@ -628,33 +627,30 @@ class NSRLFileStore(HashFileStore):
     return None
 
 
-class FileStoreInit(registry.InitHook):
-  """Create filestore aff4 paths."""
+def FileStoreInit():
+  """Create FileStore and HashFileStore namespaces."""
+  # Requires aff4_grr.GRRAFF4Init.
 
-  pre = [aff4_grr.GRRAFF4Init]
+  if not data_store.AFF4Enabled():
+    return
 
-  def Run(self):
-    """Create FileStore and HashFileStore namespaces."""
-    if not data_store.AFF4Enabled():
-      return
-
-    try:
-      filestore = aff4.FACTORY.Create(
-          FileStore.PATH, FileStore, mode="rw", token=aff4.FACTORY.root_token)
-      filestore.Close()
-      hash_filestore = aff4.FACTORY.Create(
-          HashFileStore.PATH,
-          HashFileStore,
-          mode="rw",
-          token=aff4.FACTORY.root_token)
-      hash_filestore.Close()
-      nsrl_filestore = aff4.FACTORY.Create(
-          NSRLFileStore.PATH,
-          NSRLFileStore,
-          mode="rw",
-          token=aff4.FACTORY.root_token)
-      nsrl_filestore.Close()
-    except access_control.UnauthorizedAccess:
-      # The aff4:/files area is ACL protected, this might not work on components
-      # that have ACL enforcement.
-      pass
+  try:
+    filestore = aff4.FACTORY.Create(
+        FileStore.PATH, FileStore, mode="rw", token=aff4.FACTORY.root_token)
+    filestore.Close()
+    hash_filestore = aff4.FACTORY.Create(
+        HashFileStore.PATH,
+        HashFileStore,
+        mode="rw",
+        token=aff4.FACTORY.root_token)
+    hash_filestore.Close()
+    nsrl_filestore = aff4.FACTORY.Create(
+        NSRLFileStore.PATH,
+        NSRLFileStore,
+        mode="rw",
+        token=aff4.FACTORY.root_token)
+    nsrl_filestore.Close()
+  except access_control.UnauthorizedAccess:
+    # The aff4:/files area is ACL protected, this might not work on components
+    # that have ACL enforcement.
+    pass

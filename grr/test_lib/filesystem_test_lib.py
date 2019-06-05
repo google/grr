@@ -2,11 +2,41 @@
 """A test utilities for interacting with filesystem."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import io
+import os
 import platform
 import subprocess
 import unittest
+
+from typing import Text
+
+
+def CreateFile(filepath, content = b""):
+  """Creates a file at specified path.
+
+  Note that if a file at the specified path already exists, its old content will
+  be overwritten.
+
+  Args:
+    filepath: A path to the file to touch.
+    content: An (optional) content to write to the file.
+  """
+  # There is a slight chance of a race condition here (the directory might have
+  # been created after the `os.path.exists` check). This utility is a test-only
+  # thing so wo do not care that much and just swallow any `OSError` exceptions.
+  # If we don't have right permissions, `io.open` will fail later anyway.
+  dirpath = os.path.dirname(filepath)
+  if not os.path.exists(dirpath):
+    try:
+      os.makedirs(dirpath)
+    except OSError:
+      pass
+
+  with io.open(filepath, "wb") as filedesc:
+    filedesc.write(content)
 
 
 def Command(name, args=None, system=None, message=None):

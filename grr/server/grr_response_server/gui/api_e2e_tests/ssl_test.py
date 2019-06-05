@@ -76,7 +76,7 @@ class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     thread.StartAndWaitUntilServing()
     self.addCleanup(thread.Stop)
 
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
     self.token.username = "api_test_robot_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 

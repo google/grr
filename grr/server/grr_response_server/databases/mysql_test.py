@@ -16,6 +16,7 @@ from absl import app
 from absl import flags
 from absl.testing import absltest
 from future import builtins
+import mock
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 
 from grr_response_server.databases import db_test_mixin
@@ -196,6 +197,56 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     with self.assertStatsCounterDelta(
         1, "db_request_latency", fields=["ReadGRRUsers"]):
       self.db.ReadGRRUsers()
+
+  def testMaxAllowedPacketSettingIsOverriddenWhenTooLow(self):
+
+    def SetMaxAllowedPacket(conn):
+      with contextlib.closing(conn.cursor()) as cursor:
+        mysql._SetGlobalVariable("max_allowed_packet", 20 << 10, cursor)
+
+    def GetMaxAllowedPacket(conn):
+      with contextlib.closing(conn.cursor()) as cursor:
+        return mysql._ReadVariable("max_allowed_packet", cursor)
+
+    self.db.delegate._RunInTransaction(SetMaxAllowedPacket)
+
+    # Initialize a new connection. This should fix the "max_allowed_packet"
+    # setting.
+    db = mysql.MysqlDB(
+        host=self._testdb.hostname(),
+        port=self._testdb.port(),
+        user=self._testdb.username(),
+        password=self._testdb.password(),
+        database=self._testdb.dbname())
+    db.Close()
+
+    self.assertEqual(
+        self.db.delegate._RunInTransaction(GetMaxAllowedPacket),
+        builtins.str(mysql.MAX_PACKET_SIZE))
+
+  def testMeaningfulErrorWhenNotEnoughPermissionsToOverrideGlobalVariable(self):
+
+    def SetMaxAllowedPacket(conn):
+      with contextlib.closing(conn.cursor()) as cursor:
+        mysql._SetGlobalVariable("max_allowed_packet", 20 << 10, cursor)
+
+    self.db.delegate._RunInTransaction(SetMaxAllowedPacket)
+
+    # MaxAllowedPacketSettingTooLowError will be raised since
+    # _SetGlobalVariable call will fail (via the mock). This way
+    # we mimick the situation when _SetGlobalVariable fails due to
+    # the lack of permissions.
+    with mock.patch.object(
+        mysql,
+        "_SetGlobalVariable",
+        side_effect=MySQLdb.OperationalError("SUPER privileges required")):
+      with self.assertRaises(mysql.MaxAllowedPacketSettingTooLowError):
+        mysql.MysqlDB(
+            host=self._testdb.hostname(),
+            port=self._testdb.port(),
+            user=self._testdb.username(),
+            password=self._testdb.password(),
+            database=self._testdb.dbname())
 
 
 if __name__ == "__main__":

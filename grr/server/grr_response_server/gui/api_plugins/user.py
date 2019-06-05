@@ -322,8 +322,16 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
     self.notification_type = notification.notification_type
     self.message = notification.message
     self.is_pending = (notification.state == notification.State.STATE_PENDING)
-    self.reference = ApiNotificationReference().InitFromObjectReference(
-        notification.reference)
+    try:
+      self.reference = ApiNotificationReference().InitFromObjectReference(
+          notification.reference)
+    except ValueError as e:
+      logging.exception(
+          "Can't initialize notification from an "
+          "object reference: %s", e)
+      # In case of any initialization issue, simply create an empty reference.
+      self.reference = ApiNotificationReference(
+          type=ApiNotificationReference.Type.UNSET)
 
     return self
 

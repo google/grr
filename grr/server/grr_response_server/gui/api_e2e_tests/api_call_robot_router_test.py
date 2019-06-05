@@ -59,7 +59,7 @@ users:
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
   def setUp(self):
     super(ApiCallRobotRouterE2ETest, self).setUp()

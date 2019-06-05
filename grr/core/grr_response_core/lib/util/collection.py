@@ -16,7 +16,7 @@ K = TypeVar("K")
 
 
 def Flatten(iterator):
-  """Flattens given two-level iterator into one.
+  """Flattens nested iterables into one iterator.
 
   Examples:
     >>> list(Flatten([[1, 2, 3], [4, 5, 6]]))

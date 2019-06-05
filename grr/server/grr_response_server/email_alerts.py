@@ -21,6 +21,7 @@ from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
@@ -156,12 +157,12 @@ class SMTPEmailAlerter(EmailAlerterBase):
 EMAIL_ALERTER = None
 
 
-class EmailAlerterInit(registry.InitHook):
+@utils.RunOnce
+def InitializeEmailAlerterOnce():
+  """Initializes e-mail alerts."""
+  global EMAIL_ALERTER
+  email_alerter_cls_name = config.CONFIG["Server.email_alerter_class"]
+  logging.debug("Using email alerter: %s", email_alerter_cls_name)
+  cls = EmailAlerterBase.GetPlugin(email_alerter_cls_name)
 
-  def RunOnce(self):
-    global EMAIL_ALERTER
-    email_alerter_cls_name = config.CONFIG["Server.email_alerter_class"]
-    logging.debug("Using email alerter: %s", email_alerter_cls_name)
-    cls = EmailAlerterBase.GetPlugin(email_alerter_cls_name)
-
-    EMAIL_ALERTER = cls()
+  EMAIL_ALERTER = cls()

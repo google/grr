@@ -26,7 +26,7 @@ class YumListCmdParser(parser.CommandParser):
   incompatible versions across OS revisions.
   """
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["RedhatYumPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -61,7 +61,7 @@ class YumRepolistCmdParser(parser.CommandParser):
   Parse all enabled repositories as output by yum repolist -q -v.
   """
 
-  output_types = ["PackageRepository"]
+  output_types = [rdf_client.PackageRepository]
   supported_artifacts = ["RedhatYumRepoList"]
 
   def _re_compile(self, search_str):
@@ -104,7 +104,7 @@ class YumRepolistCmdParser(parser.CommandParser):
 class RpmCmdParser(parser.CommandParser):
   """Parser for rpm qa output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["RedhatPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -135,7 +135,7 @@ class RpmCmdParser(parser.CommandParser):
 class DpkgCmdParser(parser.CommandParser):
   """Parser for dpkg output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["DebianPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
@@ -197,7 +197,7 @@ class DpkgCmdParser(parser.CommandParser):
 class DmidecodeCmdParser(parser.CommandParser):
   """Parser for dmidecode output. Yields HardwareInfo rdfvalues."""
 
-  output_types = ["HardwareInfo"]
+  output_types = [rdf_client.HardwareInfo]
   supported_artifacts = ["LinuxHardwareInfo"]
 
   def _re_compile(self, search_str):
@@ -261,7 +261,7 @@ class DmidecodeCmdParser(parser.CommandParser):
 class PsCmdParser(parser.CommandParser):
   """Parser for '/bin/ps' output. Yields Process rdfvalues."""
 
-  output_types = ["Process"]
+  output_types = [rdf_client.Process]
   supported_artifacts = ["ListProcessesPsCommand"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,

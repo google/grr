@@ -25,7 +25,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
 
   def InstallACLChecks(self):
     # This class purposefully does not install ACL checks.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
   def testHostInformationDoesNotAskForApproval(self):
     self.Open("/#/clients/%s" % self.client_id)

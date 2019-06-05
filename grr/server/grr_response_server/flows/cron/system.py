@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import bisect
+import collections
 import logging
 
 
@@ -38,6 +39,104 @@ _STATS_DELETION_BATCH_SIZE = 10000
 
 # How often to save progress to the DB when deleting stats.
 _stats_checkpoint_period = rdfvalue.Duration("15m")
+
+# Label used for aggregating fleet statistics across all clients.
+_ALL_CLIENT_FLEET_STATS_LABEL = "All"
+
+_GENERAL_FLEET_STATS_DAY_BUCKETS = frozenset([1, 2, 3, 7, 14, 30, 60])
+
+_FLEET_BREAKDOWN_DAY_BUCKETS = frozenset([1, 7, 14, 30])
+
+
+def _WriteFleetBreakdownStatsToDB(fleet_stats, report_type):
+  """Saves a snapshot of client activity stats to the DB.
+
+  Args:
+    fleet_stats: Client activity stats returned by the DB.
+    report_type: rdf_stats.ClientGraphSeries.ReportType for the client stats.
+  """
+  graph_series_by_label = collections.defaultdict(
+      lambda: rdf_stats.ClientGraphSeries(report_type=report_type))
+  for day_bucket in fleet_stats.GetDayBuckets():
+    for client_label in fleet_stats.GetAllLabels():
+      graph = rdf_stats.Graph(title="%d day actives for %s label" %
+                              (day_bucket, client_label))
+      for category_value, num_actives in sorted(
+          iteritems(
+              fleet_stats.GetValuesForDayAndLabel(day_bucket, client_label))):
+        graph.Append(label=category_value, y_value=num_actives)
+      graph_series_by_label[client_label].graphs.Append(graph)
+
+  # Generate aggregate graphs for all clients in the snapshot (total for
+  # every category_value regardless of label).
+  for day_bucket in fleet_stats.GetDayBuckets():
+    graph = rdf_stats.Graph(title="%d day actives for %s label" %
+                            (day_bucket, _ALL_CLIENT_FLEET_STATS_LABEL))
+    for category_value, num_actives in sorted(
+        iteritems(fleet_stats.GetTotalsForDay(day_bucket))):
+      graph.Append(label=category_value, y_value=num_actives)
+    graph_series_by_label[_ALL_CLIENT_FLEET_STATS_LABEL].graphs.Append(graph)
+
+  for client_label, graph_series in iteritems(graph_series_by_label):
+    client_report_utils.WriteGraphSeries(graph_series, client_label)
+
+
+class GRRVersionBreakDownCronJob(cronjobs.SystemCronJobBase):
+  """Saves a snapshot of n-day-active stats for all GRR client versions."""
+
+  frequency = rdfvalue.Duration("6h")
+  lifetime = rdfvalue.Duration("6h")
+
+  def Run(self):
+    version_stats = data_store.REL_DB.CountClientVersionStringsByLabel(
+        _FLEET_BREAKDOWN_DAY_BUCKETS)
+    _WriteFleetBreakdownStatsToDB(
+        version_stats, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION)
+
+
+class OSBreakDownCronJob(cronjobs.SystemCronJobBase):
+  """Saves a snapshot of n-day-active stats for all client platform/releases."""
+
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
+
+  def Run(self):
+    platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
+        _FLEET_BREAKDOWN_DAY_BUCKETS)
+    _WriteFleetBreakdownStatsToDB(
+        platform_stats, rdf_stats.ClientGraphSeries.ReportType.OS_TYPE)
+    release_stats = data_store.REL_DB.CountClientPlatformReleasesByLabel(
+        _FLEET_BREAKDOWN_DAY_BUCKETS)
+    _WriteFleetBreakdownStatsToDB(
+        release_stats, rdf_stats.ClientGraphSeries.ReportType.OS_RELEASE)
+
+
+def _WriteFleetAggregateStatsToDB(client_label, bucket_dict):
+  graph = rdf_stats.Graph()
+  for day_bucket, num_actives in sorted(iteritems(bucket_dict)):
+    graph.Append(
+        x_value=rdfvalue.Duration.FromDays(day_bucket).microseconds,
+        y_value=num_actives)
+  graph_series = rdf_stats.ClientGraphSeries(
+      report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE)
+  graph_series.graphs.Append(graph)
+  client_report_utils.WriteGraphSeries(graph_series, client_label)
+
+
+class LastAccessStatsCronJob(cronjobs.SystemCronJobBase):
+  """Saves a snapshot of generalized n-day-active stats."""
+
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
+
+  def Run(self):
+    platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
+        _GENERAL_FLEET_STATS_DAY_BUCKETS)
+    for client_label, bucket_dict in iteritems(
+        platform_stats.GetAggregatedLabelCounts()):
+      _WriteFleetAggregateStatsToDB(client_label, bucket_dict)
+    _WriteFleetAggregateStatsToDB(_ALL_CLIENT_FLEET_STATS_LABEL,
+                                  platform_stats.GetAggregatedTotalCounts())
 
 
 class _ActiveCounter(object):
@@ -122,189 +221,6 @@ def _IterateAllClients(recency_window=None):
 
   return data_store.REL_DB.IterateAllClientsFullInfo(min_last_ping,
                                                      _CLIENT_READ_BATCH_SIZE)
-
-
-class AbstractClientStatsCronJob(cronjobs.SystemCronJobBase):
-  """Base class for all stats processing cron jobs."""
-
-  CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
-
-  # An rdfvalue.Duration specifying a window of last-ping
-  # timestamps to analyze. Clients that haven't communicated with GRR servers
-  # longer than the given period will be skipped.
-  recency_window = None
-
-  def BeginProcessing(self):
-    pass
-
-  def ProcessClientFullInfo(self, client_full_info):
-    raise NotImplementedError()
-
-  def FinishProcessing(self):
-    pass
-
-  def _GetClientLabelsList(self, client):
-    """Get set of labels applied to this client."""
-    return set(["All"] + list(client.GetLabelsNames(owner="GRR")))
-
-  def _StatsForLabel(self, label):
-    if label not in self.stats:
-      self.stats[label] = aff4.FACTORY.Create(
-          self.CLIENT_STATS_URN.Add(label),
-          aff4_stats.ClientFleetStats,
-          mode="w",
-          token=self.token)
-    return self.stats[label]
-
-  def Run(self):
-    """Retrieve all the clients for the AbstractClientStatsCollectors."""
-    try:
-
-      self.stats = {}
-
-      self.BeginProcessing()
-
-      processed_count = 0
-
-      for client_info in _IterateAllClients(recency_window=self.recency_window):
-        self.ProcessClientFullInfo(client_info)
-        processed_count += 1
-
-        if processed_count % _CLIENT_READ_BATCH_SIZE == 0:
-          self.Log("Processed %d clients.", processed_count)
-          self.HeartBeat()
-
-      if processed_count != 0:
-        self.Log("Processed %d clients.", processed_count)
-
-      self.FinishProcessing()
-      for fd in itervalues(self.stats):
-        fd.Close()
-
-      logging.info("%s: processed %d clients.", self.__class__.__name__,
-                   processed_count)
-    except Exception as e:  # pylint: disable=broad-except
-      logging.exception("Error while calculating stats: %s", e)
-      raise
-
-
-class GRRVersionBreakDownCronJob(AbstractClientStatsCronJob):
-  """Records relative ratios of GRR versions in 7 day actives."""
-
-  frequency = rdfvalue.Duration("6h")
-  lifetime = rdfvalue.Duration("6h")
-  recency_window = rdfvalue.Duration("30d")
-
-  def BeginProcessing(self):
-    self.counter = _ActiveCounter(
-        rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION)
-
-  def FinishProcessing(self):
-    self.counter.Save(token=self.token)
-
-  def ProcessClientFullInfo(self, client_full_info):
-    c_info = client_full_info.last_startup_info.client_info
-    ping = client_full_info.metadata.ping
-    labels = self._GetClientLabelsList(client_full_info)
-
-    if not (c_info and ping):
-      return
-
-    category = " ".join([
-        c_info.client_description or c_info.client_name,
-        str(c_info.client_version)
-    ])
-
-    for label in labels:
-      self.counter.Add(category, label, ping)
-
-
-class OSBreakDownCronJob(AbstractClientStatsCronJob):
-  """Records relative ratios of OS versions in 7 day actives."""
-
-  frequency = rdfvalue.Duration("1d")
-  lifetime = rdfvalue.Duration("20h")
-  recency_window = rdfvalue.Duration("30d")
-
-  def BeginProcessing(self):
-    self.counters = [
-        _ActiveCounter(rdf_stats.ClientGraphSeries.ReportType.OS_TYPE),
-        _ActiveCounter(rdf_stats.ClientGraphSeries.ReportType.OS_RELEASE),
-    ]
-
-  def FinishProcessing(self):
-    # Write all the counter attributes.
-    for counter in self.counters:
-      counter.Save(token=self.token)
-
-  def ProcessClientFullInfo(self, client_full_info):
-    labels = self._GetClientLabelsList(client_full_info)
-    ping = client_full_info.metadata.ping
-    system = client_full_info.last_snapshot.knowledge_base.os
-    uname = client_full_info.last_snapshot.Uname()
-
-    if not ping:
-      return
-
-    for label in labels:
-      # Windows, Linux, Darwin
-      self.counters[0].Add(system, label, ping)
-
-      # Windows-2008ServerR2-6.1.7601SP1, Linux-Ubuntu-12.04,
-      # Darwin-OSX-10.9.3
-      self.counters[1].Add(uname, label, ping)
-
-
-class LastAccessStatsCronJob(AbstractClientStatsCronJob):
-  """Calculates a histogram statistics of clients last contacted times."""
-
-  frequency = rdfvalue.Duration("1d")
-  lifetime = rdfvalue.Duration("20h")
-  recency_window = rdfvalue.Duration("60d")
-
-  # The number of clients fall into these bins (number of days ago)
-  _bins = [1, 2, 3, 7, 14, 30, 60]
-
-  def _ValuesForLabel(self, label):
-    if label not in self.values:
-      self.values[label] = [0] * len(self._bins)
-    return self.values[label]
-
-  def BeginProcessing(self):
-    self._bins = [long(x * 1e6 * 24 * 60 * 60) for x in self._bins]
-
-    self.values = {}
-
-  def FinishProcessing(self):
-    # Build and store the graph now. Day actives are cumulative.
-    for label in self.values:
-      cumulative_count = 0
-      graph_series = rdf_stats.ClientGraphSeries(
-          report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE)
-      graph_series.graphs.Append(rdf_stats.Graph())
-      for x, y in zip(self._bins, self.values[label]):
-        cumulative_count += y
-        graph_series.graphs[0].Append(x_value=x, y_value=cumulative_count)
-      client_report_utils.WriteGraphSeries(
-          graph_series, label, token=self.token)
-
-  def ProcessClientFullInfo(self, client_full_info):
-    labels = self._GetClientLabelsList(client_full_info)
-    ping = client_full_info.metadata.ping
-
-    if not ping:
-      return
-
-    now = rdfvalue.RDFDatetime.Now()
-    for label in labels:
-      time_ago = now - ping
-      pos = bisect.bisect(self._bins, time_ago.microseconds)
-
-      # If clients are older than the last bin forget them.
-      try:
-        self._ValuesForLabel(label)[pos] += 1
-      except IndexError:
-        pass
 
 
 class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):

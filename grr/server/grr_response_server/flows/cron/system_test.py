@@ -47,17 +47,17 @@ class SystemCronTestMixin(object):
         range(22, 24), system="Linux", ping=ancient_ping)
 
     for i in range(0, 10):
-      client_id = u"C.1%015x" % i
+      client_id = "C.1%015x" % i
       if data_store.AFF4Enabled():
         with aff4.FACTORY.Open(
             client_id, mode="rw", token=self.token) as client:
-          client.AddLabels([u"Label1", u"Label2"], owner=u"GRR")
-          client.AddLabel(u"UserLabel", owner=u"jim")
+          client.AddLabels(["Label1", "Label2"], owner="GRR")
+          client.AddLabel("UserLabel", owner="jim")
 
       if data_store.RelationalDBEnabled():
-        data_store.REL_DB.AddClientLabels(client_id, u"GRR",
-                                          [u"Label1", u"Label2"])
-        data_store.REL_DB.AddClientLabels(client_id, u"jim", [u"UserLabel"])
+        data_store.REL_DB.AddClientLabels(client_id, "GRR",
+                                          ["Label1", "Label2"])
+        data_store.REL_DB.AddClientLabels(client_id, "jim", ["UserLabel"])
 
   def _CheckVersionGraph(self, graph, expected_title, expected_count):
     self.assertEqual(graph.title, expected_title)
@@ -88,9 +88,9 @@ class SystemCronTestMixin(object):
     # All machines should be in All once. Windows machines should be in Label1
     # and Label2. There should be no stats for UserLabel.
     report_type = rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION
-    self._CheckVersionStats(u"All", report_type, [2, 2, 22, 22])
-    self._CheckVersionStats(u"Label1", report_type, [0, 0, 10, 10])
-    self._CheckVersionStats(u"Label2", report_type, [0, 0, 10, 10])
+    self._CheckVersionStats("All", report_type, [2, 2, 22, 22])
+    self._CheckVersionStats("Label1", report_type, [0, 0, 10, 10])
+    self._CheckVersionStats("Label2", report_type, [0, 0, 10, 10])
 
   def _CheckOSGraph(self, graph, expected_title, expected_counts):
     actual_counts = {s.label: s.y_value for s in graph}
@@ -132,9 +132,9 @@ class SystemCronTestMixin(object):
         },
     ]
     label_stats = [{}, {}, {"Windows": 10}, {"Windows": 10}]
-    self._CheckOSStats(u"All", report_type, all_stats)
-    self._CheckOSStats(u"Label1", report_type, label_stats)
-    self._CheckOSStats(u"Label2", report_type, label_stats)
+    self._CheckOSStats("All", report_type, all_stats)
+    self._CheckOSStats("Label1", report_type, label_stats)
+    self._CheckOSStats("Label2", report_type, label_stats)
 
   def _CheckAccessStats(self, label, expected):
     graph_series = client_report_utils.FetchMostRecentGraphSeries(
@@ -172,13 +172,13 @@ class SystemCronTestMixin(object):
     # pyformat: enable
 
     # All our clients appeared at the same time (and did not appear since).
-    self._CheckAccessStats(u"All", expected=all_counts)
+    self._CheckAccessStats("All", expected=all_counts)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats(u"Label1", expected=label_counts)
+    self._CheckAccessStats("Label1", expected=label_counts)
 
     # All our clients appeared at the same time but this label is only half.
-    self._CheckAccessStats(u"Label2", expected=label_counts)
+    self._CheckAccessStats("Label2", expected=label_counts)
 
   def testPurgeClientStats(self):
     client_id = test_lib.TEST_CLIENT_ID
@@ -263,7 +263,6 @@ class SystemCronJobTest(db_test_lib.RelationalDBEnabledMixin,
     cron.Run()
 
     self._CheckGRRVersionBreakDown()
-    self.assertEqual(cron.run_state.log_message, "Processed 22 clients.")
 
   def testOSBreakdown(self):
     """Check that all client stats cron jobs are run."""

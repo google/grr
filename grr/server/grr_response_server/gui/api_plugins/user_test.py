@@ -137,6 +137,24 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
     self.assertEqual(n.reference.vfs.client_id.ToClientURN(), self.client_id)
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
+  def testVfsNotificationWithInvalidReferenceIsParsedDefensively(self):
+    # This is a REL_DB-only test.
+    if data_store.AFF4Enabled():
+      return
+
+    n = self.InitFromObj_(
+        rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+        rdf_objects.ObjectReference(
+            reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+            vfs_file=rdf_objects.VfsFileReference(
+                client_id=self.client_id.Basename(),
+                # UNSET path type is an invalid value here:
+                # it make it impossible to find the file.
+                path_type=rdf_objects.PathInfo.PathType.UNSET,
+                path_components=["foo", "bar"])))
+
+    self.assertEqual(n.reference.type, "UNSET")
+
   def testClientApprovalNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
         rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED,

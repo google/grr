@@ -357,20 +357,23 @@ class FrontEndServer(object):
     self.unauth_allowed_session_id = rdfvalue.SessionID(
         queue=queues.ENROLLMENT, flow_name="Enrol")
 
-    # Some well known flows are run on the front end.
-    available_wkfs = flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token)
-    whitelist = set(config.CONFIG["Frontend.well_known_flows"])
+    if data_store.AFF4Enabled():
+      # Some well known flows are run on the front end.
+      available_wkfs = flow.WellKnownFlow.GetAllWellKnownFlows(token=self.token)
+      whitelist = set(config.CONFIG["Frontend.well_known_flows"])
 
-    available_wkf_set = set(available_wkfs)
-    unknown_flows = whitelist - available_wkf_set
-    if unknown_flows:
-      raise ValueError("Unknown flows in Frontend.well_known_flows: %s" %
-                       ",".join(unknown_flows))
+      available_wkf_set = set(available_wkfs)
+      unknown_flows = whitelist - available_wkf_set
+      if unknown_flows:
+        raise ValueError("Unknown flows in Frontend.well_known_flows: %s" %
+                         ",".join(unknown_flows))
 
-    self.well_known_flows = {
-        flow_name: available_wkfs[flow_name]
-        for flow_name in whitelist & available_wkf_set
-    }
+      self.well_known_flows = {
+          flow_name: available_wkfs[flow_name]
+          for flow_name in whitelist & available_wkf_set
+      }
+    else:
+      self.well_known_flows = {}
 
   @stats_utils.Counted("grr_frontendserver_handle_num")
   @stats_utils.Timed("grr_frontendserver_handle_time")

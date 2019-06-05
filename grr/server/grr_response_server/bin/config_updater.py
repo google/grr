@@ -74,14 +74,13 @@ parser_update_user.add_argument("username", help="Username to update.")
 
 parser_update_user.add_argument(
     "--password",
-    default=False,
-    action="store_true",
-    help="Reset the password for this user (will prompt for password).")
+    default=None,
+    help="New password for this user (will prompt for password if not given).")
 
 parser_update_user.add_argument(
     "--admin",
     default=True,
-    action="store_true",
+    type=config_updater_util.ArgparseBool,
     help="Make the user an admin, if they aren't already.")
 
 parser_add_user = subparsers.add_parser("add_user", help="Add a new user.")
@@ -92,7 +91,7 @@ parser_add_user.add_argument("--password", default=None, help="Set password.")
 parser_add_user.add_argument(
     "--admin",
     default=True,
-    action="store_true",
+    type=config_updater_util.ArgparseBool,
     help="Add the user with admin privileges.")
 
 parser_initialize.add_argument(

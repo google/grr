@@ -3097,15 +3097,11 @@ class AFF4UnversionedImage(AFF4ImageBase):
 
 
 # Utility functions
-class AFF4InitHook(registry.InitHook):
-
-  pre = [data_store.DataStoreInit]
-
-  def Run(self):
-    """Delayed loading of aff4 plugins to break import cycles."""
-    global FACTORY  # pylint: disable=global-statement
-
-    FACTORY = Factory()  # pylint: disable=g-bad-name
+def AFF4Init():
+  """Delayed loading of aff4 plugins to break import cycles."""
+  # Requires data_store.InitializeDataStore.
+  global FACTORY  # pylint: disable=global-statement
+  FACTORY = Factory()  # pylint: disable=g-bad-name
 
 
 class ValueConverter(object):

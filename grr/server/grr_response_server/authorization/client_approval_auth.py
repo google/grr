@@ -9,7 +9,7 @@ import io
 from future.utils import string_types
 
 from grr_response_core import config
-from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import acls_pb2
 
@@ -151,8 +151,7 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
 CLIENT_APPROVAL_AUTH_MGR = None
 
 
-class ClientApprovalAuthorizationInit(registry.InitHook):
-
-  def RunOnce(self):
-    global CLIENT_APPROVAL_AUTH_MGR
-    CLIENT_APPROVAL_AUTH_MGR = ClientApprovalAuthorizationManager()
+@utils.RunOnce
+def InitializeClientApprovalAuthorizationManagerOnce():
+  global CLIENT_APPROVAL_AUTH_MGR
+  CLIENT_APPROVAL_AUTH_MGR = ClientApprovalAuthorizationManager()

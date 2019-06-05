@@ -92,7 +92,7 @@ class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
   def testClientNoLabels(self):
     self.TouchFile(rdf_client.ClientURN(self.client_nolabel_id), "fs/os/foo")

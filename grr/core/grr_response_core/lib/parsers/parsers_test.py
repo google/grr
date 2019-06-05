@@ -3,39 +3,36 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from absl import app
 from absl.testing import absltest
 from future.builtins import map
 
 import mock
 
 from grr_response_core.lib import factory
-from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
-from grr.test_lib import test_lib
 
 
 class ArtifactParserFactoryTest(absltest.TestCase):
 
   @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parser.SingleResponseParser))
+                     factory.Factory(parsers.SingleResponseParser))
   def testSingleResponseParsers(self):
 
-    class FooParser(parser.SingleResponseParser):
+    class FooParser(parsers.SingleResponseParser):
 
       supported_artifacts = ["Quux", "Norf"]
 
       def ParseResponse(self, knowledge_base, response, path_type):
         raise NotImplementedError()
 
-    class BarParser(parser.SingleResponseParser):
+    class BarParser(parsers.SingleResponseParser):
 
       supported_artifacts = ["Norf", "Thud"]
 
       def ParseResponse(self, knowledge_base, response, path_type):
         raise NotImplementedError()
 
-    class BazParser(parser.SingleResponseParser):
+    class BazParser(parsers.SingleResponseParser):
 
       supported_artifacts = ["Thud", "Quux"]
 
@@ -59,17 +56,17 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     self.assertCountEqual(map(type, thud_parsers), [BarParser, BazParser])
 
   @mock.patch.object(parsers, "MULTI_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parser.MultiResponseParser))
+                     factory.Factory(parsers.MultiResponseParser))
   def testMultiResponseParsers(self):
 
-    class FooParser(parser.MultiResponseParser):
+    class FooParser(parsers.MultiResponseParser):
 
       supported_artifacts = ["Foo"]
 
       def ParseResponses(self, knowledge_base, responses):
         raise NotImplementedError()
 
-    class BarParser(parser.MultiResponseParser):
+    class BarParser(parsers.MultiResponseParser):
 
       supported_artifacts = ["Bar"]
 
@@ -88,10 +85,10 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     self.assertCountEqual(map(type, bar_parsers), [BarParser])
 
   @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                     factory.Factory(parser.SingleFileParser))
+                     factory.Factory(parsers.SingleFileParser))
   def testSingleFileParsers(self):
 
-    class FooParser(parser.SingleFileParser):
+    class FooParser(parsers.SingleFileParser):
 
       supported_artifacts = ["Bar"]
 
@@ -109,17 +106,17 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     self.assertCountEqual(map(type, baz_parsers), [])
 
   @mock.patch.object(parsers, "MULTI_FILE_PARSER_FACTORY",
-                     factory.Factory(parser.MultiFileParser))
+                     factory.Factory(parsers.MultiFileParser))
   def testMultiFileParsers(self):
 
-    class FooParser(parser.MultiFileParser):
+    class FooParser(parsers.MultiFileParser):
 
       supported_artifacts = ["Quux", "Norf"]
 
       def ParseFiles(self, knowledge_base, pathspecs, filedescs):
         raise NotImplementedError()
 
-    class BarParser(parser.MultiFileParser):
+    class BarParser(parsers.MultiFileParser):
 
       supported_artifacts = ["Quux", "Thud"]
 
@@ -141,6 +138,33 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     thud_parsers = thud_factory.MultiFileParsers()
     self.assertCountEqual(map(type, thud_parsers), [BarParser])
 
+  @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
+                     factory.Factory(parsers.SingleFileParser))
+  @mock.patch.object(parsers, "MULTI_RESPONSE_PARSER_FACTORY",
+                     factory.Factory(parsers.MultiResponseParser))
+  def testAllParsers(self):
+
+    class FooParser(parsers.SingleFileParser):
+
+      supported_artifacts = ["Quux"]
+
+      def ParseFile(self, knowledge_base, pathspec, filedesc):
+        raise NotImplementedError()
+
+    class BarParser(parsers.MultiResponseParser):
+
+      supported_artifacts = ["Quux"]
+
+      def ParseResponses(self, knowledge_base, responses):
+        raise NotImplementedError()
+
+    parsers.SINGLE_FILE_PARSER_FACTORY.Register("Foo", FooParser)
+    parsers.MULTI_RESPONSE_PARSER_FACTORY.Register("Bar", BarParser)
+
+    quux_factory = parsers.ArtifactParserFactory("Quux")
+    quux_parsers = quux_factory.AllParsers()
+    self.assertCountEqual(map(type, quux_parsers), [FooParser, BarParser])
+
 
 if __name__ == "__main__":
-  app.run(test_lib.main)
+  absltest.main()

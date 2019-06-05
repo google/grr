@@ -15,7 +15,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 class DebianPackagesStatusParser(parser.FileParser):
   """Parser for /var/lib/dpkg/status. Yields SoftwarePackage semantic values."""
 
-  output_types = ["SoftwarePackages"]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["DebianPackagesStatus"]
 
   installed_re = re.compile(r"^\w+ \w+ installed$")

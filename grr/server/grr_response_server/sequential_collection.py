@@ -13,7 +13,7 @@ import time
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import precondition
@@ -219,20 +219,20 @@ class BackgroundIndexUpdater(object):
 BACKGROUND_INDEX_UPDATER = BackgroundIndexUpdater()
 
 
-class UpdaterStartHook(registry.InitHook):
-  """Init hook to start the background index updater."""
+@utils.RunOnce
+def StartUpdaterOnce():
+  """Starts the background index updater."""
 
-  def RunOnce(self):
-    in_test = u"Test Context" in config.CONFIG.context
-    if in_test:
-      # Don't start the index updater in tests.
-      return
+  in_test = u"Test Context" in config.CONFIG.context
+  if in_test:
+    # Don't start the index updater in tests.
+    return
 
-    t = threading.Thread(
-        target=BACKGROUND_INDEX_UPDATER.UpdateLoop,
-        name="SequentialCollectionIndexUpdater")
-    t.daemon = True
-    t.start()
+  t = threading.Thread(
+      target=BACKGROUND_INDEX_UPDATER.UpdateLoop,
+      name="SequentialCollectionIndexUpdater")
+  t.daemon = True
+  t.start()
 
 
 class IndexedSequentialCollection(SequentialCollection):

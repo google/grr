@@ -21,6 +21,15 @@
 
   </grr-wizard-form-page>
 
+  <!-- Configure hunt -->
+  <grr-wizard-form-page title="Hunt parameters"
+                        help-link="/help/investigating-with-grr/hunts/limits.html">
+
+    <grr-configure-hunt-page hunt-runner-args="createCronJobArgs.value.hunt_runner_args">
+    </grr-configure-hunt-page>
+
+  </grr-wizard-form-page>
+
   <!-- Configure output plugins -->
   <grr-wizard-form-page title="Define Output Processing">
 

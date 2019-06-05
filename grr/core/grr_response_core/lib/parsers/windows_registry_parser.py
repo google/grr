@@ -28,7 +28,7 @@ SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 class CurrentControlSetKBParser(parser.RegistryValueParser):
   """Parser for CurrentControlSet value."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   # TODO(user): remove CurrentControlSet after artifact cleanup.
   supported_artifacts = [
       "WindowsRegistryCurrentControlSet", "CurrentControlSet"
@@ -48,7 +48,7 @@ class CurrentControlSetKBParser(parser.RegistryValueParser):
 class WinEnvironmentParser(parser.RegistryValueParser):
   """Parser for registry retrieved environment variables."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   supported_artifacts = [
       "WindowsEnvironmentVariableAllUsersAppData",
       "WindowsEnvironmentVariablePath",
@@ -72,7 +72,7 @@ class WinEnvironmentParser(parser.RegistryValueParser):
 class WinSystemDriveParser(parser.RegistryValueParser):
   """Parser for SystemDrive environment variable."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   supported_artifacts = ["WindowsEnvironmentVariableSystemDrive"]
 
   def Parse(self, stat, _):
@@ -95,7 +95,7 @@ class WinSystemDriveParser(parser.RegistryValueParser):
 class WinSystemRootParser(parser.RegistryValueParser):
   """Parser for SystemRoot environment variables."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   supported_artifacts = ["WindowsEnvironmentVariableSystemRoot"]
 
   def Parse(self, stat, _):
@@ -109,7 +109,7 @@ class WinSystemRootParser(parser.RegistryValueParser):
 class CodepageParser(parser.RegistryValueParser):
   """Parser for Codepage values."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   supported_artifacts = ["WindowsCodePage"]
 
   def Parse(self, stat, knowledge_base):
@@ -138,7 +138,7 @@ class ProfilesDirectoryEnvironmentVariable(parser.RegistryParser):
 class AllUsersProfileEnvironmentVariable(parser.RegistryParser):
   """Parser for AllUsersProfile variable."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   supported_artifacts = ["WindowsEnvironmentVariableAllUsersProfile"]
   knowledgebase_dependencies = ["environ_profilesdirectory"]
 
@@ -155,7 +155,7 @@ class WinUserSids(parser.RegistryParser):
   This reads a listing of the profile paths to extract a list of SIDS for
   users with profiles on a system.
   """
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["WindowsRegistryProfiles"]
 
   def Parse(self, stat, knowledge_base):
@@ -195,7 +195,7 @@ class WinUserSpecialDirs(parser.RegistryMultiParser):
   Known folder GUIDs:
   http://msdn.microsoft.com/en-us/library/windows/desktop/dd378457(v=vs.85).aspx
   """
-  output_types = ["User"]
+  output_types = [rdf_client.User]
   supported_artifacts = ["WindowsUserShellFolders"]
   # Required for environment variable expansion
   knowledgebase_dependencies = [
@@ -258,7 +258,7 @@ class WinServicesParser(parser.RegistryValueParser):
     http://support.microsoft.com/kb/103000
   """
 
-  output_types = ["WindowsServiceInformation"]
+  output_types = [rdf_client.WindowsServiceInformation]
   supported_artifacts = ["WindowsServices"]
 
   def __init__(self):
@@ -338,7 +338,7 @@ class WinServicesParser(parser.RegistryValueParser):
 class WinTimezoneParser(parser.RegistryValueParser):
   """Parser for TimeZoneKeyName value."""
 
-  output_types = ["RDFString"]
+  output_types = [rdfvalue.RDFString]
   supported_artifacts = ["WindowsTimezone"]
 
   def Parse(self, stat, knowledge_base):

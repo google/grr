@@ -11,7 +11,6 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -529,13 +528,10 @@ def MultiOpenAff4File(flow_obj, pathspecs):
   return aff4.FACTORY.MultiOpenOrdered(aff4_paths, token=flow_obj.token)
 
 
-class ArtifactLoader(registry.InitHook):
+@utils.RunOnce
+def LoadArtifactsOnce():
   """Loads artifacts from the datastore and from the filesystem.
 
   Datastore gets loaded second so it can override Artifacts in the files.
   """
-
-  pre = [aff4.AFF4InitHook]
-
-  def RunOnce(self):
-    artifact_registry.REGISTRY.AddDefaultSources()
+  artifact_registry.REGISTRY.AddDefaultSources()

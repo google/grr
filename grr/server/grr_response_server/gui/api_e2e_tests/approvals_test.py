@@ -36,7 +36,7 @@ class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager()
 
   def testCreateClientApproval(self):
     client_id = self.SetupClient(0)

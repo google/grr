@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import os
 import sys
 import threading
 import traceback
@@ -40,11 +41,15 @@ def pytest_cmdline_preparse(config, args):
 
 def pytest_cmdline_main(config):
   """A pytest hook that is called when the main function is executed."""
-  del config  # Unused.
 
-  # TODO: `sys.argv` on Python 2 uses `bytes` to represent passed
-  # arguments.
-  sys.argv = [compatibility.NativeStr("pytest")] + test_args
+  if "PYTEST_XDIST_WORKER" in os.environ:
+    # If ran concurrently using pytest-xdist (`-n` cli flag), mainargv is the
+    # result of the execution of pytest_cmdline_main in the main process.
+    sys.argv = config.workerinput["mainargv"]
+  else:
+    # TODO: `sys.argv` on Python 2 uses `bytes` to represent passed
+    # arguments.
+    sys.argv = [compatibility.NativeStr("pytest")] + test_args
 
 
 last_module = None

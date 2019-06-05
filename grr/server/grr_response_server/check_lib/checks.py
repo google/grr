@@ -17,7 +17,7 @@ from future.utils import itervalues
 from future.utils import string_types
 
 from grr_response_core import config
-from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -809,12 +809,12 @@ def LoadChecksFromDirs(dir_paths, overwrite_if_exists=True):
   return loaded
 
 
-class CheckLoader(registry.InitHook):
+@utils.RunOnce
+def LoadChecksFromFilesystemOnce():
   """Loads checks from the filesystem."""
 
   # TODO(user): Add check loading from datastore.
 
-  def RunOnce(self):
-    LoadChecksFromDirs(config.CONFIG["Checks.config_dir"])
-    LoadChecksFromFiles(config.CONFIG["Checks.config_files"])
-    logging.debug("Loaded checks: %s", ",".join(sorted(CheckRegistry.checks)))
+  LoadChecksFromDirs(config.CONFIG["Checks.config_dir"])
+  LoadChecksFromFiles(config.CONFIG["Checks.config_files"])
+  logging.debug("Loaded checks: %s", ",".join(sorted(CheckRegistry.checks)))

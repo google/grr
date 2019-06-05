@@ -154,8 +154,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       self.test_pool.Join()
 
     # Check that an exception is raised.
-    self.assertTrue(self.exception_args[0], "exception in worker thread")
-    self.assertTrue(self.exception_args[1], "Raising")
+    self.assertIn("exception in worker thread", self.exception_args[0])
+    self.assertEqual(self.exception_args[1], "Raising")
 
     # Make sure that both exceptions have been counted.
     exception_count = stats_collector_instance.Get().GetMetricValue(

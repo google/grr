@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 
 from absl import app
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_server.check_lib import checks
@@ -176,7 +176,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # Need a parser
     self.assertRaises(ValueError, self.GenFileData, "EMPTY", [])
 
-    class VoidParser(parser.SingleFileParser):
+    class VoidParser(parsers.SingleFileParser):
 
       def ParseFile(self, knowledge_base, pathspec, filedesc):
         del knowledge_base, pathspec, filedesc  # Unused.

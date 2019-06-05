@@ -113,7 +113,7 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
       for output_type in self.output_types:
         anomalies = []
 
-        output = rdfvalue.RDFValue.classes[output_type]()
+        output = rdfvalue.RDFValue.classes[output_type.__name__]()
         for k, v in iteritems(wmi_dict):
           try:
             output.Set(k, v)
@@ -144,7 +144,7 @@ class WMIActiveScriptEventConsumerParser(WMIEventConsumerParser):
   https://msdn.microsoft.com/en-us/library/aa384749(v=vs.85).aspx
   """
 
-  output_types = [rdf_wmi.WMIActiveScriptEventConsumer.__name__]
+  output_types = [rdf_wmi.WMIActiveScriptEventConsumer]
   supported_artifacts = ["WMIEnumerateASEC"]
 
 
@@ -154,14 +154,14 @@ class WMICommandLineEventConsumerParser(WMIEventConsumerParser):
   https://msdn.microsoft.com/en-us/library/aa389231(v=vs.85).aspx
   """
 
-  output_types = [rdf_wmi.WMICommandLineEventConsumer.__name__]
+  output_types = [rdf_wmi.WMICommandLineEventConsumer]
   supported_artifacts = ["WMIEnumerateCLEC"]
 
 
 class WMIInstalledSoftwareParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields a SoftwarePackages rdfvalue."""
 
-  output_types = [rdf_client.SoftwarePackages.__name__]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["WMIInstalledSoftware"]
 
   def ParseMultiple(self, result_dicts):
@@ -183,7 +183,7 @@ class WMIInstalledSoftwareParser(parser.WMIQueryParser):
 class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = [rdf_client.SoftwarePackages.__name__]
+  output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["WMIHotFixes"]
 
   def AmericanDateToEpoch(self, date_str):
@@ -219,7 +219,7 @@ class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
 class WMIUserParser(parser.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
-  output_types = [rdf_client.User.__name__]
+  output_types = [rdf_client.User]
   supported_artifacts = [
       "WMIProfileUsersHomeDir", "WMIAccountUsersDomain", "WMIUsers"
   ]
@@ -253,7 +253,7 @@ class WMIUserParser(parser.WMIQueryParser):
 class WMILogicalDisksParser(parser.WMIQueryParser):
   """Parser for LogicalDisk WMI output. Yields Volume rdfvalues."""
 
-  output_types = [rdf_client_fs.Volume.__name__]
+  output_types = [rdf_client_fs.Volume]
   supported_artifacts = ["WMILogicalDisks"]
 
   def ParseMultiple(self, result_dicts):
@@ -289,7 +289,7 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
 class WMIComputerSystemProductParser(parser.WMIQueryParser):
   """Parser for WMI Output. Yeilds Identifying Number."""
 
-  output_types = [rdf_client.HardwareInfo.__name__]
+  output_types = [rdf_client.HardwareInfo]
   supported_artifacts = ["WMIComputerSystemProduct"]
 
   def ParseMultiple(self, result_dicts):
@@ -309,8 +309,8 @@ class WMIInterfacesParser(parser.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
   output_types = [
-      rdf_client_network.Interface.__name__,
-      rdf_client_network.DNSClientConfiguration.__name__
+      rdf_client_network.Interface,
+      rdf_client_network.DNSClientConfiguration,
   ]
   supported_artifacts = []
 

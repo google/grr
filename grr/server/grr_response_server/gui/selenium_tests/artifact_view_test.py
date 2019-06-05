@@ -18,12 +18,13 @@ from grr_response_server import artifact_registry
 from grr_response_server.flows.general import collectors
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
+from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 
 
 class TestCmdProcessor(parser.CommandParser):
 
-  output_types = ["SoftwarePackages"]
+  output_types = []
   supported_artifacts = ["TestCmdArtifact"]
 
 
@@ -49,6 +50,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     self.client_id = self.SetupClient(0, system="linux")
     self.RequestAndGrantClientApproval(self.client_id)
 
+  @parser_test_lib.WithParser("TestCmd", TestCmdProcessor)
   def testArtifactRendering(self):
     self._LoadSystemArtifacts()
 

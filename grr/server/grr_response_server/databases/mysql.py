@@ -106,6 +106,10 @@ class EncodingEnforcementError(Error):
   """Raised when enforcing the UTF-8 encoding fails."""
 
 
+class MaxAllowedPacketSettingTooLowError(Error):
+  """Raises when MySQL's max_allowed_packet setting is too low."""
+
+
 def _CheckCollation(cursor):
   """Checks MySQL collation and warns if misconfigured."""
 
@@ -178,7 +182,17 @@ def _SetPacketSizeForFollowingConnections(cursor):
     logging.warning(
         "MySQL max_allowed_packet of %d is required, got %d. Overwriting.",
         MAX_PACKET_SIZE, cur_packet_size)
-    _SetGlobalVariable("max_allowed_packet", MAX_PACKET_SIZE, cursor)
+    try:
+      _SetGlobalVariable("max_allowed_packet", MAX_PACKET_SIZE, cursor)
+    except MySQLdb.OperationalError as e:
+      logging.error(e)
+
+      msg = ("Failed to override max_allowed_packet setting. "
+             "max_allowed_packet must be < %d. Please update MySQL "
+             "configuration or grant GRR sufficient privileges to "
+             "override global variables." % MAX_PACKET_SIZE)
+      logging.error(msg)
+      raise MaxAllowedPacketSettingTooLowError(msg)
 
 
 def _CheckPacketSize(cursor):

@@ -74,6 +74,7 @@ def main(unused_args):
 
   if flags.FLAGS.install:
     installer.RunInstaller()
+    sys.exit(0)
 
   errors = config.CONFIG.Validate(["Client", "CA", "Logging"])
 

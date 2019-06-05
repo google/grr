@@ -719,7 +719,7 @@ message WinUserActivityInvestigationArgs {
   }];
 }
 
-// Next field ID: 13
+// Next field ID: 15
 message ArtifactCollectorFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {
     type: "ArtifactName",
@@ -807,6 +807,11 @@ message ArtifactCollectorFlowArgs {
     },
     default = false
   ];
+
+  optional bool old_client_snapshot_fallback = 13 [(sem_type) = {
+    description: "If true, in case of interpolation failure or no results, "
+                 "older client snapshots are going to be tried."
+  }];
 
   optional bool recollect_knowledge_base = 14 [(sem_type) = {
     description: "Whether the dependencies should be collected as well or the"

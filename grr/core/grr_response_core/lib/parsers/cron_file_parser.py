@@ -17,7 +17,7 @@ from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
 class CronTabParser(parser.FileParser):
   """Parser for crontab files."""
 
-  output_types = ["CronTabFile"]
+  output_types = [rdf_cronjobs.CronTabFile]
   supported_artifacts = ["LinuxCronTabs", "MacOSCronTabs"]
 
   def Parse(self, stat, file_object, knowledge_base):

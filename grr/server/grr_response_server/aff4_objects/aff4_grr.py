@@ -605,23 +605,20 @@ class GRRForeman(aff4.AFF4Object):
     return actions_count
 
 
-class GRRAFF4Init(registry.InitHook):
+def GRRAFF4Init():
   """Ensure critical AFF4 objects exist for GRR."""
-
   # Must run after the AFF4 subsystem is ready.
-  pre = [aff4.AFF4InitHook]
 
-  def Run(self):
-    if data_store.RelationalDBEnabled():
-      return
+  if data_store.RelationalDBEnabled():
+    return
 
-    try:
-      # Make the foreman
-      with aff4.FACTORY.Create(
-          "aff4:/foreman", GRRForeman, token=aff4.FACTORY.root_token):
-        pass
-    except access_control.UnauthorizedAccess:
+  try:
+    # Make the foreman
+    with aff4.FACTORY.Create(
+        "aff4:/foreman", GRRForeman, token=aff4.FACTORY.root_token):
       pass
+  except access_control.UnauthorizedAccess:
+    pass
 
 
 class VFSFileSymlink(aff4.AFF4Stream):

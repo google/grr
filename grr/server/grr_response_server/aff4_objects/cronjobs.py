@@ -15,6 +15,7 @@ from future.utils import iterkeys
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import random
@@ -539,18 +540,17 @@ class CronJob(aff4.AFF4Volume):
     self.Flush()
 
 
-class CronHook(registry.InitHook):
+_cron_worker = None
+
+
+@utils.RunOnce
+def InitializeCronWorkerOnce():
   """Init hook for cron job metrics."""
-
-  pre = [aff4.AFF4InitHook]
-
-  def RunOnce(self):
-    """Main CronHook method."""
-    # Start the cron thread if configured to.
-    if config.CONFIG["Cron.active"]:
-
-      self.cron_worker = CronWorker()
-      self.cron_worker.RunAsync()
+  global _cron_worker
+  # Start the cron thread if configured to.
+  if config.CONFIG["Cron.active"]:
+    _cron_worker = CronWorker()
+    _cron_worker.RunAsync()
 
 
 class LegacyCronJobAdapterMixin(object):

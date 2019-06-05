@@ -66,7 +66,7 @@ class OSXLaunchdJobDict(object):
 
 class DarwinPersistenceMechanismsParser(parser.ArtifactFilesParser):
   """Turn various persistence objects into PersistenceFiles."""
-  output_types = ["PersistenceFile"]
+  output_types = [rdf_standard.PersistenceFile]
   supported_artifacts = ["DarwinPersistenceMechanisms"]
 
   def Parse(self, persistence, knowledge_base, download_pathtype):

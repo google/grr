@@ -16,7 +16,7 @@ from grr_response_core.path_detection import windows as path_detection_windows
 
 class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
   """Turn various persistence objects into PersistenceFiles."""
-  output_types = ["PersistenceFile"]
+  output_types = [rdf_standard.PersistenceFile]
   supported_artifacts = ["WindowsPersistenceMechanisms"]
   # Required for environment variable expansion
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]

@@ -3,6 +3,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import argparse
 import getpass
 import os
 
@@ -323,6 +324,38 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
       self.assertEqual(config["Mysql.database"], "db2")
       self.assertEqual(config["Mysql.username"], "user")
       self.assertEqual(config["Mysql.password"], "pass")
+
+  def testArgparseBool_CaseInsensitive(self):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--foo", type=config_updater_util.ArgparseBool)
+    parser.add_argument("--bar", type=config_updater_util.ArgparseBool)
+    namespace = parser.parse_args(["--foo", "True", "--bar", "fAlse"])
+    self.assertIsInstance(namespace.foo, bool)
+    self.assertIsInstance(namespace.bar, bool)
+    self.assertTrue(namespace.foo)
+    self.assertFalse(namespace.bar)
+
+  def testArgparseBool_DefaultValue(self):
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--foo", default=True, type=config_updater_util.ArgparseBool)
+    parser.add_argument(
+        "--bar", default=False, type=config_updater_util.ArgparseBool)
+    namespace = parser.parse_args([])
+    self.assertTrue(namespace.foo)
+    self.assertFalse(namespace.bar)
+
+  def testArgparseBool_InvalidType(self):
+    expected_error = "Unexpected type: float. Expected a string."
+    with self.assertRaisesWithLiteralMatch(argparse.ArgumentTypeError,
+                                           expected_error):
+      config_updater_util.ArgparseBool(1.23)
+
+  def testArgparseBool_InvalidValue(self):
+    expected_error = "Invalid value encountered. Expected 'True' or 'False'."
+    with self.assertRaisesWithLiteralMatch(argparse.ArgumentTypeError,
+                                           expected_error):
+      config_updater_util.ArgparseBool("baz")
 
 
 def main(argv):

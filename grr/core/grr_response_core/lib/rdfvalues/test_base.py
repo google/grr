@@ -210,8 +210,8 @@ class RDFValueTestMixin(object):
     sample1 = self.GenerateSample(1)
 
     # Different instances with the same value need to hash to the same.
-    self.assertTrue(hash(sample1) == hash(self.GenerateSample(1)))
-    self.assertTrue(hash(sample1) != hash(self.GenerateSample(2)))
+    self.assertEqual(hash(sample1), hash(self.GenerateSample(1)))
+    self.assertNotEqual(hash(sample1), hash(self.GenerateSample(2)))
 
   def testInitialization(self):
     """Check that we can use an empty initializer.

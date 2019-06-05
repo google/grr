@@ -70,8 +70,8 @@ rule test_rule {
     f = self.RunFlowAndWait("YaraProcessScan", args=args)
 
     all_results = list(f.ListResults())
-    self.assertTrue(all_results,
-                    "We expect results for at least one matching process.")
+    self.assertNotEmpty(all_results,
+                        "We expect results for at least one matching process.")
 
     for flow_result in all_results:
       process_scan_match = flow_result.payload

@@ -12,7 +12,6 @@ from typing import Iterable, Text, Type
 import yaml as pyyaml
 
 from grr_response_core import config
-from grr_response_core.lib import registry
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import yaml
 from grr_response_server.authorization import auth_manager
@@ -130,39 +129,25 @@ class APIAuthorizationManager(object):
     return self.default_router
 
 
-# Set in APIACLInit
+# Set in InitializeApiAuthManager
 API_AUTH_MGR = None
 
 
-class APIACLInit(registry.InitHook):
+def InitializeApiAuthManager():
   """Init hook that initializes API auth manager."""
+  global API_AUTH_MGR
 
-  @staticmethod
-  def InitApiAuthManager():
-    global API_AUTH_MGR
+  default_router_name = config.CONFIG["API.DefaultRouter"]
+  default_router_cls = _GetRouterClass(default_router_name)
 
-    default_router_name = config.CONFIG["API.DefaultRouter"]
-    default_router_cls = _GetRouterClass(default_router_name)
-
-    filepath = config.CONFIG["API.RouterACLConfigFile"]
-    if filepath:
-      logging.info("Using API router ACL file: %s", filepath)
-      with io.open(filepath, "r") as filedesc:
-        API_AUTH_MGR = APIAuthorizationManager.FromYaml(filedesc.read(),
-                                                        default_router_cls)
-    else:
-      API_AUTH_MGR = APIAuthorizationManager([], default_router_cls)
-
-  def RunOnce(self):
-    allowed_contexts = ["AdminUI Context"]
-
-    for ctx in allowed_contexts:
-      if ctx in config.CONFIG.context:
-        self.InitApiAuthManager()
-        return
-
-    logging.debug("Not initializing API Authorization Manager, as it's not "
-                  "supposed to be used by this component.")
+  filepath = config.CONFIG["API.RouterACLConfigFile"]
+  if filepath:
+    logging.info("Using API router ACL file: %s", filepath)
+    with io.open(filepath, "r") as filedesc:
+      API_AUTH_MGR = APIAuthorizationManager.FromYaml(filedesc.read(),
+                                                      default_router_cls)
+  else:
+    API_AUTH_MGR = APIAuthorizationManager([], default_router_cls)
 
 
 def _GetRouterClass(router_name):

@@ -1030,6 +1030,9 @@ class WellKnownFlow(GRRFlow):
   @classmethod
   def GetAllWellKnownFlows(cls, token=None):
     """Get instances of all well known flows."""
+    if not data_store.AFF4Enabled():
+      return {}
+
     well_known_flows = {}
     for cls in itervalues(registry.AFF4FlowRegistry.FLOW_REGISTRY):
       if issubclass(cls, WellKnownFlow) and cls.well_known_session_id:

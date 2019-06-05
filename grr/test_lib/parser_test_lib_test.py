@@ -6,25 +6,24 @@ from __future__ import unicode_literals
 from absl.testing import absltest
 import mock
 
-from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import all as all_parsers
 from grr.test_lib import parser_test_lib
 
 
-class FooParser(parser.SingleResponseParser):
+class FooParser(parsers.SingleResponseParser):
 
   def ParseResponse(self, knowledge_base, response, path_type):
     raise NotImplementedError()
 
 
-class BarParser(parser.SingleFileParser):
+class BarParser(parsers.SingleFileParser):
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
     raise NotImplementedError()
 
 
-class BazParser(parser.SingleFileParser):
+class BazParser(parsers.SingleFileParser):
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
     raise NotImplementedError()
