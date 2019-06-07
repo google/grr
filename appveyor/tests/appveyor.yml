@@ -29,12 +29,6 @@ install:
   fi
 - travis/install_protobuf.sh linux
 - virtualenv "${GRR_VENV}"
-# Install a version of pytest-xdist that is known to be stable.
-# Version 1.25.0 fails with
-# "PluginValidationError: Plugin 'xdist.looponfail' could not be loaded"
-# when trying to run tests.
-# TODO(ogaro): Stop hard-coding the version when the newest version starts
-# working.
 - ${GRR_VENV}/bin/pip install pytest-xdist
 - travis/install.sh
 
