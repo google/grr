@@ -18,6 +18,7 @@ from typing import Text
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -115,7 +116,7 @@ def GetRunlevelsNonLSB(states):
   return set([convert_table[s] for s in states.split() if s in convert_table])
 
 
-class LinuxLSBInitParser(parser.FileMultiParser):
+class LinuxLSBInitParser(parsers.MultiFileParser):
   """Parses LSB style /etc/init.d entries."""
 
   output_types = [rdf_client.LinuxServiceInformation]
@@ -188,10 +189,12 @@ class LinuxLSBInitParser(parser.FileMultiParser):
       for v in vals:
         self.insserv[k].extend(self._InsservExpander(facilities, v))
 
-  def ParseMultiple(self, stats, file_objs, _):
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    del knowledge_base  # Unused.
+
     self.insserv = {}
-    paths = [s.pathspec.path for s in stats]
-    files = dict(zip(paths, file_objs))
+    paths = [pathspec.path for pathspec in pathspecs]
+    files = dict(zip(paths, filedescs))
     insserv_data = ""
     init_files = []
     for k, v in iteritems(files):
@@ -204,7 +207,7 @@ class LinuxLSBInitParser(parser.FileMultiParser):
       yield rslt
 
 
-class LinuxXinetdParser(parser.FileMultiParser):
+class LinuxXinetdParser(parsers.MultiFileParser):
   """Parses xinetd entries."""
 
   output_types = [rdf_client.LinuxServiceInformation]
@@ -267,17 +270,22 @@ class LinuxXinetdParser(parser.FileMultiParser):
       service.start_after = ["xinetd"]
     return service
 
-  def ParseMultiple(self, stats, file_objs, _):
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    del knowledge_base  # Unused.
+
     self.entries = {}
     self.default = {}
-    paths = [s.pathspec.path for s in stats]
-    files = dict(zip(paths, file_objs))
+    paths = [pathspec.path for pathspec in pathspecs]
+    files = dict(zip(paths, filedescs))
     for v in itervalues(files):
       self._ProcessEntries(v)
     for name, cfg in iteritems(self.entries):
       yield self._GenService(name, cfg)
 
 
+# TODO(hanuszczak): Why is this a file parser if it does not care about file
+# contents? If it only needs stat entries, it should be an ordinary response
+# parser.
 class LinuxSysVInitParser(parser.FileMultiParser):
   """Parses SysV runlevel entries.
 

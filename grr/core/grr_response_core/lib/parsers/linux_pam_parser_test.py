@@ -150,8 +150,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
 
     # Parse the simplest 'normal' config we can.
     # e.g. a single entry for 'telnet' with no includes etc.
-    stats, file_objs = artifact_test_lib.GenStatFileData(TELNET_ONLY_CONFIG)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
+        TELNET_ONLY_CONFIG)
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(TELNET_ONLY_CONFIG_EXPECTED,
@@ -161,8 +162,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     # Parse the simplest 'normal' config we can but with an effectively
     # empty /etc/pam.conf file.
     # e.g. a single entry for 'telnet' with no includes etc.
-    stats, file_objs = artifact_test_lib.GenStatFileData(TELNET_WITH_PAMCONF)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
+        TELNET_WITH_PAMCONF)
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     entry = out[0].entries[0]
@@ -175,8 +177,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     self.assertEqual([], out[0].external_config)
 
     # Parse a simple old-style pam config. i.e. Just /etc/pam.conf.
-    stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_SIMPLE)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
+        PAM_CONF_SIMPLE)
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_SIMPLE_EXPECTED,
@@ -185,8 +188,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
 
     # Parse a simple old-style pam config overriding a 'new' style config.
     # i.e. Configs in /etc/pam.conf override everything else.
-    stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_OVERRIDE)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
+        PAM_CONF_OVERRIDE)
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_OVERRIDE_EXPECTED,
@@ -196,9 +200,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     # Parse a complex old-style pam config overriding a 'new' style config but
     # the /etc/pam.conf includes parts from the /etc/pam.d dir.
     # i.e. Configs in /etc/pam.conf override everything else but imports stuff.
-    stats, file_objs = artifact_test_lib.GenStatFileData(
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
         PAM_CONF_OVERRIDE_COMPLEX)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_OVERRIDE_COMPLEX_EXPECTED,
@@ -208,8 +212,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     # Parse a normal-looking pam configuration.
     # i.e. A no-op of a /etc/pam.conf with multiple files under /etc/pam.d
     #      that have includes etc.
-    stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_TYPICAL)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
+        PAM_CONF_TYPICAL)
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_TYPICAL_EXPECTED,
@@ -217,8 +222,9 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     self.assertEqual([], out[0].external_config)
 
     # Parse a config which has references to external or missing files.
-    stats, file_objs = artifact_test_lib.GenStatFileData(PAM_CONF_EXTERNAL_REF)
-    out = list(parser.ParseMultiple(stats, file_objs, self.kb))
+    pathspecs, file_objs = artifact_test_lib.GenPathspecFileData(
+        PAM_CONF_EXTERNAL_REF)
+    out = list(parser.ParseFiles(self.kb, pathspecs, file_objs))
     self.assertLen(out, 1)
     self.assertIsInstance(out[0], rdf_config_file.PamConfig)
     self.assertCountEqual(PAM_CONF_EXTERNAL_REF_EXPECTED,

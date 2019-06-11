@@ -9,29 +9,29 @@ from __future__ import unicode_literals
 from future.moves.urllib import parse as urlparse
 from past.builtins import long
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import sqlite_file
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 
 
-class FirefoxHistoryParser(parser.FileParser):
+class FirefoxHistoryParser(parsers.SingleFileParser):
   """Parse Chrome history files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["FirefoxHistory"]
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the History file."""
-    _, _ = stat, knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+
     # TODO(user): Convert this to use the far more intelligent plaso parser.
-    ff = Firefox3History(file_object)
+    ff = Firefox3History(filedesc)
     for timestamp, unused_entry_type, url, title in ff.Parse():
       yield rdf_webhistory.BrowserHistoryItem(
           url=url,
           domain=urlparse.urlparse(url).netloc,
           access_time=timestamp,
           program_name="Firefox",
-          source_path=file_object.Path(),
+          source_path=pathspec.CollapsePath(),
           title=title)
 
 

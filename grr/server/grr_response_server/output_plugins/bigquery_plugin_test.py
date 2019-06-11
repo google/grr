@@ -11,10 +11,12 @@ import os
 
 from absl import app
 from future.builtins import range
+from future.builtins import str
 from future.builtins import zip
 import mock
 
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -33,7 +35,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(BigQueryOutputPluginTest, self).setUp()
     self.client_id = self.SetupClient(0)
-    self.results_urn = self.client_id.Add("Results")
+    self.source_id = self.client_id.Add("Results").RelativeName("aff4:/")
 
   def ProcessResponses(self,
                        plugin_args=None,
@@ -41,7 +43,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
                        process_responses_separately=False):
     plugin_cls = bigquery_plugin.BigQueryOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
-        source_urn=self.results_urn, args=plugin_args, token=self.token)
+        source_urn=self.source_id, args=plugin_args, token=self.token)
 
     messages = []
     for response in responses:
@@ -134,6 +136,9 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     content_fd = gzip.GzipFile(None, "r", 9, stream)
     counter = 0
 
+    # The source id is converted to a URN then to a JSON string.
+    source_urn = str(rdfvalue.RDFURN(self.source_id))
+
     for item in content_fd:
       counter += 1
       row = json.Parse(item.decode("utf-8"))
@@ -143,14 +148,14 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(row["metadata"]["hostname"], "Host-0")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
-        self.assertEqual(row["metadata"]["source_urn"], self.results_urn)
+        self.assertEqual(row["metadata"]["source_urn"], source_urn)
         self.assertEqual(row["urn"], self.client_id.Add("/fs/os/中国新闻网新闻中"))
       else:
         self.assertEqual(row["metadata"]["client_urn"], self.client_id)
         self.assertEqual(row["metadata"]["hostname"], "Host-0")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
-        self.assertEqual(row["metadata"]["source_urn"], self.results_urn)
+        self.assertEqual(row["metadata"]["source_urn"], source_urn)
         self.assertEqual(row["pid"], "42")
 
     self.assertEqual(counter, 1)

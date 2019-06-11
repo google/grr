@@ -6,13 +6,13 @@ from __future__ import unicode_literals
 
 import re
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 
 
-class DebianPackagesStatusParser(parser.FileParser):
+class DebianPackagesStatusParser(parsers.SingleFileParser):
   """Parser for /var/lib/dpkg/status. Yields SoftwarePackage semantic values."""
 
   output_types = [rdf_client.SoftwarePackages]
@@ -28,12 +28,12 @@ class DebianPackagesStatusParser(parser.FileParser):
     """
     self._deb822 = deb822
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the status file."""
-    _, _ = stat, knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
 
     packages = []
-    sw_data = utils.ReadFileBytesAsUnicode(file_object)
+    sw_data = utils.ReadFileBytesAsUnicode(filedesc)
     try:
       for pkg in self._deb822.Packages.iter_paragraphs(sw_data.splitlines()):
         if self.installed_re.match(pkg["Status"]):

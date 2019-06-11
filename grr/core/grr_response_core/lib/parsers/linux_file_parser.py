@@ -18,6 +18,7 @@ from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -26,13 +27,14 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import precondition
 
 
-class PCIDevicesInfoParser(parser.FileMultiParser):
+class PCIDevicesInfoParser(parsers.MultiFileParser):
   """Parser for PCI devices' info files located in /sys/bus/pci/devices/*/*."""
 
   output_types = [rdf_client.PCIDevice]
   supported_artifacts = ["PCIDevicesInfoFiles"]
 
-  def ParseMultiple(self, stats, file_objects, unused_knowledge_base):
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    del knowledge_base  # Unused.
 
     # Each file gives us only partial information for a particular PCI device.
     # Iterate through all the files first to create a dictionary encapsulating
@@ -55,10 +57,10 @@ class PCIDevicesInfoParser(parser.FileMultiParser):
     # is accessed for the first time a new 'key':{} pair is auto-created
     data = collections.defaultdict(dict)
 
-    for stat, file_obj in zip(stats, file_objects):
-      filename = stat.pathspec.Basename()
+    for pathspec, file_obj in zip(pathspecs, filedescs):
+      filename = pathspec.Basename()
       # Location of PCI device is the name of parent directory of returned file.
-      bdf = stat.pathspec.Dirname().Basename()
+      bdf = pathspec.Dirname().Basename()
 
       # Make sure we only parse files that are under a valid B/D/F folder
       if bdf_regex.match(bdf):
@@ -90,7 +92,7 @@ class PCIDevicesInfoParser(parser.FileMultiParser):
       yield pci_device
 
 
-class PasswdParser(parser.FileParser):
+class PasswdParser(parsers.SingleFileParser):
   """Parser for passwd files. Yields User semantic values."""
 
   output_types = [rdf_client.User]
@@ -118,12 +120,12 @@ class PasswdParser(parser.FileParser):
       raise parser.ParseError(
           "Invalid passwd file at line %d. %s" % ((index + 1), line))
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the passwd file."""
-    _, _ = stat, knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
+
     lines = [
-        l.strip()
-        for l in utils.ReadFileBytesAsUnicode(file_object).splitlines()
+        l.strip() for l in utils.ReadFileBytesAsUnicode(filedesc).splitlines()
     ]
     for index, line in enumerate(lines):
       user = self.ParseLine(index, line)
@@ -167,7 +169,7 @@ class UtmpStruct(utils.Struct):
   ]
 
 
-class LinuxWtmpParser(parser.FileParser):
+class LinuxWtmpParser(parsers.SingleFileParser):
   """Simplified parser for linux wtmp files.
 
   Yields User semantic values for USER_PROCESS events.
@@ -176,11 +178,12 @@ class LinuxWtmpParser(parser.FileParser):
   output_types = [rdf_client.User]
   supported_artifacts = ["LinuxWtmp"]
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the wtmp file."""
-    _, _ = stat, knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
+
     users = {}
-    wtmp = file_object.read()
+    wtmp = filedesc.read()
     while wtmp:
       try:
         record = UtmpStruct(wtmp)
@@ -208,7 +211,7 @@ class LinuxWtmpParser(parser.FileParser):
           username=utils.SmartUnicode(user), last_logon=last_login * 1000000)
 
 
-class NetgroupParser(parser.FileParser):
+class NetgroupParser(parsers.SingleFileParser):
   """Parser that extracts users from a netgroup file."""
 
   output_types = [rdf_client.User]
@@ -257,7 +260,7 @@ class NetgroupParser(parser.FileParser):
             raise parser.ParseError(
                 "Invalid netgroup file at line %d: %s" % (index + 1, line))
 
-  def Parse(self, stat, file_object, knowledge_base):
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
     """Parse the netgroup file and return User objects.
 
     Lines are of the form:
@@ -270,17 +273,18 @@ class NetgroupParser(parser.FileParser):
     man page.  Notably no non-ASCII characters.
 
     Args:
-      stat: unused statentry
-      file_object: netgroup VFSFile
-      knowledge_base: unused
+      knowledge_base: A knowledgebase for the client to whom the file belongs.
+      pathspec: A pathspec corresponding to the parsed file.
+      filedesc: A file-like object to parse.
 
     Returns:
       rdf_client.User
     """
-    _, _ = stat, knowledge_base
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
+
     lines = [
-        l.strip()
-        for l in utils.ReadFileBytesAsUnicode(file_object).splitlines()
+        l.strip() for l in utils.ReadFileBytesAsUnicode(filedesc).splitlines()
     ]
     return self.ParseLines(lines)
 
@@ -296,7 +300,7 @@ class NetgroupBufferParser(parser.GrepParser):
         [x.data.decode("utf-8").strip() for x in filefinderresult.matches])
 
 
-class LinuxBaseShadowParser(parser.FileMultiParser):
+class LinuxBaseShadowParser(parsers.MultiFileParser):
   """Base parser to process user/groups with shadow files."""
 
   # A list of hash types and hash matching expressions.
@@ -417,9 +421,12 @@ class LinuxBaseShadowParser(parser.FileMultiParser):
         diffs.append(msg % (set2_name, set1_name, ",".join(in_set2)))
     return diffs
 
-  def ParseMultiple(self, stats, file_objs, kb):
-    """Process files together."""
-    fileset = {stat.pathspec.path: obj for stat, obj in zip(stats, file_objs)}
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    del knowledge_base  # Unused.
+
+    fileset = {
+        pathspec.path: obj for pathspec, obj in zip(pathspecs, filedescs)
+    }
     return self.ParseFileset(fileset)
 
 
@@ -711,7 +718,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       yield anom
 
 
-class PathParser(parser.FileParser):
+class PathParser(parsers.SingleFileParser):
   """Parser for dotfile entries.
 
   Extracts path attributes from dotfiles to infer effective paths for users.
@@ -841,7 +848,7 @@ class PathParser(parser.FileParser):
           self._ExpandPath(target, path_vals, paths)
     return paths
 
-  def Parse(self, stat, file_obj, knowledge_base):
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
     """Identifies the paths set within a file.
 
     Expands paths within the context of the file, but does not infer fully
@@ -856,20 +863,21 @@ class PathParser(parser.FileParser):
       statement.
 
     Args:
-      stat: statentry
-      file_obj: VFSFile
-      knowledge_base: unused
+      knowledge_base: A knowledgebase for the client to whom the file belongs.
+      pathspec: A pathspec corresponding to the parsed file.
+      filedesc: A file-like object to parse.
 
     Yields:
       An attributed dict for each env vars. 'name' contains the path name, and
       'vals' contains its vals.
     """
-    _ = knowledge_base
-    lines = self.parser.ParseEntries(utils.ReadFileBytesAsUnicode(file_obj))
-    if os.path.basename(stat.pathspec.path) in self._CSH_FILES:
+    del knowledge_base  # Unused.
+
+    lines = self.parser.ParseEntries(utils.ReadFileBytesAsUnicode(filedesc))
+    if os.path.basename(pathspec.path) in self._CSH_FILES:
       paths = self._ParseCshVariables(lines)
     else:
       paths = self._ParseShVariables(lines)
     for path_name, path_vals in iteritems(paths):
       yield rdf_protodict.AttributedDict(
-          config=stat.pathspec.path, name=path_name, vals=path_vals)
+          config=pathspec.path, name=path_name, vals=path_vals)

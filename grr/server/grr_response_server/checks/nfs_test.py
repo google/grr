@@ -31,7 +31,7 @@ class NfsExportsTests(checks_test_lib.HostCheckTest):
       parser = config_file.NfsExportsParser()
       host_data = self.SetKnowledgeBase()
       with io.open(self.TestDataPath("exports"), "rb") as export_fd:
-        parsed = list(parser.Parse(None, export_fd, None))
+        parsed = list(parser.ParseFile(None, None, export_fd))
         host_data["NfsExportsFile"] = self.SetArtifactData(parsed=parsed)
       NfsExportsTests.results = self.RunChecks(host_data)
 

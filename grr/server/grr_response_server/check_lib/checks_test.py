@@ -69,7 +69,7 @@ def GetSSHDConfig():
   test_data = os.path.join(config.CONFIG["Test.data_dir"],
                            "VFSFixture/etc/ssh/sshd_config")
   with open(test_data, "rb") as f:
-    SSHD_CFG.extend(parser.Parse(None, f, None))
+    SSHD_CFG.extend(parser.ParseFile(None, None, f))
   return SSHD_CFG
 
 

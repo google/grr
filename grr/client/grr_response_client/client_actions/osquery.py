@@ -247,7 +247,15 @@ def Query(args):
     # `--S` we can make `osqueryd` behave like `osqueryi`. Since this flag also
     # works with `osqueryi`, by passing it we simply expand number of supported
     # executable types.
-    command = [config.CONFIG["Osquery.path"], "--S", "--json", query]
+    command = [
+        config.CONFIG["Osquery.path"],
+        "--S",  # Enforce shell execution.
+        "--logger_stderr=false",  # Only allow errors to be written to stderr.
+        "--logger_min_status=3",  # Disable status logs.
+        "--logger_min_stderr=2",  # Only ERROR-level logs to stderr.
+        "--json",  # Set output format to JSON.
+        query,
+    ]
     proc = subprocess.run(
         command,
         timeout=timeout,

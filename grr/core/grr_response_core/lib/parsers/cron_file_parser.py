@@ -10,22 +10,23 @@ import crontab
 
 from future.builtins import str
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
-class CronTabParser(parser.FileParser):
+class CronTabParser(parsers.SingleFileParser):
   """Parser for crontab files."""
 
   output_types = [rdf_cronjobs.CronTabFile]
   supported_artifacts = ["LinuxCronTabs", "MacOSCronTabs"]
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the crontab file."""
-    _ = knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
+
     entries = []
 
-    crondata = file_object.read().decode("utf-8")
+    crondata = filedesc.read().decode("utf-8")
     jobs = crontab.CronTab(tab=crondata)
 
     for job in jobs:
@@ -40,7 +41,7 @@ class CronTabParser(parser.FileParser):
               comment=str(job.comment)))
 
     try:
-      source_urn = file_object.urn
+      source_urn = filedesc.urn
     except AttributeError:
       source_urn = None
 

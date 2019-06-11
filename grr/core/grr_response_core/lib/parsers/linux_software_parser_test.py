@@ -30,7 +30,7 @@ class LinuxSoftwareParserTest(test_lib.GRRBaseTest):
     parser = linux_software_parser.DebianPackagesStatusParser(deb822)
     path = os.path.join(self.base_path, "dpkg_status")
     with open(path, "rb") as data:
-      out = list(parser.Parse(None, data, None))
+      out = list(parser.ParseFile(None, None, data))
     self.assertLen(out, 1)
     package_list = out[0]
     self.assertLen(package_list.packages, 2)
@@ -44,7 +44,7 @@ class LinuxSoftwareParserTest(test_lib.GRRBaseTest):
     parser = linux_software_parser.DebianPackagesStatusParser(deb822)
     path = os.path.join(self.base_path, "numbers.txt")
     with open(path, "rb") as data:
-      out = list(parser.Parse(None, data, None))
+      out = list(parser.ParseFile(None, None, data))
     for result in out:
       self.assertIsInstance(result, rdf_anomaly.Anomaly)
 

@@ -15,6 +15,7 @@ import biplist
 
 from future.utils import string_types
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 
@@ -66,7 +67,7 @@ class OSXSPHardwareDataTypeParser(parser.CommandParser):
         system_product_name=system_product_name)
 
 
-class OSXLaunchdPlistParser(parser.FileParser):
+class OSXLaunchdPlistParser(parsers.SingleFileParser):
   """Parse Launchd plist files into LaunchdPlist objects."""
 
   output_types = [rdf_plist.LaunchdPlist]
@@ -74,12 +75,13 @@ class OSXLaunchdPlistParser(parser.FileParser):
       "MacOSLaunchAgentsPlistFiles", "MacOSLaunchDaemonsPlistFiles"
   ]
 
-  def Parse(self, statentry, file_object, knowledge_base):
-    """Parse the Plist file."""
-    _ = knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
+
     kwargs = {}
     try:
-      kwargs["aff4path"] = file_object.urn
+      kwargs["aff4path"] = filedesc.urn
     except AttributeError:
       pass
 
@@ -103,7 +105,7 @@ class OSXLaunchdPlistParser(parser.FileParser):
     plist = {}
 
     try:
-      plist = biplist.readPlist(file_object)
+      plist = biplist.readPlist(filedesc)
     except (biplist.InvalidPlistException, ValueError, IOError) as e:
       plist["Label"] = "Could not parse plist: %s" % e
 
@@ -187,16 +189,17 @@ class OSXLaunchdPlistParser(parser.FileParser):
     yield rdf_plist.LaunchdPlist(**kwargs)
 
 
-class OSXInstallHistoryPlistParser(parser.FileParser):
+class OSXInstallHistoryPlistParser(parsers.SingleFileParser):
   """Parse InstallHistory plist files into SoftwarePackage objects."""
 
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["MacOSInstallationHistory"]
 
-  def Parse(self, statentry, file_object, knowledge_base):
-    """Parse the Plist file."""
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
 
-    plist = biplist.readPlist(file_object)
+    plist = biplist.readPlist(filedesc)
 
     if not isinstance(plist, list):
       raise parser.ParseError(

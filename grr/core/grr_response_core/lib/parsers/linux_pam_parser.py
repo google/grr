@@ -10,7 +10,7 @@ import re
 
 from future.builtins import zip
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
@@ -44,11 +44,11 @@ class PAMFieldParser(config_file.FieldParser):
     else:
       return path
 
-  def EnumerateAllConfigs(self, stats, file_objects):
+  def EnumerateAllConfigs(self, pathspecs, file_objects):
     """Generate RDFs for the fully expanded configs.
 
     Args:
-      stats: A list of RDF StatEntries corresponding to the file_objects.
+      pathspecs: A list of pathspecs corresponding to the file_objects.
       file_objects: A list of file handles.
 
     Returns:
@@ -58,8 +58,8 @@ class PAMFieldParser(config_file.FieldParser):
     # Convert the stats & file_objects into a cache of a
     # simple path keyed dict of file contents.
     cache = {}
-    for stat_obj, file_obj in zip(stats, file_objects):
-      cache[stat_obj.pathspec.path] = utils.ReadFileBytesAsUnicode(file_obj)
+    for pathspec, file_obj in zip(pathspecs, file_objects):
+      cache[pathspec.path] = utils.ReadFileBytesAsUnicode(file_obj)
 
     result = []
     external = []
@@ -184,7 +184,7 @@ class PAMFieldParser(config_file.FieldParser):
     return result, external
 
 
-class PAMParser(parser.FileMultiParser):
+class PAMParser(parsers.MultiFileParser):
   """Artifact parser for PAM configurations."""
 
   output_types = [rdf_config_file.PamConfig]
@@ -194,8 +194,9 @@ class PAMParser(parser.FileMultiParser):
     super(PAMParser, self).__init__(*args, **kwargs)
     self._field_parser = PAMFieldParser()
 
-  def ParseMultiple(self, stats, file_objects, knowledge_base):
-    _ = knowledge_base
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    del knowledge_base  # Unused.
+
     results, externals = self._field_parser.EnumerateAllConfigs(
-        stats, file_objects)
+        pathspecs, filedescs)
     yield rdf_config_file.PamConfig(entries=results, external_config=externals)

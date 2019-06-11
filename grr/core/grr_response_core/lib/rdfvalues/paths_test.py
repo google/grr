@@ -132,6 +132,30 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     # This should not change the original.
     self.assertEqual(sample.last.path, "foo")
 
+  def testOsConstructor(self):
+    pathspec = rdf_paths.PathSpec.OS(path="foo")
+
+    self.assertEqual(pathspec.path, "foo")
+    self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.OS)
+
+  def testTskConstructor(self):
+    pathspec = rdf_paths.PathSpec.TSK(mount_point="C:\\")
+
+    self.assertEqual(pathspec.mount_point, "C:\\")
+    self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.TSK)
+
+  def testRegistryConstructor(self):
+    pathspec = rdf_paths.PathSpec.Registry(path="HKLM\\System\\foo\\bar")
+
+    self.assertEqual(pathspec.path, "HKLM\\System\\foo\\bar")
+    self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.REGISTRY)
+
+  def testTempConstructor(self):
+    pathspec = rdf_paths.PathSpec.Temp(is_virtualroot=True)
+
+    self.assertTrue(pathspec.is_virtualroot)
+    self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.TMPFILE)
+
 
 class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_paths.GlobExpression

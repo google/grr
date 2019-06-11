@@ -19,31 +19,32 @@ import operator
 import struct
 from future.moves.urllib import parse as urlparse
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
 
 
-class IEHistoryParser(parser.FileParser):
+class IEHistoryParser(parsers.SingleFileParser):
   """Parse IE index.dat files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["InternetExplorerHistory"]
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the History file."""
-    _, _ = stat, knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+    del pathspec  # Unused.
+
     # TODO(user): Convert this to use the far more intelligent plaso parser.
-    ie = IEParser(file_object)
+    ie = IEParser(filedesc)
     for dat in ie.Parse():
       yield rdf_webhistory.BrowserHistoryItem(
           url=dat["url"],
           domain=urlparse.urlparse(dat["url"]).netloc,
           access_time=dat.get("mtime"),
           program_name="Internet Explorer",
-          source_urn=file_object.urn)
+          source_path=pathspec.CollapsePath())
 
 
 class IEParser(object):

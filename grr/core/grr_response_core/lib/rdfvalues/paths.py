@@ -52,6 +52,22 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       "PathSpec",  # TODO(user): recursive definition.
   ]
 
+  @classmethod
+  def OS(cls, **kwargs):
+    return cls(pathtype=PathSpec.PathType.OS, **kwargs)
+
+  @classmethod
+  def TSK(cls, **kwargs):
+    return cls(pathtype=PathSpec.PathType.TSK, **kwargs)
+
+  @classmethod
+  def Registry(cls, **kwargs):
+    return cls(pathtype=PathSpec.PathType.REGISTRY, **kwargs)
+
+  @classmethod
+  def Temp(cls, **kwargs):
+    return cls(pathtype=PathSpec.PathType.TMPFILE, **kwargs)
+
   def CopyConstructor(self, other):
     # pylint: disable=protected-access
     self.SetRawData(other._CopyRawData())

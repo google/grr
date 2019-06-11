@@ -11,7 +11,7 @@ import re
 from future.builtins import zip
 from typing import Text
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -135,7 +135,7 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
     return complete, ParsedRelease(self.name, major, minor)
 
 
-class LinuxReleaseParser(parser.FileMultiParser):
+class LinuxReleaseParser(parsers.MultiFileParser):
   """Parser for Linux distribution information."""
 
   output_types = [rdf_protodict.Dict]
@@ -165,21 +165,20 @@ class LinuxReleaseParser(parser.FileMultiParser):
       # be deleted and replaced with a function.
   )
 
-  def _Combine(self, stats, file_objects):
+  def _Combine(self, pathspecs, file_objects):
     result = {}
-    for stat, file_object in zip(stats, file_objects):
-      path = stat.pathspec.path
+    for pathspec, file_object in zip(pathspecs, file_objects):
+      path = pathspec.path
       file_object.seek(0)
       contents = utils.ReadFileBytesAsUnicode(file_object)
       result[path] = contents
     return result
 
-  def ParseMultiple(self, stats, file_objects, knowledge_base):
-    """Parse the found release files."""
-    _ = knowledge_base
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+    del knowledge_base  # Unused.
 
     # Collate files into path: contents dictionary.
-    found_files = self._Combine(stats, file_objects)
+    found_files = self._Combine(pathspecs, filedescs)
 
     # Determine collected files and apply weighting.
     weights = [w for w in self.WEIGHTS if w.path in found_files]

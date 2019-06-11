@@ -11,22 +11,22 @@ import itertools
 from future.moves.urllib import parse as urlparse
 from past.builtins import long
 
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import sqlite_file
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 
 
-class ChromeHistoryParser(parser.FileParser):
+class ChromeHistoryParser(parsers.SingleFileParser):
   """Parse Chrome history files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["ChromeHistory"]
 
-  def Parse(self, stat, file_object, knowledge_base):
-    """Parse the History file."""
-    _ = knowledge_base
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
+    del knowledge_base  # Unused.
+
     # TODO(user): Convert this to use the far more intelligent plaso parser.
-    chrome = ChromeParser(file_object)
+    chrome = ChromeParser(filedesc)
     for timestamp, entry_type, url, data1, _, _ in chrome.Parse():
       if entry_type == "CHROME_DOWNLOAD":
         yield rdf_webhistory.BrowserHistoryItem(
@@ -34,7 +34,7 @@ class ChromeHistoryParser(parser.FileParser):
             domain=urlparse.urlparse(url).netloc,
             access_time=timestamp,
             program_name="Chrome",
-            source_path=file_object.Path(),
+            source_path=pathspec.CollapsePath(),
             download_path=data1)
       elif entry_type == "CHROME_VISIT":
         yield rdf_webhistory.BrowserHistoryItem(
@@ -42,7 +42,7 @@ class ChromeHistoryParser(parser.FileParser):
             domain=urlparse.urlparse(url).netloc,
             access_time=timestamp,
             program_name="Chrome",
-            source_path=file_object.Path(),
+            source_path=pathspec.CollapsePath(),
             title=data1)
 
 

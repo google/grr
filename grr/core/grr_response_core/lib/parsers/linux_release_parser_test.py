@@ -14,7 +14,6 @@ from absl import app
 
 from grr_response_core.lib.parsers import linux_release_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import test_lib
@@ -86,16 +85,15 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
   def _CreateTestData(self, testdata):
     """Create 'stats' and 'file_objects' lists for passing to ParseMultiple."""
-    stats = []
+    pathspecs = []
     files = []
     for filepath, localfile in testdata:
       files.append(open(localfile, "rb"))
 
       p = rdf_paths.PathSpec(path=filepath)
-      s = rdf_client_fs.StatEntry(pathspec=p)
-      stats.append(s)
+      pathspecs.append(p)
 
-    return stats, files
+    return pathspecs, files
 
   def testEndToEndUbuntu(self):
     parser = linux_release_parser.LinuxReleaseParser()
@@ -103,9 +101,9 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     testdata = [
         ("/etc/lsb-release", os.path.join(self.parser_test_dir, "lsb-release")),
     ]
-    stats, files = self._CreateTestData(testdata)
+    pathspecs, files = self._CreateTestData(testdata)
 
-    result = list(parser.ParseMultiple(stats, files, None)).pop()
+    result = list(parser.ParseFiles(None, pathspecs, files)).pop()
 
     self.assertIsInstance(result, rdf_protodict.Dict)
     self.assertEqual("Ubuntu", result["os_release"])
@@ -121,9 +119,9 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
         ("/etc/oracle-release",
          os.path.join(self.parser_test_dir, "oracle-release")),
     ]
-    stats, files = self._CreateTestData(testdata)
+    pathspecs, files = self._CreateTestData(testdata)
 
-    result = list(parser.ParseMultiple(stats, files, None)).pop()
+    result = list(parser.ParseFiles(None, pathspecs, files)).pop()
 
     self.assertIsInstance(result, rdf_protodict.Dict)
     self.assertEqual("OracleLinux", result["os_release"])
@@ -136,8 +134,8 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
         ("/etc/system-release",
          os.path.join(self.parser_test_dir, "amazon-system-release")),
     ]
-    stat_entries, file_objects = self._CreateTestData(test_data)
-    actual_result = list(parser.ParseMultiple(stat_entries, file_objects, None))
+    pathspecs, file_objects = self._CreateTestData(test_data)
+    actual_result = list(parser.ParseFiles(None, pathspecs, file_objects))
     expected_result = [
         rdf_protodict.Dict({
             "os_release": "AmazonLinuxAMI",
@@ -153,8 +151,8 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
         ("/etc/os-release",
          os.path.join(self.parser_test_dir, "coreos-os-release")),
     ]
-    stat_entries, file_objects = self._CreateTestData(test_data)
-    actual_result = list(parser.ParseMultiple(stat_entries, file_objects, None))
+    pathspecs, file_objects = self._CreateTestData(test_data)
+    actual_result = list(parser.ParseFiles(None, pathspecs, file_objects))
     expected_result = [
         rdf_protodict.Dict({
             "os_release": "Container Linux by CoreOS",
@@ -170,8 +168,8 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
         ("/etc/os-release",
          os.path.join(self.parser_test_dir, "google-cos-os-release")),
     ]
-    stat_entries, file_objects = self._CreateTestData(test_data)
-    actual_result = list(parser.ParseMultiple(stat_entries, file_objects, None))
+    pathspecs, file_objects = self._CreateTestData(test_data)
+    actual_result = list(parser.ParseFiles(None, pathspecs, file_objects))
     expected_result = [
         rdf_protodict.Dict({
             "os_release": "Container-Optimized OS",
@@ -184,9 +182,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
   def testAnomaly(self):
     parser = linux_release_parser.LinuxReleaseParser()
 
-    stats = []
-    files = []
-    result = list(parser.ParseMultiple(stats, files, None))
+    result = list(parser.ParseFiles(None, [], []))
 
     self.assertLen(result, 1)
     self.assertIsInstance(result[0], rdf_anomaly.Anomaly)

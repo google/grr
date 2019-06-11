@@ -12,7 +12,6 @@ from absl import app
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_sysctl_parser
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import test_lib
@@ -22,22 +21,22 @@ class ProcSysParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux /proc/sys data."""
 
   def _GenTestData(self, paths, data):
-    stats = []
+    pathspecs = []
     files = []
     for path in paths:
       p = rdf_paths.PathSpec(path=path)
-      stats.append(rdf_client_fs.StatEntry(pathspec=p))
+      pathspecs.append(p)
     for val in data:
       files.append(io.BytesIO(utils.SmartStr(val)))
-    return stats, files
+    return pathspecs, files
 
   def testParseSysctl(self):
     """Sysctl entries return an underscore separated key and 0+ values."""
     parser = linux_sysctl_parser.ProcSysParser()
     paths = ["/proc/sys/net/ipv4/ip_forward", "/proc/sys/kernel/printk"]
     vals = ["0", "3 4 1 3"]
-    stats, files = self._GenTestData(paths, vals)
-    results = parser.ParseMultiple(stats, files, None)
+    pathspecs, files = self._GenTestData(paths, vals)
+    results = parser.ParseFiles(None, pathspecs, files)
     self.assertLen(results, 1)
     self.assertIsInstance(results[0], rdf_protodict.AttributedDict)
     self.assertEqual("0", results[0].net_ipv4_ip_forward)

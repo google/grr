@@ -63,11 +63,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     for plist in plists:
       path = os.path.join(self.base_path, "parser_test", plist)
       plist_file = open(path, "rb")
-      stat = rdf_client_fs.StatEntry(
-          pathspec=rdf_paths.PathSpec(
-              path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
-          st_mode=16877)
-      results.extend(list(parser.Parse(stat, plist_file, None)))
+      pathspec = rdf_paths.PathSpec.OS(path=path)
+      results.extend(list(parser.ParseFile(None, pathspec, plist_file)))
 
     for result in results:
       self.assertEqual(result.Label, "com.google.code.grr")
@@ -80,12 +77,9 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     parser = osx_file_parser.OSXInstallHistoryPlistParser()
 
     path = os.path.join(self.base_path, "parser_test", "InstallHistory.plist")
-    stat = rdf_client_fs.StatEntry(
-        pathspec=rdf_paths.PathSpec(
-            path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
-        st_mode=16887)
+    pathspec = rdf_paths.PathSpec.OS(path=path)
     with io.open(path, "rb") as plist_file:
-      results = list(parser.Parse(stat, plist_file, None))
+      results = list(parser.ParseFile(None, pathspec, plist_file))
 
     self.assertLen(results, 1)
     self.assertIsInstance(results[0], rdf_client.SoftwarePackages)

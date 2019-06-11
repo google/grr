@@ -171,8 +171,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     """Finish writing JSON files, upload to cloudstorage and bigquery."""
     self.bigquery = bigquery.GetBigQueryClient()
     # BigQuery job ids must be alphanum plus dash and underscore.
-    urn_str = self.source_urn.RelativeName("aff4:/").replace("/", "_").replace(
-        ":", "").replace(".", "-")
+    urn_str = rdfvalue.RDFURN(self.source_urn).RelativeName("aff4:/").replace(
+        "/", "_").replace(":", "").replace(".", "-")
 
     for tracker in itervalues(self.temp_output_trackers):
       # Close out the gzip handle and pass the original file handle to the

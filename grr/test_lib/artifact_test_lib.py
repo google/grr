@@ -172,11 +172,11 @@ def GenFileData(paths, data, stats=None, files=None, modes=None):
   return stats, files
 
 
-def GenStatFileData(data):
+def GenPathspecFileData(data):
   """Gen a tuple of list of stats and list of file contents from a dict."""
   paths = []
   contents = []
   for path, content in iteritems(data):
-    paths.append(path)
-    contents.append(content)
-  return GenFileData(paths, contents)
+    paths.append(rdf_paths.PathSpec.OS(path=path))
+    contents.append(io.BytesIO(content))
+  return paths, contents

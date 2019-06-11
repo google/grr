@@ -7,13 +7,13 @@ from __future__ import unicode_literals
 
 
 from absl import app
-from future.utils import itervalues
 
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server.check_lib import checks_test_lib
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
@@ -24,7 +24,7 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
     super(XinetdServiceStateTests, cls).setUpClass()
 
     cls.LoadCheck("services.yaml")
-    cls.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
+    cls.parser = linux_service_parser.LinuxXinetdParser().ParseFiles
 
   def RunXinetdCheck(self,
                      chk_id,
@@ -36,16 +36,16 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
                      should_detect=True):
     host_data = self.SetKnowledgeBase()
     cfgs = parsers_test_lib.GenXinetd(svc, disabled)
-    stats, files = parsers_test_lib.GenTestData(cfgs, itervalues(cfgs))
-    data = list(self.parser(stats, files, None))
+    pathspecs, files = artifact_test_lib.GenPathspecFileData(cfgs)
+    data = list(self.parser(None, pathspecs, files))
 
     # create entries on whether xinetd itself is setup to start or not
     if xinetd:
       cfgs = parsers_test_lib.GenInit("xinetd",
                                       "the extended Internet services daemon")
-      stats, files = parsers_test_lib.GenTestData(cfgs, itervalues(cfgs))
+      pathspecs, files = artifact_test_lib.GenPathspecFileData(cfgs)
       lsb_parser = linux_service_parser.LinuxLSBInitParser()
-      data.extend(list(lsb_parser.ParseMultiple(stats, files, None)))
+      data.extend(list(lsb_parser.ParseFiles(None, pathspecs, files)))
 
     host_data["LinuxServices"] = self.SetArtifactData(parsed=data)
     results = self.RunChecks(host_data)

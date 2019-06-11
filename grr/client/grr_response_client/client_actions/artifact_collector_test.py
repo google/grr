@@ -543,42 +543,40 @@ class TestEchoCmdParser(parser.CommandParser):
     ])
 
 
-class FakeFileParser(parser.FileParser):
+class FakeFileParser(parsers.SingleFileParser):
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["FakeFileArtifact"]
 
-  def Parse(self, stat, file_obj, knowledge_base):
-
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
     del knowledge_base  # Unused.
 
-    lines = set(l.strip() for l in file_obj.read().splitlines())
+    lines = set(l.strip() for l in filedesc.read().splitlines())
 
     users = list(filter(None, lines))
 
-    filename = stat.pathspec.path
+    filename = pathspec.path
     cfg = {"filename": filename, "users": users}
 
     yield rdf_protodict.AttributedDict(**cfg)
 
 
-class FakeFileMultiParser(parser.FileMultiParser):
+class FakeFileMultiParser(parsers.MultiFileParser):
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["FakeFileArtifact2"]
 
-  def ParseMultiple(self, stats, file_objects, knowledge_base):
-
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
     del knowledge_base  # Unused.
 
     lines = set()
-    for file_obj in file_objects:
+    for file_obj in filedescs:
       lines.update(set(l.strip() for l in file_obj.read().splitlines()))
 
     users = list(filter(None, lines))
 
-    for stat in stats:
-      filename = stat.pathspec.path
+    for pathspec in pathspecs:
+      filename = pathspec.path
       cfg = {"filename": filename, "users": users}
 
       yield rdf_protodict.AttributedDict(**cfg)

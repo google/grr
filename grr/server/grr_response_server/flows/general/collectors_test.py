@@ -856,20 +856,19 @@ class TestCmdParser(parser.CommandParser):
     ])
 
 
-class TestFileParser(parser.FileParser):
+class TestFileParser(parsers.SingleFileParser):
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["TestFileArtifact"]
 
-  def Parse(self, stat, file_obj, knowledge_base):
-
+  def ParseFile(self, knowledge_base, pathspec, filedesc):
     del knowledge_base  # Unused.
 
-    lines = set([l.strip() for l in file_obj.read().splitlines()])
+    lines = set([l.strip() for l in filedesc.read().splitlines()])
 
     users = list(filter(None, lines))
 
-    filename = stat.pathspec.path
+    filename = pathspec.path
     cfg = {"filename": filename, "users": users}
 
     yield rdf_protodict.AttributedDict(**cfg)

@@ -10,29 +10,30 @@ from future.builtins import zip
 from future.utils import iteritems
 
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
 
-class ProcSysParser(parser.FileMultiParser):
+class ProcSysParser(parsers.MultiFileParser):
   """Parser for /proc/sys entries."""
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["LinuxProcSysHardeningSettings"]
 
-  def _Parse(self, stat, file_obj):
+  def _Parse(self, pathspec, file_obj):
     # Remove /proc/sys
-    key = stat.pathspec.path.replace("/proc/sys/", "", 1)
+    key = pathspec.path.replace("/proc/sys/", "", 1)
     key = key.replace("/", "_")
     value = file_obj.read().decode("utf-8").split()
     if len(value) == 1:
       value = value[0]
     return key, value
 
-  def ParseMultiple(self, stats, file_objs, _):
+  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
     config = {}
-    for stat, file_obj in zip(stats, file_objs):
-      k, v = self._Parse(stat, file_obj)
+    for pathspec, file_obj in zip(pathspecs, filedescs):
+      k, v = self._Parse(pathspec, file_obj)
       config[k] = v
     return [rdf_protodict.AttributedDict(config)]
 

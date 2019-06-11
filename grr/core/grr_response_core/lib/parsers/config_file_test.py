@@ -13,7 +13,6 @@ from future.utils import iterkeys
 
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -44,7 +43,7 @@ class SshdConfigTest(test_lib.GRRBaseTest):
   def GetConfig(self):
     """Read in the test configuration file."""
     parser = config_file.SshdConfigParser()
-    results = list(parser.Parse(None, io.BytesIO(CFG), None))
+    results = list(parser.ParseFile(None, None, io.BytesIO(CFG)))
     self.assertLen(results, 1)
     return results[0]
 
@@ -154,7 +153,7 @@ class NfsExportParserTests(test_lib.GRRBaseTest):
     """
     exports = io.BytesIO(test_data)
     parser = config_file.NfsExportsParser()
-    results = list(parser.Parse(None, exports, None))
+    results = list(parser.ParseFile(None, None, exports))
     self.assertEqual("/path/to/foo", results[0].share)
     self.assertCountEqual(["rw", "sync"], results[0].defaults)
     self.assertEqual("host1", results[0].clients[0].host)
@@ -180,7 +179,7 @@ class MtabParserTests(test_lib.GRRBaseTest):
     """
     exports = io.BytesIO(test_data)
     parser = config_file.MtabParser()
-    results = list(parser.Parse(None, exports, None))
+    results = list(parser.ParseFile(None, None, exports))
     self.assertEqual("rootfs", results[0].device)
     self.assertEqual("/", results[0].mount_point)
     self.assertEqual("rootfs", results[0].type)
@@ -253,7 +252,7 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     """
     log_conf = io.BytesIO(test_data)
     parser = config_file.RsyslogParser()
-    results = list(parser.ParseMultiple([None], [log_conf], None))
+    results = list(parser.ParseFiles(None, [None], [log_conf]))
     self.assertLen(results, 1)
     tcp, udp, pipe, null, script, fs, wall, async_fs = [
         target for target in results[0].targets
@@ -327,9 +326,8 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     """
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list")
-    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
-    results = list(parser.Parse(stat, file_obj, None))
+    results = list(parser.ParseFile(None, pathspec, file_obj))
 
     result = [
         d for d in results if isinstance(d, rdf_protodict.AttributedDict)
@@ -374,9 +372,8 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
 
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/test.list")
-    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
-    results = list(parser.Parse(stat, file_obj, None))
+    results = list(parser.ParseFile(None, pathspec, file_obj))
 
     result = [
         d for d in results if isinstance(d, rdf_protodict.AttributedDict)
@@ -425,9 +422,8 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     """
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/apt/sources.list.d/rfc822.list")
-    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.APTPackageSourceParser()
-    results = list(parser.Parse(stat, file_obj, None))
+    results = list(parser.ParseFile(None, pathspec, file_obj))
 
     result = [
         d for d in results if isinstance(d, rdf_protodict.AttributedDict)
@@ -507,9 +503,8 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     """
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/test1.repo")
-    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
-    results = list(parser.Parse(stat, file_obj, None))
+    results = list(parser.ParseFile(None, pathspec, file_obj))
 
     result = [
         d for d in results if isinstance(d, rdf_protodict.AttributedDict)
@@ -546,9 +541,8 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
 
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/yum.repos.d/emptytest.repo")
-    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.YumPackageSourceParser()
-    results = list(parser.Parse(stat, file_obj, None))
+    results = list(parser.ParseFile(None, pathspec, file_obj))
 
     result = [
         d for d in results if isinstance(d, rdf_protodict.AttributedDict)
@@ -572,9 +566,8 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     pparth"""
     file_obj = io.BytesIO(test_data)
     pathspec = rdf_paths.PathSpec(path="/etc/at.allow")
-    stat = rdf_client_fs.StatEntry(pathspec=pathspec)
     parser = config_file.CronAtAllowDenyParser()
-    results = list(parser.Parse(stat, file_obj, None))
+    results = list(parser.ParseFile(None, pathspec, file_obj))
 
     result = [
         d for d in results if isinstance(d, rdf_protodict.AttributedDict)
@@ -624,7 +617,7 @@ class NtpParserTests(test_lib.GRRBaseTest):
 """
     conffile = io.BytesIO(test_data)
     parser = config_file.NtpdParser()
-    results = list(parser.Parse(None, conffile, None))
+    results = list(parser.ParseFile(None, None, conffile))
 
     # We expect some results.
     self.assertTrue(results)
@@ -689,7 +682,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     """
     contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
-    result = list(config.Parse(None, contents, None))
+    result = list(config.ParseFile(None, None, contents))
 
     self.assertListEqual(list(result[0].includes), ["a", "b"])
     self.assertListEqual(list(result[0].entries), [])
@@ -703,7 +696,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     """
     contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
-    result = list(config.Parse(None, contents, None))
+    result = list(config.ParseFile(None, None, contents))
 
     golden = {
         "aliases": [
@@ -741,7 +734,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     """
     contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
-    result = list(config.Parse(None, contents, None))
+    result = list(config.ParseFile(None, None, contents))
 
     golden = {
         "defaults": [
@@ -785,7 +778,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     """
     contents = io.BytesIO(test_data)
     config = config_file.SudoersParser()
-    result = list(config.Parse(None, contents, None))
+    result = list(config.ParseFile(None, None, contents))
 
     golden = {
         "entries": [

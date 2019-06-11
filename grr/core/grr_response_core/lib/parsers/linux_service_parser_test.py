@@ -7,12 +7,12 @@ from __future__ import unicode_literals
 
 
 from absl import app
-from future.utils import itervalues
 
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
 
@@ -22,10 +22,10 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
   def testParseLSBInit(self):
     """Init entries return accurate LinuxServiceInformation values."""
     configs = parsers_test_lib.GenInit("sshd", "OpenBSD Secure Shell server")
-    stats, files = parsers_test_lib.GenTestData(configs, itervalues(configs))
+    pathspecs, files = artifact_test_lib.GenPathspecFileData(configs)
 
     parser = linux_service_parser.LinuxLSBInitParser()
-    results = list(parser.ParseMultiple(stats, files, None))
+    results = list(parser.ParseFiles(None, pathspecs, files))
     self.assertIsInstance(results[0], rdf_client.LinuxServiceInformation)
     result = results[0]
     self.assertEqual("sshd", result.name)
@@ -49,11 +49,14 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
       ### BEGIN INIT INFO
       what are you thinking?
     """
-    paths = ["/tmp/empty", "/tmp/snippet", "/tmp/unfinished"]
-    vals = [empty, snippet, unfinished]
-    stats, files = parsers_test_lib.GenTestData(paths, vals)
+    data = {
+        "/tmp/empty": empty.encode("utf-8"),
+        "/tmp/snippet": snippet.encode("utf-8"),
+        "/tmp/unfinished": unfinished.encode("utf-8"),
+    }
+    pathspecs, files = artifact_test_lib.GenPathspecFileData(data)
     parser = linux_service_parser.LinuxLSBInitParser()
-    results = list(parser.ParseMultiple(stats, files, None))
+    results = list(parser.ParseFiles(None, pathspecs, files))
     self.assertFalse(results)
 
 
@@ -64,10 +67,10 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
     """Xinetd entries return accurate LinuxServiceInformation values."""
     configs = parsers_test_lib.GenXinetd("telnet", "yes")
     configs.update(parsers_test_lib.GenXinetd("forwarder", "no"))
-    stats, files = parsers_test_lib.GenTestData(configs, itervalues(configs))
+    pathspecs, files = artifact_test_lib.GenPathspecFileData(configs)
 
     parser = linux_service_parser.LinuxXinetdParser()
-    results = list(parser.ParseMultiple(stats, files, None))
+    results = list(parser.ParseFiles(None, pathspecs, files))
     self.assertLen(results, 2)
     self.assertCountEqual(["forwarder", "telnet"], [r.name for r in results])
     for rslt in results:

@@ -11,7 +11,6 @@ import os
 from absl import app
 
 from grr_response_core.lib.parsers import cron_file_parser
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
 
@@ -26,11 +25,8 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
 
     path = os.path.join(self.base_path, "parser_test", "crontab")
     plist_file = open(path, "rb")
-    stat = rdf_client_fs.StatEntry(
-        pathspec=rdf_paths.PathSpec(
-            path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
-        st_mode=16877)
-    results.extend(list(parser.Parse(stat, plist_file, None)))
+    pathspec = rdf_paths.PathSpec.OS(path=path)
+    results.extend(list(parser.ParseFile(None, pathspec, plist_file)))
 
     self.assertLen(results, 1)
 

@@ -19,7 +19,6 @@ from grr_response_core.lib import parser as lib_parser
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
@@ -116,20 +115,17 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
   def _ParsePCIDeviceTestData(self, test_data):
     """Given test_data dictionary, parse it using PCIDevicesInfoParser."""
     parser = linux_file_parser.PCIDevicesInfoParser()
-    stats = []
+    pathspecs = []
     file_objs = []
-    kb_objs = []
 
     # Populate stats, file_ojbs, kb_ojbs lists needed by the parser.
     for filename, data in iteritems(test_data):
       pathspec = rdf_paths.PathSpec(path=filename, pathtype="OS")
-      stat = rdf_client_fs.StatEntry(pathspec=pathspec)
       file_obj = io.BytesIO(data)
-      stats.append(stat)
+      pathspecs.append(pathspec)
       file_objs.append(file_obj)
-      kb_objs.append(None)
 
-    return list(parser.ParseMultiple(stats, file_objs, kb_objs))
+    return list(parser.ParseFiles(None, pathspecs, file_objs))
 
   def _MatchPCIDeviceResultToExpected(self, parsed_results, expected_output):
     """Make sure the parsed_results match expected_output."""
@@ -159,7 +155,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
 user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user2:/bin/bash
 """
-    out = list(parser.Parse(None, io.BytesIO(dat), None))
+    out = list(parser.ParseFile(None, None, io.BytesIO(dat)))
     self.assertLen(out, 2)
     self.assertIsInstance(out[1], rdf_client.User)
     self.assertIsInstance(out[1], rdf_client.User)
@@ -171,7 +167,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, io.BytesIO(dat), None))
+                      parser.ParseFile(None, None, io.BytesIO(dat)))
 
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
@@ -204,7 +200,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 
     with test_lib.ConfigOverrider(
         {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
-      out = list(parser.Parse(None, dat_fd, None))
+      out = list(parser.ParseFile(None, None, dat_fd))
       users = []
       for result in out:
         if isinstance(result, rdf_anomaly.Anomaly):
@@ -219,7 +215,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 
     with test_lib.ConfigOverrider(
         {"Artifacts.netgroup_filter_regexes": [r"^super_group3$"]}):
-      out = list(parser.Parse(None, dat_fd, None))
+      out = list(parser.ParseFile(None, None, dat_fd))
       self.assertCountEqual([x.username for x in out], [u"user5", u"user6"])
 
   def testNetgroupBufferParser(self):
@@ -246,14 +242,14 @@ super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
     self.assertRaises(lib_parser.ParseError, list,
-                      parser.Parse(None, io.BytesIO(dat), None))
+                      parser.ParseFile(None, None, io.BytesIO(dat)))
 
   def testWtmpParser(self):
     """Test parsing of wtmp file."""
     parser = linux_file_parser.LinuxWtmpParser()
     path = os.path.join(self.base_path, "VFSFixture/var/log/wtmp")
     with open(path, "rb") as wtmp_fd:
-      out = list(parser.Parse(None, wtmp_fd, None))
+      out = list(parser.ParseFile(None, None, wtmp_fd))
 
     self.assertLen(out, 3)
     self.assertCountEqual(["%s:%d" % (x.username, x.last_logon) for x in out], [
@@ -276,17 +272,16 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
   }
 
   def _GenFiles(self, passwd, shadow, group, gshadow):
-    stats = []
+    pathspecs = []
     files = []
     for path in ["/etc/passwd", "/etc/shadow", "/etc/group", "/etc/gshadow"]:
-      p = rdf_paths.PathSpec(path=path)
-      stats.append(rdf_client_fs.StatEntry(pathspec=p))
+      pathspecs.append(rdf_paths.PathSpec(path=path))
     for data in passwd, shadow, group, gshadow:
       if data is None:
         data = []
       lines = "\n".join(data).format(**self.crypt).encode("utf-8")
       files.append(io.BytesIO(lines))
-    return stats, files
+    return pathspecs, files
 
   def testNoAnomaliesWhenEverythingIsFine(self):
     passwd = [
@@ -298,9 +293,9 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     ]
     group = ["ok_1:x:1000:ok_1", "ok_2:x:1001:ok_2"]
     gshadow = ["ok_1:::ok_1", "ok_2:::ok_2"]
-    stats, files = self._GenFiles(passwd, shadow, group, gshadow)
+    pathspecs, files = self._GenFiles(passwd, shadow, group, gshadow)
     parser = linux_file_parser.LinuxSystemPasswdParser()
-    rdfs = parser.ParseMultiple(stats, files, None)
+    rdfs = parser.ParseFiles(None, pathspecs, files)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
     self.assertFalse(results)
 
@@ -311,7 +306,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
         "users:x:1000:usr1,usr2,usr3,usr4"
     ]
     gshadow = ["root::usr4:root", "users:{DES}:usr1:usr2,usr3,usr4"]
-    stats, files = self._GenFiles(None, None, group, gshadow)
+    pathspecs, files = self._GenFiles(None, None, group, gshadow)
 
     # Set up expected anomalies.
     member = {
@@ -332,7 +327,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     expected = [rdf_anomaly.Anomaly(**member), rdf_anomaly.Anomaly(**group)]
 
     parser = linux_file_parser.LinuxSystemGroupParser()
-    rdfs = parser.ParseMultiple(stats, files, None)
+    rdfs = parser.ParseFiles(None, pathspecs, files)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
     self.assertEqual(expected, results)
 
@@ -352,7 +347,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
         "bad2:x:1002:bad2"
     ]
     gshadow = ["root:::root", "miss:::miss", "bad1:::bad1", "bad2:::bad2"]
-    stats, files = self._GenFiles(passwd, shadow, group, gshadow)
+    pathspecs, files = self._GenFiles(passwd, shadow, group, gshadow)
 
     no_grp = {
         "symptom": "Accounts with invalid gid.",
@@ -387,7 +382,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     ]
 
     parser = linux_file_parser.LinuxSystemPasswdParser()
-    rdfs = parser.ParseMultiple(stats, files, None)
+    rdfs = parser.ParseFiles(None, pathspecs, files)
     results = [r for r in rdfs if isinstance(r, rdf_anomaly.Anomaly)]
 
     self.assertLen(results, len(expected))
@@ -425,9 +420,9 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     self.assertEqual(expect.pw_entry.hash_type, result.pw_entry.hash_type)
 
   def CheckCryptResults(self, passwd, shadow, group, gshadow, algo, usr, grp):
-    stats, files = self._GenFiles(passwd, shadow, group, gshadow)
+    pathspecs, files = self._GenFiles(passwd, shadow, group, gshadow)
     parser = linux_file_parser.LinuxSystemPasswdParser()
-    results = list(parser.ParseMultiple(stats, files, None))
+    results = list(parser.ParseFiles(None, pathspecs, files))
     usrs = [r for r in results if isinstance(r, rdf_client.User)]
     grps = [r for r in results if isinstance(r, rdf_client.Group)]
     self.assertLen(usrs, 1, "Different number of usr %s results" % algo)
@@ -492,14 +487,16 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       setenv PERL5LIB :shouldntbeignored
     """)
     parser = linux_file_parser.PathParser()
-    bashrc_stat = rdf_client_fs.StatEntry(
-        pathspec=rdf_paths.PathSpec(path="/home/user1/.bashrc", pathtype="OS"))
-    cshrc_stat = rdf_client_fs.StatEntry(
-        pathspec=rdf_paths.PathSpec(path="/home/user1/.cshrc", pathtype="OS"))
+    bashrc_pathspec = rdf_paths.PathSpec.OS(path="/home/user1/.bashrc")
+    cshrc_pathspec = rdf_paths.PathSpec.OS(path="/home/user1/.cshrc")
     bashrc = {
-        r.name: r.vals for r in parser.Parse(bashrc_stat, bashrc_data, None)
+        r.name: r.vals
+        for r in parser.ParseFile(None, bashrc_pathspec, bashrc_data)
     }
-    cshrc = {r.name: r.vals for r in parser.Parse(cshrc_stat, cshrc_data, None)}
+    cshrc = {
+        r.name: r.vals
+        for r in parser.ParseFile(None, cshrc_pathspec, cshrc_data)
+    }
     expected = {
         "PATH": [".", "${HOME}/bin", "$PATH"],
         "PYTHONPATH": [".", "${HOME}/bin", "$PATH", "/path1", "/path2"],
