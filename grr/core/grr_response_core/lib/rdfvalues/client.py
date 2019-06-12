@@ -54,6 +54,8 @@ except ImportError:
 
 FS_ENCODING = sys.getfilesystemencoding() or sys.getdefaultencoding()
 
+_LOCALHOST = "localhost"
+
 
 def _DecodeArgument(arg):
   if compatibility.PY2:
@@ -549,6 +551,9 @@ class Uname(rdf_structs.RDFProtoStruct):
     """Fill a Uname from the currently running platform."""
     uname = platform.uname()
     fqdn = socket.getfqdn()
+    if fqdn == _LOCALHOST:
+      # Avoid returning 'localhost' when there is a better value to use.
+      fqdn = socket.gethostname()
     system = uname[0]
     architecture, _ = platform.architecture()
     if system == "Windows":

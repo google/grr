@@ -2,14 +2,19 @@
 """Flows related to process memory."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
 import re
+from typing import Union
 
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
 
@@ -41,7 +46,9 @@ class YaraProcessScanMixin(object):
         request=self.args,
         next_state="ProcessScanResults")
 
-  def ProcessScanResults(self, responses):
+  def ProcessScanResults(
+      self,
+      responses):
     """Processes the results of the scan."""
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -109,7 +116,9 @@ class DumpProcessMemoryMixin(object):
         request=self.args,
         next_state="ProcessResults")
 
-  def ProcessResults(self, responses):
+  def ProcessResults(
+      self,
+      responses):
     """Processes the results of the dump."""
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -142,7 +151,8 @@ class DumpProcessMemoryMixin(object):
         use_external_stores=False,
         next_state="DeleteFiles")
 
-  def DeleteFiles(self, responses):
+  def DeleteFiles(self,
+                  responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
 
@@ -154,7 +164,8 @@ class DumpProcessMemoryMixin(object):
           response.pathspec,
           next_state="LogDeleteFiles")
 
-  def LogDeleteFiles(self, responses):
+  def LogDeleteFiles(
+      self, responses):
     # Check that the DeleteFiles flow worked.
     if not responses.success:
       raise flow.FlowError("Could not delete file: %s" % responses.status)

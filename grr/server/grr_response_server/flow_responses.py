@@ -2,10 +2,12 @@
 """The class encapsulating flow responses."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
 import operator
+from typing import Iterable, Optional, TypeVar
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import utils
@@ -17,7 +19,10 @@ from grr_response_server import server_stubs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
-class Responses(object):
+T = TypeVar("T")
+
+
+class Responses(Iterable[T]):
   """An object encapsulating all the responses to a request."""
 
   def __init__(self):
@@ -63,7 +68,7 @@ class Responses(object):
 
     # This may not be needed if we can assume that responses are
     # returned in lexical order from the data_store.
-    responses.sort(key=operator.attrgetter("response_id"))
+    responses.sort(key=operator.attrgetter(b"response_id"))
 
     if request.HasField("request"):
       client_action_name = request.request.name

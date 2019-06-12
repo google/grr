@@ -11,6 +11,7 @@ from absl import app
 from absl.testing import absltest
 from future.builtins import int
 from future.builtins import str
+import mock
 import psutil
 
 from grr_response_core.lib import rdfvalue
@@ -225,6 +226,18 @@ class UnameTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # We do not support old protos without a signature.
     sample.pep425tag = None
     self.assertRaises(ValueError, sample.signature)
+
+  def testGetFQDN(self):
+    with mock.patch.object(socket, "getfqdn", return_value="foo.bar.baz"):
+      uname = self.rdfvalue_class.FromCurrentSystem()
+      self.assertEqual(uname.fqdn, "foo.bar.baz")
+
+  def testGetFQDN_Localhost(self):
+    with mock.patch.object(
+        socket, "getfqdn", return_value=rdf_client._LOCALHOST):
+      with mock.patch.object(socket, "gethostname", return_value="foo"):
+        uname = self.rdfvalue_class.FromCurrentSystem()
+        self.assertEqual(uname.fqdn, "foo")
 
 
 class CpuSampleTest(absltest.TestCase):
