@@ -21,7 +21,8 @@ from future.builtins import range
 # Note: Please refer to server/setup.py for the MySQLdb version that is used.
 # It is most likely not up-to-date because of our support for older OS.
 import MySQLdb
-from MySQLdb.constants import ER as mysql_error_constants
+from MySQLdb.constants import CR as mysql_conn_errors
+from MySQLdb.constants import ER as mysql_errors
 
 from typing import Callable
 
@@ -51,8 +52,9 @@ _MAX_RETRY_COUNT = 5
 
 # MySQL error codes:
 _RETRYABLE_ERRORS = {
-    mysql_error_constants.LOCK_WAIT_TIMEOUT,
-    mysql_error_constants.LOCK_DEADLOCK,
+    mysql_conn_errors.SERVER_GONE_ERROR,
+    mysql_errors.LOCK_WAIT_TIMEOUT,
+    mysql_errors.LOCK_DEADLOCK,
     1637,  # TOO_MANY_CONCURRENT_TRXS, unavailable in MySQLdb 1.3.7
 }
 
@@ -308,7 +310,7 @@ def _SetupDatabase(host=None,
         cursor.execute(CREATE_DATABASE_QUERY.format(database))
       except MySQLdb.MySQLError as e:
         #  Statement might fail if database exists, this is fine.
-        if e.args[0] != mysql_error_constants.DB_CREATE_EXISTS:
+        if e.args[0] != mysql_errors.DB_CREATE_EXISTS:
           raise
 
       cursor.execute("USE `{}`".format(database))
@@ -537,9 +539,11 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
             connection.commit()
           return ret
         except MySQLdb.OperationalError as e:
-          connection.rollback()
+          if e.args[0] != mysql_conn_errors.SERVER_GONE_ERROR:
+            # Roll-back the transaction if the connection is still alive.
+            connection.rollback()
           # Re-raise if this was the last attempt.
-          if retry_count >= _MAX_RETRY_COUNT or not _IsRetryable(e):
+          if retry_count >= _MAX_RETRY_COUNT - 1 or not _IsRetryable(e):
             raise
       # Simple delay, with jitter.
       #

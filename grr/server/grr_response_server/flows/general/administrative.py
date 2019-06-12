@@ -221,12 +221,17 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
             nanny_msg=utils.SmartUnicode(nanny_msg),
             signature=config.CONFIG["Email.signature"])
 
-        email_alerts.EMAIL_ALERTER.SendEmail(
-            email_address,
-            "GRR server",
-            "Client %s reported a crash." % client_id,
-            utils.SmartStr(body),
-            is_html=True)
+        try:
+          email_alerts.EMAIL_ALERTER.SendEmail(
+              email_address,
+              "GRR server",
+              "Client %s reported a crash." % client_id,
+              utils.SmartStr(body),
+              is_html=True)
+        except email_alerts.EmailNotSentError as e:
+          # We have already written the crash details to the DB, so failing
+          # to send an email isn't super-critical.
+          logging.warning(e)
 
 
 class GetClientStatsProcessResponseMixin(object):

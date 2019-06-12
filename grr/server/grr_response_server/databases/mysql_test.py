@@ -18,6 +18,7 @@ from absl.testing import absltest
 from future import builtins
 import mock
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
+from MySQLdb.constants import CR as mysql_conn_errors
 
 from grr_response_server.databases import db_test_mixin
 from grr_response_server.databases import mysql
@@ -247,6 +248,57 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
             user=self._testdb.username(),
             password=self._testdb.password(),
             database=self._testdb.dbname())
+
+  @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)
+  def testRetryOnServerGoneNoRollback(self):
+    expected_error_msg = "MySQL server has gone away"
+    connections = []
+
+    def RaiseServerGoneError(connection):
+      # Wrap methods of the connection so we can check whether they get
+      # called later.
+      real_rollback_fn = connection.rollback
+      real_close_fn = connection.close
+      connection.rollback = mock.Mock(wraps=real_rollback_fn)
+      connection.close = mock.Mock(wraps=real_close_fn)
+      connections.append(connection)
+
+      raise MySQLdb.OperationalError(mysql_conn_errors.SERVER_GONE_ERROR,
+                                     expected_error_msg)
+
+    with self.assertRaises(MySQLdb.OperationalError) as context:
+      self.db.delegate._RunInTransaction(RaiseServerGoneError)
+    self.assertIn(expected_error_msg, builtins.str(context.exception))
+
+    self.assertLen(connections, 2)
+    for connection in connections:
+      self.assertFalse(connection.rollback.called)
+      self.assertTrue(connection.close.called)
+
+  @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)
+  def testDoNotRetryPermanentErrors(self):
+    expected_error_msg = "Permanent error: Not implemented"
+    connections = []
+
+    def RaisePermanentError(connection):
+      # Wrap methods of the connection so we can check whether they get
+      # called later.
+      real_rollback_fn = connection.rollback
+      real_close_fn = connection.close
+      connection.rollback = mock.Mock(wraps=real_rollback_fn)
+      connection.close = mock.Mock(wraps=real_close_fn)
+      connections.append(connection)
+
+      raise MySQLdb.OperationalError(mysql_conn_errors.NOT_IMPLEMENTED,
+                                     expected_error_msg)
+
+    with self.assertRaises(MySQLdb.OperationalError) as context:
+      self.db.delegate._RunInTransaction(RaisePermanentError)
+    self.assertIn(expected_error_msg, builtins.str(context.exception))
+
+    self.assertLen(connections, 1)
+    self.assertTrue(connections[0].rollback.called)
+    self.assertTrue(connections[0].close.called)
 
 
 if __name__ == "__main__":

@@ -25,6 +25,10 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 
 
+class EmailNotSentError(Exception):
+  """Exception raised when we fail to send an email."""
+
+
 class EmailAlerterBase(with_metaclass(registry.MetaclassRegistry, object)):
   """The email alerter base class."""
 
@@ -93,7 +97,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
       message_id: smtp message_id. Used to enable conversation threading
       headers: dict of str-> str, headers to set
     Raises:
-      RuntimeError: for problems connecting to smtp server.
+      EmailNotSentError: for problems connecting to smtp server.
     """
     headers = headers or {}
     msg = MIMEMultipart("alternative")
@@ -148,10 +152,10 @@ class SMTPEmailAlerter(EmailAlerterBase):
       s.sendmail(from_address, to_addresses + cc_addresses, msg.as_string())
       s.quit()
     except (socket.error, smtplib.SMTPException) as e:
-      raise RuntimeError("Could not connect to SMTP server to send email. "
-                         "Please check config option Worker.smtp_server. "
-                         "Currently set to %s. Error: %s" %
-                         (config.CONFIG["Worker.smtp_server"], e))
+      raise EmailNotSentError("Could not connect to SMTP server to send email. "
+                              "Please check config option Worker.smtp_server. "
+                              "Currently set to %s. Error: %s" %
+                              (config.CONFIG["Worker.smtp_server"], e))
 
 
 EMAIL_ALERTER = None
