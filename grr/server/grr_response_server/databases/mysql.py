@@ -16,8 +16,6 @@ import random
 import time
 import warnings
 
-from future.builtins import range
-
 # Note: Please refer to server/setup.py for the MySQLdb version that is used.
 # It is most likely not up-to-date because of our support for older OS.
 import MySQLdb
@@ -404,6 +402,27 @@ def _Connect(host=None,
   return conn
 
 
+_TXN_RETRY_JITTER_MIN = 1.0
+_TXN_RETRY_JITTER_MAX = 2.0
+_TXN_RETRY_BACKOFF_BASE = 1.5
+
+
+def _SleepWithBackoff(exponent):
+  """Simple function for sleeping with exponential backoff.
+
+  With the defaults given above, and a max-number-of-attempts value of 5,
+  this function will sleep for the following sequence of periods (seconds):
+    Best case: [1.0, 1.5, 2.25, 3.375, 5.0625]
+    Worst case: [2.0, 3.0, 4.5, 6.75, 10.125]
+
+  Args:
+    exponent: The exponent in the exponential backoff function, which specifies
+      how many RETRIES (not attempts) have occurred so far.
+  """
+  jitter = random.uniform(_TXN_RETRY_JITTER_MIN, _TXN_RETRY_JITTER_MAX)
+  time.sleep(jitter * math.pow(_TXN_RETRY_BACKOFF_BASE, exponent))
+
+
 # pyformat: disable
 class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
@@ -481,8 +500,8 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
 
     _SetupDatabase(**self._connect_args)
 
-    max_pool_size = config.CONFIG.Get("Mysql.conn_pool_max", 10)
-    self.pool = mysql_pool.Pool(self._Connect, max_size=max_pool_size)
+    self._max_pool_size = config.CONFIG["Mysql.conn_pool_max"]
+    self.pool = mysql_pool.Pool(self._Connect, max_size=self._max_pool_size)
 
     self.handler_thread = None
     self.handler_stop = True
@@ -527,29 +546,36 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     if readonly:
       start_query = "START TRANSACTION WITH CONSISTENT SNAPSHOT, READ ONLY"
 
-    for retry_count in range(_MAX_RETRY_COUNT):
+    broken_connections_seen = 0
+    txn_execution_attempts = 0
+    while True:
       with contextlib.closing(self.pool.get()) as connection:
         try:
           with contextlib.closing(connection.cursor()) as cursor:
             cursor.execute(start_query)
 
-          ret = function(connection)
+          result = function(connection)
 
           if not readonly:
             connection.commit()
-          return ret
+          return result
         except MySQLdb.OperationalError as e:
-          if e.args[0] != mysql_conn_errors.SERVER_GONE_ERROR:
-            # Roll-back the transaction if the connection is still alive.
+          if e.args[0] == mysql_conn_errors.SERVER_GONE_ERROR:
+            # The connection to the MySQL server is broken. That might be
+            # the case with other existing connections in the pool. We will
+            # retry with all connections in the pool, expecting that they
+            # will get removed from the pool when they error out. Eventually,
+            # the pool will create new connections.
+            broken_connections_seen += 1
+            if broken_connections_seen > self._max_pool_size:
+              # All existing connections in the pool have been exhausted, and
+              # we have tried to create at least one new connection.
+              raise
+            # Retry immediately.
+          else:
             connection.rollback()
-          # Re-raise if this was the last attempt.
-          if retry_count >= _MAX_RETRY_COUNT - 1 or not _IsRetryable(e):
-            raise
-      # Simple delay, with jitter.
-      #
-      # TODO(user): Move to something more elegant, e.g. integrate a
-      # general retry or backoff library.
-      time.sleep(random.uniform(1.0, 2.0) * math.pow(1.5, retry_count))
-    # Shouldn't happen, because we should have re-raised whatever caused the
-    # last try to fail.
-    raise Exception("Looped ended early - last exception swallowed.")  # pylint: disable=g-doc-exception
+            if _IsRetryable(e) and txn_execution_attempts < _MAX_RETRY_COUNT:
+              _SleepWithBackoff(txn_execution_attempts)
+              txn_execution_attempts += 1
+            else:
+              raise

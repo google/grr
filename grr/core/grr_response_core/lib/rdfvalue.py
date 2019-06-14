@@ -101,6 +101,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
 
   _value = None
   _age = 0
+  _prev_hash = None
 
   # Mark as dirty each time we modify this object.
   dirty = False
@@ -132,6 +133,8 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     if initializer.__class__ == self.__class__:
       self.ParseFromString(
           cast(self.__class__, initializer).SerializeToString())
+
+    self._prev_hash = None
 
   def Copy(self):
     """Make a new copy of this RDFValue."""
@@ -205,7 +208,17 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return not self.__eq__(other)
 
   def __hash__(self):
-    return hash(self.SerializeToString())
+    new_hash = hash(self.SerializeToString())
+    if self._prev_hash is not None and new_hash != self._prev_hash:
+      raise AssertionError(
+          "Usage of {} violates Python data model: hash() has changed! Usage "
+          "of RDFStructs as members of sets or keys of dicts is discouraged. "
+          "If used anyway, mutating is prohibited, because it causes the hash "
+          "to change. Be aware that accessing unset fields can trigger a "
+          "mutation.".format(compatibility.GetName(type(self))))
+    else:
+      self._prev_hash = new_hash
+      return new_hash
 
   def __bool__(self):
     return bool(self._value)
@@ -605,8 +618,8 @@ class RDFDatetime(RDFInteger):
     if isinstance(initializer, (RDFInteger, int, float)):
       self._value = compatibility.builtins.int(initializer)
     else:
-      raise InitializeError(
-          "Unknown initializer for RDFDateTime: %s." % type(initializer))
+      raise InitializeError("Unknown initializer for RDFDateTime: %s." %
+                            type(initializer))
 
   @classmethod
   def Now(cls):
@@ -954,8 +967,8 @@ class Duration(RDFInteger):
     try:
       self._value = int(timestring) * multiplicator
     except ValueError:
-      raise InitializeError(
-          "Could not parse expiration time '%s'." % orig_string)
+      raise InitializeError("Could not parse expiration time '%s'." %
+                            orig_string)
 
 
 class ByteSize(RDFInteger):
@@ -992,8 +1005,8 @@ class ByteSize(RDFInteger):
     elif initializer is None:
       self._value = 0
     else:
-      raise InitializeError(
-          "Unknown initializer for ByteSize: %s." % type(initializer))
+      raise InitializeError("Unknown initializer for ByteSize: %s." %
+                            type(initializer))
 
   def __str__(self):
     if self._value >= 1024**3:
@@ -1138,8 +1151,8 @@ class RDFURN(RDFPrimitive):
        ValueError: if the path component is not a string.
     """
     if not isinstance(path, string_types):
-      raise ValueError(
-          "Only strings should be added to a URN, not %s" % path.__class__)
+      raise ValueError("Only strings should be added to a URN, not %s" %
+                       path.__class__)
 
     result = self.Copy(age)
     result.Update(path=utils.JoinPath(self._string_urn, path))
@@ -1285,8 +1298,8 @@ class SessionID(RDFURN):
         try:
           self.ValidateID(initializer.Basename())
         except ValueError as e:
-          raise InitializeError(
-              "Invalid URN for SessionID: %s, %s" % (initializer, e))
+          raise InitializeError("Invalid URN for SessionID: %s, %s" %
+                                (initializer, e))
 
     super(SessionID, self).__init__(initializer=initializer, age=age)
 

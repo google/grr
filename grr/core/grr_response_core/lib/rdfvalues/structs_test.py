@@ -717,6 +717,32 @@ message DynamicTypeTest {{
 
     self.assertEqual(hash(sample1), hash(sample2))
 
+  def testHashRaisesAfterMutation(self):
+    t = TestStruct(foobar="foo")
+    hash(t)
+    t.foobar = "bar"
+    with self.assertRaises(AssertionError):
+      hash(t)
+
+  def testHashWorksForNonMutatingAssignment(self):
+    t = TestStruct(foobar="foo")
+    hash(t)
+    t.foobar = "foo"
+    hash(t)
+
+  def testHashRaisesAfterUnsetMutation(self):
+    t = TestStruct(foobar="foo")
+    hash(t)
+    t.foobar = None
+    with self.assertRaises(AssertionError):
+      hash(t)
+
+  def testDefaultSetterDoesNotChangeHash(self):
+    t = TestStruct()
+    hash(t)
+    t.repeated  #  pylint: disable=pointless-statement
+    self.assertEqual(hash(t), hash(TestStruct()))
+
 
 def main(argv):
   test_lib.main(argv)

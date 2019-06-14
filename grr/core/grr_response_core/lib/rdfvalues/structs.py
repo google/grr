@@ -1697,6 +1697,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     # the serialized form.
     self._data = {}
     self._age = age
+    self._prev_hash = None
 
     for arg, value in iteritems(kwargs):
       if not hasattr(self.__class__, arg):
@@ -1827,6 +1828,10 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self.ParseFromString(value)
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
+  # TODO: ProtoStruct indicating hashability is flawed, because
+  # instances are mutable.
+  # TODO: For increased fun, __hash__ can change during read access
+  # of fields.
   __hash__ = rdfvalue.RDFValue.__hash__
 
   def __eq__(self, other):

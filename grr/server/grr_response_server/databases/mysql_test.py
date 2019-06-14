@@ -132,7 +132,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(users, ((u"AzureDiamond", "hunter2"),))
 
-  def testRunInTransactionDeadlock(self):
+  @mock.patch.object(mysql, "_SleepWithBackoff")
+  def testRunInTransactionDeadlock(self, sleep_with_backoff_fn):
     """A deadlock error should be retried."""
 
     def AddUserFn1(con):
@@ -193,6 +194,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     # At least one should have been retried.
     self.assertGreater(sum(counts), 2)
+    self.assertGreater(sleep_with_backoff_fn.call_count, 0)
 
   def testSuccessfulCallsAreCorrectlyAccounted(self):
     with self.assertStatsCounterDelta(
@@ -249,8 +251,9 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
             password=self._testdb.password(),
             database=self._testdb.dbname())
 
+  @mock.patch.object(mysql, "_SleepWithBackoff")
   @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)
-  def testRetryOnServerGoneNoRollback(self):
+  def testRetryOnServerGoneNoRollback(self, sleep_with_backoff_fn):
     expected_error_msg = "MySQL server has gone away"
     connections = []
 
@@ -266,17 +269,21 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       raise MySQLdb.OperationalError(mysql_conn_errors.SERVER_GONE_ERROR,
                                      expected_error_msg)
 
-    with self.assertRaises(MySQLdb.OperationalError) as context:
-      self.db.delegate._RunInTransaction(RaiseServerGoneError)
-    self.assertIn(expected_error_msg, builtins.str(context.exception))
+    with mock.patch.object(self.db.delegate, "_max_pool_size", 6):
+      with self.assertRaises(MySQLdb.OperationalError) as context:
+        self.db.delegate._RunInTransaction(RaiseServerGoneError)
+      self.assertIn(expected_error_msg, builtins.str(context.exception))
 
-    self.assertLen(connections, 2)
-    for connection in connections:
-      self.assertFalse(connection.rollback.called)
-      self.assertTrue(connection.close.called)
+      self.assertFalse(sleep_with_backoff_fn.called)
+      # We expect all connections in the pool to be removed.
+      self.assertLen(connections, 7)
+      for connection in connections:
+        self.assertFalse(connection.rollback.called)
+        self.assertTrue(connection.close.called)
 
+  @mock.patch.object(mysql, "_SleepWithBackoff")
   @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)
-  def testDoNotRetryPermanentErrors(self):
+  def testDoNotRetryPermanentErrors(self, sleep_with_backoff_fn):
     expected_error_msg = "Permanent error: Not implemented"
     connections = []
 
@@ -296,6 +303,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
       self.db.delegate._RunInTransaction(RaisePermanentError)
     self.assertIn(expected_error_msg, builtins.str(context.exception))
 
+    self.assertFalse(sleep_with_backoff_fn.called)
     self.assertLen(connections, 1)
     self.assertTrue(connections[0].rollback.called)
     self.assertTrue(connections[0].close.called)

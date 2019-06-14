@@ -238,6 +238,9 @@ class Dict(rdf_structs.RDFProtoStruct):
   def __contains__(self, key):
     return key in self._values
 
+  # TODO: This implementation is flawed. It returns a new instance
+  # on each invocation, effectively preventing changes to mutable
+  # datastructures, e.g. `dct["key"] = []; dct["key"].append(5)`.
   def GetItem(self, key, default=None):
     if key in self._values:
       return self._values[key].v.GetValue()
