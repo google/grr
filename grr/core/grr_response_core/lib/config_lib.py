@@ -66,7 +66,7 @@ flags.DEFINE_multi_string(
     "parameter",
     default=[],
     help="Global override of config values. "
-    "For example -p DataStore.implementation=MySQLDataStore",
+    "For example -p Database.implementation: MysqlDB",
     short_name="p")
 
 
@@ -796,7 +796,7 @@ class GrrConfigManager(object):
     newconf.initialized = copy.deepcopy(self.initialized)
     return newconf
 
-  def SetWriteBack(self, filename):
+  def SetWriteBack(self, filename, rename_invalid_writeback=True):
     """Sets the config file which will receive any modifications.
 
     The main config file can be made writable, but directing all Set()
@@ -806,6 +806,8 @@ class GrrConfigManager(object):
     Args:
       filename: A filename which will receive updates. The file is parsed first
         and merged into the raw data from this object.
+      rename_invalid_writeback: Whether to rename the writeback file if
+        it cannot be parsed.
     """
     try:
       self.writeback = self.LoadSecondaryConfig(filename)
@@ -817,7 +819,7 @@ class GrrConfigManager(object):
     except Exception as we:  # pylint: disable=broad-except
       # Could be yaml parse error, could be some malformed parameter. Move the
       # writeback file so that we start in a clean state next run
-      if os.path.exists(filename):
+      if rename_invalid_writeback and os.path.exists(filename):
         try:
           b = filename + ".bak"
           os.rename(filename, b)
@@ -1701,7 +1703,7 @@ def LoadConfig(config_obj,
   return config_obj
 
 
-def ParseConfigCommandLine():
+def ParseConfigCommandLine(rename_invalid_writeback=True):
   """Parse all the command line options which control the config system."""
   # The user may specify the primary config file on the command line.
   if flags.FLAGS.config:
@@ -1728,7 +1730,9 @@ def ParseConfigCommandLine():
       _CONFIG.AddContext(context)
 
   if _CONFIG["Config.writeback"]:
-    _CONFIG.SetWriteBack(_CONFIG["Config.writeback"])
+    _CONFIG.SetWriteBack(
+        _CONFIG["Config.writeback"],
+        rename_invalid_writeback=rename_invalid_writeback)
 
   # Does the user want to dump help? We do this after the config system is
   # initialized so the user can examine what we think the value of all the

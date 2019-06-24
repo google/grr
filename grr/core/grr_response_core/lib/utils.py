@@ -1318,6 +1318,7 @@ def RunOnce(fn):
         _OneTimeFunction.result = fn(*args, **kwargs)
       except BaseException as e:  # pylint: disable=broad-except
         _OneTimeFunction.exception = e
+        raise  # Preserve original stack trace during first invocation.
 
     if _OneTimeFunction.exception is None:
       return _OneTimeFunction.result

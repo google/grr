@@ -119,6 +119,30 @@ class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
     self.assertEqual(f.path, result_f.path)
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
+  def testRefreshRecursively(self):
+    operation = self.api.Client(client_id=self.client_urn.Basename()).File(
+        "fs/os/c/Downloads").RefreshRecursively(max_depth=5)
+    self.assertTrue(operation.operation_id)
+    self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+  def testRefreshRecursivelyWaitUntilDone(self):
+    f = self.api.Client(
+        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads")
+
+    with flow_test_lib.TestWorker(token=self.token):
+      operation = f.RefreshRecursively(max_depth=5)
+      self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
+
+      def ProcessOperation():
+        time.sleep(1)
+        flow_test_lib.FinishAllFlowsOnClient(self.client_urn.Basename())
+
+      threading.Thread(target=ProcessOperation).start()
+      result_f = operation.WaitUntilDone().target_file
+
+    self.assertEqual(f.path, result_f.path)
+    self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
+
   def testCollect(self):
     operation = self.api.Client(client_id=self.client_urn.Basename()).File(
         "fs/os/c/Downloads/a.txt").Collect()

@@ -18,6 +18,9 @@ FROM ubuntu:xenial
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
+ARG GCS_BUCKET
+ARG GRR_COMMIT
+
 ENV GRR_VENV /usr/share/grr-server
 ENV PROTOC /usr/share/protobuf/bin/protoc
 ENV DEBIAN_FRONTEND noninteractive

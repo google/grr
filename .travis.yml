@@ -2,12 +2,19 @@ env:
   global:
     - GCS_BUCKET=autobuilds.grr-response.com
     - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+    - APPVEYOR_ACCOUNT_NAME=grr
+    - APPVEYOR_WINDOWS_TEMPLATES_SLUG=grr-5wmt5
+    - APPVEYOR_E2E_TESTS_SLUG=grr-1r2v0
+    - APPVEYOR_DOCKER_BUILD_SLUG=grr-iqgqm
+    - SERVICE_FILE_ENCRYPTION_KEY_VAR="encrypted_38884bbe6880_key"
+    - SERVICE_FILE_ENCRYPTION_IV_VAR="encrypted_38884bbe6880_iv"
     - secure: "ZE2WGDHnMX3QcLS9XNjgaC0q+Vy9mjDGdvkKd+IExUdRe8bcPNe0sLxL7G5FnkbBZQTydUpD/EDgT9dCAbBH22PfgO/J4KfM445NYVNWC3tTeZ6L2jYuVfu3xnGp6GyBGIrj8zLb1Mv1AhQL1vRwo8dsCDptY7bWH4sFnZlocDo="
 
 matrix:
   include:
     # 64-bit deb builds
     - os: linux
+      dist: xenial
       language: python
       python: 2.7
       addons:
@@ -22,11 +29,9 @@ matrix:
       env:
         - GCS_TAG=ubuntu_64bit
         - PROTOC="${HOME}/protobuf/bin/protoc"
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
-        - BOTO_CONFIG=/dev/null # https://github.com/travis-ci/travis-ci/issues/7940
       before_install:
-        - pip install google-compute-engine
-        - travis/set_up_gcs_auth.sh
+        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - travis/install_protobuf.sh "${TRAVIS_OS_NAME}"
         - pip install --upgrade virtualenv
         - virtualenv "${HOME}/INSTALL"
@@ -35,35 +40,40 @@ matrix:
       script:
         - source "${HOME}/INSTALL/bin/activate"
         - travis/build_templates.sh
-        - travis/deploy_to_gcs.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
     # OSX builds
     - os: osx
-      # psutil fails to install on the default beta-xcode6.1
-      osx_image: xcode9.2
-      python: 2.7
       env:
         - GCS_TAG=osx
         - PROTOC="${HOME}/protobuf/bin/protoc"
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
       before_install:
-        - travis/set_up_gcs_auth.sh
-        - travis/install_protobuf.sh "${TRAVIS_OS_NAME}"
         - git clone https://github.com/MacPython/terryfy
         - source terryfy/travis_tools.sh
-        - get_python_environment macpython 2.7.11
-        - pip install --upgrade virtualenv
-        - virtualenv "${HOME}/INSTALL"
+        - get_python_environment macpython 3.7.3 "${HOME}/GCS_VENV"
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
+        - get_python_environment macpython 2.7.14 "${HOME}/INSTALL"
+        - travis/install_protobuf.sh "${TRAVIS_OS_NAME}"
       install:
         - travis/install_client_builder.sh
       script:
         - source "${HOME}/INSTALL/bin/activate"
         - travis/build_templates.sh
-        - travis/deploy_to_gcs.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
     # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
     - os: linux
-      dist: trusty
+      dist: xenial
       services:
         - docker
       env:
@@ -71,10 +81,9 @@ matrix:
         - DOCKER_IMG=grrdocker/centos7
         - DOCKER_CONTAINER=centos_64bit_container
         - DOCKER_USER=grrbot
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
       before_install:
-        - pip install google-compute-engine
-        - travis/set_up_gcs_auth.sh
+        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
         - >-
@@ -103,12 +112,17 @@ matrix:
           travis/build_templates.sh
         # Test installing the built rpm (as root)
         - sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
-        - travis/deploy_to_gcs.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
     # Equivalent to the Centos job above, but builds templates that can be
     # installed on Centos 6.
     - os: linux
-      dist: trusty
+      dist: xenial
       services:
         - docker
       env:
@@ -116,10 +130,9 @@ matrix:
         - DOCKER_IMG=grrdocker/centos6
         - DOCKER_CONTAINER=centos6_64bit_container
         - DOCKER_USER=grrbot
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
       before_install:
-        - pip install google-compute-engine
-        - travis/set_up_gcs_auth.sh
+        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
         - >-
@@ -149,11 +162,16 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           travis/build_templates.sh
-        - travis/deploy_to_gcs.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
     # 32-bit Ubuntu docker container inside a 64-bit host, for 32-bit deb builds
     - os: linux
-      dist: trusty
+      dist: xenial
       services:
         - docker
       env:
@@ -161,10 +179,9 @@ matrix:
         - DOCKER_IMG=grrdocker/ubuntu_i386:xenial
         - DOCKER_CONTAINER=ubuntu_32bit_container
         - DOCKER_USER=grrbot
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
       before_install:
-        - pip install google-compute-engine
-        - travis/set_up_gcs_auth.sh
+        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
         - >-
@@ -193,11 +210,16 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           linux32 travis/build_templates.sh
-        - travis/deploy_to_gcs.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
     # 32-bit Centos docker container inside a 64-bit host, for 32-bit rpm builds
     - os: linux
-      dist: trusty
+      dist: xenial
       services:
         - docker
       env:
@@ -205,10 +227,9 @@ matrix:
         - DOCKER_IMG=grrdocker/centos_i686:7
         - DOCKER_CONTAINER=centos_32bit_container
         - DOCKER_USER=grrbot
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
       before_install:
-        - pip install google-compute-engine
-        - travis/set_up_gcs_auth.sh
+        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
         - >-
@@ -240,7 +261,12 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           linux32 travis/build_templates.sh
-        - travis/deploy_to_gcs.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
     # 64-bit xenial Docker container, for building server debs.
     #
@@ -249,16 +275,17 @@ matrix:
     # unavailable' after a bunch of file-copy operations. That doesn't happen
     # inside the container.
     - os: linux
-      dist: trusty
+      dist: xenial
+      services:
+        - docker
       env:
         - GCS_TAG=server_deb
         - DOCKER_IMG=ubuntu:xenial
         - DOCKER_CONTAINER=xenial_64bit_container
         - DOCKER_USER=grrbot
-        - PATH=$PATH:${HOME}/google-cloud-sdk/bin
       before_install:
-        - pip install google-compute-engine
-        - travis/set_up_gcs_auth.sh
+        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - >-
           sudo docker run -dit
           --volume "${PWD}:/mnt/grr"
@@ -298,9 +325,13 @@ matrix:
           travis/build_local_pyindex.sh &&
 
           sudo docker exec "${DOCKER_CONTAINER}"
-          travis/build_server_deb.sh && `# Needs to be run as root.`
-
-          travis/deploy_to_gcs.sh
+          travis/build_server_deb.sh
+        - >-
+          ${HOME}/GCS_VENV/bin/python
+          travis/upload_build_results_to_gcs.py
+          --alsologtostderr
+          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
+          --build_results_dir="${PWD}/gcs_upload_dir/"
 
 cache:
   directories:

@@ -75,7 +75,7 @@ def Init():
 
   try:
     config_lib.SetPlatformArchContext()
-    config_lib.ParseConfigCommandLine()
+    config_lib.ParseConfigCommandLine(rename_invalid_writeback=False)
   except config_lib.Error:
     syslog_logger.exception("Died during config initialization")
     raise

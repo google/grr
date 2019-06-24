@@ -142,6 +142,16 @@ class FileBase(object):
         target_file=self,
         context=self._context)
 
+  def RefreshRecursively(self, max_depth=5):
+    args = vfs_pb2.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path=self.path, max_depth=max_depth)
+    result = self._context.SendRequest("CreateVfsRefreshOperation", args)
+    return RefreshOperation(
+        client_id=self.client_id,
+        operation_id=result.operation_id,
+        target_file=self,
+        context=self._context)
+
   def Collect(self):
     args = vfs_pb2.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path=self.path)

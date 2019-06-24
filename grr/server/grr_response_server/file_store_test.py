@@ -19,6 +19,10 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
+POSITIONAL_ARGS = 0
+KEYWORD_ARGS = 1
+
+
 def _GenerateBlobRefs(blob_size, chars):
   blob_data = [c * blob_size for c in chars]
   blob_refs = []
@@ -154,7 +158,11 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
           path2: short_blob_refs2,
           path3: long_blob_refs
       })
-      p.assert_called_once_with(set(r.blob_id for r in long_blob_refs))
+      p.assert_called_once()
+      self.assertLen(p.call_args[POSITIONAL_ARGS], 1)
+      self.assertEmpty(p.call_args[KEYWORD_ARGS])
+      self.assertCountEqual(p.call_args[0][0],
+                            [r.blob_id for r in long_blob_refs])
 
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testAddsFileToExternalFileStore(self, add_file_mock):

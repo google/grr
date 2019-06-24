@@ -14,7 +14,6 @@ from __future__ import unicode_literals
 
 import abc
 import collections
-import re
 
 from future.builtins import int
 from future.builtins import str
@@ -421,7 +420,7 @@ class ClientPath(object):
   """
 
   def __init__(self, client_id, path_type, components):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
     self._repr = (client_id, path_type, tuple(components))
@@ -1726,7 +1725,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     file name, but rather with a hash identifying file contents.
 
     This way for any given PathInfo we can look at the hash and say whether
-    we have corresponding contents of the file by using ReadHashBlobRefernces.
+    we have corresponding contents of the file by using ReadHashBlobReferences.
 
     Args:
       references_by_hash: A dict where SHA256HashID objects are keys and lists
@@ -1747,7 +1746,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     hash identifying file contents.
 
     This way for any given PathInfo we can look at the hash and say whether
-    we have corresponding contents of the file by using ReadHashBlobRefernces.
+    we have corresponding contents of the file by using ReadHashBlobReferences.
 
     Args:
       hashes: An iterable of SHA256HashID objects.
@@ -2734,7 +2733,7 @@ class DatabaseValidationWrapper(Database):
                           last_clock=None,
                           last_ip=None,
                           last_foreman=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(certificate, rdf_crypto.RDFX509Cert)
     precondition.AssertOptionalType(fleetspeak_enabled, bool)
     precondition.AssertOptionalType(first_seen, rdfvalue.RDFDatetime)
@@ -2816,7 +2815,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteClientSnapshotHistory(clients)
 
   def ReadClientSnapshotHistory(self, client_id, timerange=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     if timerange is not None:
       _ValidateTimeRange(timerange)
 
@@ -2825,17 +2824,17 @@ class DatabaseValidationWrapper(Database):
 
   def WriteClientStartupInfo(self, client_id, startup_info):
     precondition.AssertType(startup_info, rdf_client.StartupInfo)
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.WriteClientStartupInfo(client_id, startup_info)
 
   def ReadClientStartupInfo(self, client_id):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.ReadClientStartupInfo(client_id)
 
   def ReadClientStartupInfoHistory(self, client_id, timerange=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     if timerange is not None:
       _ValidateTimeRange(timerange)
 
@@ -2844,23 +2843,23 @@ class DatabaseValidationWrapper(Database):
 
   def WriteClientCrashInfo(self, client_id, crash_info):
     precondition.AssertType(crash_info, rdf_client.ClientCrash)
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.WriteClientCrashInfo(client_id, crash_info)
 
   def ReadClientCrashInfo(self, client_id):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.ReadClientCrashInfo(client_id)
 
   def ReadClientCrashInfoHistory(self, client_id):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.ReadClientCrashInfoHistory(client_id)
 
   def AddClientKeywords(self, client_id,
                         keywords):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     precondition.AssertIterableType(keywords, Text)
 
     return self.delegate.AddClientKeywords(client_id, keywords)
@@ -2883,14 +2882,14 @@ class DatabaseValidationWrapper(Database):
     return result
 
   def RemoveClientKeyword(self, client_id, keyword):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     precondition.AssertType(keyword, Text)
 
     return self.delegate.RemoveClientKeyword(client_id, keyword)
 
   def AddClientLabels(self, client_id, owner,
                       labels):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateUsername(owner)
     for label in labels:
       _ValidateLabel(label)
@@ -2908,7 +2907,7 @@ class DatabaseValidationWrapper(Database):
 
   def RemoveClientLabels(self, client_id, owner,
                          labels):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     for label in labels:
       _ValidateLabel(label)
 
@@ -2921,7 +2920,7 @@ class DatabaseValidationWrapper(Database):
 
   def WriteClientStats(self, client_id,
                        stats):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     precondition.AssertType(stats, rdf_client_stats.ClientStats)
 
     self.delegate.WriteClientStats(client_id, stats)
@@ -2931,7 +2930,7 @@ class DatabaseValidationWrapper(Database):
                       min_timestamp = None,
                       max_timestamp = None
                      ):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     if min_timestamp is None:
       min_timestamp = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
@@ -3082,7 +3081,7 @@ class DatabaseValidationWrapper(Database):
                                        grantor_username)
 
   def ReadPathInfo(self, client_id, path_type, components, timestamp=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
 
@@ -3093,7 +3092,7 @@ class DatabaseValidationWrapper(Database):
         client_id, path_type, components, timestamp=timestamp)
 
   def ReadPathInfos(self, client_id, path_type, components_list):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     precondition.AssertType(components_list, list)
     for components in components_list:
@@ -3103,7 +3102,7 @@ class DatabaseValidationWrapper(Database):
 
   def ListChildPathInfos(self, client_id, path_type, components,
                          timestamp=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
     precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
@@ -3117,7 +3116,7 @@ class DatabaseValidationWrapper(Database):
                               components,
                               timestamp=None,
                               max_depth=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     _ValidatePathComponents(components)
     precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
@@ -3131,7 +3130,7 @@ class DatabaseValidationWrapper(Database):
         max_depth=max_depth)
 
   def FindPathInfoByPathID(self, client_id, path_type, path_id, timestamp=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     if timestamp is not None:
       _ValidateTimestamp(timestamp)
@@ -3140,38 +3139,38 @@ class DatabaseValidationWrapper(Database):
         client_id, path_type, path_id, timestamp=timestamp)
 
   def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.FindPathInfosByPathIDs(client_id, path_type, path_ids)
 
   def WritePathInfos(self, client_id, path_infos):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
     return self.delegate.WritePathInfos(client_id, path_infos)
 
   def MultiWritePathInfos(self, path_infos):
     precondition.AssertType(path_infos, dict)
     for client_id, client_path_infos in iteritems(path_infos):
-      _ValidateClientId(client_id)
+      precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
     return self.delegate.MultiWritePathInfos(path_infos)
 
   def InitPathInfos(self, client_id, path_infos):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
     return self.delegate.InitPathInfos(client_id, path_infos)
 
   def MultiInitPathInfos(self, path_infos):
     precondition.AssertType(path_infos, dict)
     for client_id, client_path_infos in iteritems(path_infos):
-      _ValidateClientId(client_id)
+      precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
     return self.delegate.MultiInitPathInfos(path_infos)
 
   def ClearPathHistory(self, client_id, path_infos):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
 
     return self.delegate.ClearPathHistory(client_id, path_infos)
@@ -3179,7 +3178,7 @@ class DatabaseValidationWrapper(Database):
   def MultiClearPathHistory(self, path_infos):
     precondition.AssertType(path_infos, dict)
     for client_id, client_path_infos in iteritems(path_infos):
-      _ValidateClientId(client_id)
+      precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
     return self.delegate.MultiClearPathHistory(path_infos)
@@ -3194,7 +3193,7 @@ class DatabaseValidationWrapper(Database):
 
   def FindDescendentPathIDs(self, client_id, path_type, path_id,
                             max_depth=None):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
 
     return self.delegate.FindDescendentPathIDs(
         client_id, path_type, path_id, max_depth=max_depth)
@@ -3218,7 +3217,7 @@ class DatabaseValidationWrapper(Database):
         username, state=state, timerange=timerange)
 
   def ReadPathInfosHistories(self, client_id, path_type, components_list):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     precondition.AssertType(components_list, list)
     for components in components_list:
@@ -3382,7 +3381,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteClientActionRequests(requests)
 
   def LeaseClientActionRequests(self, client_id, lease_time=None, limit=5000):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     _ValidateDuration(lease_time)
     precondition.AssertType(limit, int)
     if limit >= 10000:
@@ -3392,7 +3391,7 @@ class DatabaseValidationWrapper(Database):
         client_id, lease_time=lease_time, limit=limit)
 
   def ReadAllClientActionRequests(self, client_id):
-    _ValidateClientId(client_id)
+    precondition.ValidateClientId(client_id)
     return self.delegate.ReadAllClientActionRequests(client_id)
 
   def DeleteClientActionRequests(self, requests):
@@ -3406,8 +3405,8 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteFlowObject(flow_obj)
 
   def ReadFlowObject(self, client_id, flow_id):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     return self.delegate.ReadFlowObject(client_id, flow_id)
 
   def ReadAllFlowObjects(
@@ -3418,7 +3417,7 @@ class DatabaseValidationWrapper(Database):
       include_child_flows = True,
   ):
     if client_id is not None:
-      _ValidateClientId(client_id)
+      precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(min_create_time, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_create_time, rdfvalue.RDFDatetime)
     return self.delegate.ReadAllFlowObjects(
@@ -3428,13 +3427,13 @@ class DatabaseValidationWrapper(Database):
         include_child_flows=include_child_flows)
 
   def ReadChildFlowObjects(self, client_id, flow_id):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     return self.delegate.ReadChildFlowObjects(client_id, flow_id)
 
   def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     _ValidateDuration(processing_time)
     return self.delegate.LeaseFlowForProcessing(client_id, flow_id,
                                                 processing_time)
@@ -3453,8 +3452,8 @@ class DatabaseValidationWrapper(Database):
                  processing_on=Database.unchanged,
                  processing_since=Database.unchanged,
                  processing_deadline=Database.unchanged):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     if flow_obj != Database.unchanged:
       precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
 
@@ -3490,8 +3489,8 @@ class DatabaseValidationWrapper(Database):
                   client_id_flow_id_pairs,
                   pending_termination=Database.unchanged):
     for client_id, flow_id in client_id_flow_id_pairs:
-      _ValidateClientId(client_id)
-      _ValidateFlowId(flow_id)
+      precondition.ValidateClientId(client_id)
+      precondition.ValidateFlowId(flow_id)
 
     if pending_termination != Database.unchanged:
       precondition.AssertType(pending_termination,
@@ -3514,21 +3513,21 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteFlowResponses(responses)
 
   def ReadAllFlowRequestsAndResponses(self, client_id, flow_id):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     return self.delegate.ReadAllFlowRequestsAndResponses(client_id, flow_id)
 
   def DeleteAllFlowRequestsAndResponses(self, client_id, flow_id):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     return self.delegate.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
 
   def ReadFlowRequestsReadyForProcessing(self,
                                          client_id,
                                          flow_id,
                                          next_needed_request=None):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     if next_needed_request is None:
       raise ValueError("next_needed_request must be provided.")
     return self.delegate.ReadFlowRequestsReadyForProcessing(
@@ -3559,8 +3558,8 @@ class DatabaseValidationWrapper(Database):
   def WriteFlowResults(self, results):
     for r in results:
       precondition.AssertType(r, rdf_flow_objects.FlowResult)
-      _ValidateClientId(r.client_id)
-      _ValidateFlowId(r.flow_id)
+      precondition.ValidateClientId(r.client_id)
+      precondition.ValidateFlowId(r.flow_id)
       if r.HasField("hunt_id") and r.hunt_id:
         _ValidateHuntId(r.hunt_id)
 
@@ -3574,8 +3573,8 @@ class DatabaseValidationWrapper(Database):
                       with_tag=None,
                       with_type=None,
                       with_substring=None):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     precondition.AssertOptionalType(with_tag, Text)
     precondition.AssertOptionalType(with_type, Text)
     precondition.AssertOptionalType(with_substring, Text)
@@ -3596,8 +3595,8 @@ class DatabaseValidationWrapper(Database):
       with_tag=None,
       with_type=None,
   ):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     precondition.AssertOptionalType(with_tag, Text)
     precondition.AssertOptionalType(with_type, Text)
 
@@ -3609,15 +3608,15 @@ class DatabaseValidationWrapper(Database):
       client_id,
       flow_id,
   ):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
 
     return self.delegate.CountFlowResultsByType(client_id, flow_id)
 
   def WriteFlowLogEntries(self, entries):
     for e in entries:
-      _ValidateClientId(e.client_id)
-      _ValidateFlowId(e.flow_id)
+      precondition.ValidateClientId(e.client_id)
+      precondition.ValidateFlowId(e.flow_id)
       if e.HasField("hunt_id") and e.hunt_id:
         _ValidateHuntId(e.hunt_id)
     precondition.AssertIterableType(entries, rdf_flow_objects.FlowLogEntry)
@@ -3630,16 +3629,16 @@ class DatabaseValidationWrapper(Database):
                          offset,
                          count,
                          with_substring=None):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     precondition.AssertOptionalType(with_substring, Text)
 
     return self.delegate.ReadFlowLogEntries(
         client_id, flow_id, offset, count, with_substring=with_substring)
 
   def CountFlowLogEntries(self, client_id, flow_id):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
 
     return self.delegate.CountFlowLogEntries(client_id, flow_id)
 
@@ -3647,8 +3646,8 @@ class DatabaseValidationWrapper(Database):
     for e in entries:
       precondition.AssertType(e, rdf_flow_objects.FlowOutputPluginLogEntry)
 
-      _ValidateClientId(e.client_id)
-      _ValidateFlowId(e.flow_id)
+      precondition.ValidateClientId(e.client_id)
+      precondition.ValidateFlowId(e.flow_id)
       if e.hunt_id:
         _ValidateHuntId(e.hunt_id)
 
@@ -3661,8 +3660,8 @@ class DatabaseValidationWrapper(Database):
                                      offset,
                                      count,
                                      with_type=None):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     _ValidateOutputPluginId(output_plugin_id)
     if with_type is not None:
       _ValidateEnumType(with_type,
@@ -3681,8 +3680,8 @@ class DatabaseValidationWrapper(Database):
                                       flow_id,
                                       output_plugin_id,
                                       with_type=None):
-    _ValidateClientId(client_id)
-    _ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
     _ValidateOutputPluginId(output_plugin_id)
 
     return self.delegate.CountFlowOutputPluginLogEntries(
@@ -3960,22 +3959,10 @@ def _ValidateStringId(typename, value):
     raise ValueError(message)
 
 
-def _ValidateClientId(client_id):
-  _ValidateStringId("client_id", client_id)
-  # TODO(hanuszczak): Eventually, we should allow only either lower or upper
-  # case letters in the client id.
-  if re.match(r"^C\.[0-9a-fA-F]{16}$", client_id) is None:
-    raise ValueError("Client id has incorrect format: `%s`" % client_id)
-
-
 def _ValidateClientIds(client_ids):
   precondition.AssertIterableType(client_ids, Text)
   for client_id in client_ids:
-    _ValidateClientId(client_id)
-
-
-def _ValidateFlowId(flow_id):
-  _ValidateStringId("flow_id", flow_id)
+    precondition.ValidateClientId(client_id)
 
 
 def _ValidateOutputPluginId(output_plugin_id):

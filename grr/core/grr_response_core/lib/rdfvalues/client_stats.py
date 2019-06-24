@@ -81,7 +81,9 @@ class IOSample(rdf_structs.RDFProtoStruct):
     return IOSample(
         timestamp=max(sample.timestamp for sample in samples),
         read_bytes=max(sample.read_bytes for sample in samples),
-        write_bytes=max(sample.write_bytes for sample in samples))
+        read_count=max(sample.read_count for sample in samples),
+        write_bytes=max(sample.write_bytes for sample in samples),
+        write_count=max(sample.write_count for sample in samples))
 
 
 class ClientStats(rdf_structs.RDFProtoStruct):

@@ -291,6 +291,9 @@ class RecursiveListDirectoryMixin(object):
 
       else:
         relative_name = urn.RelativeName(self.state.first_directory) or ""
+        # TODO: The split call from should be removed from
+        # the exit condition. Also one extra iteration is done with this
+        # exit condition.
         if len(relative_name.split("/")) >= self.args.max_depth:
           self.Log("Exceeded maximum path depth at %s.",
                    urn.RelativeName(self.state.first_directory))

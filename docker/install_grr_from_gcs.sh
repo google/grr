@@ -1,29 +1,36 @@
 #!/bin/bash
 #
-# This script downloads the most recent sdists for GRR and installs
-# them in a Docker image.
+# This script downloads sdists for a particular GRR github commit and
+# installs them in a Docker image.
 
 set -e
+
+function fatal() {
+  >&2 echo "Error: ${1}"
+  exit 1
+}
+
+if [[ -z "${GCS_BUCKET}" ]]; then
+  fatal "GCS_BUCKET must be set!"
+fi
+
+if [[ -z "${GRR_COMMIT}" ]]; then
+  fatal "GRR_COMMIT must be set!"
+fi
 
 INITIAL_DIR="${PWD}"
 WORK_DIR=/tmp/docker_work_dir
 
-pyscript="
-import ConfigParser
-config = ConfigParser.SafeConfigParser()
-config.read('version.ini')
-print('%s.%s.%s-%s' % (
-    config.get('Version', 'major'),
-    config.get('Version', 'minor'),
-    config.get('Version', 'revision'),
-    config.get('Version', 'release')))
-"
-readonly DEB_VERSION="$(python -c "${pyscript}")"
-wget --quiet "https://storage.googleapis.com/autobuilds.grr-response.com/_latest_server_deb/grr-server_${DEB_VERSION}.tar.gz"
+mkdir "${WORK_DIR}"
+cd "${WORK_DIR}"
+wget --quiet https://storage.googleapis.com/pub/gsutil.tar.gz
+tar xzf gsutil.tar.gz
+
+gsutil/gsutil cp "gs://${GCS_BUCKET}/*_${GRR_COMMIT}/travis_job_*server_deb/grr-server_*.tar.gz" .
 
 tar xzf grr-server_*.tar.gz
 
-$GRR_VENV/bin/pip install --no-index --no-cache-dir \
+"${GRR_VENV}/bin/pip" install --no-index --no-cache-dir \
     --find-links=grr/local_pypi \
     grr/local_pypi/grr-response-proto-*.zip \
     grr/local_pypi/grr-response-core-*.zip \

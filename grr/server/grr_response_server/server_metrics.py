@@ -48,6 +48,21 @@ def GetMetadata():
           bins=[0.05 * 1.2**x for x in range(30)]),  # 50ms to ~10 secs
       stats_utils.CreateCounterMetadata(
           "db_request_errors", fields=[("call", str), ("type", str)]),
+      stats_utils.CreateEventMetadata(
+          "blob_store_poll_hit_latency",
+          bins=[0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]),
+      stats_utils.CreateEventMetadata(
+          "blob_store_poll_hit_iteration", bins=[1, 2, 5, 10, 20, 50]),
+      stats_utils.CreateEventMetadata(
+          "dual_blob_store_write_latency",
+          fields=[("backend", str), ("backend_class", str)],
+          bins=[0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50]),
+      stats_utils.CreateCounterMetadata(
+          "dual_blob_store_success_count",
+          fields=[("backend", str), ("backend_class", str)]),
+      stats_utils.CreateCounterMetadata(
+          "dual_blob_store_error_count",
+          fields=[("backend", str), ("backend_class", str)]),
 
       # Threadpool metrics.
       stats_utils.CreateGaugeMetadata(
@@ -129,8 +144,8 @@ def GetMetadata():
           "frontend_active_count", int, fields=[("source", str)]),
       stats_utils.CreateGaugeMetadata("frontend_max_active_count", int),
       stats_utils.CreateCounterMetadata(
-          "frontend_http_requests", fields=[("action", str), ("protocol",
-                                                              str)]),
+          "frontend_http_requests", fields=[("action", str),
+                                            ("protocol", str)]),
       stats_utils.CreateCounterMetadata(
           "frontend_in_bytes", fields=[("source", str)]),
       stats_utils.CreateCounterMetadata(

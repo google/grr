@@ -21,7 +21,7 @@ from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
-from typing import cast, Iterator, Text, Type, TypeVar
+from typing import cast, Iterable, Iterator, Sized, Text, Type, TypeVar
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -1282,7 +1282,12 @@ class RepeatedFieldHelper(collections.Sequence, object):
   def __ne__(self, other):
     return not self == other  # pylint: disable=g-comparison-negation
 
+  # TODO: __eq__ checks equality without checking for types. Thus
+  # data structures that are definitely not lists (sets, dicts, strings) can
+  # be equal to RepeatedFieldHelper, which might lead to confusing behavior.
   def __eq__(self, other):
+    if not isinstance(other, Iterable) or not isinstance(other, Sized):
+      return NotImplemented
     if len(self) != len(other):
       return False
     for x, y in zip(self, other):
@@ -1836,13 +1841,18 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):
-      return False
+      return NotImplemented
 
-    if len(self._data) != len(other.GetRawData()):
-      return False
-
-    for field in self._data:
-      if self.Get(field) != other.Get(field):
+    # Compare all fields set in `self` or `other`, skipping only fields that
+    # are unset in both `self` and `other`. We deliberately check fields that
+    # are set in one class and not in the other. This allows RDFStructs to be
+    # considered equal, when one has a field set to its default value and the
+    # other has the field unset (where .Get implicitly returns the default value
+    # then).
+    for field in set(self.GetRawData()) | set(other.GetRawData()):
+      self_val = self.Get(field, allow_set_default=False)
+      other_val = other.Get(field, allow_set_default=False)
+      if self_val != other_val:
         return False
 
     return True
@@ -1879,48 +1889,71 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   def _Set(self, value, type_descriptor):
     """Validate the value and set the attribute with it."""
     attr = type_descriptor.name
+    prev_value = self.Get(attr, allow_set_default=False)
+
     # A value of None means we clear the field.
     if value is None:
       self._data.pop(attr, None)
-      return
+    else:
+      # Validate the value and obtain the python format representation.
+      value = type_descriptor.Validate(value, container=self)
 
-    # Validate the value and obtain the python format representation.
-    value = type_descriptor.Validate(value, container=self)
-
-    # Store the lazy value object.
-    self._data[attr] = (value, None, type_descriptor)
+      # Store the lazy value object.
+      self._data[attr] = (value, None, type_descriptor)
 
     # Make sure to invalidate our parent's cache if needed.
     self.dirty = True
 
+    if (self._prev_hash is not None and
+        prev_value != self.Get(attr, allow_set_default=False)):
+      try:
+        hash(self)  # Recompute hash to raise if hash changed due to mutation.
+      except AssertionError:
+        raise AssertionError(
+            "Cannot set {}.{} to {} with previous value {}! hash() has "
+            "changed after it has been used! Usage of RDFStructs as members of "
+            "sets or keys of dicts is discouraged. If used anyway, mutating is "
+            "prohibited, because it causes the hash to change. Be aware that "
+            "accessing unset fields can trigger a mutation.".format(
+                compatibility.GetName(type(self)), attr, value, prev_value))
     return value
 
   def Set(self, attr, value):
     """Sets the attribute in to the value."""
-    type_info_obj = self.type_infos.get(attr)
+    type_descriptor = self._GetTypeDescriptor(attr)
+    return self._Set(value, type_descriptor)
 
-    if type_info_obj is None:
-      raise AttributeError("Field %s is not known." % attr)
+  def _GetTypeDescriptor(self, attr):
+    type_descriptor = self.type_infos.get(attr)
 
-    return self._Set(value, type_info_obj)
+    if type_descriptor is None:
+      raise AttributeError("'%s' object has no attribute '%s'" %
+                           (self.__class__.__name__, attr))
 
-  def Get(self, attr):
-    """Retrieve the attribute specified."""
+    return type_descriptor
+
+  def Get(self, attr, allow_set_default=True):
+    """Retrieve the attribute specified.
+
+    Arguments:
+      attr: String of the attribute's name
+      allow_set_default: If True and attr is currently unset, permanently modify
+        the instance by setting attr to the default value.
+
+    Returns:
+      The attribute's value, or the attribute's type's default value, if unset.
+    """
     entry = self._data.get(attr)
     # We dont have this field, try the defaults.
     if entry is None:
-      type_descriptor = self.type_infos.get(attr)
-
-      if type_descriptor is None:
-        raise AttributeError("'%s' object has no attribute '%s'" %
-                             (self.__class__.__name__, attr))
-
-      # Assign the default value now.
+      type_descriptor = self._GetTypeDescriptor(attr)
       default = type_descriptor.GetDefault(container=self)
+
       if default is None:
         return
 
-      if type_descriptor.set_default_on_access:
+      # Assign the default value now.
+      if allow_set_default and type_descriptor.set_default_on_access:
         default = self.Set(attr, default)
 
       return default

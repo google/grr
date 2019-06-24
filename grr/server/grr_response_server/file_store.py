@@ -20,6 +20,7 @@ from typing import Iterable
 from typing import NamedTuple
 
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
@@ -261,7 +262,8 @@ def AddFilesWithUnknownHashes(
   for client_path_blob_ref_batch in client_path_blob_ref_batches:
     blob_id_batch = set(
         blob_ref.blob_id for _, blob_ref in client_path_blob_ref_batch)
-    blobs = data_store.BLOBS.ReadBlobs(blob_id_batch)
+    blobs = data_store.BLOBS.ReadAndWaitForBlobs(
+        blob_id_batch, timeout=rdfvalue.Duration.FromSeconds(30))
 
     for client_path, blob_ref in client_path_blob_ref_batch:
       blob = blobs[blob_ref.blob_id]

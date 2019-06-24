@@ -383,9 +383,7 @@ class RDFString(RDFPrimitive):
     if isinstance(other, bytes):
       return self._value.encode("utf-8") == other
 
-    message = "Unexpected value `%s` of type `%s`"
-    message %= (other, type(other))
-    raise TypeError(message)
+    return NotImplemented
 
   def __lt__(self, other):
     if isinstance(other, RDFString):
@@ -400,9 +398,7 @@ class RDFString(RDFPrimitive):
     if isinstance(other, bytes):
       return self._value.encode("utf-8") < other
 
-    message = "Unexpected value `%s` of type `%s`"
-    message %= (other, type(other))
-    raise TypeError(message)
+    return NotImplemented
 
   def ParseFromString(self, string):
     precondition.AssertType(string, bytes)
@@ -804,6 +800,7 @@ class RDFDatetimeSeconds(RDFDatetime):
   converter = 1
 
 
+# TODO: Implement microsecond precision.
 @python_2_unicode_compatible
 class Duration(RDFInteger):
   """Duration value stored in seconds internally."""

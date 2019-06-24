@@ -5,8 +5,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import re
 
 from future.utils import iteritems
+from typing import Sized, Text
 
 
 def AssertType(value, expected_type):
@@ -82,3 +84,30 @@ def AssertDictType(dct, expected_key_type, expected_value_type):
   for key, value in iteritems(dct):
     AssertType(key, expected_key_type)
     AssertType(value, expected_value_type)
+
+
+def AssertNotEmpty(typename, value):
+  """Raises, if the given value is empty or has no __len__."""
+  AssertType(value, Sized)
+  if len(value) == 0:  # pylint: disable=g-explicit-length-test
+    message = "Expected {} `{}` to be non-empty".format(typename, value)
+    raise ValueError(message)
+
+
+def _ValidateStringId(typename, value):
+  AssertType(value, Text)
+  AssertNotEmpty(typename, value)
+
+
+def ValidateClientId(client_id):
+  """Raises, if the given value is not a valid ClientId string."""
+  _ValidateStringId("client_id", client_id)
+  # TODO(hanuszczak): Eventually, we should allow only either lower or upper
+  # case letters in the client id.
+  if re.match(r"^C\.[0-9a-fA-F]{16}$", client_id) is None:
+    raise ValueError("Client id has incorrect format: `%s`" % client_id)
+
+
+def ValidateFlowId(flow_id):
+  """Raises, if the given value is not a valid FlowId string."""
+  _ValidateStringId("flow_id", flow_id)

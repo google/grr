@@ -16,6 +16,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -717,12 +718,11 @@ message DynamicTypeTest {{
 
     self.assertEqual(hash(sample1), hash(sample2))
 
-  def testHashRaisesAfterMutation(self):
+  def testMutationAfterHashRaises(self):
     t = TestStruct(foobar="foo")
     hash(t)
-    t.foobar = "bar"
     with self.assertRaises(AssertionError):
-      hash(t)
+      t.foobar = "bar"
 
   def testHashWorksForNonMutatingAssignment(self):
     t = TestStruct(foobar="foo")
@@ -730,18 +730,40 @@ message DynamicTypeTest {{
     t.foobar = "foo"
     hash(t)
 
-  def testHashRaisesAfterUnsetMutation(self):
+  def testUnsetMutationAfterHashRaises(self):
     t = TestStruct(foobar="foo")
     hash(t)
-    t.foobar = None
     with self.assertRaises(AssertionError):
-      hash(t)
+      t.foobar = None
 
   def testDefaultSetterDoesNotChangeHash(self):
     t = TestStruct()
     hash(t)
     t.repeated  #  pylint: disable=pointless-statement
     self.assertEqual(hash(t), hash(TestStruct()))
+
+  def testRepeatedFieldHelperComparesToNone(self):
+    self.assertNotEqual(TestStruct().repeated, None)
+
+  def testSymmetricEqualityForDisjointFields(self):
+    # Prevent a regression, where RDFStruct.__eq__ would be True for instances
+    # having the same number of fields, but different fields which are set to
+    # the default value.
+    self.assertNotEqual(
+        rdf_client_stats.IOSample(write_count=6),
+        rdf_client_stats.IOSample(read_bytes=0))
+    self.assertNotEqual(
+        rdf_client_stats.IOSample(read_bytes=0),
+        rdf_client_stats.IOSample(write_count=6))
+
+  def testDefaultRepeatedSetterDoesNotChangeEquality(self):
+    sample = TestStruct()
+    sample.repeated  #  pylint: disable=pointless-statement
+    self.assertEqual(sample, TestStruct())
+
+  def testUnsetFieldsHaveSymmetricEqualityWithDefaultValues(self):
+    self.assertEqual(TestStruct(repeated=[]), TestStruct())
+    self.assertEqual(TestStruct(), TestStruct(repeated=[]))
 
 
 def main(argv):

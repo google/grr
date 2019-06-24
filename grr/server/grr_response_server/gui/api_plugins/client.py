@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 from grr_response_proto.api import client_pb2
 from grr_response_server import action_registry
 from grr_response_server import aff4
@@ -622,6 +623,10 @@ class ApiGetInterrogateOperationStateHandler(
     if data_store.RelationalDBEnabled():
       client_id = str(args.client_id)
       flow_id = str(args.operation_id)
+
+      precondition.ValidateClientId(client_id)
+      precondition.ValidateFlowId(flow_id)
+
       # TODO(user): test both exception scenarios below.
       try:
         flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)

@@ -62,28 +62,6 @@ class CommandParser(abstract.SingleResponseParser):
 
 
 # TODO(hanuszczak): This class should be removed - subclasses should implement
-# `SingleFileParser` directly.
-class FileParser(abstract.SingleFileParser):
-  """Abstract parser for processing files output.
-
-  Must implement the Parse function.
-  """
-
-  # TODO(hanuszczak): Make this abstract.
-  # TODO(hanuszczak): Remove `knowledge_base` argument.
-  # TODO(hanuszczak): Replace `stat` with `pathspec` argument.
-  def Parse(self, stat, file_object, knowledge_base):
-    """Take the file data, and yield RDFValues."""
-
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
-    # TODO(hanuszczak): Here we create a dummy stat entry - all implementations
-    # of this class care only about the `pathspec` attribute anyway. This method
-    # should be gone once all subclasses implement `SingleFileParser` directly.
-    stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec)
-    return self.Parse(stat_entry, filedesc, knowledge_base)
-
-
-# TODO(hanuszczak): This class should be removed - subclasses should implement
 # `MultiFileParser` directly.
 class FileMultiParser(abstract.MultiFileParser):
   """Abstract parser for processing files output."""

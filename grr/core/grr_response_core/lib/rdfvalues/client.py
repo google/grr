@@ -391,7 +391,7 @@ class Process(rdf_structs.RDFProtoStruct):
         # additional memory protection. For those, cmdline() and cwd() will
         # raise a Windows Error 998 (ERROR_NOACCESS, Invalid access to memory
         # location).
-        if not hasattr(e, "winerror") or e.winerror != 998:
+        if not hasattr(e, "winerror") or e.winerror != 998:  # pytype: disable=attribute-error
           raise
 
       try:
@@ -432,7 +432,7 @@ class Process(rdf_structs.RDFProtoStruct):
         # additional memory protection. For those, cmdline() and cwd() will
         # raise a Windows Error 998 (ERROR_NOACCESS, Invalid access to memory
         # location).
-        if not hasattr(e, "winerror") or e.winerror != 998:
+        if not hasattr(e, "winerror") or e.winerror != 998:  # pytype: disable=attribute-error
           raise
 
       try:

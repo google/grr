@@ -6,11 +6,15 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import time
 
+from future.utils import iteritems
 from future.utils import with_metaclass
 from typing import Dict, Iterable, List, Optional
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Global blob stores registry.
@@ -23,8 +27,8 @@ REGISTRY = {}
 class BlobStore(with_metaclass(abc.ABCMeta, object)):
   """The blob store base class."""
 
-  def WriteBlobsWithUnknownHashes(
-      self, blobs_data):
+  def WriteBlobsWithUnknownHashes(self, blobs_data
+                                 ):
     """Writes the contents of the given blobs, using their hash as BlobID.
 
     Args:
@@ -110,6 +114,56 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
       False if it doesn't).
     """
 
+  def ReadAndWaitForBlobs(self, blob_ids,
+                          timeout
+                         ):
+    """Reads specified blobs, waiting and retrying if blobs do not exist yet.
+
+    Args:
+      blob_ids: An iterable of BlobIDs.
+      timeout: A rdfvalue.Duration specifying the maximum time to pass until the
+        last poll is conducted. The overall runtime of ReadAndWaitForBlobs can
+        be higher, because `timeout` is a threshold for the start (and not end)
+        of the last attempt at reading.
+
+    Returns:
+      A map of {blob_id: blob_data} where blob_data is blob bytes previously
+      written with WriteBlobs. If a particular blob_id is not found, the
+      corresponding blob_data will be None.
+    """
+    remaining_ids = set(blob_ids)
+    results = {blob_id: None for blob_id in remaining_ids}
+    # TODO: Migrate to RDFDatetime and Duration when Duration
+    # supports microsecond-precision.
+    start_us = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+    # TODO: Implement truncated exponential backoff.
+    sleep_dur = rdfvalue.Duration.FromSeconds(1)
+    poll_num = 0
+
+    while remaining_ids:
+      cur_blobs = self.ReadBlobs(list(remaining_ids))
+      now_us = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+      elapsed_us = now_us - start_us
+      poll_num += 1
+
+      for blob_id, blob in iteritems(cur_blobs):
+        if blob is None:
+          continue
+        results[blob_id] = blob
+        remaining_ids.remove(blob_id)
+        stats_collector_instance.Get().RecordEvent(
+            "blob_store_poll_hit_latency", elapsed_us / rdfvalue.MICROSECONDS)
+        stats_collector_instance.Get().RecordEvent(
+            "blob_store_poll_hit_iteration", poll_num)
+
+      if (not remaining_ids or
+          elapsed_us + sleep_dur.microseconds >= timeout.microseconds):
+        break
+
+      time.sleep(sleep_dur.seconds)
+
+    return results
+
 
 class BlobStoreValidationWrapper(BlobStore):
   """BlobStore wrapper that validates calls arguments."""
@@ -118,8 +172,8 @@ class BlobStoreValidationWrapper(BlobStore):
     super(BlobStoreValidationWrapper, self).__init__()
     self.delegate = delegate
 
-  def WriteBlobsWithUnknownHashes(
-      self, blobs_data):
+  def WriteBlobsWithUnknownHashes(self, blobs_data
+                                 ):
     precondition.AssertIterableType(blobs_data, bytes)
     return self.delegate.WriteBlobsWithUnknownHashes(blobs_data)
 
