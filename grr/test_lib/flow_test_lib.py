@@ -728,6 +728,16 @@ def GetFlowResultsByTag(client_id, flow_id):
   return {r.tag or "": r.payload for r in results}
 
 
+def FinishAllFlows(**kwargs):
+  """Finishes all running flows on all clients (REL_DB-only)."""
+  if data_store.RelationalDBEnabled():
+    for client_id_batch in data_store.REL_DB.ReadAllClientIDs():
+      for client_id in client_id_batch:
+        FinishAllFlowsOnClient(client_id, **kwargs)
+  else:
+    raise NotImplementedError("Finishing all flows is supported only in REL_DB")
+
+
 def FinishAllFlowsOnClient(client_id, **kwargs):
   """Finishes all running flows on a client (AFF4/REL_DB compatible)."""
   if isinstance(client_id, rdfvalue.RDFURN):

@@ -24,7 +24,7 @@ exports.setAutoRefreshInterval = function(millis) {
 
 
 /** @const {number} */
-const PAGE_SIZE = 100000;
+const PAGE_SIZE = 1000;
 
 /**
  * Flattens list of flows returned by the server. Every flow in the list
