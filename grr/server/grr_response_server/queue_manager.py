@@ -31,13 +31,20 @@ class MoreDataException(Error):
 
 
 session_id_map = {
-    rdfvalue.SessionID(queue=queues.ENROLLMENT, flow_name="Enrol"): "Enrol",
-    rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"): "StatsHandler",
-    rdfvalue.SessionID(flow_name="ClientAlert"): "ClientAlertHandler",
-    rdfvalue.SessionID(flow_name="Foreman"): "ForemanHandler",
-    rdfvalue.SessionID(flow_name="NannyMessage"): "NannyMessageHandler",
-    rdfvalue.SessionID(flow_name="Startup"): "ClientStartupHandler",
-    rdfvalue.SessionID(flow_name="TransferStore"): "BlobHandler",
+    str(rdfvalue.SessionID(queue=queues.ENROLLMENT, flow_name="Enrol")):
+        "Enrol",
+    str(rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats")):
+        "StatsHandler",
+    str(rdfvalue.SessionID(flow_name="ClientAlert")):
+        "ClientAlertHandler",
+    str(rdfvalue.SessionID(flow_name="Foreman")):
+        "ForemanHandler",
+    str(rdfvalue.SessionID(flow_name="NannyMessage")):
+        "NannyMessageHandler",
+    str(rdfvalue.SessionID(flow_name="Startup")):
+        "ClientStartupHandler",
+    str(rdfvalue.SessionID(flow_name="TransferStore")):
+        "BlobHandler",
 }
 
 
@@ -315,8 +322,8 @@ class QueueManager(object):
     with mutation_pool:
 
       messages_by_queue = collection.Group(
-          list(itervalues(
-              self.client_messages_to_delete)), lambda request: request.queue)
+          list(itervalues(self.client_messages_to_delete)),
+          lambda request: request.queue)
       for queue, messages in iteritems(messages_by_queue):
         self.Delete(queue, messages, mutation_pool=mutation_pool)
 

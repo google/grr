@@ -259,6 +259,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
   def InitFromAff4Object(self,
                          flow_obj,
                          flow_id=None,
+                         with_args=True,
                          with_state_and_context=False):
     try:
       # TODO(user): we should be able to infer flow id from the
@@ -288,13 +289,14 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       else:
         self.state = flow_obj.context.state
 
-      try:
-        self.args = flow_obj.args
-      except ValueError:
-        # If args class name has changed, ValueError will be raised. Handling
-        # this gracefully - we should still try to display some useful info
-        # about the flow.
-        pass
+      if with_args:
+        try:
+          self.args = flow_obj.args
+        except ValueError:
+          # If args class name has changed, ValueError will be raised. Handling
+          # this gracefully - we should still try to display some useful info
+          # about the flow.
+          pass
 
       self.runner_args = flow_obj.runner_args
 
@@ -323,7 +325,10 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
 
     return self
 
-  def InitFromFlowObject(self, flow_obj, with_state_and_context=False):
+  def InitFromFlowObject(self,
+                         flow_obj,
+                         with_args=True,
+                         with_state_and_context=False):
     try:
       self.flow_id = flow_obj.flow_id
       self.client_id = flow_obj.client_id
@@ -376,13 +381,14 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
         if flow_obj.backtrace:
           self.context.backtrace = flow_obj.backtrace
 
-      try:
-        self.args = flow_obj.args
-      except ValueError:
-        # If args class name has changed, ValueError will be raised. Handling
-        # this gracefully - we should still try to display some useful info
-        # about the flow.
-        pass
+      if with_args:
+        try:
+          self.args = flow_obj.args
+        except ValueError:
+          # If args class name has changed, ValueError will be raised. Handling
+          # this gracefully - we should still try to display some useful info
+          # about the flow.
+          pass
 
       self.runner_args = rdf_flow_runner.FlowRunnerArgs(
           client_id=flow_obj.client_id,
@@ -1174,6 +1180,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
           api_flow = ApiFlow().InitFromAff4Object(
               fd,
               flow_id=flow_id,
+              with_args=False,
               with_state_and_context=with_state_and_context)
         except AttributeError:
           # If this doesn't work there's no way to recover.
@@ -1206,7 +1213,8 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
   def _BuildRelationalFlowList(self, client_id, offset, count):
     all_flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
     api_flow_dict = {
-        rdf_flow.flow_id: ApiFlow().InitFromFlowObject(rdf_flow)
+        rdf_flow.flow_id:
+        ApiFlow().InitFromFlowObject(rdf_flow, with_args=False)
         for rdf_flow in all_flows
     }
     # TODO(user): this is done for backwards API compatibility.

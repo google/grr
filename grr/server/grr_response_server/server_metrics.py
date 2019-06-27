@@ -63,6 +63,9 @@ def GetMetadata():
       stats_utils.CreateCounterMetadata(
           "dual_blob_store_error_count",
           fields=[("backend", str), ("backend_class", str)]),
+      stats_utils.CreateCounterMetadata(
+          "dual_blob_store_discard_count",
+          fields=[("backend", str), ("backend_class", str)]),
 
       # Threadpool metrics.
       stats_utils.CreateGaugeMetadata(

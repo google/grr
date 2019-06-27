@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import threading
+
 
 from future.utils import itervalues
 
@@ -66,3 +68,11 @@ class InMemoryDBBlobsMixin(blob_store.BlobStore):
         result[hash_id] = None
 
     return result
+
+
+class InMemoryBlobStore(InMemoryDBBlobsMixin):
+
+  def __init__(self):
+    self.blobs = {}
+    self.blob_refs_by_hashes = {}
+    self.lock = threading.RLock()

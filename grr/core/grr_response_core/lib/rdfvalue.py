@@ -522,19 +522,11 @@ class RDFInteger(RDFPrimitive):
   def __rand__(self, other):
     return self._value & other
 
-  def __iand__(self, other):
-    self._value &= other
-    return self
-
   def __or__(self, other):
     return self._value | other
 
   def __ror__(self, other):
     return self._value | other
-
-  def __ior__(self, other):
-    self._value |= other
-    return self
 
   def __add__(self, other):
     return self._value + other
@@ -542,19 +534,11 @@ class RDFInteger(RDFPrimitive):
   def __radd__(self, other):
     return self._value + other
 
-  def __iadd__(self, other):
-    self._value += other
-    return self
-
   def __sub__(self, other):
     return self._value - other
 
   def __rsub__(self, other):
     return other - self._value
-
-  def __isub__(self, other):
-    self._value -= other
-    return self
 
   def __mul__(self, other):
     return self._value * other
@@ -707,15 +691,6 @@ class RDFDatetime(RDFInteger):
 
     return NotImplemented
 
-  def __iadd__(self, other):
-    # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float, Duration)):
-      # Assume other is in seconds
-      self._value += compatibility.builtins.int(other * self.converter)
-      return self
-
-    return NotImplemented
-
   def __mul__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
     if isinstance(other, (int, float, Duration)):
@@ -735,15 +710,6 @@ class RDFDatetime(RDFInteger):
 
     if isinstance(other, RDFDatetime):
       return Duration(self.AsSecondsSinceEpoch() - other.AsSecondsSinceEpoch())
-
-    return NotImplemented
-
-  def __isub__(self, other):
-    # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float, Duration)):
-      # Assume other is in seconds
-      self._value -= compatibility.builtins.int(other * self.converter)
-      return self
 
     return NotImplemented
 
@@ -890,14 +856,6 @@ class Duration(RDFInteger):
 
     return NotImplemented
 
-  def __iadd__(self, other):
-    if isinstance(other, (int, float, Duration)):
-      # Assume other is in seconds
-      self._value += other
-      return self
-
-    return NotImplemented
-
   def __mul__(self, other):
     if isinstance(other, (int, float, Duration)):
       return self.__class__(int(self._value * other))
@@ -911,14 +869,6 @@ class Duration(RDFInteger):
     if isinstance(other, (int, float, Duration)):
       # Assume other is in seconds
       return self.__class__(self._value - other)
-
-    return NotImplemented
-
-  def __isub__(self, other):
-    if isinstance(other, (int, float, Duration)):
-      # Assume other is in seconds
-      self._value -= other
-      return self
 
     return NotImplemented
 

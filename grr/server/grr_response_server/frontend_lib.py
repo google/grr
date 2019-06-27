@@ -552,8 +552,8 @@ class FrontEndServer(object):
     return True
 
   legacy_well_known_session_ids = set([
-      rdfvalue.SessionID(flow_name="Foreman", queue=rdfvalue.RDFURN("W")),
-      rdfvalue.SessionID(flow_name="Stats", queue=rdfvalue.RDFURN("W"))
+      str(rdfvalue.SessionID(flow_name="Foreman", queue=rdfvalue.RDFURN("W"))),
+      str(rdfvalue.SessionID(flow_name="Stats", queue=rdfvalue.RDFURN("W")))
   ])
 
   def ReceiveMessagesRelationalFlows(self, client_id, messages):
@@ -579,14 +579,15 @@ class FrontEndServer(object):
           dropped_count += 1
           continue
 
-        if session_id in queue_manager.session_id_map:
+        session_id_str = str(session_id)
+        if session_id_str in queue_manager.session_id_map:
           message_handler_requests.append(
               rdf_objects.MessageHandlerRequest(
                   client_id=msg.source.Basename(),
                   handler_name=queue_manager.session_id_map[session_id],
                   request_id=msg.response_id,
                   request=msg.payload))
-        elif session_id in self.legacy_well_known_session_ids:
+        elif session_id_str in self.legacy_well_known_session_ids:
           logging.debug("Dropping message for legacy well known session id %s",
                         session_id)
         else:

@@ -327,10 +327,11 @@ class MySQLDBPathMixin(object):
     query = ""
 
     path = mysql_utils.ComponentsToPath(components)
+    escaped_path = db_utils.EscapeWildcards(db_utils.EscapeBackslashes(path))
     values = {
         "client_id": db_utils.ClientIDToInt(client_id),
         "path_type": int(path_type),
-        "path": db_utils.EscapeWildcards(path),
+        "path": escaped_path,
     }
 
     query += """
@@ -390,7 +391,7 @@ class MySQLDBPathMixin(object):
     query += """
     WHERE p.client_id = %(client_id)s
       AND p.path_type = %(path_type)s
-      AND path LIKE concat(%(path)s, '/%%')
+      AND path LIKE CONCAT(%(path)s, '/%%')
     """
 
     if max_depth is not None:

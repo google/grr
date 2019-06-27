@@ -8,11 +8,13 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import filesystem
 
 
-class ListVolumeShadowCopies(flow.GRRFlow):
+@flow_base.DualDBFlow
+class ListVolumeShadowCopiesMixin(object):
   """List the Volume Shadow Copies on the client."""
 
   category = "/Filesystem/"
@@ -20,18 +22,18 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
   def Start(self):
     """Query the client for available Volume Shadow Copies using a WMI query."""
-    self.state.shadows = []
-    self.state.raw_device = None
-
     self.CallClient(
         server_stubs.WmiQuery,
         query="SELECT * FROM Win32_ShadowCopy",
         next_state="ListDeviceDirectories")
 
   def ListDeviceDirectories(self, responses):
+    """Flow state that calls ListDirectory action for each shadow copy."""
+
     if not responses.success:
       raise flow.FlowError("Unable to query Volume Shadow Copy information.")
 
+    shadows_found = False
     for response in responses:
       device_object = response.GetItem("DeviceObject", "")
       global_root = r"\\?\GLOBALROOT\Device"
@@ -53,10 +55,13 @@ class ListVolumeShadowCopies(flow.GRRFlow):
             pathspec=path_spec,
             next_state="ProcessListDirectory")
 
-        aff4path = path_spec.AFF4Path(self.client_urn)
-        self.state.raw_device = aff4path.Dirname()
+        shadows_found = True
 
-        self.state.shadows.append(aff4path)
+    if not shadows_found:
+      raise flow.FlowError("No Volume Shadow Copies were found.\n"
+                           "The volume could have no Volume Shadow Copies "
+                           "as Windows versions pre Vista or the Volume "
+                           "Shadow Copy Service has been disabled.")
 
   def ProcessListDirectory(self, responses):
     """Processes the results of the ListDirectory client action.
@@ -68,16 +73,11 @@ class ListVolumeShadowCopies(flow.GRRFlow):
       raise flow.FlowError("Unable to list directory.")
 
     with data_store.DB.GetMutationPool() as pool:
-      for response in responses:
-        stat_entry = rdf_client_fs.StatEntry(response)
-        filesystem.CreateAFF4Object(
-            stat_entry, self.client_urn, pool, token=self.token)
-        self.SendReply(stat_entry)
+      filesystem.WriteStatEntries(
+          [rdf_client_fs.StatEntry(response) for response in responses],
+          client_id=self.client_id,
+          mutation_pool=pool,
+          token=self.token)
 
-  def End(self, responses):
-    del responses
-    if not self.state.shadows:
-      raise flow.FlowError("No Volume Shadow Copies were found.\n"
-                           "The volume could have no Volume Shadow Copies "
-                           "as Windows versions pre Vista or the Volume "
-                           "Shadow Copy Service has been disabled.")
+    for response in responses:
+      self.SendReply(response)

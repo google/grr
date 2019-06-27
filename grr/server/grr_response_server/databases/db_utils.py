@@ -82,6 +82,25 @@ def EscapeWildcards(string):
   return string.replace("%", r"\%").replace("_", r"\_")
 
 
+def EscapeBackslashes(string):
+  """Escapes backslash characters for strings intended to be used with `LIKE`.
+
+  Backslashes work in mysterious ways: sometimes they do need to be escaped,
+  sometimes this is being done automatically when passing values. Combined with
+  unclear rules of `LIKE`, this can be very confusing.
+
+  https://what.thedailywtf.com/topic/13989/mysql-backslash-escaping
+
+  Args:
+    string: A string to escape.
+
+  Returns:
+    An escaped string.
+  """
+  precondition.AssertType(string, Text)
+  return string.replace("\\", "\\\\")
+
+
 def ClientIdFromGrrMessage(m):
   if m.queue:
     return m.queue.Split()[0]

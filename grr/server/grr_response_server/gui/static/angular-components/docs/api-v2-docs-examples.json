@@ -4258,9 +4258,6 @@
       "response": {
         "items": [
           {
-            "args": {
-              "@type": "type.googleapis.com/ListProcessesArgs"
-            },
             "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF11",
@@ -4276,9 +4273,6 @@
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
           },
           {
-            "args": {
-              "@type": "type.googleapis.com/InterrogateArgs"
-            },
             "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF10",

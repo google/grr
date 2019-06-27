@@ -93,10 +93,10 @@ class DualBlobStore(blob_store.BlobStore):
     self._primary = _InstantiateBlobStore(primary)
     self._secondary = _InstantiateBlobStore(secondary)
     self._queue = queue.Queue(_SECONDARY_WRITE_QUEUE_MAX_LENGTH)
+    self._thread_running = True
     self._thread = threading.Thread(target=self._WriteBlobsIntoSecondary)
     self._thread.daemon = True
     self._thread.start()
-    self._thread_running = True
 
   def WriteBlobs(self,
                  blob_id_data_map):
@@ -140,3 +140,4 @@ class DualBlobStore(blob_store.BlobStore):
         # Failed writes to secondary are not critical, because primary is read
         # from.
         logging.warn(e)
+      self._queue.task_done()

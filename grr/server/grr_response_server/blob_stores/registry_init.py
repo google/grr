@@ -9,6 +9,7 @@ from grr_response_server import blob_store
 from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.blob_stores import dual_blob_store
 from grr_response_server.blob_stores import memory_stream_bs
+from grr_response_server.databases import mem_blobs
 
 
 def RegisterBlobStores():
@@ -20,3 +21,5 @@ def RegisterBlobStores():
   blob_store.REGISTRY[compatibility.GetName(
       memory_stream_bs.MemoryStreamBlobStore
   )] = memory_stream_bs.MemoryStreamBlobStore
+  blob_store.REGISTRY[compatibility.GetName(
+      mem_blobs.InMemoryBlobStore)] = mem_blobs.InMemoryBlobStore

@@ -1337,6 +1337,61 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(results_3[0].stat_entry.st_size, 1337)
     self.assertEqual(results_3[0].hash_entry.sha256, b"thud")
 
+  def testListChildPathInfosBackslashes(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("\\", "\\\\", "\\\\\\"))
+    path_info_2 = rdf_objects.PathInfo.OS(components=("\\", "\\\\\\", "\\\\"))
+    path_info_3 = rdf_objects.PathInfo.OS(components=("\\", "foo\\bar", "baz"))
+    self.db.WritePathInfos(client_id, [path_info_1, path_info_2, path_info_3])
+
+    results_0 = self.db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=("\\",))
+    self.assertLen(results_0, 3)
+    self.assertEqual(results_0[0].components, ("\\", "\\\\"))
+    self.assertEqual(results_0[1].components, ("\\", "\\\\\\"))
+    self.assertEqual(results_0[2].components, ("\\", "foo\\bar"))
+
+    results_1 = self.db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=("\\", "\\\\"))
+    self.assertLen(results_1, 1)
+    self.assertEqual(results_1[0].components, ("\\", "\\\\", "\\\\\\"))
+
+    results_2 = self.db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=("\\", "\\\\\\"))
+    self.assertLen(results_2, 1)
+    self.assertEqual(results_2[0].components, ("\\", "\\\\\\", "\\\\"))
+
+    results_3 = self.db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=("\\", "foo\\bar"))
+    self.assertLen(results_3, 1)
+    self.assertEqual(results_3[0].components, ("\\", "foo\\bar", "baz"))
+
+  def testListChildPathInfosTSKRootVolume(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    volume = "\\\\?\\Volume{2d4fbbd3-0000-0000-0000-100000000000}"
+
+    path_info = rdf_objects.PathInfo.TSK(components=(volume, "foobar.txt"))
+    path_info.stat_entry.st_size = 42
+    self.db.WritePathInfos(client_id, [path_info])
+
+    results = self.db.ListChildPathInfos(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.TSK,
+        components=(volume,))
+
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].components, (volume, "foobar.txt"))
+    self.assertEqual(results[0].stat_entry.st_size, 42)
+
   def testReadPathInfosHistoriesEmpty(self):
     client_id = db_test_utils.InitializeClient(self.db)
     result = self.db.ReadPathInfosHistories(client_id,

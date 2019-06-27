@@ -13821,10 +13821,6 @@
           {
             "type": "ApiFlow",
             "value": {
-              "args": {
-                "type": "ListProcessesArgs",
-                "value": {}
-              },
               "client_id": {
                 "type": "ApiClientId",
                 "value": "C.1000000000000000"
@@ -13880,10 +13876,6 @@
           {
             "type": "ApiFlow",
             "value": {
-              "args": {
-                "type": "InterrogateArgs",
-                "value": {}
-              },
               "client_id": {
                 "type": "ApiClientId",
                 "value": "C.1000000000000000"
@@ -13942,7 +13934,6 @@
       "type_stripped_response": {
         "items": [
           {
-            "args": {},
             "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF11",
@@ -13959,7 +13950,6 @@
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
           },
           {
-            "args": {},
             "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
