@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import itertools
 
 
 from future.utils import iterkeys
@@ -639,7 +640,10 @@ class MySQLDBClientMixin(object):
     query = ("DELETE FROM client_labels "
              "WHERE client_id = %s AND owner_username_hash = %s "
              "AND label IN ({})").format(", ".join(["%s"] * len(labels)))
-    args = [db_utils.ClientIDToInt(client_id), mysql_utils.Hash(owner)] + labels
+    args = itertools.chain([
+      db_utils.ClientIDToInt(client_id), 
+      mysql_utils.Hash(owner),
+    ], labels)
     cursor.execute(query, args)
 
   @mysql_utils.WithTransaction(readonly=True)
