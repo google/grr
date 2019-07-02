@@ -22,8 +22,8 @@ from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestTimeline(gui_test_lib.GRRSeleniumTest):
+class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
+                   gui_test_lib.GRRSeleniumTest):
   """Test the timeline view interface."""
 
   TIMELINE_ITEMS_PER_FILE = 3

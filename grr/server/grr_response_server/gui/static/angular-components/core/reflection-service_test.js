@@ -30,7 +30,7 @@ describe('AFF4 items provider directive', () => {
     const deferred = $q.defer();
     spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
-    grrReflectionService.getRDFValueDescriptor('Duration');
+    grrReflectionService.getRDFValueDescriptor('DurationSeconds');
     grrReflectionService.getRDFValueDescriptor('RDFDatetime');
     // Check that only 1 call to API service was made.
     expect(grrApiServiceMock.get.calls.count()).toBe(1);
@@ -41,9 +41,10 @@ describe('AFF4 items provider directive', () => {
     spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);
 
     const responses = [];
-    grrReflectionService.getRDFValueDescriptor('Duration').then((response) => {
-      responses.push(response);
-    });
+    grrReflectionService.getRDFValueDescriptor('DurationSeconds')
+        .then((response) => {
+          responses.push(response);
+        });
 
     grrReflectionService.getRDFValueDescriptor('RDFDatetime')
         .then((response) => {
@@ -58,7 +59,7 @@ describe('AFF4 items provider directive', () => {
           {
             'doc': 'Duration value stored in seconds internally.',
             'kind': 'primitive',
-            'name': 'Duration',
+            'name': 'DurationSeconds',
           },
           {
             'doc': 'Date and time.',
@@ -74,7 +75,7 @@ describe('AFF4 items provider directive', () => {
     expect(responses[0]).toEqual({
       'doc': 'Duration value stored in seconds internally.',
       'kind': 'primitive',
-      'name': 'Duration',
+      'name': 'DurationSeconds',
     });
     expect(responses[1]).toEqual({
       'doc': 'Date and time.',

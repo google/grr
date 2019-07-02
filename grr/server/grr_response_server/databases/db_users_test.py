@@ -297,7 +297,8 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+        expiration_time=rdfvalue.RDFDatetime.Now() +
+        rdfvalue.DurationSeconds("1d"))
     approval_id = d.WriteApprovalRequest(approval_request)
 
     approvals = list(
@@ -327,7 +328,8 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+    expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds(
+        "1d")
 
     approval_ids = set()
     for i in range(10):
@@ -362,7 +364,8 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+        expiration_time=rdfvalue.RDFDatetime.Now() +
+        rdfvalue.DurationSeconds("1d"))
     approval_id = d.WriteApprovalRequest(approval_request)
 
     self.db.GrantApproval(
@@ -399,7 +402,8 @@ class DatabaseTestUsersMixin(object):
           subject_id="C.00000000000000%d" % i,
           requestor_username="requestor",
           reason="some test reason %d" % i,
-          expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+          expiration_time=rdfvalue.RDFDatetime.Now() +
+          rdfvalue.DurationSeconds("1d"))
       approval_id = d.WriteApprovalRequest(approval_request)
 
       self.db.GrantApproval(
@@ -429,8 +433,8 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
-    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d")
 
     non_expired_approval_ids = set()
     for i in range(10):
@@ -460,8 +464,8 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
-    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d")
 
     approval_ids = set()
     for i in range(10):
@@ -509,7 +513,8 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+        expiration_time=rdfvalue.RDFDatetime.Now() +
+        rdfvalue.DurationSeconds("1d"))
     approval_id = d.WriteApprovalRequest(approval_request)
 
     approvals = list(
@@ -539,7 +544,8 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
+    expiration_time = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds(
+        "1d")
 
     approval_ids = set()
     for _ in range(10):
@@ -575,7 +581,8 @@ class DatabaseTestUsersMixin(object):
         subject_id=client_id,
         requestor_username="requestor",
         reason="some test reason",
-        expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+        expiration_time=rdfvalue.RDFDatetime.Now() +
+        rdfvalue.DurationSeconds("1d"))
     approval_id = d.WriteApprovalRequest(approval_request)
 
     self.db.GrantApproval(
@@ -614,7 +621,8 @@ class DatabaseTestUsersMixin(object):
           subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason %d" % i,
-          expiration_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d"))
+          expiration_time=rdfvalue.RDFDatetime.Now() +
+          rdfvalue.DurationSeconds("1d"))
       approval_id = d.WriteApprovalRequest(approval_request)
 
       self.db.GrantApproval(
@@ -646,8 +654,8 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
-    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d")
 
     non_expired_approval_ids = set()
     for i in range(10):
@@ -679,8 +687,8 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1d")
-    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+    time_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1d")
+    time_past = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d")
 
     approval_ids = set()
     for i in range(10):

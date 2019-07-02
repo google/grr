@@ -86,7 +86,7 @@ DurationController.prototype.onValueChange = function(newValue) {
 
 
 /**
- * Directive that displays Duration values.
+ * Directive that displays DurationSeconds values.
  *
  * @return {!angular.Directive} Directive definition object.
  * @ngInject
@@ -120,4 +120,4 @@ exports.DurationDirective.directive_name = 'grrDuration';
  * @const
  * @export
  */
-exports.DurationDirective.semantic_type = 'Duration';
+exports.DurationDirective.semantic_type = 'DurationSeconds';

@@ -19,8 +19,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFlowResults(gui_test_lib.GRRSeleniumTest):
+class TestFlowResults(db_test_lib.RelationalDBEnabledMixin,
+                      gui_test_lib.GRRSeleniumTest):
   """Test the flow results UI."""
 
   def setUp(self):

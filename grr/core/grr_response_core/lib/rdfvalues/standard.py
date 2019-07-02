@@ -28,26 +28,30 @@ class RegularExpression(rdfvalue.RDFString):
 
   def __init__(self, initializer=None, age=None):
     super(RegularExpression, self).__init__(initializer=initializer, age=age)
-    self._regex = re.compile(self._value, flags=re.I | re.S | re.M)
+    # Try compiling the pattern right away to fail fast for pattern errors.
+    self._Regex()
+
+  def _Regex(self):
+    return re.compile(self._value, flags=re.I | re.S | re.M)
 
   def Search(self, text):
     """Search the text for our value."""
     if isinstance(text, rdfvalue.RDFString):
       text = str(text)
 
-    return self._regex.search(text)
+    return self._Regex().search(text)
 
   def Match(self, text):
     if isinstance(text, rdfvalue.RDFString):
       text = str(text)
 
-    return self._regex.match(text)
+    return self._Regex().match(text)
 
   def FindIter(self, text):
     if isinstance(text, rdfvalue.RDFString):
       text = str(text)
 
-    return self._regex.finditer(text)
+    return self._Regex().finditer(text)
 
 
 class LiteralExpression(rdfvalue.RDFBytes):

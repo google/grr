@@ -14,8 +14,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
+class HuntsWithRapidHuntingDisabledTest(db_test_lib.RelationalDBEnabledMixin,
+                                        gui_test_lib.GRRSeleniumHuntTest):
   """Test that rapid hunts logic does nothing when the config flag is off."""
 
   def setUp(self):
@@ -89,8 +89,8 @@ class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=dt:contains('Client Rate') + dd:contains('rapid hunting')")
 
 
-@db_test_lib.DualDBTest
-class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
+class HuntsWithRapidHuntingEnabledTest(db_test_lib.RelationalDBEnabledMixin,
+                                       gui_test_lib.GRRSeleniumHuntTest):
   """Test rapid hunts logic works correctly when the config flag is on."""
 
   def setUp(self):

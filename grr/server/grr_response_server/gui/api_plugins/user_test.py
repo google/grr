@@ -34,8 +34,8 @@ from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class ApiNotificationTest(acl_test_lib.AclTestMixin,
+class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
+                          acl_test_lib.AclTestMixin,
                           notification_test_lib.NotificationTestMixin,
                           api_test_lib.ApiCallHandlerTest):
   """Tests for ApiNotification class."""
@@ -314,8 +314,8 @@ class ApiCreateApprovalHandlerTestMixin(
                      (u"approver", self.token.username, "test@example.com"))
 
 
-@db_test_lib.DualDBTest
-class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
+class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                      acl_test_lib.AclTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientApprovalHandler."""
 
@@ -377,8 +377,8 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualDBTest
-class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiCreateClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                         api_test_lib.ApiCallHandlerTest,
                                          ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateClientApprovalHandler."""
 
@@ -418,8 +418,8 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(flow_class_names, ["KeepAlive"])
 
 
-@db_test_lib.DualDBTest
-class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                        api_test_lib.ApiCallHandlerTest,
                                         acl_test_lib.AclTestMixin):
   """Test for ApiListApprovalsHandler."""
 
@@ -549,8 +549,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
-@db_test_lib.DualDBTest
-class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
+class ApiCreateHuntApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                       ApiCreateApprovalHandlerTestMixin,
                                        hunt_test_lib.StandardHuntTestMixin,
                                        api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateHuntApprovalHandler."""
@@ -577,8 +577,8 @@ class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-@db_test_lib.DualDBTest
-class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
+class ApiListHuntApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                      hunt_test_lib.StandardHuntTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
 
@@ -601,8 +601,8 @@ class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
     self.assertLen(result.items, 1)
 
 
-@db_test_lib.DualDBTest
 class ApiCreateCronJobApprovalHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin,
     ApiCreateApprovalHandlerTestMixin,
     api_test_lib.ApiCallHandlerTest,
 ):
@@ -632,8 +632,8 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-@db_test_lib.DualDBTest
-class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
+class ApiListCronJobApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                         acl_test_lib.AclTestMixin,
                                          api_test_lib.ApiCallHandlerTest):
   """Test for ApiListCronJobApprovalsHandler."""
 
@@ -746,8 +746,8 @@ class ApiDeletePendingUserNotificationHandlerTest(
   """Test for ApiDeletePendingUserNotificationHandler."""
 
   TIME_0 = rdfvalue.RDFDatetime(42 * rdfvalue.MICROSECONDS)
-  TIME_1 = TIME_0 + rdfvalue.Duration("1d")
-  TIME_2 = TIME_1 + rdfvalue.Duration("1d")
+  TIME_1 = TIME_0 + rdfvalue.DurationSeconds("1d")
+  TIME_2 = TIME_1 + rdfvalue.DurationSeconds("1d")
 
   def setUp(self):
     super(ApiDeletePendingUserNotificationHandlerTest, self).setUp()
@@ -847,9 +847,9 @@ class ApiDeletePendingUserNotificationHandlerTest(
     self.assertEmpty(shown)
 
 
-@db_test_lib.DualDBTest
-class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
-                                            api_test_lib.ApiCallHandlerTest):
+class ApiListApproverSuggestionsHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiListApproverSuggestionsHandler."""
 
   def setUp(self):

@@ -11,7 +11,7 @@ def GetAuditLogEntries(offset, now, token):
   """Return all audit log entries between now-offset and now.
 
   Args:
-    offset: rdfvalue.Duration how far back to look in time
+    offset: rdfvalue.DurationSeconds how far back to look in time
     now: rdfvalue.RDFDatetime for current time
     token: GRR access token
   Yields:

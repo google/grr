@@ -263,7 +263,7 @@ def AddFilesWithUnknownHashes(
     blob_id_batch = set(
         blob_ref.blob_id for _, blob_ref in client_path_blob_ref_batch)
     blobs = data_store.BLOBS.ReadAndWaitForBlobs(
-        blob_id_batch, timeout=rdfvalue.Duration.FromSeconds(30))
+        blob_id_batch, timeout=rdfvalue.DurationSeconds.FromSeconds(30))
 
     for client_path, blob_ref in client_path_blob_ref_batch:
       blob = blobs[blob_ref.blob_id]

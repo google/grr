@@ -131,4 +131,4 @@ exports.DurationFormDirective.directive_name = 'grrFormDuration';
  * @const
  * @export
  */
-exports.DurationFormDirective.semantic_type = 'Duration';
+exports.DurationFormDirective.semantic_type = 'DurationSeconds';

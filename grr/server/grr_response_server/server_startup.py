@@ -32,7 +32,6 @@ from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server import stats_server
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import cronjobs
-from grr_response_server.aff4_objects import filestore
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.blob_stores import registry_init as bs_registry_init
 from grr_response_server.check_lib import checks
@@ -98,7 +97,6 @@ def Init():
   if data_store.AFF4Enabled():
     aff4.AFF4Init()  # Requires data_store.InitializeDataStore.
     aff4_grr.GRRAFF4Init()  # Requires aff4.AFF4Init.
-    filestore.FileStoreInit()  # Requires aff4_grr.GRRAFF4Init.
     results.ResultQueueInit()  # Requires aff4.AFF4Init.
     sequential_collection.StartUpdaterOnce()
 

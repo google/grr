@@ -180,9 +180,9 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
             [x509.NameAttribute(oid.NameOID.COMMON_NAME, str(common_name))]))
 
     now = rdfvalue.RDFDatetime.Now()
-    now_plus_year = now + rdfvalue.Duration("52w")
+    now_plus_year = now + rdfvalue.DurationSeconds("52w")
     builder = builder.not_valid_after(now_plus_year.AsDatetime())
-    now_minus_ten = now - rdfvalue.Duration("10s")
+    now_minus_ten = now - rdfvalue.DurationSeconds("10s")
     builder = builder.not_valid_before(now_minus_ten.AsDatetime())
     # TODO(user): dependency loop with
     # grr/core/grr_response_core/config/client.py.

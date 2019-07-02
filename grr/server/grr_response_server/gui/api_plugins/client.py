@@ -494,7 +494,7 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     end_time = args.end or rdfvalue.RDFDatetime.Now()
-    start_time = args.start or end_time - rdfvalue.Duration("3m")
+    start_time = args.start or end_time - rdfvalue.DurationSeconds("3m")
     diffs_only = args.mode == args.Mode.DIFF
 
     items = []
@@ -1072,7 +1072,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       end_time = rdfvalue.RDFDatetime.Now()
 
     if not start_time:
-      start_time = end_time - rdfvalue.Duration("30m")
+      start_time = end_time - rdfvalue.DurationSeconds("30m")
 
     if data_store.RelationalDBEnabled():
       stat_values = data_store.REL_DB.ReadClientStats(
@@ -1136,7 +1136,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       ts.MakeIncreasing()
 
     if len(stat_values) > self.MAX_SAMPLES:
-      sampling_interval = rdfvalue.Duration.FromSeconds(
+      sampling_interval = rdfvalue.DurationSeconds.FromSeconds(
           ((end_time - start_time).seconds // self.MAX_SAMPLES) or 1)
       if args.metric in self.GAUGE_METRICS:
         mode = timeseries.NORMALIZE_MODE_GAUGE

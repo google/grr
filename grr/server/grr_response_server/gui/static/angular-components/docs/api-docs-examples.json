@@ -488,7 +488,7 @@
                 "value": true
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               },
               "is_failing": {
@@ -667,7 +667,7 @@
             "value": false
           },
           "frequency": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 604800
           },
           "is_failing": {
@@ -675,7 +675,7 @@
             "value": false
           },
           "lifetime": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 3600
           }
         }
@@ -964,7 +964,7 @@
                 "value": "foo"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -4322,7 +4322,7 @@
                 "value": true
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               },
               "is_failing": {
@@ -4473,7 +4473,7 @@
                 "value": true
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               },
               "is_failing": {
@@ -5219,7 +5219,7 @@
                 "value": "hunt1"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -5545,7 +5545,7 @@
                 "value": "hunt2"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -5840,7 +5840,7 @@
                 "value": "original hunt"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -6073,7 +6073,7 @@
                 "value": "copied hunt"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -6561,7 +6561,7 @@
                 "value": "hunt started from flow"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -7164,7 +7164,7 @@
             "value": "the hunt"
           },
           "duration": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 1209600
           },
           "flow_args": {
@@ -7486,7 +7486,7 @@
             "value": "the hunt"
           },
           "duration": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 1209600
           },
           "flow_args": {
@@ -7798,7 +7798,7 @@
             "value": "the hunt"
           },
           "duration": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 1209600
           },
           "flow_args": {
@@ -9161,19 +9161,19 @@
       "method": "GET",
       "response": {
         "default": {
-          "type": "Duration",
+          "type": "DurationSeconds",
           "value": 0
         },
         "doc": "Duration value stored in seconds internally.",
         "kind": "primitive",
         "mro": [
-          "Duration",
+          "DurationSeconds",
           "RDFInteger",
           "RDFPrimitive",
           "RDFValue",
           "object"
         ],
-        "name": "Duration"
+        "name": "DurationSeconds"
       },
       "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v1",
       "type_stripped_response": {
@@ -9181,15 +9181,15 @@
         "doc": "Duration value stored in seconds internally.",
         "kind": "primitive",
         "mro": [
-          "Duration",
+          "DurationSeconds",
           "RDFInteger",
           "RDFPrimitive",
           "RDFValue",
           "object"
         ],
-        "name": "Duration"
+        "name": "DurationSeconds"
       },
-      "url": "/api/reflection/rdfvalue/Duration"
+      "url": "/api/reflection/rdfvalue/DurationSeconds"
     },
     {
       "api_method": "GetRDFValueDescriptor",
@@ -10363,7 +10363,7 @@
                 "value": true
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               },
               "is_failing": {
@@ -10530,7 +10530,7 @@
                 "value": "a hunt"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "flow_args": {
@@ -12708,7 +12708,7 @@
                 "value": false
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               },
               "is_failing": {
@@ -12716,7 +12716,7 @@
                 "value": false
               },
               "lifetime": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 7200
               }
             }
@@ -12784,7 +12784,7 @@
                 "value": true
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 604800
               },
               "is_failing": {
@@ -12800,7 +12800,7 @@
                 "value": 230000000
               },
               "lifetime": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               }
             }
@@ -12868,7 +12868,7 @@
                 "value": true
               },
               "frequency": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 604800
               },
               "is_failing": {
@@ -12876,7 +12876,7 @@
                 "value": false
               },
               "lifetime": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 86400
               }
             }
@@ -14169,7 +14169,7 @@
                     "value": "foo"
                   },
                   "duration": {
-                    "type": "Duration",
+                    "type": "DurationSeconds",
                     "value": 1209600
                   },
                   "flow_args": {
@@ -15570,7 +15570,7 @@
                 "value": "hunt_1"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "hunt_id": {
@@ -15615,7 +15615,7 @@
                 "value": "hunt_0"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "hunt_id": {
@@ -15698,7 +15698,7 @@
                 "value": "hunt_1"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "hunt_id": {
@@ -15769,7 +15769,7 @@
                 "value": "hunt_0"
               },
               "duration": {
-                "type": "Duration",
+                "type": "DurationSeconds",
                 "value": 1209600
               },
               "hunt_id": {
@@ -16704,7 +16704,7 @@
             "value": true
           },
           "frequency": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 86400
           },
           "is_failing": {
@@ -16712,7 +16712,7 @@
             "value": false
           },
           "lifetime": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 604800
           }
         }
@@ -16811,7 +16811,7 @@
             "value": false
           },
           "frequency": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 86400
           },
           "is_failing": {
@@ -16819,7 +16819,7 @@
             "value": false
           },
           "lifetime": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 604800
           }
         }
@@ -16930,7 +16930,7 @@
             "value": "the hunt"
           },
           "duration": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 1209600
           },
           "flow_args": {
@@ -17207,7 +17207,7 @@
             "value": "the hunt"
           },
           "duration": {
-            "type": "Duration",
+            "type": "DurationSeconds",
             "value": 1209600
           },
           "flow_args": {

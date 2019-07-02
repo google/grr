@@ -260,3 +260,9 @@ Test Context:
   # Set those to use the Mysql data store for tests.
   Mysql.database_username: root
   Mysql.database_password: root
+
+  # By default, this option has some artifacts that not always succeed to execute (e.g.
+  # `LinuxHardwareInfo` which requires `/bin/dmidecode` to be installed on the system). As a result,
+  # this causes some tests to fail. To avoid this issues, for testing purposes we explicitly disable
+  # collection of these artifacts.
+  Artifacts.non_kb_interrogate_artifacts: []

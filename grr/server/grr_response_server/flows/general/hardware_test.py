@@ -53,8 +53,8 @@ class FailDumpMock(DumpFlashImageMock):
     raise IOError("Unexpected error")
 
 
-@db_test_lib.DualDBTest
-class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
+class TestHardwareDumpFlashImage(db_test_lib.RelationalDBEnabledMixin,
+                                 flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
   def setUp(self):
@@ -160,8 +160,8 @@ class DumpACPITableMock(action_mocks.ActionMock):
     return [response]
 
 
-@db_test_lib.DualDBTest
-class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
+class DumpACPITableTest(db_test_lib.RelationalDBEnabledMixin,
+                        flow_test_lib.FlowTestsBaseclass):
 
   def testDumpValidACPITableOk(self):
     """Tests dumping ACPI table."""

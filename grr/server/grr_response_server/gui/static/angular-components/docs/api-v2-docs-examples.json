@@ -2769,9 +2769,9 @@
         },
         "doc": "Duration value stored in seconds internally.",
         "kind": "PRIMITIVE",
-        "name": "Duration",
+        "name": "DurationSeconds",
         "parents": [
-          "Duration",
+          "DurationSeconds",
           "RDFInteger",
           "RDFPrimitive",
           "RDFValue",
@@ -2779,7 +2779,7 @@
         ]
       },
       "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v2",
-      "url": "/api/v2/reflection/rdfvalue/Duration"
+      "url": "/api/v2/reflection/rdfvalue/DurationSeconds"
     },
     {
       "api_method": "GetRDFValueDescriptor",

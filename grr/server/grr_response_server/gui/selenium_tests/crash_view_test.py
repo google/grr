@@ -13,8 +13,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
+class TestCrashView(db_test_lib.RelationalDBEnabledMixin,
+                    gui_test_lib.GRRSeleniumHuntTest):
   """Tests the crash view."""
 
   def setUp(self):

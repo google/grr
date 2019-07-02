@@ -17,7 +17,6 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import events
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -416,13 +415,6 @@ class ClientFileFinderMixin(object):
         if stat.S_ISREG(response.stat_entry.st_mode):
           files_to_publish.append(
               response.stat_entry.pathspec.AFF4Path(self.client_urn))
-
-    # TODO(amoser): This might be broken. Files that haven't been downloaded are
-    # published here to LegacyFileStore and the use_external_stores flag is
-    # ignored. Not worth fixing anymore, this is going away soon.
-    if files_to_publish and not data_store.RelationalDBEnabled():
-      events.Events.PublishMultipleEvents(
-          {"LegacyFileStore.AddFileToStore": files_to_publish})
 
   def _WriteFilesContentAff4(self, responses, mutation_pool=None):
     """Writes contents of multiple files to the AFF4 datastore."""

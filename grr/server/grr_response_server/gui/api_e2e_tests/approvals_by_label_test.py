@@ -26,8 +26,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
+class ApprovalByLabelE2ETest(db_test_lib.RelationalDBEnabledMixin,
+                             api_e2e_test_lib.ApiE2ETest):
 
   def SetUpLegacy(self):
     # Set up clients and labels before we turn on the FullACM. We need to create

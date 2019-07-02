@@ -43,14 +43,13 @@ from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import prometheus_stats_collector
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import filestore
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.flows.general import audit
 from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import testing_startup
 
-FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("8d")
 TEST_CLIENT_ID = rdf_client.ClientURN("C.1000000000000000")
 
 
@@ -89,11 +88,11 @@ class GRRBaseTest(absltest.TestCase):
     # implementation).
     data_store.REL_DB.delegate.ClearTestDB()
 
-    aff4.FACTORY.Flush()
+    if aff4.FACTORY is not None:
+      aff4.FACTORY.Flush()
 
-    # Create a Foreman and Filestores, they are used in many tests.
+    # Create a Foreman, it's used in many tests.
     aff4_grr.GRRAFF4Init()
-    filestore.FileStoreInit()
     hunts_results.ResultQueueInit()
     email_alerts.InitializeEmailAlerterOnce()
     audit.AuditEventListener._created_logs.clear()
@@ -124,8 +123,9 @@ class GRRBaseTest(absltest.TestCase):
     self.addCleanup(self.config_set_disable.Stop)
 
     if self.use_relational_reads:
-      self.relational_read_stubber = utils.Stubber(
-          data_store, "RelationalDBEnabled", lambda: True)
+      self.relational_read_stubber = utils.Stubber(data_store,
+                                                   "RelationalDBEnabled",
+                                                   lambda: True)
       self.relational_read_stubber.Start()
       self.addCleanup(self.relational_read_stubber.Stop)
 
@@ -608,14 +608,16 @@ class FakeTimeline(object):
     """Simulated running the underlying thread for the specified duration.
 
     Args:
-      duration: A `Duration` object describing for how long simulate the thread.
+      duration: A `DurationSeconds` object describing for how long simulate the
+        thread.
 
     Raises:
-      TypeError: If `duration` is not an instance of `rdfvalue.Duration`.
+      TypeError: If `duration` is not an instance of `rdfvalue.DurationSeconds`.
       AssertionError: If this method is called without automatic context.
     """
-    if not isinstance(duration, rdfvalue.Duration):
-      raise TypeError("`duration` is not an instance of `rdfvalue.Duration")
+    if not isinstance(duration, rdfvalue.DurationSeconds):
+      raise TypeError(
+          "`duration` is not an instance of `rdfvalue.DurationSeconds")
 
     if self._worker_thread is None:
       raise AssertionError("Worker thread hasn't been started (method was "

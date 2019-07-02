@@ -15,8 +15,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFlowExport(gui_test_lib.GRRSeleniumTest):
+class TestFlowExport(db_test_lib.RelationalDBEnabledMixin,
+                     gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestFlowExport, self).setUp()

@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib.util import compatibility
+from grr_response_server import data_store
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
@@ -19,8 +20,8 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
+class TestFlowCreateHunt(db_test_lib.RelationalDBEnabledMixin,
+                         gui_test_lib.GRRSeleniumTest,
                          hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -90,6 +91,56 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent,
                    compatibility.GetName(flows_processes.ListProcesses))
+
+  def testApprovalIndicatesThatHuntWasCopiedFromFlow(self):
+    email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
+        plugin_name=compatibility.GetName(email_plugin.EmailOutputPlugin),
+        plugin_args=email_plugin.EmailOutputPluginArgs(
+            email_address="test@localhost", emails_limit=42))
+
+    args = flows_processes.ListProcessesArgs(
+        filename_regex="test[a-z]*", fetch_binaries=True)
+
+    flow_test_lib.StartFlow(
+        flows_processes.ListProcesses,
+        flow_args=args,
+        client_id=self.client_id,
+        output_plugins=[email_descriptor])
+
+    self.Open("/#/clients/%s" % self.client_id)
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=td:contains('ListProcesses')")
+
+    # Open the wizard.
+    self.Click("css=button[name=create_hunt]")
+
+    # Go to the hunt parameters page.
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    # Go to the output plugins page.
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    # Go to the rules page.
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    # Go to the review page.
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+
+    # Create the hunt.
+    self.Click("css=button:contains('Create Hunt')")
+    self.Click("css=button:contains('Done')")
+
+    # Request an approval.
+    hunts = data_store.REL_DB.ListHuntObjects(offset=0, count=1)
+    h = hunts[0]
+    approval_id = self.RequestHuntApproval(
+        h.hunt_id,
+        requestor=self.token.username,
+        reason="reason",
+        approver=self.token.username)
+
+    # Open the approval page.
+    self.Open("/#/users/%s/approvals/hunt/%s/%s" %
+              (self.token.username, h.hunt_id, approval_id))
+    self.WaitUntil(self.IsElementPresent,
+                   "css=div.panel-body:contains('This hunt was created from')")
 
   def testCheckCreateHuntButtonIsOnlyEnabledWithFlowSelection(self):
     flow_test_lib.StartFlow(

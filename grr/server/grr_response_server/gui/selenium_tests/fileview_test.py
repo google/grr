@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
 
 from absl import app
 from future.builtins import range
@@ -13,7 +14,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
@@ -26,8 +26,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFileView(gui_test_lib.GRRSeleniumTest):
+class TestFileView(db_test_lib.RelationalDBEnabledMixin,
+                   gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   def setUp(self):
@@ -167,12 +167,11 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
     def FakeDownloadHandle(unused_self, args, token=None):
       _ = token  # Avoid unused variable linter warnings.
-      aff4_path = args.client_id.ToClientURN().Add(args.file_path)
-      age = args.timestamp or aff4.NEWEST_TIME
-      downloaded_files.append((aff4_path, age))
+      downloaded_files.append((args.file_path, args.timestamp))
 
       return api_call_handler_base.ApiBinaryStream(
-          filename=aff4_path.Basename(), content_generator=range(42))
+          filename=os.path.basename(args.file_path),
+          content_generator=range(42))
 
     with utils.Stubber(api_vfs.ApiGetFileBlobHandler, "Handle",
                        FakeDownloadHandle):
@@ -201,18 +200,16 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
       self.WaitUntil(lambda: len(downloaded_files) == 4)
 
     # Both files should be the same...
-    self.assertEqual(downloaded_files[0][0],
-                     u"aff4:/%s/fs/os/c/Downloads/a.txt" % self.client_id)
-    self.assertEqual(downloaded_files[2][0],
-                     u"aff4:/%s/fs/os/c/Downloads/a.txt" % self.client_id)
+    self.assertEqual(downloaded_files[0][0], u"fs/os/c/Downloads/a.txt")
+    self.assertEqual(downloaded_files[2][0], u"fs/os/c/Downloads/a.txt")
     # But from different times. The downloaded file timestamp is only accurate
     # to the nearest second. Also, the HEAD version of the file is downloaded
-    # with age=NEWEST_TIME.
-    self.assertEqual(downloaded_files[0][1], aff4.NEWEST_TIME)
+    # with age=None.
+    self.assertEqual(downloaded_files[0][1], None)
     self.assertAlmostEqual(
         downloaded_files[2][1],
         gui_test_lib.TIME_1,
-        delta=rdfvalue.Duration("1s"))
+        delta=rdfvalue.DurationSeconds("1s"))
 
     self.Click("css=li[heading=TextView]")
 

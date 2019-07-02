@@ -56,7 +56,7 @@ message RobotRouterFileFinderFlowParams {
                  "single client within 24 hours. Default is 0, meaning no limit."
   }];
   optional uint64 min_interval_between_duplicate_flows = 6 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Minimum time that has to pass between 2 FileFinder flows "
                  "with same arguments. Default is 0, meaning any time."
   }];
@@ -86,7 +86,7 @@ message RobotRouterArtifactCollectorFlowParams {
                  "limit."
   }];
   optional uint64 min_interval_between_duplicate_flows = 6 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Minimum time that has to pass between 2 "
                  "ArtifactCollectorFlow flows with same arguments. Default is 0, "
                  "meaning any time."

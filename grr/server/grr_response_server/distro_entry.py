@@ -39,11 +39,6 @@ def Worker():
   app.run(worker.main)
 
 
-def GRRFuse():
-  from grr_response_server.bin import fuse_mount
-  app.run(fuse_mount.main)
-
-
 def AdminUI():
   from grr_response_server.gui import admin_ui
   app.run(admin_ui.main)

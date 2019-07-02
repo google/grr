@@ -24,7 +24,6 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import events
 from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -32,7 +31,6 @@ from grr_response_server import message_handlers
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import filestore as legacy_filestore
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -493,136 +491,6 @@ class MultiGetFileLogic(object):
     if self.state.files_hashed_since_check >= self.MIN_CALL_TO_FILE_STORE:
       self._CheckHashesWithFileStore()
 
-  def _LegacyCheckHashesWithFileStore(self):
-    """Check all queued up hashes for existence in file store (legacy).
-
-    Hashes which do not exist in the file store will be downloaded. This
-    function flushes the entire queue (self.state.pending_hashes) in order to
-    minimize the round trips to the file store.
-
-    If a file was found in the file store it is copied from there into the
-    client's VFS namespace. Otherwise, we request the client to hash every block
-    in the file, and add it to the file tracking queue
-    (self.state.pending_files).
-    """
-    if not self.state.pending_hashes:
-      return
-
-    # This map represents all the hashes in the pending urns.
-    file_hashes = {}
-
-    # Store a mapping of hash to tracker. Keys are hashdigest objects,
-    # values are arrays of tracker dicts.
-    hash_to_tracker = {}
-    for index, tracker in iteritems(self.state.pending_hashes):
-
-      # We might not have gotten this hash yet
-      if tracker.get("hash_obj") is None:
-        continue
-
-      hash_obj = tracker["hash_obj"]
-      digest = hash_obj.sha256
-      file_hashes[index] = hash_obj
-      hash_to_tracker.setdefault(digest, []).append(tracker)
-
-    # First we get all the files which are present in the file store.
-    files_in_filestore = {}
-
-    # TODO(amoser): This object never changes, could this be a class attribute?
-    filestore_obj = aff4.FACTORY.Open(
-        legacy_filestore.FileStore.PATH,
-        legacy_filestore.FileStore,
-        mode="r",
-        token=self.token)
-
-    for file_store_urn, hash_obj in filestore_obj.CheckHashes(
-        itervalues(file_hashes), external=self.state.use_external_stores):
-
-      # Since checkhashes only returns one digest per unique hash we need to
-      # find any other files pending download with the same hash.
-      for tracker in hash_to_tracker[hash_obj.sha256]:
-        self.state.files_skipped += 1
-        file_hashes.pop(tracker["index"])
-        files_in_filestore[file_store_urn] = hash_obj
-        # Remove this tracker from the pending_hashes store since we no longer
-        # need to process it.
-        self.state.pending_hashes.pop(tracker["index"])
-
-    # Now that the check is done, reset our counter
-    self.state.files_hashed_since_check = 0
-    # Now copy all existing files to the client aff4 space.
-    for filestore_file_urn, hash_obj in iteritems(files_in_filestore):
-
-      for file_tracker in hash_to_tracker.get(hash_obj.sha256, []):
-        stat_entry = file_tracker["stat_entry"]
-        # Copy the existing file from the filestore to the client namespace.
-        target_urn = stat_entry.pathspec.AFF4Path(self.client_urn)
-
-        aff4.FACTORY.Copy(
-            filestore_file_urn, target_urn, update_timestamps=True)
-
-        with aff4.FACTORY.Open(
-            target_urn, mode="rw", token=self.token) as new_fd:
-          new_fd.Set(new_fd.Schema.STAT, stat_entry)
-          # Due to potential filestore corruption, the existing files
-          # can have 0 size.
-          if new_fd.size == 0:
-            new_fd.size = (file_tracker["bytes_read"] or stat_entry.st_size)
-
-        if data_store.RelationalDBEnabled():
-          path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-          path_info.hash_entry = hash_obj
-          data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
-
-        # Add this file to the filestore index.
-        filestore_obj.AddURNToIndex(str(hash_obj.sha256), target_urn)
-
-        # Report this hit to the flow's caller.
-        self._ReceiveFetchedFile(file_tracker)
-
-    # Now we iterate over all the files which are not in the store and arrange
-    # for them to be copied.
-    for index in file_hashes:
-
-      # Move the tracker from the pending hashes store to the pending files
-      # store - it will now be downloaded.
-      file_tracker = self.state.pending_hashes.pop(index)
-      self.state.pending_files[index] = file_tracker
-
-      # If we already know how big the file is we use that, otherwise fall back
-      # to the size reported by stat.
-      if file_tracker["bytes_read"] > 0:
-        file_tracker["size_to_download"] = file_tracker["bytes_read"]
-      else:
-        file_tracker["size_to_download"] = file_tracker["stat_entry"].st_size
-
-      # We do not have the file here yet - we need to retrieve it.
-      expected_number_of_hashes = (
-          file_tracker["size_to_download"] // self.CHUNK_SIZE + 1)
-
-      # We just hash ALL the chunks in the file now. NOTE: This maximizes client
-      # VFS cache hit rate and is far more efficient than launching multiple
-      # GetFile flows.
-      self.state.files_to_fetch += 1
-
-      for i in range(expected_number_of_hashes):
-        if i == expected_number_of_hashes - 1:
-          # The last chunk is short.
-          length = file_tracker["size_to_download"] % self.CHUNK_SIZE
-        else:
-          length = self.CHUNK_SIZE
-        self.CallClient(
-            server_stubs.HashBuffer,
-            pathspec=file_tracker["stat_entry"].pathspec,
-            offset=i * self.CHUNK_SIZE,
-            length=length,
-            next_state="CheckHash",
-            request_data=dict(index=index))
-
-    if self.state.files_hashed % 100 == 0:
-      self.Log("Hashed %d files, skipped %s already stored.",
-               self.state.files_hashed, self.state.files_skipped)
-
   def _CheckHashesWithFileStore(self):
     """Check all queued up hashes for existence in file store.
 
@@ -635,9 +503,6 @@ class MultiGetFileLogic(object):
     hash. Otherwise, we request the client to hash every block in the file,
     and add it to the file tracking queue (self.state.pending_files).
     """
-    if not data_store.RelationalDBEnabled():
-      return self._LegacyCheckHashesWithFileStore()
-
     if not self.state.pending_hashes:
       return
 
@@ -879,13 +744,6 @@ class MultiGetFileLogic(object):
 
       data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-    if (not data_store.RelationalDBEnabled() and
-        self.state.use_external_stores):
-      # Publish the new file event to cause the file to be added to the
-      # filestore.
-      events.Events.PublishEvent(
-          "LegacyFileStore.AddFileToStore", urn, token=self.token)
-
     # Save some space.
     del file_tracker["blobs"]
     del file_tracker["hash_list"]
@@ -946,42 +804,6 @@ class MultiGetFileMixin(MultiGetFileLogic):
     """This method will be called for each new file successfully fetched."""
     _ = request_data
     self.SendReply(stat_entry)
-
-
-class LegacyFileStoreCreateFile(events.EventListener):
-  """Receive an event about a new file and add it to the file store.
-
-  NOTE: this event handles submissions to the LEGACY (AFF4-based) FileStore
-  implementation. For the new REL_DB-based implementation, please see
-  FileStoreCreateFile class below.
-
-  The file store is a central place where files are managed in the data
-  store. Files are deduplicated and stored centrally.
-
-  This event listener will be fired when a new file is downloaded through
-  e.g. the GetFile flow. We then recalculate the file's hashes and store it in
-  the data store under a canonical URN.
-  """
-
-  EVENTS = ["LegacyFileStore.AddFileToStore"]
-
-  def ProcessMessages(self, msgs=None, token=None):
-    """Process the new file and add to the file store."""
-    if not data_store.AFF4Enabled():
-      return
-
-    filestore_fd = aff4.FACTORY.Create(
-        legacy_filestore.FileStore.PATH,
-        legacy_filestore.FileStore,
-        mode="w",
-        token=token)
-
-    for vfs_urn in msgs:
-      with aff4.FACTORY.Open(vfs_urn, mode="rw", token=token) as vfs_fd:
-        try:
-          filestore_fd.AddFile(vfs_fd)
-        except Exception as e:  # pylint: disable=broad-except
-          logging.exception("Exception while adding file to filestore: %s", e)
 
 
 class GetMBRArgs(rdf_structs.RDFProtoStruct):

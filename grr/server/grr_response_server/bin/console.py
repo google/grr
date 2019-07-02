@@ -8,17 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-# pylint: disable=unused-import
-# Import things that are useful from the console.
-import collections
-import csv
-import datetime
-import getpass
 import logging
-import os
-import re
-import sys
-import time
 
 
 from absl import app
@@ -37,7 +27,6 @@ from grr_response_core.lib import utils
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import artifact
-from grr_response_server import console_utils
 from grr_response_server import data_store
 from grr_response_server import export_utils
 from grr_response_server import fleetspeak_connector
@@ -51,19 +40,6 @@ from grr_response_server import server_startup
 from grr_response_server import worker_lib
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import security
-
-# All the functions in this lib we want in local namespace.
-# pylint: disable=wildcard-import
-from grr_response_server.console_utils import *
-# pylint: enable=wildcard-import
-# pylint: enable=unused-import
-
-flags.DEFINE_string(
-    "client", None, "Initialise the console with this client id "
-    "(e.g. C.1234345).")
-
-flags.DEFINE_string("reason", None,
-                    "Create a default token with this access reason ")
 
 flags.DEFINE_string(
     "code_to_execute", None,
@@ -88,11 +64,6 @@ flags.DEFINE_bool(
     help="Print the GRR console version number and exit immediately.")
 
 
-def Lister(arg):
-  for x in arg:
-    print(x)
-
-
 def main(argv):
   """Main."""
   del argv  # Unused.
@@ -110,33 +81,23 @@ def main(argv):
 
   fleetspeak_connector.Init()
 
-  # To make the console easier to use, we make a default token which will be
-  # used in StartFlow operations.
-  data_store.default_token = access_control.ACLToken(
-      username=getpass.getuser(), reason=flags.FLAGS.reason)
-
   locals_vars = {
       "__name__": "GRR Console",
-      "l": Lister,
 
       # Bring some symbols from other modules into the console's
       # namespace.
       "StartFlowAndWait": flow_utils.StartFlowAndWait,
-      "StartFlowAndWorker": console_utils.StartFlowAndWorker,
   }
 
   locals_vars.update(globals())  # add global variables to console
-  if flags.FLAGS.client is not None:
-    locals_vars["client"], locals_vars["token"] = console_utils.OpenClient(
-        client_id=flags.FLAGS.client)
 
   if flags.FLAGS.code_to_execute:
     logging.info("Running code from flag: %s", flags.FLAGS.code_to_execute)
-    exec (flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
+    exec(flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
   elif flags.FLAGS.command_file:
     logging.info("Running code from file: %s", flags.FLAGS.command_file)
     with open(flags.FLAGS.command_file, "r") as filedesc:
-      exec (filedesc.read())  # pylint: disable=exec-used
+      exec(filedesc.read())  # pylint: disable=exec-used
 
   if (flags.FLAGS.exit_on_complete and
       (flags.FLAGS.code_to_execute or flags.FLAGS.command_file)):

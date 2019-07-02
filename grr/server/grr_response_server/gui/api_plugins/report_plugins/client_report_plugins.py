@@ -45,7 +45,7 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
     series_with_timestamps = client_report_utils.FetchAllGraphSeries(
         get_report_args.client_label,
         rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION,
-        period=rdfvalue.Duration("180d"))
+        period=rdfvalue.DurationSeconds("180d"))
 
     categories = {}
     for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):
@@ -113,7 +113,7 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
     series_with_timestamps = client_report_utils.FetchAllGraphSeries(
         get_report_args.client_label,
         rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE,
-        period=rdfvalue.Duration("180d"))
+        period=rdfvalue.DurationSeconds("180d"))
 
     categories = {}
     for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):

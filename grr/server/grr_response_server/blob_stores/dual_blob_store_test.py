@@ -19,13 +19,27 @@ from grr.test_lib import test_lib
 
 def _StopBackgroundThread(dual_bs):
   """Stops the background thread that writes to the secondary."""
+
+  # First, indicate that the Thread should get stopped in the next loop cycle.
   dual_bs._thread_running = False
-  # Unblock _queue.get() to recheck loop condition.
+
+  # Then, unblock _queue.get() to recheck loop condition.
   try:
     dual_bs._queue.put_nowait({})
   except queue.Full:
-    pass  # At least one entry is in the queue, which works as well.
+    pass  # At least one entry is in the queue, which triggers the loop cycle.
+
+  # Wait for the background thread to terminate.
   dual_bs._thread.join(timeout=1)
+
+  # In the unlikely case that the background thread exited before entering the
+  # loop even once, there is still {} in the queue. Remove all entries in the
+  # queue.
+  while True:
+    try:
+      dual_bs._queue.get_nowait()
+    except queue.Empty:
+      break
 
 
 def _WaitUntilQueueIsEmpty(dual_bs):
@@ -85,6 +99,7 @@ class DualBlobStoreTest(
 
   def testDiscardedSecondaryWritesAreMeasured(self):
     _StopBackgroundThread(self.blob_store.delegate)
+    self.assertEqual(self.blob_store.delegate._queue.qsize(), 0)
 
     with self.assertStatsCounterDelta(
         0,

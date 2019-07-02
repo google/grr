@@ -34,7 +34,7 @@ wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}.tar.gz"
 
 echo -e ".changes file for downloaded server deb:\n\n$(cat grr-server_*_amd64.changes)\n"
 DEBIAN_FRONTEND=noninteractive apt install -y ./grr-server_*_amd64.deb
-grr_config_updater initialize --noprompt --external_hostname=localhost --admin_password="${GRR_ADMIN_PASS}" --mysql_password="${APPVEYOR_MYSQL_PASS}"
+grr_config_updater initialize --noprompt --use_rel_db --external_hostname=localhost --admin_password="${GRR_ADMIN_PASS}" --mysql_password="${APPVEYOR_MYSQL_PASS}"
 echo 'Logging.verbose: True' >> /etc/grr/server.local.yaml
 systemctl restart grr-server
 

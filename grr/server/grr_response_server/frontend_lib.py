@@ -138,7 +138,7 @@ class ServerCommunicator(communicator.Communicator):
       # now excessive and we have changed the replay protection to
       # only trigger on messages that are more than one hour old.
 
-      if client_time < remote_time - rdfvalue.Duration("1h"):
+      if client_time < remote_time - rdfvalue.DurationSeconds("1h"):
         logging.warning("Message desynchronized for %s: %s >= %s", client_id,
                         remote_time, client_time)
         # This is likely an old message
@@ -273,7 +273,7 @@ class RelationalServerCommunicator(communicator.Communicator):
       if metadata and metadata.clock:
         stored_client_time = metadata.clock
 
-        if client_time < stored_client_time - rdfvalue.Duration("1h"):
+        if client_time < stored_client_time - rdfvalue.DurationSeconds("1h"):
           logging.warning("Message desynchronized for %s: %s >= %s", client_id,
                           stored_client_time, client_time)
           # This is likely an old message
@@ -453,7 +453,8 @@ class FrontEndServer(object):
     if data_store.RelationalDBEnabled():
       action_requests = data_store.REL_DB.LeaseClientActionRequests(
           client.Basename(),
-          lease_time=rdfvalue.Duration.FromSeconds(self.message_expiry_time),
+          lease_time=rdfvalue.DurationSeconds.FromSeconds(
+              self.message_expiry_time),
           limit=max_count)
       result = [
           rdf_flow_objects.GRRMessageFromClientActionRequest(r)

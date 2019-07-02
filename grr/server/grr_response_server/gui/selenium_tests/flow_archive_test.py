@@ -28,8 +28,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
+class TestFlowArchive(db_test_lib.RelationalDBEnabledMixin,
+                      gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestFlowArchive, self).setUp()
@@ -127,7 +127,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
+    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
                        RaisingStub):
       self.Open("/#/clients/%s" % self.client_id)
 

@@ -20,8 +20,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
+class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
+                          gui_test_lib.GRRSeleniumHuntTest):
   # Using an Unicode string for the test here would be optimal but Selenium
   # can't correctly enter Unicode text into forms.
   reason = "Felt like it!"

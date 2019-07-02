@@ -21,8 +21,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
+class TestFindFlow(db_test_lib.RelationalDBEnabledMixin,
+                   flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def setUp(self):

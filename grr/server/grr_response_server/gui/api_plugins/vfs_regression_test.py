@@ -161,7 +161,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
   def _KillFlow(self, client_id, flow_id):
     if data_store.RelationalDBEnabled():
       rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
-          client_id, flow_id, rdfvalue.Duration("5m"))
+          client_id, flow_id, rdfvalue.DurationSeconds("5m"))
       flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
       flow_obj = flow_cls(rdf_flow)
       flow_obj.Error("Fake error")

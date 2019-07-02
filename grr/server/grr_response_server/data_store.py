@@ -296,7 +296,7 @@ class MutationPool(object):
                         max_filtered=1000):
     """Claims records from a queue. See server/aff4_objects/queue.py."""
     now = rdfvalue.RDFDatetime.Now()
-    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
+    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds(timeout)
 
     after_urn = None
     if start_time:
@@ -345,7 +345,7 @@ class MutationPool(object):
     return results
 
   def QueueRefreshClaims(self, records, timeout="30m"):
-    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
+    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds(timeout)
     for record in records:
       subject, _, _ = DataStore.CollectionMakeURN(record.queue_id,
                                                   record.timestamp,

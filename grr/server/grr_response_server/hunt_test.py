@@ -280,11 +280,14 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     requests = data_store.REL_DB.ReadFlowProcessingRequests()
     requests.sort(key=lambda r: r.delivery_time)
 
-    self.assertLen(requests, 10)
-    for i, (r, client_id) in enumerate(zip(requests, client_ids)):
+    # The first request is scheduled to run immediately and has been processed
+    # already.
+    self.assertLen(requests, 9)
+    for i, (r, client_id) in enumerate(zip(requests, client_ids[1:])):
       self.assertEqual(r.client_id, client_id.Basename())
-      time_diff = r.delivery_time - (now + rdfvalue.Duration("1m") * i)
-      self.assertLess(time_diff, rdfvalue.Duration("5s"))
+      time_diff = r.delivery_time - (
+          now + rdfvalue.DurationSeconds("1m") * (i + 1))
+      self.assertLess(time_diff, rdfvalue.DurationSeconds("5s"))
 
   def testResultsAreCorrectlyCounted(self):
     path = os.path.join(self.base_path, "hello*")
@@ -613,8 +616,8 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
       CheckState(rdf_hunt_objects.Hunt.HuntState.STARTED, 2)
 
       self._RunHunt([client_ids[2]],
-                    client_mock=action_mocks.ListProcessesMock(
-                        single_process * 2))
+                    client_mock=action_mocks.ListProcessesMock(single_process *
+                                                               2))
 
       # Hunt should still be running: we got 1 response for first 2 clients and
       # 2 responses for the third. This is over the limit but we need at least 4
@@ -799,7 +802,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
   def testHuntIsStoppedWhenExpirationTimeIsReached(self):
     client_ids = self.SetupClients(5)
 
-    duration = rdfvalue.Duration("1d")
+    duration = rdfvalue.DurationSeconds("1d")
     expiry_time = rdfvalue.RDFDatetime.Now() + duration
 
     hunt_id = self._CreateHunt(
@@ -818,13 +821,13 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(hunt_obj.hunt_state,
                      rdf_hunt_objects.Hunt.HuntState.STARTED)
 
-    with test_lib.FakeTime(expiry_time - rdfvalue.Duration("1s")):
+    with test_lib.FakeTime(expiry_time - rdfvalue.DurationSeconds("1s")):
       hunt_test_lib.TestHuntHelper(client_mock, client_ids[3:4], False)
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state,
                        rdf_hunt_objects.Hunt.HuntState.STARTED)
 
-    with test_lib.FakeTime(expiry_time + rdfvalue.Duration("1s")):
+    with test_lib.FakeTime(expiry_time + rdfvalue.DurationSeconds("1s")):
       hunt_test_lib.TestHuntHelper(client_mock, client_ids[4:5], False)
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state,

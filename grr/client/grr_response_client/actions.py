@@ -12,14 +12,12 @@ import traceback
 
 
 from absl import flags
-from future.utils import with_metaclass
 
 import psutil
 
 from grr_response_client import client_utils
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
@@ -39,7 +37,7 @@ class NetworkBytesExceededError(Error):
   """Exceeded the maximum number of bytes allowed to be sent for this action."""
 
 
-class ActionPlugin(with_metaclass(registry.MetaclassRegistry, object)):
+class ActionPlugin(object):
   """Baseclass for plugins.
 
   An action is a plugin abstraction which receives an rdfvalue and

@@ -29,8 +29,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
+class ApiClientLibFlowTest(db_test_lib.RelationalDBEnabledMixin,
+                           api_e2e_test_lib.ApiE2ETest):
   """Tests flows-related part of GRR Python API client library."""
 
   def testSearchWithNoClients(self):

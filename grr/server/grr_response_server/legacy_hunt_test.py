@@ -143,7 +143,7 @@ class HuntTest(flow_test_lib.FlowTestsBaseclass, stats_test_lib.StatsTestMixin):
     # Make sure there are no rules yet.
     self.assertEmpty(rules)
     now = rdfvalue.RDFDatetime.Now()
-    expires = rdfvalue.Duration("1h").Expiry()
+    expires = rdfvalue.DurationSeconds("1h").Expiry()
     # Add some rules.
     rules = [
         foreman_rules.ForemanRule(

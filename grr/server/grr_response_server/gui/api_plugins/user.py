@@ -1819,7 +1819,8 @@ class ApiListAndResetUserNotificationsHandler(
         items=result, total_count=total_count)
 
   def HandleRelationalDB(self, args, token=None):
-    back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
+    back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds(
+        "180d")
     ns = data_store.REL_DB.ReadUserNotifications(
         token.username, timerange=(back_timestamp, None))
 

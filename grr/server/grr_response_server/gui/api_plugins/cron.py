@@ -62,7 +62,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
       ApiCronJobId,
       api_call_handler_utils.ApiDataObject,
       rdf_cronjobs.CronJobAction,
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
       rdfvalue.RDFDatetime,
   ]
 
@@ -328,28 +328,15 @@ class ApiListCronJobRunsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListCronJobRunsResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      runs = cronjobs.CronManager().ReadJobRuns(str(args.cron_job_id))
-      start = args.offset
-      if args.count:
-        end = args.offset + args.count
-      else:
-        end = db.MAX_COUNT
-      return ApiListCronJobRunsResult(items=[
-          ApiCronJobRun().InitFromRunObject(run) for run in runs[start:end]
-      ])
+    runs = cronjobs.CronManager().ReadJobRuns(str(args.cron_job_id))
+    start = args.offset
+    if args.count:
+      end = args.offset + args.count
     else:
-      # Note: this is a legacy AFF4 implementation.
-      flows_result = api_plugins_flow.ApiListFlowsHandler.BuildFlowList(
-          args.cron_job_id.ToURN(),
-          args.count,
-          args.offset,
-          with_state_and_context=True,
-          token=token)
-      return ApiListCronJobRunsResult(items=[
-          ApiCronJobRun().InitFromApiFlow(f, cron_job_id=args.cron_job_id)
-          for f in flows_result.items
-      ])
+      end = db.MAX_COUNT
+    return ApiListCronJobRunsResult(items=[
+        ApiCronJobRun().InitFromRunObject(run) for run in runs[start:end]
+    ])
 
 
 class ApiGetCronJobRunArgs(rdf_structs.RDFProtoStruct):
@@ -391,7 +378,7 @@ class ApiCreateCronJobArgs(rdf_structs.RDFProtoStruct):
 
   protobuf = cron_pb2.ApiCreateCronJobArgs
   rdf_deps = [
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
       rdf_hunts.HuntRunnerArgs,
   ]
 

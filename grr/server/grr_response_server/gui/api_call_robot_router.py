@@ -36,14 +36,14 @@ class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
 class RobotRouterFileFinderFlowParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterFileFinderFlowParams
   rdf_deps = [
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
   ]
 
 
 class RobotRouterArtifactCollectorFlowParams(rdf_structs.RDFProtoStruct):
   protobuf = api_call_router_pb2.RobotRouterArtifactCollectorFlowParams
   rdf_deps = [
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
   ]
 
 
@@ -270,7 +270,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
             "by the user making the request." % (flow_id, client_id))
       return flow_obj.flow_class_name
     else:
-      flow_urn = flow_id.ResolveClientFlowURN(client_id, token=token)
+      flow_urn = flow_id.ResolveClientFlowURN(client_id)
       fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
 
       needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id

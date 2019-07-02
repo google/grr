@@ -53,8 +53,8 @@ class ProcessHuntResultCollectionsCronJob(object):
   HuntResultCollections and feeds runs output plugins on them.
   """
 
-  frequency = rdfvalue.Duration("5m")
-  lifetime = rdfvalue.Duration("40m")
+  frequency = rdfvalue.DurationSeconds("5m")
+  lifetime = rdfvalue.DurationSeconds("40m")
   allow_overruns = True
 
   BATCH_SIZE = 5000

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import hashlib
 import sys
-import time
 
 
 from future.utils import iteritems
@@ -507,7 +506,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
     if data_store.RelationalDBEnabled():
       job = rdf_cronjobs.CronJob(
-          cron_job_id="some/id", lifetime=rdfvalue.Duration("1h"))
+          cron_job_id="some/id", lifetime=rdfvalue.DurationSeconds("1h"))
       run_state = rdf_cronjobs.CronJobRun(
           cron_job_id="some/id",
           status="RUNNING",
@@ -568,9 +567,8 @@ class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
 class LongRunningDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   num_calls = 0
+  faketime = None
 
   def ProcessResponses(self, state, responses):
     LongRunningDummyHuntOutputPlugin.num_calls += 1
-    # TODO(hanuszczak): This is terrible. Figure out why it has been put here
-    # delete it as soon as possible.
-    time.time = lambda: 100
+    LongRunningDummyHuntOutputPlugin.faketime.time += 100

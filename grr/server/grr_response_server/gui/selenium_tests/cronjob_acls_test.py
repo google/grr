@@ -9,28 +9,21 @@ from absl import app
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
-from grr_response_server import data_store
-from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
+class TestCronACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
+                          gui_test_lib.GRRSeleniumTest):
 
   reason = u"Cóż, po prostu taką miałem zachciankę."
 
   def _ScheduleCronJob(self):
-    if data_store.RelationalDBEnabled():
-      cron_job_id = compatibility.GetName(cron_system.OSBreakDownCronJob)
-      cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
-    else:
-      cron_job_id = compatibility.GetName(cron_system.OSBreakDown)
-      aff4_cronjobs.ScheduleSystemCronFlows(
-          names=[cron_job_id], token=self.token)
-    aff4_cronjobs.GetCronManager().DisableJob(job_id=cron_job_id)
+    cron_job_id = compatibility.GetName(cron_system.OSBreakDownCronJob)
+    cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
+    cronjobs.CronManager().DisableJob(cron_job_id)
     return cron_job_id
 
   def testCronJobACLWorkflow(self):
