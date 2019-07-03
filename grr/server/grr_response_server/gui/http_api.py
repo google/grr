@@ -351,15 +351,20 @@ class HttpRequestHandler(object):
         "Content-Disposition"] = "attachment; filename=response.json"
     response.headers["X-Content-Type-Options"] = "nosniff"
 
+    # TODO(mbushkov): remove unicode usages here and below
+    # when Python 2.7 support is dropped.
+    # Python 2.7's wsgiref doesn't play nicely with future's "newstr"
+    # returned by future.builtins.str() calls. unicode forces
+    # conversion of this object to a builtin Python 2.7 unicode type.
     if token and token.reason:
-      response.headers["X-GRR-Reason"] = utils.SmartStr(token.reason)
+      response.headers["X-GRR-Reason"] = unicode(token.reason)
     if method_name:
-      response.headers["X-API-Method"] = method_name
+      response.headers["X-API-Method"] = unicode(method_name)
     if no_audit_log:
       response.headers["X-No-Log"] = "True"
 
     for key, value in iteritems(headers or {}):
-      response.headers[key] = value
+      response.headers[key] = unicode(value)
 
     if content_length is not None:
       response.content_length = content_length
