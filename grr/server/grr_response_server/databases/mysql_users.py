@@ -358,6 +358,9 @@ class MySQLDBUsersMixin(object):
                               cursor=None):
     """Updates existing user notification objects."""
 
+    if not timestamps:
+      return
+
     query = ("UPDATE user_notification "
              "SET notification_state = %s "
              "WHERE username_hash = %s"
