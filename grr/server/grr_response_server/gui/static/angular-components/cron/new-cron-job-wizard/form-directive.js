@@ -114,14 +114,14 @@ FormController.prototype.onCronJobCreateArgsChange_ = function(newValue) {
   // If periodicity is not set, set it to 7 days.
   if (angular.isUndefined(newValue['value']['periodicity'])) {
     newValue['value']['periodicity'] = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 60 * 60 * 24 * 7
     };
   }
   // If lifetime is not set, set it to 1 hour.
   if (angular.isUndefined(newValue['value']['lifetime'])) {
     newValue['value']['lifetime'] = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 60 * 60 * 1
     };
   }

@@ -142,7 +142,7 @@ ExactDurationDirective.directive_name = 'grrExactDuration';
  *
  * @const
  */
-ExactDurationDirective.semantic_type = 'DurationSeconds';
+ExactDurationDirective.semantic_type = 'Duration';
 
 
 

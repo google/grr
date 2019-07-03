@@ -39,7 +39,7 @@ class Timeseries(object):
     """Normalize a time to be an int measured in microseconds."""
     if isinstance(time, rdfvalue.RDFDatetime):
       return time.AsMicrosecondsSinceEpoch()
-    if isinstance(time, rdfvalue.DurationSeconds):
+    if isinstance(time, rdfvalue.Duration):
       return time.microseconds
     return int(time)
 
@@ -105,8 +105,8 @@ class Timeseries(object):
 
     Args:
 
-      period: The desired time between points. Should be an
-        rdfvalue.DurationSeconds or a count of microseconds.
+      period: The desired time between points. Should be an rdfvalue.Duration or
+        a count of microseconds.
 
       start_time: The first timestamp will be at start_time. Should be an
         rdfvalue.RDFDatetime or a count of microseconds since epoch.

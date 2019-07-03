@@ -607,12 +607,6 @@ class InMemoryDBFlowMixin(object):
     # no delay in starting times so we don't run the thread here.
     self.flow_handler_target = handler
 
-    for request in self._GetFlowRequestsReadyForProcessing():
-      handler(request)
-      with self.lock:
-        self.flow_processing_requests.pop((request.client_id, request.flow_id),
-                                          None)
-
   def _RegisterFlowProcessingHandler(self, handler):
     """Registers a handler to receive flow processing messages."""
     self.flow_handler_stop = False

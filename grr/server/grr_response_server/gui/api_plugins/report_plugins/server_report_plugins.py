@@ -362,7 +362,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     ret = rdf_report_plugins.ApiReportData(
         representation_type=RepresentationType.STACK_CHART)
 
-    week_duration = rdfvalue.DurationSeconds("7d")
+    week_duration = rdfvalue.Duration("7d")
     num_weeks = math.ceil(get_report_args.duration.seconds /
                           week_duration.seconds)
     weeks = range(0, num_weeks)

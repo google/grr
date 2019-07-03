@@ -31,8 +31,8 @@ class DefaultArgsTestFlowMixin(object):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
 
-class TestForms(db_test_lib.RelationalDBEnabledMixin,
-                gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestForms(gui_test_lib.GRRSeleniumTest):
   """Tests basic forms rendering."""
 
   def testControlsWithoutDefaultValuesAreCorrectlyDisplayed(self):
@@ -152,8 +152,7 @@ class TestForms(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(res.items[0].notified_users[0], "sanchezrick")
 
 
-class TestFormsValidation(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumTest):
+class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
   """Tests forms validation in different workflows ."""
 
   def setUp(self):

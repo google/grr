@@ -29,9 +29,9 @@ class SystemCronTestMixin(object):
   def setUp(self):
     super(SystemCronTestMixin, self).setUp()
 
-    one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1h")
-    eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("8d")
-    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("61d")
+    one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h")
+    eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
+    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("61d")
 
     self.SetupClientsWithIndices(
         range(0, 10), system="Windows", ping=eight_day_ping)
@@ -147,7 +147,7 @@ class SystemCronTestMixin(object):
     self.assertEqual(data, expected)
 
   def _ToMicros(self, duration_str):
-    return rdfvalue.DurationSeconds(duration_str).microseconds
+    return rdfvalue.Duration(duration_str).microseconds
 
   def _CheckLastAccessStats(self):
     # pyformat: disable

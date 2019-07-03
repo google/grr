@@ -23,7 +23,7 @@ class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
   """Args to create a run for a cron job."""
   protobuf = flows_pb2.CreateCronJobFlowArgs
   rdf_deps = [
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdf_flow_runner.FlowRunnerArgs,
       rdfvalue.RDFDatetime,
   ]
@@ -72,7 +72,7 @@ class CronJob(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       CronJobAction,
       rdf_protodict.AttributedDict,
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdfvalue.RDFDatetime,
   ]
 
@@ -102,7 +102,7 @@ class CreateCronJobArgs(rdf_structs.RDFProtoStruct):
 
   protobuf = flows_pb2.CreateCronJobArgs
   rdf_deps = [
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdf_hunts.HuntRunnerArgs,
   ]
 

@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
+from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 
@@ -95,7 +95,7 @@ class ClientStats(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  DEFAULT_SAMPLING_INTERVAL = rdfvalue.DurationSeconds("60s")
+  DEFAULT_SAMPLING_INTERVAL = rdfvalue.Duration("60s")
 
   @classmethod
   def Downsampled(cls, stats, interval=None):
@@ -124,7 +124,7 @@ class ClientStats(rdf_structs.RDFProtoStruct):
       bucket = buckets.setdefault(sample.timestamp.Floor(interval), [])
       bucket.append(sample)
 
-    for _, bucket in sorted(iteritems(buckets)):
+    for bucket in itervalues(buckets):
       yield kind.FromMany(bucket)
 
 

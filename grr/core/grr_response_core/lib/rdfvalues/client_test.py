@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import platform
 import socket
 
 from absl import app
@@ -186,9 +185,8 @@ class NetworkAddressTests(rdf_test_base.RDFValueTestMixin,
         human_readable_address="192.168.0.1")
     self.assertEqual(sample.address_type,
                      rdf_client_network.NetworkAddress.Family.INET)
-    # Equal to socket.inet_pton(socket.AF_INET, "192.168.0.1"), which is
-    # unavailable on Windows.
-    self.assertEqual(sample.packed_bytes, b"\xc0\xa8\x00\x01")
+    self.assertEqual(sample.packed_bytes,
+                     socket.inet_pton(socket.AF_INET, "192.168.0.1"))
 
     self.assertEqual(sample.human_readable_address, "192.168.0.1")
 
@@ -196,17 +194,12 @@ class NetworkAddressTests(rdf_test_base.RDFValueTestMixin,
 
   def testIPv6(self):
     ipv6_addresses = ["fe80::202:b3ff:fe1e:8329", "::1"]
-    # Equal to socket.inet_pton(socket.AF_INET6, address), which is unavailable
-    # on Windows.
-    expected_addresses = [
-        b"\xfe\x80\x00\x00\x00\x00\x00\x00\x02\x02\xb3\xff\xfe\x1e\x83\x29",
-        b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x01"
-    ]
-    for address, expected in zip(ipv6_addresses, expected_addresses):
+    for address in ipv6_addresses:
       sample = rdf_client_network.NetworkAddress(human_readable_address=address)
       self.assertEqual(sample.address_type,
                        rdf_client_network.NetworkAddress.Family.INET6)
-      self.assertEqual(sample.packed_bytes, expected)
+      self.assertEqual(sample.packed_bytes,
+                       socket.inet_pton(socket.AF_INET6, address))
 
       self.assertEqual(sample.human_readable_address, address)
 
@@ -389,7 +382,7 @@ class ClientStatsTest(absltest.TestCase):
         ])
 
     actual = rdf_client_stats.ClientStats.Downsampled(
-        stats, interval=rdfvalue.DurationSeconds("10m"))
+        stats, interval=rdfvalue.Duration("10m"))
 
     self.assertEqual(actual, expected)
 
@@ -402,27 +395,18 @@ class ProcessTest(absltest.TestCase):
     res = rdf_client.Process.FromPsutilProcess(p)
 
     int_fields = [
-        "pid", "ppid", "ctime", "num_threads", "user_cpu_time",
-        "system_cpu_time", "RSS_size", "VMS_size", "memory_percent"
+        "pid", "ppid", "ctime", "real_uid", "effective_uid", "saved_uid",
+        "real_gid", "effective_gid", "saved_gid", "num_threads",
+        "user_cpu_time", "system_cpu_time", "RSS_size", "VMS_size",
+        "memory_percent"
     ]
-
-    if platform.system() != "Windows":
-      int_fields.extend([
-          "real_uid", "effective_uid", "saved_uid", "real_gid", "effective_gid",
-          "saved_gid"
-      ])
 
     for field in int_fields:
       self.assertGreater(
           getattr(res, field), 0,
-          "rdf_client.Process.{} is not greater than 0, got {!r}.".format(
-              field, getattr(res, field)))
+          "rdf_client.Process.{} is not greater than 0.".format(field))
 
-    string_fields = ["name", "exe", "cmdline", "cwd", "username"]
-
-    if platform.system() != "Windows":
-      string_fields.append("terminal")
-
+    string_fields = ["name", "exe", "cmdline", "cwd", "username", "terminal"]
     for field in string_fields:
       self.assertNotEqual(
           getattr(res, field), "",

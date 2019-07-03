@@ -136,10 +136,6 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   def FailureUnauthorized(self, args, token=None):
     raise access_control.UnauthorizedAccess("oh no")
 
-  @api_call_router.Http("GET", "/failure/invalid-argument")
-  def FailureInvalidArgument(self, args, token=None):
-    raise ValueError("oh no")
-
 
 class RouterMatcherTest(test_lib.GRRBaseTest):
   """Test for RouterMatcher."""
@@ -348,7 +344,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     self.assertEqual(response.status_code, 200)
 
   def testStatsAreCorrectlyUpdatedOnHeadRequests(self):
-    # pylint: disable=g-backslash-continuation
     with self.assertStatsCounterDelta(
         1, "api_access_probe_latency",
         fields=["SampleGet", "http", "SUCCESS"]), \
@@ -362,18 +357,13 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         0, "api_access_probe_latency",
         fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
-        fields=["SampleGet", "http", "INVALID_ARGUMENT"]), \
-    self.assertStatsCounterDelta(
         0, "api_access_probe_latency",
         fields=["SampleGet", "http", "SERVER_ERROR"]):
-      # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(
           self._CreateRequest("HEAD", "/test_sample/some/path"))
 
   def testStatsAreCorrectlyUpdatedOnGetRequests(self):
-    # pylint: disable=g-backslash-continuation
     with self.assertStatsCounterDelta(
         1, "api_method_latency",
         fields=["SampleGet", "http", "SUCCESS"]), \
@@ -388,18 +378,13 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
     self.assertStatsCounterDelta(
         0, "api_method_latency",
-        fields=["SampleGet", "http", "INVALID_ARGUMENT"]), \
-    self.assertStatsCounterDelta(
-        0, "api_method_latency",
         fields=["SampleGet", "http", "SERVER_ERROR"]):
-      # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
 
   def testStatsAreCorrectlyUpdatedOnVariousStatusCodes(self):
 
     def CheckMethod(url, method_name, status):
-      # pylint: disable=g-backslash-continuation
       with self.assertStatsCounterDelta(
           status == "SUCCESS" and 1 or 0,
           "api_method_latency",
@@ -417,14 +402,9 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
           "api_method_latency",
           fields=[method_name, "http", "NOT_IMPLEMENTED"]), \
       self.assertStatsCounterDelta(
-          status == "INVALID_ARGUMENT" and 1 or 0,
-          "api_method_latency",
-          fields=[method_name, "http", "INVALID_ARGUMENT"]), \
-      self.assertStatsCounterDelta(
           status == "SERVER_ERROR" and 1 or 0,
           "api_method_latency",
           fields=[method_name, "http", "SERVER_ERROR"]):
-        # pylint: enable=g-backslash-continuation
 
         self._RenderResponse(self._CreateRequest("GET", url))
 
@@ -433,8 +413,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     CheckMethod("/failure/not-implemented", "FailureNotImplemented",
                 "NOT_IMPLEMENTED")
     CheckMethod("/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN")
-    CheckMethod("/failure/invalid-argument", "FailureInvalidArgument",
-                "INVALID_ARGUMENT")
 
   def testGrrUserIsCreatedOnMethodCall(self):
     request = self._CreateRequest("HEAD", "/test_sample/some/path")

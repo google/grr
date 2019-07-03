@@ -9,6 +9,7 @@ from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import foreman_rules
 from grr_response_server.flows.general import file_finder
@@ -20,8 +21,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
-                   gui_test_lib.GRRSeleniumHuntTest):
+@db_test_lib.DualDBTest
+class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt copying GUI."""
 
   def CreateSampleHunt(self, description, token=None):
@@ -160,21 +161,47 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
-    self.assertLen(hunts_list, 2)
+      self.assertLen(hunts_list, 2)
 
-    first_hunt = hunts_list[0]
-    last_hunt = hunts_list[1]
+      first_hunt = hunts_list[0]
+      last_hunt = hunts_list[1]
 
-    # Check that generic hunt arguments are equal.
-    self.assertEqual(first_hunt.args, last_hunt.args)
+      # Check that generic hunt arguments are equal.
+      self.assertEqual(first_hunt.args, last_hunt.args)
 
-    self.assertEqual(first_hunt.description + " (copy)", last_hunt.description)
-    self.assertEqual(first_hunt.client_rate, last_hunt.client_rate)
-    self.assertEqual(first_hunt.client_rule_set, last_hunt.client_rule_set)
+      self.assertEqual(first_hunt.description + " (copy)",
+                       last_hunt.description)
+      self.assertEqual(first_hunt.client_rate, last_hunt.client_rate)
+      self.assertEqual(first_hunt.client_rule_set, last_hunt.client_rule_set)
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
+
+      self.assertLen(hunts_list, 2)
+
+      first_hunt = aff4.FACTORY.Open(hunts_list[0], token=self.token)
+      last_hunt = aff4.FACTORY.Open(hunts_list[1], token=self.token)
+
+      # Check that generic hunt arguments are equal.
+      self.assertEqual(first_hunt.args, last_hunt.args)
+
+      # Check that hunts runner arguments are equal except for the description.
+      # Hunt copy has ' (copy)' added to the description.
+      first_runner_args = first_hunt.runner_args
+      last_runner_args = last_hunt.runner_args
+
+      self.assertEqual(first_runner_args.description + " (copy)",
+                       last_runner_args.description)
+      self.assertEqual(first_runner_args.client_rate,
+                       last_runner_args.client_rate)
+      self.assertEqual(first_runner_args.hunt_name, last_runner_args.hunt_name)
+      self.assertEqual(first_runner_args.client_rule_set,
+                       last_runner_args.client_rule_set)
 
   def testCopyHuntRespectsUserChanges(self):
     self.CreateSampleHunt("model hunt", token=self.token)
@@ -249,42 +276,84 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Created Hunt")
 
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
-    self.assertLen(hunts_list, 2)
+      self.assertLen(hunts_list, 2)
 
-    last_hunt = hunts_list[-1]
+      last_hunt = hunts_list[-1]
 
-    self.assertEqual(last_hunt.args.standard.flow_args.pathspec.path,
-                     "/tmp/very-evil.txt")
-    self.assertEqual(last_hunt.args.standard.flow_args.pathspec.pathtype, "OS")
-    self.assertEqual(last_hunt.args.standard.flow_name,
-                     transfer.GetFile.__name__)
+      self.assertEqual(last_hunt.args.standard.flow_args.pathspec.path,
+                       "/tmp/very-evil.txt")
+      self.assertEqual(last_hunt.args.standard.flow_args.pathspec.pathtype,
+                       "OS")
+      self.assertEqual(last_hunt.args.standard.flow_name,
+                       transfer.GetFile.__name__)
 
-    self.assertLen(last_hunt.output_plugins, 2)
-    self.assertEqual(last_hunt.output_plugins[0].plugin_name,
-                     "DummyOutputPlugin")
-    self.assertEqual(last_hunt.output_plugins[0].plugin_args.filename_regex,
-                     "foobar!")
-    self.assertEqual(last_hunt.output_plugins[0].plugin_args.fetch_binaries,
-                     False)
-    self.assertEqual(last_hunt.output_plugins[1].plugin_name,
-                     "DummyOutputPlugin")
-    self.assertEqual(last_hunt.output_plugins[1].plugin_args.filename_regex,
-                     "blah!")
-    self.assertEqual(last_hunt.output_plugins[1].plugin_args.fetch_binaries,
-                     True)
+      self.assertLen(last_hunt.output_plugins, 2)
+      self.assertEqual(last_hunt.output_plugins[0].plugin_name,
+                       "DummyOutputPlugin")
+      self.assertEqual(last_hunt.output_plugins[0].plugin_args.filename_regex,
+                       "foobar!")
+      self.assertEqual(last_hunt.output_plugins[0].plugin_args.fetch_binaries,
+                       False)
+      self.assertEqual(last_hunt.output_plugins[1].plugin_name,
+                       "DummyOutputPlugin")
+      self.assertEqual(last_hunt.output_plugins[1].plugin_args.filename_regex,
+                       "blah!")
+      self.assertEqual(last_hunt.output_plugins[1].plugin_args.fetch_binaries,
+                       True)
 
-    self.assertAlmostEqual(last_hunt.client_rate, 42)
-    self.assertEqual(last_hunt.description, "my personal copy")
-    self.assertEqual(
-        last_hunt.client_rule_set,
-        foreman_rules.ForemanClientRuleSet(rules=[
-            foreman_rules.ForemanClientRule(
-                os=foreman_rules.ForemanOsClientRule(os_darwin=True))
-        ]))
+      self.assertAlmostEqual(last_hunt.client_rate, 42)
+      self.assertEqual(last_hunt.description, "my personal copy")
+      self.assertEqual(
+          last_hunt.client_rule_set,
+          foreman_rules.ForemanClientRuleSet(rules=[
+              foreman_rules.ForemanClientRule(
+                  os=foreman_rules.ForemanOsClientRule(os_darwin=True))
+          ]))
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
+
+      self.assertLen(hunts_list, 2)
+      last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
+
+      self.assertEqual(last_hunt.args.flow_args.pathspec.path,
+                       "/tmp/very-evil.txt")
+      self.assertEqual(last_hunt.args.flow_args.pathspec.pathtype, "OS")
+      self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
+                       transfer.GetFile.__name__)
+
+      self.assertLen(last_hunt.runner_args.output_plugins, 2)
+      self.assertEqual(last_hunt.runner_args.output_plugins[0].plugin_name,
+                       "DummyOutputPlugin")
+      self.assertEqual(
+          last_hunt.runner_args.output_plugins[0].plugin_args.filename_regex,
+          "foobar!")
+      self.assertEqual(
+          last_hunt.runner_args.output_plugins[0].plugin_args.fetch_binaries,
+          False)
+      self.assertEqual(last_hunt.runner_args.output_plugins[1].plugin_name,
+                       "DummyOutputPlugin")
+      self.assertEqual(
+          last_hunt.runner_args.output_plugins[1].plugin_args.filename_regex,
+          "blah!")
+      self.assertEqual(
+          last_hunt.runner_args.output_plugins[1].plugin_args.fetch_binaries,
+          True)
+
+      runner_args = last_hunt.runner_args
+      self.assertAlmostEqual(runner_args.client_rate, 42)
+      self.assertEqual(runner_args.description, "my personal copy")
+      self.assertEqual(
+          runner_args.client_rule_set,
+          foreman_rules.ForemanClientRuleSet(rules=[
+              foreman_rules.ForemanClientRule(
+                  os=foreman_rules.ForemanOsClientRule(os_darwin=True))
+          ]))
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
@@ -340,20 +409,34 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     # Close the window and check that the hunt was created.
     self.Click("css=button.Next")
 
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
-    self.assertLen(hunts_list, 2)
+      self.assertLen(hunts_list, 2)
 
-    last_hunt = hunts_list[-1]
+      last_hunt = hunts_list[-1]
 
-    # Check that the hunt was created with a correct literal value.
-    self.assertEqual(last_hunt.args.standard.flow_name,
-                     file_finder.FileFinder.__name__)
-    self.assertEqual(
-        last_hunt.args.standard.flow_args.conditions[0].contents_literal_match
-        .literal, b"foo\x0d\xc8bar")
+      # Check that the hunt was created with a correct literal value.
+      self.assertEqual(last_hunt.args.standard.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(
+          last_hunt.args.standard.flow_args.conditions[0].contents_literal_match
+          .literal, b"foo\x0d\xc8bar")
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
+
+      self.assertLen(hunts_list, 2)
+      last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
+
+      # Check that the hunt was created with a correct literal value.
+      self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(
+          last_hunt.args.flow_args.conditions[0].contents_literal_match.literal,
+          b"foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
     self.StartHunt(
@@ -443,64 +526,44 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
 
-    self.assertLen(hunts_list, 1)
+      self.assertLen(hunts_list, 1)
 
-    hunt = hunts_list[0]
+      hunt = hunts_list[0]
 
-    # Check that the hunt was created with correct rules
-    rules = hunt.client_rule_set.rules
-    self.assertLen(rules, 1)
-    rule = rules[0]
+      # Check that the hunt was created with correct rules
+      rules = hunt.client_rule_set.rules
+      self.assertLen(rules, 1)
+      rule = rules[0]
 
-    self.assertEqual(rule.rule_type,
-                     foreman_rules.ForemanClientRule.Type.INTEGER)
-    self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
+      self.assertEqual(rule.rule_type,
+                       foreman_rules.ForemanClientRule.Type.INTEGER)
+      self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
 
-    # Assert that the deselected union field is cleared
-    self.assertFalse(rule.os.os_windows)
+      # Assert that the deselected union field is cleared
+      self.assertFalse(rule.os.os_windows)
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      self.assertLen(hunts_list, 1)
 
-  def testApprovalIndicatesThatHuntWasCopiedFromAnotherHunt(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
+      hunt = hunts_list[0]
 
-    self.Open("/#main=ManageHunts")
-    self.Click("css=tr:contains('model hunt')")
+      # Check that the hunt was created with correct rules
+      rules = hunt.runner_args.client_rule_set.rules
+      self.assertLen(rules, 1)
+      rule = rules[0]
 
-    # Open the wizard.
-    self.Click("css=button[name=CopyHunt]:not([disabled])")
+      self.assertEqual(rule.rule_type,
+                       foreman_rules.ForemanClientRule.Type.INTEGER)
+      self.assertEqual(rule.integer.field, "CLIENT_CLOCK")
 
-    # Go to the hunt parameters page.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    # Go to the output plugins page.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    # Go to the rules page.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-    # Go to the review page.
-    self.Click("css=grr-new-hunt-wizard-form button.Next")
-
-    # Create the hunt.
-    self.Click("css=button:contains('Create Hunt')")
-    self.Click("css=button:contains('Done')")
-
-    # Request an approval.
-    hunts = data_store.REL_DB.ListHuntObjects(offset=0, count=2)
-    # Results should be sorted in the create time desc order, so
-    # taking the first one should give us the latest hunt.
-    h = hunts[0]
-    approval_id = self.RequestHuntApproval(
-        h.hunt_id,
-        requestor=self.token.username,
-        reason="reason",
-        approver=self.token.username)
-
-    # Open the approval page.
-    self.Open("/#/users/%s/approvals/hunt/%s/%s" %
-              (self.token.username, h.hunt_id, approval_id))
-    self.WaitUntil(self.IsElementPresent,
-                   "css=div.panel-body:contains('This hunt was copied from')")
+      # Assert that the deselected union field is cleared
+      self.assertFalse(rule.os.os_windows)
 
 
 if __name__ == "__main__":

@@ -89,7 +89,11 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
 
 
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
+    api_regression_http.HttpApiV1RegressionTestMixin)
+ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV1RelationalDBRegressionTestMixin)
+ApiRegressionTestMetaclass.RegisterConnectionMixin(
+    api_regression_http.HttpApiV2RegressionTestMixin)
 ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RelationalDBRegressionTestMixin)
 
@@ -254,7 +258,7 @@ class ApiRegressionTest(
     # Always show the full diff, even when it's a bit larger.
     self.maxDiff = 100000  # pylint: disable=invalid-name
 
-    self.assertEqual(relevant_checks, self.checks)
+    self.assertEqual(self.checks, relevant_checks)
 
 
 class ApiRegressionGoldenOutputGenerator(object):

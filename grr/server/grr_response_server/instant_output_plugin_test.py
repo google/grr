@@ -19,8 +19,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class ApplyPluginToMultiTypeCollectionTest(db_test_lib.RelationalDBEnabledMixin,
-                                           test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class ApplyPluginToMultiTypeCollectionTest(test_lib.GRRBaseTest):
   """Tests for ApplyPluginToMultiTypeCollection() function."""
 
   def setUp(self):
@@ -168,8 +168,8 @@ class TestConverter2(export.ExportConverter):
     ]
 
 
+@db_test_lib.DualDBTest
 class InstantOutputPluginWithExportConversionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     test_plugins.InstantOutputPluginTestBase):
   """Tests for InstantOutputPluginWithExportConversion."""
 

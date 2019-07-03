@@ -19,8 +19,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestArtifactManagementRender(db_test_lib.RelationalDBEnabledMixin,
-                                   gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def setUp(self):

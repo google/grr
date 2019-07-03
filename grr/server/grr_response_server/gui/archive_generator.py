@@ -19,6 +19,27 @@ from grr_response_server import file_store
 from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui.api_plugins import client as api_client
 
+# export Aff4CollectionArchiveGenerator from this file
+from grr_response_server.gui.archive_generator_aff4 import Aff4CollectionArchiveGenerator
+
+
+def CompatCollectionArchiveGenerator(*args, **kwargs):
+  """Returns an instance of (Aff4)CollectionArchiveGenerator.
+
+  Args:
+    *args: the args, passed to the constructor
+    **kwargs: the kwargs, passed to the constructor
+  """
+  return GetCompatClass()(*args, **kwargs)
+
+
+def GetCompatClass():
+  """Returns the (Aff4)CollectionArchiveGenerator class."""
+  if data_store.RelationalDBEnabled():
+    return CollectionArchiveGenerator
+  else:
+    return Aff4CollectionArchiveGenerator
+
 
 def _ClientPathToString(client_path, prefix=""):
   """Returns a path-like String of client_path with optional prefix."""

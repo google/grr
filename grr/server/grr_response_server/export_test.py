@@ -28,8 +28,10 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import aff4
 from grr_response_server import data_store
+from grr_response_server import events
 from grr_response_server import export
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import filestore
 from grr_response_server.check_lib import checks
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
@@ -122,7 +124,8 @@ class ExportTestBase(test_lib.GRRBaseTest):
     self.metadata = export.ExportedMetadata(client_urn=self.client_id)
 
 
-class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
+@db_test_lib.DualDBTest
+class ExportTest(ExportTestBase):
   """Tests export converters."""
 
   def testConverterIsCorrectlyFound(self):
@@ -290,11 +293,14 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
     self.assertEqual("", results[0].metadata.annotations)
 
   def testStatEntryToExportedFileConverterWithHashedAFF4File(self):
+    filestore.FileStoreInit()
+
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "winexec_img.dd"))
     pathspec.Append(
         path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
+    urn = pathspec.AFF4Path(self.client_id)
 
     client_mock = action_mocks.GetFileClientMock()
     flow_test_lib.TestFlowHelper(
@@ -304,11 +310,17 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-    path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
-                                               path_info.path_type,
-                                               tuple(path_info.components))
-    hash_value = path_info.hash_entry
+    if data_store.RelationalDBEnabled():
+      path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+      path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
+                                                 path_info.path_type,
+                                                 tuple(path_info.components))
+      hash_value = path_info.hash_entry
+    else:
+      events.Events.PublishEvent(
+          "LegacyFileStore.AddFileToStore", urn, token=self.token)
+      fd = aff4.FACTORY.Open(urn, token=self.token)
+      hash_value = fd.Get(fd.Schema.HASH)
 
     self.assertTrue(hash_value)
 
@@ -1531,6 +1543,62 @@ class OsqueryExportConverterTest(absltest.TestCase):
     self.assertEqual(results[1].foo, "thud")
     self.assertEqual(results[2].__query__, "SELECT foo FROM quux;")
     self.assertEqual(results[2].foo, "blargh")
+
+
+class GetMetadataLegacyTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(GetMetadataLegacyTest, self).setUp()
+    self.client_id = self.SetupClient(0)
+
+  def testGetMetadataLegacy(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabel("client-label-24")
+
+    metadata = export.GetMetadataLegacy(self.client_id, token=self.token)
+    self.assertEqual(metadata.os, "Windows")
+    self.assertEqual(metadata.labels, "client-label-24")
+    self.assertEqual(metadata.user_labels, "client-label-24")
+    self.assertEqual(metadata.system_labels, "")
+    self.assertEqual(metadata.hardware_info.bios_version, "Version 1.23v")
+
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabels(["a", "b"])
+
+    metadata = export.GetMetadataLegacy(self.client_id, token=self.token)
+    self.assertEqual(metadata.os, "Windows")
+    self.assertEqual(metadata.labels, "a,b")
+    self.assertEqual(metadata.user_labels, "a,b")
+    self.assertEqual(metadata.system_labels, "")
+
+  def testGetMetadataLegacyWithSystemLabels(self):
+    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
+      client.SetLabels(["a", "b"])
+      client.AddLabel("c", owner="GRR")
+
+    metadata = export.GetMetadataLegacy(self.client_id, token=self.token)
+    self.assertEqual(metadata.labels, "a,b,c")
+    self.assertEqual(metadata.user_labels, "a,b")
+    self.assertEqual(metadata.system_labels, "c")
+
+  def testGetMetadataLegacyMissingKB(self):
+    # We do not want to use `self.client_id` in this test because we need an
+    # uninitialized client.
+    client_id = rdf_client.ClientURN("C.4815162342108108")
+
+    newclient = aff4.FACTORY.Create(
+        client_id, aff4_grr.VFSGRRClient, token=self.token, mode="rw")
+    self.assertFalse(newclient.Get(newclient.Schema.KNOWLEDGE_BASE))
+    newclient.Flush()
+
+    # Expect empty usernames field due to no knowledge base.
+    metadata = export.GetMetadataLegacy(client_id, token=self.token)
+    self.assertFalse(metadata.usernames)
 
 
 class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,

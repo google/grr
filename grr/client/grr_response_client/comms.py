@@ -90,7 +90,6 @@ import queue
 import requests
 
 from grr_response_client import actions
-from grr_response_client import client_actions
 from grr_response_client import client_stats
 from grr_response_client import client_utils
 from grr_response_client.client_actions import admin
@@ -495,10 +494,10 @@ class GRRClientWorker(threading.Thread):
   sent_bytes_per_flow = {}
 
   # Client sends stats notifications at least every 50 minutes.
-  STATS_MAX_SEND_INTERVAL = rdfvalue.DurationSeconds("50m")
+  STATS_MAX_SEND_INTERVAL = rdfvalue.Duration("50m")
 
   # Client sends stats notifications at most every 60 seconds.
-  STATS_MIN_SEND_INTERVAL = rdfvalue.DurationSeconds("60s")
+  STATS_MIN_SEND_INTERVAL = rdfvalue.Duration("60s")
 
   def __init__(self,
                client=None,
@@ -694,7 +693,7 @@ class GRRClientWorker(threading.Thread):
     """
     self._is_active = True
     try:
-      action_cls = client_actions.REGISTRY.get(message.name)
+      action_cls = actions.ActionPlugin.classes.get(message.name)
       if action_cls is None:
         raise RuntimeError("Client action %r not known" % message.name)
 

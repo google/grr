@@ -200,7 +200,7 @@ class ApprovalWithApproversAndReason(Approval):
     raise NotImplementedError()
 
   def GetApprovers(self, now):
-    lifetime = rdfvalue.DurationSeconds(
+    lifetime = rdfvalue.Duration(
         self.Get(self.Schema.LIFETIME) or config.CONFIG["ACL.token_expiry"])
 
     # Check that there are enough approvers.
@@ -276,7 +276,7 @@ class ApprovalWithApproversAndReason(Approval):
   def GetNonExpiredApprovers(self):
     """Returns a list of usernames of approvers who approved this approval."""
 
-    lifetime = rdfvalue.DurationSeconds(
+    lifetime = rdfvalue.Duration(
         self.Get(self.Schema.LIFETIME) or config.CONFIG["ACL.token_expiry"])
 
     # Check that there are enough approvers.

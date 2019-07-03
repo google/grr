@@ -27,6 +27,22 @@ config_lib.DEFINE_bool(
 config_lib.DEFINE_bool("Database.aff4_enabled", True,
                        "Enables reading/writing to the legacy data store.")
 
+DATASTORE_PATHING = [
+    r"%{(?P<path>files/hash/generic/sha256/...).*}",
+    r"%{(?P<path>files/hash/generic/sha1/...).*}",
+    r"%{(?P<path>files/hash/generic/md5/...).*}",
+    r"%{(?P<path>files/hash/pecoff/md5/...).*}",
+    r"%{(?P<path>files/hash/pecoff/sha1/...).*}",
+    r"%{(?P<path>files/nsrl/...).*}", r"%{(?P<path>W/[^/]+).*}",
+    r"%{(?P<path>CA/[^/]+).*}", r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
+    r"%{(?P<path>hunts/[^/]+).*}", r"%{(?P<path>blobs/[^/]+).*}",
+    r"%{(?P<path>[^/]+).*}"
+]
+
+config_lib.DEFINE_list("Datastore.pathing", DATASTORE_PATHING,
+                       ("Path selection for subjects in the file-based data "
+                        "stores (by priority)."))
+
 config_lib.DEFINE_string(
     "Datastore.location",
     default="%(Config.prefix)/var/grr-datastore",
@@ -200,7 +216,7 @@ config_lib.DEFINE_string(
     default="grrbigtable",
     help="The cloud bigtable instance ID.")
 
-config_lib.DEFINE_semantic_value(rdfvalue.DurationSeconds,
+config_lib.DEFINE_semantic_value(rdfvalue.Duration,
                                  "CloudBigtable.retry_interval", "1s",
                                  "Time to wait before first retry.")
 

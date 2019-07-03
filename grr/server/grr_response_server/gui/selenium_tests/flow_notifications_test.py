@@ -21,8 +21,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowNotifications(db_test_lib.RelationalDBEnabledMixin,
-                            gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
   """Test flow notifications."""
 
   def setUp(self):
@@ -78,7 +78,7 @@ class TestFlowNotifications(db_test_lib.RelationalDBEnabledMixin,
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
+    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
                        RaisingStub):
       self.Open("/#/clients/%s" % self.client_id)
 

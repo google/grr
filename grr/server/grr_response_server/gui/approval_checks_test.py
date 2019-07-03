@@ -22,8 +22,8 @@ def _CreateApprovalRequest(approval_type,
                            subject_id,
                            expiration_time=None,
                            grants=None):
-  expiration_time = expiration_time or (rdfvalue.RDFDatetime.Now() +
-                                        rdfvalue.DurationSeconds("1h"))
+  expiration_time = expiration_time or (
+      rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h"))
   return rdf_objects.ApprovalRequest(
       approval_type=approval_type,
       approval_id="1234",
@@ -40,8 +40,8 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
                                      test_lib.GRRBaseTest):
 
   def _CreateRequest(self, expiration_time=None, grants=None):
-    expiration_time = expiration_time or (rdfvalue.RDFDatetime.Now() +
-                                          rdfvalue.DurationSeconds("1h"))
+    expiration_time = expiration_time or (
+        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h"))
     return _CreateApprovalRequest(
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
         self.client.client_id,
@@ -71,8 +71,7 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testRaisesIfApprovalExpired(self):
     approval_request = self._CreateRequest(
-        expiration_time=rdfvalue.RDFDatetime.Now() -
-        rdfvalue.DurationSeconds("1m"),
+        expiration_time=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1m"),
         grants=[
             rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
             rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
@@ -203,8 +202,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(
     self.CreateAdminUser(u"grantor2")
 
     approval_request = self._CreateRequest(
-        expiration_time=rdfvalue.RDFDatetime.Now() -
-        rdfvalue.DurationSeconds("1m"),
+        expiration_time=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1m"),
         grants=[
             rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
             rdf_objects.ApprovalGrant(grantor_username=u"grantor2")

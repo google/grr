@@ -8,9 +8,7 @@ from __future__ import unicode_literals
 import io
 import ntpath
 import os
-import platform
 import stat
-import unittest
 
 
 from absl import app
@@ -237,16 +235,16 @@ Section1.parameter3: |
 
   def testSemanticValueType(self):
     conf = config_lib.GrrConfigManager()
-    conf.DEFINE_semantic_value(rdfvalue.DurationSeconds, "Section1.foobar",
-                               None, "Sample help.")
+    conf.DEFINE_semantic_value(rdfvalue.Duration, "Section1.foobar", None,
+                               "Sample help.")
     conf.Initialize(
         parser=config_lib.YamlParser, data="""
 Section1.foobar: 6d
 """)
 
     value = conf.Get("Section1.foobar")
-    self.assertIsInstance(value, rdfvalue.DurationSeconds)
-    self.assertEqual(value, rdfvalue.DurationSeconds("6d"))
+    self.assertIsInstance(value, rdfvalue.Duration)
+    self.assertEqual(value, rdfvalue.Duration("6d"))
 
   def testSemanticStructType(self):
     conf = config_lib.GrrConfigManager()
@@ -1041,9 +1039,6 @@ Client.labels: [Test1]
     self.assertRaises(AttributeError, conf.SetWriteBack, writeback_file)
     self.assertTrue(os.path.isfile(writeback_file + ".bak"))
 
-  # TODO: Fix test, which fails on Windows due to file locking.
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Fails due to Windows file locking issues.")
   def testNoRenameOfReadProtectedFile(self):
     """Don't rename config files we don't have permission to read."""
     conf = config.CONFIG.MakeNewConfig()

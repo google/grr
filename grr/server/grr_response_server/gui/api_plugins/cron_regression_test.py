@@ -21,7 +21,6 @@ from grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -160,7 +159,6 @@ class ApiCreateCronJobHandlerRegressionTest(
 
 
 class ApiListCronJobRunsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     cron_plugin_test.CronJobsTestMixin):
   """Test cron job runs list handler."""

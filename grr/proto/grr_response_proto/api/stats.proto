@@ -160,7 +160,7 @@ message ApiGetReportArgs {
   }];
 
   optional uint64 duration = 3 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "Length of the time range to consider. "
                  "Ignored by reports with requires_time_range set to false."
   }];

@@ -422,7 +422,7 @@ class MockClient(object):
       if data_store.RelationalDBEnabled():
         request_tasks = data_store.REL_DB.LeaseClientActionRequests(
             self.client_id.Basename(),
-            lease_time=rdfvalue.DurationSeconds("10000s"),
+            lease_time=rdfvalue.Duration("10000s"),
             limit=1)
         request_tasks = [
             rdf_flow_objects.GRRMessageFromClientActionRequest(r)
@@ -662,13 +662,13 @@ def RunFlow(client_id,
   if client_id or client_mock:
     client_mock = MockClient(client_id, client_mock)
 
-  try:
-    if worker is None:
-      test_worker = TestWorker(token=True)
-      data_store.REL_DB.RegisterFlowProcessingHandler(test_worker.ProcessFlow)
-    else:
-      test_worker = worker
+  if worker is None:
+    test_worker = TestWorker(token=True)
+    data_store.REL_DB.RegisterFlowProcessingHandler(test_worker.ProcessFlow)
+  else:
+    test_worker = worker
 
+  try:
     # Run the client and worker until nothing changes any more.
     while True:
       client_processed = client_mock.Next()

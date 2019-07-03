@@ -2133,7 +2133,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   # The sequential collection index is only computed for records 5m old, so we
   # write records this far in the past in order to force index creation.
-  INDEX_DELAY = rdfvalue.DurationSeconds("10m")
+  INDEX_DELAY = rdfvalue.Duration("10m")
 
   @pytest.mark.benchmark
   def testCollections(self):

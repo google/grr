@@ -43,6 +43,21 @@ class RelationalDBEnabledMixin(object):
     super(RelationalDBEnabledMixin, self).setUp()
 
 
+def DualDBTest(cls):
+  """Decorator that creates an additional RELDB-enabled test class."""
+  module = sys.modules[cls.__module__]
+  cls_name = compatibility.GetName(cls)
+
+  db_test_cls_name = "{}_RelationalDBEnabled".format(cls_name)
+  db_test_cls = compatibility.MakeType(
+      name=db_test_cls_name,
+      base_classes=(RelationalDBEnabledMixin, cls),
+      namespace={})
+  setattr(module, db_test_cls_name, db_test_cls)
+
+  return cls
+
+
 def TestDatabases(mysql=True):
   """Decorator that creates additional RELDB-enabled test classes."""
 
@@ -50,6 +65,7 @@ def TestDatabases(mysql=True):
     """Decorator that creates additional RELDB-enabled test classes."""
     module = sys.modules[cls.__module__]
     cls_name = compatibility.GetName(cls)
+    DualDBTest(cls)
 
     if mysql:
       db_test_cls_name = "{}_MySQLEnabled".format(cls_name)

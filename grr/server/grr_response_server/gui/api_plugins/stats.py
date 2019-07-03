@@ -50,7 +50,7 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
 class ApiGetReportArgs(rdf_structs.RDFProtoStruct):
   protobuf = stats_pb2.ApiGetReportArgs
   rdf_deps = [
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdfvalue.RDFDatetime,
   ]
 

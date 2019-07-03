@@ -8,11 +8,13 @@ from __future__ import unicode_literals
 from absl import app
 from future.builtins import range
 
-import mock
-
 # Need to import client to add the flags.
 from grr_response_client import actions
-from grr_response_client import client_actions
+
+# Load all the standard actions.
+# pylint: disable=unused-import
+from grr_response_client.client_actions import registry_init
+# pylint: enable=unused-import
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -69,9 +71,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
         request_id=1,
         generate_task_id=True)
 
-    with mock.patch.object(client_actions, "REGISTRY",
-                           {"MockAction": MockAction}):
-      self.context.HandleMessage(message)
+    self.context.HandleMessage(message)
 
     # Check the response - one data and one status
 
@@ -93,9 +93,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
         request_id=1,
         generate_task_id=True)
 
-    with mock.patch.object(client_actions, "REGISTRY",
-                           {"RaiseAction": RaiseAction}):
-      self.context.HandleMessage(message)
+    self.context.HandleMessage(message)
 
     # Check the response - one data and one status
     message_list = self.context.Drain().job
@@ -119,10 +117,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
         request_id=1,
         generate_task_id=True)
 
-    with mock.patch.object(client_actions, "REGISTRY",
-                           {"MockAction": MockAction}):
-      self.context.HandleMessage(message)
-
+    self.context.HandleMessage(message)
     # We expect to receive an GrrStatus to indicate an exception was
     # raised:
     # Check the response - one data and one status
@@ -145,11 +140,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
           request_id=1,
           require_fastpoll=i % 2,
           generate_task_id=True)
-
-      with mock.patch.object(client_actions, "REGISTRY",
-                             {"MockAction": MockAction}):
-        self.context.HandleMessage(message)
-
+      self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertLen(message_list, 10)
     self.assertCountEqual([m.require_fastpoll for m in message_list],

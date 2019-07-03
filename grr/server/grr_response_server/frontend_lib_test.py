@@ -668,8 +668,8 @@ def MakeResponse(code=500, data=""):
   return response
 
 
-class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
-                      test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class ClientCommsTest(test_lib.GRRBaseTest):
   """Test the communicator."""
 
   def setUp(self):
@@ -992,8 +992,8 @@ class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(list(self.ClientServerCommunicate()), 10)
 
 
-class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
-                      test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class HTTPClientTests(test_lib.GRRBaseTest):
   """Test the http communicator."""
 
   def setUp(self):

@@ -19,8 +19,8 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiClientLibApprovalsTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_e2e_test_lib.ApiE2ETest,
+@db_test_lib.DualDBTest
+class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):

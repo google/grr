@@ -7,7 +7,7 @@ const {huntExpirationTime} = goog.require('grrUi.hunt.utils');
 describe('hunt utils', () => {
   describe('huntExpirationTime', () => {
     const getDuration = (millis) => ({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: millis / 1000000,
     });
 

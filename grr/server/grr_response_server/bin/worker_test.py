@@ -441,7 +441,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         # Worker should consider the flow to be stuck and terminate it.
         stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
         future_time = (
-            initial_time + rdfvalue.DurationSeconds("1m") + stuck_flows_timeout)
+            initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
 
         with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
           worker_obj.RunOnce()
@@ -481,7 +481,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       # currently blocked because of the way how semaphores are set up.
       # Worker should consider the flow to be stuck and terminate it.
       future_time = (
-          initial_time + rdfvalue.DurationSeconds("1m") + stuck_flows_timeout)
+          initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
       with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
         worker_obj.RunOnce()
 
@@ -508,8 +508,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
     stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
-    lease_timeout = rdfvalue.DurationSeconds(
-        worker_lib.GRRWorker.flow_lease_time)
+    lease_timeout = rdfvalue.Duration(worker_lib.GRRWorker.flow_lease_time)
 
     WorkerStuckableTestFlow.Reset(heartbeat=True)
     try:
@@ -527,10 +526,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       # Increase the time in steps, using LetFlowHeartBeat/WaitForFlowHeartBeat
       # to control the flow execution that happens in the parallel thread.
       current_time = rdfvalue.RDFDatetime(initial_time)
-      future_time = initial_time + stuck_flows_timeout + rdfvalue.DurationSeconds(
-          "1m")
+      future_time = initial_time + stuck_flows_timeout + rdfvalue.Duration("1m")
       while current_time <= future_time:
-        current_time += lease_timeout - rdfvalue.DurationSeconds("1s")
+        current_time += lease_timeout - rdfvalue.Duration("1s")
 
         with test_lib.FakeTime(current_time.AsSecondsSinceEpoch()):
           checked_flow = aff4.FACTORY.Open(session_id, token=self.token)
@@ -584,8 +582,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Set the time to max worker flow duration + 1 minute. If the 'kill'
     # notification isn't deleted we should get it now.
-    future_time = initial_time + rdfvalue.DurationSeconds(
-        "1m") + stuck_flows_timeout
+    future_time = initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout
     with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
       worker_obj.RunOnce()
       worker_obj.thread_pool.Join()

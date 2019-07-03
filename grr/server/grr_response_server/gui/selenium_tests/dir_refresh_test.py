@@ -11,6 +11,7 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import compatibility
+from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
@@ -22,8 +23,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
-                     gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(DirRefreshTest, self).setUp()
@@ -71,16 +72,21 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     # Make sure that the flow has started (when button is clicked, the HTTP
     # API request is sent asynchronously).
     def MultiGetFileStarted():
-      return compatibility.GetName(transfer.MultiGetFile) in [
-          f.flow_class_name for f in data_store.REL_DB.ReadAllFlowObjects(
-              client_id=client_id.Basename())
-      ]
+      if data_store.RelationalDBEnabled():
+        return compatibility.GetName(transfer.MultiGetFile) in [
+            f.flow_class_name for f in data_store.REL_DB.ReadAllFlowObjects(
+                client_id=client_id.Basename())
+        ]
+      else:
+        fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+        return transfer.MultiGetFile.__name__ in list(
+            x.__class__.__name__ for x in fd.OpenChildren())
 
     self.WaitUntil(MultiGetFileStarted)
 
     flow_test_lib.FinishAllFlowsOnClient(client_id, check_flow_errors=False)
 
-    time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1h")
+    time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h")
     # We have to make sure that the new version will not be within a second
     # from the current one, otherwise the previous one and the new one will
     # be indistinguishable in the UI (as it has a 1s precision when

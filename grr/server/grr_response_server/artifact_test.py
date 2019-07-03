@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import action_registry
 from grr_response_server import aff4
+from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
@@ -39,7 +40,6 @@ from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import filesystem
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
@@ -168,8 +168,8 @@ class FooAction(actions.ActionPlugin):
 # pylint: enable=function-redefined
 
 
-class ArtifactTest(db_test_lib.RelationalDBEnabledMixin,
-                   flow_test_lib.FlowTestsBaseclass):
+@db_test_lib.DualDBTest
+class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
   """Helper class for tests using artifacts."""
 
   def setUp(self):
@@ -221,6 +221,7 @@ class ArtifactTest(db_test_lib.RelationalDBEnabledMixin,
     return flow_test_lib.GetFlowResults(client_id, session_id)
 
 
+@db_test_lib.DualDBTest
 class GRRArtifactTest(ArtifactTest):
 
   def testUploadArtifactYamlFileAndDumpToYaml(self):
@@ -381,6 +382,7 @@ sources:
       artifact.UploadArtifactYamlFile(yaml_artifact)
 
 
+@db_test_lib.DualDBTest
 class ArtifactFlowLinuxTest(ArtifactTest):
 
   def setUp(self):
@@ -486,6 +488,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
         raise RuntimeError("0 responses should have been returned")
 
 
+@db_test_lib.DualDBTest
 class ArtifactFlowWindowsTest(ArtifactTest):
 
   def setUp(self):
@@ -525,6 +528,7 @@ class GrrKbTest(ArtifactTest):
     return results[0]
 
 
+@db_test_lib.DualDBTest
 class GrrKbWindowsTest(GrrKbTest):
 
   def setUp(self):
@@ -628,8 +632,9 @@ class GrrKbWindowsTest(GrrKbTest):
           "Artifacts.knowledge_base_heavyweight": ["FakeArtifact"]
       }):
         args = artifact.KnowledgeBaseInitializationArgs(lightweight=True)
-        kb_init = artifact.KnowledgeBaseInitializationFlow(
-            rdf_flow_objects.Flow(args=args))
+        kb_init = aff4_flows.KnowledgeBaseInitializationFlow(
+            None, token=self.token)
+        kb_init.args = args
         kb_init.state["all_deps"] = set()
         kb_init.state["awaiting_deps_artifacts"] = []
         kb_init.state["knowledge_base"] = rdf_client.KnowledgeBase(os="Windows")
@@ -674,6 +679,7 @@ class GrrKbWindowsTest(GrrKbTest):
     self.assertIn("multiple provides clauses", str(context.exception))
 
 
+@db_test_lib.DualDBTest
 class GrrKbLinuxTest(GrrKbTest):
 
   def setUp(self):
@@ -780,6 +786,7 @@ class GrrKbLinuxTest(GrrKbTest):
     self.assertEqual(results[0].os, "zażółć gęślą jaźń 🎮")
 
 
+@db_test_lib.DualDBTest
 class GrrKbDarwinTest(GrrKbTest):
 
   def setUp(self):

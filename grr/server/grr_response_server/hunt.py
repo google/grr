@@ -111,7 +111,7 @@ def StopHuntIfCrashLimitExceeded(hunt_id):
   return hunt_obj
 
 
-_TIME_BETWEEN_STOP_CHECKS = rdfvalue.DurationSeconds("5s")
+_TIME_BETWEEN_STOP_CHECKS = rdfvalue.Duration("5s")
 
 
 @cache.WithLimitedCallFrequency(_TIME_BETWEEN_STOP_CHECKS)
@@ -211,11 +211,11 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
   """Creates and starts a new hunt."""
 
   # This interface takes a time when the hunt expires. However, the legacy hunt
-  # starting interface took an rdfvalue.DurationSeconds object which was then
-  # added to the current time to get the expiry. This check exists to make sure
-  # we don't  confuse the two.
+  # starting interface took an rdfvalue.Duration object which was then added to
+  # the current time to get the expiry. This check exists to make sure we don't
+  # confuse the two.
   if "duration" in kwargs:
-    precondition.AssertType(kwargs["duration"], rdfvalue.DurationSeconds)
+    precondition.AssertType(kwargs["duration"], rdfvalue.Duration)
 
   hunt_args = rdf_hunt_objects.HuntArguments(
       hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
@@ -367,7 +367,7 @@ def UpdateHunt(hunt_id, client_limit=None, client_rate=None, duration=None):
   return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
-_TIME_BETWEEN_PAUSE_CHECKS = rdfvalue.DurationSeconds("5s")
+_TIME_BETWEEN_PAUSE_CHECKS = rdfvalue.Duration("5s")
 
 
 @cache.WithLimitedCallFrequency(_TIME_BETWEEN_PAUSE_CHECKS)

@@ -37,7 +37,7 @@ from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
 
 CSRF_DELIMITER = b":"
-CSRF_TOKEN_DURATION = rdfvalue.DurationSeconds("10h")
+CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
 
 
 def GenerateCSRFToken(user_id, time):

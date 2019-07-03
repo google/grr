@@ -15,8 +15,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.SearchClientTestBase):
+@db_test_lib.DualDBTest
+class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   """Tests for user dashboard shown on the home page."""
 
   def testShowsNothingByDefault(self):
@@ -56,9 +56,9 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
   def testShows5LatestHunts(self):
     # Only hunts created in the last 31 days will get shown, so we have
     # to adjust their timestamps accordingly.
-    timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d")
+    timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
     for i in range(20):
-      with test_lib.FakeTime(timestamp + rdfvalue.DurationSeconds(1000 * i)):
+      with test_lib.FakeTime(timestamp + rdfvalue.Duration(1000 * i)):
         if i % 2 == 0:
           descr = "foo-%d" % i
           token = access_control.ACLToken(username="another")
@@ -79,10 +79,10 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
 
   def testDoesNotShowHuntsOlderThan31Days(self):
     now = rdfvalue.RDFDatetime.Now()
-    with test_lib.FakeTime(now - rdfvalue.DurationSeconds("30d")):
+    with test_lib.FakeTime(now - rdfvalue.Duration("30d")):
       self.CreateSampleHunt("foo", token=self.token)
 
-    with test_lib.FakeTime(now - rdfvalue.DurationSeconds("32d")):
+    with test_lib.FakeTime(now - rdfvalue.Duration("32d")):
       self.CreateSampleHunt("bar", token=self.token)
 
     with test_lib.FakeTime(now):

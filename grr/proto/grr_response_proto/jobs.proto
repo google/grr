@@ -2044,6 +2044,36 @@ message EndToEndTestResult {
 
 message EmptyMessage {}
 
+message NSRLInformation {
+  enum FileType {
+    NORMAL_FILE = 0;
+    MALICIOUS_FILE = 1;
+    SPECIAL_FILE = 2;
+  }
+
+  optional bytes sha1 = 1 [
+    (sem_type) = { type: "HashDigest", description: "SHA1 binary hash digest." }
+  ];
+  optional bytes md5 = 2 [
+    (sem_type) = { type: "HashDigest", description: "MD5 binary hash digest." }
+  ];
+  optional uint32 crc32 = 3
+      [(sem_type) = { description: "32 bit Cyclic redundancy check." }];
+  optional uint64 file_size = 4 [(sem_type) = {
+    description: "Size of the file.",
+  }];
+  optional string file_name = 5 [(sem_type) = {
+    description: "Name of the file.",
+  }];
+  repeated uint64 product_code = 6 [
+    (sem_type) = { description: "Code of the product this file is part of." }
+  ];
+  repeated string op_system_code = 7
+      [(sem_type) = { description: "Operating system this file runs on." }];
+  optional FileType file_type = 8
+      [(sem_type) = { description: "Type of file." }];
+}
+
 message PendingFlowTermination {
   optional string reason = 1;
 }

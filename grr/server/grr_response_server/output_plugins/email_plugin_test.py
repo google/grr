@@ -18,8 +18,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class EmailOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
-                            flow_test_lib.FlowTestsBaseclass):
+@db_test_lib.DualDBTest
+class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests email output plugin."""
 
   def setUp(self):

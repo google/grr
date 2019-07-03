@@ -72,19 +72,6 @@ describe('hunt stats directive', () => {
                           value: 32768.55,
                         },
                       },
-                    },
-                    {
-                      type: 'StatsHistogramBin',
-                      value: {
-                        num: {
-                          type: 'long',
-                          value: 9.55,
-                        },
-                        range_max_value: {
-                          type: 'float',
-                          value: 62768.55,
-                        },
-                      },
                     }
                   ],
                 },
@@ -102,14 +89,11 @@ describe('hunt stats directive', () => {
     const element = render('H:12345678');
     const directive = element.find('grr-comparison-chart:nth(0)');
     const directiveTypedData =
-          directive.scope().$eval(directive.attr('typed-data'));
+        directive.scope().$eval(directive.attr('typed-data'));
     expect(directiveTypedData['value']).toEqual({
       data: [
         {value: {label: {value: '< 16.6s'}, x: {value: 10.55}}},
         {value: {label: {value: '< 32768.6s'}, x: {value: 5.55}}},
-        // Max range value of the last bucket should be ignored and
-        // the one of the one-before-the-last bucket should be used.
-        {value: {label: {value: '> 32768.6s'}, x: {value: 9.55}}},
       ]
     });
   });
@@ -151,19 +135,6 @@ describe('hunt stats directive', () => {
                           value: 32768.55,
                         },
                       },
-                    },
-                    {
-                      type: 'StatsHistogramBin',
-                      value: {
-                        num: {
-                          type: 'long',
-                          value: 9.55,
-                        },
-                        range_max_value: {
-                          type: 'float',
-                          value: 62768.55,
-                        },
-                      },
                     }
                   ],
                 },
@@ -186,9 +157,6 @@ describe('hunt stats directive', () => {
       data: [
         {value: {label: {value: '< 16.6s'}, x: {value: 10.55}}},
         {value: {label: {value: '< 32768.6s'}, x: {value: 5.55}}},
-        // Max range value of the last bucket should be ignored and
-        // the one of the one-before-the-last bucket should be used.
-        {value: {label: {value: '> 32768.6s'}, x: {value: 9.55}}},
       ]
     });
   });
@@ -231,19 +199,6 @@ describe('hunt stats directive', () => {
                              value: 32768.0,
                            },
                          },
-                       },
-                       {
-                         type: 'StatsHistogramBin',
-                         value: {
-                           num: {
-                             type: 'long',
-                             value: 9,
-                           },
-                           range_max_value: {
-                             type: 'float',
-                             value: 62768.0,
-                           },
-                         },
                        }
                      ],
                    },
@@ -266,9 +221,6 @@ describe('hunt stats directive', () => {
          data: [
            {value: {label: {value: '< 16 B'}, x: {value: 10}}},
            {value: {label: {value: '< 32 KiB'}, x: {value: 5}}},
-           // Max range value of the last bucket should be ignored and
-           // the one of the one-before-the-last bucket should be used.
-           {value: {label: {value: '> 32 KiB'}, x: {value: 9}}},
          ]
        });
      });

@@ -26,8 +26,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiCallRobotRouterE2ETest(db_test_lib.RelationalDBEnabledMixin,
-                                api_e2e_test_lib.ApiE2ETest):
+@db_test_lib.DualDBTest
+class ApiCallRobotRouterE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   FILE_FINDER_ROUTER_CONFIG = """
 router: "ApiCallRobotRouter"

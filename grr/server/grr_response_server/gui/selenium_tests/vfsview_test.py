@@ -18,8 +18,8 @@ from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class VFSViewTest(db_test_lib.RelationalDBEnabledMixin,
-                  gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(VFSViewTest, self).setUp()

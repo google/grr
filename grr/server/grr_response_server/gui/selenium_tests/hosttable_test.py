@@ -12,8 +12,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHostTable(db_test_lib.RelationalDBEnabledMixin,
-                    gui_test_lib.SearchClientTestBase):
+@db_test_lib.DualDBTest
+class TestHostTable(gui_test_lib.SearchClientTestBase):
   """Tests the main content view."""
 
   def setUp(self):

@@ -49,8 +49,8 @@ class VfsTestMixin(object):
   """A helper mixin providing methods to prepare files and flows for testing."""
 
   time_0 = rdfvalue.RDFDatetime(42)
-  time_1 = time_0 + rdfvalue.DurationSeconds("1d")
-  time_2 = time_1 + rdfvalue.DurationSeconds("1d")
+  time_1 = time_0 + rdfvalue.Duration("1d")
+  time_2 = time_1 + rdfvalue.Duration("1d")
 
   # TODO(hanuszczak): This function not only contains a lot of code duplication
   # but is also a duplication with `gui_test_lib.CreateFileVersion(s)`. This
@@ -102,8 +102,8 @@ class VfsTestMixin(object):
           token=token).Basename()
 
 
-class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
                                    VfsTestMixin):
   """Test for ApiGetFileDetailsHandler."""
 
@@ -141,7 +141,7 @@ class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     # Should return the newest version.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age, self.time_2, delta=rdfvalue.DurationSeconds("1s"))
+        result.file.age, self.time_2, delta=rdfvalue.Duration("1s"))
 
   def testHandlerReturnsClosestSpecificVersion(self):
     # Get specific version.
@@ -154,7 +154,7 @@ class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     # The age of the returned version might have a slight deviation.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age, self.time_1, delta=rdfvalue.DurationSeconds("1s"))
+        result.file.age, self.time_1, delta=rdfvalue.Duration("1s"))
 
   def testResultIncludesDetails(self):
     """Checks if the details include certain attributes.
@@ -198,8 +198,8 @@ class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(result.file.is_directory)
 
 
-class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                              api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+@db_test_lib.DualDBTest
+class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiListFilesHandler."""
 
   def setUp(self):
@@ -278,8 +278,8 @@ class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEmpty(result.items)
 
 
-class ApiGetFileTextHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+@db_test_lib.DualDBTest
+class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
 
   def setUp(self):
@@ -338,8 +338,8 @@ class ApiGetFileTextHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(result.total_size, 13)
 
 
-class ApiGetFileBlobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+@db_test_lib.DualDBTest
+class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def setUp(self):
     super(ApiGetFileBlobHandlerTest, self).setUp()
@@ -413,8 +413,8 @@ class ApiGetFileBlobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(chunk, char * self.handler.CHUNK_SIZE)
 
 
-class ApiGetFileVersionTimesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTestMixin):
 
   def setUp(self):
@@ -441,8 +441,8 @@ class ApiGetFileVersionTimesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetFileDownloadCommandHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                           api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
                                            VfsTestMixin):
 
   def setUp(self):
@@ -469,8 +469,8 @@ class ApiGetFileDownloadCommandHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
 
+@db_test_lib.DualDBTest
 class ApiCreateVfsRefreshOperationHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin,
     notification_test_lib.NotificationTestMixin,
     api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateVfsRefreshOperationHandler."""
@@ -575,9 +575,9 @@ class ApiCreateVfsRefreshOperationHandlerTest(
                        self.client_id.Add(self.file_path))
 
 
-class ApiGetVfsRefreshOperationStateHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
-    VfsTestMixin):
+@db_test_lib.DualDBTest
+class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                                VfsTestMixin):
   """Test for GetVfsRefreshOperationStateHandler."""
 
   def setUp(self):
@@ -638,8 +638,8 @@ class ApiGetVfsRefreshOperationStateHandlerTest(
       self.handler.Handle(args, token=self.token)
 
 
-class ApiUpdateVfsFileContentHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                         api_test_lib.ApiCallHandlerTest):
+@db_test_lib.DualDBTest
+class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiUpdateVfsFileContentHandler."""
 
   def setUp(self):
@@ -686,9 +686,9 @@ class ApiUpdateVfsFileContentHandlerTest(db_test_lib.RelationalDBEnabledMixin,
           flow_obj.Get(flow_obj.Schema.TYPE), transfer.MultiGetFile.__name__)
 
 
+@db_test_lib.DualDBTest
 class ApiGetVfsFileContentUpdateStateHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
-    VfsTestMixin):
+    api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetVfsFileContentUpdateStateHandler."""
 
   def setUp(self):
@@ -802,8 +802,8 @@ class VfsTimelineTestMixin(object):
       data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
 
-class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTimelineTestMixin):
 
   def setUp(self):
@@ -911,8 +911,8 @@ class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(content, b"")
 
 
-class ApiGetVfsTimelineHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
                                    VfsTimelineTestMixin):
 
   def setUp(self):
@@ -939,8 +939,8 @@ class ApiGetVfsTimelineHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetVfsFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                       api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
                                        VfsTestMixin):
   """Tests for ApiGetVfsFileArchiveHandler."""
 
@@ -1063,8 +1063,8 @@ class DecodersTestMixin(object):
     vfs_test_lib.CreateFile(client_path, content=content)
 
 
-class ApiGetFileDecodersHandler(db_test_lib.RelationalDBEnabledMixin,
-                                DecodersTestMixin,
+@db_test_lib.DualDBTest
+class ApiGetFileDecodersHandler(DecodersTestMixin,
                                 api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -1132,8 +1132,8 @@ class ApiGetFileDecodersHandler(db_test_lib.RelationalDBEnabledMixin,
     self.assertCountEqual(result.decoder_names, ["BarQuux", "BazQuux"])
 
 
-class ApiGetDecodedFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   DecodersTestMixin,
+@db_test_lib.DualDBTest
+class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
                                    api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):

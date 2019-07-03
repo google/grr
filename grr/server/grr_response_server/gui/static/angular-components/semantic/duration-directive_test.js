@@ -35,7 +35,7 @@ describe('duration directive', () => {
 
   it('shows "-" when value is empty', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: null,
     };
     const element = renderTestTemplate(value);
@@ -44,7 +44,7 @@ describe('duration directive', () => {
 
   it('shows 0 if duration value is 0', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -53,7 +53,7 @@ describe('duration directive', () => {
 
   it('shows duration in seconds if it\'s not divisible by 60', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 122,
     };
     const element = renderTestTemplate(value);
@@ -62,7 +62,7 @@ describe('duration directive', () => {
 
   it('shows duration in minutes if possible', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 120,
     };
     const element = renderTestTemplate(value);
@@ -71,7 +71,7 @@ describe('duration directive', () => {
 
   it('shows duration in hours if possible', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 7200,
     };
     const element = renderTestTemplate(value);
@@ -80,7 +80,7 @@ describe('duration directive', () => {
 
   it('shows duration in days if possible', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 172800,
     };
     const element = renderTestTemplate(value);
@@ -89,7 +89,7 @@ describe('duration directive', () => {
 
   it('shows duration in weeks if possible', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 1209600,
     };
     const element = renderTestTemplate(value);
@@ -98,7 +98,7 @@ describe('duration directive', () => {
 
   it('shows duration in days if not divisible by 7', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 1036800,
     };
     const element = renderTestTemplate(value);

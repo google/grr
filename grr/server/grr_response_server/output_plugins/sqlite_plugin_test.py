@@ -64,7 +64,7 @@ class SqliteTestStruct(rdf_structs.RDFProtoStruct):
           field_number=11,
           rdf_type="RDFDatetimeSeconds"),
       rdf_structs.ProtoRDFValue(
-          name="duration_field", field_number=12, rdf_type="DurationSeconds"),
+          name="duration_field", field_number=12, rdf_type="Duration"),
       rdf_structs.ProtoEmbedded(
           name="embedded_field", field_number=13, nested=TestEmbeddedStruct))
 
@@ -138,7 +138,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             datetime.datetime(2017, 5, 1)),
         time_field_seconds=rdfvalue.RDFDatetimeSeconds.FromDatetime(
             datetime.datetime(2017, 5, 2)),
-        duration_field=rdfvalue.DurationSeconds.FromSeconds(123),
+        duration_field=rdfvalue.Duration.FromSeconds(123),
         embedded_field=TestEmbeddedStruct(
             e_string_field="e_string_value", e_double_field=0.789))
     sql_dict = self.plugin._ConvertToCanonicalSqlDict(

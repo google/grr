@@ -763,6 +763,31 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         paths=paths,
         client_id=self.client_id)
 
+  def testIllegalGlobAsync(self):
+    # When running the flow asynchronously, we will not receive any errors from
+    # the Start method, but the flow should still fail.
+    paths = ["Test/%%Weird_illegal_attribute%%"]
+    client_mock = action_mocks.GlobClientMock()
+
+    # Run the flow.
+    session_id = None
+
+    # This should not raise here since the flow is run asynchronously.
+    with test_lib.SuppressLogs():
+      session_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(filesystem.Glob),
+          client_mock,
+          client_id=self.client_id,
+          check_flow_errors=False,
+          paths=paths,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          token=self.token,
+          sync=False)
+
+    fd = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertIn("KnowledgeBaseInterpolationError", fd.context.backtrace)
+    self.assertEqual("ERROR", str(fd.context.state))
+
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""
 

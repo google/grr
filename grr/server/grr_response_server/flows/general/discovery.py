@@ -303,13 +303,11 @@ class InterrogateMixin(object):
 
     self.state.client.knowledge_base = kb
 
-    non_kb_artifacts = config.CONFIG["Artifacts.non_kb_interrogate_artifacts"]
-    if non_kb_artifacts:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=non_kb_artifacts,
-          knowledge_base=kb,
-          next_state="ProcessArtifactResponses")
+    self.CallFlow(
+        collectors.ArtifactCollectorFlow.__name__,
+        artifact_list=config.CONFIG["Artifacts.non_kb_interrogate_artifacts"],
+        knowledge_base=kb,
+        next_state="ProcessArtifactResponses")
 
     if data_store.AFF4Enabled():
       # Update the client index for the AFF4 client.

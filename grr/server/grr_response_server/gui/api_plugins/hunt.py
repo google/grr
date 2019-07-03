@@ -155,7 +155,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       ApiFlowLikeObjectReference,
       foreman_rules.ForemanClientRuleSet,
       rdf_hunts.HuntRunnerArgs,
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,
   ]
@@ -473,7 +473,7 @@ class ApiHuntError(rdf_structs.RDFProtoStruct):
 class ApiListHuntsArgs(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiListHuntsArgs
   rdf_deps = [
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
   ]
 
 
@@ -1465,7 +1465,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     else:
       raise ValueError("Unknown archive format: %s" % args.archive_format)
 
-    generator = archive_generator.CollectionArchiveGenerator(
+    generator = archive_generator.CompatCollectionArchiveGenerator(
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format)
@@ -1936,21 +1936,11 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
         creator=token.username,
     )
 
-    if args.original_hunt and args.original_flow:
-      raise ValueError(
-          "A hunt can't be a copy of a flow and a hunt at the same time.")
-
-    if args.original_hunt:
-      ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(
-          args.original_hunt.hunt_id)
-      hunt_obj.original_object = ref
-    elif args.original_flow:
-      ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-          args.original_flow.flow_id, args.original_flow.client_id)
-      hunt_obj.original_object = ref
-
     if hra.HasField("output_plugins"):
       hunt_obj.output_plugins = hra.output_plugins
+
+    if hra.HasField("original_object"):
+      hunt_obj.original_object = hra.original_object
 
     hunt.CreateHunt(hunt_obj)
 
@@ -1967,7 +1957,7 @@ class ApiModifyHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiModifyHuntArgs
   rdf_deps = [
       ApiHuntId,
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdfvalue.RDFDatetime,
   ]
 

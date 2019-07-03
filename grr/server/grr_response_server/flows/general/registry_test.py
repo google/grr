@@ -41,8 +41,8 @@ class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.addCleanup(vfs_overrider.Stop)
 
 
-class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
-                                 RegistryFlowTest):
+@db_test_lib.DualDBTest
+class TestFakeRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
 
   runkey = "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
@@ -302,7 +302,8 @@ class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     self.assertGreater(results[0].stat_entry.st_size, 50)
 
 
-class TestRegistryFlows(db_test_lib.RelationalDBEnabledMixin, RegistryFlowTest):
+@db_test_lib.DualDBTest
+class TestRegistryFlows(RegistryFlowTest):
   """Test the Run Key registry flows."""
 
   @parser_test_lib.WithAllParsers

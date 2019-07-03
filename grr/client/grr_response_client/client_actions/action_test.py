@@ -136,7 +136,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
     message = rdf_flows.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
-    action_cls = ProgressAction
+    action_cls = actions.ActionPlugin.classes[message.name]
     with utils.MultiStubber((psutil, "Process", FakeProcess),
                             (action_cls, "SendReply", MockSendReply)):
 
@@ -216,7 +216,8 @@ class ActionTest(client_test_lib.EmptyActionTest):
       def Heartbeat(self):
         pass
 
-    action = ProgressAction(grr_worker=MockWorker())
+    action = actions.ActionPlugin.classes["ProgressAction"](
+        grr_worker=MockWorker())
 
     with test_lib.Instrument(client_utils, "KeepAlive") as instrument:
       for time, expected_count in [(100, 1), (101, 1), (102, 1), (103, 2),

@@ -43,7 +43,7 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-CLIENT_STATS_RETENTION = rdfvalue.DurationSeconds("31d")
+CLIENT_STATS_RETENTION = rdfvalue.Duration("31d")
 
 # Use 254 as max length for usernames to allow email addresses.
 MAX_USERNAME_LENGTH = 254
@@ -1535,8 +1535,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       handler: Method, which will be called repeatedly with lists of leased
         objects.MessageHandlerRequest. Required.
-      lease_time: rdfvalue.DurationSeconds indicating how long the lease should
-        be valid. Required.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+        valid. Required.
       limit: Limit for the number of leased requests to give one execution of
         handler.
     """
@@ -1650,8 +1650,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       cronjob_ids: A list of cronjob ids that should be leased. If None, all
         available cronjobs will be leased.
-      lease_time: rdfvalue.DurationSeconds indicating how long the lease should
-        be valid.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+        valid.
 
     Returns:
       A list of cronjobs.CronJob objects that were leased.
@@ -1775,8 +1775,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: The client for which the requests should be leased.
-      lease_time: rdfvalue.DurationSeconds indicating how long the lease should
-        be valid.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+        valid.
       limit: Lease at most <limit> requests. If set, must be less than 10000.
         Default is 5000.
 
@@ -3734,7 +3734,7 @@ class DatabaseValidationWrapper(Database):
                        num_clients_at_start_time=None):
     """Updates the hunt object by applying the update function."""
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(duration, rdfvalue.DurationSeconds)
+    precondition.AssertOptionalType(duration, rdfvalue.Duration)
     precondition.AssertOptionalType(client_rate, (float, int))
     precondition.AssertOptionalType(client_limit, int)
     if hunt_state is not None:
@@ -4086,7 +4086,7 @@ def _ValidateClosedTimeRange(time_range):
 
 
 def _ValidateDuration(duration):
-  precondition.AssertType(duration, rdfvalue.DurationSeconds)
+  precondition.AssertType(duration, rdfvalue.Duration)
 
 
 def _ValidateTimestamp(timestamp):

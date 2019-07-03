@@ -141,8 +141,8 @@ def ValidateAccessAndSubjects(requested_access, subjects):
 
   for s in requested_access:
     if s not in "rwq":
-      raise ValueError("Invalid access requested for %s: %s" %
-                       (subjects, requested_access))
+      raise ValueError(
+          "Invalid access requested for %s: %s" % (subjects, requested_access))
 
   if "q" in requested_access and "r" not in requested_access:
     raise access_control.UnauthorizedAccess(
@@ -168,8 +168,8 @@ def CheckUserForLabels(username, authorized_labels, token=None):
       return True
     else:
       raise access_control.UnauthorizedAccess(
-          "User %s is missing labels (required: %s)." %
-          (username, authorized_labels))
+          "User %s is missing labels (required: %s)." % (username,
+                                                         authorized_labels))
   except IOError:
     raise access_control.UnauthorizedAccess("User %s not found." % username)
 
@@ -233,10 +233,10 @@ class CheckAccessHelper(object):
       path: A string, which is a fnmatch pattern.
       require: Function that will be called to perform additional checks.
                None by default. It will be called like this:
-                 require(subject_urn, *args, **kwargs). If this function returns
-                 True, the check is considered passed. If it raises, the check
-                 is considered failed, no other checks are made and exception is
-                 propagated.
+               require(subject_urn, *args, **kwargs).
+               If this function returns True, the check is considered passed.
+               If it raises, the check is considered failed, no other checks
+               are made and exception is propagated.
       *args: Positional arguments that will be passed to "require" function.
       **kwargs: Keyword arguments that will be passed to "require" function.
     """
@@ -387,7 +387,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     h.Allow("aff4:/FP/*")
 
     # The files namespace contains hash references to all files downloaded with
-    # GRR. Users can access files for
+    # GRR, and is extensible via Filestore objects. Users can access files for
     # which they know the hash.
     # See lib/aff4_objects/filestore.py
     h.Allow("aff4:/files")

@@ -9,6 +9,8 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib import utils
+from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server.flows.general import discovery
@@ -20,8 +22,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestNotifications(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestNotifications(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   @classmethod
@@ -68,7 +70,14 @@ class TestNotifications(db_test_lib.RelationalDBEnabledMixin,
                 client_id=client_id.Basename(), flow_id=session_id)))
 
     # FlowError
-    flow_base.TerminateFlow(client_id.Basename(), session_id, "Fake flow error")
+    if data_store.RelationalDBEnabled():
+      flow_base.TerminateFlow(client_id.Basename(), session_id,
+                              "Fake flow error")
+    else:
+      with aff4.FACTORY.Open(
+          client_id.Add("flows").Add(session_id), mode="rw",
+          token=token) as flow_obj:
+        flow_obj.GetRunner().Error("Fake flow error")
 
     return session_id
 

@@ -14,8 +14,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
-                      gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   """Tests the access control workflow."""
 
   # Using an Unicode string for the test here would be optimal but Selenium

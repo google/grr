@@ -47,6 +47,7 @@ from grr_response_server import file_store
 from grr_response_server import flow
 from grr_response_server import sequential_collection
 from grr_response_server.aff4_objects import aff4_grr
+from grr_response_server.aff4_objects import filestore
 from grr_response_server.check_lib import checks
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors as flow_collectors
@@ -156,6 +157,14 @@ class ExportedNetworkInterface(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedNetworkInterface
   rdf_deps = [
       ExportedMetadata,
+  ]
+
+
+class ExportedFileStoreHash(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedFileStoreHash
+  rdf_deps = [
+      ExportedMetadata,
+      rdfvalue.RDFURN,
   ]
 
 
@@ -1276,6 +1285,38 @@ class GrrMessageConverter(ExportConverter):
     return converted_batch
 
 
+class FileStoreHashConverter(ExportConverter):
+  input_rdf_type = filestore.FileStoreHash
+
+  def Convert(self, metadata, stat_entry, token=None):
+    """Convert a single FileStoreHash."""
+
+    return self.BatchConvert([(metadata, stat_entry)], token=token)
+
+  def BatchConvert(self, metadata_value_pairs, token=None):
+    """Convert batch of FileStoreHashs."""
+
+    urns = [urn for metadata, urn in metadata_value_pairs]
+    urns_dict = dict((urn, metadata) for metadata, urn in metadata_value_pairs)
+
+    results = []
+    for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(
+        urns, token=token):
+      for hit in client_files:
+        metadata = ExportedMetadata(urns_dict[hash_urn])
+        metadata.client_urn = rdfvalue.RDFURN(hit).Split(2)[0]
+
+        result = ExportedFileStoreHash(
+            metadata=metadata,
+            hash=hash_urn.hash_value,
+            fingerprint_type=hash_urn.fingerprint_type,
+            hash_type=hash_urn.hash_type,
+            target_urn=hit)
+        results.append(result)
+
+    return results
+
+
 class CheckResultConverter(ExportConverter):
   input_rdf_type = checks.CheckResult
 
@@ -1590,7 +1631,7 @@ def GetMetadata(client_id, client_full_info):
 
     addresses = last_snapshot.GetMacAddresses()
     if addresses:
-      metadata.mac_address = "\n".join(last_snapshot.GetMacAddresses())
+      metadata.mac_address = last_snapshot.GetMacAddresses().pop()
     metadata.hardware_info = last_snapshot.hardware_info
     metadata.kernel_version = last_snapshot.kernel
 
@@ -1709,8 +1750,8 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
   """
   no_converter_found_error = None
   for metadata_values_group in itervalues(
-      collection.Group(metadata_value_pairs,
-                       lambda pair: pair[1].__class__.__name__)):
+      collection.Group(
+          metadata_value_pairs, lambda pair: pair[1].__class__.__name__)):
 
     _, first_value = metadata_values_group[0]
     converters_classes = ExportConverter.GetConvertersByValue(first_value)

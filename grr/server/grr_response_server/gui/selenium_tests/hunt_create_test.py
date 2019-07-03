@@ -10,10 +10,12 @@ from selenium.webdriver.common import keys
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt as lib_hunt
+from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
@@ -23,14 +25,31 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.GRRSeleniumHuntTest):
+@db_test_lib.DualDBTest
+class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   """Test the "new hunt wizard" GUI."""
 
   @staticmethod
   def FindForemanRules(hunt_urn, token):
-    rules = data_store.REL_DB.ReadAllForemanRules()
-    return [rule for rule in rules if rule.hunt_id == hunt_urn.Basename()]
+    if data_store.RelationalDBEnabled():
+      rules = data_store.REL_DB.ReadAllForemanRules()
+      return [rule for rule in rules if rule.hunt_id == hunt_urn.Basename()]
+    else:
+      fman = aff4.FACTORY.Open(
+          "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
+      rules = fman.Get(fman.Schema.RULES, [])
+      return [rule for rule in rules if rule.hunt_id == hunt_urn]
+
+  def setUp(self):
+    super(TestNewHuntWizard, self).setUp()
+
+    if not data_store.RelationalDBEnabled():
+      # Create a Foreman with an empty rule set.
+      with aff4.FACTORY.Create(
+          "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
+          token=self.token) as self.foreman:
+        self.foreman.Set(self.foreman.Schema.RULES())
+        self.foreman.Close()
 
   def testNewHuntWizard(self):
     # Open up and click on View Hunts.
@@ -255,35 +274,59 @@ class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
             "css=grr-hunt-inspector:contains('Client Rule Set')"))
 
     # Check that the hunt object was actually created
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
-    self.assertLen(hunts_list, 1)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
+      self.assertLen(hunts_list, 1)
 
-    # Check that the hunt was created with a correct flow
-    hunt = hunts_list[0]
+      # Check that the hunt was created with a correct flow
+      hunt = hunts_list[0]
 
-    self.assertEqual(hunt.args.standard.flow_name,
-                     file_finder.FileFinder.__name__)
-    self.assertEqual(hunt.args.standard.flow_args.paths[0], "/tmp")
-    self.assertEqual(hunt.args.standard.flow_args.pathtype,
-                     rdf_paths.PathSpec.PathType.TSK)
-    # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
-    self.assertEqual(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
+      self.assertEqual(hunt.args.standard.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(hunt.args.standard.flow_args.paths[0], "/tmp")
+      self.assertEqual(hunt.args.standard.flow_args.pathtype,
+                       rdf_paths.PathSpec.PathType.TSK)
+      # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
+      self.assertEqual(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
 
-    # Check that hunt was not started
-    self.assertEqual(hunt.hunt_state, hunt.HuntState.PAUSED)
+      # Check that hunt was not started
+      self.assertEqual(hunt.hunt_state, hunt.HuntState.PAUSED)
 
-    lib_hunt.StartHunt(hunt.hunt_id)
+      lib_hunt.StartHunt(hunt.hunt_id)
 
-    hunt_rules = self.FindForemanRules(
-        rdfvalue.RDFURN("hunts").Add(hunt.hunt_id), token=self.token)
+      hunt_rules = self.FindForemanRules(
+          rdfvalue.RDFURN("hunts").Add(hunt.hunt_id), token=self.token)
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      self.assertLen(hunts_list, 1)
+
+      # Check that the hunt was created with a correct flow
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.args.flow_runner_args.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(hunt.args.flow_args.paths[0], "/tmp")
+      self.assertEqual(hunt.args.flow_args.pathtype,
+                       rdf_paths.PathSpec.PathType.TSK)
+      # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
+      self.assertEqual(hunt.runner_args.output_plugins[0].plugin_name,
+                       "DummyOutputPlugin")
+
+      # Check that hunt was not started
+      self.assertEqual(hunt.Get(hunt.Schema.STATE), "PAUSED")
+
+      with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+        hunt.Run()
+
+      hunt_rules = self.FindForemanRules(hunt.urn, token=self.token)
 
     # Check that the hunt was created with correct rules
     self.assertLen(hunt_rules, 1)
     lifetime = hunt_rules[0].GetLifetime()
-    lifetime -= rdfvalue.DurationSeconds("2w")
-    self.assertLessEqual(lifetime, rdfvalue.DurationSeconds("1s"))
+    lifetime -= rdfvalue.Duration("2w")
+    self.assertLessEqual(lifetime, rdfvalue.Duration("1s"))
 
     r = hunt_rules[0].client_rule_set
 
@@ -388,18 +431,31 @@ class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=button.Next")
 
     # Check that the hunt object was actually created
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
-    self.assertLen(hunts_list, 1)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
+      self.assertLen(hunts_list, 1)
 
-    # Check that the hunt was created with a correct literal value.
-    hunt = hunts_list[0]
-    self.assertEqual(hunt.args.standard.flow_name,
-                     file_finder.FileFinder.__name__)
-    self.assertEqual(
-        hunt.args.standard.flow_args.conditions[0].contents_literal_match
-        .literal, b"foo\x0d\xc8bar")
+      # Check that the hunt was created with a correct literal value.
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.args.standard.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(
+          hunt.args.standard.flow_args.conditions[0].contents_literal_match
+          .literal, b"foo\x0d\xc8bar")
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      self.assertLen(hunts_list, 1)
+
+      # Check that the hunt was created with a correct literal value.
+      hunt = hunts_list[0]
+      self.assertEqual(hunt.args.flow_runner_args.flow_name,
+                       file_finder.FileFinder.__name__)
+      self.assertEqual(
+          hunt.args.flow_args.conditions[0].contents_literal_match.literal,
+          b"foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/#main=ManageHunts")
@@ -530,11 +586,19 @@ class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form:contains('Created Hunt')")
 
-    hunts_list = sorted(
-        data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
-        key=lambda x: x.create_time)
-    hunt = hunts_list[0]
-    lib_hunt.StartHunt(hunt.hunt_id)
+    if data_store.RelationalDBEnabled():
+      hunts_list = sorted(
+          data_store.REL_DB.ReadHuntObjects(offset=0, count=10),
+          key=lambda x: x.create_time)
+      hunt = hunts_list[0]
+      lib_hunt.StartHunt(hunt.hunt_id)
+    else:
+      hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+      hunts_list = list(hunts_root.OpenChildren())
+      hunt = hunts_list[0]
+
+      with aff4.FACTORY.Open(hunt.urn, mode="rw", token=self.token) as hunt:
+        hunt.Run()
 
     foreman_obj = foreman.GetForeman(token=self.token)
     for client_id in client_ids:

@@ -14,8 +14,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHuntControl(db_test_lib.RelationalDBEnabledMixin,
-                      gui_test_lib.GRRSeleniumHuntTest):
+@db_test_lib.DualDBTest
+class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt start/stop/delete functionality."""
 
   def testToolbarStateForStoppedHunt(self):
@@ -186,7 +186,7 @@ class TestHuntControl(db_test_lib.RelationalDBEnabledMixin,
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
         "42")
     self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
-              str(rdfvalue.DurationSeconds("1337s")))
+              str(rdfvalue.Duration("1337s")))
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -211,7 +211,7 @@ class TestHuntControl(db_test_lib.RelationalDBEnabledMixin,
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
         "42")
     self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
-              str(rdfvalue.DurationSeconds("1337s")))
+              str(rdfvalue.Duration("1337s")))
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.

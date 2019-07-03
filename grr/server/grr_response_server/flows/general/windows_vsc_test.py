@@ -90,8 +90,8 @@ class TestClient(action_mocks.ActionMock):
     return result
 
 
-class TestListVolumeShadowCopies(db_test_lib.RelationalDBEnabledMixin,
-                                 flow_test_lib.FlowTestsBaseclass):
+@db_test_lib.DualDBTest
+class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
   """Test the list Volume Shadow Copies flow."""
 
   def testListVolumeShadowCopies(self):

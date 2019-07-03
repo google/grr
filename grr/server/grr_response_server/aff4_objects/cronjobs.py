@@ -186,8 +186,8 @@ def GetCronManager():
 class SystemCronFlow(flow.GRRFlow):
   """SystemCronFlows are scheduled automatically on workers startup."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
   allow_overruns = False
 
   # Jobs that are broken, or are under development can be disabled using

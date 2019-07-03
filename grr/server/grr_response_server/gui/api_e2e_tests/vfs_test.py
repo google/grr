@@ -23,8 +23,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
-                          api_e2e_test_lib.ApiE2ETest):
+@db_test_lib.DualDBTest
+class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
   """Tests VFS operations part of GRR Python API client library."""
 
   def setUp(self):

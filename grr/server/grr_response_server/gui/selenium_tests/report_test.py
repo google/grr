@@ -42,8 +42,8 @@ def AddFakeAuditLog(description=None,
         ))
 
 
-class TestReports(db_test_lib.RelationalDBEnabledMixin,
-                  gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestReports(gui_test_lib.GRRSeleniumTest):
   """Test the reports interface."""
 
   def testReports(self):

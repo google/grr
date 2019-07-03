@@ -54,7 +54,7 @@ message Hunt {
       [(sem_type) = { description: "Rules that trigger this hunt." }];
   reserved 7;
   optional uint64 duration = 34 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "A maximum allowed duration after which the hunt is expired.",
   }];
   optional float client_rate = 8 [(sem_type) = {
@@ -158,7 +158,7 @@ message HuntMetadata {
 
   optional string creator = 4;
   optional uint64 duration = 5 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "A maximum allowed duration after which the hunt is expired.",
   }];
   optional float client_rate = 6 [(sem_type) = {

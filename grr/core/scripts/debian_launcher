@@ -19,7 +19,8 @@ GLOBAL_DEFAULT_FILE="/etc/default/grr-server"
 # Load the global default file for the location of the GRR virtual env.
 . ${GLOBAL_DEFAULT_FILE}
 
-# NAME will be: grr_server, grr_config_updater, grr_console or similar.
+# NAME will be: grr_server, grr_config_updater, grr_console
+# grr_fuse, or similar.
 NAME=$(basename "$0")
 
 if ! [ -x "${GRR_PREFIX}" ] ; then

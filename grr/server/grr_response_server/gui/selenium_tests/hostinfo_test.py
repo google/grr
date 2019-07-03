@@ -8,7 +8,9 @@ from __future__ import unicode_literals
 
 from absl import app
 
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import config as rdf_config
+from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import gui_test_lib
@@ -18,17 +20,26 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHostInformation(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   """Test the host information interface."""
 
   def _WriteClientSnapshot(self, timestamp, version, hostname, memory):
-    snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-    with test_lib.FakeTime(timestamp):
-      snapshot.os_version = version
-      snapshot.knowledge_base.fqdn = hostname
-      snapshot.memory_size = memory
-      data_store.REL_DB.WriteClientSnapshot(snapshot)
+    if data_store.AFF4Enabled():
+      with test_lib.FakeTime(timestamp):
+        with aff4.FACTORY.Open(
+            self.client_id, mode="rw", token=self.token) as fd:
+          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString(version))
+          fd.Set(fd.Schema.HOSTNAME(hostname))
+          fd.Set(fd.Schema.MEMORY_SIZE(memory))
+
+    if data_store.RelationalDBEnabled():
+      snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+      with test_lib.FakeTime(timestamp):
+        snapshot.os_version = version
+        snapshot.knowledge_base.fqdn = hostname
+        snapshot.memory_size = memory
+        data_store.REL_DB.WriteClientSnapshot(snapshot)
 
   def setUp(self):
     super(TestHostInformation, self).setUp()

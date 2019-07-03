@@ -439,7 +439,7 @@ class InMemoryDBClientMixin(object):
       statistic_value = extract_statistic_fn(info)
 
       for day_bucket in day_buckets:
-        time_boundary = now - rdfvalue.DurationSeconds.FromDays(day_bucket)
+        time_boundary = now - rdfvalue.Duration.FromDays(day_bucket)
         if info.metadata.ping > time_boundary:
           # Count the client if it has been active in the last 'day_bucket'
           # days.

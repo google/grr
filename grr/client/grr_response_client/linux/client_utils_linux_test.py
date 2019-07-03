@@ -87,12 +87,12 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
         nanny.Heartbeat()
 
       for i in range(10):
-        with test_lib.FakeTime(now + i * rdfvalue.DurationSeconds("1s")):
+        with test_lib.FakeTime(now + i * rdfvalue.Duration("1s")):
           nanny._CheckHeartbeatDeadline(nanny.last_heart_beat_time +
                                         nanny.unresponsive_kill_period)
           nanny.Heartbeat()
 
-      with test_lib.FakeTime(now + (10 + 5) * rdfvalue.DurationSeconds("1s")):
+      with test_lib.FakeTime(now + (10 + 5) * rdfvalue.Duration("1s")):
         with self.assertRaises(RuntimeError):
           nanny._CheckHeartbeatDeadline(nanny.last_heart_beat_time +
                                         nanny.unresponsive_kill_period)

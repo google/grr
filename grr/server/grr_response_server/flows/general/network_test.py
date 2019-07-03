@@ -38,8 +38,8 @@ class ClientMock(action_mocks.ActionMock):
     return [conn1, conn2]
 
 
-class NetstatFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                      flow_test_lib.FlowTestsBaseclass):
+@db_test_lib.DualDBTest
+class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testNetstat(self):

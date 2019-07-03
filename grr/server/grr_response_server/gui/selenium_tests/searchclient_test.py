@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_server import aff4
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
@@ -16,8 +17,8 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
-                       gui_test_lib.SearchClientTestBase,
+@db_test_lib.DualDBTest
+class TestClientSearch(gui_test_lib.SearchClientTestBase,
                        hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -37,15 +38,32 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
     self.AddClientLabel(self.client_ids[1], self.token.username,
                         u"common_test_label")
 
-    snapshot = data_store.REL_DB.ReadClientSnapshot(
-        self.client_ids[0].Basename())
-    snapshot.knowledge_base.users.Append(
-        rdf_client.User(username="sample_user"))
-    snapshot.knowledge_base.users.Append(
-        rdf_client.User(username=self.token.username))
-    data_store.REL_DB.WriteClientSnapshot(snapshot)
-    client_index.ClientIndex().AddClient(
-        data_store.REL_DB.ReadClientSnapshot(self.client_ids[0].Basename()))
+    if data_store.RelationalDBEnabled():
+      snapshot = data_store.REL_DB.ReadClientSnapshot(
+          self.client_ids[0].Basename())
+      snapshot.knowledge_base.users.Append(
+          rdf_client.User(username="sample_user"))
+      snapshot.knowledge_base.users.Append(
+          rdf_client.User(username=self.token.username))
+      data_store.REL_DB.WriteClientSnapshot(snapshot)
+      client_index.ClientIndex().AddClient(
+          data_store.REL_DB.ReadClientSnapshot(self.client_ids[0].Basename()))
+    else:
+      # SetupClients adds no labels or user names.
+      with aff4.FACTORY.Open(
+          self.client_ids[0], mode="rw", token=self.token) as client_obj:
+        client_obj.AddLabel(u"common_test_label", owner=self.token.username)
+        client_obj.AddLabel(u"unique_test_label", owner=self.token.username)
+
+        # Add user in knowledge base.
+        kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
+        kb.users.Append(rdf_client.User(username="sample_user"))
+        kb.users.Append(rdf_client.User(username=self.token.username))
+        client_obj.Set(client_obj.Schema.KNOWLEDGE_BASE, kb)
+
+        # Update index, since we added users and labels.
+        with client_index.CreateClientIndex(token=self.token) as index:
+          index.AddClient(client_obj)
 
   def _WaitForSearchResults(self, target_count):
     self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
@@ -247,11 +265,11 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
                    "css=.active > a[grrtarget='client.launchFlows']")
 
 
-class TestDefaultGUISettings(db_test_lib.RelationalDBEnabledMixin,
-                             gui_test_lib.GRRSeleniumTest):
+class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
 
   def testDefaultGUISettingsWork(self):
-    data_store.REL_DB.DeleteGRRUser(self.token.username)
+    aff4.FACTORY.Delete(
+        aff4.ROOT_URN.Add("users/%s" % self.token.username), token=self.token)
 
     self.Open("/")  # The ui displays an error here if the settings are invalid.
 

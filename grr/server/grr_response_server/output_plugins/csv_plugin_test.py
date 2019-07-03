@@ -18,12 +18,10 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.output_plugins import test_plugins
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
-                                 test_plugins.InstantOutputPluginTestBase):
+class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   """Tests instant CSV output plugin."""
 
   plugin_cls = csv_plugin.CSVInstantOutputPlugin
@@ -75,8 +73,7 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
     for i in range(10):
       # Make sure metadata is filled in.
       self.assertEqual(parsed_output[i]["metadata.client_urn"], self.client_id)
-      self.assertEqual(parsed_output[i]["metadata.hostname"],
-                       "Host-0.example.com")
+      self.assertEqual(parsed_output[i]["metadata.hostname"], "Host-0")
       self.assertEqual(parsed_output[i]["metadata.mac_address"],
                        "aabbccddee00\nbbccddeeff00")
       self.assertEqual(parsed_output[i]["metadata.source_urn"],
@@ -136,8 +133,7 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
 
     # Make sure metadata is filled in.
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
-    self.assertEqual(parsed_output[0]["metadata.hostname"],
-                     "Host-0.example.com")
+    self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
     self.assertEqual(parsed_output[0]["metadata.mac_address"],
                      "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
@@ -150,8 +146,7 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(parsed_output, 1)
 
     self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
-    self.assertEqual(parsed_output[0]["metadata.hostname"],
-                     "Host-0.example.com")
+    self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
     self.assertEqual(parsed_output[0]["metadata.mac_address"],
                      "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)

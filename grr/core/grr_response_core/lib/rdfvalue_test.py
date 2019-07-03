@@ -139,10 +139,10 @@ class RDFDateTimeTest(absltest.TestCase):
 
   def testLerpMiddle(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
-    end_time = start_time + rdfvalue.DurationSeconds("10d")
+    end_time = start_time + rdfvalue.Duration("10d")
     lerped_time = rdfvalue.RDFDatetime.Lerp(
         0.5, start_time=start_time, end_time=end_time)
-    self.assertEqual(lerped_time, start_time + rdfvalue.DurationSeconds("5d"))
+    self.assertEqual(lerped_time, start_time + rdfvalue.Duration("5d"))
 
   def testLerpZero(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
@@ -160,10 +160,10 @@ class RDFDateTimeTest(absltest.TestCase):
 
   def testLerpQuarter(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
-    end_time = start_time + rdfvalue.DurationSeconds("4d")
+    end_time = start_time + rdfvalue.Duration("4d")
     lerped_time = rdfvalue.RDFDatetime.Lerp(
         0.25, start_time=start_time, end_time=end_time)
-    self.assertEqual(lerped_time, start_time + rdfvalue.DurationSeconds("1d"))
+    self.assertEqual(lerped_time, start_time + rdfvalue.Duration("1d"))
 
   def testLerpRaisesTypeErrorIfTimesAreNotRDFDatetime(self):
     now = rdfvalue.RDFDatetime.Now()
@@ -173,7 +173,7 @@ class RDFDateTimeTest(absltest.TestCase):
 
     with self.assertRaisesRegexp(TypeError, "non-datetime"):
       rdfvalue.RDFDatetime.Lerp(
-          0.0, start_time=now, end_time=rdfvalue.DurationSeconds("1d"))
+          0.0, start_time=now, end_time=rdfvalue.Duration("1d"))
 
   def testLerpRaisesValueErrorIfProgressIsNotNormalized(self):
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2010-01-01")
@@ -188,48 +188,44 @@ class RDFDateTimeTest(absltest.TestCase):
   def testFloorToMinutes(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
-    self.assertEqual(datetime.Floor(rdfvalue.DurationSeconds("60s")), expected)
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("60s")), expected)
 
   def testFloorToHours(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:00")
-    self.assertEqual(datetime.Floor(rdfvalue.DurationSeconds("1h")), expected)
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("1h")), expected)
 
   def testFloorToDays(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11")
-    self.assertEqual(datetime.Floor(rdfvalue.DurationSeconds("1d")), expected)
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("1d")), expected)
 
   def testFloorExact(self):
     datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
-    self.assertEqual(datetime.Floor(rdfvalue.DurationSeconds("1s")), datetime)
+    self.assertEqual(datetime.Floor(rdfvalue.Duration("1s")), datetime)
 
 
 class DurationTest(absltest.TestCase):
 
   def testPublicAttributes(self):
-    duration = rdfvalue.DurationSeconds("1h")
+    duration = rdfvalue.Duration("1h")
     self.assertEqual(duration.seconds, 3600)
     self.assertEqual(duration.milliseconds, 3600 * 1000)
     self.assertEqual(duration.microseconds, 3600 * 1000 * 1000)
 
   def testFromHours(self):
-    self.assertEqual(
-        rdfvalue.DurationSeconds.FromDays(2), rdfvalue.DurationSeconds("2d"))
-    self.assertEqual(
-        rdfvalue.DurationSeconds.FromDays(31), rdfvalue.DurationSeconds("31d"))
+    self.assertEqual(rdfvalue.Duration.FromDays(2), rdfvalue.Duration("2d"))
+    self.assertEqual(rdfvalue.Duration.FromDays(31), rdfvalue.Duration("31d"))
 
   def testFromDays(self):
-    self.assertEqual(
-        rdfvalue.DurationSeconds.FromHours(48), rdfvalue.DurationSeconds("48h"))
-    self.assertEqual(
-        rdfvalue.DurationSeconds.FromHours(24), rdfvalue.DurationSeconds("24h"))
+    self.assertEqual(rdfvalue.Duration.FromHours(48), rdfvalue.Duration("48h"))
+    self.assertEqual(rdfvalue.Duration.FromHours(24), rdfvalue.Duration("24h"))
 
   def testFromSeconds(self):
-    self.assertEqual(rdfvalue.DurationSeconds.FromSeconds(1337).seconds, 1337)
+    self.assertEqual(rdfvalue.Duration.FromSeconds(1337).seconds, 1337)
 
   def testFromMicroseconds(self):
-    duration = rdfvalue.DurationSeconds.FromMicroseconds(3000000)
+    duration = rdfvalue.Duration.FromMicroseconds(3000000)
     self.assertEqual(duration.microseconds, 3000000)
     self.assertEqual(duration.seconds, 3)
 
@@ -240,7 +236,7 @@ class DurationTest(absltest.TestCase):
 
   def testFloatConstructorRaises(self):
     with self.assertRaises(TypeError):
-      rdfvalue.DurationSeconds(3.14)
+      rdfvalue.Duration(3.14)
 
 
 def main(argv):

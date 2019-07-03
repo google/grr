@@ -70,8 +70,8 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(hunt_urn, "aff4:/hunts/H:1234")
 
 
-class ApiCreateHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiCreateHuntHandler."""
 
@@ -87,8 +87,8 @@ class ApiCreateHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(result.hunt_runner_args.HasField("queue"))
 
 
-class ApiListHuntsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                              api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
                               hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiListHuntsHandler."""
 
@@ -243,8 +243,8 @@ class ApiListHuntsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEmpty(result.items)
 
 
-class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        hunt_test_lib.StandardHuntTestMixin,
+@db_test_lib.DualDBTest
+class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                                         api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -326,8 +326,8 @@ class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
             }, manifest)
 
 
-class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -402,7 +402,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.aff4_file_path,
-        timestamp=results[0].age + rdfvalue.DurationSeconds("1s"))
+        timestamp=results[0].age + rdfvalue.Duration("1s"))
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
 
@@ -416,7 +416,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         wrong_result = rdf_flows.GrrMessage(
             payload=rdfvalue.RDFString("foo/bar"),
             age=(result.age - (self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
-                 rdfvalue.DurationSeconds("1s")),
+                 rdfvalue.Duration("1s")),
             source=self.client_id)
         results.Add(
             wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
@@ -433,8 +433,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         client_id=self.client_id,
         vfs_path=self.aff4_file_path,
         timestamp=original_result.age -
-        (self.handler.MAX_RECORDS_TO_CHECK + 1) *
-        rdfvalue.DurationSeconds("1s"))
+        (self.handler.MAX_RECORDS_TO_CHECK + 1) * rdfvalue.Duration("1s"))
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
@@ -449,7 +448,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         client_id=self.client_id,
         vfs_path=self.aff4_file_path,
         timestamp=original_result.age -
-        self.handler.MAX_RECORDS_TO_CHECK * rdfvalue.DurationSeconds("1s"))
+        self.handler.MAX_RECORDS_TO_CHECK * rdfvalue.Duration("1s"))
 
     self.handler.Handle(args, token=self.token)
 
@@ -459,7 +458,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       original_result = results[0]
 
       with test_lib.FakeTime(original_result.timestamp -
-                             rdfvalue.DurationSeconds("1s")):
+                             rdfvalue.Duration("1s")):
         wrong_result = original_result.Copy()
         payload = wrong_result.payload
         payload.stat_entry.pathspec.path += "blah"
@@ -476,7 +475,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         payload = wrong_result.payload
         payload.stat_entry.pathspec.path += "blah"
         wrong_result.payload = payload
-        wrong_result.age -= rdfvalue.DurationSeconds("1s")
+        wrong_result.age -= rdfvalue.Duration("1s")
 
         results.Add(
             wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
@@ -534,9 +533,10 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
                      results[0].payload.stat_entry.st_size)
 
 
-class ApiListHuntOutputPluginLogsHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
-    hunt_test_lib.StandardHuntTestMixin):
+@db_test_lib.DualDBTest
+class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                             hunt_test_lib.StandardHuntTestMixin
+                                            ):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -614,8 +614,8 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertLen(result.items, 2)
 
 
-class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiModifyHuntHandler."""
 
@@ -716,7 +716,7 @@ class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
   def testModifiesHuntCorrectly(self):
     self.args.client_rate = 100
     self.args.client_limit = 42
-    self.args.duration = rdfvalue.DurationSeconds("1d")
+    self.args.duration = rdfvalue.Duration("1d")
 
     self.handler.Handle(self.args, token=self.token)
 
@@ -729,7 +729,7 @@ class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
-    self.assertEqual(after.duration, rdfvalue.DurationSeconds("1d"))
+    self.assertEqual(after.duration, rdfvalue.Duration("1d"))
 
   # New datastore implementation has a slightly different behavior.
   # client_rate/limit modification is applied before an attempt
@@ -751,8 +751,8 @@ class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertNotEqual(after.client_limit, 42)
 
 
-class ApiDeleteHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest,
+@db_test_lib.DualDBTest
+class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiDeleteHuntHandler."""
 
@@ -797,8 +797,8 @@ class ApiDeleteHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
             token=self.token)
 
 
-class ApiGetExportedHuntResultsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                           test_lib.GRRBaseTest,
+@db_test_lib.DualDBTest
+class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
                                            hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):

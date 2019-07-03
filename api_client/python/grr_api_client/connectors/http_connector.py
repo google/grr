@@ -208,8 +208,6 @@ class HttpConnector(connector.Connector):
       raise errors.AccessForbiddenError(message)
     elif response.status_code == 404:
       raise errors.ResourceNotFoundError(message)
-    elif response.status_code == 422:
-      raise errors.InvalidArgumentError(message)
     elif response.status_code == 501:
       raise errors.ApiNotImplementedError(message)
     else:
@@ -254,9 +252,8 @@ class HttpConnector(connector.Connector):
 
     with requests.Session() as session:
       session.trust_env = self.trust_env
-      options = session.merge_environment_settings(prepped_request.url,
-                                                   self.proxies or {}, None,
-                                                   self.verify, self.cert)
+      options = session.merge_environment_settings(
+          prepped_request.url, self.proxies or {}, None, self.verify, self.cert)
       response = session.send(prepped_request, **options)
 
     self._CheckResponseStatus(response)
@@ -279,9 +276,8 @@ class HttpConnector(connector.Connector):
 
     session = requests.Session()
     session.trust_env = self.trust_env
-    options = session.merge_environment_settings(prepped_request.url,
-                                                 self.proxies or {}, None,
-                                                 self.verify, self.cert)
+    options = session.merge_environment_settings(
+        prepped_request.url, self.proxies or {}, None, self.verify, self.cert)
     options["stream"] = True
     response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)

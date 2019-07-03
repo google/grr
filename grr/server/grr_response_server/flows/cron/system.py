@@ -38,7 +38,7 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 _STATS_DELETION_BATCH_SIZE = 10000
 
 # How often to save progress to the DB when deleting stats.
-_stats_checkpoint_period = rdfvalue.DurationSeconds("15m")
+_stats_checkpoint_period = rdfvalue.Duration("15m")
 
 # Label used for aggregating fleet statistics across all clients.
 _ALL_CLIENT_FLEET_STATS_LABEL = "All"
@@ -84,8 +84,8 @@ def _WriteFleetBreakdownStatsToDB(fleet_stats, report_type):
 class GRRVersionBreakDownCronJob(cronjobs.SystemCronJobBase):
   """Saves a snapshot of n-day-active stats for all GRR client versions."""
 
-  frequency = rdfvalue.DurationSeconds("6h")
-  lifetime = rdfvalue.DurationSeconds("6h")
+  frequency = rdfvalue.Duration("6h")
+  lifetime = rdfvalue.Duration("6h")
 
   def Run(self):
     version_stats = data_store.REL_DB.CountClientVersionStringsByLabel(
@@ -97,8 +97,8 @@ class GRRVersionBreakDownCronJob(cronjobs.SystemCronJobBase):
 class OSBreakDownCronJob(cronjobs.SystemCronJobBase):
   """Saves a snapshot of n-day-active stats for all client platform/releases."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
 
   def Run(self):
     platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
@@ -115,7 +115,7 @@ def _WriteFleetAggregateStatsToDB(client_label, bucket_dict):
   graph = rdf_stats.Graph()
   for day_bucket, num_actives in sorted(iteritems(bucket_dict)):
     graph.Append(
-        x_value=rdfvalue.DurationSeconds.FromDays(day_bucket).microseconds,
+        x_value=rdfvalue.Duration.FromDays(day_bucket).microseconds,
         y_value=num_actives)
   graph_series = rdf_stats.ClientGraphSeries(
       report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE)
@@ -126,8 +126,8 @@ def _WriteFleetAggregateStatsToDB(client_label, bucket_dict):
 class LastAccessStatsCronJob(cronjobs.SystemCronJobBase):
   """Saves a snapshot of generalized n-day-active stats."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration("1d")
+  lifetime = rdfvalue.Duration("20h")
 
   def Run(self):
     platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
@@ -206,7 +206,7 @@ def _IterateAllClients(recency_window=None):
   """Fetches client data from the relational db.
 
   Args:
-    recency_window: An rdfvalue.DurationSeconds specifying a window of last-ping
+    recency_window: An rdfvalue.Duration specifying a window of last-ping
       timestamps to consider. Clients that haven't communicated with GRR servers
       longer than the given period will be skipped. If recency_window is None,
       all clients will be iterated.
@@ -231,7 +231,7 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
 
   CLIENT_STATS_URN = rdfvalue.RDFURN("aff4:/stats/ClientFleetStats")
 
-  # An rdfvalue.DurationSeconds specifying a window of last-ping
+  # An rdfvalue.Duration specifying a window of last-ping
   # timestamps to analyze. Clients that haven't communicated with GRR servers
   # longer than the given period will be skipped.
   recency_window = None
@@ -313,8 +313,8 @@ class AbstractClientStatsCronFlow(aff4_cronjobs.SystemCronFlow):
 class GRRVersionBreakDown(AbstractClientStatsCronFlow):
   """Records relative ratios of GRR versions in 7 day actives."""
 
-  frequency = rdfvalue.DurationSeconds("4h")
-  recency_window = rdfvalue.DurationSeconds("30d")
+  frequency = rdfvalue.Duration("4h")
+  recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):
     self.counter = _ActiveCounter(
@@ -352,7 +352,7 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
 class OSBreakDown(AbstractClientStatsCronFlow):
   """Records relative ratios of OS versions in 7 day actives."""
 
-  recency_window = rdfvalue.DurationSeconds("30d")
+  recency_window = rdfvalue.Duration("30d")
 
   def BeginProcessing(self):
     self.counters = [
@@ -397,7 +397,7 @@ class OSBreakDown(AbstractClientStatsCronFlow):
 class LastAccessStats(AbstractClientStatsCronFlow):
   """Calculates a histogram statistics of clients last contacted times."""
 
-  recency_window = rdfvalue.DurationSeconds("60d")
+  recency_window = rdfvalue.Duration("60d")
 
   # The number of clients fall into these bins (number of hours ago)
   _bins = [1, 2, 3, 7, 14, 30, 60]
@@ -480,7 +480,7 @@ class InterrogationHuntMixin(object):
           client_rate=50,
           crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],
           description=description,
-          duration=rdfvalue.DurationSeconds("1w"),
+          duration=rdfvalue.Duration("1w"),
           output_plugins=self.GetOutputPlugins())
       self.Log("Started hunt %s.", hunt_id)
     else:
@@ -492,7 +492,7 @@ class InterrogationHuntMixin(object):
           output_plugins=self.GetOutputPlugins(),
           crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],
           client_rate=50,
-          expiry_time=rdfvalue.DurationSeconds("1w"),
+          expiry_time=rdfvalue.Duration("1w"),
           description=description,
           token=self.token) as hunt_obj:
 
@@ -504,9 +504,9 @@ class InterrogateClientsCronFlow(aff4_cronjobs.SystemCronFlow,
                                  InterrogationHuntMixin):
   """The legacy cron flow which runs an interrogate hunt on all clients."""
 
-  frequency = rdfvalue.DurationSeconds("1w")
+  frequency = rdfvalue.Duration("1w")
   # This just starts a hunt, which should be essentially instantantaneous
-  lifetime = rdfvalue.DurationSeconds("30m")
+  lifetime = rdfvalue.Duration("30m")
 
   def Start(self):
     self.StartInterrogationHunt()
@@ -520,9 +520,9 @@ class InterrogateClientsCronJob(cronjobs.SystemCronJobBase,
   fresh and enable searching by username etc. in the GUI.
   """
 
-  frequency = rdfvalue.DurationSeconds("1w")
+  frequency = rdfvalue.Duration("1w")
   # This just starts a hunt, which should be essentially instantantaneous
-  lifetime = rdfvalue.DurationSeconds("30m")
+  lifetime = rdfvalue.Duration("30m")
 
   def Run(self):
     self.StartInterrogationHunt()
@@ -531,7 +531,7 @@ class InterrogateClientsCronJob(cronjobs.SystemCronJobBase,
 class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
   """Deletes outdated client statistics."""
 
-  frequency = rdfvalue.DurationSeconds("1w")
+  frequency = rdfvalue.Duration("1w")
 
   def Start(self):
     """Calls "Process" state to avoid spending too much time in Start."""
@@ -566,8 +566,8 @@ class PurgeClientStats(aff4_cronjobs.SystemCronFlow):
 class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
   """Deletes outdated client statistics."""
 
-  frequency = rdfvalue.DurationSeconds("1w")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration("1w")
+  lifetime = rdfvalue.Duration("20h")
 
   def Run(self):
     end = rdfvalue.RDFDatetime.Now() - db.CLIENT_STATS_RETENTION

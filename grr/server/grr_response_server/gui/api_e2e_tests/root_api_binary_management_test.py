@@ -18,8 +18,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class RootApiBinaryManagementTest(db_test_lib.RelationalDBEnabledMixin,
-                                  api_e2e_test_lib.RootApiE2ETest):
+@db_test_lib.DualDBTest
+class RootApiBinaryManagementTest(api_e2e_test_lib.RootApiE2ETest):
   """E2E test for root API user management calls."""
 
   def _Upload(self, binary_type, path, data, private_key=None):

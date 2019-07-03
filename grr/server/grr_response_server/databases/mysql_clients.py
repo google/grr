@@ -9,6 +9,7 @@ from __future__ import unicode_literals
 import collections
 import itertools
 
+
 from future.utils import iterkeys
 from future.utils import itervalues
 
@@ -640,8 +641,8 @@ class MySQLDBClientMixin(object):
              "WHERE client_id = %s AND owner_username_hash = %s "
              "AND label IN ({})").format(", ".join(["%s"] * len(labels)))
     args = itertools.chain([
-        db_utils.ClientIDToInt(client_id),
-        mysql_utils.Hash(owner),
+      db_utils.ClientIDToInt(client_id), 
+      mysql_utils.Hash(owner),
     ], labels)
     cursor.execute(query, args)
 
@@ -838,7 +839,7 @@ class MySQLDBClientMixin(object):
       ping_cast_clauses.append(
           "CAST(c.last_ping > FROM_UNIXTIME(%s) AS UNSIGNED) AS {}".format(
               column_name))
-      timestamp_bucket = now - rdfvalue.DurationSeconds.FromDays(day_bucket)
+      timestamp_bucket = now - rdfvalue.Duration.FromDays(day_bucket)
       timestamp_buckets.append(
           mysql_utils.RDFDatetimeToTimestamp(timestamp_bucket))
 

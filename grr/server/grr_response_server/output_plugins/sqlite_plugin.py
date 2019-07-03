@@ -48,7 +48,7 @@ class Rdf2SqliteAdapter(object):
           Converter("INTEGER", lambda x: x.AsMicrosecondsSinceEpoch()),
       rdfvalue.RDFDatetimeSeconds:
           Converter("INTEGER", lambda x: x.AsSecondsSinceEpoch() * 1000000),
-      rdfvalue.DurationSeconds:
+      rdfvalue.Duration:
           Converter("INTEGER", lambda x: x.microseconds),
   }
 

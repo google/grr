@@ -41,7 +41,6 @@ from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
@@ -81,15 +80,13 @@ class ArtifactCollectorsTestMixin(object):
     self.output_count = 0
 
 
-class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
-                             ArtifactCollectorsTestMixin,
+@db_test_lib.DualDBTest
+class TestArtifactCollectors(ArtifactCollectorsTestMixin,
                              flow_test_lib.FlowTestsBaseclass):
   """Test the artifact collection mechanism with fake artifacts."""
 
   def testInterpolateArgs(self):
-    args = rdf_artifacts.ArtifactCollectorFlowArgs()
-    collect_flow = collectors.ArtifactCollectorFlow(
-        rdf_flow_objects.Flow(args=args))
+    collect_flow = aff4_flows.ArtifactCollectorFlow(None, token=self.token)
 
     kb = rdf_client.KnowledgeBase()
     kb.MergeOrAddUser(rdf_client.User(username="test1"))
@@ -97,6 +94,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
     collect_flow.state["knowledge_base"] = kb
 
     collect_flow.current_artifact_name = "blah"
+    collect_flow.args = rdf_artifacts.ArtifactCollectorFlowArgs()
 
     test_rdf = rdf_client.KnowledgeBase()
     action_args = {
@@ -136,10 +134,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
     self.assertCountEqual(list_args, [])
 
   def testGrepRegexCombination(self):
-    args = rdf_artifacts.ArtifactCollectorFlowArgs()
-    collect_flow = collectors.ArtifactCollectorFlow(
-        rdf_flow_objects.Flow(args=args))
-
+    collect_flow = aff4_flows.ArtifactCollectorFlow(None, token=self.token)
     self.assertEqual(collect_flow._CombineRegex([b"simple"]), b"simple")
     self.assertEqual(collect_flow._CombineRegex([b"a", b"b"]), b"(a)|(b)")
     self.assertEqual(
@@ -157,14 +152,12 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
         self.kwargs = kwargs
 
     mock_call_flow = MockCallFlow()
-    with utils.Stubber(collectors.ArtifactCollectorFlow, "CallFlow",
+    with utils.Stubber(aff4_flows.ArtifactCollectorFlow, "CallFlow",
                        mock_call_flow.CallFlow):
 
-      args = mock.Mock()
-      args.ignore_interpolation_errors = False
-
-      collect_flow = collectors.ArtifactCollectorFlow(
-          rdf_flow_objects.Flow(args=args))
+      collect_flow = aff4_flows.ArtifactCollectorFlow(None, token=self.token)
+      collect_flow.args = mock.Mock()
+      collect_flow.args.ignore_interpolation_errors = False
       kb = rdf_client.KnowledgeBase()
       kb.MergeOrAddUser(rdf_client.User(username="test1"))
       kb.MergeOrAddUser(rdf_client.User(username="test2"))
@@ -909,8 +902,8 @@ def InitGRRWithTestSources(self, artifacts_data):
   self.addCleanup(artifact_registry.REGISTRY.ClearSources)
 
 
-class ClientArtifactCollectorFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                                      flow_test_lib.FlowTestsBaseclass):
+@db_test_lib.DualDBTest
+class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the client side artifact collection test artifacts."""
 
   def setUp(self):

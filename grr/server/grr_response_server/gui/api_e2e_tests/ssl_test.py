@@ -29,13 +29,11 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiSslServerTestBase(db_test_lib.RelationalDBEnabledMixin,
-                           test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
+class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def setUp(self):
     super(ApiSslServerTestBase, self).setUp()

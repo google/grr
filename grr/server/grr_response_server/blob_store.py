@@ -121,10 +121,10 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       blob_ids: An iterable of BlobIDs.
-      timeout: A rdfvalue.DurationSeconds specifying the maximum time to pass
-        until the last poll is conducted. The overall runtime of
-        ReadAndWaitForBlobs can be higher, because `timeout` is a threshold for
-        the start (and not end) of the last attempt at reading.
+      timeout: A rdfvalue.Duration specifying the maximum time to pass until the
+        last poll is conducted. The overall runtime of ReadAndWaitForBlobs can
+        be higher, because `timeout` is a threshold for the start (and not end)
+        of the last attempt at reading.
 
     Returns:
       A map of {blob_id: blob_data} where blob_data is blob bytes previously
@@ -137,7 +137,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     # supports microsecond-precision.
     start_us = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
     # TODO: Implement truncated exponential backoff.
-    sleep_dur = rdfvalue.DurationSeconds.FromSeconds(1)
+    sleep_dur = rdfvalue.Duration.FromSeconds(1)
     poll_num = 0
 
     while remaining_ids:

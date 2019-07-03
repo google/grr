@@ -13,6 +13,8 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import export as flow_export
@@ -22,8 +24,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.GRRSeleniumHuntTest):
+@db_test_lib.DualDBTest
+class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt archive download functionality."""
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
@@ -184,7 +186,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
+    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
                        RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
@@ -206,7 +208,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
+    with utils.Stubber(archive_generator.GetCompatClass(), "Generate",
                        RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
@@ -298,7 +300,12 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
-    fd = file_store.OpenFile(flow_export.CollectionItemToClientPath(results[0]))
+    if data_store.RelationalDBEnabled():
+      fd = file_store.OpenFile(
+          flow_export.CollectionItemToClientPath(results[0]))
+    else:
+      fd = aff4.FACTORY.Open(
+          flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
     with mock.patch.object(fd.__class__, "Read") as mock_obj:
       self.Click(

@@ -22,7 +22,7 @@ from grr.test_lib import test_lib
 
 class FakeCronJob(flow.GRRFlow):
   """A Cron job which does nothing."""
-  lifetime = rdfvalue.DurationSeconds("1d")
+  lifetime = rdfvalue.Duration("1d")
 
   def Start(self):
     self.CallState(next_state="End")
@@ -38,7 +38,7 @@ class FailingFakeCronJob(aff4_cronjobs.SystemCronFlow):
 class OccasionallyFailingFakeCronJob(aff4_cronjobs.SystemCronFlow):
   """A Cron job that only fails."""
 
-  frequency = rdfvalue.DurationSeconds("30s")
+  frequency = rdfvalue.Duration("30s")
 
   def Start(self):
     if time.time() > 30:
@@ -48,8 +48,8 @@ class OccasionallyFailingFakeCronJob(aff4_cronjobs.SystemCronFlow):
 class DummySystemCronJob(aff4_cronjobs.SystemCronFlow):
   """Dummy system cron job."""
 
-  lifetime = rdfvalue.DurationSeconds("42h")
-  frequency = rdfvalue.DurationSeconds("42d")
+  lifetime = rdfvalue.Duration("42h")
+  frequency = rdfvalue.Duration("42d")
 
   def Start(self):
     self.CallState(next_state="End")
@@ -77,8 +77,8 @@ class DummyDisabledSystemCronJob(DummySystemCronJob):
 
 
 class TestSystemCron(aff4_cronjobs.SystemCronFlow):
-  frequency = rdfvalue.DurationSeconds("10m")
-  lifetime = rdfvalue.DurationSeconds("12h")
+  frequency = rdfvalue.Duration("10m")
+  lifetime = rdfvalue.Duration("12h")
 
 
 class CronTest(aff4_test_lib.AFF4ObjectTest):
@@ -115,7 +115,7 @@ class CronTest(aff4_test_lib.AFF4ObjectTest):
 
     self.assertEqual(cron_args.flow_args.hunt_args.flow_args.pathspec, pathspec)
 
-    self.assertEqual(cron_args.periodicity, rdfvalue.DurationSeconds("1d"))
+    self.assertEqual(cron_args.periodicity, rdfvalue.Duration("1d"))
     self.assertEqual(cron_args.allow_overruns, False)
 
   def testCronJobStartsFlowAndCreatesSymlinkOnRun(self):

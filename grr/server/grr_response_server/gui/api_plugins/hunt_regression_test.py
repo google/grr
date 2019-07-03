@@ -119,7 +119,7 @@ class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
             age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
         results.Add(
             result,
-            timestamp=result.age + rdfvalue.DurationSeconds("1s"),
+            timestamp=result.age + rdfvalue.Duration("1s"),
             mutation_pool=pool)
 
         result = rdf_flows.GrrMessage(
@@ -128,7 +128,7 @@ class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
             age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
         results.Add(
             result,
-            timestamp=result.age + rdfvalue.DurationSeconds("1s"),
+            timestamp=result.age + rdfvalue.Duration("1s"),
             mutation_pool=pool)
 
     replace = {hunt_id: "H:123456"}

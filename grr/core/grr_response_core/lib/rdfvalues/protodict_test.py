@@ -288,7 +288,7 @@ class EmbeddedRDFValueTest(rdf_test_base.RDFProtoTestMixin,
 
     now = rdfvalue.RDFDatetime.Now()
 
-    self.assertLess((now - data.age), rdfvalue.DurationSeconds("5s"))
+    self.assertLess((now - data.age), rdfvalue.Duration("5s"))
 
     embedded = rdf_protodict.EmbeddedRDFValue(payload=data)
     self.assertEqual(embedded.payload.age, original_age)

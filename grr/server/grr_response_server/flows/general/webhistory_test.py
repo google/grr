@@ -48,8 +48,8 @@ class WebHistoryFlowTestMixin(flow_test_lib.FlowTestsBaseclass):
     return utils.Stubber(client_utils, "GetRawDevice", MockGetRawdevice)
 
 
-class TestWebHistory(db_test_lib.RelationalDBEnabledMixin,
-                     WebHistoryFlowTestMixin):
+@db_test_lib.DualDBTest
+class TestWebHistory(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):
@@ -164,8 +164,8 @@ class TestWebHistory(db_test_lib.RelationalDBEnabledMixin,
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
 
 
-class TestWebHistoryWithArtifacts(db_test_lib.RelationalDBEnabledMixin,
-                                  WebHistoryFlowTestMixin):
+@db_test_lib.DualDBTest
+class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):

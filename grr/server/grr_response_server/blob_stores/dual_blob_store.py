@@ -93,9 +93,6 @@ class DualBlobStore(blob_store.BlobStore):
     self._primary = _InstantiateBlobStore(primary)
     self._secondary = _InstantiateBlobStore(secondary)
     self._queue = queue.Queue(_SECONDARY_WRITE_QUEUE_MAX_LENGTH)
-
-    # Signal that can be set to False from tests to stop the background
-    # processing thread.
     self._thread_running = True
     self._thread = threading.Thread(target=self._WriteBlobsIntoSecondary)
     self._thread.daemon = True

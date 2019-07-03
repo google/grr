@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import flow_base
+from grr_response_server import flow
 from grr_response_server import server_stubs
 
 
@@ -18,7 +18,7 @@ class PlistValueFilterArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-class PlistValueFilter(flow_base.FlowBase):
+class PlistValueFilter(flow.GRRFlow):
   """Obtains values from a plist based on a context and a query filter.
 
   This function will parse a plist. Obtain all the values under the path given
@@ -66,6 +66,6 @@ class PlistValueFilter(flow_base.FlowBase):
   def Receive(self, responses):
     if not responses.success:
       self.Error("Could not retrieve value: %s" % responses.status)
-
-    for response in responses.First().content:
-      self.SendReply(response)
+    else:
+      for response in responses.First():
+        self.SendReply(response)

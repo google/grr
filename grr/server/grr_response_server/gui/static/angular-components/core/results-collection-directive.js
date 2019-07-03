@@ -6,7 +6,7 @@ const {getPathSpecFromValue} = goog.require('grrUi.core.fileDownloadUtils');
 
 
 /** @type {number} */
-let autoRefreshIntervalMs = 20 * 1000;
+let AUTO_REFRESH_INTERVAL_MS = 20 * 1000;
 
 /**
  * Sets the delay between automatic refreshes of the results collection.
@@ -15,7 +15,7 @@ let autoRefreshIntervalMs = 20 * 1000;
  * @export
  */
 exports.setAutoRefreshInterval = function(millis) {
-  autoRefreshIntervalMs = millis;
+  AUTO_REFRESH_INTERVAL_MS = millis;
 };
 
 
@@ -43,7 +43,7 @@ const ResultsCollectionController = function(
   this.resultsAreFiles;
 
   /** @type {number} */
-  this.autoRefreshInterval = autoRefreshIntervalMs;
+  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
   /** @private {number} */
   this.numCheckedItems_ = 0;

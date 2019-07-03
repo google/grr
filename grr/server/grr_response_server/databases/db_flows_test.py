@@ -111,7 +111,7 @@ class DatabaseTestFlowMixin(object):
           rdf_flows.ClientActionRequest(
               client_id=client_id, flow_id=flow_id, request_id=i))
 
-    lease_time = rdfvalue.DurationSeconds("5m")
+    lease_time = rdfvalue.Duration("5m")
     self.db.WriteFlowRequests(flow_requests)
     self.db.WriteClientActionRequests(client_requests)
 
@@ -191,10 +191,10 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL)
 
     now = rdfvalue.RDFDatetime.Now()
-    lease_time = rdfvalue.DurationSeconds("60s")
+    lease_time = rdfvalue.Duration("60s")
 
     for i in range(db.Database.CLIENT_MESSAGES_TTL):
-      now += rdfvalue.DurationSeconds("120s")
+      now += rdfvalue.Duration("120s")
       with test_lib.FakeTime(now):
         leased = self.db.LeaseClientActionRequests(
             client_id, lease_time=lease_time, limit=10)
@@ -210,7 +210,7 @@ class DatabaseTestFlowMixin(object):
         for request in reqs:
           self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
 
-    now += rdfvalue.DurationSeconds("120s")
+    now += rdfvalue.Duration("120s")
     with test_lib.FakeTime(now):
       leased = self.db.LeaseClientActionRequests(
           client_id, lease_time=lease_time, limit=10)
@@ -328,15 +328,15 @@ class DatabaseTestFlowMixin(object):
         rdf_flow_objects.Flow(
             client_id=client_id_1,
             flow_id="0000001A",
-            create_time=now - rdfvalue.DurationSeconds("2h")))
+            create_time=now - rdfvalue.Duration("2h")))
     self.db.WriteFlowObject(
         rdf_flow_objects.Flow(
             client_id=client_id_1,
             flow_id="0000001B",
-            create_time=now - rdfvalue.DurationSeconds("1h")))
+            create_time=now - rdfvalue.Duration("1h")))
 
     flows = self.db.ReadAllFlowObjects(min_create_time=now -
-                                       rdfvalue.DurationSeconds("1h"))
+                                       rdfvalue.Duration("1h"))
     self.assertEqual([f.flow_id for f in flows], ["0000001B"])
 
   def testReadAllFlowObjectsWithMaxCreateTime(self):
@@ -348,15 +348,15 @@ class DatabaseTestFlowMixin(object):
         rdf_flow_objects.Flow(
             client_id=client_id_1,
             flow_id="0000001A",
-            create_time=now - rdfvalue.DurationSeconds("2h")))
+            create_time=now - rdfvalue.Duration("2h")))
     self.db.WriteFlowObject(
         rdf_flow_objects.Flow(
             client_id=client_id_1,
             flow_id="0000001B",
-            create_time=now - rdfvalue.DurationSeconds("1h")))
+            create_time=now - rdfvalue.Duration("1h")))
 
     flows = self.db.ReadAllFlowObjects(max_create_time=now -
-                                       rdfvalue.DurationSeconds("2h"))
+                                       rdfvalue.Duration("2h"))
     self.assertEqual([f.flow_id for f in flows], ["0000001A"])
 
   def testReadAllFlowObjectsWithClientID(self):
@@ -414,12 +414,12 @@ class DatabaseTestFlowMixin(object):
         rdf_flow_objects.Flow(
             client_id=client_id_1,
             flow_id="0000000C",
-            create_time=now - rdfvalue.DurationSeconds.FromSeconds(1)))
+            create_time=now - rdfvalue.Duration.FromSeconds(1)))
     self.db.WriteFlowObject(
         rdf_flow_objects.Flow(
             client_id=client_id_1,
             flow_id="0000000D",
-            create_time=now + rdfvalue.DurationSeconds.FromSeconds(1)))
+            create_time=now + rdfvalue.Duration.FromSeconds(1)))
     self.db.WriteFlowObject(
         rdf_flow_objects.Flow(
             client_id=client_id_2, flow_id="0000000E", create_time=now))
@@ -511,7 +511,7 @@ class DatabaseTestFlowMixin(object):
     client_id, flow_id = self._SetupClientAndFlow()
 
     now = rdfvalue.RDFDatetime.Now()
-    deadline = now + rdfvalue.DurationSeconds("6h")
+    deadline = now + rdfvalue.Duration("6h")
     self.db.UpdateFlow(
         client_id,
         flow_id,
@@ -653,8 +653,7 @@ class DatabaseTestFlowMixin(object):
           marked_found = True
 
       time.sleep(0.1)
-      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.DurationSeconds(
-          "10s"):
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
         self.fail("Flow request was not processed in time.")
 
   def testRequestWritingHighIDDoesntTriggerFlowProcessing(self):
@@ -690,7 +689,7 @@ class DatabaseTestFlowMixin(object):
         flow_id=flow_id,
         client_id=client_id,
         request_id=3,
-        start_time=cur_time + rdfvalue.DurationSeconds("2s"),
+        start_time=cur_time + rdfvalue.Duration("2s"),
         needs_processing=True)
 
     self.db.WriteFlowRequests([request])
@@ -698,12 +697,11 @@ class DatabaseTestFlowMixin(object):
 
     while req_func.call_count == 0:
       time.sleep(0.1)
-      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.DurationSeconds(
-          "10s"):
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
         self.fail("Flow request was not processed in time.")
 
     self.assertGreaterEqual(rdfvalue.RDFDatetime.Now() - cur_time,
-                            rdfvalue.DurationSeconds("2s"))
+                            rdfvalue.Duration("2s"))
 
   def testDeleteFlowRequests(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -1010,8 +1008,7 @@ class DatabaseTestFlowMixin(object):
       if req_func.call_count == 1:
         break
       time.sleep(0.1)
-      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.DurationSeconds(
-          "10s"):
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
         self.fail("Flow request was not processed in time.")
 
     req_func.reset_mock()
@@ -1049,8 +1046,7 @@ class DatabaseTestFlowMixin(object):
           marked_found = True
 
       time.sleep(0.1)
-      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.DurationSeconds(
-          "10s"):
+      if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration("10s"):
         self.fail("Flow request was not processed in time.")
 
   def testResponsesAnyRequestTriggerClientActionRequestDeletion(self):
@@ -1171,7 +1167,7 @@ class DatabaseTestFlowMixin(object):
 
     client_id, flow_id = self._SetupClientAndFlow(
         parent_hunt_id=hunt_obj.hunt_id)
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
 
     with self.assertRaises(db.ParentHuntIsNotRunningError):
       self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
@@ -1190,7 +1186,7 @@ class DatabaseTestFlowMixin(object):
 
   def testLeaseFlowForProcessingThatIsAlreadyBeingProcessed(self):
     client_id, flow_id = self._SetupClientAndFlow()
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
 
     flow_for_processing = self.db.LeaseFlowForProcessing(
         client_id, flow_id, processing_time)
@@ -1206,7 +1202,7 @@ class DatabaseTestFlowMixin(object):
 
   def testLeaseFlowForProcessingAfterProcessingTimeExpiration(self):
     client_id, flow_id = self._SetupClientAndFlow()
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
     now = rdfvalue.RDFDatetime.Now()
 
     with test_lib.FakeTime(now):
@@ -1216,7 +1212,7 @@ class DatabaseTestFlowMixin(object):
     with self.assertRaises(ValueError):
       self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
-    after_deadline = now + processing_time + rdfvalue.DurationSeconds("1s")
+    after_deadline = now + processing_time + rdfvalue.Duration("1s")
     with test_lib.FakeTime(after_deadline):
       # Should work again.
       self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
@@ -1226,7 +1222,7 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteHuntObject(hunt_obj)
     hunt_id = hunt_obj.hunt_id
 
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
 
     client_id, flow_id = self._SetupClientAndFlow(parent_hunt_id=hunt_id)
     flow_for_processing = self.db.LeaseFlowForProcessing(
@@ -1251,7 +1247,7 @@ class DatabaseTestFlowMixin(object):
     client_id, flow_id = self._SetupClientAndFlow()
 
     now = rdfvalue.RDFDatetime.Now()
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
     processing_deadline = now + processing_time
 
     with test_lib.FakeTime(now):
@@ -1286,7 +1282,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_flow.num_replies_sent, 10)
 
   def testFlowLastUpateTime(self):
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
 
     t0 = rdfvalue.RDFDatetime.Now()
     client_id, flow_id = self._SetupClientAndFlow()
@@ -1310,7 +1306,7 @@ class DatabaseTestFlowMixin(object):
   def testReleaseProcessedFlow(self):
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=1)
 
-    processing_time = rdfvalue.DurationSeconds("60s")
+    processing_time = rdfvalue.Duration("60s")
 
     processed_flow = self.db.LeaseFlowForProcessing(client_id, flow_id,
                                                     processing_time)
@@ -1598,7 +1594,7 @@ class DatabaseTestFlowMixin(object):
     flow_ids.sort()
 
     now = rdfvalue.RDFDatetime.Now()
-    delivery_time = now + rdfvalue.DurationSeconds("10m")
+    delivery_time = now + rdfvalue.Duration("10m")
     requests = []
     for flow_id in flow_ids:
       requests.append(

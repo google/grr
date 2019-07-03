@@ -26,11 +26,11 @@ message ApiCronJob {
   optional ApiDataObject state = 8
       [(sem_type) = { description: "Current job state." }];
   optional uint64 frequency = 9 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "Interval between cron runs."
   }];
   optional uint64 lifetime = 10 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "How long each run of the cron should be allowed to run. "
                  "Runs that exceed lifetime will be killed. This is complimentary but "
                  "different to periodicity e.g. it allows us to run jobs weekly that "
@@ -74,11 +74,11 @@ message ApiCreateCronJobArgs {
   optional string description = 4
       [(sem_type) = { description: "Cron job description." }];
   optional uint64 periodicity = 5 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "Interval between cron runs."
   }];
   optional uint64 lifetime = 6 [(sem_type) = {
-    type: "DurationSeconds",
+    type: "Duration",
     description: "How long each run of the cron should be allowed to run. "
                  "Runs that exceed lifetime will be killed. This is complimentary but"
                  " different to periodicity e.g. it allows us to run jobs weekly that"

@@ -24,7 +24,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def setUp(self):
     super(ApprovalTest, self).setUp()
     self.client_id = self.SetupClient(0)
-    self.approval_expiration = rdfvalue.DurationSeconds(
+    self.approval_expiration = rdfvalue.Duration(
         "%ds" % config.CONFIG["ACL.token_expiry"])
 
   def testGetApprovalForObjectRaisesWhenTokenIsNone(self):
@@ -43,7 +43,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Make sure approval is expired by the time we call GetApprovalForObject.
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now + self.approval_expiration +
-                           rdfvalue.DurationSeconds("1s")):
+                           rdfvalue.Duration("1s")):
       with self.assertRaisesRegexp(
           access_control.UnauthorizedAccess,
           "Need at least 2 additional approvers for access."):
@@ -58,7 +58,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # GetApprovalForObject.
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now + self.approval_expiration +
-                           rdfvalue.DurationSeconds("1s")):
+                           rdfvalue.Duration("1s")):
       with self.assertRaisesRegexp(
           access_control.UnauthorizedAccess,
           "Need at least 2 additional approvers for access."):
@@ -81,7 +81,7 @@ class ApprovalTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Make sure only the first approval is expired by the time
     # GetApprovalForObject is called.
     with test_lib.FakeTime(now + self.approval_expiration +
-                           rdfvalue.DurationSeconds("1h")):
+                           rdfvalue.Duration("1h")):
       approved_token = security.Approval.GetApprovalForObject(
           self.client_id, token=self.token)
       self.assertEqual(approved_token.reason, "reason2")

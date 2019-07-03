@@ -159,8 +159,6 @@ class HttpApiRegressionTestMixinBase(object):
     return check_result
 
 
-# TODO(amoser): Clean up comments and naming.
-
 # Each mixin below configures a different way for regression tests to run. After
 # AFF4 is gone, there will be only 2 mixins left here (http API v1 and http
 # API v2). At the moment we have v1 with rel_db, v1 without, v2 with rel_db,
@@ -174,6 +172,22 @@ class HttpApiRegressionTestMixinBase(object):
 # the point of REL_DB enabled tests is that they should stay compatible with
 # the current API behavior. So we direct them to use same golden files -
 # hence the duplication. Again, this will go away soon.
+
+
+class HttpApiV1RegressionTestMixin(HttpApiRegressionTestMixinBase):
+  """Test class for HTTP v1 protocol."""
+
+  connection_type = "http_v1"
+  skip_legacy_dynamic_proto_tests = False
+  api_version = 1
+
+  def testRelationalDBReadsDisabled(self):
+    self.assertFalse(data_store.RelationalDBEnabled())
+
+  @property
+  def output_file_name(self):
+    return os.path.join(DOCUMENT_ROOT,
+                        "angular-components/docs/api-docs-examples.json")
 
 
 class HttpApiV1RelationalDBRegressionTestMixin(
@@ -194,6 +208,22 @@ class HttpApiV1RelationalDBRegressionTestMixin(
   def output_file_name(self):
     return os.path.join(DOCUMENT_ROOT,
                         "angular-components/docs/api-docs-examples.json")
+
+
+class HttpApiV2RegressionTestMixin(HttpApiRegressionTestMixinBase):
+  """Test class for HTTP v2 protocol."""
+
+  connection_type = "http_v2"
+  skip_legacy_dynamic_proto_tests = True
+  api_version = 2
+
+  def testRelationalDBReadsDisabled(self):
+    self.assertFalse(data_store.RelationalDBEnabled())
+
+  @property
+  def output_file_name(self):
+    return os.path.join(DOCUMENT_ROOT,
+                        "angular-components/docs/api-v2-docs-examples.json")
 
 
 class HttpApiV2RelationalDBRegressionTestMixin(

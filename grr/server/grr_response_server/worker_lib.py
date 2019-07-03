@@ -53,7 +53,7 @@ class GRRWorker(object):
   SHORT_POLL_TIME = 30
 
   # Time to wait between trying to lease message handlers.
-  MH_LEASE_INTERVAL = rdfvalue.DurationSeconds("15s")
+  MH_LEASE_INTERVAL = rdfvalue.Duration("15s")
 
   # target maximum time to spend on RunOnce
   RUN_ONCE_MAX_SECONDS = 300
@@ -61,7 +61,7 @@ class GRRWorker(object):
   # Duration of a flow lease time in seconds.
   flow_lease_time = 3600
   # Duration of a well known flow lease time in seconds.
-  well_known_flow_lease_time = rdfvalue.DurationSeconds("600s")
+  well_known_flow_lease_time = rdfvalue.Duration("600s")
 
   def __init__(self,
                queues=queues_config.WORKER_LIST,
@@ -403,7 +403,7 @@ class GRRWorker(object):
 
     try:
       rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
-          client_id, flow_id, processing_time=rdfvalue.DurationSeconds("6h"))
+          client_id, flow_id, processing_time=rdfvalue.Duration("6h"))
     except db.ParentHuntIsNotRunningError:
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return

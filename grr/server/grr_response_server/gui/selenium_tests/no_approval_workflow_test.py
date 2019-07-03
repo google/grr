@@ -15,8 +15,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestWorkflowWithoutApprovals(db_test_lib.RelationalDBEnabledMixin,
-                                   gui_test_lib.GRRSeleniumTest):
+@db_test_lib.DualDBTest
+class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
   """Tests acl policies when approvals system is not used."""
 
   def setUp(self):

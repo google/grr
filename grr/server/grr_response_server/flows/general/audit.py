@@ -24,7 +24,7 @@ from grr_response_server import sequential_collection
 
 AUDIT_EVENT = "Audit"
 
-AUDIT_ROLLOVER_TIME = rdfvalue.DurationSeconds("2w")
+AUDIT_ROLLOVER_TIME = rdfvalue.Duration("2w")
 
 
 class AuditEventCollection(sequential_collection.IndexedSequentialCollection):

@@ -25,8 +25,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class RemoteUserWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RemoteUserWebAuthManagerTest, self).setUp()
@@ -82,8 +82,8 @@ class RemoteUserWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(response, self.success_response)
 
 
-class FirebaseWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
-                                 test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(FirebaseWebAuthManagerTest, self).setUp()
@@ -287,8 +287,8 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(response.status_code, 200)
 
 
-class BasicWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
-                              test_lib.GRRBaseTest):
+@db_test_lib.DualDBTest
+class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def _SetupUser(self, user, password):
     if data_store.AFF4Enabled():

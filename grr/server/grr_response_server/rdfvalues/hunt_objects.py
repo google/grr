@@ -71,7 +71,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
       HuntArguments,
       foreman_rules.ForemanClientRuleSet,
       rdfvalue.RDFDatetime,
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
       rdf_hunts.FlowLikeObjectReference,
       rdf_output_plugin.OutputPluginDescriptor,
   ]
@@ -86,7 +86,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
       self.hunt_state = self.HuntState.PAUSED
 
     if not self.HasField("duration"):
-      self.duration = rdfvalue.DurationSeconds("2w")
+      self.duration = rdfvalue.Duration("2w")
 
     if not self.HasField("client_rate"):
       self.client_rate = 20.5
@@ -138,7 +138,7 @@ class HuntMetadata(rdf_structs.RDFProtoStruct):
   protobuf = hunts_pb2.HuntMetadata
   rdf_deps = [
       rdfvalue.RDFDatetime,
-      rdfvalue.DurationSeconds,
+      rdfvalue.Duration,
   ]
 
   @classmethod

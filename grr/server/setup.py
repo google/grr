@@ -155,6 +155,8 @@ setup_args = dict(
             "grr_response_server.distro_entry:Worker",
             "grr_admin_ui = "
             "grr_response_server.distro_entry:AdminUI",
+            "grr_fuse = "
+            "grr_response_server.distro_entry:GRRFuse",
         ]
     },
     install_requires=[

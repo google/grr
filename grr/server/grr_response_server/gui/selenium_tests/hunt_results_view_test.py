@@ -20,8 +20,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHuntResultsView(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumHuntTest):
+@db_test_lib.DualDBTest
+class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntResultsView(self):
     hunt_urn, _ = self.CreateGenericHuntWithCollection()

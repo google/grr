@@ -18,13 +18,11 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 class ClientStatsCollector(threading.Thread):
   """This thread keeps track of client stats."""
 
-  SLEEP_DURATION = rdfvalue.DurationSeconds(
-      "10s")  # A delay between main loop ticks.
-  KEEP_DURATION = rdfvalue.DurationSeconds(
-      "1h")  # How long we preserve samples.
+  SLEEP_DURATION = rdfvalue.Duration("10s")  # A delay between main loop ticks.
+  KEEP_DURATION = rdfvalue.Duration("1h")  # How long we preserve samples.
 
-  MIN_SEND_INTERVAL = rdfvalue.DurationSeconds("60s")
-  MAX_SEND_INTERVAL = rdfvalue.DurationSeconds("50m")
+  MIN_SEND_INTERVAL = rdfvalue.Duration("60s")
+  MAX_SEND_INTERVAL = rdfvalue.Duration("50m")
 
   # TODO(hanuszczak): This is a hack used to make `grr/server/front_end_test.py`
   # work. While not terrible, including any kind of hacks to production code

@@ -12,6 +12,7 @@ import mock
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
+from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.flows.general import processes as flows_processes
@@ -26,8 +27,8 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowCopy(db_test_lib.RelationalDBEnabledMixin,
-                   gui_test_lib.GRRSeleniumTest,
+@db_test_lib.DualDBTest
+class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -163,18 +164,31 @@ class TestFlowCopy(db_test_lib.RelationalDBEnabledMixin,
         "tr:contains('ListProcesses'):nth(0).row-selected")
 
     # Now open the last flow and check that it has the changes we made.
-    flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=self.client_id.Basename())
-    flows.sort(key=lambda f: f.create_time)
-    fobj = flows[-1]
+    if data_store.RelationalDBEnabled():
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id=self.client_id.Basename())
+      flows.sort(key=lambda f: f.create_time)
+      fobj = flows[-1]
 
-    self.assertListEqual(
-        list(fobj.output_plugins), [
-            rdf_output_plugin.OutputPluginDescriptor(
-                plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
-                plugin_args=flows_processes.ListProcessesArgs(
-                    filename_regex="foobar!")), self.email_descriptor
-        ])
+      self.assertListEqual(
+          list(fobj.output_plugins), [
+              rdf_output_plugin.OutputPluginDescriptor(
+                  plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
+                  plugin_args=flows_processes.ListProcessesArgs(
+                      filename_regex="foobar!")), self.email_descriptor
+          ])
+    else:
+      fd = aff4.FACTORY.Open(self.client_id.Add("flows"), token=self.token)
+      flows = sorted(fd.ListChildren(), key=lambda x: x.age)
+      fobj = aff4.FACTORY.Open(flows[-1], token=self.token)
+      self.assertListEqual(
+          list(fobj.runner_args.output_plugins), [
+              rdf_output_plugin.OutputPluginDescriptor(
+                  plugin_name=gui_test_lib.DummyOutputPlugin.__name__,
+                  plugin_args=flows_processes.ListProcessesArgs(
+                      filename_regex="foobar!")), self.email_descriptor
+          ])
+
     self.assertEqual(
         fobj.args,
         flows_processes.ListProcessesArgs(filename_regex="somethingElse*",))

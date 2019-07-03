@@ -31,7 +31,7 @@ describe('duration form directive', () => {
 
   it('shows nothing if duration value is null', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: null,
     });
     expect(element.find('input').val()).toBe('');
@@ -39,7 +39,7 @@ describe('duration form directive', () => {
 
   it('shows 0 if duration value is 0', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     });
     expect(element.find('input').val()).toBe('0');
@@ -47,7 +47,7 @@ describe('duration form directive', () => {
 
   it('shows correct duration for large numbers', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 1040688000000,
     });
     expect(element.find('input').val()).toBe('12045000d');
@@ -55,7 +55,7 @@ describe('duration form directive', () => {
 
   it('shows duration in seconds if it\'s not divisible by 60', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 122,
     });
     expect(element.find('input').val()).toBe('122s');
@@ -63,7 +63,7 @@ describe('duration form directive', () => {
 
   it('shows duration in minutes if possible', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 120,
     });
     expect(element.find('input').val()).toBe('2m');
@@ -71,7 +71,7 @@ describe('duration form directive', () => {
 
   it('shows duration in hours if possible', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 7200,
     });
     expect(element.find('input').val()).toBe('2h');
@@ -79,7 +79,7 @@ describe('duration form directive', () => {
 
   it('shows duration in days if possible', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 172800,
     });
     expect(element.find('input').val()).toBe('2d');
@@ -87,7 +87,7 @@ describe('duration form directive', () => {
 
   it('shows duration in weeks if possible', () => {
     const element = renderTestTemplate({
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 1209600,
     });
     expect(element.find('input').val()).toBe('2w');
@@ -95,7 +95,7 @@ describe('duration form directive', () => {
 
   it('sets value to null on incorrect input', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -107,7 +107,7 @@ describe('duration form directive', () => {
 
   it('shows warning on incorrect input', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -119,7 +119,7 @@ describe('duration form directive', () => {
 
   it('correctly updates the value when input is in weeks', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -131,7 +131,7 @@ describe('duration form directive', () => {
 
   it('correctly updates the value when input is in days', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -143,7 +143,7 @@ describe('duration form directive', () => {
 
   it('correctly updates the value when input is in hours', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -155,7 +155,7 @@ describe('duration form directive', () => {
 
   it('correctly updates the value when input is in minutes', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -167,7 +167,7 @@ describe('duration form directive', () => {
 
   it('correctly updates the value when input is in seconds', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);
@@ -179,7 +179,7 @@ describe('duration form directive', () => {
 
   it('treats values without unit as seconds', () => {
     const value = {
-      type: 'DurationSeconds',
+      type: 'Duration',
       value: 0,
     };
     const element = renderTestTemplate(value);

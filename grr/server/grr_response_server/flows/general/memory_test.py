@@ -135,8 +135,8 @@ class FakeMemoryProcess(object):
       yield start, len(data)
 
 
-class TestYaraFlows(db_test_lib.RelationalDBEnabledMixin,
-                    flow_test_lib.FlowTestsBaseclass):
+@db_test_lib.DualDBTest
+class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the Yara flows."""
 
   def process(self, processes, pid=None):
