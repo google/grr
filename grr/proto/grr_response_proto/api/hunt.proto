@@ -79,7 +79,7 @@ message ApiHunt {
     description: "Expiration time of the hunt."
   }];
   optional uint64 duration = 29 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "The maximum amount of time that the hunt is allowed to run."
   }];
   optional string creator = 14
@@ -201,7 +201,7 @@ message ApiListHuntsArgs {
                  "prevent queries of death)."
   }];
   optional uint64 active_within = 5 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Only return hunts that were active within given time "
                  "duration."
   }];
@@ -493,7 +493,7 @@ message ApiModifyHuntArgs {
     description: "When the hunt should expire."
   }];
   optional uint64 duration = 6 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Maximum amount of time the hunt is allowed to run."
   }];
 }

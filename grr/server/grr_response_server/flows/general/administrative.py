@@ -904,7 +904,7 @@ class ClientStartupHandlerMixin(object):
 
   def WriteClientStartupInfo(self, client_id, new_si):
     """Handle a startup event."""
-    drift = rdfvalue.Duration("5m")
+    drift = rdfvalue.DurationSeconds("5m")
 
     if data_store.RelationalDBEnabled():
       current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
@@ -970,7 +970,7 @@ class ClientStartupHandler(ClientStartupHandlerMixin,
 class KeepAliveArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KeepAliveArgs
   rdf_deps = [
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
   ]
 
 

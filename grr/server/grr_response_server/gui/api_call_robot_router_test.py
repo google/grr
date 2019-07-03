@@ -33,8 +33,8 @@ class AnotherArtifactCollectorMixin(object):
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
 
 
-@db_test_lib.DualDBTest
-class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
+class ApiRobotCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                    test_lib.GRRBaseTest):
   """Tests for ApiRobotCreateFlowHandler."""
 
   def setUp(self):
@@ -75,8 +75,8 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(f.args.paths, ["bar"])
 
 
-@db_test_lib.DualDBTest
-class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
+class ApiCallRobotRouterTest(db_test_lib.RelationalDBEnabledMixin,
+                             acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
   """Tests for ApiCallRobotRouter."""
 
   def _CreateRouter(self, delegate=None, **kwargs):

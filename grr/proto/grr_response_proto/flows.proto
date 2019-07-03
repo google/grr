@@ -91,7 +91,7 @@ message HuntContext {
     type: "RDFDatetime",
   }];
   optional uint64 duration = 17 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
   }];
   optional uint64 network_bytes_sent = 5;
   optional uint64 next_client_due = 6 [(sem_type) = {
@@ -365,7 +365,7 @@ message HuntRunnerArgs {
 
   optional uint64 expiry_time = 11 [
     (sem_type) = {
-      type: "Duration",
+      type: "DurationSeconds",
       description: "Expiry time for the hunt.",
       friendly_name: "Expiry Time",
     },
@@ -656,7 +656,7 @@ message UpdateClientArgs {
 message KeepAliveArgs {
   optional uint64 duration = 1 [
     (sem_type) = {
-      type: "Duration",
+      type: "DurationSeconds",
       description: "Until when should the client stay in the fast poll mode.",
     },
     default = 3600
@@ -997,31 +997,6 @@ message RecursiveListDirectoryArgs {
   ];
 }
 
-// Next field ID: 4
-message FetchBufferForSparseImageArgs {
-  optional string file_urn = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "The URN of the sparse image to update",
-  }];
-  optional uint64 length = 2;
-  optional uint64 offset = 3;
-}
-
-// Next field ID: 3
-message MakeNewAFF4SparseImageArgs {
-  optional PathSpec pathspec = 1;
-  optional uint64 size_threshold = 2;
-}
-
-// Next field ID: 3
-message UpdateSparseImageChunksArgs {
-  optional string file_urn = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "The URN of the sparse image to update",
-  }];
-  repeated uint64 chunks_to_fetch = 2;
-}
-
 // Next field ID: 2
 message GrepArgs {
   optional GrepSpec request = 1;
@@ -1145,7 +1120,7 @@ message CreateCronJobFlowArgs {
 
   optional uint64 periodicity = 2 [
     (sem_type) = {
-      type: "Duration",
+      type: "DurationSeconds",
       description: "How often to run this hunt."
     },
     default = 604800
@@ -1160,7 +1135,7 @@ message CreateCronJobFlowArgs {
 
   optional uint64 lifetime = 6 [
     (sem_type) = {
-      type: "Duration",
+      type: "DurationSeconds",
       description: "How long each run of the cron should be allowed to run. "
                    "Runs that exceed lifetime will be killed. This is complimentary but"
                    " different to periodicity e.g. it allows us to run jobs weekly that"
@@ -1194,11 +1169,11 @@ message CreateCronJobArgs {
   optional string description = 4
       [(sem_type) = { description: "Cron job description." }];
   optional uint64 frequency = 5 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Interval between cron runs."
   }];
   optional uint64 lifetime = 6 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "How long each run of the cron should be allowed to run. "
                  "Runs that exceed lifetime will be killed. This is complimentary but"
                  " different to periodicity e.g. it allows us to run jobs weekly that"
@@ -1256,10 +1231,10 @@ message CronJob {
   optional uint64 last_run_time = 7 [(sem_type) = { type: "RDFDatetime" }];
   optional AttributedDict state = 8;
   optional uint64 frequency = 9 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
   }];
   optional uint64 lifetime = 10 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
   }];
   optional bool allow_overruns = 11;
   optional bool forced_run_requested = 12;
@@ -1404,7 +1379,7 @@ message ProcessHuntResultCollectionsCronFlowArgs {
     label: ADVANCED
   }];
   optional uint64 max_running_time = 2 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "ProcessHuntResultsCollectionsCronFlow will run not much "
                  "longer than max_running_time. It will finish (without an error) even if "
                  "there are still results to process.",
@@ -1424,7 +1399,7 @@ message ProcessHuntResultCollectionsCronFlowArgs {
 // Next field ID: 2
 message VerifyHuntOutputPluginsCronFlowArgs {
   optional uint64 check_range = 1 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Only the hunts that were active within given duration from "
                  "the current moment will be checked."
     label: ADVANCED,

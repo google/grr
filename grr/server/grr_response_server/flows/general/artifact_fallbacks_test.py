@@ -15,8 +15,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-@db_test_lib.DualDBTest
-class TestSystemRootSystemDriveFallbackFlow(flow_test_lib.FlowTestsBaseclass):
+class TestSystemRootSystemDriveFallbackFlow(
+    db_test_lib.RelationalDBEnabledMixin, flow_test_lib.FlowTestsBaseclass):
 
   def testSystemRootFallback(self):
     client_id = self.SetupClient(0)

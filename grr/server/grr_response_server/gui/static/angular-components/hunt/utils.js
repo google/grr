@@ -7,7 +7,7 @@ goog.module.declareLegacyNamespace();
  *   value: number,
  * }}
  */
-let Duration;
+let DurationSeconds;
 
 /**
  * @typedef {{
@@ -22,7 +22,7 @@ let Timestamp;
  *   type: string,
  *   value: {
  *     init_start_time: (!Timestamp|undefined),
- *     duration: (!Duration|undefined),
+ *     duration: (!DurationSeconds|undefined),
  *   },
  * }}
  */
@@ -42,14 +42,14 @@ exports.huntExpirationTime = (hunt) => {
     return undefined;
   }
 
-  // Durations are given in seconds, whereas timestamps use microseconds since
-  // epoch. Thus, we have to convert the duration value.
+  // DurationSeconds are given in seconds, whereas timestamps use microseconds
+  // since epoch. Thus, we have to convert the duration value.
   return {
     type: 'RDFDatetime',
     value: initStartTime.value + duration.value * 1000000,
   };
 };
 
-exports.Duration = Duration;
+exports.DurationSeconds = DurationSeconds;
 exports.Timestamp = Timestamp;
 exports.Hunt = Hunt;

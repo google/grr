@@ -17,7 +17,7 @@ class DatabaseTestForemanRulesMixin(object):
 
   def _GetTestRule(self, hunt_id="H:123456", expires=None):
     now = rdfvalue.RDFDatetime.Now()
-    expiration_time = expires or now + rdfvalue.Duration("2w")
+    expiration_time = expires or now + rdfvalue.DurationSeconds("2w")
     rule = foreman_rules.ForemanCondition(
         creation_time=now,
         expiration_time=expiration_time,

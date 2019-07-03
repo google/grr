@@ -14,6 +14,7 @@ import time
 from absl import app
 from future.builtins import range
 from future.utils import iteritems
+from future.utils import itervalues
 import ipaddress
 import portpicker
 import requests
@@ -25,8 +26,6 @@ from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import file_store
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import filestore
 from grr_response_server.bin import frontend
 from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
@@ -37,8 +36,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
 
-@db_test_lib.DualDBTest
-class GRRHTTPServerTest(test_lib.GRRBaseTest):
+class GRRHTTPServerTest(db_test_lib.RelationalDBEnabledMixin,
+                        test_lib.GRRBaseTest):
   """Test the http server."""
 
   @classmethod
@@ -231,7 +230,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
         c: flow_test_lib.GetFlowResults(c, session_id)
         for c, session_id in iteritems(session_ids)
     }
-    for client_id, results in iteritems(results_per_client):
+    for results in itervalues(results_per_client):
       self.assertLen(results, 5)
       relpaths = [
           os.path.relpath(p.stat_entry.pathspec.path, self.base_path)
@@ -242,40 +241,6 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
           "parser_test/com.google.code.grr.plist",
           "parser_test/InstallHistory.plist"
       ])
-
-      for r in results:
-        if data_store.AFF4Enabled():
-          aff4_obj = aff4.FACTORY.Open(
-              r.stat_entry.pathspec.AFF4Path(client_id), token=self.token)
-
-          # When files are uploaded to the server they are stored as
-          # VFSBlobImage.
-          self.assertIsInstance(aff4_obj, aff4_grr.VFSBlobImage)
-          # There is a STAT entry.
-          self.assertTrue(aff4_obj.Get(aff4_obj.Schema.STAT))
-
-          if not data_store.RelationalDBEnabled():
-            # Make sure the HashFileStore has references to this file for
-            # all hashes.
-            hash_entry = data_store_utils.GetFileHashEntry(aff4_obj)
-            fs = filestore.HashFileStore
-            md5_refs = list(
-                fs.GetReferencesMD5(hash_entry.md5, token=self.token))
-            self.assertIn(aff4_obj.urn, md5_refs)
-            sha1_refs = list(
-                fs.GetReferencesSHA1(hash_entry.sha1, token=self.token))
-            self.assertIn(aff4_obj.urn, sha1_refs)
-            sha256_refs = list(
-                fs.GetReferencesSHA256(hash_entry.sha256, token=self.token))
-            self.assertIn(aff4_obj.urn, sha256_refs)
-
-            # Open the file inside the file store.
-            urn, _ = fs(None, token=self.token).CheckHashes([hash_entry]).next()
-            filestore_fd = aff4.FACTORY.Open(urn, token=self.token)
-            # This is a VFSBlobImage too.
-            self.assertIsInstance(filestore_fd, aff4_grr.VFSBlobImage)
-            # No STAT object attached.
-            self.assertFalse(filestore_fd.Get(filestore_fd.Schema.STAT))
 
 
 def main(args):

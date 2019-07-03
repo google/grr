@@ -27,7 +27,6 @@ grr/gui/static/tmp
 grr/var
 grr-server*.tar.gz
 LICENSE
-README
 README.md
 travis
 vagrant

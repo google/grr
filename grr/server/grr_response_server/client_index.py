@@ -59,7 +59,7 @@ class AFF4ClientIndex(keyword_index.AFF4KeywordIndex):
     return utils.SmartUnicode(keyword).lower()
 
   def _AnalyzeKeywords(self, keywords):
-    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
+    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("180d")
     end_time = rdfvalue.RDFDatetime(self.LAST_TIMESTAMP)
     filtered_keywords = []
     unversioned_keywords = []
@@ -354,7 +354,7 @@ class ClientIndex(object):
 
   def _AnalyzeKeywords(self, keywords):
     """Extracts a start time from a list of keywords if present."""
-    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
+    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("180d")
     filtered_keywords = []
 
     for k in keywords:

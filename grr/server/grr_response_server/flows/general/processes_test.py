@@ -10,14 +10,17 @@ from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_server import flow
+from grr_response_core.lib.util import compatibility
+from grr_response_server import data_store
 from grr_response_server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
+class ListProcessesTest(db_test_lib.RelationalDBEnabledMixin,
+                        flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testProcessListingOnly(self):
@@ -33,15 +36,13 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             ctime=1333718907167083)
     ])
 
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_id,
-        flow_name=flow_processes.ListProcesses.__name__,
-        token=self.token)
     session_id = flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_id, token=self.token)
+        compatibility.GetName(flow_processes.ListProcesses),
+        client_mock,
+        client_id=client_id,
+        token=self.token)
 
-    # Check the output collection
-    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
+    processes = flow_test_lib.GetFlowResults(client_id, session_id)
 
     self.assertLen(processes, 1)
     self.assertEqual(processes[0].ctime, 1333718907167083)
@@ -49,7 +50,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
 
   def testProcessListingWithFilter(self):
     """Test that the ListProcesses flow works with filter."""
-    client_id = self.SetupClient(0)
+    client_id = self.SetupClient(0).Basename()
 
     client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(
@@ -70,25 +71,24 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
             pid=5, ppid=1, cmdline=["missing2_exe.exe"], ctime=1333718907167083)
     ])
 
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_id,
-        flow_name=flow_processes.ListProcesses.__name__,
-        filename_regex=r".*cmd2.exe",
-        token=self.token)
     session_id = flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_id, token=self.token)
+        compatibility.GetName(flow_processes.ListProcesses),
+        client_mock,
+        client_id=client_id,
+        token=self.token,
+        filename_regex=r".*cmd2.exe")
 
     # Expect one result that matches regex
-    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
+    processes = flow_test_lib.GetFlowResults(client_id, session_id)
 
     self.assertLen(processes, 1)
     self.assertEqual(processes[0].ctime, 1333718907167083)
     self.assertEqual(processes[0].cmdline, ["cmd2.exe"])
 
     # Expect two skipped results
-    logs = flow.GRRFlow.LogCollectionForFID(flow_urn)
+    logs = data_store.REL_DB.ReadFlowLogEntries(client_id, session_id, 0, 100)
     for log in logs:
-      if "Skipped 2" in log.log_message:
+      if "Skipped 2" in log.message:
         return
     raise RuntimeError("Skipped process not mentioned in logs")
 
@@ -123,15 +123,14 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         ])
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_id,
-        flow_name=flow_processes.ListProcesses.__name__,
-        connection_states=["ESTABLISHED", "LISTEN"],
-        token=self.token)
     session_id = flow_test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=client_id, token=self.token)
+        compatibility.GetName(flow_processes.ListProcesses),
+        client_mock,
+        client_id=client_id,
+        token=self.token,
+        connection_states=["ESTABLISHED", "LISTEN"])
 
-    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
+    processes = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(processes, 2)
     states = set()
     for process in processes:
@@ -165,10 +164,12 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
     # No output matched.
-    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
+    processes = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertEmpty(processes)
 
   def testFetchesAndStoresBinary(self):
+    client_id = self.SetupClient(0)
+
     process = rdf_client.Process(
         pid=2,
         ppid=1,
@@ -181,17 +182,17 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
-        client_id=self.SetupClient(0),
+        client_id=client_id,
         fetch_binaries=True,
         token=self.token)
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id)
-    binaries = list(results)
+    binaries = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.path, process.exe)
     self.assertEqual(binaries[0].st_size, os.stat(process.exe).st_size)
 
   def testDoesNotFetchDuplicates(self):
+    client_id = self.SetupClient(0)
     process1 = rdf_client.Process(
         pid=2,
         ppid=1,
@@ -211,14 +212,15 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
-        client_id=self.SetupClient(0),
+        client_id=client_id,
         fetch_binaries=True,
         token=self.token)
 
-    processes = flow.GRRFlow.ResultCollectionForFID(session_id)
+    processes = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(processes, 1)
 
   def testWhenFetchingIgnoresMissingFiles(self):
+    client_id = self.SetupClient(0)
     process1 = rdf_client.Process(
         pid=2,
         ppid=1,
@@ -238,13 +240,12 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flow_processes.ListProcesses.__name__,
         client_mock,
-        client_id=self.SetupClient(0),
+        client_id=client_id,
         fetch_binaries=True,
         token=self.token,
         check_flow_errors=False)
 
-    results = flow.GRRFlow.ResultCollectionForFID(session_id)
-    binaries = list(results)
+    binaries = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)
 

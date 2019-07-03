@@ -59,7 +59,8 @@ z5KjO8gWio6YOhsDwrketcBcIANMDYws2+TzrLs9ttuHNS0=
 
 
 def _DaysSinceEpoch(days):
-  return rdfvalue.RDFDatetime(rdfvalue.Duration.FromDays(days).microseconds)
+  return rdfvalue.RDFDatetime(
+      rdfvalue.DurationSeconds.FromDays(days).microseconds)
 
 
 def _FlattenDicts(dicts):
@@ -103,6 +104,19 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual(context.exception.client_id, client_id)
 
     d.RemoveClientLabels(client_id, "testowner", ["label"])
+
+  def testAddRemoveClientLabelsWorkWithTuplesAsArgument(self):
+    # See https://github.com/google/grr/issues/716 for an additional context.
+    # AddClientlabels/ReadClientLabels require "labels" argument to be
+    # iterable. DB implementation has to respect this assumption.
+    d = self.db
+    client_id = "C.fc413187fefa1dcf"
+
+    with self.assertRaises(db.UnknownClientError) as context:
+      d.AddClientLabels(client_id, "testowner", ("label",))
+    self.assertEqual(context.exception.client_id, client_id)
+
+    d.RemoveClientLabels(client_id, "testowner", ("label",))
 
   def testClientMetadataInitialWrite(self):
     d = self.db
@@ -615,7 +629,7 @@ class DatabaseTestClientsMixin(object):
 
     client_old = rdf_objects.ClientSnapshot(client_id=client_id)
     client_old.kernel = "1.0.0"
-    client_old.timestamp = new_timestamp - rdfvalue.Duration("1d")
+    client_old.timestamp = new_timestamp - rdfvalue.DurationSeconds("1d")
     self.db.WriteClientSnapshotHistory([client_old])
 
     info = self.db.ReadClientFullInfo(client_id)
@@ -1234,7 +1248,7 @@ class DatabaseTestClientsMixin(object):
     self._VerifySnapshots(snapshots)
 
   def _SetupLastPingClients(self, now):
-    time_past = now - rdfvalue.Duration("1d")
+    time_past = now - rdfvalue.DurationSeconds("1d")
 
     client_ids_to_ping = {}
     for i in range(10):
@@ -1253,7 +1267,7 @@ class DatabaseTestClientsMixin(object):
     d = self.db
 
     base_time = rdfvalue.RDFDatetime.Now()
-    cutoff_time = base_time - rdfvalue.Duration("1s")
+    cutoff_time = base_time - rdfvalue.DurationSeconds("1s")
     client_ids_to_ping = self._SetupLastPingClients(base_time)
 
     expected_client_ids = [
@@ -1303,10 +1317,10 @@ class DatabaseTestClientsMixin(object):
     db_test_utils.InitializeClient(self.db, "C.0000000000000002")
 
     offsets = [
-        rdfvalue.Duration("0s"),
-        rdfvalue.Duration("1s"),
+        rdfvalue.DurationSeconds("0s"),
+        rdfvalue.DurationSeconds("1s"),
         db.CLIENT_STATS_RETENTION,
-        db.CLIENT_STATS_RETENTION + rdfvalue.Duration("1s"),
+        db.CLIENT_STATS_RETENTION + rdfvalue.DurationSeconds("1s"),
     ]
     now = rdfvalue.RDFDatetime.Now()
 
@@ -1424,7 +1438,7 @@ class DatabaseTestClientsMixin(object):
     now = rdfvalue.RDFDatetime.Now()
     for i in range(1, total + 1):
       with test_lib.FakeTime(now - db.CLIENT_STATS_RETENTION -
-                             rdfvalue.Duration.FromSeconds(i)):
+                             rdfvalue.DurationSeconds.FromSeconds(i)):
         self.db.WriteClientStats("C.0000000000000001",
                                  rdf_client_stats.ClientStats())
 

@@ -13,24 +13,21 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_core.lib.util import compatibility
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import processes
 
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiSearchClientsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "SearchClients"
@@ -39,12 +36,8 @@ class ApiSearchClientsHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBEnabled():
-        client_obj = self.SetupTestClientObject(0)
-        client_id = client_obj.client_id
-      else:
-        client_urn = self.SetupClient(0, add_cert=False)
-        client_id = client_urn.Basename()
+      client_obj = self.SetupTestClientObject(0)
+      client_id = client_obj.client_id
 
       self.Check(
           "SearchClients",
@@ -52,6 +45,7 @@ class ApiSearchClientsHandlerRegressionTest(
 
 
 class ApiGetClientHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetClient"
@@ -60,13 +54,9 @@ class ApiGetClientHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBEnabled():
-        client_obj = self.SetupTestClientObject(
-            0, memory_size=4294967296, add_cert=False)
-        client_id = client_obj.client_id
-      else:
-        client_urn = self.SetupClient(0, memory_size=4294967296, add_cert=False)
-        client_id = client_urn.Basename()
+      client_obj = self.SetupTestClientObject(
+          0, memory_size=4294967296, add_cert=False)
+      client_id = client_obj.client_id
 
     self.Check(
         "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id))
@@ -78,35 +68,17 @@ class ApiGetClientVersionsRegressionTestMixin(object):
   handler = client_plugin.ApiGetClientVersionsHandler
 
   def _SetupTestClient(self):
+    with test_lib.FakeTime(42):
+      client_obj = self.SetupTestClientObject(
+          0, memory_size=4294967296, add_cert=False)
+      client_id = client_obj.client_id
 
-    if data_store.RelationalDBEnabled():
-
-      with test_lib.FakeTime(42):
-        client_obj = self.SetupTestClientObject(
-            0, memory_size=4294967296, add_cert=False)
-        client_id = client_obj.client_id
-
-      with test_lib.FakeTime(45):
-        self.SetupTestClientObject(
-            0,
-            fqdn="some-other-hostname.org",
-            memory_size=4294967296,
-            add_cert=False)
-
-    else:  # We need AFF4 data.
-
-      with test_lib.FakeTime(42):
-        client_urn = self.SetupClient(0, memory_size=4294967296, add_cert=False)
-        client_id = client_urn.Basename()
-
-      with test_lib.FakeTime(45):
-        with aff4.FACTORY.Open(
-            client_urn, mode="rw", token=self.token) as grr_client:
-          grr_client.Set(grr_client.Schema.HOSTNAME("some-other-hostname.org"))
-          grr_client.Set(grr_client.Schema.FQDN("some-other-hostname.org"))
-          kb = grr_client.Get(grr_client.Schema.KNOWLEDGE_BASE)
-          kb.fqdn = "some-other-hostname.org"
-          grr_client.Set(grr_client.Schema.KNOWLEDGE_BASE(kb))
+    with test_lib.FakeTime(45):
+      self.SetupTestClientObject(
+          0,
+          fqdn="some-other-hostname.org",
+          memory_size=4294967296,
+          add_cert=False)
 
     return client_id
 
@@ -141,17 +113,8 @@ class ApiGetClientVersionsRegressionTest(
   mode = "FULL"
 
 
-class ApiGetClientVersionsRegressionTestAFF4(
-    ApiGetClientVersionsRegressionTestMixin,
-    api_regression_test_lib.ApiRegressionTest,
-):
-  mode = "DIFF"
-
-  # Disable the relational DB for this class, the functionality is not needed.
-  aff4_only_test = True
-
-
 class ApiGetLastClientIPAddressHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetLastClientIPAddress"
@@ -160,21 +123,13 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      if data_store.RelationalDBEnabled():
-        client_obj = self.SetupTestClientObject(0)
-        client_id = client_obj.client_id
+      client_obj = self.SetupTestClientObject(0)
+      client_id = client_obj.client_id
 
-        ip = rdf_client_network.NetworkAddress(
-            human_readable_address="192.168.100.42",
-            address_type=rdf_client_network.NetworkAddress.Family.INET)
-        data_store.REL_DB.WriteClientMetadata(client_id, last_ip=ip)
-      else:
-        client_urn = self.SetupClient(0)
-        client_id = client_urn.Basename()
-
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as grr_client:
-          grr_client.Set(grr_client.Schema.CLIENT_IP("192.168.100.42"))
+      ip = rdf_client_network.NetworkAddress(
+          human_readable_address="192.168.100.42",
+          address_type=rdf_client_network.NetworkAddress.Family.INET)
+      data_store.REL_DB.WriteClientMetadata(client_id, last_ip=ip)
 
     self.Check(
         "GetLastClientIPAddress",
@@ -182,6 +137,7 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
 
 
 class ApiListClientsLabelsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "ListClientsLabels"
@@ -208,24 +164,17 @@ class ApiListKbFieldsHandlerTest(api_regression_test_lib.ApiRegressionTest):
 
 
 class ApiListClientCrashesHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin):
 
   api_method = "ListClientCrashes"
   handler = client_plugin.ApiListClientCrashesHandler
 
-  # This test runs a hunt which is not yet supported on the relational db.
-  # TODO(amoser): Fix this test once hunts are feature complete.
-  aff4_flows_only_test = True
-
   def Run(self):
-    if data_store.RelationalDBEnabled():
-      client = self.SetupTestClientObject(0)
-      client_id = client.client_id
-      client_ids = [rdf_client.ClientURN(client_id)]
-    else:
-      client_ids = self.SetupClients(1)
-      client_id = client_ids[0].Basename()
+    client = self.SetupTestClientObject(0)
+    client_id = client.client_id
+    client_ids = [rdf_client.ClientURN(client_id)]
 
     client_mock = flow_test_lib.CrashClientMock(
         rdf_client.ClientURN(client_id), self.token)
@@ -238,12 +187,7 @@ class ApiListClientCrashesHandlerRegressionTest(
       hunt_test_lib.TestHuntHelperWithMultipleMocks({client_id: client_mock},
                                                     False, self.token)
 
-    if data_store.RelationalDBEnabled():
-      crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(client_id))
-    else:
-      crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
-          rdf_client.ClientURN(client_id))
-
+    crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(client_id))
     crash = list(crashes)[0]
     replace = {
         hunt_urn.Basename(): "H:123456",
@@ -267,6 +211,7 @@ class ApiListClientCrashesHandlerRegressionTest(
 
 
 class ApiListClientActionRequestsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin):
 
@@ -274,61 +219,44 @@ class ApiListClientActionRequestsHandlerRegressionTest(
   handler = client_plugin.ApiListClientActionRequestsHandler
 
   def _StartFlow(self, client_id, flow_cls, **kw):
-    if data_store.RelationalDBEnabled():
-      flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kw)
-      # Lease the client message.
-      data_store.REL_DB.LeaseClientActionRequests(
-          client_id, lease_time=rdfvalue.Duration("10000s"))
-      # Write some responses. In the relational db, the client queue will be
-      # cleaned up as soon as all responses are available. Therefore we cheat
-      # here and make it look like the request needs more responses so it's not
-      # considered complete.
+    flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kw)
+    # Lease the client message.
+    data_store.REL_DB.LeaseClientActionRequests(
+        client_id, lease_time=rdfvalue.DurationSeconds("10000s"))
+    # Write some responses. In the relational db, the client queue will be
+    # cleaned up as soon as all responses are available. Therefore we cheat
+    # here and make it look like the request needs more responses so it's not
+    # considered complete.
 
-      # Write the status first. This will mark the request as waiting for 2
-      # responses.
-      status = rdf_flow_objects.FlowStatus(
-          client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
-      data_store.REL_DB.WriteFlowResponses([status])
+    # Write the status first. This will mark the request as waiting for 2
+    # responses.
+    status = rdf_flow_objects.FlowStatus(
+        client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
+    data_store.REL_DB.WriteFlowResponses([status])
 
-      # Now we read the request, adjust the number, and write it back.
-      reqs = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-          client_id, flow_id)
-      req = reqs[0][0]
+    # Now we read the request, adjust the number, and write it back.
+    reqs = data_store.REL_DB.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    req = reqs[0][0]
 
-      req.nr_responses_expected = 99
+    req.nr_responses_expected = 99
 
-      data_store.REL_DB.WriteFlowRequests([req])
+    data_store.REL_DB.WriteFlowRequests([req])
 
-      # This response now won't trigger any deletion of client messages.
-      response = rdf_flow_objects.FlowResponse(
-          client_id=client_id,
-          flow_id=flow_id,
-          request_id=1,
-          response_id=1,
-          payload=rdf_client.Process(name="test_process"))
-      data_store.REL_DB.WriteFlowResponses([response])
+    # This response now won't trigger any deletion of client messages.
+    response = rdf_flow_objects.FlowResponse(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=1,
+        response_id=1,
+        payload=rdf_client.Process(name="test_process"))
+    data_store.REL_DB.WriteFlowResponses([response])
 
-      # This is not strictly needed as we don't display this information in the
-      # UI.
-      req.nr_responses_expected = 2
-      data_store.REL_DB.WriteFlowRequests([req])
+    # This is not strictly needed as we don't display this information in the
+    # UI.
+    req.nr_responses_expected = 2
+    data_store.REL_DB.WriteFlowRequests([req])
 
-      return flow_id
-
-    else:
-      flow_id = flow.StartAFF4Flow(
-          flow_name=compatibility.GetName(flow_cls),
-          client_id=client_id,
-          token=self.token,
-          **kw).Basename()
-      # Have the client write some responses.
-      test_process = rdf_client.Process(name="test_process")
-      mock = flow_test_lib.MockClient(
-          client_id,
-          action_mocks.ListProcessesMock([test_process]),
-          token=self.token)
-      mock.Next()
-      return flow_id
+    return flow_id
 
   def Run(self):
     client_urn = self.SetupClient(0)
@@ -351,6 +279,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
 
 
 class ApiGetClientLoadStatsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetClientLoadStats"
@@ -375,21 +304,10 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
 
       stats.append(st)
 
-    if data_store.AFF4Enabled():
-      for st in stats:
-        with test_lib.FakeTime(st.cpu_samples[0].timestamp):
-          with aff4.FACTORY.Create(
-              client_id.Add("stats"),
-              aff4_type=aff4_stats.ClientStats,
-              token=self.token,
-              mode="rw") as stats_fd:
-            stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
-
-    if data_store.RelationalDBEnabled():
-      for st in stats:
-        with test_lib.FakeTime(st.cpu_samples[0].timestamp):
-          data_store.REL_DB.WriteClientStats(
-              client_id=client_id.Basename(), stats=st)
+    for st in stats:
+      with test_lib.FakeTime(st.cpu_samples[0].timestamp):
+        data_store.REL_DB.WriteClientStats(
+            client_id=client_id.Basename(), stats=st)
 
   def Run(self):
     client_id = self.SetupClient(0)

@@ -17,8 +17,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class RootApiUserManagementTest(api_e2e_test_lib.RootApiE2ETest):
+class RootApiUserManagementTest(db_test_lib.RelationalDBEnabledMixin,
+                                api_e2e_test_lib.RootApiE2ETest):
   """E2E test for root API user management calls."""
 
   def _GetPassword(self, username):

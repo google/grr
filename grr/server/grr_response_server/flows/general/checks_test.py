@@ -26,8 +26,8 @@ from grr.test_lib import vfs_test_lib
 # pylint: mode=test
 
 
-@db_test_lib.DualDBTest
-class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
+class TestCheckFlows(db_test_lib.RelationalDBEnabledMixin,
+                     flow_test_lib.FlowTestsBaseclass,
                      checks_test_lib.HostCheckTest):
 
   checks_loaded = False

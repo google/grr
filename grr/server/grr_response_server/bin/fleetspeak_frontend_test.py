@@ -92,8 +92,8 @@ def SetAFF4FSEnabledFlag(grr_id, token):
     client.Set(client.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
 
 
-@db_test_lib.DualDBTest
-class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
+class FleetspeakGRRFEServerTest(db_test_lib.RelationalDBEnabledMixin,
+                                frontend_test_lib.FrontEndServerTest):
   """Tests the Fleetspeak based GRRFEServer."""
 
   def setUp(self):
@@ -373,8 +373,8 @@ class FleetspeakGRRFEServerTest(frontend_test_lib.FrontEndServerTest):
         self.assertIn("ClientEnrollment", triggered_events)
 
 
-@db_test_lib.DualDBTest
-class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
+class ListProcessesFleetspeakTest(db_test_lib.RelationalDBEnabledMixin,
+                                  flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow w/ Fleetspeak."""
 
   def setUp(self):

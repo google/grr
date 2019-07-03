@@ -51,8 +51,8 @@ class ClientMock(action_mocks.ActionMock):
     ]
 
 
-@db_test_lib.DualDBTest
-class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
+class GetMBRFlowTest(db_test_lib.RelationalDBEnabledMixin,
+                     flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
 
   mbr = (b"123456789" * 1000)[:4096]
@@ -131,8 +131,8 @@ class CompareFDsMixin(object):
       self.assertEqual(data1, data2)
 
 
-@db_test_lib.DualDBTest
-class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
+class GetFileFlowTest(db_test_lib.RelationalDBEnabledMixin, CompareFDsMixin,
+                      flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
 
   def setUp(self):
@@ -235,8 +235,8 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       self.CompareFDs(fd1, fd2)
 
 
-@db_test_lib.DualDBTest
-class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
+class MultiGetFileFlowTest(db_test_lib.RelationalDBEnabledMixin,
+                           CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
 
   def setUp(self):
@@ -285,7 +285,6 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     # Now if we try to fetch a real /proc/ filename this will fail because the
     # filestore already contains the zero length file
-    # aff4:/files/nsrl/da39a3ee5e6b4b0d3255bfef95601890afd80709.
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path="/proc/self/environ")
 

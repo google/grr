@@ -480,8 +480,8 @@ class RDFX509CertTest(CryptoTestBase):
     client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
     now = rdfvalue.RDFDatetime.Now()
-    now_plus_year_and_a_bit = now + rdfvalue.Duration("55w")
-    now_minus_a_bit = now - rdfvalue.Duration("1h")
+    now_plus_year_and_a_bit = now + rdfvalue.DurationSeconds("55w")
+    now_minus_a_bit = now - rdfvalue.DurationSeconds("1h")
     with test_lib.FakeTime(now_plus_year_and_a_bit):
       with self.assertRaises(rdf_crypto.VerificationError):
         client_cert.Verify(private_key.GetPublicKey())

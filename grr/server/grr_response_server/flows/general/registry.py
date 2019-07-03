@@ -11,8 +11,6 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.path_detection import windows as path_detection_windows
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
-from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -157,12 +155,8 @@ class CollectRunKeyBinariesMixin(object):
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
     filenames = []
-    if data_store.RelationalDBEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      kb = client.knowledge_base
-    else:
-      client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-      kb = artifact.GetArtifactKnowledgeBase(client)
+    client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    kb = client.knowledge_base
 
     for response in responses:
       runkey = response.registry_data.string

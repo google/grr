@@ -66,7 +66,7 @@ message GlobalNotification {
     description: "Notification will be shown after this time."
   }];
   optional uint64 duration = 6 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "Duration of this notification."
   }];
 }
@@ -276,7 +276,7 @@ message ApiGetStatsStoreMetricArgs {
   }];
 
   optional uint64 rate = 7 [(sem_type) = {
-    type: "Duration",
+    type: "DurationSeconds",
     description: "If set, metric's rate over given window will be returned "
                  "instead of plain values."
   }];

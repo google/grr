@@ -684,7 +684,7 @@ class RDFDatetime(RDFInteger):
 
   def __add__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float, Duration)):
+    if isinstance(other, (int, float, DurationSeconds)):
       # Assume other is in seconds
       other_microseconds = compatibility.builtins.int(other * self.converter)
       return self.__class__(self._value + other_microseconds)
@@ -693,7 +693,7 @@ class RDFDatetime(RDFInteger):
 
   def __mul__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float, Duration)):
+    if isinstance(other, (int, float, DurationSeconds)):
       return self.__class__(self._value * other)
 
     return NotImplemented
@@ -703,13 +703,14 @@ class RDFDatetime(RDFInteger):
 
   def __sub__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float, Duration)):
+    if isinstance(other, (int, float, DurationSeconds)):
       # Assume other is in seconds
       other_microseconds = compatibility.builtins.int(other * self.converter)
       return self.__class__(self._value - other_microseconds)
 
     if isinstance(other, RDFDatetime):
-      return Duration(self.AsSecondsSinceEpoch() - other.AsSecondsSinceEpoch())
+      return DurationSeconds(self.AsSecondsSinceEpoch() -
+                             other.AsSecondsSinceEpoch())
 
     return NotImplemented
 
@@ -754,8 +755,9 @@ class RDFDatetime(RDFInteger):
     return calendar.timegm(timestamp.utctimetuple()) * cls.converter
 
   def Floor(self, interval):
-    if not isinstance(interval, Duration):
-      raise TypeError("Expected `Duration`, got `%s`" % interval.__class__)
+    if not isinstance(interval, DurationSeconds):
+      raise TypeError("Expected `DurationSeconds`, got `%s`" %
+                      interval.__class__)
 
     seconds = self.AsSecondsSinceEpoch() // interval.seconds * interval.seconds
     return self.FromSecondsSinceEpoch(seconds)
@@ -768,7 +770,7 @@ class RDFDatetimeSeconds(RDFDatetime):
 
 # TODO: Implement microsecond precision.
 @python_2_unicode_compatible
-class Duration(RDFInteger):
+class DurationSeconds(RDFInteger):
   """Duration value stored in seconds internally."""
   data_store_type = "unsigned_integer"
 
@@ -782,8 +784,8 @@ class Duration(RDFInteger):
   # pyformat: enable
 
   def __init__(self, initializer=None, age=None):
-    super(Duration, self).__init__(None, age)
-    if isinstance(initializer, Duration):
+    super(DurationSeconds, self).__init__(None, age)
+    if isinstance(initializer, DurationSeconds):
       self._value = initializer._value  # pylint: disable=protected-access
     elif isinstance(initializer, Text):
       self.ParseFromHumanReadable(initializer)
@@ -850,14 +852,14 @@ class Duration(RDFInteger):
     return "{} μs".format(self.microseconds)
 
   def __add__(self, other):
-    if isinstance(other, (int, float, Duration)):
+    if isinstance(other, (int, float, DurationSeconds)):
       # Assume other is in seconds
       return self.__class__(self._value + other)
 
     return NotImplemented
 
   def __mul__(self, other):
-    if isinstance(other, (int, float, Duration)):
+    if isinstance(other, (int, float, DurationSeconds)):
       return self.__class__(int(self._value * other))
 
     return NotImplemented
@@ -866,14 +868,14 @@ class Duration(RDFInteger):
     return self.__mul__(other)
 
   def __sub__(self, other):
-    if isinstance(other, (int, float, Duration)):
+    if isinstance(other, (int, float, DurationSeconds)):
       # Assume other is in seconds
       return self.__class__(self._value - other)
 
     return NotImplemented
 
   def __abs__(self):
-    return Duration(abs(self._value))
+    return DurationSeconds(abs(self._value))
 
   def Expiry(self, base_time=None):
     if base_time is None:

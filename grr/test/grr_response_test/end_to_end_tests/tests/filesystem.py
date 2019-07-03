@@ -203,3 +203,25 @@ class TestListDirectoryTSKWindows(test_base.EndToEndTest):
 
     with self.WaitForFileRefresh(regedit_path):
       self.RunFlowAndWait("ListDirectory", args=args)
+
+
+class TestListDirectoryRootTSKWindows(test_base.EndToEndTest):
+  """Tests if listing root folder on Windows works with The Sleuth Kit."""
+
+  platforms = [test_base.EndToEndTest.Platform.WINDOWS]
+
+  def runTest(self):
+    args = self.grr_api.types.CreateFlowArgs("ListDirectory")
+    args.pathspec.path = "C:\\"
+    args.pathspec.pathtype = args.pathspec.TSK
+
+    flow = self.RunFlowAndWait("ListDirectory", args=args)
+
+    def IsWindowsDirPath(pathspec):
+      return (pathspec.pathtype == args.pathspec.OS and
+              pathspec.mount_point == "C:" and
+              pathspec.nested_path.pathtype == args.pathspec.TSK and
+              pathspec.nested_path.path.upper().endswith("WINDOWS"))
+
+    pathspecs = [result.payload.pathspec for result in flow.ListResults()]
+    self.assertTrue(any(map(IsWindowsDirPath, pathspecs)))

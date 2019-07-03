@@ -22,12 +22,10 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import decoders
 from grr_response_server import flow
 from grr_response_server import flow_base
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import filesystem
@@ -36,7 +34,6 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -49,8 +46,8 @@ class VfsTestMixin(object):
   """A helper mixin providing methods to prepare files and flows for testing."""
 
   time_0 = rdfvalue.RDFDatetime(42)
-  time_1 = time_0 + rdfvalue.Duration("1d")
-  time_2 = time_1 + rdfvalue.Duration("1d")
+  time_1 = time_0 + rdfvalue.DurationSeconds("1d")
+  time_2 = time_1 + rdfvalue.DurationSeconds("1d")
 
   # TODO(hanuszczak): This function not only contains a lot of code duplication
   # but is also a duplication with `gui_test_lib.CreateFileVersion(s)`. This
@@ -69,41 +66,27 @@ class VfsTestMixin(object):
       vfs_test_lib.CreateFile(
           client_path, "Goodbye World".encode("utf-8"), token=token)
 
-  def CreateRecursiveListFlow(self, client_id, token):
+  def CreateRecursiveListFlow(self, client_id):
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
-    if data_store.RelationalDBEnabled():
-      return flow.StartFlow(
-          client_id=client_id.Basename(),
-          flow_cls=filesystem.RecursiveListDirectory,
-          flow_args=flow_args)
-    else:
-      return flow.StartAFF4Flow(
-          client_id=client_id,
-          flow_name=filesystem.RecursiveListDirectory.__name__,
-          args=flow_args,
-          token=token).Basename()
+    return flow.StartFlow(
+        client_id=client_id.Basename(),
+        flow_cls=filesystem.RecursiveListDirectory,
+        flow_args=flow_args)
 
-  def CreateMultiGetFileFlow(self, client_id, file_path, token):
+  def CreateMultiGetFileFlow(self, client_id, file_path):
     pathspec = rdf_paths.PathSpec(
         path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
 
-    if data_store.RelationalDBEnabled():
-      return flow.StartFlow(
-          client_id=client_id.Basename(),
-          flow_cls=transfer.MultiGetFile,
-          flow_args=flow_args)
-    else:
-      return flow.StartAFF4Flow(
-          client_id=client_id,
-          flow_name=transfer.MultiGetFile.__name__,
-          args=flow_args,
-          token=token).Basename()
+    return flow.StartFlow(
+        client_id=client_id.Basename(),
+        flow_cls=transfer.MultiGetFile,
+        flow_args=flow_args)
 
 
-@db_test_lib.DualDBTest
-class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                   api_test_lib.ApiCallHandlerTest,
                                    VfsTestMixin):
   """Test for ApiGetFileDetailsHandler."""
 
@@ -141,7 +124,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     # Should return the newest version.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age, self.time_2, delta=rdfvalue.Duration("1s"))
+        result.file.age, self.time_2, delta=rdfvalue.DurationSeconds("1s"))
 
   def testHandlerReturnsClosestSpecificVersion(self):
     # Get specific version.
@@ -154,7 +137,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     # The age of the returned version might have a slight deviation.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age, self.time_1, delta=rdfvalue.Duration("1s"))
+        result.file.age, self.time_1, delta=rdfvalue.DurationSeconds("1s"))
 
   def testResultIncludesDetails(self):
     """Checks if the details include certain attributes.
@@ -198,8 +181,8 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertTrue(result.file.is_directory)
 
 
-@db_test_lib.DualDBTest
-class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                              api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiListFilesHandler."""
 
   def setUp(self):
@@ -278,8 +261,8 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.assertEmpty(result.items)
 
 
-@db_test_lib.DualDBTest
-class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+class ApiGetFileTextHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
 
   def setUp(self):
@@ -338,8 +321,8 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.assertEqual(result.total_size, 13)
 
 
-@db_test_lib.DualDBTest
-class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+class ApiGetFileBlobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def setUp(self):
     super(ApiGetFileBlobHandlerTest, self).setUp()
@@ -413,8 +396,8 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
       self.assertEqual(chunk, char * self.handler.CHUNK_SIZE)
 
 
-@db_test_lib.DualDBTest
-class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetFileVersionTimesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                        api_test_lib.ApiCallHandlerTest,
                                         VfsTestMixin):
 
   def setUp(self):
@@ -441,8 +424,8 @@ class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualDBTest
-class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetFileDownloadCommandHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                           api_test_lib.ApiCallHandlerTest,
                                            VfsTestMixin):
 
   def setUp(self):
@@ -469,8 +452,8 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualDBTest
 class ApiCreateVfsRefreshOperationHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin,
     notification_test_lib.NotificationTestMixin,
     api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateVfsRefreshOperationHandler."""
@@ -507,16 +490,9 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         client_id=self.client_id, file_path=self.file_path, max_depth=1)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
-                                                  result.operation_id)
-      self.assertEqual(flow_obj.flow_class_name, "ListDirectory")
-    else:
-      # Check returned operation_id to references a ListDirectory flow.
-      flow_urn = self.client_id.Add("flows").Add(result.operation_id)
-      flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-      self.assertEqual(
-          flow_obj.Get(flow_obj.Schema.TYPE), filesystem.ListDirectory.__name__)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
+                                                result.operation_id)
+    self.assertEqual(flow_obj.flow_class_name, "ListDirectory")
 
   def testHandlerRefreshStartsRecursiveListDirectoryFlow(self):
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
@@ -525,17 +501,9 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         client_id=self.client_id, file_path=self.file_path, max_depth=5)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
-                                                  result.operation_id)
-      self.assertEqual(flow_obj.flow_class_name, "RecursiveListDirectory")
-    else:
-      # Check returned operation_id to references a RecursiveListDirectory flow.
-      flow_urn = self.client_id.Add("flows").Add(result.operation_id)
-      flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-      self.assertEqual(
-          flow_obj.Get(flow_obj.Schema.TYPE),
-          filesystem.RecursiveListDirectory.__name__)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
+                                                result.operation_id)
+    self.assertEqual(flow_obj.flow_class_name, "RecursiveListDirectory")
 
   def testNotificationIsSent(self):
     fixture_test_lib.ClientFixture(self.client_id, token=self.token)
@@ -547,37 +515,22 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         notify_user=True)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      flow_test_lib.RunFlow(
-          self.client_id, result.operation_id, check_flow_errors=False)
-    else:
-      # Finish flow and check if there are any new notifications.
-      flow_urn = rdfvalue.RDFURN(result.operation_id)
-      client_mock = action_mocks.ActionMock()
-      flow_test_lib.TestFlowHelper(
-          flow_urn,
-          client_mock,
-          client_id=self.client_id,
-          token=self.token,
-          check_flow_errors=False)
+    flow_test_lib.RunFlow(
+        self.client_id, result.operation_id, check_flow_errors=False)
 
     pending_notifications = self.GetUserNotifications(self.token.username)
 
     self.assertIn("Recursive Directory Listing complete",
                   pending_notifications[0].message)
 
-    if data_store.RelationalDBEnabled():
-      self.assertEqual(
-          pending_notifications[0].reference.vfs_file.path_components,
-          ["Users", "Shared"])
-    else:
-      self.assertEqual(pending_notifications[0].subject,
-                       self.client_id.Add(self.file_path))
+    self.assertEqual(
+        pending_notifications[0].reference.vfs_file.path_components,
+        ["Users", "Shared"])
 
 
-@db_test_lib.DualDBTest
-class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                                VfsTestMixin):
+class ApiGetVfsRefreshOperationStateHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
+    VfsTestMixin):
   """Test for GetVfsRefreshOperationStateHandler."""
 
   def setUp(self):
@@ -587,7 +540,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testHandlerReturnsCorrectStateForFlow(self):
     # Create a mock refresh operation.
-    flow_id = self.CreateRecursiveListFlow(self.client_id, self.token)
+    flow_id = self.CreateRecursiveListFlow(self.client_id)
 
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
         client_id=self.client_id, operation_id=flow_id)
@@ -597,14 +550,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    if data_store.RelationalDBEnabled():
-      flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
-    else:
-      flow_urn = self.client_id.Add("flows").Add(flow_id)
-      with aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, mode="rw",
-          token=self.token) as flow_obj:
-        flow_obj.GetRunner().Error("Fake error")
+    flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
 
     # Recheck status and see if it changed.
     result = self.handler.Handle(args, token=self.token)
@@ -612,14 +558,8 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
-    if data_store.RelationalDBEnabled():
-      flow_id = flow.StartFlow(
-          client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
-    else:
-      flow_id = flow.StartAFF4Flow(
-          client_id=self.client_id,
-          flow_name=discovery.Interrogate.__name__,
-          token=self.token).Basename()
+    flow_id = flow.StartFlow(
+        client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
 
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
         client_id=self.client_id, operation_id=flow_id)
@@ -638,8 +578,8 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualDBTest
-class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiUpdateVfsFileContentHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                         api_test_lib.ApiCallHandlerTest):
   """Test for ApiUpdateVfsFileContentHandler."""
 
   def setUp(self):
@@ -673,22 +613,15 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
         client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
-                                                  result.operation_id)
-      self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
-      self.assertEqual(flow_obj.creator, self.token.username)
-    else:
-      # Check returned operation_id to references a MultiGetFile flow.
-      flow_urn = self.client_id.Add("flows").Add(result.operation_id)
-      flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-      self.assertEqual(
-          flow_obj.Get(flow_obj.Schema.TYPE), transfer.MultiGetFile.__name__)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
+                                                result.operation_id)
+    self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
+    self.assertEqual(flow_obj.creator, self.token.username)
 
 
-@db_test_lib.DualDBTest
 class ApiGetVfsFileContentUpdateStateHandlerTest(
-    api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
+    VfsTestMixin):
   """Test for ApiGetVfsFileContentUpdateStateHandler."""
 
   def setUp(self):
@@ -699,7 +632,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
   def testHandlerReturnsCorrectStateForFlow(self):
     # Create a mock refresh operation.
     flow_id = self.CreateMultiGetFileFlow(
-        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
+        self.client_id, file_path="fs/os/c/bin/bash")
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
         client_id=self.client_id, operation_id=flow_id)
@@ -709,14 +642,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    if data_store.RelationalDBEnabled():
-      flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
-    else:
-      flow_urn = self.client_id.Add("flows").Add(flow_id)
-      with aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, mode="rw",
-          token=self.token) as flow_obj:
-        flow_obj.GetRunner().Error("Fake error")
+    flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
 
     # Recheck status and see if it changed.
     result = self.handler.Handle(args, token=self.token)
@@ -724,14 +650,8 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
-    if data_store.RelationalDBEnabled():
-      flow_id = flow.StartFlow(
-          client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
-    else:
-      flow_id = flow.StartAFF4Flow(
-          client_id=self.client_id,
-          flow_name=discovery.Interrogate.__name__,
-          token=self.token).Basename()
+    flow_id = flow.StartFlow(
+        client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
         client_id=self.client_id, operation_id=flow_id)
@@ -782,28 +702,17 @@ class VfsTimelineTestMixin(object):
     return client_id
 
   def SetupFileMetadata(self, client_urn, vfs_path, stat_entry, hash_entry):
-    file_urn = client_urn.Add(vfs_path)
-
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Create(
-          file_urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-        if stat_entry is not None:
-          fd.Set(fd.Schema.STAT, stat_entry)
-        if hash_entry is not None:
-          fd.Set(fd.Schema.HASH, hash_entry)
-
-    if data_store.RelationalDBEnabled():
-      client_id = client_urn.Basename()
-      if stat_entry:
-        path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-      else:
-        path_info = rdf_objects.PathInfo.OS(components=vfs_path.split("/"))
-      path_info.hash_entry = hash_entry
-      data_store.REL_DB.WritePathInfos(client_id, [path_info])
+    client_id = client_urn.Basename()
+    if stat_entry:
+      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+    else:
+      path_info = rdf_objects.PathInfo.OS(components=vfs_path.split("/"))
+    path_info.hash_entry = hash_entry
+    data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
 
-@db_test_lib.DualDBTest
-class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                        api_test_lib.ApiCallHandlerTest,
                                         VfsTimelineTestMixin):
 
   def setUp(self):
@@ -911,8 +820,8 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(content, b"")
 
 
-@db_test_lib.DualDBTest
-class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetVfsTimelineHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                   api_test_lib.ApiCallHandlerTest,
                                    VfsTimelineTestMixin):
 
   def setUp(self):
@@ -939,8 +848,8 @@ class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualDBTest
-class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetVfsFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                       api_test_lib.ApiCallHandlerTest,
                                        VfsTestMixin):
   """Tests for ApiGetVfsFileArchiveHandler."""
 
@@ -1063,8 +972,8 @@ class DecodersTestMixin(object):
     vfs_test_lib.CreateFile(client_path, content=content)
 
 
-@db_test_lib.DualDBTest
-class ApiGetFileDecodersHandler(DecodersTestMixin,
+class ApiGetFileDecodersHandler(db_test_lib.RelationalDBEnabledMixin,
+                                DecodersTestMixin,
                                 api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -1132,8 +1041,8 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
     self.assertCountEqual(result.decoder_names, ["BarQuux", "BazQuux"])
 
 
-@db_test_lib.DualDBTest
-class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
+class ApiGetDecodedFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                   DecodersTestMixin,
                                    api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):

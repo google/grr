@@ -768,9 +768,6 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
         token=self.token)
 
   def testUseExternalStores(self):
-    if not data_store.RelationalDBEnabled():
-      self.skipTest("Test uses relational filestore.")
-
     with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
       path = os.path.join(tempdir, "foo")
       with io.open(path, "w") as fd:
@@ -862,9 +859,6 @@ class TestClientFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     ])
 
   def testUseExternalStores(self):
-    if not data_store.RelationalDBEnabled():
-      self.skipTest("Test uses relational filestore.")
-
     paths = [os.path.join(self.base_path, "test.plist")]
     action = rdf_file_finder.FileFinderAction(
         action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)

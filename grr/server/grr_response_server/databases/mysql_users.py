@@ -357,7 +357,6 @@ class MySQLDBUsersMixin(object):
                               state=None,
                               cursor=None):
     """Updates existing user notification objects."""
-
     if not timestamps:
       return
 

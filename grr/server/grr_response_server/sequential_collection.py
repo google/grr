@@ -261,7 +261,7 @@ class IndexedSequentialCollection(SequentialCollection):
   # The time to wait before creating an index for a record - hacky defense
   # against the correct index changing due to a late write.
 
-  INDEX_WRITE_DELAY = rdfvalue.Duration("3m")
+  INDEX_WRITE_DELAY = rdfvalue.DurationSeconds("3m")
 
   def __init__(self, *args, **kwargs):
     super(IndexedSequentialCollection, self).__init__(*args, **kwargs)

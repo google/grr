@@ -12,7 +12,6 @@ import time
 from absl import app
 from absl import flags
 from future.builtins import chr
-from future.builtins import map
 from future.builtins import range
 from future.builtins import zip
 import mock
@@ -38,7 +37,6 @@ from grr_response_server import fleetspeak_connector
 from grr_response_server import flow
 from grr_response_server import frontend_lib
 from grr_response_server import maintenance_utils
-from grr_response_server import queue_manager
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import ca_enroller
@@ -46,7 +44,6 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import client_test_lib
 from grr.test_lib import db_test_lib
-from grr.test_lib import flow_test_lib
 from grr.test_lib import frontend_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
@@ -77,437 +74,6 @@ def TestServer():
       certificate=config.CONFIG["Frontend.certificate"],
       private_key=config.CONFIG["PrivateKeys.server_key"],
       message_expiry_time=MESSAGE_EXPIRY_TIME)
-
-
-class GRRFEServerTest(frontend_test_lib.FrontEndServerTest):
-  """Tests the GRRFEServer."""
-
-  def testReceivedMessagesAreCorrectlyWrittenToDatastore(self):
-    """Test Receiving messages with no status."""
-    client_id = test_lib.TEST_CLIENT_ID
-    flow_obj = self.FlowSetup(
-        flow_test_lib.FlowOrderTest.__name__, client_id=client_id)
-
-    session_id = flow_obj.session_id
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=i,
-            session_id=session_id,
-            auth_state="AUTHENTICATED",
-            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
-    ]
-
-    ReceiveMessages(client_id, messages)
-
-    # Make sure the task is still on the client queue
-    manager = queue_manager.QueueManager(token=self.token)
-    tasks_on_client_queue = manager.Query(client_id, 100)
-    self.assertLen(tasks_on_client_queue, 1)
-
-    stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
-
-    self.assertLen(stored_messages, len(messages))
-
-    stored_messages.sort(key=lambda m: m.response_id)
-    # Check that messages were stored correctly
-    for stored_message, message in zip(stored_messages, messages):
-      # We don't care about the last queueing time.
-      stored_message.timestamp = None
-      self.assertEqual(stored_message, message)
-
-  def testReceiveMessagesWithStatus(self):
-    """Receiving a sequence of messages with a status."""
-    client_id = test_lib.TEST_CLIENT_ID
-    flow_obj = self.FlowSetup(
-        flow_test_lib.FlowOrderTest.__name__, client_id=client_id)
-
-    session_id = flow_obj.session_id
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=i,
-            session_id=session_id,
-            auth_state="AUTHENTICATED",
-            payload=rdfvalue.RDFInteger(i),
-            task_id=15) for i in range(1, 10)
-    ]
-
-    # Now add the status message
-    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    messages.append(
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=len(messages) + 1,
-            task_id=15,
-            session_id=messages[0].session_id,
-            auth_state="AUTHENTICATED",
-            payload=status,
-            type=rdf_flows.GrrMessage.Type.STATUS))
-
-    ReceiveMessages(client_id, messages)
-
-    # Make sure the task is still on the client queue
-    manager = queue_manager.QueueManager(token=self.token)
-    tasks_on_client_queue = manager.Query(client_id, 100)
-    self.assertLen(tasks_on_client_queue, 1)
-
-    stored_messages = data_store.DB.ReadResponsesForRequestId(session_id, 1)
-
-    self.assertLen(stored_messages, len(messages))
-
-    stored_messages.sort(key=lambda m: m.response_id)
-    # Check that messages were stored correctly
-    for stored_message, message in zip(stored_messages, messages):
-      # We don't care about the last queueing time.
-      stored_message.timestamp = None
-      self.assertEqual(stored_message, message)
-
-  def testReceiveUnsolicitedClientMessage(self):
-    client_id = test_lib.TEST_CLIENT_ID
-    flow_obj = self.FlowSetup(
-        flow_test_lib.FlowOrderTest.__name__, client_id=client_id)
-
-    session_id = flow_obj.session_id
-    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    messages = [
-        # This message has no task_id set...
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=1,
-            session_id=session_id,
-            payload=rdfvalue.RDFInteger(1),
-            auth_state="AUTHENTICATED",
-            task_id=15),
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=2,
-            session_id=session_id,
-            payload=status,
-            auth_state="AUTHENTICATED",
-            type=rdf_flows.GrrMessage.Type.STATUS)
-    ]
-
-    ReceiveMessages(client_id, messages)
-
-    manager = queue_manager.QueueManager(token=self.token)
-    completed = list(manager.FetchCompletedRequests(session_id))
-    self.assertLen(completed, 1)
-
-  def testWellKnownFlows(self):
-    """Make sure that well known flows can run on the front end."""
-    flow_test_lib.WellKnownSessionTest.messages = []
-    session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
-
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=0,
-            response_id=0,
-            session_id=session_id,
-            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
-    ]
-
-    ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-    flow_test_lib.WellKnownSessionTest.messages.sort()
-
-    # Well known flows are now directly processed on the front end
-    self.assertEqual(flow_test_lib.WellKnownSessionTest.messages,
-                     list(range(1, 10)))
-
-  def testWellKnownFlowsRemote(self):
-    """Make sure that flows that do not exist on the front end get scheduled."""
-    session_id = self._ReceiveWKFMessages()
-
-    # The well known flow messages should be queued now.
-    responses = data_store.DB.ReadResponsesForRequestId(session_id, 0)
-    self.assertLen(responses, 9)
-
-    relational_requests = data_store.REL_DB.ReadMessageHandlerRequests()
-    self.assertEmpty(relational_requests)
-
-  def testMessageHandlers(self):
-    """Tests message handlers."""
-    with utils.MultiStubber((queue_manager, "session_id_map", {
-        flow_test_lib.WellKnownSessionTest.well_known_session_id: "Test"
-    }), (data_store, "RelationalDBEnabled", lambda: True)):
-      with test_lib.ConfigOverrider({
-          "Database.enabled": True,
-      }):
-        session_id = self._ReceiveWKFMessages()
-
-    responses = data_store.DB.ReadResponsesForRequestId(session_id, 0)
-    self.assertEmpty(responses)
-
-    relational_requests = data_store.REL_DB.ReadMessageHandlerRequests()
-    self.assertLen(relational_requests, 9)
-
-  def testLegacyWellKnownSessionIDs(self):
-    with test_lib.ConfigOverrider({
-        "Database.enabled": True,
-    }):
-      server = TestServer()
-
-      messages = []
-      for session_id in list(server.legacy_well_known_session_ids):
-        messages.append(
-            rdf_flows.GrrMessage(
-                source=test_lib.TEST_CLIENT_ID,
-                request_id=0,
-                response_id=0,
-                session_id=session_id,
-                auth_state="AUTHENTICATED",
-                payload=rdfvalue.RDFInteger(1)))
-
-      # Responses received from ancient clients still using those old session
-      # ids will be dropped by the server. All we need to really make sure here
-      # is that the server does not raise when it encounters such messages.
-      server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-  def _ReceiveWKFMessages(self):
-    flow_test_lib.WellKnownSessionTest.messages = []
-    session_id = flow_test_lib.WellKnownSessionTest.well_known_session_id
-
-    messages = []
-    for i in range(1, 10):
-      messages.append(
-          rdf_flows.GrrMessage(
-              source=test_lib.TEST_CLIENT_ID,
-              request_id=0,
-              response_id=0,
-              session_id=session_id,
-              auth_state="AUTHENTICATED",
-              payload=rdfvalue.RDFInteger(i)))
-
-    server = TestServer()
-    # Delete the local well known flow cache.
-    server.well_known_flows = {}
-    server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-    # None get processed now
-    self.assertEqual(flow_test_lib.WellKnownSessionTest.messages, [])
-    return session_id
-
-  def testWellKnownFlowsNotifications(self):
-    flow_test_lib.WellKnownSessionTest.messages = []
-    flow_test_lib.WellKnownSessionTest2.messages = []
-    session_id1 = flow_test_lib.WellKnownSessionTest.well_known_session_id
-    session_id2 = flow_test_lib.WellKnownSessionTest2.well_known_session_id
-
-    messages = []
-    for i in range(1, 5):
-      messages.append(
-          rdf_flows.GrrMessage(
-              request_id=0,
-              response_id=0,
-              session_id=session_id1,
-              auth_state="AUTHENTICATED",
-              payload=rdfvalue.RDFInteger(i)))
-      messages.append(
-          rdf_flows.GrrMessage(
-              request_id=0,
-              response_id=0,
-              session_id=session_id2,
-              auth_state="AUTHENTICATED",
-              payload=rdfvalue.RDFInteger(i)))
-
-    server = TestServer()
-    # This test whitelists only one flow.
-    self.assertIn(session_id1.FlowName(), server.well_known_flows)
-    self.assertNotIn(session_id2.FlowName(), server.well_known_flows)
-
-    server.ReceiveMessages(test_lib.TEST_CLIENT_ID, messages)
-
-    # Flow 1 should have been processed right away.
-    flow_test_lib.WellKnownSessionTest.messages.sort()
-    self.assertEqual(flow_test_lib.WellKnownSessionTest.messages,
-                     list(range(1, 5)))
-
-    # But not Flow 2.
-    self.assertEqual(flow_test_lib.WellKnownSessionTest2.messages, [])
-
-    manager = queue_manager.WellKnownQueueManager(token=self.token)
-
-    notifications = manager.GetNotificationsForAllShards(session_id1.Queue())
-
-    # Flow 1 was proecessed on the frontend, no queued responses available.
-    responses = list(manager.FetchResponses(session_id1))
-    self.assertEqual(responses, [])
-    # And also no notifications.
-    self.assertNotIn(
-        session_id1,
-        [notification.session_id for notification in notifications])
-
-    # But for Flow 2 there should be some responses + a notification.
-    responses = list(manager.FetchResponses(session_id2))
-    self.assertLen(responses, 4)
-    self.assertIn(session_id2,
-                  [notification.session_id for notification in notifications])
-
-  def testDrainUpdateSessionRequestStates(self):
-    """Draining the flow requests and preparing messages."""
-    client_id = test_lib.TEST_CLIENT_ID
-    # This flow sends 10 messages on Start()
-    flow_obj = self.FlowSetup("SendingTestFlow", client_id=client_id)
-    session_id = flow_obj.session_id
-
-    # There should be 10 messages in the client's task queue
-    manager = queue_manager.QueueManager(token=self.token)
-    tasks = manager.Query(client_id, 100)
-    self.assertLen(tasks, 10)
-
-    requests_by_id = {}
-
-    for request, _ in data_store.DB.ReadRequestsAndResponses(session_id):
-      requests_by_id[request.id] = request
-
-    # Check that the response state objects have the correct ts_id set
-    # in the client_queue:
-    for task in tasks:
-      request_id = task.request_id
-
-      # Retrieve the request state for this request_id
-      request = requests_by_id[request_id]
-
-      # Check that task_id for the client message is correctly set in
-      # request_state.
-      self.assertEqual(request.request.task_id, task.task_id)
-
-    # Now ask the server to drain the outbound messages into the
-    # message list.
-    response = rdf_flows.MessageList()
-
-    server = TestServer()
-    response.job = server.DrainTaskSchedulerQueueForClient(client_id, 5)
-
-    # Check that we received only as many messages as we asked for
-    self.assertLen(response.job, 5)
-
-    for i in range(4):
-      self.assertEqual(response.job[i].session_id, session_id)
-      self.assertEqual(response.job[i].name, "Test")
-
-  def _ScheduleResponseAndStatus(self, client_id, flow_id):
-    with queue_manager.QueueManager(token=self.token) as flow_manager:
-      # Schedule a response.
-      flow_manager.QueueResponse(
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=flow_id,
-              payload=rdf_protodict.DataBlob(string="Helllo"),
-              request_id=1,
-              response_id=1))
-      # And a STATUS message.
-      flow_manager.QueueResponse(
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=flow_id,
-              payload=rdf_flows.GrrStatus(
-                  status=rdf_flows.GrrStatus.ReturnedStatus.OK),
-              request_id=1,
-              response_id=2,
-              type=rdf_flows.GrrMessage.Type.STATUS))
-
-  def testHandleClientMessageRetransmission(self):
-    """Check that requests get retransmitted but only if there is no status."""
-    # Make a new fake client
-    client_id = self.SetupClient(0)
-
-    # Test the standard behavior.
-    base_time = 1000
-    msgs_recvd = []
-
-    default_ttl = rdf_flows.GrrMessage().task_ttl
-    with test_lib.FakeTime(base_time):
-      flow.StartAFF4Flow(
-          client_id=client_id,
-          flow_name=flow_test_lib.SendingFlow.__name__,
-          message_count=1,
-          token=self.token)
-
-    server = TestServer()
-    for i in range(default_ttl):
-      with test_lib.FakeTime(base_time + i * (MESSAGE_EXPIRY_TIME + 1)):
-
-        tasks = server.DrainTaskSchedulerQueueForClient(client_id, 100000)
-        msgs_recvd.append(tasks)
-
-    # Should return a client message (ttl-1) times and nothing afterwards.
-    self.assertEqual(
-        list(map(bool, msgs_recvd)),
-        [True] * (rdf_flows.GrrMessage().task_ttl - 1) + [False])
-
-    # Now we simulate that the workers are overloaded - the client messages
-    # arrive but do not get processed in time.
-    if default_ttl <= 3:
-      self.fail("TTL too low for this test.")
-
-    msgs_recvd = []
-
-    with test_lib.FakeTime(base_time):
-      flow_id = flow.StartAFF4Flow(
-          client_id=client_id,
-          flow_name=flow_test_lib.SendingFlow.__name__,
-          message_count=1,
-          token=self.token)
-
-    for i in range(default_ttl):
-      if i == 2:
-        self._ScheduleResponseAndStatus(client_id, flow_id)
-
-      with test_lib.FakeTime(base_time + i * (MESSAGE_EXPIRY_TIME + 1)):
-
-        tasks = server.DrainTaskSchedulerQueueForClient(client_id, 100000)
-        msgs_recvd.append(tasks)
-
-        if not tasks:
-          # Even if the request has not been leased ttl times yet,
-          # it should be dequeued by now.
-          new_tasks = queue_manager.QueueManager(token=self.token).Query(
-              queue=rdf_client.ClientURN(client_id).Queue(), limit=1000)
-          self.assertEmpty(new_tasks)
-
-    # Should return a client message twice and nothing afterwards.
-    self.assertEqual(
-        list(map(bool, msgs_recvd)),
-        [True] * 2 + [False] * (rdf_flows.GrrMessage().task_ttl - 2))
-
-  def testCrashReport(self):
-
-    # Make sure the event handler is present.
-    self.assertTrue(administrative.ClientCrashHandler)
-
-    client_urn = test_lib.TEST_CLIENT_ID
-    client_id = client_urn.Basename()
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
-
-    flow_obj = self.FlowSetup(
-        flow_test_lib.FlowOrderTest.__name__, client_id=client_urn)
-
-    session_id = flow_obj.session_id
-    status = rdf_flows.GrrStatus(
-        status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED)
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=1,
-            session_id=session_id,
-            payload=status,
-            auth_state="AUTHENTICATED",
-            type=rdf_flows.GrrMessage.Type.STATUS)
-    ]
-
-    ReceiveMessages(client_urn, messages)
-
-    if data_store.RelationalDBEnabled():
-      crash_details_rel = data_store.REL_DB.ReadClientCrashInfo(client_id)
-      self.assertTrue(crash_details_rel)
-      self.assertEqual(crash_details_rel.session_id, session_id)
-    else:
-      client = aff4.FACTORY.Open(client_urn)
-      crash_details = client.Get(client.Schema.LAST_CRASH)
-      self.assertTrue(crash_details)
-      self.assertEqual(crash_details.session_id, session_id)
 
 
 class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
@@ -641,10 +207,11 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertItemsEqual(res, msgs)
 
 
-class FleetspeakFrontendTests(frontend_test_lib.FrontEndServerTest):
+class FleetspeakFrontendTests(db_test_lib.RelationalDBEnabledMixin,
+                              frontend_test_lib.FrontEndServerTest):
 
   def testFleetspeakEnrolment(self):
-    client_id = test_lib.TEST_CLIENT_ID.Basename()
+    client_id = "C.0000000000000000"
     server = TestServer()
     # An Enrolment flow should start inline and attempt to send at least
     # message through fleetspeak as part of the resulting interrogate flow.
@@ -668,8 +235,8 @@ def MakeResponse(code=500, data=""):
   return response
 
 
-@db_test_lib.DualDBTest
-class ClientCommsTest(test_lib.GRRBaseTest):
+class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
+                      test_lib.GRRBaseTest):
   """Test the communicator."""
 
   def setUp(self):
@@ -698,15 +265,9 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self._SetupCommunicator()
 
   def _SetupCommunicator(self):
-    if data_store.AFF4Enabled():
-      self.server_communicator = frontend_lib.ServerCommunicator(
-          certificate=self.server_certificate,
-          private_key=self.server_private_key,
-          token=self.token)
-    else:
-      self.server_communicator = frontend_lib.RelationalServerCommunicator(
-          certificate=self.server_certificate,
-          private_key=self.server_private_key)
+    self.server_communicator = frontend_lib.ServerCommunicator(
+        certificate=self.server_certificate,
+        private_key=self.server_private_key)
 
   def _LabelClient(self, client_id, label):
     if data_store.AFF4Enabled():
@@ -969,14 +530,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertNotEqual(server_certificate, self.server_certificate)
     self.assertNotEqual(server_private_key, self.server_private_key)
 
-    if data_store.AFF4Enabled():
-      self.server_communicator = frontend_lib.ServerCommunicator(
-          certificate=server_certificate,
-          private_key=server_private_key,
-          token=self.token)
-    else:
-      self.server_communicator = frontend_lib.RelationalServerCommunicator(
-          certificate=server_certificate, private_key=server_private_key)
+    self.server_communicator = frontend_lib.ServerCommunicator(
+        certificate=server_certificate, private_key=server_private_key)
 
     # Clients can't connect at this point since they use the outdated
     # session key.
@@ -992,8 +547,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertLen(list(self.ClientServerCommunicate()), 10)
 
 
-@db_test_lib.DualDBTest
-class HTTPClientTests(test_lib.GRRBaseTest):
+class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
+                      test_lib.GRRBaseTest):
   """Test the http communicator."""
 
   def setUp(self):
@@ -1067,16 +622,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
   def CreateNewServerCommunicator(self):
     self._MakeClient()
-    if data_store.AFF4Enabled():
-      self.server_communicator = frontend_lib.ServerCommunicator(
-          certificate=self.server_certificate,
-          private_key=self.server_private_key,
-          token=self.token)
-      self.server_communicator.client_cache.Put(self.client_cn, self.client)
-    else:
-      self.server_communicator = frontend_lib.RelationalServerCommunicator(
-          certificate=self.server_certificate,
-          private_key=self.server_private_key)
+    self.server_communicator = frontend_lib.ServerCommunicator(
+        certificate=self.server_certificate,
+        private_key=self.server_private_key)
 
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
@@ -1466,8 +1014,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
-    with utils.Stubber(admin.GetClientStatsAuto,
-                       "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(admin.GetClientStatsAuto, "Run",
+                       lambda cls, _: runs.append(1)):
 
       # No stats collection after 10 minutes.
       with test_lib.FakeTime(now + 600):
@@ -1499,8 +1047,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
-    with utils.Stubber(admin.GetClientStatsAuto,
-                       "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(admin.GetClientStatsAuto, "Run",
+                       lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
@@ -1535,8 +1083,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
-    with utils.Stubber(admin.GetClientStatsAuto,
-                       "Run", lambda cls, _: runs.append(1)):
+    with utils.Stubber(admin.GetClientStatsAuto, "Run",
+                       lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):

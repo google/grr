@@ -338,7 +338,7 @@ class FlowRunner(object):
         manager.DeleteNotification(
             self.session_id,
             start=self.context.kill_timestamp,
-            end=self.context.kill_timestamp + rdfvalue.Duration("1s"))
+            end=self.context.kill_timestamp + rdfvalue.DurationSeconds("1s"))
 
         self.context.kill_timestamp = (
             rdfvalue.RDFDatetime().Now() + self.stuck_flows_timeout)

@@ -11,7 +11,6 @@ import traceback
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import hunt
@@ -22,8 +21,8 @@ from grr.test_lib import skip
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
+class TestHuntView(db_test_lib.RelationalDBEnabledMixin,
+                   gui_test_lib.GRRSeleniumHuntTest):
   """Test the Cron view GUI."""
 
   reason = "Felt like it!"
@@ -40,21 +39,12 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.AddErrorToHunt(hunt_urn, self.client_ids[1], "Client Error 1",
                         traceback.format_exc())
 
-    if data_store.RelationalDBEnabled():
-      hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_urn.Basename())
-      if client_limit == 0:
-        self.assertEqual(hunt_counters.num_clients, client_count)
-      else:
-        self.assertEqual(hunt_counters.num_clients,
-                         min(client_count, client_limit))
+    hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_urn.Basename())
+    if client_limit == 0:
+      self.assertEqual(hunt_counters.num_clients, client_count)
     else:
-      hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
-      all_count, _, _ = hunt_obj.GetClientsCounts()
-      if client_limit == 0:
-        # No limit, so we should have all the clients
-        self.assertEqual(all_count, client_count)
-      else:
-        self.assertEqual(all_count, min(client_count, client_limit))
+      self.assertEqual(hunt_counters.num_clients, min(client_count,
+                                                      client_limit))
 
     return hunt_urn.Basename()
 
@@ -139,55 +129,20 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.WaitUntil(self.IsTextPresent, "Flow Information")
       self.WaitUntil(self.IsTextPresent, self.base_path)
 
-  # There can be no "broken" hunts in REL_DB implementation. Hunt object is
-  # there or not there. REL_DB validator ensures that the object has a
-  # correct type when it's written to the database.
-  @db_test_lib.LegacyDataStoreOnly
-  def testHuntOverviewShowsBrokenHunt(self):
-    hunt_urn = self.CreateSampleHunt()
-    broken_hunt_urn = self.CreateSampleHunt()
-
-    # Break the hunt.
-    broken_hunt = aff4.FACTORY.Open(broken_hunt_urn, token=self.token)
-    data_store.DB.DeleteAttributes(
-        broken_hunt_urn,
-        [broken_hunt.Schema.HUNT_ARGS, broken_hunt.Schema.HUNT_RUNNER_ARGS])
-    data_store.DB.Flush()
-
-    # Open up and click on View Hunts then the first Hunt.
-    self.Open("/#/hunts")
-
-    hunt_id = hunt_urn.Basename()
-    broken_hunt_id = broken_hunt_urn.Basename()
-
-    # Both hunts are shown even though one throws an error.
-    self.WaitUntil(self.IsTextPresent, hunt_id)
-    self.WaitUntil(self.IsTextPresent, broken_hunt_id)
-
-    self.Click("css=td:contains('%s')" % broken_hunt_id)
-    self.WaitUntil(self.IsTextPresent, "Error while Opening")
-    self.WaitUntil(self.IsTextPresent, "Error while opening hunt:")
-
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""
     hunt_urn = self.CreateSampleHunt()
     hunt_id = hunt_urn.Basename()
-    if data_store.RelationalDBEnabled():
-      client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0).Basename()
 
-      rdf_flow = rdf_flow_objects.Flow(
-          client_id=client_id,
-          flow_id=flow.RandomFlowId(),
-          parent_hunt_id=hunt_id,
-          create_time=rdfvalue.RDFDatetime.Now())
-      rdf_flow.cpu_time_used.user_cpu_time = 5000
-      rdf_flow.network_bytes_sent = 1000000
-      data_store.REL_DB.WriteFlowObject(rdf_flow)
-    else:
-      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt_obj:
-        hunt_stats = hunt_obj.context.usage_stats
-        hunt_stats.user_cpu_stats.sum = 5000
-        hunt_stats.network_bytes_sent_stats.sum = 1000000
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow.RandomFlowId(),
+        parent_hunt_id=hunt_id,
+        create_time=rdfvalue.RDFDatetime.Now())
+    rdf_flow.cpu_time_used.user_cpu_time = 5000
+    rdf_flow.network_bytes_sent = 1000000
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
@@ -205,22 +160,16 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntOverviewGetsUpdatedWhenHuntChanges(self):
     hunt_urn = self.CreateSampleHunt()
     hunt_id = hunt_urn.Basename()
-    if data_store.RelationalDBEnabled():
-      client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0).Basename()
 
-      rdf_flow = rdf_flow_objects.Flow(
-          client_id=client_id,
-          flow_id=flow.RandomFlowId(),
-          parent_hunt_id=hunt_id,
-          create_time=rdfvalue.RDFDatetime.Now())
-      rdf_flow.cpu_time_used.user_cpu_time = 5000
-      rdf_flow.network_bytes_sent = 1000000
-      data_store.REL_DB.WriteFlowObject(rdf_flow)
-    else:
-      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt_obj:
-        hunt_stats = hunt_obj.context.usage_stats
-        hunt_stats.user_cpu_stats.sum = 5000
-        hunt_stats.network_bytes_sent_stats.sum = 1000000
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow.RandomFlowId(),
+        parent_hunt_id=hunt_id,
+        create_time=rdfvalue.RDFDatetime.Now())
+    rdf_flow.cpu_time_used.user_cpu_time = 5000
+    rdf_flow.network_bytes_sent = 1000000
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -233,22 +182,16 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "1h 23m 20s")
     self.WaitUntil(self.IsTextPresent, "976.6KiB")
 
-    if data_store.RelationalDBEnabled():
-      client_id = self.SetupClient(1).Basename()
+    client_id = self.SetupClient(1).Basename()
 
-      rdf_flow = rdf_flow_objects.Flow(
-          client_id=client_id,
-          flow_id=flow.RandomFlowId(),
-          parent_hunt_id=hunt_id,
-          create_time=rdfvalue.RDFDatetime.Now())
-      rdf_flow.cpu_time_used.user_cpu_time = 1000
-      rdf_flow.network_bytes_sent = 10000000
-      data_store.REL_DB.WriteFlowObject(rdf_flow)
-    else:
-      with aff4.FACTORY.Open(hunt_urn, mode="rw") as hunt_obj:
-        hunt_stats = hunt_obj.context.usage_stats
-        hunt_stats.user_cpu_stats.sum = 6000
-        hunt_stats.network_bytes_sent_stats.sum = 11000000
+    rdf_flow = rdf_flow_objects.Flow(
+        client_id=client_id,
+        flow_id=flow.RandomFlowId(),
+        parent_hunt_id=hunt_id,
+        create_time=rdfvalue.RDFDatetime.Now())
+    rdf_flow.cpu_time_used.user_cpu_time = 1000
+    rdf_flow.network_bytes_sent = 10000000
+    data_store.REL_DB.WriteFlowObject(rdf_flow)
 
     self.WaitUntil(self.IsTextPresent, "1h 40m")
     self.WaitUntil(self.IsTextPresent, "10.5MiB")
@@ -256,7 +199,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   @skip.Unless(data_store.RelationalDBEnabled,
                "Legacy data store not supported.")
   def testHuntOverviewShowsStartAndExpirationTime(self):
-    duration = rdfvalue.Duration("3d")
+    duration = rdfvalue.DurationSeconds("3d")
     init_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1973-01-01 08:34")
     last_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1981-03-04 12:52")
     expiration_time = init_start_time + duration
@@ -301,8 +244,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_1_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1992-11-11")
     hunt_2_start_time = rdfvalue.RDFDatetime.FromHumanReadable("2001-05-03")
 
-    hunt_1_duration = rdfvalue.Duration("3d")
-    hunt_2_duration = rdfvalue.Duration("5h")
+    hunt_1_duration = rdfvalue.DurationSeconds("3d")
+    hunt_2_duration = rdfvalue.DurationSeconds("5h")
 
     hunt_1_expiration_time = hunt_1_start_time + hunt_1_duration
     hunt_2_expiration_time = hunt_2_start_time + hunt_2_duration

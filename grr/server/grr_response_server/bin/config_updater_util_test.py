@@ -28,8 +28,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
+class ConfigUpdaterLibTest(db_test_lib.RelationalDBEnabledMixin,
+                           test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ConfigUpdaterLibTest, self).setUp()

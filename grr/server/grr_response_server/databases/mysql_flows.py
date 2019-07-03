@@ -1150,7 +1150,7 @@ class MySQLDBFlowMixin(object):
   def _LeaseFlowProcessingReqests(self, cursor=None):
     """Leases a number of flow processing requests."""
     now = rdfvalue.RDFDatetime.Now()
-    expiry = now + rdfvalue.Duration("10m")
+    expiry = now + rdfvalue.DurationSeconds("10m")
 
     query = """
       UPDATE flow_processing_requests

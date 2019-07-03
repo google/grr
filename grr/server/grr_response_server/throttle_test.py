@@ -17,8 +17,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class ThrottleTest(test_lib.GRRBaseTest):
+class ThrottleTest(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
   BASE_TIME = 1439501002
 
   def setUp(self):
@@ -42,7 +41,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
 
       # Disable the dup interval checking by setting it to 0.
       throttler = throttle.FlowThrottler(
-          daily_req_limit=2, dup_interval=rdfvalue.Duration("0s"))
+          daily_req_limit=2, dup_interval=rdfvalue.DurationSeconds("0s"))
 
       # Should succeeed, only one flow present in the 1 day window.
       throttler.EnforceLimits(
@@ -88,7 +87,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
   def testFlowDuplicateLimit(self):
     # Disable the request limit checking by setting it to 0.
     throttler = throttle.FlowThrottler(
-        daily_req_limit=0, dup_interval=rdfvalue.Duration("1200s"))
+        daily_req_limit=0, dup_interval=rdfvalue.DurationSeconds("1200s"))
 
     # Running the same flow immediately should fail
     with test_lib.FakeTime(self.BASE_TIME):

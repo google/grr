@@ -63,8 +63,8 @@ def _CreateNDayActiveGraphSeries(num_graph_series):
   return graph_series_list
 
 
-@db_test_lib.DualDBTest
-class ClientReportUtilsTest(test_lib.GRRBaseTest):
+class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
+                            test_lib.GRRBaseTest):
 
   def testWriteGraphSeries_MultipleGraphs(self):
     # Simulate two runs of the cronjob that computes GRR-version stats.
@@ -126,7 +126,7 @@ class ClientReportUtilsTest(test_lib.GRRBaseTest):
       # series written starting from 4 seconds ago.
       fetched_data = client_report_utils.FetchAllGraphSeries(
           _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION,
-          rdfvalue.Duration("4s"))
+          rdfvalue.DurationSeconds("4s"))
       expected_data = {
           rdfvalue.RDFDatetime.FromSecondsSinceEpoch(6): graph_series_list[6],
           rdfvalue.RDFDatetime.FromSecondsSinceEpoch(7): graph_series_list[7],

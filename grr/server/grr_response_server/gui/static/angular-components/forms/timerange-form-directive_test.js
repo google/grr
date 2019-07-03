@@ -35,10 +35,10 @@ describe('timerange form directive', () => {
                 value: 0,
               },
             });
-          } else if (valueType === 'Duration') {
+          } else if (valueType === 'DurationSeconds') {
             deferred.resolve({
               default: {
-                type: 'Duration',
+                type: 'DurationSeconds',
                 value: 0,
               },
             });
@@ -91,7 +91,7 @@ describe('timerange form directive', () => {
 
     directive = element.find('grr-form-value:nth(1)');
     expect(directive.scope().$eval(directive.attr('value'))).toEqual({
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 456,
     });
   });

@@ -46,7 +46,7 @@ const HuntStatsController = function($scope, grrApiService) {
  * @private
  */
 function formatSeconds(value) {
-  return '< ' + value.toFixed(1) + 's';
+  return value.toFixed(1) + 's';
 }
 
 /**
@@ -60,9 +60,9 @@ function formatBytes(value) {
   // TODO(user): Once we have the bytesFilter implemented, we can use it
   // here.
   if (value < 1024) {
-    return `< ${value} B`;
+    return `${value} B`;
   } else {
-    return `< ${Math.round(value / 1024)} KiB`;
+    return `${Math.round(value / 1024)} KiB`;
   }
 }
 
@@ -85,7 +85,8 @@ HuntStatsController.prototype.convertHistogramToComparisonChart_ = function(
   let stdev = undefined;
 
   if (data !== undefined) {
-    for (const bin of data['value']['histogram']['value']['bins']) {
+    const bins = data['value']['histogram']['value']['bins'];
+    for (const bin of bins) {
       let num = 0;
       if (bin['value']['num'] !== undefined) {
         num = bin['value']['num']['value'];
@@ -94,10 +95,15 @@ HuntStatsController.prototype.convertHistogramToComparisonChart_ = function(
       series.push({
         value: {
           label:
-              {value: labelFormatFn(bin['value']['range_max_value']['value'])},
+              {value: '< ' + labelFormatFn(bin['value']['range_max_value']['value'])},
           x: {value: num}
         }
       });
+    }
+    if (series.length > 0 && bins.length > 1) {
+      const lastSerie = series[series.length - 1]['value'];
+      lastSerie['label']['value'] = '> ' + labelFormatFn(
+          bins[bins.length - 2]['value']['range_max_value']['value']);
     }
 
     if (data['value']['num']) {

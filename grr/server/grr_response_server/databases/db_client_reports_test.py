@@ -78,20 +78,21 @@ class DatabaseTestClientReportsMixin(object):
 
     graph_series_list = _CreateGRRVersionGraphSeries(10)
     for i, graph_series in enumerate(graph_series_list):
-      with test_lib.FakeTime(date + rdfvalue.Duration.FromDays(i)):
+      with test_lib.FakeTime(date + rdfvalue.DurationSeconds.FromDays(i)):
         self.db.WriteClientGraphSeries(graph_series, _TEST_LABEL)
 
-    time_range = time_utils.TimeRange(date + rdfvalue.Duration.FromDays(6),
-                                      date + rdfvalue.Duration.FromDays(10))
+    time_range = time_utils.TimeRange(
+        date + rdfvalue.DurationSeconds.FromDays(6),
+        date + rdfvalue.DurationSeconds.FromDays(10))
     fetched_data = self.db.ReadAllClientGraphSeries(
         _TEST_LABEL,
         rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION,
         time_range=time_range)
     expected_data = {
-        date + rdfvalue.Duration.FromDays(6): graph_series_list[6],
-        date + rdfvalue.Duration.FromDays(7): graph_series_list[7],
-        date + rdfvalue.Duration.FromDays(8): graph_series_list[8],
-        date + rdfvalue.Duration.FromDays(9): graph_series_list[9],
+        date + rdfvalue.DurationSeconds.FromDays(6): graph_series_list[6],
+        date + rdfvalue.DurationSeconds.FromDays(7): graph_series_list[7],
+        date + rdfvalue.DurationSeconds.FromDays(8): graph_series_list[8],
+        date + rdfvalue.DurationSeconds.FromDays(9): graph_series_list[9],
     }
     self.assertDictEqual(fetched_data, expected_data)
 

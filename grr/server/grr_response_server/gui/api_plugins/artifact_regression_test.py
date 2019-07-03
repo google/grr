@@ -14,9 +14,11 @@ from grr_response_server import artifact_registry
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import artifact as artifact_plugin
 from grr.test_lib import artifact_test_lib
+from grr.test_lib import db_test_lib
 
 
 class ApiListArtifactsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "ListArtifacts"

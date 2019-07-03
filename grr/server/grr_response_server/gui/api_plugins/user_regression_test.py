@@ -19,12 +19,14 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import acl_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiGetClientApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetClientApprovalHandler."""
 
@@ -83,6 +85,7 @@ class ApiGetClientApprovalHandlerRegressionTest(
 
 
 class ApiGrantClientApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantClientApprovalHandler."""
 
@@ -119,6 +122,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
 
 
 class ApiCreateClientApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateClientApprovalHandler."""
 
@@ -155,6 +159,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
 
 
 class ApiListClientApprovalsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
@@ -214,6 +219,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
 
 
 class ApiGetHuntApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetHuntApprovalHandler."""
@@ -340,6 +346,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
 
 class ApiGrantHuntApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantHuntApprovalHandler."""
@@ -371,6 +378,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
 
 
 class ApiCreateHuntApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateHuntApprovalHandler."""
@@ -400,7 +408,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
 
 
 class ApiListHuntApprovalsHandlerRegressionTest(
-    hunt_test_lib.StandardHuntTestMixin,
+    db_test_lib.RelationalDBEnabledMixin, hunt_test_lib.StandardHuntTestMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
@@ -430,6 +438,7 @@ class ApiListHuntApprovalsHandlerRegressionTest(
 
 
 class ApiGetCronJobApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetCronJobApprovalHandler."""
 
@@ -483,6 +492,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
 
 
 class ApiGrantCronJobApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantCronJobApprovalHandler."""
 
@@ -519,6 +529,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
 
 
 class ApiCreateCronJobApprovalHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateCronJobApprovalHandler."""
 
@@ -550,7 +561,8 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
           replace=ReplaceCronAndApprovalIds)
 
 
-class ApiGetOwnGrrUserHandlerRegresstionTest(
+class ApiGetOwnGrrUserHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetUserSettingsHandler."""
 
@@ -607,7 +619,8 @@ def _SendNotifications(username, client_id):
 
 
 class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
-    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
+    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
+    api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetPendingUserNotificationsCountHandler."""
 
   api_method = "GetPendingUserNotificationsCount"
@@ -622,7 +635,8 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
 
 
 class ApiListPendingUserNotificationsHandlerRegressionTest(
-    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
+    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
+    api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListPendingUserNotificationsHandler."""
 
   api_method = "ListPendingUserNotifications"
@@ -648,7 +662,8 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
 
 class ApiListAndResetUserNotificationsHandlerRegressionTest(
-    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
+    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
+    api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListAndResetUserNotificationsHandler."""
 
   api_method = "ListAndResetUserNotifications"
@@ -679,7 +694,8 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
 
 
 class ApiListApproverSuggestionsHandlerRegressionTest(
-    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
+    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
+    api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListApproverSuggestionsHandler."""
 
   api_method = "ListApproverSuggestions"

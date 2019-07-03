@@ -21,7 +21,8 @@ class ApiGetRDFValueDescriptorHandlerRegressionTest(
   def Run(self):
     self.Check(
         "GetRDFValueDescriptor",
-        args=reflection_plugin.ApiGetRDFValueDescriptorArgs(type="Duration"))
+        args=reflection_plugin.ApiGetRDFValueDescriptorArgs(
+            type="DurationSeconds"))
     self.Check(
         "GetRDFValueDescriptor",
         args=reflection_plugin.ApiGetRDFValueDescriptorArgs(type="ApiFlow"))

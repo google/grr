@@ -103,7 +103,7 @@ class YaraProcessScan(actions.ActionPlugin):
     if args.per_process_timeout:
       deadline = rdfvalue.RDFDatetime.Now() + args.per_process_timeout
     else:
-      deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1w")
+      deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1w")
 
     rules = args.yara_signature.GetRules()
 

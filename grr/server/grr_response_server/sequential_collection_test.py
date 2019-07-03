@@ -183,7 +183,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
 
       # Push the clock forward 10m, and we should build an index on access.
       with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                             rdfvalue.Duration("10m")):
+                             rdfvalue.DurationSeconds("10m")):
         # Read from start doesn't rebuild index (lazy rebuild)
         _ = collection[0]
         self.assertEqual(list(iterkeys(collection._index)), [0])
@@ -232,7 +232,7 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
           collection.StaticAdd(
               rdfvalue.RDFURN(urn), rdfvalue.RDFInteger(i), mutation_pool=pool)
       with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                             rdfvalue.Duration("10m")):
+                             rdfvalue.DurationSeconds("10m")):
         for i in range(data_size - 1, data_size - 20, -1):
           self.assertEqual(collection[i], i)
         for i in [spacing - 1, spacing, spacing + 1]:
@@ -267,10 +267,10 @@ class IndexedSequentialCollectionTest(aff4_test_lib.AFF4ObjectTest):
     # indexing should happen instantaneously.
     isq = sequential_collection.IndexedSequentialCollection
     biu = sequential_collection.BACKGROUND_INDEX_UPDATER
-    with utils.MultiStubber((biu, "INDEX_DELAY", 0),
-                            (isq, "INDEX_WRITE_DELAY", rdfvalue.Duration("0s")),
-                            (isq, "INDEX_SPACING", 8),
-                            (isq, "UpdateIndex", UpdateIndex)):
+    with utils.MultiStubber(
+        (biu, "INDEX_DELAY", 0),
+        (isq, "INDEX_WRITE_DELAY", rdfvalue.DurationSeconds("0s")),
+        (isq, "INDEX_SPACING", 8), (isq, "UpdateIndex", UpdateIndex)):
       urn = "aff4:/sequential_collection/testAutoIndexing"
       collection = self._TestCollection(urn)
       # TODO(amoser): Without using a mutation pool, this test is really

@@ -274,17 +274,6 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest,
       self.access_manager.CheckIfCanStartFlow(
           self.token, flow_test_lib.ClientFlowWithoutCategory.__name__)
 
-  def testNoReasonShouldSearchForApprovals(self):
-    token_without_reason = access_control.ACLToken(username="unknown")
-
-    client_id = self.SetupClient(0)
-    self.RequestAndGrantClientApproval(
-        client_id, requestor="unknown", reason="I have one!")
-
-    self.access_manager.CheckClientAccess(token_without_reason, client_id)
-    # Check that token's reason got modified in the process:
-    self.assertEqual(token_without_reason.reason, "I have one!")
-
 
 class ValidateTokenTest(test_lib.GRRBaseTest):
   """Tests for ValidateToken()."""

@@ -12,7 +12,6 @@ from absl import app
 from future.builtins import range
 import mock
 
-from grr_response_core import config
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -25,7 +24,6 @@ from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_runner
 from grr_response_server import foreman
-from grr_response_server import frontend_lib
 from grr_response_server import queue_manager
 from grr_response_server import worker_lib
 from grr_response_server.flows.general import administrative
@@ -441,7 +439,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
         # Worker should consider the flow to be stuck and terminate it.
         stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
         future_time = (
-            initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
+            initial_time + rdfvalue.DurationSeconds("1m") + stuck_flows_timeout)
 
         with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
           worker_obj.RunOnce()
@@ -481,7 +479,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       # currently blocked because of the way how semaphores are set up.
       # Worker should consider the flow to be stuck and terminate it.
       future_time = (
-          initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
+          initial_time + rdfvalue.DurationSeconds("1m") + stuck_flows_timeout)
       with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
         worker_obj.RunOnce()
 
@@ -508,7 +506,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     initial_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100)
 
     stuck_flows_timeout = flow_runner.FlowRunner.stuck_flows_timeout
-    lease_timeout = rdfvalue.Duration(worker_lib.GRRWorker.flow_lease_time)
+    lease_timeout = rdfvalue.DurationSeconds(
+        worker_lib.GRRWorker.flow_lease_time)
 
     WorkerStuckableTestFlow.Reset(heartbeat=True)
     try:
@@ -526,9 +525,10 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       # Increase the time in steps, using LetFlowHeartBeat/WaitForFlowHeartBeat
       # to control the flow execution that happens in the parallel thread.
       current_time = rdfvalue.RDFDatetime(initial_time)
-      future_time = initial_time + stuck_flows_timeout + rdfvalue.Duration("1m")
+      future_time = initial_time + stuck_flows_timeout + rdfvalue.DurationSeconds(
+          "1m")
       while current_time <= future_time:
-        current_time += lease_timeout - rdfvalue.Duration("1s")
+        current_time += lease_timeout - rdfvalue.DurationSeconds("1s")
 
         with test_lib.FakeTime(current_time.AsSecondsSinceEpoch()):
           checked_flow = aff4.FACTORY.Open(session_id, token=self.token)
@@ -582,7 +582,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Set the time to max worker flow duration + 1 minute. If the 'kill'
     # notification isn't deleted we should get it now.
-    future_time = initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout
+    future_time = initial_time + rdfvalue.DurationSeconds(
+        "1m") + stuck_flows_timeout
     with test_lib.FakeTime(future_time.AsSecondsSinceEpoch()):
       worker_obj.RunOnce()
       worker_obj.thread_pool.Join()
@@ -913,54 +914,6 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     for m in messages:
       self.assertEqual(m.timestamp, frozen_timestamp)
-
-  def testEqualTimestampNotifications(self):
-    frontend_server = frontend_lib.FrontEndServer(
-        certificate=config.CONFIG["Frontend.certificate"],
-        private_key=config.CONFIG["PrivateKeys.server_key"],
-        message_expiry_time=100)
-    # This schedules 10 requests.
-    session_id = flow.StartAFF4Flow(
-        client_id=self.client_id,
-        flow_name="WorkerSendingTestFlow",
-        token=self.token)
-
-    # We pretend that the client processed all the 10 requests at once and
-    # sends the replies in a single http poll.
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=i,
-            response_id=1,
-            session_id=session_id,
-            payload=rdf_protodict.DataBlob(string="test%s" % i),
-            auth_state="AUTHENTICATED",
-            generate_task_id=True) for i in range(1, 11)
-    ]
-    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    statuses = [
-        rdf_flows.GrrMessage(
-            request_id=i,
-            response_id=2,
-            session_id=session_id,
-            payload=status,
-            type=rdf_flows.GrrMessage.Type.STATUS,
-            auth_state="AUTHENTICATED",
-            generate_task_id=True) for i in range(1, 11)
-    ]
-
-    frontend_server.ReceiveMessages(self.client_id, messages + statuses)
-
-    with queue_manager.QueueManager(token=self.token) as q:
-      all_notifications = q.GetNotificationsForAllShards(
-          rdfvalue.RDFURN("aff4:/F"))
-      my_notifications = [
-          n for n in all_notifications if n.session_id == session_id
-      ]
-      # There must not be more than one notification.
-      self.assertLen(my_notifications, 1)
-      notification = my_notifications[0]
-      self.assertEqual(notification.first_queued, notification.timestamp)
-      self.assertEqual(notification.last_status, 10)
 
   def testCPULimitForFlows(self):
     """This tests that the client actions are limited properly."""

@@ -35,7 +35,7 @@ describe('exact duration directive', () => {
 
   it('shows "-" when value is empty', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: null,
     };
 
@@ -45,7 +45,7 @@ describe('exact duration directive', () => {
 
   it('handles zero-values correctly', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 0,
     };
 
@@ -55,7 +55,7 @@ describe('exact duration directive', () => {
 
   it('correctly renders whole seconds', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 42,
     };
 
@@ -65,7 +65,7 @@ describe('exact duration directive', () => {
 
   it('correctly renders whole minutes', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 120,
     };
 
@@ -75,7 +75,7 @@ describe('exact duration directive', () => {
 
   it('correctly renders whole hours', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 3600,
     };
 
@@ -85,7 +85,7 @@ describe('exact duration directive', () => {
 
   it('correctly renders compound values', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 131 + (new Date('2000-01-20') - new Date('2000-01-01')) / 1000,
     };
 
@@ -95,7 +95,7 @@ describe('exact duration directive', () => {
 
   it('rounds to nearest seconds', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: 62.5,
     };
 
@@ -105,7 +105,7 @@ describe('exact duration directive', () => {
 
   it('raises on negative duration values', () => {
     const value = {
-      type: 'Duration',
+      type: 'DurationSeconds',
       value: -11,
     };
 

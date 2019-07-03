@@ -9,10 +9,10 @@ import logging
 import time
 import traceback
 
-
 from future.builtins import str
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
+import http.client
 from typing import Text
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
@@ -57,6 +57,10 @@ class UnexpectedResultTypeError(Error):
 
 
 class ApiCallRouterNotFoundError(Error):
+  pass
+
+
+class InvalidRequestArgumentsInRouteError(Error):
   pass
 
 
@@ -127,20 +131,27 @@ class RouterMatcher(object):
 
         args = method_metadata.args_type()
         for type_info in args.type_infos:
-          if type_info.name in route_args:
-            self._SetField(args, type_info, route_args[type_info.name])
-          elif type_info.name in unprocessed_request:
-            self._SetField(args, type_info, unprocessed_request[type_info.name])
+          try:
+            if type_info.name in route_args:
+              self._SetField(args, type_info, route_args[type_info.name])
+            elif type_info.name in unprocessed_request:
+              self._SetField(args, type_info,
+                             unprocessed_request[type_info.name])
+          except Exception as e:  # pylint: disable=broad-except
+            raise InvalidRequestArgumentsInRouteError(e)
 
       else:
         args = None
     elif request.method in ["POST", "DELETE", "PATCH"]:
-      try:
-        args = method_metadata.args_type()
-        for type_info in args.type_infos:
-          if type_info.name in route_args:
+      args = method_metadata.args_type()
+      for type_info in args.type_infos:
+        if type_info.name in route_args:
+          try:
             self._SetField(args, type_info, route_args[type_info.name])
+          except Exception as e:  # pylint: disable=broad-except
+            raise InvalidRequestArgumentsInRouteError(e)
 
+      try:
         if request.content_type and request.content_type.startswith(
             "multipart/form-data;"):
           payload = json.Parse(request.form["_params_"].decode("utf-8"))
@@ -351,7 +362,7 @@ class HttpRequestHandler(object):
         "Content-Disposition"] = "attachment; filename=response.json"
     response.headers["X-Content-Type-Options"] = "nosniff"
 
-    # TODO(mbushkov): remove unicode usages here and below
+    # TODO: remove unicode usages here and below
     # when Python 2.7 support is dropped.
     # Python 2.7's wsgiref doesn't play nicely with future's "newstr"
     # returned by future.builtins.str() calls. unicode forces
@@ -408,7 +419,8 @@ class HttpRequestHandler(object):
 
     if not aff4_users.GRRUser.IsValidUsername(request.user):
       return self._BuildResponse(
-          403, dict(message="Invalid username: %s" % request.user))
+          http.client.FORBIDDEN,
+          dict(message="Invalid username: %s" % request.user))
 
     try:
       router, method_metadata, args = self._router_matcher.MatchRouter(request)
@@ -419,26 +431,33 @@ class HttpRequestHandler(object):
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),
-          "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
+          "X-GRR-Unauthorized-Access-Subject": e.subject
       }
       return self._BuildResponse(
-          403,
+          http.client.FORBIDDEN,
           dict(
               message="Access denied by ACL: %s" % error_message,
-              subject=utils.SmartStr(e.subject)),
+              subject=e.subject),
           headers=additional_headers)
 
     except ApiCallRouterNotFoundError as e:
       error_message = str(e)
-      return self._BuildResponse(404, dict(message=error_message))
+      return self._BuildResponse(http.client.NOT_FOUND,
+                                 dict(message=error_message))
     except werkzeug_exceptions.MethodNotAllowed as e:
       error_message = str(e)
-      return self._BuildResponse(405, dict(message=error_message))
+      return self._BuildResponse(http.client.METHOD_NOT_ALLOWED,
+                                 dict(message=error_message))
+    except (InvalidRequestArgumentsInRouteError, PostRequestParsingError) as e:
+      error_message = str(e)
+      return self._BuildResponse(http.client.UNPROCESSABLE_ENTITY,
+                                 dict(message=error_message))
     except Error as e:
       logging.exception("Can't match URL to router/method: %s", e)
 
       return self._BuildResponse(
-          500, dict(message=str(e), traceBack=traceback.format_exc()))
+          http.client.INTERNAL_SERVER_ERROR,
+          dict(message=str(e), traceBack=traceback.format_exc()))
 
     request.method_metadata = method_metadata
     request.parsed_args = args
@@ -472,8 +491,7 @@ class HttpRequestHandler(object):
             },
             replace=True)
 
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.WriteGRRUser(request.user)
+    data_store.REL_DB.WriteGRRUser(request.user)
 
     handler = None
     try:
@@ -543,13 +561,13 @@ class HttpRequestHandler(object):
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": error_message.replace("\n", ""),
-          "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
+          "X-GRR-Unauthorized-Access-Subject": e.subject
       }
       return self._BuildResponse(
-          403,
+          http.client.FORBIDDEN,
           dict(
               message="Access denied by ACL: %s" % error_message,
-              subject=utils.SmartStr(e.subject)),
+              subject=e.subject),
           headers=additional_headers,
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
@@ -557,7 +575,16 @@ class HttpRequestHandler(object):
     except api_call_handler_base.ResourceNotFoundError as e:
       error_message = str(e)
       return self._BuildResponse(
-          404,
+          http.client.NOT_FOUND,
+          dict(message=error_message),
+          method_name=method_metadata.name,
+          no_audit_log=method_metadata.no_audit_log_required,
+          token=token)
+    # ValueError is commonly raised by GRR code in arguments checks.
+    except ValueError as e:
+      error_message = str(e)
+      return self._BuildResponse(
+          http.client.UNPROCESSABLE_ENTITY,
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
@@ -565,7 +592,7 @@ class HttpRequestHandler(object):
     except NotImplementedError as e:
       error_message = str(e)
       return self._BuildResponse(
-          501,
+          http.client.NOT_IMPLEMENTED,
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
@@ -576,7 +603,7 @@ class HttpRequestHandler(object):
                         request.path, request.method,
                         handler.__class__.__name__, e)
       return self._BuildResponse(
-          500,
+          http.client.INTERNAL_SERVER_ERROR,
           dict(message=error_message, traceBack=traceback.format_exc()),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
@@ -591,13 +618,15 @@ def RenderHttpResponse(request):
   total_time = time.time() - start_time
 
   method_name = response.headers.get("X-API-Method", "unknown")
-  if response.status_code == 200:
+  if response.status_code == http.client.OK:
     status = "SUCCESS"
-  elif response.status_code == 403:
+  elif response.status_code == http.client.FORBIDDEN:
     status = "FORBIDDEN"
-  elif response.status_code == 404:
+  elif response.status_code == http.client.NOT_FOUND:
     status = "NOT_FOUND"
-  elif response.status_code == 501:
+  elif response.status_code == http.client.UNPROCESSABLE_ENTITY:
+    status = "INVALID_ARGUMENT"
+  elif response.status_code == http.client.NOT_IMPLEMENTED:
     status = "NOT_IMPLEMENTED"
   else:
     status = "SERVER_ERROR"

@@ -25,9 +25,9 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
 class ApiCallRouterWithApprovalChecksE2ETest(
-    hunt_test_lib.StandardHuntTestMixin, api_e2e_test_lib.ApiE2ETest):
+    db_test_lib.RelationalDBEnabledMixin, hunt_test_lib.StandardHuntTestMixin,
+    api_e2e_test_lib.ApiE2ETest):
 
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
@@ -180,12 +180,12 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
       # Move the clocks past approval expiry time but before cache expiry time.
       with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                             rdfvalue.Duration("30s")):
+                             rdfvalue.DurationSeconds("30s")):
         # If this doesn't raise now, all answers were cached.
         self.api.Client(client_id).Flow(f.flow_id).Get()
 
       with test_lib.FakeTime(
-          rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.FromSeconds(
+          rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds.FromSeconds(
               user_managers.FullAccessControlManager.approval_cache_time)):
         # This must raise now.
         self.assertRaises(grr_api_errors.AccessForbiddenError,

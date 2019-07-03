@@ -28,8 +28,6 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto.api import client_pb2
 from grr_response_server import action_registry
-from grr_response_server import aff4
-from grr_response_server import aff4_flows
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
@@ -37,11 +35,8 @@ from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import ip_resolver
-from grr_response_server import queue_manager
 from grr_response_server import timeseries
 from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import standard
-from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.databases import db
 from grr_response_server.flows.general import audit
 from grr_response_server.flows.general import discovery
@@ -308,26 +303,14 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     api_clients = []
 
-    if data_store.RelationalDBEnabled():
-      index = client_index.ClientIndex()
+    index = client_index.ClientIndex()
 
-      # LookupClients returns a sorted list of client ids.
-      clients = index.LookupClients(keywords)[args.offset:args.offset + end]
+    # LookupClients returns a sorted list of client ids.
+    clients = index.LookupClients(keywords)[args.offset:args.offset + end]
 
-      client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
-      for client_info in itervalues(client_infos):
-        api_clients.append(ApiClient().InitFromClientInfo(client_info))
-
-    else:
-      index = client_index.CreateClientIndex(token=token)
-
-      result_urns = sorted(
-          index.LookupClients(keywords))[args.offset:args.offset + end]
-
-      result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
-
-      for child in sorted(result_set):
-        api_clients.append(ApiClient().InitFromAff4Object(child))
+    client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
+    for client_info in itervalues(client_infos):
+      api_clients.append(ApiClient().InitFromClientInfo(client_info))
 
     UpdateClientsFromFleetspeak(api_clients)
     return ApiSearchClientsResult(items=api_clients)
@@ -373,52 +356,30 @@ class ApiLabelsRestrictedSearchClientsHandler(
     keywords = compatibility.ShlexSplit(args.query)
     api_clients = []
 
-    if data_store.RelationalDBEnabled():
-      index = client_index.ClientIndex()
+    index = client_index.ClientIndex()
 
-      # TODO(amoser): We could move the label verification into the
-      # database making this method more efficient. Label restrictions
-      # should be on small subsets though so this might not be worth
-      # it.
-      all_client_ids = set()
-      for label in self.labels_whitelist:
-        label_filter = ["label:" + label] + keywords
-        all_client_ids.update(index.LookupClients(label_filter))
+    # TODO(amoser): We could move the label verification into the
+    # database making this method more efficient. Label restrictions
+    # should be on small subsets though so this might not be worth
+    # it.
+    all_client_ids = set()
+    for label in self.labels_whitelist:
+      label_filter = ["label:" + label] + keywords
+      all_client_ids.update(index.LookupClients(label_filter))
 
-      index = 0
-      for cid_batch in collection.Batch(sorted(all_client_ids), batch_size):
-        client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
+    index = 0
+    for cid_batch in collection.Batch(sorted(all_client_ids), batch_size):
+      client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
-        for _, client_info in sorted(iteritems(client_infos)):
-          if not self._VerifyLabels(client_info.labels):
-            continue
-          if index >= args.offset and index < end:
-            api_clients.append(ApiClient().InitFromClientInfo(client_info))
-          index += 1
-          if index >= end:
-            UpdateClientsFromFleetspeak(api_clients)
-            return ApiSearchClientsResult(items=api_clients)
-
-    else:
-      index = client_index.CreateClientIndex(token=token)
-      all_urns = set()
-      for label in self.labels_whitelist:
-        label_filter = ["label:" + label] + keywords
-        all_urns.update(index.LookupClients(label_filter))
-
-      all_objs = aff4.FACTORY.MultiOpen(
-          all_urns, aff4_type=aff4_grr.VFSGRRClient, token=token)
-
-      index = 0
-      for client_obj in sorted(all_objs):
-        if not self._CheckClientLabels(client_obj):
+      for _, client_info in sorted(iteritems(client_infos)):
+        if not self._VerifyLabels(client_info.labels):
           continue
         if index >= args.offset and index < end:
-          api_clients.append(ApiClient().InitFromAff4Object(client_obj))
-
+          api_clients.append(ApiClient().InitFromClientInfo(client_info))
         index += 1
         if index >= end:
-          break
+          UpdateClientsFromFleetspeak(api_clients)
+          return ApiSearchClientsResult(items=api_clients)
 
     UpdateClientsFromFleetspeak(api_clients)
     return ApiSearchClientsResult(items=api_clients)
@@ -439,34 +400,21 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiClient
 
   def Handle(self, args, token=None):
-    if not args.timestamp:
-      age = rdfvalue.RDFDatetime.Now()
-    else:
-      age = rdfvalue.RDFDatetime(args.timestamp)
-    api_client = None
-    if data_store.RelationalDBEnabled():
-      client_id = str(args.client_id)
-      info = data_store.REL_DB.ReadClientFullInfo(client_id)
-      if info is None:
-        raise api_call_handler_base.ResourceNotFoundError()
+    client_id = str(args.client_id)
+    info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    if info is None:
+      raise api_call_handler_base.ResourceNotFoundError()
 
-      if args.timestamp:
-        # Assume that a snapshot for this particular timestamp exists.
-        snapshots = data_store.REL_DB.ReadClientSnapshotHistory(
-            client_id, timerange=(args.timestamp, args.timestamp))
+    if args.timestamp:
+      # Assume that a snapshot for this particular timestamp exists.
+      snapshots = data_store.REL_DB.ReadClientSnapshotHistory(
+          client_id, timerange=(args.timestamp, args.timestamp))
 
-        if snapshots:
-          info.last_snapshot = snapshots[0]
-          info.last_startup_info = snapshots[0].startup_info
+      if snapshots:
+        info.last_snapshot = snapshots[0]
+        info.last_startup_info = snapshots[0].startup_info
 
-      api_client = ApiClient().InitFromClientInfo(info)
-    else:
-      client = aff4.FACTORY.Open(
-          args.client_id.ToClientURN(),
-          aff4_type=aff4_grr.VFSGRRClient,
-          age=age,
-          token=token)
-      api_client = ApiClient().InitFromAff4Object(client)
+    api_client = ApiClient().InitFromClientInfo(info)
     UpdateClientsFromFleetspeak([api_client])
     return api_client
 
@@ -494,32 +442,18 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     end_time = args.end or rdfvalue.RDFDatetime.Now()
-    start_time = args.start or end_time - rdfvalue.Duration("3m")
-    diffs_only = args.mode == args.Mode.DIFF
-
+    start_time = args.start or end_time - rdfvalue.DurationSeconds("3m")
     items = []
 
-    if data_store.RelationalDBEnabled():
-      client_id = str(args.client_id)
-      history = data_store.REL_DB.ReadClientSnapshotHistory(
-          client_id, timerange=(start_time, end_time))
-      labels = data_store.REL_DB.ReadClientLabels(client_id)
+    client_id = str(args.client_id)
+    history = data_store.REL_DB.ReadClientSnapshotHistory(
+        client_id, timerange=(start_time, end_time))
+    labels = data_store.REL_DB.ReadClientLabels(client_id)
 
-      for client in history[::-1]:
-        c = ApiClient().InitFromClientObject(client)
-        c.labels = labels
-        items.append(c)
-    else:
-      all_clients = aff4.FACTORY.OpenDiscreteVersions(
-          args.client_id.ToClientURN(),
-          mode="r",
-          age=(start_time.AsMicrosecondsSinceEpoch(),
-               end_time.AsMicrosecondsSinceEpoch()),
-          diffs_only=diffs_only,
-          token=token)
-
-      for fd in all_clients:
-        items.append(ApiClient().InitFromAff4Object(fd, include_metadata=False))
+    for client in history[::-1]:
+      c = ApiClient().InitFromClientObject(client)
+      c.labels = labels
+      items.append(c)
 
     return ApiGetClientVersionsResult(items=items)
 
@@ -545,24 +479,14 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetClientVersionTimesResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      # TODO(amoser): Again, this is rather inefficient,if we moved
-      # this call to the datastore we could make it much
-      # faster. However, there is a chance that this will not be
-      # needed anymore once we use the relational db everywhere, let's
-      # decide later.
-      client_id = str(args.client_id)
-      history = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
-      times = [h.timestamp for h in history]
-    else:
-      fd = aff4.FACTORY.Open(
-          args.client_id.ToClientURN(),
-          mode="r",
-          age=aff4.ALL_TIMES,
-          token=token)
-
-      type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
-      times = sorted([t.age for t in type_values], reverse=True)
+    # TODO(amoser): Again, this is rather inefficient,if we moved
+    # this call to the datastore we could make it much
+    # faster. However, there is a chance that this will not be
+    # needed anymore once we use the relational db everywhere, let's
+    # decide later.
+    client_id = str(args.client_id)
+    history = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
+    times = [h.timestamp for h in history]
 
     return ApiGetClientVersionTimesResult(times=times)
 
@@ -585,20 +509,12 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      flow_id = flow.StartFlow(
-          flow_cls=discovery.Interrogate, client_id=str(args.client_id))
+    flow_id = flow.StartFlow(
+        flow_cls=discovery.Interrogate, client_id=str(args.client_id))
 
-      # TODO(user): don't encode client_id inside the operation_id, but
-      # rather have it as a separate field.
-      return ApiInterrogateClientResult(operation_id=flow_id)
-    else:
-      flow_urn = flow.StartAFF4Flow(
-          client_id=args.client_id.ToClientURN(),
-          flow_name=aff4_flows.Interrogate.__name__,
-          token=token)
-
-      return ApiInterrogateClientResult(operation_id=str(flow_urn))
+    # TODO(user): don't encode client_id inside the operation_id, but
+    # rather have it as a separate field.
+    return ApiInterrogateClientResult(operation_id=flow_id)
 
 
 class ApiGetInterrogateOperationStateArgs(rdf_structs.RDFProtoStruct):
@@ -620,35 +536,25 @@ class ApiGetInterrogateOperationStateHandler(
   result_type = ApiGetInterrogateOperationStateResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      client_id = str(args.client_id)
-      flow_id = str(args.operation_id)
+    client_id = str(args.client_id)
+    flow_id = str(args.operation_id)
 
-      precondition.ValidateClientId(client_id)
-      precondition.ValidateFlowId(flow_id)
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
 
-      # TODO(user): test both exception scenarios below.
-      try:
-        flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      except db.UnknownFlowError:
-        raise InterrogateOperationNotFoundError(
-            "Operation with id %s not found" % args.operation_id)
+    # TODO(user): test both exception scenarios below.
+    try:
+      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    except db.UnknownFlowError:
+      raise InterrogateOperationNotFoundError("Operation with id %s not found" %
+                                              args.operation_id)
 
-      expected_flow_name = compatibility.GetName(discovery.Interrogate)
-      if flow_obj.flow_class_name != expected_flow_name:
-        raise InterrogateOperationNotFoundError(
-            "Operation with id %s not found" % args.operation_id)
+    expected_flow_name = compatibility.GetName(discovery.Interrogate)
+    if flow_obj.flow_class_name != expected_flow_name:
+      raise InterrogateOperationNotFoundError("Operation with id %s not found" %
+                                              args.operation_id)
 
-      complete = flow_obj.flow_state != flow_obj.FlowState.RUNNING
-    else:
-      try:
-        flow_obj = aff4.FACTORY.Open(
-            args.operation_id, aff4_type=aff4_flows.Interrogate, token=token)
-
-        complete = not flow_obj.GetRunner().IsRunning()
-      except aff4.InstantiationError:
-        raise InterrogateOperationNotFoundError(
-            "Operation with id %s not found" % args.operation_id)
+    complete = flow_obj.flow_state != flow_obj.FlowState.RUNNING
 
     result = ApiGetInterrogateOperationStateResult()
     if complete:
@@ -691,30 +597,16 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     client_id = str(args.client_id)
 
-    if data_store.RelationalDBEnabled():
-      md = data_store.REL_DB.ReadClientMetadata(client_id)
-      if md.fleetspeak_enabled:
-        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
-      else:
-        try:
-          ipaddr_obj = md.ip.AsIPAddr()
-          ip_str = str(ipaddr_obj)
-        except ValueError:
-          ipaddr_obj = None
-          ip_str = ""
+    md = data_store.REL_DB.ReadClientMetadata(client_id)
+    if md.fleetspeak_enabled:
+      ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
     else:
-      client = aff4.FACTORY.Open(
-          args.client_id.ToClientURN(),
-          aff4_type=aff4_grr.VFSGRRClient,
-          token=token)
-      if client.Get(client.Schema.FLEETSPEAK_ENABLED):
-        ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
-      else:
-        ip_str = client.Get(client.Schema.CLIENT_IP)
-        if ip_str:
-          ipaddr_obj = ipaddress.ip_address(ip_str)
-        else:
-          ipaddr_obj = None
+      try:
+        ipaddr_obj = md.ip.AsIPAddr()
+        ip_str = str(ipaddr_obj)
+      except ValueError:
+        ipaddr_obj = None
+        ip_str = ""
 
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ipaddr_obj)
 
@@ -742,19 +634,10 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListClientCrashesResult
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      crashes = data_store.REL_DB.ReadClientCrashInfoHistory(
-          str(args.client_id))
-      total_count = len(crashes)
-      result = api_call_handler_utils.FilterList(
-          crashes, args.offset, count=args.count, filter_value=args.filter)
-    else:
-      crashes = aff4_grr.VFSGRRClient.CrashCollectionForCID(
-          args.client_id.ToClientURN())
-
-      total_count = len(crashes)
-      result = api_call_handler_utils.FilterCollection(
-          crashes, args.offset, count=args.count, filter_value=args.filter)
+    crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(args.client_id))
+    total_count = len(crashes)
+    result = api_call_handler_utils.FilterList(
+        crashes, args.offset, count=args.count, filter_value=args.filter)
 
     return ApiListClientCrashesResult(items=result, total_count=total_count)
 
@@ -787,28 +670,15 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 client=api_client_id.ToClientURN(),
                 description=audit_description))
 
-      if data_store.AFF4Enabled():
-        index = client_index.CreateClientIndex(token=token)
-        client_objs = aff4.FACTORY.MultiOpen(
-            [cid.ToClientURN() for cid in args.client_ids],
-            aff4_type=aff4_grr.VFSGRRClient,
-            mode="rw",
-            token=token)
-        for client_obj in client_objs:
-          client_obj.AddLabels(args.labels)
-          index.AddClient(client_obj)
-          client_obj.Close()
-
-      if data_store.RelationalDBEnabled():
-        for api_client_id in args.client_ids:
-          cid = unicode(api_client_id)
-          try:
-            data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
-            idx = client_index.ClientIndex()
-            idx.AddClientLabels(cid, args.labels)
-          except db.UnknownClientError:
-            # TODO(amoser): Remove after data migration.
-            pass
+      for api_client_id in args.client_ids:
+        cid = unicode(api_client_id)
+        try:
+          data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
+          idx = client_index.ClientIndex()
+          idx.AddClientLabels(cid, args.labels)
+        except db.UnknownClientError:
+          # TODO(amoser): Remove after data migration.
+          pass
 
     finally:
       events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
@@ -845,32 +715,17 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      if data_store.AFF4Enabled():
-        index = client_index.CreateClientIndex(token=token)
-        client_objs = aff4.FACTORY.MultiOpen(
-            [cid.ToClientURN() for cid in args.client_ids],
-            aff4_type=aff4_grr.VFSGRRClient,
-            mode="rw",
-            token=token)
-        for client_obj in client_objs:
-          index.RemoveClientLabels(client_obj)
-          self.RemoveClientLabels(client_obj, args.labels)
-          index.AddClient(client_obj)
-          client_obj.Close()
-
-      if data_store.RelationalDBEnabled():
-        for client_id in args.client_ids:
-          cid = unicode(client_id)
-          data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
-          labels_to_remove = set(args.labels)
-          existing_labels = data_store.REL_DB.ReadClientLabels(cid)
-          for label in existing_labels:
-            labels_to_remove.discard(label.name)
-          if labels_to_remove:
-            idx = client_index.ClientIndex()
-            idx.RemoveClientLabels(cid, labels_to_remove)
-
       for client_id in args.client_ids:
+        cid = unicode(client_id)
+        data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
+        labels_to_remove = set(args.labels)
+        existing_labels = data_store.REL_DB.ReadClientLabels(cid)
+        for label in existing_labels:
+          labels_to_remove.discard(label.name)
+        if labels_to_remove:
+          idx = client_index.ClientIndex()
+          idx.RemoveClientLabels(cid, labels_to_remove)
+
         audit_events.append(
             rdf_events.AuditEvent(
                 user=token.username,
@@ -895,19 +750,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   result_type = ApiListClientsLabelsResult
 
-  def HandleLegacy(self, args, token=None):
-    labels_index = aff4.FACTORY.Create(
-        standard.LabelSet.CLIENT_LABELS_URN,
-        standard.LabelSet,
-        mode="r",
-        token=token)
-    label_objects = []
-    for label in labels_index.ListLabels():
-      label_objects.append(rdf_objects.ClientLabel(name=label))
-
-    return ApiListClientsLabelsResult(items=label_objects)
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
     labels = data_store.REL_DB.ReadAllClientLabels()
 
     label_objects = []
@@ -916,12 +759,6 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiListClientsLabelsResult(
         items=sorted(label_objects, key=lambda l: l.name))
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
 
 
 class ApiListKbFieldsResult(rdf_structs.RDFProtoStruct):
@@ -961,41 +798,6 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
   REQUESTS_NUM_LIMIT = 1000
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args)
-    else:
-      return self._HandleAFF4(args, token=token)
-
-  def _HandleAFF4(self, args, token=None):
-    manager = queue_manager.QueueManager(token=token)
-
-    result = ApiListClientActionRequestsResult()
-    # Passing "limit" argument explicitly, as Query returns just 1 request
-    # by default.
-    for task in manager.Query(
-        args.client_id.ToClientURN(), limit=self.__class__.REQUESTS_NUM_LIMIT):
-      request = ApiClientActionRequest(
-          leased_until=task.leased_until,
-          session_id=task.session_id,
-          client_action=task.name)
-
-      if args.fetch_responses:
-        res = []
-        for r in data_store.DB.ReadResponsesForRequestId(
-            task.session_id, task.request_id):
-          # Clear out some internal fields.
-          r.task_id = None
-          r.auth_state = None
-          r.name = None
-          res.append(r)
-
-        request.responses = res
-
-      result.items.append(request)
-
-    return result
-
-  def _HandleRelational(self, args):
     result = ApiListClientActionRequestsResult()
 
     request_cache = {}
@@ -1072,22 +874,12 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       end_time = rdfvalue.RDFDatetime.Now()
 
     if not start_time:
-      start_time = end_time - rdfvalue.Duration("30m")
+      start_time = end_time - rdfvalue.DurationSeconds("30m")
 
-    if data_store.RelationalDBEnabled():
-      stat_values = data_store.REL_DB.ReadClientStats(
-          client_id=str(args.client_id),
-          min_timestamp=start_time,
-          max_timestamp=end_time)
-    else:
-      fd = aff4.FACTORY.Create(
-          args.client_id.ToClientURN().Add("stats"),
-          aff4_type=aff4_stats.ClientStats,
-          mode="r",
-          token=token,
-          age=(start_time, end_time))
-
-      stat_values = list(fd.GetValuesForAttribute(fd.Schema.STATS))
+    stat_values = data_store.REL_DB.ReadClientStats(
+        client_id=str(args.client_id),
+        min_timestamp=start_time,
+        max_timestamp=end_time)
     points = []
     for stat_value in reversed(stat_values):
       if args.metric == args.Metric.CPU_PERCENT:
@@ -1136,7 +928,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       ts.MakeIncreasing()
 
     if len(stat_values) > self.MAX_SAMPLES:
-      sampling_interval = rdfvalue.Duration.FromSeconds(
+      sampling_interval = rdfvalue.DurationSeconds.FromSeconds(
           ((end_time - start_time).seconds // self.MAX_SAMPLES) or 1)
       if args.metric in self.GAUGE_METRICS:
         mode = timeseries.NORMALIZE_MODE_GAUGE

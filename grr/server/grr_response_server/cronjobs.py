@@ -303,7 +303,7 @@ class CronManager(object):
     del token
 
     leased_jobs = data_store.REL_DB.LeaseCronJobs(
-        cronjob_ids=names, lease_time=rdfvalue.Duration("10m"))
+        cronjob_ids=names, lease_time=rdfvalue.DurationSeconds("10m"))
     logging.info("Leased %d cron jobs for processing.", len(leased_jobs))
     if not leased_jobs:
       return
@@ -349,7 +349,7 @@ class CronManager(object):
       # during one of the HeartBeat calls (HeartBeat checks if a cron job is
       # run is running too long and raises if it is).
       expiration_time = (
-          job.last_run_time + job.lifetime + rdfvalue.Duration("10m"))
+          job.last_run_time + job.lifetime + rdfvalue.DurationSeconds("10m"))
       if now > expiration_time:
         run = data_store.REL_DB.ReadCronJobRun(job.cron_job_id,
                                                job.current_run_id)

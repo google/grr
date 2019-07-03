@@ -12,11 +12,9 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
-from grr_response_server.flows.general import filesystem as flows_filesystem
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.flows.general import webhistory as flows_webhistory
@@ -32,8 +30,8 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
+class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
+                         gui_test_lib.GRRSeleniumTest,
                          hunt_test_lib.StandardHuntTestMixin):
   """Test the flow management GUI."""
 
@@ -107,8 +105,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=#_Filesystem a")
 
     # Wait until the tree has expanded.
-    self.WaitUntil(self.IsTextPresent,
-                   flows_filesystem.UpdateSparseImageChunks.__name__)
+    self.WaitUntil(self.IsTextPresent, flows_transfer.GetFile.__name__)
 
     self.Click("link=" + flows_transfer.GetFile.__name__)
 
@@ -468,11 +465,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def _TerminateFlow(self, flow_id):
     reason = "Because I said so"
-    if data_store.RelationalDBEnabled():
-      flow_base.TerminateFlow(self.client_id, flow_id, reason)
-    else:
-      flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
-      flow.GRRFlow.TerminateAFF4Flow(flow_urn, reason, token=self.token)
+    flow_base.TerminateFlow(self.client_id, flow_id, reason)
 
   def testFlowListGetsUpdatedWithChangedFlows(self):
     f = api_regression_test_lib.StartFlow(
@@ -525,14 +518,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "tr:contains('Status'):contains('Because I said so')")
 
   def _AddLogToFlow(self, flow_id, log_string):
-    if data_store.RelationalDBEnabled():
-      entry = rdf_flow_objects.FlowLogEntry(
-          client_id=self.client_id, flow_id=flow_id, message=log_string)
-      data_store.REL_DB.WriteFlowLogEntries([entry])
-    else:
-      flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
-      with aff4.FACTORY.Open(flow_urn, token=self.token) as fd:
-        fd.Log(log_string)
+    entry = rdf_flow_objects.FlowLogEntry(
+        client_id=self.client_id, flow_id=flow_id, message=log_string)
+    data_store.REL_DB.WriteFlowLogEntries([entry])
 
   def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
     flow_id = api_regression_test_lib.StartFlow(

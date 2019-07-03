@@ -25,11 +25,13 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util.compat import json
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
+class BigQueryOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
+                               flow_test_lib.FlowTestsBaseclass):
   """Tests BigQuery hunt output plugin."""
 
   def setUp(self):
@@ -145,14 +147,14 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
       if name == "ExportedFile":
         self.assertEqual(row["metadata"]["client_urn"], self.client_id)
-        self.assertEqual(row["metadata"]["hostname"], "Host-0")
+        self.assertEqual(row["metadata"]["hostname"], "Host-0.example.com")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
         self.assertEqual(row["metadata"]["source_urn"], source_urn)
         self.assertEqual(row["urn"], self.client_id.Add("/fs/os/中国新闻网新闻中"))
       else:
         self.assertEqual(row["metadata"]["client_urn"], self.client_id)
-        self.assertEqual(row["metadata"]["hostname"], "Host-0")
+        self.assertEqual(row["metadata"]["hostname"], "Host-0.example.com")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
         self.assertEqual(row["metadata"]["source_urn"], source_urn)

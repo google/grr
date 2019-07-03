@@ -22,8 +22,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
+class TestFingerprintFlow(db_test_lib.RelationalDBEnabledMixin,
+                          flow_test_lib.FlowTestsBaseclass):
   """Test the Fingerprint flow."""
 
   def testFingerprintPresence(self):

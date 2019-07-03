@@ -28,8 +28,8 @@ class TestCmdProcessor(parser.CommandParser):
   supported_artifacts = ["TestCmdArtifact"]
 
 
-@db_test_lib.DualDBTest
-class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
+class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
+                         gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def _UploadCustomArtifacts(self):

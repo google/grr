@@ -16,8 +16,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
+class DirRecursiveRefreshTest(db_test_lib.RelationalDBEnabledMixin,
+                              gui_test_lib.GRRSeleniumTest):
 
   def _RunUpdateFlow(self, client_id):
     gui_test_lib.CreateFileVersion(

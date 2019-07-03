@@ -32,7 +32,7 @@ class HuntContext(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_client_stats.ClientResources,
       rdf_stats.ClientResourcesStats,
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,
   ]
@@ -67,7 +67,7 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
 
   protobuf = flows_pb2.HuntRunnerArgs
   rdf_deps = [
-      rdfvalue.Duration,
+      rdfvalue.DurationSeconds,
       foreman_rules.ForemanClientRuleSet,
       rdf_output_plugin.OutputPluginDescriptor,
       rdfvalue.RDFURN,

@@ -43,21 +43,6 @@ class RelationalDBEnabledMixin(object):
     super(RelationalDBEnabledMixin, self).setUp()
 
 
-def DualDBTest(cls):
-  """Decorator that creates an additional RELDB-enabled test class."""
-  module = sys.modules[cls.__module__]
-  cls_name = compatibility.GetName(cls)
-
-  db_test_cls_name = "{}_RelationalDBEnabled".format(cls_name)
-  db_test_cls = compatibility.MakeType(
-      name=db_test_cls_name,
-      base_classes=(RelationalDBEnabledMixin, cls),
-      namespace={})
-  setattr(module, db_test_cls_name, db_test_cls)
-
-  return cls
-
-
 def TestDatabases(mysql=True):
   """Decorator that creates additional RELDB-enabled test classes."""
 
@@ -65,15 +50,20 @@ def TestDatabases(mysql=True):
     """Decorator that creates additional RELDB-enabled test classes."""
     module = sys.modules[cls.__module__]
     cls_name = compatibility.GetName(cls)
-    DualDBTest(cls)
+
+    # Prevent MRO issues caused by inheriting the same Mixin multiple times.
+    base_classes = ()
+    if not issubclass(cls, RelationalDBEnabledMixin):
+      base_classes += (RelationalDBEnabledMixin,)
+    if not issubclass(cls, db_test_mixin.GlobalDatabaseTestMixin):
+      base_classes += (db_test_mixin.GlobalDatabaseTestMixin,)
 
     if mysql:
       db_test_cls_name = "{}_MySQLEnabled".format(cls_name)
       db_test_cls = compatibility.MakeType(
           name=db_test_cls_name,
-          base_classes=(RelationalDBEnabledMixin,
-                        db_test_mixin.GlobalDatabaseTestMixin,
-                        mysql_test.MySQLDatabaseProviderMixin, cls),
+          base_classes=base_classes +
+          (mysql_test.MySQLDatabaseProviderMixin, cls),
           namespace={})
       setattr(module, db_test_cls_name, db_test_cls)
 

@@ -23,8 +23,8 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
 class ApiClientLibHuntTest(
+    db_test_lib.RelationalDBEnabledMixin,
     hunt_test_lib.StandardHuntTestMixin,
     api_e2e_test_lib.ApiE2ETest,
 ):

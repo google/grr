@@ -37,10 +37,6 @@ from grr_response_server import signed_binary_utils
 from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import administrative
-# pylint: disable=unused-import
-# For AuditEventListener, needed to handle published audit events.
-from grr_response_server.flows.general import audit as _
-# pylint: enable=unused-import
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
@@ -50,7 +46,6 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
-from grr.test_lib import worker_test_lib
 
 
 class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
@@ -68,8 +63,8 @@ class ClientActionRunnerMixin(object):
         next_state="End")
 
 
-@db_test_lib.DualDBTest
-class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
+class KeepAliveFlowTest(db_test_lib.RelationalDBEnabledMixin,
+                        flow_test_lib.FlowTestsBaseclass):
   """Tests for the KeepAlive flow."""
 
   def testKeepAliveRunsSuccessfully(self):
@@ -77,13 +72,14 @@ class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(admin.Echo)
     flow_test_lib.TestFlowHelper(
         compatibility.GetName(administrative.KeepAlive),
-        duration=rdfvalue.Duration("1s"),
+        duration=rdfvalue.DurationSeconds("1s"),
         client_id=client_id,
         client_mock=client_mock,
         token=self.token)
 
 
-class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
+class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
+                              flow_test_lib.FlowTestsBaseclass,
                               hunt_test_lib.StandardHuntTestMixin):
   """Tests the administrative flows."""
 
@@ -228,54 +224,6 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
       for a, b in zip(flow_crashes, client_crashes):
         self.assertEqual(a, b)
 
-  def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
-    """Test that client killed messages are handled correctly for hunts."""
-    client_id = self.SetupClient(0)
-    self.email_messages = []
-
-    def SendEmail(address, sender, title, message, **_):
-      self.email_messages.append(
-          dict(address=address, sender=sender, title=title, message=message))
-
-    self.StartHunt(
-        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=flow_test_lib.FlowWithOneClientRequest.__name__),
-        client_rate=0,
-        crash_alert_email="crashes@example.com",
-        token=self.token)
-
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      self.RunHuntWithClientCrashes([client_id])
-
-    self.assertLen(self.email_messages, 2)
-    self.assertListEqual(
-        [self.email_messages[0]["address"], self.email_messages[1]["address"]],
-        ["crashes@example.com", config.CONFIG["Monitoring.alert_email"]])
-
-  def testNannyMessageFlow(self):
-    client_id = self.SetupClient(0)
-    email_dict = {}
-    with test_lib.ConfigOverrider({"Database.enabled": False}):
-      nanny_message = "Oh no!"
-      self.SendResponse(
-          session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-          data=nanny_message,
-          client_id=client_id,
-          well_known=True)
-
-    def SendEmail(address, sender, title, message, **_):
-      email_dict.update(
-          dict(address=address, sender=sender, title=title, message=message))
-
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      # Now emulate a worker to process the event.
-      worker = worker_test_lib.MockWorker(token=self.token)
-      while worker.Next():
-        pass
-      worker.pool.Join()
-
-    self._CheckNannyEmail(client_id, nanny_message, email_dict)
-
   def _CheckNannyEmail(self, client_id, nanny_message, email_dict):
     # We expect the email to be sent.
     self.assertEqual(
@@ -303,30 +251,6 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
     self.assertEqual(crash.crash_type, "Nanny Message")
     self.assertEqual(crash.crash_message, nanny_message)
 
-  def testClientAlertFlow(self):
-    client_id = self.SetupClient(0)
-    email_dict = {}
-    with test_lib.ConfigOverrider({"Database.enabled": False}):
-      client_message = "Oh no!"
-      self.SendResponse(
-          session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
-          data=client_message,
-          client_id=client_id,
-          well_known=True)
-
-    def SendEmail(address, sender, title, message, **_):
-      email_dict.update(
-          dict(address=address, sender=sender, title=title, message=message))
-
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      # Now emulate a worker to process the event.
-      worker = worker_test_lib.MockWorker(token=self.token)
-      while worker.Next():
-        pass
-      worker.pool.Join()
-
-    self._CheckAlertEmail(client_id, client_message, email_dict)
-
   def _CheckAlertEmail(self, client_id, message, email_dict):
     # We expect the email to be sent.
     self.assertEqual(
@@ -349,56 +273,6 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
         client_id=client_id,
         action="SendStartupInfo",
         token=self.token)
-
-  def testStartupFlow(self):
-    client_id = self.SetupClient(0)
-
-    self._RunSendStartupInfo(client_id)
-
-    # Check the client's boot time and info.
-    fd = aff4.FACTORY.Open(client_id, token=self.token)
-    client_info = fd.Get(fd.Schema.CLIENT_INFO)
-    boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
-
-    self.assertEqual(client_info.client_name, config.CONFIG["Client.name"])
-    self.assertEqual(client_info.client_description,
-                     config.CONFIG["Client.description"])
-
-    # Check that the boot time is accurate.
-    self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsSinceEpoch())
-
-    # Run it again - this should not update any record.
-    self._RunSendStartupInfo(client_id)
-
-    fd = aff4.FACTORY.Open(client_id, token=self.token)
-    self.assertEqual(boot_time.age, fd.Get(fd.Schema.LAST_BOOT_TIME).age)
-    self.assertEqual(client_info.age, fd.Get(fd.Schema.CLIENT_INFO).age)
-
-    # Simulate a reboot.
-    current_boot_time = psutil.boot_time()
-    with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
-
-      # Run it again - this should now update the boot time.
-      self._RunSendStartupInfo(client_id)
-
-      # Ensure only this attribute is updated.
-      fd = aff4.FACTORY.Open(client_id, token=self.token)
-      self.assertNotEqual(
-          int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
-      self.assertEqual(
-          int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
-
-      # Now set a new client build time.
-      build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
-      with test_lib.ConfigOverrider({"Client.build_time": build_time}):
-
-        # Run it again - this should now update the client info.
-        self._RunSendStartupInfo(client_id)
-
-        # Ensure the client info attribute is updated.
-        fd = aff4.FACTORY.Open(client_id, token=self.token)
-        self.assertNotEqual(
-            int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)
@@ -700,30 +574,6 @@ sys.test_code_ran_here = True
     self.assertEqual(email_message.get("address", ""), "test@localhost")
     self.assertEqual(email_message["title"],
                      "GRR Client on Host-0.example.com became available.")
-
-
-class TestAdministrativeFlowsRelFlows(db_test_lib.RelationalDBEnabledMixin,
-                                      TestAdministrativeFlows):
-
-  def testStartupFlow(self):
-    # Replaced by handlers when running with relational flows, tested in
-    # testStartupHandler.
-    pass
-
-  def testNannyMessageFlow(self):
-    # Replaced by handlers when running with relational flows, tested in
-    # testNannyMessageHandler.
-    pass
-
-  def testClientAlertFlow(self):
-    # Replaced by handlers when running with relational flows, tested in
-    # testClientAlertHandler.
-    pass
-
-  def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
-    # This feature was removed while porting hunts to the relational db.
-    # TODO(amoser): Remove this test once AFF4 is gone.
-    pass
 
   def testStartupHandler(self):
     with test_lib.ConfigOverrider({

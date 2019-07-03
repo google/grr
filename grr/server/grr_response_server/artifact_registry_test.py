@@ -277,8 +277,8 @@ class ArtifactSourceTest(absltest.TestCase):
       source.Validate()
 
 
-@db_test_lib.DualDBTest
-class ArtifactRegistryTest(absltest.TestCase):
+class ArtifactRegistryTest(db_test_lib.RelationalDBEnabledMixin,
+                           absltest.TestCase):
 
   @skip.Unless(
       data_store.RelationalDBEnabled,

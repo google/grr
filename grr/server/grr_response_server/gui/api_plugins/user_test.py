@@ -13,13 +13,11 @@ from future.builtins import zip
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.util import compatibility
 from grr_response_server import access_control
-from grr_response_server import aff4
+from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import notification
-from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
@@ -34,8 +32,8 @@ from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class ApiNotificationTest(acl_test_lib.AclTestMixin,
+class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
+                          acl_test_lib.AclTestMixin,
                           notification_test_lib.NotificationTestMixin,
                           api_test_lib.ApiCallHandlerTest):
   """Tests for ApiNotification class."""
@@ -50,12 +48,8 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
                         reference)
     ns = self.GetUserNotifications(self.token.username)
 
-    if data_store.RelationalDBEnabled():
-      # Treat the notification as an object coming from REL_DB.
-      return user_plugin.ApiNotification().InitFromUserNotification(ns[0])
-    else:
-      # Treat the notification as an old-style notification object.
-      return user_plugin.ApiNotification().InitFromNotification(ns[0])
+    # Treat the notification as an object coming from REL_DB.
+    return user_plugin.ApiNotification().InitFromUserNotification(ns[0])
 
   def testDiscoveryNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
@@ -138,10 +132,6 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testVfsNotificationWithInvalidReferenceIsParsedDefensively(self):
-    # This is a REL_DB-only test.
-    if data_store.AFF4Enabled():
-      return
-
     n = self.InitFromObj_(
         rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
         rdf_objects.ObjectReference(
@@ -314,8 +304,8 @@ class ApiCreateApprovalHandlerTestMixin(
                      (u"approver", self.token.username, "test@example.com"))
 
 
-@db_test_lib.DualDBTest
-class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
+class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                      acl_test_lib.AclTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientApprovalHandler."""
 
@@ -377,8 +367,8 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
       self.handler.Handle(args, token=self.token)
 
 
-@db_test_lib.DualDBTest
-class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiCreateClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                         api_test_lib.ApiCallHandlerTest,
                                          ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateClientApprovalHandler."""
 
@@ -407,19 +397,14 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler.Handle(self.args, self.token)
 
-    if data_store.RelationalDBEnabled():
-      flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id=str(self.args.client_id))
-      flow_class_names = [f.flow_class_name for f in flows]
-    else:
-      flows = aff4.FACTORY.Open(
-          self.subject_urn.Add("flows"), token=self.token).OpenChildren()
-      flow_class_names = [compatibility.GetName(f.__class__) for f in flows]
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id=str(self.args.client_id))
+    flow_class_names = [f.flow_class_name for f in flows]
     self.assertEqual(flow_class_names, ["KeepAlive"])
 
 
-@db_test_lib.DualDBTest
-class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                        api_test_lib.ApiCallHandlerTest,
                                         acl_test_lib.AclTestMixin):
   """Test for ApiListApprovalsHandler."""
 
@@ -549,8 +534,8 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
-@db_test_lib.DualDBTest
-class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
+class ApiCreateHuntApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                       ApiCreateApprovalHandlerTestMixin,
                                        hunt_test_lib.StandardHuntTestMixin,
                                        api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateHuntApprovalHandler."""
@@ -577,8 +562,8 @@ class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-@db_test_lib.DualDBTest
-class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
+class ApiListHuntApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                      hunt_test_lib.StandardHuntTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
 
@@ -601,8 +586,8 @@ class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
     self.assertLen(result.items, 1)
 
 
-@db_test_lib.DualDBTest
 class ApiCreateCronJobApprovalHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin,
     ApiCreateApprovalHandlerTestMixin,
     api_test_lib.ApiCallHandlerTest,
 ):
@@ -619,7 +604,7 @@ class ApiCreateCronJobApprovalHandlerTest(
 
     self.SetUpApprovalTest()
 
-    cron_manager = aff4_cronjobs.GetCronManager()
+    cron_manager = cronjobs.CronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(
         frequency="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -632,8 +617,8 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-@db_test_lib.DualDBTest
-class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
+class ApiListCronJobApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                         acl_test_lib.AclTestMixin,
                                          api_test_lib.ApiCallHandlerTest):
   """Test for ApiListCronJobApprovalsHandler."""
 
@@ -642,7 +627,7 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.handler = user_plugin.ApiListCronJobApprovalsHandler()
 
   def testRendersRequestedCronJobApproval(self):
-    cron_manager = aff4_cronjobs.GetCronManager()
+    cron_manager = cronjobs.CronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(
         frequency="1d", allow_overruns=False)
     cron_job_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -659,29 +644,17 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     self.assertLen(result.items, 1)
 
 
-class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
+class ApiGetOwnGrrUserHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                  api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
     super(ApiGetOwnGrrUserHandlerTest, self).setUp()
+    data_store.REL_DB.WriteGRRUser("foo")
     self.handler = user_plugin.ApiGetOwnGrrUserHandler()
 
-  def testRendersObjectForNonExistingUser(self):
-    result = self.handler.Handle(
-        None, token=access_control.ACLToken(username="foo"))
-    self.assertEqual(result.username, "foo")
-
   def testRendersSettingsForUserCorrespondingToToken(self):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add("foo"),
-        aff4_type=aff4_users.GRRUser,
-        mode="w",
-        token=self.token) as user_fd:
-      user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                  aff4_users.GUISettings(
-                      mode="ADVANCED",
-                      canary_mode=True,
-                  ))
+    data_store.REL_DB.WriteGRRUser("foo", ui_mode="ADVANCED", canary_mode=True)
 
     result = self.handler.Handle(
         None, token=access_control.ACLToken(username=u"foo"))
@@ -729,25 +702,18 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
-    if data_store.AFF4Enabled():
-      # Check that settings for user "foo" were applied.
-      fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)
-      self.assertEqual(fd.Get(fd.Schema.GUI_SETTINGS), settings)
-
-    if data_store.RelationalDBEnabled():
-      # Check that settings were applied in relational db.
-      u = data_store.REL_DB.ReadGRRUser(u"foo")
-      self.assertEqual(settings.mode, u.ui_mode)
-      self.assertEqual(settings.canary_mode, u.canary_mode)
+    u = data_store.REL_DB.ReadGRRUser(u"foo")
+    self.assertEqual(settings.mode, u.ui_mode)
+    self.assertEqual(settings.canary_mode, u.canary_mode)
 
 
 class ApiDeletePendingUserNotificationHandlerTest(
-    api_test_lib.ApiCallHandlerTest):
+    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest):
   """Test for ApiDeletePendingUserNotificationHandler."""
 
   TIME_0 = rdfvalue.RDFDatetime(42 * rdfvalue.MICROSECONDS)
-  TIME_1 = TIME_0 + rdfvalue.Duration("1d")
-  TIME_2 = TIME_1 + rdfvalue.Duration("1d")
+  TIME_1 = TIME_0 + rdfvalue.DurationSeconds("1d")
+  TIME_2 = TIME_1 + rdfvalue.DurationSeconds("1d")
 
   def setUp(self):
     super(ApiDeletePendingUserNotificationHandlerTest, self).setUp()
@@ -784,15 +750,13 @@ class ApiDeletePendingUserNotificationHandlerTest(
                   client_id=self.client_id.Basename())))
 
   def _GetNotifications(self):
-    user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=self.token)
-
-    pending = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
-    shown = user_record.Get(user_record.Schema.SHOWN_NOTIFICATIONS)
-    return (pending, shown)
+    pending = data_store.REL_DB.ReadUserNotifications(
+        self.token.username,
+        state=rdf_objects.UserNotification.State.STATE_PENDING)
+    shown = data_store.REL_DB.ReadUserNotifications(
+        self.token.username,
+        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+    return pending, shown
 
   def testDeletesFromPendingAndAddsToShown(self):
     # Check that there are three pending notifications and no shown ones yet.
@@ -812,23 +776,6 @@ class ApiDeletePendingUserNotificationHandlerTest(
     self.assertIn("<some other message>", shown[0].message)
     self.assertEqual(shown[0].timestamp, self.TIME_1)
 
-  def testRaisesOnDeletingMultipleNotifications(self):
-    # Check that there are three pending notifications and no shown ones yet.
-    (pending, shown) = self._GetNotifications()
-    self.assertLen(pending, 3)
-    self.assertEmpty(shown)
-
-    # Delete all pending notifications on TIME_0.
-    args = user_plugin.ApiDeletePendingUserNotificationArgs(
-        timestamp=self.TIME_0)
-    with self.assertRaises(aff4_users.UniqueKeyError):
-      self.handler.Handle(args, token=self.token)
-
-    # Check that the notifications were not changed in the process.
-    (pending, shown) = self._GetNotifications()
-    self.assertLen(pending, 3)
-    self.assertEmpty(shown)
-
   def testUnknownTimestampIsIgnored(self):
     # Check that there are three pending notifications and no shown ones yet.
     (pending, shown) = self._GetNotifications()
@@ -847,9 +794,9 @@ class ApiDeletePendingUserNotificationHandlerTest(
     self.assertEmpty(shown)
 
 
-@db_test_lib.DualDBTest
-class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
-                                            api_test_lib.ApiCallHandlerTest):
+class ApiListApproverSuggestionsHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiListApproverSuggestionsHandler."""
 
   def setUp(self):

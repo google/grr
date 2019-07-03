@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib import utils
-from grr_response_server import flow
 from grr_response_server.flows.general import registry as flow_registry
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -28,7 +27,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def _RunRegistryFinder(self, paths=None):
     client_mock = action_mocks.GlobClientMock()
 
-    client_id = self.SetupClient(0)
+    client_id = self.SetupClient(0).Basename()
 
     session_id = flow_test_lib.TestFlowHelper(
         flow_registry.RegistryFinder.__name__,
@@ -38,7 +37,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
         conditions=[],
         token=self.token)
 
-    return list(flow.GRRFlow.ResultCollectionForFID(session_id))
+    return flow_test_lib.GetFlowResults(client_id, session_id)
 
   def testRegistryFinder(self):
     # Listing inside a key gives the values.

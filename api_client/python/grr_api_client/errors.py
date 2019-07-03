@@ -31,3 +31,7 @@ class PollTimeoutError(Error):
 
 class FlowFailedError(Error):
   """Raised when waiting on a flow that eventually fails."""
+
+
+class InvalidArgumentError(Error):
+  """Raised when invalid argument(s) is/are passed to the API call."""

@@ -20,10 +20,8 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import hunt
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_test_lib
@@ -70,8 +68,8 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(hunt_urn, "aff4:/hunts/H:1234")
 
 
-@db_test_lib.DualDBTest
-class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiCreateHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                               api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiCreateHuntHandler."""
 
@@ -87,8 +85,8 @@ class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertFalse(result.hunt_runner_args.HasField("queue"))
 
 
-@db_test_lib.DualDBTest
-class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiListHuntsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                              api_test_lib.ApiCallHandlerTest,
                               hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiListHuntsHandler."""
 
@@ -243,8 +241,8 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEmpty(result.items)
 
 
-@db_test_lib.DualDBTest
-class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
+class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                        hunt_test_lib.StandardHuntTestMixin,
                                         api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -326,8 +324,8 @@ class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
             }, manifest)
 
 
-@db_test_lib.DualDBTest
-class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                api_test_lib.ApiCallHandlerTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -392,17 +390,13 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(args)
 
   def testRaisesIfResultIsBeforeTimestamp(self):
-    if data_store.RelationalDBEnabled():
-      results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
-    else:
-      results = implementation.GRRHunt.ResultCollectionForHID(
-          self.hunt_urn, token=self.token)
+    results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.aff4_file_path,
-        timestamp=results[0].age + rdfvalue.Duration("1s"))
+        timestamp=results[0].age + rdfvalue.DurationSeconds("1s"))
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
 
@@ -416,71 +410,25 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         wrong_result = rdf_flows.GrrMessage(
             payload=rdfvalue.RDFString("foo/bar"),
             age=(result.age - (self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
-                 rdfvalue.Duration("1s")),
+                 rdfvalue.DurationSeconds("1s")),
             source=self.client_id)
         results.Add(
             wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
 
     return result
 
-  # The whole MAX_RECORDS approach is specific to AFF4 table-scanning.
-  @db_test_lib.LegacyDataStoreOnly
-  def testRaisesIfResultIsAfterMaxRecordsAfterTimestamp(self):
-    original_result = self._FillInStubResults()
-
-    args = hunt_plugin.ApiGetHuntFileArgs(
-        hunt_id=self.hunt_id,
-        client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
-        timestamp=original_result.age -
-        (self.handler.MAX_RECORDS_TO_CHECK + 1) * rdfvalue.Duration("1s"))
-
-    with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
-      self.handler.Handle(args, token=self.token)
-
-  # The whole MAX_RECORDS approach is specific to AFF4 table-scanning.
-  @db_test_lib.LegacyDataStoreOnly
-  def testReturnsResultIfWithinMaxRecordsAfterTimestamp(self):
-    original_result = self._FillInStubResults()
-
-    args = hunt_plugin.ApiGetHuntFileArgs(
-        hunt_id=self.hunt_id,
-        client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
-        timestamp=original_result.age -
-        self.handler.MAX_RECORDS_TO_CHECK * rdfvalue.Duration("1s"))
-
-    self.handler.Handle(args, token=self.token)
-
   def testRaisesIfResultFileDoesNotExist(self):
-    if data_store.RelationalDBEnabled():
-      results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
-      original_result = results[0]
+    results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
+    original_result = results[0]
 
-      with test_lib.FakeTime(original_result.timestamp -
-                             rdfvalue.Duration("1s")):
-        wrong_result = original_result.Copy()
-        payload = wrong_result.payload
-        payload.stat_entry.pathspec.path += "blah"
-        data_store.REL_DB.WriteFlowResults([wrong_result])
+    with test_lib.FakeTime(original_result.timestamp -
+                           rdfvalue.DurationSeconds("1s")):
+      wrong_result = original_result.Copy()
+      payload = wrong_result.payload
+      payload.stat_entry.pathspec.path += "blah"
+      data_store.REL_DB.WriteFlowResults([wrong_result])
 
-      wrong_result_timestamp = wrong_result.timestamp
-    else:
-      results = implementation.GRRHunt.ResultCollectionForHID(
-          self.hunt_urn, token=self.token)
-      original_result = results[0]
-
-      with data_store.DB.GetMutationPool() as pool:
-        wrong_result = original_result.Copy()
-        payload = wrong_result.payload
-        payload.stat_entry.pathspec.path += "blah"
-        wrong_result.payload = payload
-        wrong_result.age -= rdfvalue.Duration("1s")
-
-        results.Add(
-            wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
-
-      wrong_result_timestamp = wrong_result.age
+    wrong_result_timestamp = wrong_result.timestamp
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
@@ -491,35 +439,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
 
-  # There is no notion of "empty stream" in the new datastore model.
-  @db_test_lib.LegacyDataStoreOnly
-  def testRaisesIfResultIsEmptyStream(self):
-    original_results = implementation.GRRHunt.ResultCollectionForHID(
-        self.hunt_urn, token=self.token)
-    original_result = original_results[0]
-
-    urn = original_result.payload.stat_entry.AFF4Path(self.client_id)
-    aff4.FACTORY.Delete(urn, token=self.token)
-    with aff4.FACTORY.Create(urn, aff4_type=aff4_grr.VFSFile, token=self.token):
-      pass
-
-    args = hunt_plugin.ApiGetHuntFileArgs(
-        hunt_id=self.hunt_id,
-        client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
-        timestamp=original_result.age)
-
-    with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
-      self.handler.Handle(args, token=self.token)
-
   def testReturnsBinaryStreamIfResultFound(self):
-    if data_store.RelationalDBEnabled():
-      results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
-      timestamp = results[0].timestamp
-    else:
-      results = implementation.GRRHunt.ResultCollectionForHID(
-          self.hunt_urn, token=self.token)
-      timestamp = results[0].age
+    results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
+    timestamp = results[0].timestamp
 
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
@@ -533,10 +455,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                      results[0].payload.stat_entry.st_size)
 
 
-@db_test_lib.DualDBTest
-class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                                             hunt_test_lib.StandardHuntTestMixin
-                                            ):
+class ApiListHuntOutputPluginLogsHandlerTest(
+    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
+    hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -614,8 +535,8 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertLen(result.items, 2)
 
 
-@db_test_lib.DualDBTest
-class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                               api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiModifyHuntHandler."""
 
@@ -624,31 +545,18 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler = hunt_plugin.ApiModifyHuntHandler()
 
-    if data_store.RelationalDBEnabled():
-      self.hunt_id = self.CreateHunt(description="the hunt")
-    else:
-      self.hunt_obj = self.CreateHunt(description="the hunt")
-      self.hunt_urn = self.hunt_obj.urn
-      self.hunt_id = self.hunt_urn.Basename()
+    self.hunt_id = self.CreateHunt(description="the hunt")
 
     self.args = hunt_plugin.ApiModifyHuntArgs(hunt_id=self.hunt_id)
 
   def testDoesNothingIfArgsHaveNoChanges(self):
-    if data_store.RelationalDBEnabled():
-      before = hunt_plugin.ApiHunt().InitFromHuntObject(
-          data_store.REL_DB.ReadHuntObject(self.hunt_id))
-    else:
-      before = hunt_plugin.ApiHunt().InitFromAff4Object(
-          aff4.FACTORY.Open(self.hunt_urn, token=self.token))
+    before = hunt_plugin.ApiHunt().InitFromHuntObject(
+        data_store.REL_DB.ReadHuntObject(self.hunt_id))
 
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      after = hunt_plugin.ApiHunt().InitFromHuntObject(
-          data_store.REL_DB.ReadHuntObject(self.hunt_id))
-    else:
-      after = hunt_plugin.ApiHunt().InitFromAff4Object(
-          aff4.FACTORY.Open(self.hunt_urn, token=self.token))
+    after = hunt_plugin.ApiHunt().InitFromHuntObject(
+        data_store.REL_DB.ReadHuntObject(self.hunt_id))
 
     self.assertEqual(before, after)
 
@@ -658,24 +566,16 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(self.args, token=self.token)
 
   def testRaisesWhenStartingHuntInTheWrongState(self):
-    if data_store.RelationalDBEnabled():
-      hunt.StartHunt(self.hunt_id)
-      hunt.StopHunt(self.hunt_id)
-    else:
-      self.hunt_obj.Run()
-      self.hunt_obj.Stop()
+    hunt.StartHunt(self.hunt_id)
+    hunt.StopHunt(self.hunt_id)
 
     self.args.state = "STARTED"
     with self.assertRaises(hunt_plugin.HuntNotStartableError):
       self.handler.Handle(self.args, token=self.token)
 
   def testRaisesWhenStoppingHuntInTheWrongState(self):
-    if data_store.RelationalDBEnabled():
-      hunt.StartHunt(self.hunt_id)
-      hunt.StopHunt(self.hunt_id)
-    else:
-      self.hunt_obj.Run()
-      self.hunt_obj.Stop()
+    hunt.StartHunt(self.hunt_id)
+    hunt.StopHunt(self.hunt_id)
 
     self.args.state = "STOPPED"
     with self.assertRaises(hunt_plugin.HuntNotStoppableError):
@@ -685,29 +585,18 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.state = "STARTED"
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
-      self.assertEqual(h.hunt_state, h.HuntState.STARTED)
-    else:
-      hunt_obj = aff4.FACTORY.Open(self.hunt_urn, token=self.token)
-      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STARTED")
+    h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    self.assertEqual(h.hunt_state, h.HuntState.STARTED)
 
   def testStopsHuntCorrectly(self):
     self.args.state = "STOPPED"
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
-      self.assertEqual(h.hunt_state, h.HuntState.STOPPED)
-    else:
-      hunt_obj = aff4.FACTORY.Open(self.hunt_urn, token=self.token)
-      self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STOPPED")
+    h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
+    self.assertEqual(h.hunt_state, h.HuntState.STOPPED)
 
   def testRaisesWhenModifyingHuntInNonPausedState(self):
-    if data_store.RelationalDBEnabled():
-      hunt.StartHunt(self.hunt_id)
-    else:
-      self.hunt_obj.Run()
+    hunt.StartHunt(self.hunt_id)
 
     self.args.client_rate = 100
     with self.assertRaises(hunt_plugin.HuntNotModifiableError):
@@ -716,43 +605,20 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testModifiesHuntCorrectly(self):
     self.args.client_rate = 100
     self.args.client_limit = 42
-    self.args.duration = rdfvalue.Duration("1d")
+    self.args.duration = rdfvalue.DurationSeconds("1d")
 
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      after = hunt_plugin.ApiHunt().InitFromHuntObject(
-          data_store.REL_DB.ReadHuntObject(self.hunt_id))
-    else:
-      after = hunt_plugin.ApiHunt().InitFromAff4Object(
-          aff4.FACTORY.Open(self.hunt_urn, token=self.token))
+    after = hunt_plugin.ApiHunt().InitFromHuntObject(
+        data_store.REL_DB.ReadHuntObject(self.hunt_id))
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
-    self.assertEqual(after.duration, rdfvalue.Duration("1d"))
-
-  # New datastore implementation has a slightly different behavior.
-  # client_rate/limit modification is applied before an attempt
-  # to change the state is made. These modifications stay even
-  # if the state change attempt fails.
-  @db_test_lib.LegacyDataStoreOnly
-  def testDoesNotModifyHuntIfStateChangeFails(self):
-    self.args.client_limit = 42
-    self.args.state = "COMPLETED"
-    with self.assertRaises(hunt_plugin.InvalidHuntStateError):
-      self.handler.Handle(self.args, token=self.token)
-
-    if data_store.RelationalDBEnabled():
-      after = hunt_plugin.ApiHunt().InitFromHuntObject(
-          data_store.REL_DB.ReadHuntObject(self.hunt_id))
-    else:
-      after = hunt_plugin.ApiHunt().InitFromAff4Object(
-          aff4.FACTORY.Open(self.hunt_urn, token=self.token))
-    self.assertNotEqual(after.client_limit, 42)
+    self.assertEqual(after.duration, rdfvalue.DurationSeconds("1d"))
 
 
-@db_test_lib.DualDBTest
-class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
+class ApiDeleteHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                               api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiDeleteHuntHandler."""
 
@@ -761,11 +627,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.handler = hunt_plugin.ApiDeleteHuntHandler()
 
-    if data_store.RelationalDBEnabled():
-      self.hunt_id = self.CreateHunt(description="the hunt")
-    else:
-      self.hunt_obj = self.CreateHunt(description="the hunt")
-      self.hunt_id = self.hunt_obj.urn.Basename()
+    self.hunt_id = self.CreateHunt(description="the hunt")
 
     self.args = hunt_plugin.ApiDeleteHuntArgs(hunt_id=self.hunt_id)
 
@@ -775,10 +637,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
           hunt_plugin.ApiDeleteHuntArgs(hunt_id="H:123456"), token=self.token)
 
   def testRaisesIfHuntIsRunning(self):
-    if data_store.RelationalDBEnabled():
-      hunt.StartHunt(self.hunt_id)
-    else:
-      self.hunt_obj.Run()
+    hunt.StartHunt(self.hunt_id)
 
     with self.assertRaises(hunt_plugin.HuntNotDeletableError):
       self.handler.Handle(self.args, token=self.token)
@@ -786,19 +645,12 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testDeletesHunt(self):
     self.handler.Handle(self.args, token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      with self.assertRaises(db.UnknownHuntError):
-        data_store.REL_DB.ReadHuntObject(self.hunt_id)
-    else:
-      with self.assertRaises(aff4.InstantiationError):
-        aff4.FACTORY.Open(
-            self.hunt_obj.urn,
-            aff4_type=implementation.GRRHunt,
-            token=self.token)
+    with self.assertRaises(db.UnknownHuntError):
+      data_store.REL_DB.ReadHuntObject(self.hunt_id)
 
 
-@db_test_lib.DualDBTest
-class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
+class ApiGetExportedHuntResultsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
+                                           test_lib.GRRBaseTest,
                                            hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):

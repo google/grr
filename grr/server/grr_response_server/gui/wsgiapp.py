@@ -9,15 +9,20 @@ import hashlib
 import hmac
 import logging
 import os
+import socket
+import ssl
 import string
+from wsgiref import simple_server
 
 from cryptography.hazmat.primitives import constant_time
 
 from future.builtins import int
 from future.builtins import str
 
+import ipaddress
 import jinja2
 import psutil
+import socketserver
 
 from typing import Text
 
@@ -37,7 +42,7 @@ from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
 
 CSRF_DELIMITER = b":"
-CSRF_TOKEN_DURATION = rdfvalue.Duration("10h")
+CSRF_TOKEN_DURATION = rdfvalue.DurationSeconds("10h")
 
 
 def GenerateCSRFToken(user_id, time):
@@ -345,3 +350,79 @@ window.location = '%s' + friendly_hash;
     return werkzeug_wsgi.DispatcherMiddleware(self, {
         "/static": sdm,
     })
+
+
+class SingleThreadedServerInet6(simple_server.WSGIServer):
+  address_family = socket.AF_INET6
+
+
+class MultiThreadedServer(socketserver.ThreadingMixIn,
+                          simple_server.WSGIServer):
+  pass
+
+
+class MultiThreadedServerInet6(socketserver.ThreadingMixIn,
+                               simple_server.WSGIServer):
+  address_family = socket.AF_INET6
+
+
+def MakeServer(host=None, port=None, max_port=None, multi_threaded=False):
+  """Create WSGI server."""
+  bind_address = host or config.CONFIG["AdminUI.bind"]
+  ip = ipaddress.ip_address(bind_address)
+  if ip.version == 4:
+    if multi_threaded:
+      server_cls = MultiThreadedServer
+    else:
+      server_cls = simple_server.WSGIServer
+  else:
+    if multi_threaded:
+      server_cls = MultiThreadedServerInet6
+    else:
+      server_cls = SingleThreadedServerInet6
+
+  port = port or config.CONFIG["AdminUI.port"]
+  max_port = max_port or config.CONFIG.Get("AdminUI.port_max",
+                                           config.CONFIG["AdminUI.port"])
+
+  for p in range(port, max_port + 1):
+    # Make a simple reference implementation WSGI server
+    try:
+      server = simple_server.make_server(
+          bind_address,
+          p,
+          AdminUIApp().WSGIHandler(),
+          server_class=server_cls,
+      )
+      break
+    except socket.error as e:
+      if e.errno == socket.errno.EADDRINUSE and p < max_port:
+        logging.info("Port %s in use, trying %s", p, p + 1)
+      else:
+        raise
+
+  proto = "HTTP"
+
+  if config.CONFIG["AdminUI.enable_ssl"]:
+    cert_file = config.CONFIG["AdminUI.ssl_cert_file"]
+    if not cert_file:
+      raise ValueError("Need a valid cert file to enable SSL.")
+
+    key_file = config.CONFIG["AdminUI.ssl_key_file"]
+    server.socket = ssl.wrap_socket(
+        server.socket,
+        certfile=cert_file,
+        keyfile=key_file,
+        server_side=True,
+    )
+    proto = "HTTPS"
+
+    # SSL errors are swallowed by the WSGIServer so if your configuration does
+    # not work, uncomment the line below, point your browser at the gui and look
+    # at the log file to see why SSL complains:
+    # server.socket.accept()
+
+  sa = server.socket.getsockname()
+  logging.info("Serving %s on %s port %d ...", proto, sa[0], sa[1])
+
+  return server

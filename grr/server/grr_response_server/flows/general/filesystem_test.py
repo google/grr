@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import hashlib
 import io
 import os
 import platform
@@ -15,7 +14,6 @@ from future.builtins import range
 import mock
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import windows_registry_parser as winreg_parser
 from grr_response_core.lib.parsers import wmi_parser
@@ -47,152 +45,6 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
-
-
-class TestSparseImage(flow_test_lib.FlowTestsBaseclass):
-  """Tests the sparse image related flows."""
-
-  def CreateNewSparseImage(self):
-    client_id = self.SetupClient(0)
-
-    path = os.path.join(self.base_path, "test_img.dd")
-
-    urn = client_id.Add("fs/os").Add(path)
-
-    pathspec = rdf_paths.PathSpec(
-        path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-    with aff4.FACTORY.Create(
-        urn, aff4_standard.AFF4SparseImage, mode="rw", token=self.token) as fd:
-
-      # Give the new object a pathspec.
-      fd.Set(fd.Schema.PATHSPEC, pathspec)
-
-    return urn
-
-  def ReadFromSparseImage(self, client_id, length, offset):
-
-    urn = self.CreateNewSparseImage()
-
-    self.client_mock = action_mocks.FileFinderClientMock()
-
-    flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.FetchBufferForSparseImage),
-        self.client_mock,
-        client_id=client_id,
-        token=self.token,
-        file_urn=urn,
-        length=length,
-        offset=offset)
-
-    # Reopen the object so we can read the freshest version of the size
-    # attribute.
-    return aff4.FACTORY.Open(urn, token=self.token)
-
-  def testFetchBufferForSparseImageReadAlignedToChunks(self):
-    client_id = self.SetupClient(0)
-    # From a 2MiB offset, read 5MiB.
-    length = 1024 * 1024 * 5
-    offset = 1024 * 1024 * 2
-    fd = self.ReadFromSparseImage(client_id, length=length, offset=offset)
-    size_after = fd.Get(fd.Schema.SIZE)
-
-    # We should have increased in size by the amount of data we requested
-    # exactly, since we already aligned to chunks.
-    self.assertEqual(size_after, length)
-
-    # Open the actual file on disk without using AFF4 and hash the data we
-    # expect to be reading.
-    with io.open(os.path.join(self.base_path, "test_img.dd"), "rb") as test_fd:
-      test_fd.seek(offset)
-      disk_file_contents = test_fd.read(length)
-      expected_hash = hashlib.sha256(disk_file_contents).digest()
-
-    # Write the file contents to the datastore.
-    fd.Flush()
-    # Make sure the data we read is actually the data that was in the file.
-    fd.Seek(offset)
-    contents = fd.Read(length)
-
-    # There should be no gaps.
-    self.assertLen(contents, length)
-
-    self.assertEqual(hashlib.sha256(contents).digest(), expected_hash)
-
-  def testFetchBufferForSparseImageReadNotAlignedToChunks(self):
-    client_id = self.SetupClient(0)
-
-    # Read a non-whole number of chunks.
-    # (This should be rounded up to 5Mib + 1 chunk)
-    length = 1024 * 1024 * 5 + 42
-    # Make sure we're not reading from exactly the beginning of a chunk.
-    # (This should get rounded down to 2Mib)
-    offset = 1024 * 1024 * 2 + 1
-
-    fd = self.ReadFromSparseImage(client_id, length=length, offset=offset)
-    size_after = fd.Get(fd.Schema.SIZE)
-
-    # The chunksize the sparse image uses.
-    chunksize = aff4_standard.AFF4SparseImage.chunksize
-
-    # We should have rounded the 5Mib + 42 up to the nearest chunk,
-    # and rounded down the + 1 on the offset.
-    self.assertEqual(size_after, length + (chunksize - 42))
-
-  def testFetchBufferForSparseImageCorrectChunksRead(self):
-    client_id = self.SetupClient(0)
-
-    length = 1
-    offset = 1024 * 1024 * 10
-    fd = self.ReadFromSparseImage(client_id, length=length, offset=offset)
-    size_after = fd.Get(fd.Schema.SIZE)
-
-    # We should have rounded up to 1 chunk size.
-    self.assertEqual(size_after, fd.chunksize)
-
-  def ReadTestImage(self, size_threshold):
-    client_id = self.SetupClient(0)
-    path = os.path.join(self.base_path, "test_img.dd")
-
-    urn = rdfvalue.RDFURN(client_id.Add("fs/os").Add(path))
-
-    pathspec = rdf_paths.PathSpec(
-        path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-
-    client_mock = action_mocks.FileFinderClientMock()
-
-    # Get everything as an AFF4SparseImage
-    flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.MakeNewAFF4SparseImage),
-        client_mock,
-        client_id=client_id,
-        token=self.token,
-        size_threshold=size_threshold,
-        pathspec=pathspec)
-
-    return aff4.FACTORY.Open(urn, token=self.token)
-
-  def testReadNewAFF4SparseImage(self):
-
-    # Smaller than the size of the file.
-    fd = self.ReadTestImage(size_threshold=0)
-
-    self.assertIsInstance(fd, aff4_standard.AFF4SparseImage)
-
-    # The file should be empty.
-    self.assertEmpty(fd.Read(10000))
-    self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
-
-  def testNewSparseImageFileNotBigEnough(self):
-
-    # Bigger than the size of the file.
-    fd = self.ReadTestImage(size_threshold=2**32)
-
-    # We shouldn't be a sparse image in this case.
-    self.assertNotIsInstance(fd, aff4_standard.AFF4SparseImage)
-    self.assertIsInstance(fd, aff4.AFF4Image)
-    self.assertNotEmpty(fd.Read(10000))
-    self.assertGreater(fd.Get(fd.Schema.SIZE), 0)
 
 
 class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
@@ -762,31 +614,6 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         filesystem.Glob,
         paths=paths,
         client_id=self.client_id)
-
-  def testIllegalGlobAsync(self):
-    # When running the flow asynchronously, we will not receive any errors from
-    # the Start method, but the flow should still fail.
-    paths = ["Test/%%Weird_illegal_attribute%%"]
-    client_mock = action_mocks.GlobClientMock()
-
-    # Run the flow.
-    session_id = None
-
-    # This should not raise here since the flow is run asynchronously.
-    with test_lib.SuppressLogs():
-      session_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.Glob),
-          client_mock,
-          client_id=self.client_id,
-          check_flow_errors=False,
-          paths=paths,
-          pathtype=rdf_paths.PathSpec.PathType.OS,
-          token=self.token,
-          sync=False)
-
-    fd = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertIn("KnowledgeBaseInterpolationError", fd.context.backtrace)
-    self.assertEqual("ERROR", str(fd.context.state))
 
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""

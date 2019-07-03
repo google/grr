@@ -25,14 +25,11 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import user_pb2
 
 from grr_response_server import access_control
-from grr_response_server import aff4
+from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import notification as notification_lib
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
-from grr_response_server.aff4_objects import security as aff4_security
 from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.databases import db
 from grr_response_server.flows.general import administrative
@@ -44,7 +41,6 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr_response_server.hunts import implementation
 
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -236,7 +232,6 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
     # notification.type may be one of legacy values (i.e. "ViewObject") or
     # have a format of "[legacy value]:[new-style notification type]", i.e.
     # "ViewObject:TYPE_CLIENT_INTERROGATED".
-    legacy_type = None
     if ":" in notification.type:
       legacy_type, new_type = notification.type.split(":", 2)
       self.notification_type = new_type
@@ -355,17 +350,6 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
       aff4_users.GUISettings,
   ]
 
-  def InitFromAff4Object(self, aff4_obj):
-    self.username = aff4_obj.urn.Basename()
-    self.settings = aff4_obj.Get(aff4_obj.Schema.GUI_SETTINGS)
-
-    if "admin" in aff4_obj.GetLabelsNames(owner="GRR"):
-      self.user_type = self.UserType.USER_TYPE_ADMIN
-    else:
-      self.user_type = self.UserType.USER_TYPE_STANDARD
-
-    return self
-
   def InitFromDatabaseObject(self, db_obj):
     self.username = db_obj.username
 
@@ -378,42 +362,6 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
     self.settings.canary_mode = db_obj.canary_mode
 
     return self
-
-
-def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
-  """Initializes Api(Client|Hunt|CronJob)Approval from an AFF4 object."""
-
-  api_approval.id = approval_obj.urn.Basename()
-  api_approval.reason = approval_obj.Get(approval_obj.Schema.REASON)
-  api_approval.requestor = approval_obj.Get(approval_obj.Schema.REQUESTOR)
-
-  # We should check the approval validity from the standpoint of the user
-  # who had requested it.
-  test_token = access_control.ACLToken(
-      username=approval_obj.Get(approval_obj.Schema.REQUESTOR))
-  try:
-    approval_obj.CheckAccess(test_token)
-    api_approval.is_valid = True
-  except access_control.UnauthorizedAccess as e:
-    api_approval.is_valid = False
-    api_approval.is_valid_message = utils.SmartStr(e)
-
-  notified_users = approval_obj.Get(approval_obj.Schema.NOTIFIED_USERS)
-  if notified_users:
-    api_approval.notified_users = sorted(
-        u.strip() for u in notified_users.split(","))
-
-  api_approval.email_message_id = approval_obj.Get(
-      approval_obj.Schema.EMAIL_MSG_ID)
-
-  email_cc = approval_obj.Get(approval_obj.Schema.EMAIL_CC)
-  email_cc_addresses = sorted(s.strip() for s in email_cc.split(","))
-  api_approval.email_cc_addresses = (
-      set(email_cc_addresses) - set(api_approval.notified_users))
-
-  api_approval.approvers = sorted(approval_obj.GetNonExpiredApprovers())
-
-  return api_approval
 
 
 def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
@@ -447,17 +395,6 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
       api_client.ApiClient,
   ]
 
-  def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
-    if not approval_subject_obj:
-      approval_subject_obj = aff4.FACTORY.Open(
-          approval_obj.Get(approval_obj.Schema.SUBJECT),
-          aff4_type=aff4_grr.VFSGRRClient,
-          token=approval_obj.token)
-    self.subject = api_client.ApiClient().InitFromAff4Object(
-        approval_subject_obj)
-
-    return _InitApiApprovalFromAff4Object(self, approval_obj)
-
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     if not approval_subject_obj:
       approval_subject_obj = data_store.REL_DB.ReadClientFullInfo(
@@ -484,15 +421,6 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
   def subject_url_path(self):
     return "/clients/%s" % utils.SmartStr(self.subject.client_id)
 
-  @property
-  def legacy_subject_urn(self):
-    return aff4.ROOT_URN.Add(utils.SmartStr(self.subject.client_id))
-
-  @property
-  def legacy_approval_object_urn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(self.legacy_subject_urn.Path()).Add(
-        self.requestor).Add(self.id)
-
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
     return rdf_objects.ObjectReference(
@@ -513,89 +441,34 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
       api_hunt.ApiHunt,
   ]
 
-  def _FillInSubject(self, subject_urn, approval_subject_obj=None):
-    if not approval_subject_obj:
-      approval_subject_obj = aff4.FACTORY.Open(
-          subject_urn, aff4_type=implementation.GRRHunt)
-    self.subject = api_hunt.ApiHunt().InitFromAff4Object(
-        approval_subject_obj, with_full_summary=True)
-
-    original_object = approval_subject_obj.runner_args.original_object
-    if original_object.object_type == "FLOW_REFERENCE":
-      if data_store.RelationalDBEnabled():
-        original_flow = data_store.REL_DB.ReadFlowObject(
-            original_object.flow_reference.client_id,
-            original_object.flow_reference.flow_id)
-        self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
-            original_flow)
-      else:
-        urn = original_object.flow_reference.ToFlowURN()
-        original_flow = aff4.FACTORY.Open(urn, aff4_type=flow.GRRFlow)
-        self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
-            original_flow, flow_id=original_flow.urn.Basename())
-    elif original_object.object_type == "HUNT_REFERENCE":
-      urn = original_object.hunt_reference.ToHuntURN()
-      original_hunt = aff4.FACTORY.Open(urn, aff4_type=implementation.GRRHunt)
-      self.copied_from_hunt = api_hunt.ApiHunt().InitFromAff4Object(
-          original_hunt, with_full_summary=True)
-
-  def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
-    _InitApiApprovalFromAff4Object(self, approval_obj)
-    self._FillInSubject(
-        approval_obj.Get(approval_obj.Schema.SUBJECT),
-        approval_subject_obj=approval_subject_obj)
-    return self
-
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
 
-    if data_store.RelationalDBEnabled():
-      if not approval_subject_obj:
-        approval_subject_obj = data_store.REL_DB.ReadHuntObject(
-            db_obj.subject_id)
-        approval_subject_counters = data_store.REL_DB.ReadHuntCounters(
-            db_obj.subject_id)
-        self.subject = api_hunt.ApiHunt().InitFromHuntObject(
-            approval_subject_obj,
-            hunt_counters=approval_subject_counters,
-            with_full_summary=True)
-      original_object = approval_subject_obj.original_object
-    else:
-      subject_urn = rdfvalue.RDFURN("hunts").Add(db_obj.subject_id)
-      if not approval_subject_obj:
-        approval_subject_obj = aff4.FACTORY.Open(
-            subject_urn, aff4_type=implementation.GRRHunt)
-      self.subject = api_hunt.ApiHunt().InitFromAff4Object(
-          approval_subject_obj, with_full_summary=True)
-      original_object = approval_subject_obj.runner_args.original_object
+    if not approval_subject_obj:
+      approval_subject_obj = data_store.REL_DB.ReadHuntObject(db_obj.subject_id)
+      approval_subject_counters = data_store.REL_DB.ReadHuntCounters(
+          db_obj.subject_id)
+      self.subject = api_hunt.ApiHunt().InitFromHuntObject(
+          approval_subject_obj,
+          hunt_counters=approval_subject_counters,
+          with_full_summary=True)
+    original_object = approval_subject_obj.original_object
 
     if original_object.object_type == "FLOW_REFERENCE":
-      if data_store.RelationalDBEnabled():
-        original_flow = data_store.REL_DB.ReadFlowObject(
-            original_object.flow_reference.client_id,
-            original_object.flow_reference.flow_id)
-        self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
-            original_flow)
-      else:
-        urn = original_object.flow_reference.ToFlowURN()
-        original_flow = aff4.FACTORY.Open(urn, aff4_type=flow.GRRFlow)
-        self.copied_from_flow = api_flow.ApiFlow().InitFromAff4Object(
-            original_flow, flow_id=original_flow.urn.Basename())
+      original_flow = data_store.REL_DB.ReadFlowObject(
+          original_object.flow_reference.client_id,
+          original_object.flow_reference.flow_id)
+      self.copied_from_flow = api_flow.ApiFlow().InitFromFlowObject(
+          original_flow)
     elif original_object.object_type == "HUNT_REFERENCE":
-      if data_store.RelationalDBEnabled():
-        original_hunt = data_store.REL_DB.ReadHuntObject(
-            original_object.hunt_reference.hunt_id)
-        original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
-            original_object.hunt_reference.hunt_id)
-        self.copied_from_hunt = api_hunt.ApiHunt().InitFromHuntObject(
-            original_hunt,
-            hunt_counters=original_hunt_counters,
-            with_full_summary=True)
-      else:
-        urn = original_object.hunt_reference.ToHuntURN()
-        original_hunt = aff4.FACTORY.Open(urn, aff4_type=implementation.GRRHunt)
-        self.copied_from_hunt = api_hunt.ApiHunt().InitFromAff4Object(
-            original_hunt, with_full_summary=True)
+      original_hunt = data_store.REL_DB.ReadHuntObject(
+          original_object.hunt_reference.hunt_id)
+      original_hunt_counters = data_store.REL_DB.ReadHuntCounters(
+          original_object.hunt_reference.hunt_id)
+      self.copied_from_hunt = api_hunt.ApiHunt().InitFromHuntObject(
+          original_hunt,
+          hunt_counters=original_hunt_counters,
+          with_full_summary=True)
 
     return self
 
@@ -614,15 +487,6 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   @property
   def subject_url_path(self):
     return "/hunts/%s" % utils.SmartStr(self.subject.hunt_id)
-
-  @property
-  def legacy_subject_urn(self):
-    return aff4.ROOT_URN.Add("hunts").Add(utils.SmartStr(self.subject.hunt_id))
-
-  @property
-  def legacy_approval_object_urn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(self.legacy_subject_urn.Path()).Add(
-        self.requestor).Add(self.id)
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
@@ -646,15 +510,8 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   def _FillInSubject(self, subject_urn, approval_subject_obj=None):
     if not approval_subject_obj:
       job_id = subject_urn.Basename()
-      approval_subject_obj = aff4_cronjobs.GetCronManager().ReadJob(job_id)
-      self.subject = api_cron.ApiCronJob().InitFromObject(approval_subject_obj)
-
-  def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
-    _InitApiApprovalFromAff4Object(self, approval_obj)
-    self._FillInSubject(
-        approval_obj.Get(approval_obj.Schema.SUBJECT),
-        approval_subject_obj=approval_subject_obj)
-    return self
+      approval_subject_obj = cronjobs.CronManager().ReadJob(job_id)
+      self.subject = api_cron.ApiCronJob.InitFromObject(approval_subject_obj)
 
   # TODO(user): migrate to using REL_DB.
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
@@ -680,16 +537,6 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   def subject_url_path(self):
     return "/crons/%s" % utils.SmartStr(self.subject.cron_job_id)
 
-  @property
-  def legacy_subject_urn(self):
-    return aff4.ROOT_URN.Add("cron").Add(
-        utils.SmartStr(self.subject.cron_job_id))
-
-  @property
-  def legacy_approval_object_urn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(self.legacy_subject_urn.Path()).Add(
-        self.requestor).Add(self.id)
-
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
     return rdf_objects.ObjectReference(
@@ -704,56 +551,8 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class for all Create*Approval handlers."""
 
-  # AFF4 type of the approval object to be checked. Should be set by a subclass.
-  approval_aff4_type = None
-
   # objects.ApprovalRequest.ApprovalType value describing the approval type.
   approval_type = None
-
-  # Requestor to be used to request the approval. Class is expected. Should be
-  # set by a subclass.
-  approval_requestor = None
-
-  def HandleLegacy(self, args, token=None):
-    requestor = self.__class__.approval_requestor(  # pylint: disable=not-callable
-        reason=args.approval.reason,
-        approver=",".join(args.approval.notified_users),
-        email_cc_address=",".join(args.approval.email_cc_addresses),
-        subject_urn=args.BuildSubjectUrn(),
-        token=token)
-    approval_urn = requestor.Request()
-
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=self.__class__.approval_aff4_type,
-        age=aff4.ALL_TIMES,
-        token=token)
-
-    return self.__class__.result_type().InitFromAff4Object(approval_obj)
-
-  def HandleRelationalDB(self, args, token=None):
-    expiry = config.CONFIG["ACL.token_expiry"]
-
-    request = rdf_objects.ApprovalRequest(
-        requestor_username=token.username,
-        approval_type=self.__class__.approval_type,
-        reason=args.approval.reason,
-        notified_users=args.approval.notified_users,
-        email_cc_addresses=args.approval.email_cc_addresses,
-        subject_id=args.BuildSubjectId(),
-        expiration_time=rdfvalue.RDFDatetime.Now() + expiry,
-        email_message_id=email.utils.make_msgid())
-    request.approval_id = data_store.REL_DB.WriteApprovalRequest(request)
-
-    data_store.REL_DB.GrantApproval(
-        approval_id=request.approval_id,
-        requestor_username=token.username,
-        grantor_username=token.username)
-
-    # Only return the object if database reads are enabled, since
-    # initializing the approval also requires reading its subject.
-    if data_store.RelationalDBEnabled():
-      return self.__class__.result_type().InitFromDatabaseObject(request)
 
   def SendApprovalEmail(self, approval):
     if not config.CONFIG.Get("Email.send_approval_emails"):
@@ -820,10 +619,25 @@ here
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
-    if data_store.RelationalDBEnabled():
-      result = self.HandleRelationalDB(args, token=token)
-    else:
-      result = self.HandleLegacy(args, token=token)
+    expiry = config.CONFIG["ACL.token_expiry"]
+
+    request = rdf_objects.ApprovalRequest(
+        requestor_username=token.username,
+        approval_type=self.__class__.approval_type,
+        reason=args.approval.reason,
+        notified_users=args.approval.notified_users,
+        email_cc_addresses=args.approval.email_cc_addresses,
+        subject_id=args.BuildSubjectId(),
+        expiration_time=rdfvalue.RDFDatetime.Now() + expiry,
+        email_message_id=email.utils.make_msgid())
+    request.approval_id = data_store.REL_DB.WriteApprovalRequest(request)
+
+    data_store.REL_DB.GrantApproval(
+        approval_id=request.approval_id,
+        requestor_username=token.username,
+        grantor_username=token.username)
+
+    result = self.__class__.result_type().InitFromDatabaseObject(request)
 
     self.SendApprovalEmail(result)
     self.CreateApprovalNotification(result)
@@ -832,86 +646,6 @@ here
 
 class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
   """Renders list of all user approvals."""
-
-  def _GetApprovals(self,
-                    approval_type,
-                    offset,
-                    count,
-                    filter_func=None,
-                    token=None):
-    """Gets all approvals for a given user and approval type.
-
-    Args:
-      approval_type: The type of approvals to get.
-      offset: The starting index within the collection.
-      count: The number of items to return.
-      filter_func: A predicate function, returning True if a specific approval
-        should be included in the result and False otherwise.
-      token: The token identifying the user.
-
-    Returns:
-      A list of approvals of the given approval type.
-    """
-    approvals_base_urn = aff4.ROOT_URN.Add("users").Add(
-        token.username).Add("approvals").Add(approval_type)
-
-    all_children = aff4.FACTORY.RecursiveMultiListChildren([approvals_base_urn])
-
-    approvals_urns = []
-    for subject, children in all_children:
-      # We only want to process leaf nodes.
-      if children:
-        continue
-      approvals_urns.append(subject)
-
-    approvals_urns.sort(key=lambda x: x.age, reverse=True)
-    approvals = list(
-        aff4.FACTORY.MultiOpen(
-            approvals_urns,
-            mode="r",
-            aff4_type=aff4_security.Approval,
-            age=aff4.ALL_TIMES,
-            token=token))
-    approvals_by_urn = {}
-    for approval in approvals:
-      approvals_by_urn[approval.symlink_urn or approval.urn] = approval
-
-    cur_offset = 0
-    sorted_approvals = []
-    for approval_urn in approvals_urns:
-      try:
-        approval = approvals_by_urn[approval_urn]
-      except KeyError:
-        continue
-
-      if filter_func is not None and not filter_func(approval):
-        continue
-      cur_offset += 1
-      if cur_offset <= offset:
-        continue
-      if count and len(sorted_approvals) >= count:
-        break
-      sorted_approvals.append(approval)
-
-    subjects_urns = [a.Get(a.Schema.SUBJECT) for a in approvals]
-    subjects_by_urn = {}
-    for subject in aff4.FACTORY.MultiOpen(subjects_urns, mode="r", token=token):
-      subjects_by_urn[subject.urn] = subject
-
-    return sorted_approvals, subjects_by_urn
-
-  def _HandleApprovals(self, approvals, subjects_by_urn, convert_func):
-    converted_approvals = []
-    for approval in approvals:
-      try:
-        subject = subjects_by_urn[approval.Get(approval.Schema.SUBJECT)]
-      except KeyError:
-        continue
-
-      converted_approval = convert_func(approval, subject)
-      converted_approvals.append(converted_approval)
-
-    return converted_approvals
 
   def _FilterRelationalApprovalRequests(self, approval_requests,
                                         approval_create_fn, state):
@@ -931,26 +665,10 @@ class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
 class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class for all Get*Approval handlers."""
 
-  # AFF4 type of the approval object to be checked. Should be set by a subclass.
-  approval_aff4_type = None
-
   # objects.ApprovalRequest.ApprovalType value describing the approval type.
   approval_type = None
 
-  def HandleLegacy(self, args, token=None):
-    approval_urn = args.BuildApprovalObjUrn()
-    try:
-      approval_obj = aff4.FACTORY.Open(
-          approval_urn,
-          aff4_type=self.__class__.approval_aff4_type,
-          age=aff4.ALL_TIMES,
-          token=token)
-    except IOError as e:
-      raise ApprovalNotFoundError(e)
-
-    return self.__class__.result_type().InitFromAff4Object(approval_obj)
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
     try:
       approval_obj = data_store.REL_DB.ReadApprovalRequest(
           args.username, args.approval_id)
@@ -971,61 +689,15 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 
     return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
-
 
 class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class reused by all client approval handlers."""
-
-  # AFF4 type of the approval object to be checked. Should be set by a subclass.
-  approval_aff4_type = None
 
   # objects.ApprovalRequest.ApprovalType value describing the approval type.
   approval_type = None
 
   # Class to be used to grant the approval. Should be set by a subclass.
   approval_grantor = None
-
-  def HandleRelationalDB(self, args, token=None):
-    try:
-      data_store.REL_DB.GrantApproval(args.username, args.approval_id,
-                                      token.username)
-
-      approval_obj = data_store.REL_DB.ReadApprovalRequest(
-          args.username, args.approval_id)
-    except db.UnknownApprovalRequestError:
-      raise ApprovalNotFoundError(
-          "No approval with id=%s, type=%s, subject=%s could be found." %
-          (args.approval_id, self.__class__.approval_type,
-           args.BuildSubjectId()))
-
-    return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
-
-  def HandleLegacy(self, args, token=None):
-    subject_urn = args.BuildSubjectUrn()
-    approval_urn = args.BuildApprovalObjUrn()
-
-    approval_request = aff4.FACTORY.Open(
-        approval_urn, aff4_type=self.__class__.approval_aff4_type, token=token)
-    reason = approval_request.Get(approval_request.Schema.REASON)
-
-    grantor = self.__class__.approval_grantor(  # pylint: disable=not-callable
-        reason=reason,
-        delegate=args.username,
-        subject_urn=subject_urn,
-        token=token)
-    grantor.Grant()
-
-    approval_request = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=self.__class__.approval_aff4_type,
-        age=aff4.ALL_TIMES,
-        token=token)
-    return self.__class__.result_type().InitFromAff4Object(approval_request)
 
   def SendGrantEmail(self, approval, token=None):
     if not config.CONFIG.Get("Email.send_approval_emails"):
@@ -1087,10 +759,19 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
     if not args.username:
       raise ValueError("username can't be empty.")
 
-    if data_store.RelationalDBEnabled():
-      result = self.HandleRelationalDB(args, token=token)
-    else:
-      result = self.HandleLegacy(args, token=token)
+    try:
+      data_store.REL_DB.GrantApproval(args.username, args.approval_id,
+                                      token.username)
+
+      approval_obj = data_store.REL_DB.ReadApprovalRequest(
+          args.username, args.approval_id)
+    except db.UnknownApprovalRequestError:
+      raise ApprovalNotFoundError(
+          "No approval with id=%s, type=%s, subject=%s could be found." %
+          (args.approval_id, self.__class__.approval_type,
+           args.BuildSubjectId()))
+
+    result = self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
     self.SendGrantEmail(result, token=token)
     self.CreateGrantNotification(result, token=token)
@@ -1107,10 +788,6 @@ class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
   def BuildSubjectId(self):
     return utils.SmartStr(self.client_id)
-
-  def BuildApprovalObjUrn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(utils.SmartStr(self.client_id)).Add(
-        self.username).Add(self.approval_id)
 
 
 class ApiCreateClientApprovalArgs(ApiClientApprovalArgsBase):
@@ -1131,26 +808,16 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED)
 
-  approval_aff4_type = aff4_security.ClientApproval
-  approval_requestor = aff4_security.ClientApprovalRequestor
-
   def Handle(self, args, token=None):
     result = super(ApiCreateClientApprovalHandler, self).Handle(
         args, token=token)
 
     if args.keep_client_alive:
-      if data_store.RelationalDBEnabled():
-        flow.StartFlow(
-            client_id=str(args.client_id),
-            flow_cls=administrative.KeepAlive,
-            creator=token.username,
-            duration=3600)
-      else:
-        flow.StartAFF4Flow(
-            client_id=args.client_id.ToClientURN(),
-            flow_name=administrative.KeepAlive.__name__,
-            duration=3600,
-            token=token)
+      flow.StartFlow(
+          client_id=str(args.client_id),
+          flow_cls=administrative.KeepAlive,
+          creator=token.username,
+          duration=3600)
 
     return result
 
@@ -1170,8 +837,6 @@ class ApiGetClientApprovalHandler(ApiGetApprovalHandlerBase):
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
 
-  approval_aff4_type = aff4_security.ClientApproval
-
 
 class ApiGrantClientApprovalArgs(ApiClientApprovalArgsBase):
   protobuf = user_pb2.ApiGrantClientApprovalArgs
@@ -1189,9 +854,6 @@ class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED)
-
-  approval_aff4_type = aff4_security.ClientApproval
-  approval_grantor = aff4_security.ClientApprovalGrantor
 
 
 class ApiListClientApprovalsArgs(ApiClientApprovalArgsBase):
@@ -1213,10 +875,6 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
 
   args_type = ApiListClientApprovalsArgs
   result_type = ApiListClientApprovalsResult
-
-  def _ApprovalToApiApproval(self, approval_obj, subject):
-    return ApiClientApproval().InitFromAff4Object(
-        approval_obj, approval_subject_obj=subject)
 
   def _CheckClientId(self, client_id, approval):
     subject = approval.Get(approval.Schema.SUBJECT)
@@ -1257,17 +915,7 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     else:
       return lambda approval: True  # Accept all by default.
 
-  def HandleLegacy(self, args, token=None):
-    filter_func = self._BuildFilter(args)
-
-    approvals, subjects_by_urn = self._GetApprovals(
-        "client", args.offset, args.count, filter_func=filter_func, token=token)
-    items = self._HandleApprovals(approvals, subjects_by_urn,
-                                  self._ApprovalToApiApproval)
-    api_client.UpdateClientsFromFleetspeak([a.subject for a in items])
-    return ApiListClientApprovalsResult(items=items)
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
     subject_id = None
     if args.client_id:
       subject_id = str(args.client_id)
@@ -1293,12 +941,6 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
 
     return ApiListClientApprovalsResult(items=items)
 
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
-
 
 class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
@@ -1309,10 +951,6 @@ class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
   def BuildSubjectId(self):
     return utils.SmartStr(self.hunt_id)
-
-  def BuildApprovalObjUrn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(self.BuildSubjectUrn().Path()).Add(
-        self.username).Add(self.approval_id)
 
 
 class ApiCreateHuntApprovalArgs(ApiHuntApprovalArgsBase):
@@ -1333,9 +971,6 @@ class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_REQUESTED)
 
-  approval_obj_type = aff4_security.HuntApproval
-  approval_requestor = aff4_security.HuntApprovalRequestor
-
 
 class ApiGetHuntApprovalArgs(ApiHuntApprovalArgsBase):
   protobuf = user_pb2.ApiGetHuntApprovalArgs
@@ -1351,8 +986,6 @@ class ApiGetHuntApprovalHandler(ApiGetApprovalHandlerBase):
   result_type = ApiHuntApproval
 
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
-
-  approval_obj_type = aff4_security.HuntApproval
 
 
 class ApiGrantHuntApprovalArgs(ApiHuntApprovalArgsBase):
@@ -1372,9 +1005,6 @@ class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_HUNT_APPROVAL_GRANTED)
 
-  approval_aff4_type = aff4_security.HuntApproval
-  approval_grantor = aff4_security.HuntApprovalGrantor
-
 
 class ApiListHuntApprovalsArgs(ApiHuntApprovalArgsBase):
   protobuf = user_pb2.ApiListHuntApprovalsArgs
@@ -1393,18 +1023,7 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
   args_type = ApiListHuntApprovalsArgs
   result_type = ApiListHuntApprovalsResult
 
-  def _ApprovalToApiApproval(self, approval_obj, subject):
-    return ApiHuntApproval().InitFromAff4Object(
-        approval_obj, approval_subject_obj=subject)
-
-  def HandleLegacy(self, args, token=None):
-    approvals, subjects_by_urn = self._GetApprovals(
-        "hunt", args.offset, args.count, token=token)
-    return ApiListHuntApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
             token.username,
@@ -1426,12 +1045,6 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
 
     return ApiListHuntApprovalsResult(items=items)
 
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
-
 
 class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
   """Base class for Cron Job approvals."""
@@ -1443,10 +1056,6 @@ class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
   def BuildSubjectId(self):
     return utils.SmartStr(self.cron_job_id)
-
-  def BuildApprovalObjUrn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(self.BuildSubjectUrn().Path()).Add(
-        self.username).Add(self.approval_id)
 
 
 class ApiCreateCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
@@ -1468,9 +1077,6 @@ class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_REQUESTED)
 
-  approval_aff4_type = aff4_security.CronJobApproval
-  approval_requestor = aff4_security.CronJobApprovalRequestor
-
 
 class ApiGetCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = user_pb2.ApiGetCronJobApprovalArgs
@@ -1487,8 +1093,6 @@ class ApiGetCronJobApprovalHandler(ApiGetApprovalHandlerBase):
 
   approval_type = (
       rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
-
-  approval_aff4_type = aff4_security.CronJobApproval
 
 
 class ApiGrantCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
@@ -1509,9 +1113,6 @@ class ApiGrantCronJobApprovalHandler(ApiGrantApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CRON_JOB_APPROVAL_GRANTED)
 
-  approval_aff4_type = aff4_security.CronJobApproval
-  approval_grantor = aff4_security.CronJobApprovalGrantor
-
 
 class ApiListCronJobApprovalsArgs(ApiCronJobApprovalArgsBase):
   protobuf = user_pb2.ApiListCronJobApprovalsArgs
@@ -1530,18 +1131,7 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
   args_type = ApiListCronJobApprovalsArgs
   result_type = ApiListCronJobApprovalsResult
 
-  def _ApprovalToApiApproval(self, approval_obj, subject):
-    return ApiCronJobApproval().InitFromAff4Object(
-        approval_obj, approval_subject_obj=subject)
-
-  def HandleLegacy(self, args, token=None):
-    approvals, subjects_by_urn = self._GetApprovals(
-        "cron", args.offset, args.count, token=token)
-    return ApiListCronJobApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
             token.username,
@@ -1563,12 +1153,6 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
 
     return ApiListCronJobApprovalsResult(items=items)
 
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
-
 
 class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
@@ -1584,19 +1168,8 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     result = ApiGrrUser(username=token.username)
 
-    if data_store.RelationalDBEnabled():
-      user_record = data_store.REL_DB.ReadGRRUser(token.username)
-      result.InitFromDatabaseObject(user_record)
-    else:
-      try:
-        user_record = aff4.FACTORY.Open(
-            aff4.ROOT_URN.Add("users").Add(token.username),
-            aff4_users.GRRUser,
-            token=token)
-
-        result.InitFromAff4Object(user_record)
-      except IOError:
-        result.settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
+    user_record = data_store.REL_DB.ReadGRRUser(token.username)
+    result.InitFromDatabaseObject(user_record)
 
     result.interface_traits = (
         self.interface_traits or ApiGrrUserInterfaceTraits())
@@ -1613,19 +1186,10 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if args.username or args.HasField("interface_traits"):
       raise ValueError("Only user settings can be updated.")
 
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Create(
-          aff4.ROOT_URN.Add("users").Add(token.username),
-          aff4_type=aff4_users.GRRUser,
-          mode="w",
-          token=token) as user_fd:
-        user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
-
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.WriteGRRUser(
-          token.username,
-          ui_mode=args.settings.mode,
-          canary_mode=args.settings.canary_mode)
+    data_store.REL_DB.WriteGRRUser(
+        token.username,
+        ui_mode=args.settings.mode,
+        canary_mode=args.settings.canary_mode)
 
 
 class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):
@@ -1638,29 +1202,13 @@ class ApiGetPendingUserNotificationsCountHandler(
 
   result_type = ApiGetPendingUserNotificationsCountResult
 
-  def HandleLegacy(self, args, token=None):
-    user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=token)
-
-    notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
-    return ApiGetPendingUserNotificationsCountResult(count=len(notifications))
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
+    """Fetches the pending notification count."""
     ns = list(
         data_store.REL_DB.ReadUserNotifications(
             token.username,
             state=rdf_objects.UserNotification.State.STATE_PENDING))
     return ApiGetPendingUserNotificationsCountResult(count=len(ns))
-
-  def Handle(self, args, token=None):
-    """Fetches the pending notification count."""
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
 
 
 class ApiListPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
@@ -1684,24 +1232,8 @@ class ApiListPendingUserNotificationsHandler(
   args_type = ApiListPendingUserNotificationsArgs
   result_type = ApiListPendingUserNotificationsResult
 
-  def HandleLegacy(self, args, token=None):
-    user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="r",
-        token=token)
-
-    notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
-
-    result = [
-        ApiNotification().InitFromNotification(n, is_pending=True)
-        for n in notifications
-        if n.timestamp > args.timestamp
-    ]
-
-    return ApiListPendingUserNotificationsResult(items=result)
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
+    """Fetches the pending notifications."""
     ns = data_store.REL_DB.ReadUserNotifications(
         token.username,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
@@ -1721,13 +1253,6 @@ class ApiListPendingUserNotificationsHandler(
     return ApiListPendingUserNotificationsResult(
         items=[ApiNotification().InitFromUserNotification(n) for n in ns])
 
-  def Handle(self, args, token=None):
-    """Fetches the pending notifications."""
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
-
 
 class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiDeletePendingUserNotificationArgs
@@ -1742,25 +1267,11 @@ class ApiDeletePendingUserNotificationHandler(
 
   args_type = ApiDeletePendingUserNotificationArgs
 
-  def HandleLegacy(self, args, token=None):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="rw",
-        token=token) as user_record:
-      user_record.DeletePendingNotification(args.timestamp)
-
-  def HandleRelationalDB(self, args, token=None):
+  def Handle(self, args, token=None):
+    """Deletes the notification from the pending notifications."""
     data_store.REL_DB.UpdateUserNotifications(
         token.username, [args.timestamp],
         state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
-
-  def Handle(self, args, token=None):
-    """Deletes the notification from the pending notifications."""
-    if data_store.RelationalDBEnabled():
-      self.HandleRelationalDB(args, token=token)
-    else:
-      self.HandleLegacy(args, token=token)
 
 
 class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
@@ -1781,45 +1292,10 @@ class ApiListAndResetUserNotificationsHandler(
   args_type = ApiListAndResetUserNotificationsArgs
   result_type = ApiListAndResetUserNotificationsResult
 
-  def HandleLegacy(self, args, token=None):
-    user_record = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser,
-        mode="rw",
-        token=token)
-
-    result = []
-
-    pending_notifications = user_record.Get(
-        user_record.Schema.PENDING_NOTIFICATIONS)
-
-    # Hack for sorting. Requires retrieval of all notifications.
-    notifications = list(user_record.ShowNotifications(reset=True))
-    notifications = sorted(
-        notifications, key=lambda x: x.timestamp, reverse=True)
-
-    total_count = len(notifications)
-
-    if args.filter:
-      notifications = [
-          n for n in notifications if args.filter.lower() in n.message.lower()
-      ]
-
-    if not args.count:
-      args.count = 50
-
-    start = args.offset
-    end = args.offset + args.count
-    for notification in notifications[start:end]:
-      item = ApiNotification().InitFromNotification(
-          notification, is_pending=(notification in pending_notifications))
-      result.append(item)
-
-    return ApiListAndResetUserNotificationsResult(
-        items=result, total_count=total_count)
-
-  def HandleRelationalDB(self, args, token=None):
-    back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
+  def Handle(self, args, token=None):
+    """Fetches the user notifications."""
+    back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds(
+        "180d")
     ns = data_store.REL_DB.ReadUserNotifications(
         token.username, timerange=(back_timestamp, None))
 
@@ -1854,13 +1330,6 @@ class ApiListAndResetUserNotificationsHandler(
     return ApiListAndResetUserNotificationsResult(
         items=api_notifications, total_count=total_count)
 
-  def Handle(self, args, token=None):
-    """Fetches the user notifications."""
-    if data_store.RelationalDBEnabled():
-      return self.HandleRelationalDB(args, token=token)
-    else:
-      return self.HandleLegacy(args, token=token)
-
 
 class ApiListApproverSuggestionsArgs(rdf_structs.RDFProtoStruct):
   protobuf = user_pb2.ApiListApproverSuggestionsArgs
@@ -1878,14 +1347,7 @@ class ApiListApproverSuggestionsResult(rdf_structs.RDFProtoStruct):
 
 
 def _GetAllUsernames():
-  if data_store.RelationalDBEnabled():
-    users = data_store.REL_DB.ReadGRRUsers()
-    usernames = [user.username for user in users]
-  else:
-    urns = aff4.FACTORY.ListChildren("aff4:/users")
-    users = aff4.FACTORY.MultiOpen(urns, aff4_type=aff4_users.GRRUser)
-    usernames = [user.urn.Basename() for user in users]
-  return sorted(usernames)
+  return sorted(user.username for user in data_store.REL_DB.ReadGRRUsers())
 
 
 class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):

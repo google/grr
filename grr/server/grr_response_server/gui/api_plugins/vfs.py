@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
-import logging
 import os
 import re
 import stat
@@ -15,7 +14,6 @@ import zipfile
 from future.builtins import filter
 from future.builtins import range
 from future.builtins import str
-from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core import config
@@ -29,15 +27,11 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import context
 from grr_response_core.lib.util.compat import csv
 from grr_response_proto.api import vfs_pb2
-from grr_response_server import aff4
-from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import decoders
 from grr_response_server import file_store
 from grr_response_server import flow
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
@@ -114,58 +108,6 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
       ApiAff4ObjectAttribute,
   ]
 
-  def InitFromAff4Object(self, aff4_obj, aff4_cls, attr_blacklist):
-    """Initializes the current instance from an Aff4Object.
-
-    Iterates over all attributes of the Aff4Object defined by a given class
-    and adds a representation of them to the current instance.
-
-    Args:
-      aff4_obj: An Aff4Object to take the attributes from.
-      aff4_cls: A class in the inheritance hierarchy of the Aff4Object defining
-        which attributes to take.
-      attr_blacklist: A list of already added attributes as to not add
-        attributes multiple times.
-
-    Returns:
-      A reference to the current instance.
-    """
-    self.name = str(aff4_cls.__name__)
-    self.attributes = []
-
-    schema = aff4_cls.SchemaCls
-    for name, attribute in sorted(iteritems(schema.__dict__)):
-      if not isinstance(attribute, aff4.Attribute):
-        continue
-
-      if name in attr_blacklist:
-        continue
-
-      attr_repr = ApiAff4ObjectAttribute()
-      attr_repr.name = name
-      attr_repr.description = attribute.description
-      attr_repr.values = []
-
-      values = list(aff4_obj.GetValuesForAttribute(attribute))
-      for value in values:
-        # This value is really a LazyDecoder() instance. We need to get at the
-        # real data here.
-        # TODO(user): Change GetValuesForAttribute to resolve
-        # lazy decoders and directly yield the rdf value.
-        if hasattr(value, "ToRDFValue"):
-          value = value.ToRDFValue()
-
-        value_repr = ApiAff4ObjectAttributeValue()
-        value_repr.Set("type", compatibility.GetName(value.__class__))
-        value_repr.Set("age", value.age)
-        value_repr.value = value
-        attr_repr.values.append(value_repr)
-
-      if attr_repr.values:
-        self.attributes.append(attr_repr)
-
-    return self
-
 
 class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
   """A proto-based representation of an Aff4Object used to render responses.
@@ -178,37 +120,6 @@ class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       ApiAff4ObjectType,
   ]
-
-  def InitFromAff4Object(self, aff4_obj):
-    """Initializes the current instance from an Aff4Object.
-
-    Iterates the inheritance hierarchy of the given Aff4Object and adds a
-    ApiAff4ObjectType for each class found in the hierarchy.
-
-    Args:
-      aff4_obj: An Aff4Object as source for the initialization.
-
-    Returns:
-      A reference to the current instance.
-    """
-    attr_blacklist = []  # We use this to show attributes only once.
-
-    self.types = []
-    for aff4_cls in aff4_obj.__class__.__mro__:
-      if not hasattr(aff4_cls, "SchemaCls"):
-        continue
-
-      type_repr = ApiAff4ObjectType().InitFromAff4Object(
-          aff4_obj, aff4_cls, attr_blacklist)
-
-      if type_repr.attributes:
-        self.types.append(type_repr)
-
-      # Add all attribute names from this type representation to the
-      # blacklist to not add them to the result again.
-      attr_blacklist.extend([attr.name for attr in type_repr.attributes])
-
-    return self
 
 
 class ApiFile(rdf_structs.RDFProtoStruct):
@@ -226,53 +137,6 @@ class ApiFile(rdf_structs.RDFProtoStruct):
       self.age = kwargs["age"]
     except KeyError:
       self.age = rdfvalue.RDFDatetime.Now()
-
-  def InitFromAff4Object(self,
-                         file_obj,
-                         stat_entry=None,
-                         hash_entry=None,
-                         with_details=False):
-    """Initializes the current instance from an Aff4Stream.
-
-    Args:
-      file_obj: An Aff4Stream representing a file.
-      stat_entry: An optional stat entry object to be used. If none is provided,
-        the one stored in the AFF4 data store is used.
-      hash_entry: An optional hash entry object to be used. If none is provided,
-        the one stored in the AFF4 data store is used.
-      with_details: True if all details of the Aff4Object should be included,
-        false otherwise.
-
-    Returns:
-      A reference to the current instance.
-    """
-    self.name = file_obj.urn.Basename()
-    self.path = "/".join(file_obj.urn.Path().split("/")[2:])
-    self.is_directory = "Container" in file_obj.behaviours
-
-    self.stat = stat_entry or file_obj.Get(file_obj.Schema.STAT)
-    self.hash = hash_entry or file_obj.Get(file_obj.Schema.HASH, None)
-
-    if not self.is_directory:
-      try:
-        self.last_collected = file_obj.GetContentAge()
-      except AttributeError:
-        # Defensive approach - in case file-like object doesn't have
-        # GetContentAge defined.
-        logging.debug("File-like object %s doesn't have GetContentAge defined.",
-                      file_obj.__class__.__name__)
-
-      if self.last_collected:
-        self.last_collected_size = file_obj.Get(file_obj.Schema.SIZE)
-
-    type_obj = file_obj.Get(file_obj.Schema.TYPE)
-    if type_obj is not None:
-      self.age = type_obj.age
-
-    if with_details:
-      self.details = ApiAff4ObjectRepresentation().InitFromAff4Object(file_obj)
-
-    return self
 
   # Property below is needed so that "age" proto attribute is not shadowed
   # by RDFValue's age.
@@ -388,24 +252,7 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetFileDetailsArgs
   result_type = ApiGetFileDetailsResult
 
-  def _HandleLegacy(self, args, token=None):
-    ValidateVfsPath(args.file_path)
-
-    if args.timestamp:
-      age = args.timestamp
-    else:
-      age = aff4.ALL_TIMES
-
-    file_obj = aff4.FACTORY.Open(
-        args.client_id.ToClientURN().Add(args.file_path),
-        mode="r",
-        age=age,
-        token=token)
-
-    return ApiGetFileDetailsResult(
-        file=ApiFile().InitFromAff4Object(file_obj, with_details=True))
-
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     # Directories are not really "files" so they cannot be stored in the
@@ -472,12 +319,6 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
       file_obj.last_collected_size = last_collection_pi.hash_entry.num_bytes
 
     return ApiGetFileDetailsResult(file=file_obj)
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
 
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
@@ -554,7 +395,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiListFilesResult(items=items)
 
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     client_id = args.client_id.ToClientURN()
 
     if not args.file_path or args.file_path == "/":
@@ -622,63 +463,6 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiListFilesResult(items=items)
 
-  def _HandleLegacy(self, args, token=None):
-    path = args.file_path
-    if not path:
-      path = "/"
-
-    # We allow querying root path ("/") to get a list of whitelisted
-    # root entries. In all other cases we have to validate the path.
-    if path != "/":
-      ValidateVfsPath(args.file_path)
-
-    if args.timestamp:
-      age = args.timestamp
-    else:
-      age = aff4.NEWEST_TIME
-
-    directory = aff4.FACTORY.Open(
-        args.client_id.ToClientURN().Add(path), mode="r",
-        token=token).Upgrade(aff4_standard.VFSDirectory)
-
-    if args.directories_only:
-      children = [
-          ch for ch in directory.OpenChildren(age=age)
-          if "Container" in ch.behaviours
-      ]
-    else:
-      children = [ch for ch in directory.OpenChildren(age=age)]
-
-    # If we are reading the root file content, a whitelist applies.
-    if path == "/":
-      children = [
-          ch for ch in children if ch.urn.Basename() in ROOT_FILES_WHITELIST
-      ]
-
-    # Apply the filter.
-    if args.filter:
-      pattern = re.compile(args.filter, re.IGNORECASE)
-      children = [ch for ch in children if pattern.search(ch.urn.Basename())]
-
-    # Apply sorting.
-    # TODO(user): add sort attribute.
-    children = sorted(children, key=lambda ch: ch.urn.Basename())
-
-    # Apply offset and count.
-    if args.count:
-      children = children[args.offset:args.offset + args.count]
-    else:
-      children = children[args.offset:]
-
-    return ApiListFilesResult(
-        items=[ApiFile().InitFromAff4Object(c) for c in children])
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
-
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileTextArgs
@@ -690,45 +474,6 @@ class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
 
 class ApiGetFileTextResult(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileTextResult
-
-
-def _Aff4Size(aff4_obj):
-  """Retrieves the total size in bytes of an AFF4 object.
-
-  Args:
-    aff4_obj: An AFF4 stream instance to retrieve size for.
-
-  Returns:
-    An integer representing number of bytes.
-
-  Raises:
-    TypeError: If `aff4_obj` is not an instance of AFF4 stream.
-  """
-  if not isinstance(aff4_obj, aff4.AFF4Stream):
-    message = "Expected an instance of `%s` but received `%s`"
-    raise TypeError(message % (aff4.AFF4Stream, type(aff4_obj)))
-
-  return int(aff4_obj.Get(aff4_obj.Schema.SIZE))
-
-
-def _Aff4Read(aff4_obj, offset, length):
-  """Reads contents of given AFF4 file.
-
-  Args:
-    aff4_obj: An AFF4 stream instance to retrieve contents for.
-    offset: An offset to start the reading from.
-    length: A number of bytes to read. Reads the whole file if 0.
-
-  Returns:
-    Contents of specified AFF4 stream.
-
-  Raises:
-    TypeError: If `aff4_obj` is not an instance of AFF4 stream.
-  """
-  length = length or (_Aff4Size(aff4_obj) - offset)
-
-  aff4_obj.Seek(offset)
-  return aff4_obj.Read(length)
 
 
 class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
@@ -746,45 +491,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     except AssertionError:
       raise RuntimeError("Codec failed to decode")
 
-  def _HandleLegacy(self, args, token=None):
-    ValidateVfsPath(args.file_path)
-
-    if args.timestamp:
-      age = args.timestamp
-    else:
-      age = aff4.NEWEST_TIME
-
-    try:
-      file_obj = aff4.FACTORY.Open(
-          args.client_id.ToClientURN().Add(args.file_path),
-          aff4_type=aff4.AFF4Stream,
-          mode="r",
-          age=age,
-          token=token)
-
-      file_content_missing = not file_obj.GetContentAge()
-    except aff4.InstantiationError:
-      file_content_missing = True
-
-    if file_content_missing:
-      raise FileContentNotFoundError(
-          "File %s with timestamp %s wasn't found on client %s" %
-          (utils.SmartStr(args.file_path), utils.SmartStr(
-              args.timestamp), utils.SmartStr(args.client_id)))
-
-    byte_content = _Aff4Read(file_obj, offset=args.offset, length=args.length)
-
-    if args.encoding:
-      encoding = args.encoding.name.lower()
-    else:
-      encoding = ApiGetFileTextArgs.Encoding.UTF_8.name.lower()
-
-    text_content = self._Decode(encoding, byte_content)
-
-    return ApiGetFileTextResult(
-        total_size=_Aff4Size(file_obj), content=text_content)
-
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
@@ -811,12 +518,6 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
 
     return ApiGetFileTextResult(total_size=fd.size, content=text_content)
 
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
-
 
 class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileBlobArgs
@@ -837,47 +538,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     for start in range(offset, offset + length, self.CHUNK_SIZE):
       yield file_obj.read(min(self.CHUNK_SIZE, offset + length - start))
 
-  def _HandleLegacy(self, args, token=None):
-    ValidateVfsPath(args.file_path)
-
-    if args.timestamp:
-      age = args.timestamp
-    else:
-      age = aff4.NEWEST_TIME
-
-    try:
-      file_obj = aff4.FACTORY.Open(
-          args.client_id.ToClientURN().Add(args.file_path),
-          aff4_type=aff4.AFF4Stream,
-          mode="r",
-          age=age,
-          token=token)
-
-      file_content_missing = not file_obj.GetContentAge()
-    except aff4.InstantiationError:
-      file_content_missing = True
-
-    if file_content_missing:
-      raise FileContentNotFoundError(
-          "File %s with timestamp %s wasn't found on client %s" %
-          (utils.SmartStr(args.file_path), utils.SmartStr(
-              args.timestamp), utils.SmartStr(args.client_id)))
-
-    total_size = _Aff4Size(file_obj)
-    if not args.length:
-      args.length = total_size - args.offset
-    else:
-      # Make sure args.length is in the allowed range.
-      args.length = min(abs(args.length), total_size - args.offset)
-
-    generator = self._GenerateFile(file_obj, args.offset, args.length)
-
-    return api_call_handler_base.ApiBinaryStream(
-        filename=file_obj.urn.Basename(),
-        content_generator=generator,
-        content_length=args.length)
-
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
@@ -893,12 +554,6 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
         filename=components[-1],
         content_generator=generator,
         content_length=size)
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileVersionTimesArgs(rdf_structs.RDFProtoStruct):
@@ -921,20 +576,7 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetFileVersionTimesArgs
   result_type = ApiGetFileVersionTimesResult
 
-  def _HandleLegacy(self, args, token=None):
-    ValidateVfsPath(args.file_path)
-
-    fd = aff4.FACTORY.Open(
-        args.client_id.ToClientURN().Add(args.file_path),
-        mode="r",
-        age=aff4.ALL_TIMES,
-        token=token)
-
-    type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
-    return ApiGetFileVersionTimesResult(
-        times=sorted([t.age for t in type_values], reverse=True))
-
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     try:
@@ -950,12 +592,6 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     times = reversed([pi.timestamp for pi in history])
 
     return ApiGetFileVersionTimesResult(times=times)
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
@@ -1074,14 +710,6 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     return pathspec
 
   def Handle(self, args, token=None):
-    ValidateVfsPath(args.file_path)
-
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
-
-  def _HandleRelational(self, args, token=None):
     if args.max_depth == 1:
       flow_args = filesystem.ListDirectoryArgs(
           pathspec=self._FindPathspec(args))
@@ -1098,33 +726,6 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
         creator=token.username if token else None)
 
     return ApiCreateVfsRefreshOperationResult(operation_id=flow_id)
-
-  def _HandleLegacy(self, args, token=None):
-    aff4_path = args.client_id.ToClientURN().Add(args.file_path)
-    fd = aff4.FACTORY.Open(aff4_path, token=token)
-
-    if args.max_depth == 1:
-      flow_args = filesystem.ListDirectoryArgs(pathspec=fd.real_pathspec)
-
-      flow_urn = flow.StartAFF4Flow(
-          client_id=args.client_id.ToClientURN(),
-          flow_name=filesystem.ListDirectory.__name__,
-          args=flow_args,
-          notify_to_user=args.notify_user,
-          token=token)
-
-    else:
-      flow_args = filesystem.RecursiveListDirectoryArgs(
-          pathspec=fd.real_pathspec, max_depth=args.max_depth)
-
-      flow_urn = flow.StartAFF4Flow(
-          client_id=args.client_id.ToClientURN(),
-          flow_name=filesystem.RecursiveListDirectory.__name__,
-          args=flow_args,
-          notify_to_user=args.notify_user,
-          token=token)
-
-    return ApiCreateVfsRefreshOperationResult(operation_id=flow_urn.Basename())
 
 
 class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
@@ -1152,12 +753,6 @@ class ApiGetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler
                                            args.operation_id)
 
   def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args)
-    else:
-      return self._HandleLegacy(args, token=token)
-
-  def _HandleRelational(self, args):
     try:
       rdf_flow = data_store.REL_DB.ReadFlowObject(
           str(args.client_id), str(args.operation_id))
@@ -1178,66 +773,8 @@ class ApiGetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler
 
     return result
 
-  def _HandleLegacy(self, args, token=None):
-    client_urn = args.client_id.ToClientURN()
-    flow_urn = client_urn.Add("flows").Add(args.operation_id)
 
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=token)
-
-    if not isinstance(
-        flow_obj,
-        (aff4_flows.RecursiveListDirectory, aff4_flows.ListDirectory)):
-      self._RaiseOperationNotFoundError(args)
-
-    complete = not flow_obj.GetRunner().IsRunning()
-
-    result = ApiGetVfsRefreshOperationStateResult()
-    if complete:
-      result.state = ApiGetVfsRefreshOperationStateResult.State.FINISHED
-    else:
-      result.state = ApiGetVfsRefreshOperationStateResult.State.RUNNING
-
-    return result
-
-
-def _GetTimelineStatEntriesLegacy(client_id, file_path, with_history=True):
-  """Gets timeline entries from AFF4."""
-
-  folder_urn = aff4.ROOT_URN.Add(str(client_id)).Add(file_path)
-
-  child_urns = []
-  for _, children in aff4.FACTORY.RecursiveMultiListChildren([folder_urn]):
-    child_urns.extend(children)
-
-  if with_history:
-    timestamp = aff4.ALL_TIMES
-  else:
-    timestamp = aff4.NEWEST_TIME
-
-  for fd in aff4.FACTORY.MultiOpen(child_urns, age=timestamp):
-    file_path = "/".join(str(fd.urn).split("/")[2:])
-
-    if not with_history:
-      yield file_path, fd.Get(fd.Schema.STAT), fd.Get(fd.Schema.HASH)
-      continue
-
-    result = {}
-
-    stats = fd.GetValuesForAttribute(fd.Schema.STAT)
-    for s in stats:
-      result[s.age] = [s, None]
-
-    hashes = fd.GetValuesForAttribute(fd.Schema.HASH)
-    for h in hashes:
-      prev = result.setdefault(h.age, [None, None])
-      prev[1] = h
-
-    for ts in sorted(result):
-      v = result[ts]
-      yield file_path, v[0], v[1]
-
-
-def _GetTimelineStatEntriesRelDB(api_client_id, file_path, with_history=True):
+def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
   """Gets timeline entries from REL_DB."""
   path_type, components = rdf_objects.ParseCategorizedPath(file_path)
 
@@ -1274,18 +811,6 @@ def _GetTimelineStatEntriesRelDB(api_client_id, file_path, with_history=True):
       categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
                                                        path_info.components)
       yield categorized_path, path_info.stat_entry, path_info.hash_entry
-
-
-def _GetTimelineStatEntries(client_id, file_path, with_history=True):
-  """Gets timeline entries from the appropriate data source (AFF4 or REL_DB)."""
-
-  if data_store.RelationalDBEnabled():
-    fn = _GetTimelineStatEntriesRelDB
-  else:
-    fn = _GetTimelineStatEntriesLegacy
-
-  for v in fn(client_id, file_path, with_history=with_history):
-    yield v
 
 
 def _GetTimelineItems(client_id, file_path):
@@ -1470,22 +995,6 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiUpdateVfsFileContentResult
 
   def Handle(self, args, token=None):
-    ValidateVfsPath(args.file_path)
-
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
-
-  def _HandleLegacy(self, args, token=None):
-    aff4_path = args.client_id.ToClientURN().Add(args.file_path)
-    fd = aff4.FACTORY.Open(
-        aff4_path, aff4_type=aff4_grr.VFSFile, mode="rw", token=token)
-    flow_urn = fd.Update()
-
-    return ApiUpdateVfsFileContentResult(operation_id=flow_urn.Basename())
-
-  def _HandleRelational(self, args, token=None):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
     path_info = data_store.REL_DB.ReadPathInfo(
@@ -1497,18 +1006,11 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     flow_args = transfer.MultiGetFileArgs(
         pathspecs=[path_info.stat_entry.pathspec])
-    if data_store.RelationalDBEnabled():
-      flow_id = flow.StartFlow(
-          client_id=str(args.client_id),
-          flow_cls=transfer.MultiGetFile,
-          flow_args=flow_args,
-          creator=token.username)
-    else:
-      flow_id = flow.StartAFF4Flow(
-          client_id=str(args.client_id),
-          flow_name="MultiGetFile",
-          args=flow_args,
-          token=token).Basename()
+    flow_id = flow.StartFlow(
+        client_id=str(args.client_id),
+        flow_cls=transfer.MultiGetFile,
+        flow_args=flow_args,
+        creator=token.username)
 
     return ApiUpdateVfsFileContentResult(operation_id=flow_id)
 
@@ -1533,7 +1035,7 @@ class ApiGetVfsFileContentUpdateStateHandler(
   args_type = ApiGetVfsFileContentUpdateStateArgs
   result_type = ApiGetVfsFileContentUpdateStateResult
 
-  def _HandleRelational(self, args):
+  def Handle(self, args, token=None):
     try:
       rdf_flow = data_store.REL_DB.ReadFlowObject(
           str(args.client_id), str(args.operation_id))
@@ -1553,31 +1055,6 @@ class ApiGetVfsFileContentUpdateStateHandler(
 
     return result
 
-  def _HandleLegacy(self, args, token=None):
-    try:
-      client_urn = args.client_id.ToClientURN()
-      flow_urn = client_urn.Add("flows").Add(args.operation_id)
-      flow_obj = aff4.FACTORY.Open(
-          flow_urn, aff4_type=aff4_flows.MultiGetFile, token=token)
-      complete = not flow_obj.GetRunner().IsRunning()
-    except aff4.InstantiationError:
-      raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
-                                              args.operation_id)
-
-    result = ApiGetVfsFileContentUpdateStateResult()
-    if complete:
-      result.state = ApiGetVfsFileContentUpdateStateResult.State.FINISHED
-    else:
-      result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
-
-    return result
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args)
-    else:
-      return self._HandleLegacy(args, token=token)
-
 
 class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
   """Arguments for GetVfsFilesArchive handler."""
@@ -1593,91 +1070,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetVfsFilesArchiveArgs
 
-  def _StreamFds(self, archive_generator, prefix, fds, token=None):
-    prev_fd = None
-    for fd, chunk, exception in aff4.AFF4Stream.MultiStream(fds):
-      if exception:
-        logging.exception(exception)
-        continue
-
-      if prev_fd != fd:
-        if prev_fd:
-          yield archive_generator.WriteFileFooter()
-        prev_fd = fd
-
-        components = fd.urn.Split()
-        # Skipping first component: client id.
-        content_path = os.path.join(prefix, *components[1:])
-        # TODO(user): Export meaningful file metadata.
-        st = os.stat_result((0o644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
-        yield archive_generator.WriteFileHeader(content_path, st=st)
-
-      yield archive_generator.WriteFileChunk(chunk)
-
-    if prev_fd:
-      yield archive_generator.WriteFileFooter()
-
-  def _GenerateContent(self, start_urns, prefix, age, token=None):
-    archive_generator = utils.StreamingZipGenerator(
-        compression=zipfile.ZIP_DEFLATED)
-    folders_urns = set(start_urns)
-
-    while folders_urns:
-      next_urns = set()
-      for _, children in aff4.FACTORY.MultiListChildren(folders_urns):
-        for urn in children:
-          next_urns.add(urn)
-
-      download_fds = set()
-      folders_urns = set()
-      for fd in aff4.FACTORY.MultiOpen(next_urns, token=token):
-        if isinstance(fd, aff4.AFF4Stream):
-          download_fds.add(fd)
-        elif "Container" in fd.behaviours:
-          folders_urns.add(fd.urn)
-
-      if download_fds:
-        if age != aff4.NEWEST_TIME:
-          urns = [fd.urn for fd in download_fds]
-          # We need to reopen the files with the actual age
-          # requested. We can't do this in the call above since
-          # indexes are stored with the latest timestamp of an object
-          # only so adding the age above will potentially ignore
-          # some of the indexes.
-          download_fds = list(
-              aff4.FACTORY.MultiOpen(urns, age=age, token=token))
-
-        for chunk in self._StreamFds(
-            archive_generator, prefix, download_fds, token=token):
-          yield chunk
-
-    yield archive_generator.Close()
-
-  def _HandleLegacy(self, args, token=None):
-    client_urn = args.client_id.ToClientURN()
-    path = args.file_path
-    if not path:
-      start_urns = [client_urn.Add(p) for p in ROOT_FILES_WHITELIST]
-      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
-                               utils.SmartStr(args.client_id))
-    else:
-      ValidateVfsPath(args.file_path)
-      start_urns = [client_urn.Add(args.file_path)]
-      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
-                               start_urns[0].Path()).strip("_")
-
-    if args.timestamp:
-      age = args.timestamp
-    else:
-      age = aff4.NEWEST_TIME
-
-    content_generator = self._GenerateContent(
-        start_urns, prefix, age=age, token=token)
-    return api_call_handler_base.ApiBinaryStream(
-        prefix + ".zip", content_generator=content_generator)
-
-  def _GenerateContentRelational(self, client_id, start_paths, timestamp,
-                                 path_prefix):
+  def _GenerateContent(self, client_id, start_paths, timestamp, path_prefix):
     client_paths = []
     for start_path in start_paths:
       path_type, components = rdf_objects.ParseCategorizedPath(start_path)
@@ -1705,7 +1098,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     yield archive_generator.Close()
 
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     client_id = str(args.client_id)
     path = args.file_path
     if not path:
@@ -1720,16 +1113,10 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
                                client_id + "_" + path).strip("_")
 
-    content_generator = self._GenerateContentRelational(client_id, start_paths,
-                                                        args.timestamp, prefix)
+    content_generator = self._GenerateContent(client_id, start_paths,
+                                              args.timestamp, prefix)
     return api_call_handler_base.ApiBinaryStream(
         prefix + ".zip", content_generator=content_generator)
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)
 
 
 class ApiGetFileDecodersArgs(rdf_structs.RDFProtoStruct):
@@ -1753,7 +1140,6 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
     result = ApiGetFileDecodersResult()
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
-    urn = args.client_id.ToClientURN().Add(args.file_path)
     client_path = db.ClientPath(
         client_id=str(args.client_id),
         path_type=path_type,
@@ -1762,11 +1148,8 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
     for decoder_name in decoders.FACTORY.Names():
       decoder = decoders.FACTORY.Create(decoder_name)
 
-      if data_store.RelationalDBEnabled():
-        filedesc = file_store.OpenFile(client_path)
-        filectx = context.NullContext(filedesc)
-      else:
-        filectx = aff4.FACTORY.Open(urn, mode="r", token=token)
+      filedesc = file_store.OpenFile(client_path)
+      filectx = context.NullContext(filedesc)
 
       with filectx as filedesc:
         if decoder.Check(filedesc):
@@ -1786,15 +1169,7 @@ class ApiGetDecodedFileArgs(rdf_structs.RDFProtoStruct):
 class ApiGetDecodedFileHandler(api_call_handler_base.ApiCallHandler):
   """An API handler for decoding specified file."""
 
-  def _HandleLegacy(self, args, token=None):
-    decoder = decoders.FACTORY.Create(args.decoder_name)
-
-    urn = args.client_id.ToClientURN().Add(args.file_path)
-    with aff4.FACTORY.Open(urn, mode="r", token=token) as filedesc:
-      return api_call_handler_base.ApiBinaryStream(
-          filename=urn.Basename(), content_generator=decoder.Decode(filedesc))
-
-  def _HandleRelational(self, args, token=None):
+  def Handle(self, args, token=None):
     decoder = decoders.FACTORY.Create(args.decoder_name)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
@@ -1804,9 +1179,3 @@ class ApiGetDecodedFileHandler(api_call_handler_base.ApiCallHandler):
     return api_call_handler_base.ApiBinaryStream(
         filename=client_path.components[-1],
         content_generator=decoder.Decode(fd))
-
-  def Handle(self, args, token=None):
-    if data_store.RelationalDBEnabled():
-      return self._HandleRelational(args, token=token)
-    else:
-      return self._HandleLegacy(args, token=token)

@@ -43,7 +43,7 @@ const TimerangeFormController =
       function(rdfDesc) {
     this.formStartTime = angular.copy(rdfDesc['default']);
 
-    return this.grrReflectionService_.getRDFValueDescriptor('Duration');
+    return this.grrReflectionService_.getRDFValueDescriptor('DurationSeconds');
   }.bind(this)).then(function(rdfDesc) {
     this.formDuration = angular.copy(rdfDesc['default']);
 

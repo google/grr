@@ -14,7 +14,7 @@ config_lib.DEFINE_integer("API.DailyFlowRequestLimit", "10",
                           "0 to disable checking.")
 
 config_lib.DEFINE_semantic_value(
-    rdfvalue.Duration,
+    rdfvalue.DurationSeconds,
     "API.FlowDuplicateInterval",
     default="1200s",
     help="Amount of time "

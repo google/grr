@@ -45,8 +45,8 @@ class DiscoveryTestEventListener(events.EventListener):
     DiscoveryTestEventListener.event = msgs[0]
 
 
-@db_test_lib.DualDBTest
-class TestClientInterrogate(acl_test_lib.AclTestMixin,
+class TestClientInterrogate(db_test_lib.RelationalDBEnabledMixin,
+                            acl_test_lib.AclTestMixin,
                             notification_test_lib.NotificationTestMixin,
                             flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
@@ -480,12 +480,15 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         client_mock.InitializeClient(
             system="Windows", version="6.1.7600", kernel="6.1.7601")
 
-        # Run the flow in the simulated way
-        flow_test_lib.TestFlowHelper(
-            discovery.Interrogate.__name__,
-            client_mock,
-            token=self.token,
-            client_id=client_id)
+        with test_lib.ConfigOverrider({
+            "Artifacts.non_kb_interrogate_artifacts": ["WMILogicalDisks"],
+        }):
+          # Run the flow in the simulated way
+          flow_test_lib.TestFlowHelper(
+              discovery.Interrogate.__name__,
+              client_mock,
+              token=self.token,
+              client_id=client_id)
 
     if data_store.RelationalDBEnabled():
       client = self._OpenClient(client_id)
@@ -537,11 +540,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       self._CheckClientKwIndexAFF4(["Windows"], 1)
       self._CheckClientKwIndexAFF4(["Label2"], 1)
       self._CheckMemoryAFF4(client)
-
-
-class TestClientInterrogateRelationalFlows(db_test_lib.RelationalDBEnabledMixin,
-                                           TestClientInterrogate):
-  pass
 
 
 def main(argv):

@@ -116,11 +116,6 @@ class DataStoreTestMixin(object):
     stored_proto = rdf_flows.GrrMessage.FromSerializedString(stored_proto)
     self.assertEqual(stored_proto.session_id, value.session_id)
 
-  def testSetResolveNegativeInteger(self):
-    data_store.DB.Set(self.test_row, "aff4:lastchunk", -1)
-    value, _ = data_store.DB.Resolve(self.test_row, "aff4:lastchunk")
-    self.assertEqual(value, -1)
-
   def testMultiSet(self):
     """Test the MultiSet() methods."""
     unicode_string = u"this is a uñîcödé string"
@@ -2133,7 +2128,7 @@ class DataStoreBenchmarks(benchmark_test_lib.MicroBenchmarks):
 
   # The sequential collection index is only computed for records 5m old, so we
   # write records this far in the past in order to force index creation.
-  INDEX_DELAY = rdfvalue.Duration("10m")
+  INDEX_DELAY = rdfvalue.DurationSeconds("10m")
 
   @pytest.mark.benchmark
   def testCollections(self):

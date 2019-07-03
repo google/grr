@@ -7,13 +7,13 @@ from __future__ import unicode_literals
 from future.builtins import str
 from typing import Text
 
+from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server.aff4_objects import user_managers
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
@@ -119,7 +119,10 @@ class RelDBChecker(object):
     """Checks whether a given user can start a given flow."""
     del username  # Unused.
 
-    flow_cls = flow.GRRFlow.GetPlugin(flow_name)
+    if data_store.RelationalDBEnabled():
+      flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
+    else:
+      flow_cls = registry.AFF4FlowRegistry.FLOW_REGISTRY.get(flow_name)
 
     if not flow_cls.category:
       raise access_control.UnauthorizedAccess(

@@ -34,8 +34,8 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-@db_test_lib.DualDBTest
-class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
+class TestArtifactCollectorsRealArtifacts(db_test_lib.RelationalDBEnabledMixin,
+                                          flow_test_lib.FlowTestsBaseclass):
   """Test the collection of real artifacts."""
 
   def setUp(self):

@@ -8,9 +8,6 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib.rdfvalues import client as rdf_client
-
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -20,11 +17,13 @@ from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.gui.api_plugins import vfs_test as vfs_plugin_test
 from grr.test_lib import acl_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiListFilesHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "ListFiles"
@@ -46,6 +45,7 @@ class ApiListFilesHandlerRegressionTest(
 
 
 class ApiGetFileTextHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "GetFileText"
@@ -76,6 +76,7 @@ class ApiGetFileTextHandlerRegressionTest(
 
 
 class ApiGetFileVersionTimesHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "GetFileVersionTimes"
@@ -93,6 +94,7 @@ class ApiGetFileVersionTimesHandlerRegressionTest(
 
 
 class ApiListKnownEncodingsHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "ListKnownEncodings"
@@ -103,6 +105,7 @@ class ApiListKnownEncodingsHandlerRegressionTest(
 
 
 class ApiGetFileDownloadCommandHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "GetFileDownloadCommand"
@@ -118,6 +121,7 @@ class ApiGetFileDownloadCommandHandlerRegressionTest(
 
 
 class ApiCreateVfsRefreshOperationHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiCreateVfsRefreshOperationHandler."""
 
@@ -134,14 +138,8 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
     fixture_test_lib.ClientFixture(client_urn, token=self.token)
 
     def ReplaceFlowId():
-      if data_store.RelationalDBEnabled():
-        flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
-        return {flows[0].flow_id: "W:ABCDEF"}
-      else:
-        flows_dir_fd = aff4.FACTORY.Open(
-            client_urn.Add("flows"), token=self.token)
-        flow_urn = list(flows_dir_fd.ListChildren())[0]
-        return {flow_urn.Basename(): "W:ABCDEF"}
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
+      return {flows[0].flow_id: "W:ABCDEF"}
 
     with test_lib.FakeTime(42):
       self.Check(
@@ -152,26 +150,12 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
 
 
 class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
   """Regression test for ApiGetVfsRefreshOperationStateHandler."""
 
   api_method = "GetVfsRefreshOperationState"
   handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler
-
-  def _KillFlow(self, client_id, flow_id):
-    if data_store.RelationalDBEnabled():
-      rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
-          client_id, flow_id, rdfvalue.Duration("5m"))
-      flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
-      flow_obj = flow_cls(rdf_flow)
-      flow_obj.Error("Fake error")
-      data_store.REL_DB.ReleaseProcessedFlow(rdf_flow)
-    else:
-      flow_urn = rdf_client.ClientURN(client_id).Add("flows").Add(flow_id)
-      with aff4.FACTORY.Open(
-          flow_urn, aff4_type=flow.GRRFlow, mode="rw",
-          token=self.token) as flow_obj:
-        flow_obj.GetRunner().Error("Fake error")
 
   def Run(self):
     acl_test_lib.CreateUser(self.token.username)
@@ -192,7 +176,14 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         filesystem.RecursiveListDirectory,
         flow_args=flow_args,
         token=self.token)
-    self._KillFlow(client_id, finished_flow_id)
+
+    # Kill flow.
+    rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
+        client_id, finished_flow_id, rdfvalue.DurationSeconds("5m"))
+    flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
+    flow_obj = flow_cls(rdf_flow)
+    flow_obj.Error("Fake error")
+    data_store.REL_DB.ReleaseProcessedFlow(rdf_flow)
 
     # Create an arbitrary flow to check on 404s.
     non_refresh_flow_id = api_regression_test_lib.StartFlow(
@@ -225,6 +216,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
 
 class ApiUpdateVfsFileContentHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiUpdateVfsFileContentHandler."""
 
@@ -239,14 +231,8 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
     fixture_test_lib.ClientFixture(client_urn, token=self.token)
 
     def ReplaceFlowId():
-      if data_store.RelationalDBEnabled():
-        flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
-        return {flows[0].flow_id: "W:ABCDEF"}
-      else:
-        flows_dir_fd = aff4.FACTORY.Open(
-            client_urn.Add("flows"), token=self.token)
-        flow_urn = list(flows_dir_fd.ListChildren())[0]
-        return {flow_urn.Basename(): "W:ABCDEF"}
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
+      return {flows[0].flow_id: "W:ABCDEF"}
 
     with test_lib.FakeTime(42):
       self.Check(
@@ -257,6 +243,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
 
 
 class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
   """Regression test for ApiGetVfsFileContentUpdateStateHandler."""
 
@@ -271,33 +258,17 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
 
     # Create a running mock refresh operation.
     running_flow_id = self.CreateMultiGetFileFlow(
-        client_urn, file_path="fs/os/c/bin/bash", token=self.token)
+        client_urn, file_path="fs/os/c/bin/bash")
 
     # Create a mock refresh operation and complete it.
     finished_flow_id = self.CreateMultiGetFileFlow(
-        client_urn, file_path="fs/os/c/bin/bash", token=self.token)
+        client_urn, file_path="fs/os/c/bin/bash")
 
-    if data_store.RelationalDBEnabled():
-      flow_base.TerminateFlow(client_id, finished_flow_id, reason="Fake Error")
+    flow_base.TerminateFlow(client_id, finished_flow_id, reason="Fake Error")
 
-      # Create an arbitrary flow to check on 404s.
-      non_update_flow_id = flow.StartFlow(
-          client_id=client_id, flow_cls=discovery.Interrogate)
-
-    else:
-      finished_flow_urn = client_urn.Add("flows").Add(finished_flow_id)
-      with aff4.FACTORY.Open(
-          finished_flow_urn,
-          aff4_type=flow.GRRFlow,
-          mode="rw",
-          token=self.token) as flow_obj:
-        flow_obj.GetRunner().Error("Fake error")
-
-      # Create an arbitrary flow to check on 404s.
-      non_update_flow_id = flow.StartAFF4Flow(
-          client_id=client_urn,
-          flow_name=discovery.Interrogate.__name__,
-          token=self.token).Basename()
+    # Create an arbitrary flow to check on 404s.
+    non_update_flow_id = flow.StartFlow(
+        client_id=client_id, flow_cls=discovery.Interrogate)
 
     # Unkonwn flow ids should also cause 404s.
     unknown_flow_id = "F:12345678"
@@ -326,6 +297,7 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
 
 
 class ApiGetVfsTimelineHandlerRegressionTest(
+    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     vfs_plugin_test.VfsTimelineTestMixin):
   """Regression test for ApiGetVfsTimelineHandler."""

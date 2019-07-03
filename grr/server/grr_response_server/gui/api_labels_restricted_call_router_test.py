@@ -23,8 +23,8 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class CheckClientLabelsTest(test_lib.GRRBaseTest):
+class CheckClientLabelsTest(db_test_lib.RelationalDBEnabledMixin,
+                            test_lib.GRRBaseTest):
   """Tests for CheckClientLabels function."""
 
   def setUp(self):
@@ -99,8 +99,8 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
           token=self.token)
 
 
-@db_test_lib.DualDBTest
-class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
+class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
+                                        test_lib.GRRBaseTest,
                                         acl_test_lib.AclTestMixin):
   """Tests for an ApiLabelsRestrictedCallRouter."""
 

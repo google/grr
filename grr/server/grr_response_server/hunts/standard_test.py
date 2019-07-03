@@ -63,6 +63,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     hunt_test_lib.DummyHuntOutputPlugin.num_responses = 0
     hunt_test_lib.StatefulDummyHuntOutputPlugin.data = []
     hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls = 0
+    hunt_test_lib.LongRunningDummyHuntOutputPlugin.faketime = None
 
     self.old_logging_error = logging.error
     logging_stubber = mock.patch.object(logging, "error",
@@ -604,13 +605,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls,
                      0)
 
-    test = [0]
+    with test_lib.FakeTime(0, increment=1e-6) as faketime:
+      hunt_test_lib.LongRunningDummyHuntOutputPlugin.faketime = faketime
 
-    def TimeStub():
-      test[0] += 1e-6
-      return test[0]
-
-    with utils.Stubber(time, "time", TimeStub):
       self.StartHunt(output_plugins=[
           rdf_output_plugin.OutputPluginDescriptor(
               plugin_name="LongRunningDummyHuntOutputPlugin")
@@ -622,8 +619,9 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
       # the time to 100s on the first run, which will effectively mean that it's
       # running for too long.
       phrccf = process_results.ProcessHuntResultCollectionsCronFlow
-      with utils.MultiStubber((phrccf, "lifetime", rdfvalue.Duration("165s")),
-                              (phrccf, "BATCH_SIZE", 1)):
+      with utils.MultiStubber(
+          (phrccf, "lifetime", rdfvalue.DurationSeconds("165s")),
+          (phrccf, "BATCH_SIZE", 1)):
         self.ProcessHuntOutputPlugins()
 
       # In normal conditions, there should be 10 results generated.
@@ -637,28 +635,24 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
     self.assertEqual(hunt_test_lib.LongRunningDummyHuntOutputPlugin.num_calls,
                      0)
 
-    test = [0]
+    with test_lib.FakeTime(0, increment=1e-6) as faketime:
+      hunt_test_lib.LongRunningDummyHuntOutputPlugin.faketime = faketime
 
-    def TimeStub():
-      test[0] += 1e-6
-      return test[0]
-
-    with utils.Stubber(time, "time", TimeStub):
       self.StartHunt(output_plugins=[
           rdf_output_plugin.OutputPluginDescriptor(
               plugin_name="LongRunningDummyHuntOutputPlugin")
       ])
       self.RunHunt()
 
-      # Same as above, 170s lifetime gives 102s max run time which is longer
-      # than 100s, the time LongRunningDummyHuntOutputPlugin will set on the
-      # first run. This time, the flow will run in time.
+      # Same as above, 1700s lifetime gives 1020s max run time which is longer
+      # than 1000s. This time, the flow will run in time.
       phrccf = process_results.ProcessHuntResultCollectionsCronFlow
       phrccj = process_results.ProcessHuntResultCollectionsCronJob
-      with utils.MultiStubber((phrccf, "lifetime", rdfvalue.Duration("170s")),
-                              (phrccf, "BATCH_SIZE", 1),
-                              (phrccj, "lifetime", rdfvalue.Duration("170s")),
-                              (phrccj, "BATCH_SIZE", 1)):
+      with utils.MultiStubber(
+          (phrccf, "lifetime", rdfvalue.DurationSeconds("1700s")),
+          (phrccf, "BATCH_SIZE", 1),
+          (phrccj, "lifetime", rdfvalue.DurationSeconds("1700s")),
+          (phrccj, "BATCH_SIZE", 1)):
         self.ProcessHuntOutputPlugins()
 
       # In normal conditions, there should be 10 results generated.
@@ -758,7 +752,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
           client_rule_set=self._CreateForemanClientRuleSet(),
           client_limit=5,
           client_rate=0,
-          expiry_time=rdfvalue.Duration("1000s"),
+          expiry_time=rdfvalue.DurationSeconds("1000s"),
           token=self.token) as hunt:
         hunt.Run()
 
@@ -975,7 +969,7 @@ class StandardHuntTest(notification_test_lib.NotificationTestMixin,
                   pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=self._CreateForemanClientRuleSet(),
           client_limit=5,
-          expiry_time=rdfvalue.Duration("1000s"),
+          expiry_time=rdfvalue.DurationSeconds("1000s"),
           token=self.token) as hunt:
         hunt.Run()
 
@@ -1211,8 +1205,8 @@ class FlowWithCustomNotifyAboutEndMixin(object):
         rdf_objects.ObjectReference())
 
 
-@db_test_lib.DualDBTest
-class StandardHuntNotificationsTest(notification_test_lib.NotificationTestMixin,
+class StandardHuntNotificationsTest(db_test_lib.RelationalDBEnabledMixin,
+                                    notification_test_lib.NotificationTestMixin,
                                     hunt_test_lib.StandardHuntTestMixin,
                                     flow_test_lib.FlowTestsBaseclass):
   """Tests the Hunt."""

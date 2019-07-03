@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import rdfvalue
 
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 512 * 1024,
                           "Maximum blob size we may store in the datastore.")
@@ -26,22 +25,6 @@ config_lib.DEFINE_bool(
 
 config_lib.DEFINE_bool("Database.aff4_enabled", True,
                        "Enables reading/writing to the legacy data store.")
-
-DATASTORE_PATHING = [
-    r"%{(?P<path>files/hash/generic/sha256/...).*}",
-    r"%{(?P<path>files/hash/generic/sha1/...).*}",
-    r"%{(?P<path>files/hash/generic/md5/...).*}",
-    r"%{(?P<path>files/hash/pecoff/md5/...).*}",
-    r"%{(?P<path>files/hash/pecoff/sha1/...).*}",
-    r"%{(?P<path>files/nsrl/...).*}", r"%{(?P<path>W/[^/]+).*}",
-    r"%{(?P<path>CA/[^/]+).*}", r"%{(?P<path>C\..\{1,16\}?)($|/.*)}",
-    r"%{(?P<path>hunts/[^/]+).*}", r"%{(?P<path>blobs/[^/]+).*}",
-    r"%{(?P<path>[^/]+).*}"
-]
-
-config_lib.DEFINE_list("Datastore.pathing", DATASTORE_PATHING,
-                       ("Path selection for subjects in the file-based data "
-                        "stores (by priority)."))
 
 config_lib.DEFINE_string(
     "Datastore.location",
@@ -184,58 +167,3 @@ config_lib.DEFINE_integer(
     10,
     help="Maximum number of retries (happens in case a query fails) "
     "for legacy MySQL-AFF4.")
-
-# CloudBigTable data store.
-config_lib.DEFINE_string(
-    "CloudBigtable.project_id",
-    default=None,
-    help="The Google cloud project ID which will hold the bigtable.")
-
-config_lib.DEFINE_string(
-    "CloudBigtable.instance_location",
-    default="us-central1-c",
-    help="The google cloud zone for the instance. This needs to be in "
-    "a zone that has bigtable available and ideally the same zone (or at "
-    "least the same region) as the server for performance and billing "
-    "reasons.")
-
-config_lib.DEFINE_string(
-    "CloudBigtable.instance_id",
-    default="grrbigtable",
-    help="The cloud bigtable instance ID.")
-
-config_lib.DEFINE_string(
-    "CloudBigtable.test_project_id",
-    default=None,
-    help="Set this to run the cloud bigtable tests. Note that billing applies! "
-    "Always check your project has deleted the test instances correctly after "
-    "running these tests.")
-
-config_lib.DEFINE_string(
-    "CloudBigtable.instance_name",
-    default="grrbigtable",
-    help="The cloud bigtable instance ID.")
-
-config_lib.DEFINE_semantic_value(rdfvalue.Duration,
-                                 "CloudBigtable.retry_interval", "1s",
-                                 "Time to wait before first retry.")
-
-config_lib.DEFINE_integer(
-    "CloudBigtable.retry_max_attempts",
-    default=5,
-    help="Maximum number of retries on RPC before we give up.")
-
-config_lib.DEFINE_integer("CloudBigtable.retry_multiplier", 2,
-                          "For each retry, multiply last delay by this value.")
-
-config_lib.DEFINE_string(
-    "CloudBigtable.table_name",
-    default="grrbigtable",
-    help="The cloud bigtable table name.")
-
-config_lib.DEFINE_integer(
-    "CloudBigtable.threadpool_size", 100, "The threadpool size for making"
-    "parallel RPC calls.")
-
-config_lib.DEFINE_integer(
-    "CloudBigtable.serve_nodes", 3, help=("Number of bigtable serve nodes."))

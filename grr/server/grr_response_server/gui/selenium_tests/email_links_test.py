@@ -14,17 +14,15 @@ from future.moves.urllib import parse as urlparse
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
-from grr_response_server import data_store
 from grr_response_server import email_alerts
-from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-@db_test_lib.DualDBTest
-class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
+class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
+                     gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"
   GRANTOR_USERNAME = u"igrantapproval"
@@ -151,14 +149,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
 
   def _CreateOSBreakDownCronJobApproval(self):
-    if data_store.RelationalDBEnabled():
-      job_name = compatibility.GetName(cron_system.OSBreakDownCronJob)
-      cronjobs.ScheduleSystemCronJobs(names=[job_name])
-    else:
-      job_name = compatibility.GetName(cron_system.OSBreakDown)
-      aff4_cronjobs.ScheduleSystemCronFlows(names=[job_name], token=self.token)
-
-    aff4_cronjobs.GetCronManager().DisableJob(job_id=job_name)
+    job_name = compatibility.GetName(cron_system.OSBreakDownCronJob)
+    cronjobs.ScheduleSystemCronJobs(names=[job_name])
+    cronjobs.CronManager().DisableJob(job_name)
     return job_name
 
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
