@@ -348,7 +348,9 @@ class MySQLDBClientMixin(object):
     return res
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientStartupInfoHistory(self, client_id, timerange=None,
+  def ReadClientStartupInfoHistory(self,
+                                   client_id,
+                                   timerange=None,
                                    cursor=None):
     """Reads the full startup history for a particular client."""
 
@@ -443,7 +445,9 @@ class MySQLDBClientMixin(object):
       yield db_utils.IntToClientID(prev_cid), c_full_info
 
   @mysql_utils.WithTransaction(readonly=True)
-  def MultiReadClientFullInfo(self, client_ids, min_last_ping=None,
+  def MultiReadClientFullInfo(self,
+                              client_ids,
+                              min_last_ping=None,
                               cursor=None):
     """Reads full client information for a list of clients."""
     if not client_ids:
@@ -768,9 +772,9 @@ class MySQLDBClientMixin(object):
 
   # DeleteOldClientStats does not use a single transaction, since it runs for
   # a long time. Instead, it uses multiple transactions internally.
-  def DeleteOldClientStats(self, yield_after_count,
-                           retention_time
-                          ):
+  def DeleteOldClientStats(
+      self, yield_after_count,
+      retention_time):
     """Deletes ClientStats older than a given timestamp."""
 
     while True:
@@ -894,3 +898,24 @@ class MySQLDBClientMixin(object):
             statistic_value, day_buckets[i], delta=num_actives)
 
     return fleet_stats_builder.Build()
+
+  @mysql_utils.WithTransaction()
+  def DeleteClient(self, client_id, cursor=None):
+    """Deletes a client with all associated metadata."""
+    cursor.execute("SELECT COUNT(*) FROM clients WHERE client_id = %s",
+                   [db_utils.ClientIDToInt(client_id)])
+
+    if cursor.fetchone()[0] == 0:
+      raise db.UnknownClientError(client_id)
+
+    # Clean out foreign keys first.
+    cursor.execute(
+        """
+    UPDATE clients SET
+      last_crash_timestamp = NULL,
+      last_snapshot_timestamp = NULL,
+      last_startup_timestamp = NULL
+    WHERE client_id = %s""", [db_utils.ClientIDToInt(client_id)])
+
+    cursor.execute("DELETE FROM clients WHERE client_id = %s",
+                   [db_utils.ClientIDToInt(client_id)])

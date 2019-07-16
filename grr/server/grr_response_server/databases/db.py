@@ -883,10 +883,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ListClientsForKeywords(self,
-                             keywords,
-                             start_time = None
-                            ):
+  def ListClientsForKeywords(
+      self,
+      keywords,
+      start_time = None
+  ):
     """Lists the clients associated with keywords.
 
     Args:
@@ -920,8 +921,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def MultiReadClientLabels(self, client_ids
-                           ):
+  def MultiReadClientLabels(
+      self,
+      client_ids):
     """Reads the user labels for a list of clients.
 
     Args:
@@ -984,11 +986,12 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadClientStats(self,
-                      client_id,
-                      min_timestamp = None,
-                      max_timestamp = None
-                     ):
+  def ReadClientStats(
+      self,
+      client_id,
+      min_timestamp = None,
+      max_timestamp = None
+  ):
     """Reads ClientStats for a given client and optional time range.
 
     Args:
@@ -1002,10 +1005,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def DeleteOldClientStats(self,
-                           yield_after_count,
-                           retention_time = None
-                          ):
+  def DeleteOldClientStats(
+      self,
+      yield_after_count,
+      retention_time = None
+  ):
     """Deletes ClientStats older than a given timestamp.
 
     This function yields after deleting at most `yield_after_count` ClientStats.
@@ -1023,8 +1027,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def CountClientVersionStringsByLabel(self, day_buckets
-                                      ):
+  def CountClientVersionStringsByLabel(
+      self, day_buckets):
     """Computes client-activity stats for all GRR versions in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1040,8 +1044,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def CountClientPlatformsByLabel(self, day_buckets
-                                 ):
+  def CountClientPlatformsByLabel(
+      self, day_buckets):
     """Computes client-activity stats for all client platforms in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1057,8 +1061,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def CountClientPlatformReleasesByLabel(self, day_buckets
-                                        ):
+  def CountClientPlatformReleasesByLabel(
+      self, day_buckets):
     """Computes client-activity stats for client OS-release strings in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1300,7 +1304,10 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       A dictionary mapping path components to `rdf_objects.PathInfo` instances.
     """
 
-  def ListChildPathInfos(self, client_id, path_type, components,
+  def ListChildPathInfos(self,
+                         client_id,
+                         path_type,
+                         components,
                          timestamp=None):
     """Lists path info records that correspond to children of given path.
 
@@ -1451,12 +1458,13 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAPIAuditEntries(self,
-                          username = None,
-                          router_method_names = None,
-                          min_timestamp = None,
-                          max_timestamp = None
-                         ):
+  def ReadAPIAuditEntries(
+      self,
+      username = None,
+      router_method_names = None,
+      min_timestamp = None,
+      max_timestamp = None
+  ):
     """Returns audit entries stored in the database.
 
     The event log is sorted according to their timestamp (with the oldest
@@ -1952,8 +1960,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteFlowResponses(self, responses
-                        ):
+  def WriteFlowResponses(
+      self, responses):
     """Writes FlowMessages and updates corresponding requests.
 
     This method not only stores the list of responses given in the database but
@@ -2665,7 +2673,9 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadAllClientGraphSeries(self, client_label, report_type,
+  def ReadAllClientGraphSeries(self,
+                               client_label,
+                               report_type,
                                time_range=None):
     """Reads graph series for the given label and report-type from the DB.
 
@@ -2751,6 +2761,10 @@ class DatabaseValidationWrapper(Database):
         last_clock=last_clock,
         last_ip=last_ip,
         last_foreman=last_foreman)
+
+  def DeleteClient(self, client_id):
+    precondition.ValidateClientId(client_id)
+    return self.delegate.DeleteClient(client_id)
 
   def MultiReadClientMetadata(self, client_ids):
     _ValidateClientIds(client_ids)
@@ -2864,10 +2878,11 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.AddClientKeywords(client_id, keywords)
 
-  def ListClientsForKeywords(self,
-                             keywords,
-                             start_time = None
-                            ):
+  def ListClientsForKeywords(
+      self,
+      keywords,
+      start_time = None
+  ):
     precondition.AssertIterableType(keywords, Text)
     keywords = set(keywords)
 
@@ -2896,8 +2911,9 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.AddClientLabels(client_id, owner, labels)
 
-  def MultiReadClientLabels(self, client_ids
-                           ):
+  def MultiReadClientLabels(
+      self,
+      client_ids):
     _ValidateClientIds(client_ids)
     result = self.delegate.MultiReadClientLabels(client_ids)
     precondition.AssertDictType(result, Text, List)
@@ -2925,11 +2941,12 @@ class DatabaseValidationWrapper(Database):
 
     self.delegate.WriteClientStats(client_id, stats)
 
-  def ReadClientStats(self,
-                      client_id,
-                      min_timestamp = None,
-                      max_timestamp = None
-                     ):
+  def ReadClientStats(
+      self,
+      client_id,
+      min_timestamp = None,
+      max_timestamp = None
+  ):
     precondition.ValidateClientId(client_id)
 
     if min_timestamp is None:
@@ -2945,10 +2962,11 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadClientStats(client_id, min_timestamp,
                                          max_timestamp)
 
-  def DeleteOldClientStats(self,
-                           yield_after_count,
-                           retention_time = None
-                          ):
+  def DeleteOldClientStats(
+      self,
+      yield_after_count,
+      retention_time = None
+  ):
     if retention_time is None:
       retention_time = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
     else:
@@ -2971,18 +2989,18 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.WriteForemanRule(rule)
 
-  def CountClientVersionStringsByLabel(self, day_buckets
-                                      ):
+  def CountClientVersionStringsByLabel(
+      self, day_buckets):
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientVersionStringsByLabel(day_buckets)
 
-  def CountClientPlatformsByLabel(self, day_buckets
-                                 ):
+  def CountClientPlatformsByLabel(
+      self, day_buckets):
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientPlatformsByLabel(day_buckets)
 
-  def CountClientPlatformReleasesByLabel(self, day_buckets
-                                        ):
+  def CountClientPlatformReleasesByLabel(
+      self, day_buckets):
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientPlatformReleasesByLabel(day_buckets)
 
@@ -3100,7 +3118,10 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadPathInfos(client_id, path_type, components_list)
 
-  def ListChildPathInfos(self, client_id, path_type, components,
+  def ListChildPathInfos(self,
+                         client_id,
+                         path_type,
+                         components,
                          timestamp=None):
     precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
@@ -3191,7 +3212,10 @@ class DatabaseValidationWrapper(Database):
 
     self.delegate.MultiWritePathHistory(client_path_histories)
 
-  def FindDescendentPathIDs(self, client_id, path_type, path_id,
+  def FindDescendentPathIDs(self,
+                            client_id,
+                            path_type,
+                            path_id,
                             max_depth=None):
     precondition.ValidateClientId(client_id)
 
@@ -3240,12 +3264,13 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.UpdateUserNotifications(
         username, timestamps, state=state)
 
-  def ReadAPIAuditEntries(self,
-                          username = None,
-                          router_method_names = None,
-                          min_timestamp = None,
-                          max_timestamp = None
-                         ):
+  def ReadAPIAuditEntries(
+      self,
+      username = None,
+      router_method_names = None,
+      min_timestamp = None,
+      max_timestamp = None
+  ):
     return self.delegate.ReadAPIAuditEntries(
         username=username,
         router_method_names=router_method_names,
@@ -3507,8 +3532,8 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)
     return self.delegate.DeleteFlowRequests(requests)
 
-  def WriteFlowResponses(self, responses
-                        ):
+  def WriteFlowResponses(
+      self, responses):
     precondition.AssertIterableType(responses, rdf_flow_objects.FlowMessage)
     return self.delegate.WriteFlowResponses(responses)
 
@@ -3925,7 +3950,9 @@ class DatabaseValidationWrapper(Database):
     self.delegate.WriteClientGraphSeries(
         graph_series, client_label, timestamp=timestamp)
 
-  def ReadAllClientGraphSeries(self, client_label, report_type,
+  def ReadAllClientGraphSeries(self,
+                               client_label,
+                               report_type,
                                time_range=None):
     _ValidateLabel(client_label)
     if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or

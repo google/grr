@@ -15,9 +15,12 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
+from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -1699,6 +1702,110 @@ class DatabaseTestClientsMixin(object):
     snapshot.knowledge_base.os = "🚀" * 12
     with self.assertRaises(db.StringTooLongError):
       self.db.WriteClientSnapshot(snapshot)
+
+  def _AddClientKeyedData(self, client_id):
+    # Client labels.
+    self.db.AddClientLabels(client_id, "testowner", ["label"])
+
+    # Client snapshot including client startup info.
+    snapshot = rdf_objects.ClientSnapshot(client_id=client_id)
+    snapshot.startup_info.client_info.client_version = 42
+    self.db.WriteClientSnapshot(snapshot)
+
+    # Crash information
+    self.db.WriteClientCrashInfo(
+        client_id,
+        rdf_client.ClientCrash(timestamp=12345, crash_message="Crash #1"))
+
+    # Index keywords.
+    self.db.AddClientKeywords(client_id, ["machine.test.example1.com"])
+
+    # Client stats.
+    self.db.WriteClientStats(
+        client_id, rdf_client_stats.ClientStats(RSS_size=10, VMS_size=123))
+
+    # A flow.
+    flow_id = flow.RandomFlowId()
+    self.db.WriteFlowObject(
+        rdf_flow_objects.Flow(
+            client_id=client_id,
+            flow_id=flow_id,
+            create_time=rdfvalue.RDFDatetime.Now()))
+    # A flow request.
+    self.db.WriteFlowRequests([
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=1)
+    ])
+
+    # A flow response.
+    self.db.WriteFlowResponses([
+        rdf_flow_objects.FlowResponse(
+            client_id=client_id, flow_id=flow_id, request_id=1, response_id=1)
+    ])
+
+    # A flow processing request.
+    self.db.WriteFlowProcessingRequests(
+        [rdf_flows.FlowProcessingRequest(client_id=client_id, flow_id=flow_id)])
+
+    # A client action request.
+    self.db.WriteClientActionRequests([
+        rdf_flows.ClientActionRequest(
+            client_id=client_id, flow_id=flow_id, request_id=1)
+    ])
+
+    return flow_id
+
+  def _CheckClientKeyedDataWasDeleted(self, client_id, flow_id):
+
+    # Client labels.
+    self.assertEmpty(self.db.ReadClientLabels(client_id))
+
+    # Client snapshot including client startup info.
+    self.assertIsNone(self.db.ReadClientSnapshot(client_id))
+    self.assertIsNone(self.db.ReadClientStartupInfo(client_id))
+
+    # Crash information
+    self.assertIsNone(self.db.ReadClientCrashInfo(client_id))
+
+    # Index keywords.
+    res = self.db.ListClientsForKeywords(["machine.test.example1.com"])
+    self.assertEqual(res, {"machine.test.example1.com": []})
+
+    # Client stats.
+    self.assertEmpty(self.db.ReadClientStats(client_id))
+
+    # A flow.
+    with self.assertRaises(db.UnknownFlowError):
+      self.db.ReadFlowObject(client_id, flow_id)
+
+    # A client action request.
+    self.assertEmpty(self.db.ReadAllClientActionRequests(client_id))
+
+  def testDeleteClient(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    # Add some data that will be stored with the client id as foreign key. None
+    # of this additional data should stop the client from being deleted.
+
+    flow_id = self._AddClientKeyedData(client_id)
+
+    self.db.DeleteClient(client_id=client_id)
+
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientMetadata(client_id)
+
+    self._CheckClientKeyedDataWasDeleted(client_id, flow_id)
+
+  def testDeleteNonExistingClient(self):
+    client_id = "C.0000000000000000"
+    with self.assertRaises(db.UnknownClientError):
+      self.db.DeleteClient(client_id=client_id)
+
+  def testDeleteClientNoAdditionalData(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    self.db.DeleteClient(client_id=client_id)
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientMetadata(client_id)
 
 
 # This file is a test library and thus does not require a __main__ block.

@@ -367,10 +367,10 @@ class InMemoryDBClientMixin(object):
     self.client_stats[client_id][rdfvalue.RDFDatetime.Now()] = stats
 
   @utils.Synchronized
-  def ReadClientStats(self, client_id,
-                      min_timestamp,
-                      max_timestamp
-                     ):
+  def ReadClientStats(
+      self, client_id, min_timestamp,
+      max_timestamp
+  ):
     """Reads ClientStats for a given client and time range."""
     results = []
     for timestamp, stats in iteritems(self.client_stats[client_id]):
@@ -379,9 +379,9 @@ class InMemoryDBClientMixin(object):
     return results
 
   @utils.Synchronized
-  def DeleteOldClientStats(self, yield_after_count,
-                           retention_time
-                          ):
+  def DeleteOldClientStats(
+      self, yield_after_count,
+      retention_time):
     """Deletes ClientStats older than a given timestamp."""
     deleted_count = 0
 
@@ -447,3 +447,33 @@ class InMemoryDBClientMixin(object):
             fleet_stats_builder.IncrementLabel(client_label, statistic_value,
                                                day_bucket)
     return fleet_stats_builder.Build()
+
+  @utils.Synchronized
+  def DeleteClient(self, client_id):
+    """Deletes a client with all associated metadata."""
+    try:
+      del self.metadatas[client_id]
+    except KeyError:
+      raise db.UnknownClientError(client_id)
+
+    self.clients.pop(client_id, None)
+
+    self.labels.pop(client_id, None)
+
+    self.startup_history.pop(client_id, None)
+
+    self.crash_history.pop(client_id, None)
+
+    self.client_stats.pop(client_id, None)
+
+    for key in [k for k in self.flows if k[0] == client_id]:
+      self.flows.pop(key)
+    for key in [k for k in self.flow_requests if k[0] == client_id]:
+      self.flow_requests.pop(key)
+    for key in [k for k in self.flow_processing_requests if k[0] == client_id]:
+      self.flow_processing_requests.pop(key)
+    for key in [k for k in self.client_action_requests if k[0] == client_id]:
+      self.client_action_requests.pop(key)
+
+    for kw in self.keywords:
+      self.keywords[kw].pop(client_id, None)
