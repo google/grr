@@ -458,10 +458,7 @@ class MySQLDBFlowMixin(object):
       raise ValueError("Flow %s on client %s is already being processed." %
                        (client_id, flow_id))
 
-    if (rdf_flow.parent_hunt_id is not None and
-        # TODO(user): remove the check for a legacy hunt prefix as soon as
-        # AFF4 is gone.
-        not rdf_flow.parent_hunt_id.startswith("H:")):
+    if rdf_flow.parent_hunt_id is not None:
 
       query = "SELECT hunt_state FROM hunts WHERE hunt_id=%s"
       args = [db_utils.HuntIDToInt(rdf_flow.parent_hunt_id)]

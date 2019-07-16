@@ -8,6 +8,7 @@ import abc
 import collections
 import logging
 import threading
+import time
 import traceback
 
 from future.utils import iterkeys
@@ -15,10 +16,12 @@ from future.utils import iterkeys
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib import utils
 from grr_response_core.lib.util import random
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import data_store
+from grr_response_server import hunt
 from grr_response_server import threadpool
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
@@ -397,8 +400,8 @@ class CronManager(object):
       job_cls = registry.CronJobRegistry.CronJobClassByName("RunHunt")
       name = "Hunt runner"
     else:
-      raise ValueError(
-          "CronJob %s doesn't have a valid args type set." % job.cron_job_id)
+      raise ValueError("CronJob %s doesn't have a valid args type set." %
+                       job.cron_job_id)
 
     run_state = rdf_cronjobs.CronJobRun(
         cron_job_id=job.cron_job_id, status="RUNNING")
@@ -516,5 +519,75 @@ def ScheduleSystemCronJobs(names=None):
     data_store.REL_DB.WriteCronJob(job)
 
   if errors:
-    raise ValueError(
-        "Error(s) while parsing Cron.disabled_cron_jobs: %s" % errors)
+    raise ValueError("Error(s) while parsing Cron.disabled_cron_jobs: %s" %
+                     errors)
+
+
+class CronWorker(object):
+  """CronWorker runs a thread that periodically executes cron jobs."""
+
+  def __init__(self, thread_name="grr_cron", sleep=60 * 5):
+    self.thread_name = thread_name
+    self.sleep = sleep
+
+  def _RunLoop(self):
+    ScheduleSystemCronJobs()
+
+    while True:
+      try:
+        CronManager().RunOnce()
+      except Exception as e:  # pylint: disable=broad-except
+        logging.error("CronWorker uncaught exception: %s", e)
+
+      time.sleep(self.sleep)
+
+  def Run(self):
+    """Runs a working thread and waits for it to finish."""
+    self.RunAsync().join()
+
+  def RunAsync(self):
+    """Runs a working thread and returns immediately."""
+    self.running_thread = threading.Thread(
+        name=self.thread_name, target=self._RunLoop)
+    self.running_thread.daemon = True
+    self.running_thread.start()
+    return self.running_thread
+
+
+_cron_worker = None
+
+
+@utils.RunOnce
+def InitializeCronWorkerOnce():
+  """Init hook for cron job worker."""
+  global _cron_worker
+  # Start the cron thread if configured to.
+  if config.CONFIG["Cron.active"]:
+    _cron_worker = CronWorker()
+    _cron_worker.RunAsync()
+
+
+class RunHunt(CronJobBase):
+  """A cron job that starts a hunt."""
+
+  def Run(self):
+    hra = self.job.args.hunt_cron_action.hunt_runner_args
+    anbpcl = hra.avg_network_bytes_per_client_limit
+    hunt.CreateAndStartHunt(
+        self.job.args.hunt_cron_action.flow_name,
+        self.job.args.hunt_cron_action.flow_args,
+        "Cron",
+        avg_cpu_seconds_per_client_limit=hra.avg_cpu_seconds_per_client_limit,
+        avg_network_bytes_per_client_limit=anbpcl,
+        avg_results_per_client_limit=hra.avg_results_per_client_limit,
+        client_limit=hra.client_limit,
+        client_rate=hra.client_rate,
+        client_rule_set=hra.client_rule_set,
+        crash_limit=hra.crash_limit,
+        description=hra.description,
+        duration=hra.expiry_time,
+        original_object=hra.original_object,
+        output_plugins=hra.output_plugins,
+        per_client_cpu_limit=hra.per_client_cpu_limit,
+        per_client_network_bytes_limit=hra.per_client_network_limit_bytes,
+    )

@@ -10,7 +10,6 @@ import os
 import re
 import stat
 
-
 from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues

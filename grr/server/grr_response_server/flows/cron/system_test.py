@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.builtins import range
 
@@ -12,22 +11,19 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_server import aff4
 from grr_response_server import client_report_utils
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.databases import db
 from grr_response_server.flows.cron import system
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.test_lib import db_test_lib
-from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class SystemCronTestMixin(object):
+class SystemCronJobTest(test_lib.GRRBaseTest):
+  """Test system cron jobs."""
 
   def setUp(self):
-    super(SystemCronTestMixin, self).setUp()
+    super(SystemCronJobTest, self).setUp()
 
     one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1h")
     eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("8d")
@@ -48,16 +44,8 @@ class SystemCronTestMixin(object):
 
     for i in range(0, 10):
       client_id = "C.1%015x" % i
-      if data_store.AFF4Enabled():
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as client:
-          client.AddLabels(["Label1", "Label2"], owner="GRR")
-          client.AddLabel("UserLabel", owner="jim")
-
-      if data_store.RelationalDBEnabled():
-        data_store.REL_DB.AddClientLabels(client_id, "GRR",
-                                          ["Label1", "Label2"])
-        data_store.REL_DB.AddClientLabels(client_id, "jim", ["UserLabel"])
+      data_store.REL_DB.AddClientLabels(client_id, "GRR", ["Label1", "Label2"])
+      data_store.REL_DB.AddClientLabels(client_id, "jim", ["UserLabel"])
 
   def _CheckVersionGraph(self, graph, expected_title, expected_count):
     self.assertEqual(graph.title, expected_title)
@@ -186,25 +174,13 @@ class SystemCronTestMixin(object):
 
     for t in [1 * max_age, 1.5 * max_age, 2 * max_age]:
       with test_lib.FakeTime(t):
-        urn = client_id.Add("stats")
         st = rdf_client_stats.ClientStats(RSS_size=int(t))
 
-        if data_store.AFF4Enabled():
-          with aff4.FACTORY.Create(
-              urn, aff4_stats.ClientStats, token=self.token,
-              mode="rw") as stats_fd:
-            stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
+        data_store.REL_DB.WriteClientStats(client_id, st)
 
-        if data_store.RelationalDBEnabled():
-          data_store.REL_DB.WriteClientStats(client_id.Basename(), st)
-
-    if data_store.RelationalDBEnabled():
-      stat_entries = data_store.REL_DB.ReadClientStats(
-          client_id=client_id.Basename(),
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
-    else:
-      stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
-      stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
+    stat_entries = data_store.REL_DB.ReadClientStats(
+        client_id=client_id,
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
     self.assertCountEqual([1 * max_age, 1.5 * max_age, 2 * max_age],
                           [e.RSS_size for e in stat_entries])
@@ -212,48 +188,11 @@ class SystemCronTestMixin(object):
     with test_lib.FakeTime(2.51 * max_age):
       self._RunPurgeClientStats()
 
-    if data_store.RelationalDBEnabled():
-      stat_entries = data_store.REL_DB.ReadClientStats(
-          client_id=client_id.Basename(),
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
-    else:
-      stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
-      stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
+    stat_entries = data_store.REL_DB.ReadClientStats(
+        client_id=client_id,
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
     self.assertLen(stat_entries, 1)
     self.assertNotIn(max_age, [e.RSS_size for e in stat_entries])
-
-
-class SystemCronFlowTest(SystemCronTestMixin, flow_test_lib.FlowTestsBaseclass):
-  """Test system cron flows."""
-
-  def testGRRVersionBreakDown(self):
-    """Check that all client stats cron jobs are run."""
-    flow_test_lib.TestFlowHelper(
-        system.GRRVersionBreakDown.__name__, token=self.token)
-
-    self._CheckGRRVersionBreakDown()
-
-  def testOSBreakdown(self):
-    """Check that all client stats cron jobs are run."""
-    flow_test_lib.TestFlowHelper(system.OSBreakDown.__name__, token=self.token)
-
-    self._CheckOSBreakdown()
-
-  def testLastAccessStats(self):
-    """Check that all client stats cron jobs are run."""
-    flow_test_lib.TestFlowHelper(
-        system.LastAccessStats.__name__, token=self.token)
-
-    self._CheckLastAccessStats()
-
-  def _RunPurgeClientStats(self):
-    flow_test_lib.TestFlowHelper(
-        system.PurgeClientStats.__name__, None, token=self.token)
-
-
-class SystemCronJobTest(db_test_lib.RelationalDBEnabledMixin,
-                        SystemCronTestMixin, test_lib.GRRBaseTest):
-  """Test system cron jobs."""
 
   def testGRRVersionBreakDown(self):
     """Check that all client stats cron jobs are run."""

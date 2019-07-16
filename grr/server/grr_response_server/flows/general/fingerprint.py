@@ -10,12 +10,9 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -74,7 +71,8 @@ class FingerprintFileLogic(object):
     if not responses.success:
       # Its better to raise rather than merely logging since it will make it to
       # the flow's protobuf and users can inspect the reason this flow failed.
-      raise flow.FlowError("Could not fingerprint file: %s" % responses.status)
+      raise flow_base.FlowError("Could not fingerprint file: %s" %
+                                responses.status)
 
     response = responses.First()
     if response.pathspec.path:
@@ -86,16 +84,10 @@ class FingerprintFileLogic(object):
 
     hash_obj = response.hash
 
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Create(
-          self.state.urn, aff4_grr.VFSFile, mode="w", token=self.token) as fd:
-        fd.Set(fd.Schema.HASH, hash_obj)
+    path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+    path_info.hash_entry = response.hash
 
-    if data_store.RelationalDBEnabled():
-      path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-      path_info.hash_entry = response.hash
-
-      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
     self.ReceiveFileFingerprint(
         self.state.urn, hash_obj, request_data=responses.request_data)
@@ -104,17 +96,16 @@ class FingerprintFileLogic(object):
     """This method will be called with the new urn and the received hash."""
 
 
-@flow_base.DualDBFlow
-class FingerprintFileMixin(FingerprintFileLogic):
+class FingerprintFile(FingerprintFileLogic, flow_base.FlowBase):
   """Retrieve all fingerprints of a file."""
 
   category = "/Filesystem/"
   args_type = FingerprintFileArgs
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
 
   def Start(self):
     """Issue the fingerprinting request."""
-    super(FingerprintFileMixin, self).Start()
+    super(FingerprintFile, self).Start()
 
     self.FingerprintFile(self.args.pathspec)
 
@@ -124,6 +115,6 @@ class FingerprintFileMixin(FingerprintFileLogic):
 
   def End(self, responses):
     """Finalize the flow."""
-    super(FingerprintFileMixin, self).End(responses)
+    super(FingerprintFile, self).End(responses)
 
     self.Log("Finished fingerprinting %s", self.args.pathspec.path)

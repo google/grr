@@ -6,13 +6,11 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 import mock
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import data_store
 
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.gui import api_call_router_with_approval_checks
@@ -23,18 +21,16 @@ from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.output_plugins import sqlite_plugin
 from grr_response_server.output_plugins import yaml_plugin
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowArchive(db_test_lib.RelationalDBEnabledMixin,
-                      gui_test_lib.GRRSeleniumTest):
+class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestFlowArchive, self).setUp()
 
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -121,9 +117,6 @@ class TestFlowArchive(db_test_lib.RelationalDBEnabledMixin,
         pathspec=pathspec,
         token=self.token)
 
-    if not data_store.RelationalDBEnabled():
-      flow_id = flow_id.Basename()
-
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
@@ -179,8 +172,6 @@ class TestFlowArchive(db_test_lib.RelationalDBEnabledMixin,
         client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    if not data_store.RelationalDBEnabled():
-      session_id = session_id.Basename()
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
@@ -210,8 +201,6 @@ class TestFlowArchive(db_test_lib.RelationalDBEnabledMixin,
         client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    if not data_store.RelationalDBEnabled():
-      session_id = session_id.Basename()
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")

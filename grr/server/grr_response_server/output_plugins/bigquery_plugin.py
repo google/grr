@@ -9,7 +9,6 @@ import logging
 import os
 import tempfile
 
-
 from future.utils import itervalues
 
 from grr_response_core import config

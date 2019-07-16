@@ -11,7 +11,6 @@ import pdb
 import socket
 import threading
 
-
 from absl import app
 from absl import flags
 from future.builtins import range
@@ -34,11 +33,9 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
-from grr_response_server import aff4
 from grr_response_server import frontend_lib
 from grr_response_server import server_logging
 from grr_response_server import server_startup
-
 
 
 flags.DEFINE_bool(
@@ -116,22 +113,6 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
         self.ServeStatic(self.path[len(self.static_content_path):])
     finally:
       self._DecrementActiveCount()
-
-  AFF4_READ_BLOCK_SIZE = 10 * 1024 * 1024
-
-  def ServeStatic(self, path):
-    aff4_path = aff4.FACTORY.GetStaticContentPath().Add(path)
-    try:
-      logging.info("Serving %s", aff4_path)
-      fd = aff4.FACTORY.Open(aff4_path, token=aff4.FACTORY.root_token)
-      while True:
-        data = fd.Read(self.AFF4_READ_BLOCK_SIZE)
-        if not data:
-          break
-
-        self.Send(data)
-    except (IOError, AttributeError):
-      self.Send("", status=404)
 
   def ServerPem(self):
     self.Send(self.server.server_cert.AsPEM())

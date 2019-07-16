@@ -4,10 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import itertools
 import re
 import sys
-
 
 from future.utils import iteritems
 from typing import Text
@@ -95,33 +93,5 @@ def FilterList(l, offset, count=0, filter_value=None):
 
       if len(items) >= count:
         break
-
-  return items
-
-
-def FilterCollection(aff4_collection, offset, count=0, filter_value=None):
-  """Filters an aff4 collection, getting count elements, starting at offset."""
-
-  if offset < 0:
-    raise ValueError("Offset needs to be greater than or equal to zero")
-
-  if count < 0:
-    raise ValueError("Count needs to be greater than or equal to zero")
-
-  count = count or sys.maxsize
-  if filter_value:
-    index = 0
-    items = []
-    for item in aff4_collection.GenerateItems():
-      serialized_item = item.SerializeToString()
-      if re.search(re.escape(filter_value), serialized_item, re.I):
-        if index >= offset:
-          items.append(item)
-        index += 1
-
-        if len(items) >= count:
-          break
-  else:
-    items = list(itertools.islice(aff4_collection.GenerateItems(offset), count))
 
   return items

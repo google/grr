@@ -4,19 +4,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
-from future.utils import iterkeys
 from future.utils import itervalues
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_proto.api import reflection_pb2
-from grr_response_server import aff4
-
 from grr_response_server.gui import api_call_handler_base
-
 from grr_response_server.gui import api_value_renderers
 
 
@@ -75,33 +69,6 @@ class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
     return result
 
 
-class ApiAff4AttributeDescriptor(rdf_structs.RDFProtoStruct):
-  protobuf = reflection_pb2.ApiAff4AttributeDescriptor
-
-
-class ApiListAff4AttributeDescriptorsResult(rdf_structs.RDFProtoStruct):
-  protobuf = reflection_pb2.ApiListAff4AttributeDescriptorsResult
-  rdf_deps = [
-      ApiAff4AttributeDescriptor,
-  ]
-
-
-class ApiListAff4AttributeDescriptorsHandler(
-    api_call_handler_base.ApiCallHandler):
-  """Renders available aff4 attributes."""
-
-  result_type = ApiListAff4AttributeDescriptorsResult
-
-  def Handle(self, unused_args, token=None):
-    _ = token
-
-    result = ApiListAff4AttributeDescriptorsResult()
-    for name in sorted(iterkeys(aff4.Attribute.NAMES)):
-      result.items.append(ApiAff4AttributeDescriptor(name=name))
-
-    return result
-
-
 class ApiMethod(rdf_structs.RDFProtoStruct):
   protobuf = reflection_pb2.ApiMethod
   rdf_deps = [
@@ -148,8 +115,8 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
         else:
           api_method.result_kind = api_method.ResultKind.VALUE
           api_method.result_type_descriptor = (
-              api_value_renderers.BuildTypeDescriptor(router_method.result_type)
-          )
+              api_value_renderers.BuildTypeDescriptor(
+                  router_method.result_type))
       else:
         api_method.result_kind = api_method.ResultKind.NONE
 

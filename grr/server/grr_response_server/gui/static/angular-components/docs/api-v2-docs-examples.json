@@ -348,7 +348,7 @@
         "status": "OK"
       },
       "test_class": "ApiForceRunCronJobRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/OSBreakDown/actions/force-run"
+      "url": "/api/v2/cron-jobs/FileFinder/actions/force-run"
     }
   ],
   "ApiGetClientApprovalHandler": [
@@ -642,265 +642,6 @@
     }
   ],
   "ApiGetClientVersionsHandler": [
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": "42000000",
-            "agentInfo": {
-              "buildTime": "1980-01-01",
-              "clientName": "GRR Monitor",
-              "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {
-              "biosVersion": "Bios-Version-0",
-              "systemManufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
-                  {
-                    "addressType": "INET6",
-                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "macAddress": "u8zd7v8A"
-              }
-            ],
-            "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "memorySize": "4294967296",
-            "osInfo": {
-              "fqdn": "Host-0.example.com",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          },
-          {
-            "age": "45000000",
-            "agentInfo": {},
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {},
-            "knowledgeBase": {
-              "fqdn": "some-other-hostname.org",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "osInfo": {
-              "fqdn": "some-other-hostname.org",
-              "version": ""
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/versions?mode=diff"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": "42000000",
-            "agentInfo": {
-              "buildTime": "1980-01-01",
-              "clientName": "GRR Monitor",
-              "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {
-              "biosVersion": "Bios-Version-0",
-              "systemManufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
-                  {
-                    "addressType": "INET6",
-                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "macAddress": "u8zd7v8A"
-              }
-            ],
-            "knowledgeBase": {
-              "fqdn": "Host-0.example.com",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "memorySize": "4294967296",
-            "osInfo": {
-              "fqdn": "Host-0.example.com",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/versions?end=44000000&mode=diff"
-    },
-    {
-      "api_method": "GetClientVersions",
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": "45000000",
-            "agentInfo": {
-              "buildTime": "1980-01-01",
-              "clientName": "GRR Monitor",
-              "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
-            },
-            "clientId": "C.1000000000000000",
-            "hardwareInfo": {
-              "biosVersion": "Bios-Version-0",
-              "systemManufacturer": "System-Manufacturer-0"
-            },
-            "interfaces": [
-              {
-                "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
-                  {
-                    "addressType": "INET6",
-                    "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
-                  }
-                ]
-              },
-              {
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "macAddress": "u8zd7v8A"
-              }
-            ],
-            "knowledgeBase": {
-              "fqdn": "some-other-hostname.org",
-              "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
-            },
-            "memorySize": "4294967296",
-            "osInfo": {
-              "fqdn": "some-other-hostname.org",
-              "kernel": "4.0.0",
-              "machine": "x86_64",
-              "system": "Linux",
-              "version": "buster/sid"
-            },
-            "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
-          }
-        ]
-      },
-      "test_class": "ApiGetClientVersionsRegressionTestAFF4_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/versions?end=46000000&mode=diff&start=44000000"
-    },
     {
       "api_method": "GetClientVersions",
       "method": "GET",
@@ -3954,7 +3695,7 @@
               "actionType": "HUNT_CRON_ACTION",
               "huntCronAction": {
                 "flowArgs": "",
-                "flowName": "GRRVersionBreakDown",
+                "flowName": "ClientFileFinder",
                 "huntRunnerArgs": {
                   "avgCpuSecondsPerClientLimit": "60",
                   "avgNetworkBytesPerClientLimit": "10485760",
@@ -3963,7 +3704,29 @@
                 }
               }
             },
-            "cronJobId": "GRRVersionBreakDown",
+            "cronJobId": "ClientFileFinder",
+            "description": "bar",
+            "enabled": true,
+            "frequency": "604800",
+            "isFailing": false,
+            "lifetime": "86400"
+          },
+          {
+            "allowOverruns": false,
+            "args": {
+              "actionType": "HUNT_CRON_ACTION",
+              "huntCronAction": {
+                "flowArgs": "",
+                "flowName": "FileFinder",
+                "huntRunnerArgs": {
+                  "avgCpuSecondsPerClientLimit": "60",
+                  "avgNetworkBytesPerClientLimit": "10485760",
+                  "avgResultsPerClientLimit": "1000",
+                  "crashLimit": "100"
+                }
+              }
+            },
+            "cronJobId": "FileFinder",
             "description": "foo",
             "enabled": false,
             "frequency": "86400",
@@ -3976,7 +3739,7 @@
               "actionType": "HUNT_CRON_ACTION",
               "huntCronAction": {
                 "flowArgs": "",
-                "flowName": "LastAccessStats",
+                "flowName": "ListDirectory",
                 "huntRunnerArgs": {
                   "avgCpuSecondsPerClientLimit": "60",
                   "avgNetworkBytesPerClientLimit": "10485760",
@@ -3985,35 +3748,13 @@
                 }
               }
             },
-            "cronJobId": "LastAccessStats",
+            "cronJobId": "ListDirectory",
             "description": "",
             "enabled": true,
             "frequency": "604800",
             "isFailing": true,
             "lastRunStatus": "ERROR",
             "lastRunTime": "230000000",
-            "lifetime": "86400"
-          },
-          {
-            "allowOverruns": false,
-            "args": {
-              "actionType": "HUNT_CRON_ACTION",
-              "huntCronAction": {
-                "flowArgs": "",
-                "flowName": "OSBreakDown",
-                "huntRunnerArgs": {
-                  "avgCpuSecondsPerClientLimit": "60",
-                  "avgNetworkBytesPerClientLimit": "10485760",
-                  "avgResultsPerClientLimit": "1000",
-                  "crashLimit": "100"
-                }
-              }
-            },
-            "cronJobId": "OSBreakDown",
-            "description": "bar",
-            "enabled": true,
-            "frequency": "604800",
-            "isFailing": false,
             "lifetime": "86400"
           }
         ],
@@ -4093,7 +3834,7 @@
             "defaultArgs": {
               "@type": "type.googleapis.com/FileFinderArgs"
             },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n  \n\n  Call Spec:\n    flow.StartAFF4Flow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n  \n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
             "friendlyName": "File Finder",
             "name": "FileFinder"
           },
@@ -4107,7 +3848,7 @@
             "defaultArgs": {
               "@type": "type.googleapis.com/ListProcessesArgs"
             },
-            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartAFF4Flow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n",
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses, filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n",
             "name": "ListProcesses"
           }
         ]
@@ -5090,7 +4831,7 @@
           "actionType": "HUNT_CRON_ACTION",
           "huntCronAction": {
             "flowArgs": "",
-            "flowName": "OSBreakDown",
+            "flowName": "FileFinder",
             "huntRunnerArgs": {
               "avgCpuSecondsPerClientLimit": "60",
               "avgNetworkBytesPerClientLimit": "10485760",
@@ -5099,7 +4840,7 @@
             }
           }
         },
-        "cronJobId": "OSBreakDown",
+        "cronJobId": "FileFinder",
         "description": "",
         "enabled": true,
         "frequency": "86400",
@@ -5107,7 +4848,7 @@
         "lifetime": "604800"
       },
       "test_class": "ApiModifyCronJobRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/OSBreakDown"
+      "url": "/api/v2/cron-jobs/FileFinder"
     },
     {
       "api_method": "ModifyCronJob",
@@ -5121,7 +4862,7 @@
           "actionType": "HUNT_CRON_ACTION",
           "huntCronAction": {
             "flowArgs": "",
-            "flowName": "GRRVersionBreakDown",
+            "flowName": "ClientFileFinder",
             "huntRunnerArgs": {
               "avgCpuSecondsPerClientLimit": "60",
               "avgNetworkBytesPerClientLimit": "10485760",
@@ -5130,7 +4871,7 @@
             }
           }
         },
-        "cronJobId": "GRRVersionBreakDown",
+        "cronJobId": "ClientFileFinder",
         "description": "",
         "enabled": false,
         "frequency": "86400",
@@ -5138,7 +4879,7 @@
         "lifetime": "604800"
       },
       "test_class": "ApiModifyCronJobRegressionTest_http_v2",
-      "url": "/api/v2/cron-jobs/GRRVersionBreakDown"
+      "url": "/api/v2/cron-jobs/ClientFileFinder"
     }
   ],
   "ApiModifyHuntHandler": [

@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-
 from grr_response_core.lib.parsers import sqlite_file
 
 

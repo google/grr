@@ -74,11 +74,11 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
       # all the clients metadata is possible but expensive. It doesn't seem to
       # be worth it.
       self.assertEqual(parsed_output[i]["metadata"]["client_urn"],
-                       str(self.client_id))
+                       "aff4:/%s" % self.client_id)
       self.assertEqual(parsed_output[i]["metadata"]["source_urn"],
                        str(self.results_urn))
       self.assertEqual(parsed_output[i]["urn"],
-                       self.client_id.Add("/fs/os/foo/bar").Add(str(i)))
+                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
       self.assertEqual(parsed_output[i]["st_mode"], "-rw-r-----")
       self.assertEqual(parsed_output[i]["st_ino"], "1063090")
       self.assertEqual(parsed_output[i]["st_dev"], "64512")
@@ -129,11 +129,11 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     # all the clients metadata is possible but expensive. It doesn't seem to
     # be worth it.
     self.assertEqual(parsed_output[0]["metadata"]["client_urn"],
-                     str(self.client_id))
+                     "aff4:/%s" % self.client_id)
     self.assertEqual(parsed_output[0]["metadata"]["source_urn"],
                      str(self.results_urn))
     self.assertEqual(parsed_output[0]["urn"],
-                     self.client_id.Add("/fs/os/foo/bar"))
+                     "aff4:/%s/fs/os/foo/bar" % self.client_id)
 
     parsed_output = yaml.load(
         zip_fd.read("%s/ExportedProcess/from_Process.yaml" % prefix))
@@ -158,7 +158,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
     self.assertLen(parsed_output, 1)
     self.assertEqual(parsed_output[0]["urn"],
-                     self.client_id.Add("/fs/os/中国新闻网新闻中"))
+                     "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id)
 
   def testYamlPluginWritesMoreThanOneBatchOfRowsCorrectly(self):
     num_rows = self.__class__.plugin_cls.ROW_BATCH * 2 + 1
@@ -177,7 +177,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):
       self.assertEqual(parsed_output[i]["urn"],
-                       self.client_id.Add("/fs/os/foo/bar/%d" % i))
+                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
 
 
 def main(argv):

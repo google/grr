@@ -9,7 +9,6 @@ import datetime
 import os
 import zipfile
 
-
 from absl import app
 from future.builtins import range
 from future.utils import iteritems
@@ -216,17 +215,17 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         "st_atime", "st_mtime", "st_ctime", "st_blksize", "st_rdev", "symlink"
     ]
     escaped_column_names = ["\"%s\"" % c for c in select_columns]
-    self.db_cursor.execute(
-        "SELECT %s FROM "
-        "\"ExportedFile.from_StatEntry\";" % ",".join(escaped_column_names))
+    self.db_cursor.execute("SELECT %s FROM "
+                           "\"ExportedFile.from_StatEntry\";" %
+                           ",".join(escaped_column_names))
     rows = self.db_cursor.fetchall()
     self.assertLen(rows, 10)
     for i, row in enumerate(rows):
       results = {k: row[j] for j, k in enumerate(select_columns)}
       expected_results = {
-          "metadata.client_urn": self.client_id,
+          "metadata.client_urn": "aff4:/%s" % self.client_id,
           "metadata.source_urn": self.results_urn,
-          "urn": self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
+          "urn": "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i),
           "st_mode": "-rw-r-----",
           "st_ino": 1063090,
           "st_dev": 64512,
@@ -280,10 +279,10 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
     with self.db_connection:
-      stat_entry_script = zip_fd.read(
-          "%s/ExportedFile_from_StatEntry.sql" % prefix)
-      process_script = zip_fd.read(
-          "%s/ExportedProcess_from_Process.sql" % prefix)
+      stat_entry_script = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" %
+                                      prefix)
+      process_script = zip_fd.read("%s/ExportedProcess_from_Process.sql" %
+                                   prefix)
       self.db_cursor.executescript(stat_entry_script)
       self.db_cursor.executescript(process_script)
 
@@ -293,12 +292,12 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     stat_entry_results = self.db_cursor.fetchall()
     self.assertLen(stat_entry_results, 1)
     # Client URN
-    self.assertEqual(stat_entry_results[0][0], str(self.client_id))
+    self.assertEqual(stat_entry_results[0][0], "aff4:/%s" % self.client_id)
     # Source URN
     self.assertEqual(stat_entry_results[0][1], str(self.results_urn))
     # URN
     self.assertEqual(stat_entry_results[0][2],
-                     self.client_id.Add("/fs/os/foo/bar"))
+                     "aff4:/%s/fs/os/foo/bar" % self.client_id)
 
     self.db_cursor.execute(
         "SELECT \"metadata.client_urn\", \"metadata.source_urn\", pid "
@@ -306,7 +305,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     process_results = self.db_cursor.fetchall()
     self.assertLen(process_results, 1)
     # Client URN
-    self.assertEqual(process_results[0][0], str(self.client_id))
+    self.assertEqual(stat_entry_results[0][0], "aff4:/%s" % self.client_id)
     # Source URN
     self.assertEqual(process_results[0][1], str(self.results_urn))
     # PID
@@ -331,7 +330,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
     results = self.db_cursor.fetchall()
     self.assertLen(results, 1)
-    self.assertEqual(results[0][0], self.client_id.Add("/fs/os/中国新闻网新闻中"))
+    self.assertEqual(results[0][0], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id)
 
   def testHandlingOfMultipleRowBatches(self):
     num_rows = self.__class__.plugin_cls.ROW_BATCH * 2 + 1
@@ -353,7 +352,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertLen(results, num_rows)
     for i in range(num_rows):
       self.assertEqual(results[i][0],
-                       self.client_id.Add("/fs/os/foo/bar/%d" % i))
+                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
 
 
 def main(argv):

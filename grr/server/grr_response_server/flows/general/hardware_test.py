@@ -10,12 +10,9 @@ from future.builtins import str
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server.flows.general import hardware
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -53,8 +50,7 @@ class FailDumpMock(DumpFlashImageMock):
     raise IOError("Unexpected error")
 
 
-class TestHardwareDumpFlashImage(db_test_lib.RelationalDBEnabledMixin,
-                                 flow_test_lib.FlowTestsBaseclass):
+class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
   def setUp(self):
@@ -76,11 +72,6 @@ class TestHardwareDumpFlashImage(db_test_lib.RelationalDBEnabledMixin,
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
-    if data_store.AFF4Enabled():
-      stat_entry = results[0]
-      aff4_path = stat_entry.pathspec.AFF4Path(self.client_id)
-      fd = aff4.FACTORY.Open(aff4_path, token=self.token)
-      self.assertEqual(fd.Read("10"), b"\xff" * 10)
 
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""
@@ -92,13 +83,9 @@ class TestHardwareDumpFlashImage(db_test_lib.RelationalDBEnabledMixin,
         client_id=self.client_id,
         token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      log_items = data_store.REL_DB.ReadFlowLogEntries(
-          self.client_id.Basename(), flow_id, 0, 100)
-      logs = [l.message for l in log_items]
-    else:
-      log_items = flow.GRRFlow.LogCollectionForFID(flow_id)
-      logs = [l.log_message for l in log_items]
+    log_items = data_store.REL_DB.ReadFlowLogEntries(self.client_id, flow_id, 0,
+                                                     100)
+    logs = [l.message for l in log_items]
 
     self.assertIn("Unknown chipset", logs)
 
@@ -160,8 +147,7 @@ class DumpACPITableMock(action_mocks.ActionMock):
     return [response]
 
 
-class DumpACPITableTest(db_test_lib.RelationalDBEnabledMixin,
-                        flow_test_lib.FlowTestsBaseclass):
+class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
 
   def testDumpValidACPITableOk(self):
     """Tests dumping ACPI table."""
@@ -176,13 +162,10 @@ class DumpACPITableTest(db_test_lib.RelationalDBEnabledMixin,
         client_id=client_id,
         token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      results = [
-          r.payload for r in data_store.REL_DB.ReadFlowResults(
-              client_id.Basename(), flow_id, 0, 100)
-      ]
-    else:
-      results = list(flow.GRRFlow.ResultCollectionForFID(flow_id))
+    results = [
+        r.payload
+        for r in data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0, 100)
+    ]
 
     self.assertLen(results, 4)
 
@@ -213,13 +196,8 @@ class DumpACPITableTest(db_test_lib.RelationalDBEnabledMixin,
         client_id=client_id,
         token=self.token)
 
-    if data_store.RelationalDBEnabled():
-      log_items = data_store.REL_DB.ReadFlowLogEntries(client_id.Basename(),
-                                                       flow_id, 0, 100)
-      logs = [l.message for l in log_items]
-    else:
-      log_items = flow.GRRFlow.LogCollectionForFID(flow_id)
-      logs = [l.log_message for l in log_items]
+    log_items = data_store.REL_DB.ReadFlowLogEntries(client_id, flow_id, 0, 100)
+    logs = [l.message for l in log_items]
 
     self.assertIn("Unable to retrieve ACPI table with signature ABC", logs)
 

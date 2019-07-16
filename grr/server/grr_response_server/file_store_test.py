@@ -15,9 +15,7 @@ from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
-
 
 POSITIONAL_ARGS = 0
 KEYWORD_ARGS = 1
@@ -193,7 +191,7 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     file_store.AddFilesWithUnknownHashes({})
 
   def testDoesNotFailForEmptyFiles(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     paths = []
     for idx in range(100):
@@ -220,7 +218,7 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     foo_path = db.ClientPath.OS(client_id=client_id, components=("foo",))
     bar_path = db.ClientPath.OS(client_id=client_id, components=("bar",))
 
@@ -248,7 +246,7 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     data_store.BLOBS.WriteBlobs(dict(zip(foo_blob_ids, foo_blobs)))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     foo_path = db.ClientPath.OS(client_id=client_id, components=("foo", "quux"))
     bar_path = db.ClientPath.OS(client_id=client_id, components=("bar", "blag"))
 
@@ -262,7 +260,7 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     self.assertEqual(hash_ids[bar_path], bar_hash_id)
 
   def testLargeNumberOfPaths(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     paths = []
     for idx in range(1337):
@@ -299,7 +297,7 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     bar_hash_id = rdf_objects.SHA256HashID.FromData(b"".join(bar_blobs))
     data_store.BLOBS.WriteBlobs(dict(zip(bar_blob_ids, bar_blobs)))
 
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     foo_path = db.ClientPath.OS(client_id=client_id, components=("foo",))
     bar_path = db.ClientPath.OS(client_id=client_id, components=("bar",))
 
@@ -313,12 +311,12 @@ class AddFilesWithUnknownHashesTest(test_lib.GRRBaseTest):
     self.assertEqual(hash_ids[bar_path], bar_hash_id)
 
 
-class OpenFileTest(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
+class OpenFileTest(test_lib.GRRBaseTest):
   """Tests for OpenFile."""
 
   def setUp(self):
     super(OpenFileTest, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
     self.client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
     blob_size = 10
@@ -409,8 +407,7 @@ class OpenFileTest(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
     self.assertEqual(fd.read(), self.data)
 
 
-class StreamFilesChunksTest(db_test_lib.RelationalDBEnabledMixin,
-                            test_lib.GRRBaseTest):
+class StreamFilesChunksTest(test_lib.GRRBaseTest):
   """Tests for StreamFilesChunks."""
 
   def _WriteFile(self, client_path, blobs_range=None):
@@ -427,8 +424,8 @@ class StreamFilesChunksTest(db_test_lib.RelationalDBEnabledMixin,
 
   def setUp(self):
     super(StreamFilesChunksTest, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
-    self.client_id_other = self.SetupClient(1).Basename()
+    self.client_id = self.SetupClient(0)
+    self.client_id_other = self.SetupClient(1)
 
     self.blob_size = 10
     self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size,

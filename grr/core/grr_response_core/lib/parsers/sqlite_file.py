@@ -9,7 +9,6 @@ import logging
 import os
 import tempfile
 
-
 from sqlite3 import dbapi2 as sqlite
 
 

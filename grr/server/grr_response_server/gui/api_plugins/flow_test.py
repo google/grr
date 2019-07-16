@@ -9,7 +9,6 @@ import os
 import tarfile
 import zipfile
 
-
 from absl import app
 from future.builtins import str
 import yaml
@@ -20,7 +19,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import compatibility
-from grr_response_server import aff4
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
@@ -30,14 +29,12 @@ from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiFlowIdTest(db_test_lib.RelationalDBEnabledMixin,
-                    rdf_test_base.RDFValueTestMixin,
+class ApiFlowIdTest(rdf_test_base.RDFValueTestMixin,
                     hunt_test_lib.StandardHuntTestMixin, test_lib.GRRBaseTest):
   """Test for ApiFlowId."""
 
@@ -56,35 +53,16 @@ class ApiFlowTest(test_lib.GRRBaseTest):
 
   def testInitializesClientIdForClientBasedFlows(self):
     client_id = self.SetupClient(0)
-    flow_urn = flow.StartAFF4Flow(
-        # Override base session id, so that the flow URN looks
-        # like: aff4:/F:112233
-        base_session_id="aff4:/",
-        client_id=client_id,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    flow_api_obj = flow_plugin.ApiFlow().InitFromAff4Object(
-        flow_obj, flow_id=flow_urn.Basename())
-
-    self.assertIsNone(flow_api_obj.client_id)
-
-  def testLeavesClientIdEmptyForNonClientBasedFlows(self):
-    client_id = self.SetupClient(0)
-    flow_urn = flow.StartAFF4Flow(
-        client_id=client_id,
-        flow_name=processes.ListProcesses.__name__,
-        token=self.token)
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    flow_api_obj = flow_plugin.ApiFlow().InitFromAff4Object(
-        flow_obj, flow_id=flow_urn.Basename())
+    flow_id = flow.StartFlow(
+        client_id=client_id, flow_cls=processes.ListProcesses)
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
 
     self.assertEqual(flow_api_obj.client_id,
                      client_plugin.ApiClientId(client_id))
 
 
-class ApiCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest):
+class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateFlowHandler."""
 
   def setUp(self):
@@ -97,7 +75,7 @@ class ApiCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
         base_session_id="aff4:/foo")
     args = flow_plugin.ApiCreateFlowArgs(
-        client_id=self.client_id.Basename(),
+        client_id=self.client_id,
         flow=flow_plugin.ApiFlow(
             name=processes.ListProcesses.__name__,
             runner_args=flow_runner_args))
@@ -106,8 +84,7 @@ class ApiCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertNotStartsWith(str(result.urn), "aff4:/foo")
 
 
-class ApiGetFlowFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        api_test_lib.ApiCallHandlerTest):
+class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiGetFlowFilesArchiveHandler."""
 
   def setUp(self):
@@ -171,10 +148,9 @@ class ApiGetFlowFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(manifest["failed_files"], 0)
     self.assertEqual(manifest["processed_files"], 1)
     self.assertEqual(manifest["ignored_files"], 1)
-    self.assertEqual(manifest["ignored_files_list"], [
-        utils.SmartUnicode(
-            self.client_id.Add("fs/os").Add(self.base_path).Add("test.plist"))
-    ])
+    self.assertEqual(
+        manifest["ignored_files_list"],
+        ["aff4:/%s/fs/os%s/test.plist" % (self.client_id, self.base_path)])
 
   def testArchivesFileMatchingPathGlobsWhitelist(self):
     handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
@@ -207,10 +183,9 @@ class ApiGetFlowFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(manifest["failed_files"], 0)
     self.assertEqual(manifest["processed_files"], 1)
     self.assertEqual(manifest["ignored_files"], 1)
-    self.assertEqual(manifest["ignored_files_list"], [
-        utils.SmartUnicode(
-            self.client_id.Add("fs/os").Add(self.base_path).Add("test.plist"))
-    ])
+    self.assertEqual(
+        manifest["ignored_files_list"],
+        ["aff4:/%s/fs/os%s/test.plist" % (self.client_id, self.base_path)])
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
@@ -245,15 +220,14 @@ class ApiGetFlowFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         self.assertEqual(manifest["ignored_files"], 0)
 
 
-class ApiGetExportedFlowResultsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                           test_lib.GRRBaseTest):
+class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiGetExportedFlowResultsHandler."""
 
   def setUp(self):
     super(ApiGetExportedFlowResultsHandlerTest, self).setUp()
 
     self.handler = flow_plugin.ApiGetExportedFlowResultsHandler()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):

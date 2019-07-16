@@ -42,7 +42,7 @@ config_lib.DEFINE_option(
         rdfclass=rdf_standard.DomainEmailAddress,
         name="Monitoring.alert_email",
         description="The email address to send events to.",
-        default="grr-monitoring@localhost"))
+        default=None))
 
 config_lib.DEFINE_option(
     type_info.RDFValueType(

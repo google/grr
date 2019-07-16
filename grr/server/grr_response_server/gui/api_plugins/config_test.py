@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.utils import iteritems
 import mock
@@ -161,14 +160,14 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRendersRedacted(self):
     input_dict = {
         "Mysql": {
-            "database_password": {
+            "password": {
                 "value": u"secret",
                 "raw_value": u"secret"
             }
         }
     }
-    result = self._HandleConfigOption(input_dict, "Mysql.database_password")
-    self.assertEqual(result.name, "Mysql.database_password")
+    result = self._HandleConfigOption(input_dict, "Mysql.password")
+    self.assertEqual(result.name, "Mysql.password")
     self.assertTrue(result.is_redacted)
 
 
@@ -181,13 +180,13 @@ class ApiGrrBinaryTestMixin(object):
       upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
           "windows/test.exe")
       maintenance_utils.UploadSignedConfigBlob(
-          code.encode("utf-8"), aff4_path=upload_path, token=self.token)
+          code.encode("utf-8"), aff4_path=upload_path)
 
     with test_lib.FakeTime(43):
       code = "I'm a python hack"
       upload_path = signed_binary_utils.GetAFF4PythonHackRoot().Add("test")
       maintenance_utils.UploadSignedConfigBlob(
-          code.encode("utf-8"), aff4_path=upload_path, token=self.token)
+          code.encode("utf-8"), aff4_path=upload_path)
 
 
 def main(argv):

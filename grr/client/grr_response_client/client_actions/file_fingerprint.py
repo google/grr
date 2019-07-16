@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import hashlib
 
-
 from grr_response_core.lib import fingerprint
 from grr_response_client import vfs
 from grr_response_client.client_actions import standard

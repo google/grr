@@ -5,11 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_server import aff4
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import data_store
-from grr_response_server import flow
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
 class Error(Exception):
@@ -45,43 +42,22 @@ class FlowThrottler(object):
     self.daily_req_limit = daily_req_limit
     self.dup_interval = dup_interval
 
-  def _LoadFlows(self, client_id, min_create_time, token):
+  def _LoadFlows(self, client_id, min_create_time):
     """Yields all flows for the given client_id and time range.
 
     Args:
-      client_id: client URN
+      client_id: Client id string.
       min_create_time: minimum creation time (inclusive)
-      token: acl token
     Yields: flow_objects.Flow objects
     """
-    if data_store.RelationalDBEnabled():
-      if isinstance(client_id, rdfvalue.RDFURN):
-        client_id = client_id.Basename()
+    flow_list = data_store.REL_DB.ReadAllFlowObjects(
+        client_id=client_id,
+        min_create_time=min_create_time,
+        include_child_flows=False)
+    for flow_obj in flow_list:
+      yield flow_obj
 
-      flow_list = data_store.REL_DB.ReadAllFlowObjects(
-          client_id=client_id,
-          min_create_time=min_create_time,
-          include_child_flows=False)
-      for flow_obj in flow_list:
-        yield flow_obj
-    else:
-      now = rdfvalue.RDFDatetime.Now()
-      client_id_urn = rdf_client.ClientURN(client_id)
-      flows_dir = aff4.FACTORY.Open(client_id_urn.Add("flows"), token=token)
-      # Save DB roundtrips by checking both conditions at once.
-      flow_list = flows_dir.ListChildren(
-          age=(min_create_time.AsMicrosecondsSinceEpoch(),
-               now.AsMicrosecondsSinceEpoch()))
-      for flow_obj in aff4.FACTORY.MultiOpen(flow_list, token=token):
-        yield rdf_flow_objects.Flow(
-            args=flow_obj.args,
-            flow_class_name=flow_obj.runner_args.flow_name,
-            flow_id=flow_obj.urn.Basename(),
-            create_time=flow_obj.context.create_time,
-            creator=flow_obj.creator,
-        )
-
-  def EnforceLimits(self, client_id, user, flow_name, flow_args, token=None):
+  def EnforceLimits(self, client_id, user, flow_name, flow_args):
     """Enforce DailyFlowRequestLimit and FlowDuplicateInterval.
 
     Look at the flows that have run on this client recently and check
@@ -93,7 +69,6 @@ class FlowThrottler(object):
       user: username string
       flow_name: flow name string
       flow_args: flow args rdfvalue for the flow being launched
-      token: acl token
 
     Raises:
       DailyFlowRequestLimitExceededError: if the user has already run
@@ -110,12 +85,12 @@ class FlowThrottler(object):
     min_create_time = min(yesterday, dup_boundary)
 
     flow_count = 0
-    flows = self._LoadFlows(client_id, min_create_time, token=token)
+    flow_objs = self._LoadFlows(client_id, min_create_time)
 
     if flow_args is None:
-      flow_args = flow.EmptyFlowArgs()
+      flow_args = rdf_flows.EmptyFlowArgs()
 
-    for flow_obj in flows:
+    for flow_obj in flow_objs:
       if (flow_obj.create_time > dup_boundary and
           flow_obj.flow_class_name == flow_name and flow_obj.args == flow_args):
         raise DuplicateFlowError(

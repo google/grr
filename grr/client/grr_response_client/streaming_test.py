@@ -9,7 +9,6 @@ import functools
 import io
 import os
 
-
 from absl import app
 from absl.testing import absltest
 from future.utils import with_metaclass

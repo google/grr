@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import functools
 import platform
 
-
 from typing import Any, Optional, Callable, Dict, Type
 
 from grr_response_client.vfs_handlers import base as vfs_base

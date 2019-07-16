@@ -25,12 +25,10 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -38,11 +36,8 @@ from grr.test_lib import test_lib
 # pylint:mode=test
 
 
-class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
-                         flow_test_lib.FlowTestsBaseclass):
+class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the FileFinder flow."""
-
-  flow_base_cls = flow.GRRFlow
 
   def FileNameToURN(self, fname):
     return rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
@@ -78,7 +73,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
                            "hashes: %s" % fname)
 
       path_info = data_store.REL_DB.ReadPathInfo(
-          self.client_id.Basename(),
+          self.client_id,
           rdf_objects.PathInfo.PathType.OS,
           components=self.FilenameToPathComponents(fname))
       hash_obj = path_info.hash_entry
@@ -91,7 +86,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     for fname in fnames:
       try:
         path_info = data_store.REL_DB.ReadPathInfo(
-            self.client_id.Basename(),
+            self.client_id,
             rdf_objects.PathInfo.PathType.OS,
             components=self.FilenameToPathComponents(fname))
         self.assertFalse(path_info.HasField("hash_entry"))
@@ -101,19 +96,20 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
   def CheckFilesDownloaded(self, fnames):
     for fname in fnames:
       path_info = data_store.REL_DB.ReadPathInfo(
-          self.client_id.Basename(),
+          self.client_id,
           rdf_objects.PathInfo.PathType.OS,
           components=self.FilenameToPathComponents(fname))
       size = path_info.stat_entry.st_size
 
-      with io.open(os.path.join(self.base_path, "searching", fname)) as fd:
+      filepath = os.path.join(self.base_path, "searching", fname)
+      with io.open(filepath, mode="rb") as fd:
         test_data = fd.read()
 
       self.assertEqual(size, len(test_data))
 
       fd = file_store.OpenFile(
           db.ClientPath(
-              self.client_id.Basename(),
+              self.client_id,
               rdf_objects.PathInfo.PathType.OS,
               components=self.FilenameToPathComponents(fname)))
 
@@ -125,7 +121,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       try:
         file_store.OpenFile(
             db.ClientPath(
-                self.client_id.Basename(),
+                self.client_id,
                 rdf_objects.PathInfo.PathType.OS,
                 components=self.FilenameToPathComponents(fname)))
         self.Fail("Found downloaded file: %s" % fname)
@@ -145,8 +141,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       self.assertIsInstance(r, rdf_file_finder.FileFinderResult)
 
     self.assertCountEqual(
-        [r.stat_entry.AFF4Path(self.client_id).Basename() for r in results],
-        fnames)
+        [os.path.basename(r.stat_entry.pathspec.path) for r in results], fnames)
 
   def CheckReplies(self, replies, action, expected_files):
     reply_count = 0
@@ -242,35 +237,37 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
   def testFileFinderStat(self):
     files_to_check = [
         # Some files.
-        "netgroup",
+        "VFSFixture/etc/netgroup",
         "osx_fsdata",
         # Matches lsb-release, lsb-release-bad, lsb-release-notubuntu
-        "lsb-release*",
+        "parser_test/lsb-release*",
         # Some directories.
         "a",
         "checks",
         "profiles"
     ]
 
-    paths = [os.path.join(self.fixture_path, name) for name in files_to_check]
-    expected_files = []
+    paths = [os.path.join(self.base_path, name) for name in files_to_check]
+    expected_paths = []
     for name in paths:
       for result in glob.glob(name):
-        expected_files.append(self.FileNameToURN(os.path.basename(result)))
+        expected_paths.append(result)
 
     # There was a bug in FileFinder with files/directories in the root dir.
     paths.append("/bin")
-    expected_files.append(self.client_id.Add("fs/os/bin"))
+    expected_paths.append("/bin")
+
+    # Make sure all the files still exist.
+    self.assertLen(expected_paths, 9)
 
     results = self.RunFlow(
         action=rdf_file_finder.FileFinderAction(
             action_type=rdf_file_finder.FileFinderAction.Action.STAT),
         paths=paths)
 
-    stat_entries = [result.stat_entry for result in results]
-    result_paths = [stat.AFF4Path(self.client_id) for stat in stat_entries]
+    result_paths = [r.stat_entry.pathspec.path for r in results]
 
-    self.assertCountEqual(expected_files, result_paths)
+    self.assertCountEqual(expected_paths, result_paths)
 
   FS_NODUMP_FL = 0x00000040
   FS_UNRM_FL = 0x00000002
@@ -356,7 +353,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       self.assertLen(results[0].matches, 1)
       self.assertEqual(results[0].matches[0].offset, 350)
       self.assertEqual(results[0].matches[0].data,
-                       "session): session opened for user dearjohn by (uid=0")
+                       b"session): session opened for user dearjohn by (uid=0")
 
   def testLiteralMatchConditionWithHexEncodedValue(self):
     match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
@@ -407,7 +404,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       self.assertLen(results[0].matches, 1)
       self.assertEqual(results[0].matches[0].offset, 350)
       self.assertEqual(results[0].matches[0].data,
-                       "session): session opened for user dearjohn by (uid=0")
+                       b"session): session opened for user dearjohn by (uid=0")
 
   def testTwoRegexMatchConditionsWithDifferentActions1(self):
     expected_files = ["auth.log"]
@@ -443,10 +440,10 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       self.assertLen(results[0].matches, 2)
       self.assertEqual(results[0].matches[0].offset, 350)
       self.assertEqual(results[0].matches[0].data,
-                       "session): session opened for user dearjohn by (uid=0")
+                       b"session): session opened for user dearjohn by (uid=0")
       self.assertEqual(results[0].matches[1].offset, 513)
       self.assertEqual(results[0].matches[1].data,
-                       "rong line format.... should not be he")
+                       b"rong line format.... should not be he")
 
   def testTwoRegexMatchConditionsWithDifferentActions2(self):
     expected_files = ["auth.log"]
@@ -480,7 +477,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       self.assertLen(results[0].matches, 2)
       self.assertEqual(results[0].matches[0].offset, 350)
       self.assertEqual(results[0].matches[0].data,
-                       "session): session opened for user dearjohn by (uid=0")
+                       b"session): session opened for user dearjohn by (uid=0")
       self.assertEqual(results[0].matches[1].offset, 0)
       self.assertEqual(results[0].matches[1].length, 770)
 
@@ -698,15 +695,15 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
                               path_type=rdf_objects.PathInfo.PathType.TSK):
     components = self.base_path.strip("/").split("/")
     components += path_components
-    return data_store.REL_DB.ListChildPathInfos(self.client_id.Basename(),
-                                                path_type, tuple(components))
+    return data_store.REL_DB.ListChildPathInfos(self.client_id, path_type,
+                                                tuple(components))
 
   def _ReadTestPathInfo(self,
                         path_components,
                         path_type=rdf_objects.PathInfo.PathType.TSK):
     components = self.base_path.strip("/").split("/")
     components += path_components
-    return data_store.REL_DB.ReadPathInfo(self.client_id.Basename(), path_type,
+    return data_store.REL_DB.ReadPathInfo(self.client_id, path_type,
                                           tuple(components))
 
   def _ReadTestFile(self,
@@ -716,8 +713,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     components += path_components
 
     fd = file_store.OpenFile(
-        db.ClientPath(
-            self.client_id.Basename(), path_type, components=tuple(components)))
+        db.ClientPath(self.client_id, path_type, components=tuple(components)))
     return fd.read(10000000)
 
   def testRecursiveADSHandling(self):
@@ -738,11 +734,11 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(children, 4)
 
     data = self._ReadTestFile(["ntfs_img.dd:32256", "adstest", "a.txt"])
-    self.assertEqual(data, "This is a.txt")
+    self.assertEqual(data, b"This is a.txt")
     data = self._ReadTestFile(["ntfs_img.dd:32256", "adstest", "a.txt:ads.txt"])
-    self.assertEqual(data, "This is the ads for a.txt")
+    self.assertEqual(data, b"This is the ads for a.txt")
     data = self._ReadTestFile(["ntfs_img.dd:32256", "adstest", "dir:ads.txt"])
-    self.assertEqual(data, "This is the dir ads")
+    self.assertEqual(data, b"This is the dir ads")
 
   def _CheckSubdir(self):
     base_components = ["ntfs_img.dd:32256", "adstest", "dir"]
@@ -752,11 +748,11 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(children, 3)
 
     data = self._ReadTestFile(base_components + ["b.txt"])
-    self.assertEqual(data, "This is b.txt")
+    self.assertEqual(data, b"This is b.txt")
     data = self._ReadTestFile(base_components + ["b.txt:ads.txt"])
-    self.assertEqual(data, "This is the ads for b.txt")
+    self.assertEqual(data, b"This is the ads for b.txt")
     data = self._ReadTestFile(base_components + ["no_ads.txt"])
-    self.assertEqual(data, "This file has no ads")
+    self.assertEqual(data, b"This file has no ads")
 
   def testEmptyPathListDoesNothing(self):
     flow_test_lib.TestFlowHelper(
@@ -820,8 +816,7 @@ class TestFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(efs.call_count, 1)
 
 
-class TestClientFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
-                               flow_test_lib.FlowTestsBaseclass):
+class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the ClientFileFinder flow."""
 
   def setUp(self):
@@ -904,7 +899,7 @@ class TestClientFileFinderFlow(db_test_lib.RelationalDBEnabledMixin,
       original_path = r.stat_entry.pathspec.path
       fd = file_store.OpenFile(
           db.ClientPath(
-              self.client_id.Basename(),
+              self.client_id,
               rdf_objects.PathInfo.PathType.OS,
               components=original_path.strip("/").split("/")))
 

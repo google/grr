@@ -70,30 +70,6 @@ class ApiFlowId(rdfvalue.RDFString):
           raise ValueError("Invalid flow id: %s (%s)" %
                            (utils.SmartStr(self._value), e))
 
-  def ResolveCronJobFlowURN(self, cron_job_id):
-    """Resolve a URN of a flow with this id belonging to a given cron job."""
-    if not self._value:
-      raise ValueError("Can't call ResolveCronJobFlowURN on an empty "
-                       "client id.")
-
-    return cron_job_id.ToURN().Add(self._value)
-
-  def ResolveClientFlowURN(self, client_id):
-    """Resolve a URN of a flow with this id belonging to a given client.
-
-    Args:
-      client_id: Id of a client where this flow is supposed to be found on.
-
-    Returns:
-      RDFURN pointing to a flow identified by this flow id and client id.
-    Raises:
-      ValueError: if this flow id is not initialized.
-    """
-    if not self._value:
-      raise ValueError("Can't call ResolveClientFlowURN on an empty client id.")
-
-    return client_id.ToClientURN().Add("flows").Add(self._value)
-
   def Split(self):
     if not self._value:
       raise ValueError("Can't call Split() on an empty client id.")
@@ -127,8 +103,9 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
   def _GetCallingPrototypeAsString(self, flow_cls):
     """Get a description of the calling prototype for this flow class."""
     output = []
-    output.append("flow.StartAFF4Flow(client_id=client_id, ")
-    output.append("flow_name=\"%s\", " % flow_cls.__name__)
+    output.append("flow.StartFlow(client_id=client_id, ")
+    output.append("flow_cls=%s.%s, " %
+                  (flow_cls.__module__.split(".")[-1], flow_cls.__name__))
     prototypes = []
     if flow_cls.args_type:
       for type_descriptor in flow_cls.args_type.type_infos:
@@ -218,7 +195,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       flow_name = self.runner_args.flow_name
 
     if flow_name:
-      flow_cls = registry.AFF4FlowRegistry.FlowClassByName(flow_name)
+      flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
@@ -483,8 +460,9 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowRequestsResult
 
   def Handle(self, args, token=None):
+    client_id = args.client_id.ToString()
     requests_and_responses = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-        str(args.client_id), str(args.flow_id))
+        client_id, str(args.flow_id))
 
     result = ApiListFlowRequestsResult()
     stop = None
@@ -493,12 +471,11 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
 
     for request, response_dict in itertools.islice(requests_and_responses,
                                                    args.offset, stop):
-      client_urn = args.client_id.ToClientURN()
       request_state = rdf_flow_runner.RequestState(
-          client_id=client_urn,
+          client_id=client_id,
           id=request.request_id,
           next_state=request.next_state,
-          session_id=client_urn.Add("flows").Add(str(request.flow_id)))
+          session_id="{}/flows/{}".format(client_id, str(request.flow_id)))
       api_request = ApiFlowRequest(
           request_id=str(request.request_id), request_state=request_state)
 
@@ -666,7 +643,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   def _WrapContentGenerator(self, generator, flow_results, args, token=None):
     try:
-      for item in generator.Generate(flow_results, token=token):
+      for item in generator.Generate(flow_results):
         yield item
 
       notification.Notify(
@@ -690,7 +667,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     if self.path_globs_whitelist is None:
       return None
 
-    kb = data_store_utils.GetClientKnowledgeBase(client_id, token=token)
+    kb = data_store_utils.GetClientKnowledgeBase(client_id)
 
     blacklist_regexes = []
     for expression in self.path_globs_blacklist:
@@ -746,7 +723,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         description=description,
         archive_format=archive_format,
         predicate=self._BuildPredicate(unicode(args.client_id), token=token),
-        client_id=args.client_id.ToClientURN())
+        client_id=args.client_id.ToString())
     content_generator = self._WrapContentGenerator(
         generator, flow_results, args, token=token)
     return api_call_handler_base.ApiBinaryStream(
@@ -1131,7 +1108,8 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
     # TODO(user): Instant output plugins shouldn't depend on tokens
     # and URNs.
-    flow_urn = args.client_id.ToClientURN().Add("flows/{}".format(args.flow_id))
+    flow_urn = rdfvalue.RDFURN("{}/flows/{}".format(args.client_id,
+                                                    args.flow_id))
     plugin = plugin_cls(source_urn=flow_urn, token=token)
 
     client_id = str(args.client_id)

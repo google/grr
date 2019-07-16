@@ -17,7 +17,6 @@ import sys
 import time
 import zlib
 
-
 from absl import flags
 import psutil
 from typing import Text

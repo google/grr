@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 import mock
 
@@ -16,16 +15,13 @@ from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.output_plugins import sqlite_plugin
 from grr_response_server.output_plugins import yaml_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHuntResultsView(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumHuntTest):
+class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testHuntResultsView(self):
-    hunt_urn, _ = self.CreateGenericHuntWithCollection()
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection()
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -39,31 +35,30 @@ class TestHuntResultsView(db_test_lib.RelationalDBEnabledMixin,
 
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/1")
     self.WaitUntil(self.IsTextPresent,
-                   "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0].Basename())
+                   "aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0])
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
-    self.RequestAndGrantClientApproval(self.client_ids[0].Basename())
+    self.RequestAndGrantClientApproval(self.client_ids[0])
 
-    self.Click("link=aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0].Basename())
+    self.Click("link=aff4:/%s/fs/os/c/bin/bash" % self.client_ids[0])
     self.WaitUntil(self.IsElementPresent,
                    "css=li.active a:contains('Browse Virtual Filesystem')")
 
   def testClientSummaryModalIsShownWhenClientInfoButtonClicked(self):
-    hunt_urn, client_id = self.CreateGenericHuntWithCollection(
+    hunt_id, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])
 
-    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_id)
     self.Click("css=td:contains('%s') button:has(.glyphicon-info-sign)" %
-               self.client_ids[0].Basename())
+               self.client_ids[0])
 
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=.modal-dialog:contains('Client %s')" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.modal-dialog:contains('Client %s')" % client_id)
 
   def testResultsViewGetsAutoRefreshed(self):
-    hunt_urn, client_id = self.CreateGenericHuntWithCollection(
+    hunt_id, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])
-    hunt_id = hunt_urn.Basename()
+    hunt_id = hunt_id
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.
@@ -79,16 +74,16 @@ class TestHuntResultsView(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-results-collection td:contains('bar-result')")
 
-    self.AddResultsToHunt(hunt_urn, client_id,
+    self.AddResultsToHunt(hunt_id, client_id,
                           [rdfvalue.RDFString("bar-result")])
 
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-results-collection td:contains('bar-result')")
 
   def testDownloadAsPanelNotShownForEmptyHuntResults(self):
-    hunt_urn, _ = self.CreateGenericHuntWithCollection([])
+    hunt_id, _ = self.CreateGenericHuntWithCollection([])
 
-    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_id)
 
     self.WaitUntil(self.IsTextPresent, "Value")
     self.WaitUntilNot(self.IsElementPresent, "css=grr-download-collection-as")
@@ -123,9 +118,9 @@ class TestHuntResultsView(db_test_lib.RelationalDBEnabledMixin,
 
   def checkHuntResultsCanBeDownloadedAsType(self, mock_method, plugin,
                                             plugin_display_name):
-    hunt_urn, _ = self.CreateGenericHuntWithCollection()
+    hunt_id, _ = self.CreateGenericHuntWithCollection()
 
-    self.Open("/#/hunts/%s/results" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s/results" % hunt_id)
     self.Select("id=plugin-select", plugin_display_name)
     self.Click("css=grr-download-collection-as button[name='download-as']")
 
@@ -135,7 +130,7 @@ class TestHuntResultsView(db_test_lib.RelationalDBEnabledMixin,
         # and once for GET methods.
         mock_method.assert_called_with(
             api_hunt.ApiGetExportedHuntResultsArgs(
-                hunt_id=hunt_urn.Basename(), plugin_name=plugin),
+                hunt_id=hunt_id, plugin_name=plugin),
             token=mock.ANY)
 
         return True

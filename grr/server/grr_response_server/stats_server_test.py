@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import io
 
-
 from absl import app
 import mock
 import prometheus_client

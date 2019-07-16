@@ -8,74 +8,45 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_server.aff4_objects import aff4_grr
-
-from grr_response_server.aff4_objects import standard as aff4_standard
 
 
 # This file is mostly data so,
 # pylint: disable=g-continuation-in-parens-misaligned,g-line-too-long
 
 
-# This dict represents a client VFS. It is a list of (path, attributes) tuples,
-# where attributes is a tuple of AFF4 object type and a dict of attributes. All
+# This dict represents a client VFS. It is a list of (path, object) tuples,
+# where object is a tuple of object name and a dict of attributes. All
 # strings can contain interpolation strings, and protobufs are encoded in text
 # form for readability and interpolation-ability.
 VFS = [
-    (u"/", (aff4_grr.VFSGRRClient, {
-        "metadata:hostname": "Host%(client_id)s",
-        "metadata:system": "Windows",
-        "metadata:os_release": "7",
-        "metadata:os_version": "6.1.7600",
-        "metadata:uname": "Windows-6.1.7600-7",
-        "metadata:clock": "%(age)s329740",
-        "metadata:ping": "%(age)s329740",
-        "metadata:install_date": "1303680521557627",
-        "metadata:ClientInfo": """
-client_name: "GRR Monitor"
-client_version: 1
-revision: 0
-build_time: "unknown"
-labels: "client-label-23"
-""",
-        "aff4:hardware_info": """
-bios_version: "Version 1.23v"
-bios_vendor: "Sample BIOS Vendor"
-system_manufacturer: "Sample System Manufacturer"
-""",
-    })),
-    (u"/fs/os/c/regex.*?][{}--", (aff4_standard.VFSDirectory, {
+    (u"/fs/os/c/regex.*?][{}--", ("Directory", {
         })),
-    # This is unlinked in other VFSDirectory objects - tests if we correctly
+    # This is unlinked in other Directory objects - tests if we correctly
     # merge data store objects.
-    (u"/fs/tsk/c/bin", (aff4_standard.VFSDirectory, {
+    (u"/fs/tsk/c/bin", ("Directory", {
         })),
-    (u"/fs/tsk/c/bin/rbash", (aff4_grr.VFSMemoryFile, {
-        "aff4:size": 12,
-        "aff4:content": b"Hello world",
+    (u"/fs/tsk/c/bin/rbash", ("File", {
+        "content": b"Hello world",
     })),
-    (u"/fs/tsk/c/bin/bash", (aff4_grr.VFSMemoryFile, {
-        "aff4:size": 12,
-        "aff4:content": b"Hello world",
+    (u"/fs/tsk/c/bin/bash", ("File", {
+        "content": b"Hello world",
     })),
-    (u"/fs/os/c/regex\\V.*?]xx[{}--", (aff4_standard.VFSDirectory, {
+    (u"/fs/os/c/regex\\V.*?]xx[{}--", ("Directory", {
         })),
-    (u"/fs/os/c/regex\\V.*?]xx[{}--/regexchild", (aff4_standard.VFSDirectory, {
+    (u"/fs/os/c/regex\\V.*?]xx[{}--/regexchild", ("Directory", {
         })),
-    (u"/fs/os/proc/", (aff4_standard.VFSDirectory, {
+    (u"/fs/os/proc/", ("Directory", {
         })),
-    (u"/fs/os/c/bin %(client_id)s", (aff4_standard.VFSDirectory, {
+    (u"/fs/os/c/bin %(client_id)s", ("Directory", {
         })),
-    (u"/fs/os/c/bin %(client_id)s/rbash", (aff4_grr.VFSMemoryFile, {
-        "aff4:size": 12,
-        "aff4:content": b"Hello world",
+    (u"/fs/os/c/bin %(client_id)s/rbash", ("File", {
+        "content": b"Hello world",
     })),
-    (u"/fs/os/c/bin %(client_id)s/bash", (aff4_grr.VFSMemoryFile, {
-        "aff4:size": 12,
-        "aff4:content": b"Hello world",
+    (u"/fs/os/c/bin %(client_id)s/bash", ("File", {
+        "content": b"Hello world",
     })),
-    (u"/fs/os/c/bin %(client_id)s/pidof", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/pidof", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1286783
@@ -96,8 +67,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/hostname", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/hostname", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026226
@@ -118,8 +89,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin/bash", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin/bash", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026148
@@ -140,8 +111,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/which", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/which", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026179
@@ -162,8 +133,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/netstat", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/netstat", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026192
@@ -184,8 +155,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mount", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mount", ("File", {
+        "stat":
             """
 st_mode: 35309
 st_ino: 1026189
@@ -206,8 +177,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zmore", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zmore", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026275
@@ -228,8 +199,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ksh93", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ksh93", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026210
@@ -250,8 +221,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/rnano", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/rnano", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026214
@@ -272,8 +243,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/sync", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/sync", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026204
@@ -294,8 +265,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mv", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mv", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026181
@@ -316,8 +287,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026258
@@ -338,8 +309,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/umount", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/umount", ("File", {
+        "stat":
             """
 st_mode: 35309
 st_ino: 1026230
@@ -360,8 +331,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/中国新闻网新闻中/bzcmp", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/中国新闻网新闻中/bzcmp", ("File", {
+        "stat":
             u"""
 st_mode: 33261
 st_ino: 1026148
@@ -382,8 +353,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/tailf", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/tailf", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026220
@@ -404,8 +375,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzless", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzless", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026240
@@ -426,8 +397,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dir", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dir", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026250
@@ -448,8 +419,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/setfont", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/setfont", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026219
@@ -470,8 +441,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zegrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zegrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026183
@@ -492,8 +463,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/proc/stat", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/proc/stat", ("File", {
+        "stat":
             """
 st_mode: 33261
 resident: " \\ncpu  114617668 7836954 50675828 1418369363 12839399 70592 632324 0 14217\\ncpu0 29082342 1842609 9317300 355681349 2794715 30088 59242 0 3170\\ncpu1 28922541 2271509 15959609 352451741 3132959 2503 377305 0 3674\\ncpu2 29410623 1856253 9917677 356174053 3732825 23192 117709 0 4343\\ncpu3 27202162 1866583 15481242 354062220 3178900 14809 78068 0 3030\\nctxt 20506983499\\nbtime 1316172528\\nprocesses 66452973\\nprocs_running 2\\nprocs_blocked 0\\n"
@@ -503,9 +474,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/etc/netgroup", (aff4_grr.VFSFile, {
-        "aff4:size": 168,
-        "aff4:stat":
+    (u"/fs/os/etc/netgroup", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026280
@@ -526,9 +496,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/etc/ssh/sshd_config", (aff4_grr.VFSFile, {
-        "aff4:size": 168,
-        "aff4:stat":
+    (u"/fs/os/etc/ssh/sshd_config", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026280
@@ -550,9 +519,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/etc/passwd", (aff4_grr.VFSFile, {
-        "aff4:size": 261,
-        "aff4:stat":
+    (u"/fs/os/etc/passwd", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026280
@@ -573,9 +541,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/var/log/wtmp", (aff4_grr.VFSFile, {
-        "aff4:size": 1537,
-        "aff4:stat":
+    (u"/fs/os/var/log/wtmp", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026280
@@ -596,8 +563,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/Users/scalzi", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/Users/scalzi", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 106118
@@ -616,15 +583,10 @@ pathspec {
   pathtype: OS
   path: "/Users/scalzi"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/Users/scalzi"
 """
     })),
-    (u"/fs/os/Users/Shared", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/Users/Shared", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 106118
@@ -643,16 +605,10 @@ pathspec {
   pathtype: OS
   path: "/Users/Shared"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/Users/Shared"
 """
     })),
-    (u"/fs/os/Users/.localized", (aff4_grr.VFSFile, {
-        "aff4:size": 15,
-        "aff4:stat":
+    (u"/fs/os/Users/.localized", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026280
@@ -673,8 +629,8 @@ pathspec {
 }
 """
     })),
-    (u"/Users/Bert", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/Users/Bert", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 106118
@@ -695,8 +651,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/uname", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/uname", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026280
@@ -717,8 +673,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/nisdomainname", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/nisdomainname", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026229
@@ -739,8 +695,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/sed", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/sed", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026261
@@ -761,8 +717,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/egrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/egrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026253
@@ -783,8 +739,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/touch", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/touch", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026177
@@ -805,8 +761,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin/rbash", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin/rbash", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026236
@@ -827,8 +783,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ksh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ksh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026210
@@ -849,8 +805,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/uncompress", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/uncompress", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026217
@@ -871,8 +827,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/csh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/csh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026157
@@ -893,8 +849,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/true", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/true", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026241
@@ -915,8 +871,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzip2recover", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzip2recover", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026203
@@ -937,8 +893,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/znew", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/znew", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026264
@@ -959,8 +915,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzcat", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzcat", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026224
@@ -981,8 +937,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/static-sh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/static-sh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026159
@@ -1003,8 +959,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zcmp", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zcmp", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026234
@@ -1025,8 +981,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 106118
@@ -1043,8 +999,8 @@ st_blksize: 4096
 st_rdev: 0
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/chgrp", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/chgrp", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026265
@@ -1065,8 +1021,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/pwd", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/pwd", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026167
@@ -1087,8 +1043,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/netcat", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/netcat", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026248
@@ -1109,8 +1065,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/setupcon", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/setupcon", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026169
@@ -1131,8 +1087,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bunzip2", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bunzip2", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026162
@@ -1153,8 +1109,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mail", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mail", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1580605
@@ -1175,8 +1131,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dash", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dash", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026266
@@ -1197,8 +1153,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/domainname", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/domainname", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026239
@@ -1219,8 +1175,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/usleep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/usleep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026218
@@ -1241,8 +1197,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/nc.openbsd", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/nc.openbsd", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026248
@@ -1263,8 +1219,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ypdomainname", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ypdomainname", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026209
@@ -1285,8 +1241,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/less", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/less", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026242
@@ -1307,8 +1263,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ed", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ed", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026272
@@ -1329,8 +1285,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zdiff", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zdiff", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026208
@@ -1351,8 +1307,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/sh.distrib", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/sh.distrib", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026236
@@ -1373,8 +1329,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 1026118
@@ -1393,15 +1349,10 @@ pathspec {
   pathtype: OS
   path: "/c/bin %(client_id)s"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c/bin %(client_id)s"
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/nano", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/nano", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026214
@@ -1422,8 +1373,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/more", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/more", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026147
@@ -1444,8 +1395,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dumpkeys", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dumpkeys", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026156
@@ -1466,8 +1417,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zsh4", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zsh4", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026199
@@ -1488,8 +1439,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ntfs-3g", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ntfs-3g", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026171
@@ -1510,8 +1461,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/cat", (aff4_grr.VFSMemoryFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/cat", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -1532,8 +1483,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dbus-cleanup-sockets", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dbus-cleanup-sockets", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026301
@@ -1554,8 +1505,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dmesg", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dmesg", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026149
@@ -1576,8 +1527,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dbus-daemon", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dbus-daemon", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026292
@@ -1598,8 +1549,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/chmod", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/chmod", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026273
@@ -1620,8 +1571,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dnsdomainname", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dnsdomainname", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026238
@@ -1642,8 +1593,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ntfs-3g.secaudit", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ntfs-3g.secaudit", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026257
@@ -1664,8 +1615,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/plymouth", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/plymouth", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026227
@@ -1686,8 +1637,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/kbd_mode", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/kbd_mode", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026231
@@ -1708,8 +1659,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzip2", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzip2", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026166
@@ -1730,8 +1681,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mountpoint", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mountpoint", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026212
@@ -1752,8 +1703,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/fuser", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/fuser", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026178
@@ -1774,8 +1725,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/unicode_start", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/unicode_start", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026243
@@ -1796,8 +1747,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dd", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dd", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026152
@@ -1818,8 +1769,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/df", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/df", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026150
@@ -1840,8 +1791,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/lsmod", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/lsmod", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026259
@@ -1862,8 +1813,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/open", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/open", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026168
@@ -1884,8 +1835,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ls", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ls", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026249
@@ -1906,8 +1857,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/grep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/grep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026235
@@ -1928,8 +1879,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/false", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/false", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026195
@@ -1950,8 +1901,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/fgrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/fgrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026270
@@ -1972,8 +1923,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ping6", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ping6", ("File", {
+        "stat":
             """
 st_mode: 35309
 st_ino: 1026175
@@ -1994,8 +1945,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ntfs-3g.usermap", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ntfs-3g.usermap", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026281
@@ -2016,8 +1967,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ln", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ln", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026245
@@ -2038,8 +1989,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c/bin", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 1026118
@@ -2058,15 +2009,10 @@ pathspec {
   pathtype: OS
   path: "/c/bin"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c/bin"
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zforce", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zforce", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026190
@@ -2087,8 +2033,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/tempfile", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/tempfile", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026246
@@ -2109,8 +2055,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/chown", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/chown", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026206
@@ -2131,8 +2077,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/kill", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/kill", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026173
@@ -2153,8 +2099,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/vdir", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/vdir", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026153
@@ -2175,8 +2121,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/fgconsole", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/fgconsole", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026155
@@ -2197,8 +2143,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ps", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ps", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026277
@@ -2219,8 +2165,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/chvt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/chvt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026176
@@ -2241,8 +2187,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/lessfile", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/lessfile", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026228
@@ -2263,8 +2209,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/echo", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/echo", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026268
@@ -2285,8 +2231,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ip", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ip", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026164
@@ -2307,23 +2253,18 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/proc/10", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/proc/10", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 pathspec {
   pathtype: OS
   path: "/proc/10"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/proc/10"
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zcat", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zcat", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026158
@@ -2344,8 +2285,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzcmp", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzcmp", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026180
@@ -2366,8 +2307,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzmore", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzmore", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026240
@@ -2388,8 +2329,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/中国新闻网新闻中", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c/中国新闻网新闻中", ("Directory", {
+        "stat":
             u"""
 st_mode: 16877
 st_ino: 1026118
@@ -2408,15 +2349,10 @@ pathspec {
   pathtype: OS
   path: "/c/中国新闻网新闻中"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c/中国新闻网新闻中"
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/cpio", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/cpio", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026269
@@ -2437,8 +2373,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/stty", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/stty", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026225
@@ -2459,8 +2395,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/loadkeys", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/loadkeys", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026211
@@ -2481,8 +2417,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ulockmgr_server", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ulockmgr_server", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026309
@@ -2503,8 +2439,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zless", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zless", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026185
@@ -2525,8 +2461,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zfgrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zfgrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026244
@@ -2547,8 +2483,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/gzexe", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/gzexe", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026223
@@ -2569,8 +2505,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/openvt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/openvt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026168
@@ -2591,8 +2527,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzfgrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzfgrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026182
@@ -2613,8 +2549,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/lesskey", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/lesskey", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026161
@@ -2635,8 +2571,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/gzip", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/gzip", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026252
@@ -2657,8 +2593,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/busybox", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/busybox", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026159
@@ -2679,8 +2615,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mt-gnu", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mt-gnu", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026258
@@ -2701,8 +2637,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/nc", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/nc", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026248
@@ -2723,8 +2659,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/cp", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/cp", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026260
@@ -2745,8 +2681,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bsd-csh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bsd-csh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026157
@@ -2767,8 +2703,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/tcsh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/tcsh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1582543
@@ -2789,8 +2725,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/lessecho", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/lessecho", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026255
@@ -2811,8 +2747,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/lesspipe", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/lesspipe", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026228
@@ -2833,8 +2769,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mkdir", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mkdir", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026184
@@ -2855,8 +2791,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ping", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ping", ("File", {
+        "stat":
             """
 st_mode: 35309
 st_ino: 1026274
@@ -2877,8 +2813,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/keyctl", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/keyctl", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026191
@@ -2899,8 +2835,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zsh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zsh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026199
@@ -2921,8 +2857,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzdiff", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzdiff", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026180
@@ -2943,8 +2879,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/rm", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/rm", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026194
@@ -2965,8 +2901,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/fusermount", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/fusermount", ("File", {
+        "stat":
             """
 st_mode: 35309
 st_ino: 1026308
@@ -2987,8 +2923,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzegrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzegrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026182
@@ -3009,8 +2945,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/readlink", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/readlink", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026278
@@ -3031,8 +2967,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 1026248
@@ -3049,8 +2985,8 @@ st_blksize: 4096
 st_rdev: 0
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mktemp", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mktemp", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026256
@@ -3071,8 +3007,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/proc/10/exe", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/proc/10/exe", ("File", {
+        "stat":
             """
 st_mode: 33261
 symlink: "/bin/ls"
@@ -3082,8 +3018,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/proc", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c/proc", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 1026118
@@ -3102,15 +3038,10 @@ pathspec {
   pathtype: OS
   path: "/c/proc"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c/proc"
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/run-parts", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/run-parts", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026193
@@ -3131,9 +3062,9 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/proc/10/cmdline", (aff4_grr.VFSMemoryFile, {
-        "aff4:content": b"ls\000hello world\'\000-l",
-        "aff4:stat":
+    (u"/fs/os/proc/10/cmdline", ("File", {
+        "content": b"ls\000hello world\'\000-l",
+        "stat":
             """
 st_mode: 33261
 st_size: 18
@@ -3144,9 +3075,9 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/etc/lsb-release", (aff4_grr.VFSMemoryFile, {
-        "aff4:content": b"DISTRIB_ID=Ubuntu\nDISTRIB_RELEASE=14.04\n",
-        "aff4:stat":
+    (u"/fs/os/etc/lsb-release", ("File", {
+        "content": b"DISTRIB_ID=Ubuntu\nDISTRIB_RELEASE=14.04\n",
+        "stat":
             """
 st_mode: 33261
 st_size: 40
@@ -3157,8 +3088,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/bzgrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/bzgrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026182
@@ -3179,8 +3110,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/rzsh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/rzsh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026199
@@ -3201,8 +3132,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/mknod", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/mknod", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026163
@@ -3223,8 +3154,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/ntfs-3g.probe", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/ntfs-3g.probe", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026276
@@ -3245,8 +3176,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 10268
@@ -3265,15 +3196,10 @@ pathspec {
   pathtype: OS
   path: "/c"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c"
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/gunzip", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/gunzip", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026197
@@ -3294,8 +3220,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/rmdir", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/rmdir", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026196
@@ -3316,8 +3242,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/login", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/login", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026186
@@ -3338,8 +3264,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/sleep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/sleep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026279
@@ -3360,8 +3286,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/date", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/date", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026215
@@ -3382,8 +3308,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/sh", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/sh", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026236
@@ -3404,8 +3330,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/proc/10/stat", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/proc/10/stat", ("File", {
+        "stat":
             """
 st_mode: 33261
 resident: "10 (ls) S 0 1 1 0 -1 4202752 31718 3292927869 90 221932 1968 4310 22381445 6056862 20 0 1 0 19 20250624 484 18446744073709551615 1 1 0 0 0 0 0 4096 536962595 18446744073709551615 0 0 0 3 0 0 0 0 8702"
@@ -3415,8 +3341,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/su", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/su", ("File", {
+        "stat":
             """
 st_mode: 35309
 st_ino: 1026154
@@ -3437,8 +3363,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/zgrep", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/zgrep", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026262
@@ -3459,8 +3385,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/tar", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/tar", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026207
@@ -3481,8 +3407,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/bin %(client_id)s/dbus-uuidgen", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/bin %(client_id)s/dbus-uuidgen", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026304
@@ -3503,8 +3429,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 10268
@@ -3523,15 +3449,10 @@ pathspec {
   pathtype: OS
   path: "/c/Downloads"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c/Downloads"
 """
     })),
-    (u"/fs/os/c/Downloads/a.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/a.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3552,8 +3473,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/b.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/b.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3574,8 +3495,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/c.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/c.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3596,8 +3517,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/d.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/d.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3618,8 +3539,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/中国新闻网新闻中.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/中国新闻网新闻中.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3640,8 +3561,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/sub1", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/sub1", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 10268
@@ -3660,15 +3581,10 @@ pathspec {
   pathtype: OS
   path: "/c/Downloads/sub1"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/c/Downloads/sub1"
 """
     })),
-    (u"/fs/os/c/Downloads/sub1/a.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/sub1/a.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3689,8 +3605,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/sub1/b.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/sub1/b.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3711,8 +3627,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/sub1/c.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/sub1/c.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3733,8 +3649,8 @@ pathspec {
 }
 """
     })),
-    (u"/fs/os/c/Downloads/sub1/d.txt", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/fs/os/c/Downloads/sub1/d.txt", ("File", {
+        "stat":
             """
 st_mode: 33261
 st_ino: 1026267
@@ -3758,8 +3674,8 @@ pathspec {
     # The following are registry fixtures for testing registry related stuff.
     # This is for testing CollectRunKeys.
 
-    (u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/Sidebar", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 53
@@ -3774,8 +3690,8 @@ registry_data {
 }
 """
     })),
-    (u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/MctAdmin", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/MctAdmin", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 20
@@ -3790,8 +3706,8 @@ registry_data {
 }
 """
     })),
-    (u"/registry/HKEY_USERS/S-1-5-21-702227000-2140022111-3110739999-1990/Software/Microsoft/Windows/CurrentVersion/Run/NothingToSeeHere", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_USERS/S-1-5-21-702227000-2140022111-3110739999-1990/Software/Microsoft/Windows/CurrentVersion/Run/NothingToSeeHere", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 14
@@ -3807,8 +3723,8 @@ registry_data {
 """
     })),
 
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/Select/Current", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/Select/Current", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 1
@@ -3824,8 +3740,8 @@ registry_data {
 """
     })),
     (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
-     u"Manager/Environment/TEMP", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     u"Manager/Environment/TEMP", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 1
@@ -3841,8 +3757,8 @@ registry_data {
 """
     })),
     (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
-     u"Manager/Environment/windir", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     u"Manager/Environment/windir", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 1
@@ -3858,8 +3774,8 @@ registry_data {
 """
     })),
     (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
-     u"Manager/Environment/Path", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     u"Manager/Environment/Path", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3874,8 +3790,8 @@ registry_data {
 }
 """
     })),
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/StandardName", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/StandardName", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3891,8 +3807,8 @@ registry_data {
 """
     })),
 
-    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Nls/CodePage/ACP", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Nls/CodePage/ACP", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3907,8 +3823,8 @@ registry_data {
 }
 """
     })),
-    (u"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (u"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3924,8 +3840,8 @@ registry_data {
 """
     })),
     (u"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows/CurrentVersion/ProgramFilesDir"
-     u" (x86)", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     u" (x86)", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3941,8 +3857,8 @@ registry_data {
 """
     })),
     (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     r"NT/CurrentVersion/ProfileList/ProgramData", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     r"NT/CurrentVersion/ProfileList/ProgramData", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3960,8 +3876,8 @@ registry_data {
     # TODO: Raw unicode strings are problematic because of the
     # differences in handling `\u` escape sequence in Python 2 and Python 3.
     ("/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     "NT/CurrentVersion/ProfileList/ProfilesDirectory", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     "NT/CurrentVersion/ProfileList/ProfilesDirectory", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3977,8 +3893,8 @@ registry_data {
 """
     })),
     (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     r"NT/CurrentVersion/SystemRoot", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     r"NT/CurrentVersion/SystemRoot", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -3998,8 +3914,8 @@ registry_data {
     # differences in handling `\u` escape sequence in Python 2 and Python 3.
     (
      "/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     "NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     "NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 12
@@ -4019,8 +3935,8 @@ registry_data {
     # differences in handling `\u` escape sequence in Python 2 and Python 3.
     (
      "/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
-     "NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath", (aff4_grr.VFSFile, {
-        "aff4:stat":
+     "NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 21
@@ -4036,8 +3952,8 @@ registry_data {
 """
     })),
 
-    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest", ("Directory", {
+        "stat":
             """
 st_mode: 16887
 st_size: 10
@@ -4052,8 +3968,8 @@ registry_data {
 }
 """
     })),
-    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value1", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value1", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 6
@@ -4068,8 +3984,8 @@ registry_data {
 }
 """
     })),
-    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value2", (aff4_grr.VFSFile, {
-        "aff4:stat":
+    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value2", ("File", {
+        "stat":
             """
 st_mode: 32768
 st_size: 6
@@ -4085,8 +4001,8 @@ registry_data {
 """
     })),
 
-    (u"/fs/os/C:", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/C:", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 10268
@@ -4105,16 +4021,11 @@ pathspec {
   pathtype: OS
   path: "/C:"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/C:"
 """
     })),
 
-    (u"/fs/os/C:/WINDOWS", (aff4_standard.VFSDirectory, {
-        "aff4:stat":
+    (u"/fs/os/C:/WINDOWS", ("Directory", {
+        "stat":
             """
 st_mode: 16877
 st_ino: 10268
@@ -4133,18 +4044,12 @@ pathspec {
   pathtype: OS
   path: "/C:/WINDOWS"
 }
-""",
-        "aff4:pathspec":
-            """
-pathtype: OS
-path: "/C:/WINDOWS"
 """
     })),
 
-    (u"/fs/os/C:/WINDOWS/foo.exe", (aff4_grr.VFSMemoryFile, {
-        "aff4:size": 11,
-        "aff4:content": b"this is foo",
-        "aff4:stat":
+    (u"/fs/os/C:/WINDOWS/foo.exe", ("File", {
+        "content": b"this is foo",
+        "stat":
             """
 st_mode: 33206
 st_size: 11
@@ -4156,10 +4061,9 @@ pathspec {
 """
     })),
 
-    (u"/fs/os/C:/WINDOWS/bar.exe", (aff4_grr.VFSMemoryFile, {
-        "aff4:size": 8,
-        "aff4:content": b"just bar",
-        "aff4:stat":
+    (u"/fs/os/C:/WINDOWS/bar.exe", ("File", {
+        "content": b"just bar",
+        "stat":
             """
 st_mode: 33206
 resident: "just bar"

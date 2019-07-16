@@ -16,13 +16,11 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import transfer
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ArtifactFilesDownloaderFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                                      flow_test_lib.FlowTestsBaseclass):
+class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(ArtifactFilesDownloaderFlowTest, self).setUp()
@@ -33,8 +31,8 @@ class ArtifactFilesDownloaderFlowTest(db_test_lib.RelationalDBEnabledMixin,
       for r in self.collector_replies:
         this.SendReply(r)
 
-    start_stubber = utils.Stubber(collectors.ArtifactCollectorFlowMixin,
-                                  "Start", ArtifactCollectorStub)
+    start_stubber = utils.Stubber(collectors.ArtifactCollectorFlow, "Start",
+                                  ArtifactCollectorStub)
     start_stubber.Start()
     self.addCleanup(start_stubber.Stop)
 

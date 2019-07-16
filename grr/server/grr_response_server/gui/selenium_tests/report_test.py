@@ -3,58 +3,36 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from selenium.webdriver.common import keys
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server import data_store
-from grr_response_server import events
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-def AddFakeAuditLog(description=None,
-                    client=None,
-                    user=None,
-                    action=None,
-                    router_method_name=None,
-                    flow_name=None,
-                    token=None):
-  events.Events.PublishEvent(
-      "Audit",
-      rdf_events.AuditEvent(
-          description=description,
-          client=client,
-          user=user,
-          action=action,
-          flow_name=flow_name),
-      token=token)
-
-  if data_store.RelationalDBEnabled():
-    data_store.REL_DB.WriteAPIAuditEntry(
-        rdf_objects.APIAuditEntry(
-            username=user,
-            router_method_name=router_method_name,
-        ))
+def AddFakeAuditLog(user=None, router_method_name=None):
+  data_store.REL_DB.WriteAPIAuditEntry(
+      rdf_objects.APIAuditEntry(
+          username=user,
+          router_method_name=router_method_name,
+      ))
 
 
-class TestReports(db_test_lib.RelationalDBEnabledMixin,
-                  gui_test_lib.GRRSeleniumTest):
+class TestReports(gui_test_lib.GRRSeleniumTest):
   """Test the reports interface."""
 
   def testReports(self):
     """Test the reports interface."""
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(client="C.123", user="User123", token=self.token)
+      AddFakeAuditLog(user="User123")
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      AddFakeAuditLog(client="C.456", user="User456", token=self.token)
+      AddFakeAuditLog(user="User456")
 
     # Make "test" user an admin.
     self.CreateAdminUser(u"test")

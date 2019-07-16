@@ -10,7 +10,6 @@ import os
 import tarfile
 import zipfile
 
-
 from absl import app
 from future.builtins import str
 
@@ -24,21 +23,18 @@ from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class CollectionArchiveGeneratorTest(db_test_lib.RelationalDBEnabledMixin,
-                                     test_lib.GRRBaseTest):
+class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
   """Test for CollectionArchiveGenerator."""
 
   def setUp(self):
     super(CollectionArchiveGeneratorTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _CreateFile(self, path, content):
+  def _CreateFile(self, client_id, vfs_path, content):
     digest = hashlib.sha256(content).digest()
-    client_id, vfs_path = path.Split(2)
     path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
 
     path_info = rdf_objects.PathInfo()
@@ -56,15 +52,20 @@ class CollectionArchiveGeneratorTest(db_test_lib.RelationalDBEnabledMixin,
     data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
   def _InitializeFiles(self):
-    path1 = self.client_id.Add("fs/os/foo/bar/hello1.txt")
-    archive_path1 = ("test_prefix/%s/fs/os/foo/bar/hello1.txt" %
-                     self.client_id.Basename())
-    self._CreateFile(path=path1, content="hello1".encode("utf-8"))
+    path1 = "fs/os/foo/bar/hello1.txt"
+    archive_path1 = ("test_prefix/%s/fs/os/foo/bar/hello1.txt" % self.client_id)
+    self._CreateFile(
+        client_id=self.client_id,
+        vfs_path=path1,
+        content="hello1".encode("utf-8"))
 
-    path2 = self.client_id.Add("fs/os/foo/bar/中国新闻网新闻中.txt")
+    path2 = "fs/os/foo/bar/中国新闻网新闻中.txt"
     archive_path2 = ("test_prefix/%s/fs/os/foo/bar/"
-                     "中国新闻网新闻中.txt") % self.client_id.Basename()
-    self._CreateFile(path=path2, content="hello2".encode("utf-8"))
+                     "中国新闻网新闻中.txt") % self.client_id
+    self._CreateFile(
+        client_id=self.client_id,
+        vfs_path=path2,
+        content="hello2".encode("utf-8"))
 
     self.stat_entries = []
     self.paths = [path1, path2]
@@ -90,7 +91,7 @@ class CollectionArchiveGeneratorTest(db_test_lib.RelationalDBEnabledMixin,
         description="Test description",
         client_id=self.client_id)
     with open(fd_path, "wb") as out_fd:
-      for chunk in generator.Generate(collection, token=self.token):
+      for chunk in generator.Generate(collection):
         out_fd.write(chunk)
 
     return fd_path
@@ -105,8 +106,7 @@ class CollectionArchiveGeneratorTest(db_test_lib.RelationalDBEnabledMixin,
     zip_fd = zipfile.ZipFile(fd_path)
     names = [str(s) for s in sorted(zip_fd.namelist())]
 
-    client_info_name = ("test_prefix/%s/client_info.yaml" %
-                        self.client_id.Basename())
+    client_info_name = ("test_prefix/%s/client_info.yaml" % self.client_id)
     manifest_name = "test_prefix/MANIFEST"
 
     self.assertCountEqual(
@@ -161,8 +161,7 @@ class CollectionArchiveGeneratorTest(db_test_lib.RelationalDBEnabledMixin,
           tar_fd.extractfile(self.archive_paths[1].encode("utf-8")).read(),
           "hello2")
 
-      client_info_name = ("test_prefix/%s/client_info.yaml" %
-                          self.client_id.Basename())
+      client_info_name = ("test_prefix/%s/client_info.yaml" % self.client_id)
       client_info = yaml.safe_load(tar_fd.extractfile(client_info_name).read())
 
       try:
@@ -243,10 +242,8 @@ class CollectionArchiveGeneratorTest(db_test_lib.RelationalDBEnabledMixin,
                 1,
             "failed_files":
                 0,
-            "ignored_files_list": [
-                "aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" %
-                self.client_id.Basename()
-            ]
+            "ignored_files_list":
+                ["aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" % self.client_id]
         })
 
 

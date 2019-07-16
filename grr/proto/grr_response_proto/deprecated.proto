@@ -335,3 +335,11 @@ message StatsStoreEntry {
     description: "Timestamp for when the metric value was observed.",
   }];
 }
+
+message ApiAff4AttributeDescriptor {
+  optional string name = 1;
+}
+
+message ApiListAff4AttributeDescriptorsResult {
+  repeated ApiAff4AttributeDescriptor items = 1;
+}

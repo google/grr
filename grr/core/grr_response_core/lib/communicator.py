@@ -9,7 +9,6 @@ import struct
 import time
 import zlib
 
-
 from future.builtins import str
 from future.utils import with_metaclass
 

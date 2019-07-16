@@ -48,7 +48,7 @@ class ApiUploadGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
 
     root_urn = _GetBinaryRootUrn(args.type)
     signed_binary_utils.WriteSignedBinaryBlobs(
-        root_urn.Add(args.path), list(args.blobs), token=token)
+        root_urn.Add(args.path), list(args.blobs))
 
 
 class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
@@ -62,9 +62,8 @@ class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
 
     root_urn = _GetBinaryRootUrn(args.type)
     try:
-      signed_binary_utils.DeleteSignedBinary(
-          root_urn.Add(args.path), token=token)
+      signed_binary_utils.DeleteSignedBinary(root_urn.Add(args.path))
     except signed_binary_utils.SignedBinaryNotFoundError:
       raise GrrBinaryNotFoundError(
-          "No binary with type=%s and path=%s was found." % (args.type,
-                                                             args.path))
+          "No binary with type=%s and path=%s was found." %
+          (args.type, args.path))

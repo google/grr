@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 from future.utils import string_types
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -63,8 +62,6 @@ def CollectionItemToClientPath(item, client_id=None):
 
   if client_id is None:
     raise ValueError("Could not determine client_id.")
-  elif isinstance(client_id, rdfvalue.RDFURN):
-    client_id = client_id.Basename()
 
   if isinstance(item, rdf_client_fs.StatEntry):
     return db.ClientPath.FromPathSpec(client_id, item.pathspec)

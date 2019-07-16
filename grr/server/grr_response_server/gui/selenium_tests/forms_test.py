@@ -5,18 +5,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from selenium.webdriver.common import keys
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -24,15 +21,13 @@ class DefaultArgsTestFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.DefaultArgsTestFlowArgs
 
 
-@flow_base.DualDBFlow
-class DefaultArgsTestFlowMixin(object):
+class DefaultArgsTestFlow(flow_base.FlowBase):
   args_type = DefaultArgsTestFlowArgs
   category = "/Tests/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
 
-class TestForms(db_test_lib.RelationalDBEnabledMixin,
-                gui_test_lib.GRRSeleniumTest):
+class TestForms(gui_test_lib.GRRSeleniumTest):
   """Tests basic forms rendering."""
 
   def testControlsWithoutDefaultValuesAreCorrectlyDisplayed(self):
@@ -119,7 +114,7 @@ class TestForms(db_test_lib.RelationalDBEnabledMixin,
     # query
     self.CreateUser("aaa")
 
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.Open("/#/clients/%s/host-info" % client_id)
 
     # We do not have an approval, so we need to request one.
@@ -152,17 +147,16 @@ class TestForms(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(res.items[0].notified_users[0], "sanchezrick")
 
 
-class TestFormsValidation(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumTest):
+class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
   """Tests forms validation in different workflows ."""
 
   def setUp(self):
     super(TestFormsValidation, self).setUp()
-    self.client_urn = self.SetupClient(0)
-    self.RequestAndGrantClientApproval(self.client_urn)
+    self.client_id = self.SetupClient(0)
+    self.RequestAndGrantClientApproval(self.client_id)
 
   def testLaunchFlowButtonIsDisabledIfFlowArgumentsInvalid(self):
-    self.Open("/#/clients/%s/launch-flow" % self.client_urn.Basename())
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
 
     self.Click("css=#_Filesystem a")
     self.Click("link=" + flows_file_finder.FileFinder.friendly_name)
@@ -191,7 +185,7 @@ class TestFormsValidation(db_test_lib.RelationalDBEnabledMixin,
                    "css=button:contains('Launch'):not(:disabled)")
 
   def testLaunchButtonInCopyFlowIsDisabledIfArgumentsInvalid(self):
-    self.Open("/#/clients/%s/launch-flow" % self.client_urn.Basename())
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
 
     # Launch the flow.
     self.Click("css=#_Filesystem a")
@@ -201,7 +195,7 @@ class TestFormsValidation(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=button:contains('Launch')")
 
     # Open the copy dialog.
-    self.Open("/#/clients/%s/flows" % self.client_urn.Basename())
+    self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=tr:contains('%s')" % flows_file_finder.FileFinder.__name__)
     self.Click("css=button[name=copy_flow]")
 

@@ -6,44 +6,39 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.flows.general import webhistory as flows_webhistory
-from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
-                         gui_test_lib.GRRSeleniumTest,
+class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                          hunt_test_lib.StandardHuntTestMixin):
   """Test the flow management GUI."""
 
   def setUp(self):
     super(TestFlowManagement, self).setUp()
 
-    self.client_id = self.SetupClient(0, fqdn="Host000011112222").Basename()
+    self.client_id = self.SetupClient(0, fqdn="Host000011112222")
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testOpeningManageFlowsOfUnapprovedClientRedirectsToHostInfoPage(self):
-    client_id = self.SetupClient(1).Basename()
+    client_id = self.SetupClient(1)
     self.Open("/#/clients/%s/flows/" % client_id)
 
     # As we don't have an approval for the client, we should be
@@ -58,11 +53,11 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     args = flows_transfer.GetFileArgs(pathspec=pathspec)
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_id = flow_test_lib.StartFlow(
         flows_transfer.GetFile,
+        self.client_id,
         flow_args=args,
-        token=self.token)
+        creator=self.token.username)
 
     self.Open("/#/clients/%s/flows/" % self.client_id)
 
@@ -119,8 +114,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
 
     # Test that recursive tests are shown in a tree table.
-    api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self.Click("css=a[grrtarget='client.flows']")
 
@@ -154,8 +151,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "css=.tab-content td.proto_value:contains(Stat)")
 
   def testOverviewIsShownForNestedFlows(self):
-    api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -179,8 +178,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
 
-    flow_1 = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.FlowWithOneLogStatement, token=self.token)
+    flow_1 = flow_test_lib.StartFlow(
+        gui_test_lib.FlowWithOneLogStatement,
+        self.client_id,
+        creator=self.token.username)
 
     # Go to the flows page without refreshing the page, so that
     # AUTO_REFRESH_INTERVAL_MS setting is not reset and wait
@@ -189,8 +190,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_1)
 
     # Create a recursive flow_2 that will appear after auto-refresh.
-    flow_2 = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_2 = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     # Check that the flow we started in the background appears in the list.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_2)
@@ -224,7 +227,7 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=gui_test_lib.RecursiveTestFlow.__name__),
         client_rate=0,
-        token=self.token)
+        creator=self.token.username)
 
     self.RunHunt(failrate=2, client_ids=[self.client_id])
 
@@ -241,8 +244,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "css=td:contains('Depth') ~ td:nth(0):contains('1')")
 
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
-    api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.FlowWithOneLogStatement, token=self.token)
+    flow_test_lib.StartFlow(
+        gui_test_lib.FlowWithOneLogStatement,
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -253,10 +258,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
 
   def testLogTimestampsArePresentedInUTC(self):
     with test_lib.FakeTime(42):
-      api_regression_test_lib.StartFlow(
-          self.client_id,
+      flow_test_lib.StartFlow(
           gui_test_lib.FlowWithOneLogStatement,
-          token=self.token)
+          self.client_id,
+          creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -266,10 +271,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "1970-01-01 00:00:42 UTC")
 
   def testResultsAreDisplayedInResultsTab(self):
-    api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
-        token=self.token)
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -280,11 +285,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "aff4:/%s/fs/os/some/unique/path" % self.client_id)
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
-    # TODO(amoser): This was sync=false.
-    api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
-        token=self.token)
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -295,10 +299,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "th:contains('Value')")
 
   def testHashesAreDisplayedCorrectly(self):
-    api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneHashEntryResult,
-        token=self.token)
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -313,49 +317,11 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
     self.WaitUntil(self.IsTextPresent, "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
-  def testBrokenFlowsAreShown(self):
-    if data_store.RelationalDBEnabled():
-      # Breaking flows this way doesn't make much sense since relational flows
-      # are a flat protobuf. Keeping the test for testing the legacy system
-      # though.
-      return
-
-    flow_urn = flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneHashEntryResult.__name__,
-        self.action_mock,
-        client_id=self.client_id,
-        token=self.token)
-
-    broken_flow_urn = flow_test_lib.TestFlowHelper(
-        gui_test_lib.FlowWithOneHashEntryResult.__name__,
-        self.action_mock,
-        client_id=self.client_id,
-        token=self.token)
-
-    # Break the flow.
-    data_store.DB.DeleteAttributes(broken_flow_urn,
-                                   [flow.GRRFlow.SchemaCls.FLOW_CONTEXT])
-    data_store.DB.Flush()
-
-    flow_id = flow_urn.Basename()
-    broken_flow_id = broken_flow_urn.Basename()
-
-    self.Open("/#/clients/%s/flows" % self.client_id)
-
-    # Both flows are shown in the list even though one is broken.
-    self.WaitUntil(self.IsTextPresent, flow_id)
-    self.WaitUntil(self.IsTextPresent, broken_flow_id)
-
-    # The broken flow shows the error message.
-    self.Click("css=td:contains('%s')" % broken_flow_id)
-    self.WaitUntil(self.IsTextPresent, "Error while Opening")
-    self.WaitUntil(self.IsTextPresent, "Error while opening flow:")
-
   def testApiExampleIsShown(self):
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_id = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
-        token=self.token)
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s/flows/%s/api" % (self.client_id, flow_id))
 
@@ -369,10 +335,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
         '"name": "%s"' % gui_test_lib.FlowWithOneStatEntryResult.__name__)
 
   def testChangingTabUpdatesUrl(self):
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_id = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
-        token=self.token)
+        self.client_id,
+        creator=self.token.username)
 
     base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
@@ -394,10 +360,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntilEqual(base_url + "/api", self.GetCurrentUrlPath)
 
   def testDirectLinksToFlowsTabsWorkCorrectly(self):
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id,
+    flow_id = flow_test_lib.StartFlow(
         gui_test_lib.FlowWithOneStatEntryResult,
-        token=self.token)
+        self.client_id,
+        creator=self.token.username)
 
     base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
@@ -422,8 +388,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
-    api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     # Open client and find the flow
     self.Open("/")
@@ -442,8 +410,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
 
   def testFlowListGetsUpdatedWithNewFlows(self):
-    flow_1 = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_1 = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -457,8 +427,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     # Check that the flow list is correctly loaded.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_1)
 
-    flow_2 = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.FlowWithOneLogStatement, token=self.token)
+    flow_2 = flow_test_lib.StartFlow(
+        gui_test_lib.FlowWithOneLogStatement,
+        self.client_id,
+        creator=self.token.username)
 
     # Check that the flow we started in the background appears in the list.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % flow_2)
@@ -468,8 +440,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     flow_base.TerminateFlow(self.client_id, flow_id, reason)
 
   def testFlowListGetsUpdatedWithChangedFlows(self):
-    f = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    f = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -490,8 +464,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "css=tr:contains('%s') div[state=ERROR]" % f)
 
   def testFlowOverviewGetsUpdatedWhenFlowChanges(self):
-    f = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    f = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self.Open("/#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
@@ -523,8 +499,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
     data_store.REL_DB.WriteFlowLogEntries([entry])
 
   def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self._AddLogToFlow(flow_id, "foo-log")
 
@@ -550,19 +528,15 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "css=grr-flow-log td:contains('bar-log')")
 
   def _AddResultToFlow(self, flow_id, result):
-    if data_store.RelationalDBEnabled():
-      flow_result = rdf_flow_objects.FlowResult(
-          client_id=self.client_id, flow_id=flow_id, payload=result)
-      data_store.REL_DB.WriteFlowResults([flow_result])
-    else:
-      flow_urn = rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)
-      with data_store.DB.GetMutationPool() as pool:
-        flow.GRRFlow.ResultCollectionForFID(flow_urn).Add(
-            result, mutation_pool=pool)
+    flow_result = rdf_flow_objects.FlowResult(
+        client_id=self.client_id, flow_id=flow_id, payload=result)
+    data_store.REL_DB.WriteFlowResults([flow_result])
 
   def testFlowResultsTabGetsUpdatedWhenNewResultsAreAdded(self):
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
@@ -588,8 +562,10 @@ class TestFlowManagement(db_test_lib.RelationalDBEnabledMixin,
                    "css=grr-results-collection td:contains('bar-result')")
 
   def testDownloadFilesPanelIsShownWhenNewResultsAreAdded(self):
-    flow_id = api_regression_test_lib.StartFlow(
-        self.client_id, gui_test_lib.RecursiveTestFlow, token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        gui_test_lib.RecursiveTestFlow,
+        self.client_id,
+        creator=self.token.username)
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 

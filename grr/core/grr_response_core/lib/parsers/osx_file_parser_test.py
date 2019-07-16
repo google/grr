@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 import os
 
-
 from absl import app
 
 from grr_response_core.lib.parsers import osx_file_parser

@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from future.builtins import str
 
 from grr_response_core.lib import parsers
@@ -13,7 +12,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import artifact
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.check_lib import checks
 from grr_response_server.flows.general import collectors
@@ -29,8 +27,7 @@ class CheckFlowArgs(rdf_structs.RDFProtoStruct):
     return rdf_paths.PathSpec.PathType.OS
 
 
-@flow_base.DualDBFlow
-class CheckRunnerMixin(object):
+class CheckRunner(flow_base.FlowBase):
   """This flow runs checks on a host.
 
   CheckRunner:
@@ -43,7 +40,7 @@ class CheckRunnerMixin(object):
   friendly_name = "Run Checks"
   category = "/Checks/"
   args_type = CheckFlowArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Initialize the system check flow."""

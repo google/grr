@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import logging
 
-
 from future.utils import iteritems
 
 from grr_response_core import config
@@ -213,7 +212,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
 
   def _ListSignedBlobs(self, token=None):
     roots = _GetSignedBlobsRoots()
-    binary_urns = signed_binary_utils.FetchURNsForAllSignedBinaries(token=token)
+    binary_urns = signed_binary_utils.FetchURNsForAllSignedBinaries()
     api_binaries = []
     for binary_urn in sorted(binary_urns):
       for binary_type, root in iteritems(roots):
@@ -256,10 +255,8 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     root_urn = _GetSignedBlobsRoots()[args.type]
     binary_urn = root_urn.Add(args.path)
-    binary_size = signed_binary_utils.FetchSizeOfSignedBinary(
-        binary_urn, token=token)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-        binary_urn, token=token)
+    binary_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_urn)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
     chunk_iterator = signed_binary_utils.StreamSignedBinaryContents(
         blob_iterator, chunk_size=self.CHUNK_SIZE)
     return api_call_handler_base.ApiBinaryStream(

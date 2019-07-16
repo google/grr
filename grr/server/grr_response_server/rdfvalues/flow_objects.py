@@ -170,11 +170,6 @@ def _ClientIDFromSessionID(session_id):
   if re.match(r"C\.[0-9a-f]{16}", client_id):
     return client_id
 
-  # Maybe it's a legacy hunt id (aff4:/hunts/<hunt_id>/<client_id>/...
-  client_id = parts[2]
-  if re.match(r"C\.[0-9a-f]{16}", client_id):
-    return client_id
-
   raise ValueError("Unable to parse client id from session_id: %s" % session_id)
 
 

@@ -10,7 +10,6 @@ import os
 import socket
 import struct
 
-
 from absl import app
 from future.builtins import bytes
 import mock

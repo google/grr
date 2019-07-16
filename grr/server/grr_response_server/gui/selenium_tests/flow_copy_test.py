@@ -5,11 +5,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 import mock
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -19,26 +17,24 @@ from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowCopy(db_test_lib.RelationalDBEnabledMixin,
-                   gui_test_lib.GRRSeleniumTest,
+class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(TestFlowCopy, self).setUp()
 
     # Prepare our fixture.
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
+    self.client_id = "C.0000000000000001"
     # This attribute is used by StandardHuntTestMixin.
     self.client_ids = [self.client_id]
-    fixture_test_lib.ClientFixture(self.client_id, self.token)
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    fixture_test_lib.ClientFixture(self.client_id)
+    self.RequestAndGrantClientApproval(self.client_id)
 
     self.email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
@@ -163,8 +159,7 @@ class TestFlowCopy(db_test_lib.RelationalDBEnabledMixin,
         "tr:contains('ListProcesses'):nth(0).row-selected")
 
     # Now open the last flow and check that it has the changes we made.
-    flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=self.client_id.Basename())
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id=self.client_id)
     flows.sort(key=lambda f: f.create_time)
     fobj = flows[-1]
 
@@ -184,7 +179,7 @@ class TestFlowCopy(db_test_lib.RelationalDBEnabledMixin,
     self.RunHunt(client_ids=[self.client_id], failrate=-1)
 
     # Navigate to client and select newly created hunt flow.
-    self.Open("/#/clients/%s" % self.client_id.Basename())
+    self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # StartHunt creates a hunt with a GetFile flow, so selecting a GetFile row.

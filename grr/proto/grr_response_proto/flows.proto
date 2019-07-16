@@ -1,5 +1,3 @@
-
-
 // The following messages are used to start flows in GRR.
 
 syntax = "proto2";
@@ -434,48 +432,6 @@ message HuntRunnerArgs {
     description: "If this hunt is a copy of another hunt or flow, we store "
                  "a reference to the original here.",
     label: HIDDEN
-  }];
-}
-
-// Various hunts.
-// Next field ID: 2
-message SampleHuntArgs {
-  optional string filename = 1 [
-    (sem_type) = {
-      description: "evil filename to search for.",
-    },
-    default = "/tmp/evil.txt"
-  ];
-}
-
-// Next field ID: 7
-message FlowStartRequest {
-  repeated string client_ids = 1 [(sem_type) = {
-    type: "ClientURN",
-    description: "The clients to start the flow on.",
-  }];
-
-  optional bytes args = 5 [(sem_type) = {
-    dynamic_type: "GetFlowArgsClass",
-    description: "Args to the flow. These depend on the flow_name parameter."
-                 "It is expected that this field contains an instance of flow's arg_type.",
-  }];
-
-  optional FlowRunnerArgs runner_args = 6 [(sem_type) = {
-    description: "Args to the flow runner.",
-  }];
-}
-
-// Next field ID: 3
-message VariableGenericHuntArgs {
-  repeated FlowStartRequest flows = 1 [(sem_type) = {
-    description: "A list of flows to start on certain clients.",
-  }];
-
-  // DEPRECATED: keeping it here so that existing cron jobs don't break.
-  // TODO(user): Remove.
-  repeated OutputPluginDescriptor output_plugins = 2 [(sem_type) = {
-    description: "The output plugins to use for this hunt.",
   }];
 }
 
@@ -2363,6 +2319,13 @@ message YaraProcessDumpResponse {
   repeated ProcessMemoryError errors = 2 [(sem_type) = {
     description: "A list of processes that we failed to dump.",
   }];
+}
+
+// Internal state of MemoryDumpOutputPlugin.
+message MemoryDumpOutputPluginState {
+  repeated YaraProcessDumpInformation dumps = 1;
+  repeated PathSpec paths = 2;
+  repeated YaraProcessDumpInformation completed = 3;
 }
 
 message NetstatArgs {

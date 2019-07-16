@@ -5,17 +5,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server import foreman_rules
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestCronCreation(db_test_lib.RelationalDBEnabledMixin,
-                       gui_test_lib.GRRSeleniumTest):
+class TestCronCreation(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def testHuntSchedulingWorksCorrectly(self):

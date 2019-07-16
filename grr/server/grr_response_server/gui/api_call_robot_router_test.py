@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.utils import iterkeys
 
@@ -18,23 +17,19 @@ from grr_response_server.gui import api_call_robot_router as rr
 from grr_response_server.gui.api_plugins import flow as api_flow
 
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-@flow_base.DualDBFlow
-class AnotherFileFinderMixin(object):
+class AnotherFileFinder(flow_base.FlowBase):
   args_type = rdf_file_finder.FileFinderArgs
 
 
-@flow_base.DualDBFlow
-class AnotherArtifactCollectorMixin(object):
+class AnotherArtifactCollector(flow_base.FlowBase):
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
 
 
-class ApiRobotCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                    test_lib.GRRBaseTest):
+class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiRobotCreateFlowHandler."""
 
   def setUp(self):
@@ -44,7 +39,7 @@ class ApiRobotCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
   def testPassesFlowArgsThroughIfNoOverridesSpecified(self):
     h = rr.ApiRobotCreateFlowHandler(robot_id="foo")
 
-    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id.Basename())
+    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
     args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
 
@@ -55,7 +50,7 @@ class ApiRobotCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     h = rr.ApiRobotCreateFlowHandler(
         robot_id="foo", override_flow_name=AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
 
-    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id.Basename())
+    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
     args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
 
@@ -67,7 +62,7 @@ class ApiRobotCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     h = rr.ApiRobotCreateFlowHandler(
         robot_id="foo", override_flow_args=override_flow_args)
 
-    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id.Basename())
+    args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
     args.flow.args = rdf_file_finder.FileFinderArgs(paths=["foo"])
 
@@ -75,8 +70,7 @@ class ApiRobotCreateFlowHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(f.args.paths, ["bar"])
 
 
-class ApiCallRobotRouterTest(db_test_lib.RelationalDBEnabledMixin,
-                             acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
+class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
   """Tests for ApiCallRobotRouter."""
 
   def _CreateRouter(self, delegate=None, **kwargs):

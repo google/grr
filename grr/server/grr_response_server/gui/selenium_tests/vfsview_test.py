@@ -5,28 +5,27 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 import mock
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import vfs as api_vfs
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class VFSViewTest(db_test_lib.RelationalDBEnabledMixin,
-                  gui_test_lib.GRRSeleniumTest):
+class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(VFSViewTest, self).setUp()
     # Prepare our fixture.
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(self.client_id, self.token)
+    self.client_id = "C.0000000000000001"
+
+    with test_lib.FakeTime(test_lib.FIXED_TIME):
+      fixture_test_lib.ClientFixture(self.client_id)
+
+    gui_test_lib.CreateFileVersions(self.client_id)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def testUnicodeContentIsShownInTree(self):
@@ -52,8 +51,7 @@ class VFSViewTest(db_test_lib.RelationalDBEnabledMixin,
         self.client_id,
         "fs/os/c/foo?bar&oh/a&=?b.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1,
-        token=self.token)
+        timestamp=gui_test_lib.TIME_1)
 
     # Open VFS view for client 1 on a specific location.
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
@@ -82,8 +80,7 @@ class VFSViewTest(db_test_lib.RelationalDBEnabledMixin,
         self.client_id,
         "fs/os/c/foo?bar&oh/a&=?b.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_1,
-        token=self.token)
+        timestamp=gui_test_lib.TIME_1)
 
     # Open VFS view for client 1 on a location containing unicode characters.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"

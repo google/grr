@@ -7,37 +7,26 @@ from __future__ import unicode_literals
 import hashlib
 import sys
 
-
 from future.utils import iteritems
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
-from grr_response_server import grr_collections
 from grr_response_server import hunt
 from grr_response_server import output_plugin
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import process_results
-from grr_response_server.hunts import standard
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
-from grr.test_lib import worker_test_lib
 
 
 class SampleHuntMock(action_mocks.ActionMock):
@@ -132,7 +121,6 @@ class SampleHuntMock(action_mocks.ActionMock):
 
 
 def TestHuntHelperWithMultipleMocks(client_mocks,
-                                    check_flow_errors=False,
                                     token=None,
                                     iteration_limit=None,
                                     worker=None):
@@ -143,7 +131,6 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
       objects are used to handle client actions. Methods names of a client mock
       object correspond to client actions names. For an example of a client mock
       object, see SampleHuntMock.
-    check_flow_errors: If True, raises when one of hunt-initiated flows fails.
     token: An instance of access_control.ACLToken security token.
     iteration_limit: If None, hunt will run until it's finished. Otherwise,
       worker_mock.Next() will be called iteration_limit number of times. Every
@@ -159,8 +146,6 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
   if token is None:
     token = access_control.ACLToken(username="test")
 
-  total_flows = set()
-
   # Worker always runs with absolute privileges, therefore making the token
   # SetUID().
   token = token.SetUID()
@@ -171,7 +156,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
   ]
 
   if worker is None:
-    rel_db_worker = flow_test_lib.TestWorker(threadpool_size=0, token=True)
+    rel_db_worker = flow_test_lib.TestWorker()
     data_store.REL_DB.RegisterFlowProcessingHandler(rel_db_worker.ProcessFlow)
   else:
     rel_db_worker = worker
@@ -179,36 +164,21 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
   num_iterations = 0
 
   try:
-    worker_mock = worker_test_lib.MockWorker(
-        check_flow_errors=check_flow_errors, token=token)
-
     # Run the clients and worker until nothing changes any more.
     while iteration_limit is None or num_iterations < iteration_limit:
-      worker_processed = []
-      if data_store.RelationalDBEnabled():
-        data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
-        worker_processed = rel_db_worker.ResetProcessedFlows()
+      data_store.REL_DB.delegate.WaitUntilNoFlowsToProcess(timeout=10)
+      worker_processed = rel_db_worker.ResetProcessedFlows()
 
       client_processed = 0
 
       for client_mock in client_mocks:
         client_processed += client_mock.Next()
 
-      flows_run = []
-
-      for flow_run in worker_mock.Next():
-        total_flows.add(flow_run)
-        flows_run.append(flow_run)
-
-      flows_run.extend(worker_processed)
-
       num_iterations += 1
 
-      if client_processed == 0 and not flows_run and not worker_processed:
+      if client_processed == 0 and not worker_processed:
         break
 
-    if check_flow_errors:
-      flow_test_lib.CheckFlowErrors(total_flows, token=token)
   finally:
     if worker is None:
       data_store.REL_DB.UnregisterFlowProcessingHandler(timeout=60)
@@ -219,7 +189,6 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
 
 def TestHuntHelper(client_mock,
                    client_ids,
-                   check_flow_errors=False,
                    token=None,
                    iteration_limit=None,
                    worker=None):
@@ -231,7 +200,6 @@ def TestHuntHelper(client_mock,
       example of a client mock object, see SampleHuntMock.
     client_ids: List of clients ids. Hunt will run on these clients. client_mock
       will be used for every client id.
-    check_flow_errors: If True, raises when one of hunt-initiated flows fails.
     token: An instance of access_control.ACLToken security token.
     iteration_limit: If None, hunt will run until it's finished. Otherwise,
       worker_mock.Next() will be called iteration_limit number of tiems. Every
@@ -245,7 +213,6 @@ def TestHuntHelper(client_mock,
   """
   return TestHuntHelperWithMultipleMocks(
       dict([(client_id, client_mock) for client_id in client_ids]),
-      check_flow_errors=check_flow_errors,
       iteration_limit=iteration_limit,
       worker=worker,
       token=token)
@@ -269,7 +236,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
                  original_object=None,
                  client_rate=0,
                  duration=None,
-                 token=None,
+                 creator=None,
                  **kwargs):
     # Only initialize default flow_args value if default flow_runner_args value
     # is to be used.
@@ -286,77 +253,48 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
 
     client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
 
-    if data_store.RelationalDBEnabled():
-      token = token or self.token
+    hunt_args = rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
+        standard=rdf_hunt_objects.HuntArgumentsStandard(
+            flow_name=flow_runner_args.flow_name, flow_args=flow_args))
 
-      hunt_args = rdf_hunt_objects.HuntArguments(
-          hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-          standard=rdf_hunt_objects.HuntArgumentsStandard(
-              flow_name=flow_runner_args.flow_name, flow_args=flow_args))
-
-      hunt_obj = rdf_hunt_objects.Hunt(
-          creator=token.username,
-          client_rule_set=client_rule_set,
-          original_object=original_object,
-          client_rate=client_rate,
-          duration=duration,
-          args=hunt_args,
-          **kwargs)
-      hunt.CreateHunt(hunt_obj)
-
-      return hunt_obj.hunt_id
-
-    return implementation.StartHunt(
-        hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=flow_runner_args,
-        flow_args=flow_args,
+    hunt_obj = rdf_hunt_objects.Hunt(
+        creator=creator,
         client_rule_set=client_rule_set,
-        client_rate=client_rate,
         original_object=original_object,
-        token=token or self.token,
+        client_rate=client_rate,
+        duration=duration,
+        args=hunt_args,
         **kwargs)
+    hunt.CreateHunt(hunt_obj)
+
+    return hunt_obj.hunt_id
 
   def StartHunt(self, paused=False, **kwargs):
-    if data_store.RelationalDBEnabled():
-      hunt_id = self.CreateHunt(**kwargs)
-      if not paused:
-        hunt.StartHunt(hunt_id)
-      return rdfvalue.RDFURN("hunts").Add(hunt_id)
-    else:
-      with self.CreateHunt(**kwargs) as hunt_obj:
-        if not paused:
-          hunt_obj.Run()
-      return hunt_obj.urn
+    hunt_id = self.CreateHunt(**kwargs)
+    if not paused:
+      hunt.StartHunt(hunt_id)
+    return hunt_id
 
   def FindForemanRules(self, hunt_obj, token=None):
-    if data_store.RelationalDBEnabled():
-      rules = data_store.REL_DB.ReadAllForemanRules()
-      return [
-          rule for rule in rules
-          if hunt_obj is None or rule.hunt_id == hunt_obj.urn.Basename()
-      ]
-    else:
-      fman = aff4.FACTORY.Open(
-          "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
-      rules = fman.Get(fman.Schema.RULES, [])
-      return [
-          rule for rule in rules
-          if hunt_obj is None or rule.hunt_id == hunt_obj.urn
-      ]
+    rules = data_store.REL_DB.ReadAllForemanRules()
+    return [
+        rule for rule in rules
+        if hunt_obj is None or rule.hunt_id == hunt_obj.urn.Basename()
+    ]
 
   def AssignTasksToClients(self, client_ids=None, worker=None):
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients..
     client_ids = client_ids or self.client_ids
-    foreman_obj = foreman.GetForeman(token=self.token)
+    foreman_obj = foreman.Foreman()
 
     def Assign():
       for client_id in client_ids:
-        foreman_obj.AssignTasksToClient(
-            rdf_client.ClientURN(client_id).Basename())
+        foreman_obj.AssignTasksToClient(client_id)
 
     if worker is None:
-      with flow_test_lib.TestWorker(threadpool_size=0, token=True):
+      with flow_test_lib.TestWorker():
         Assign()
     else:
       Assign()
@@ -366,7 +304,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
               iteration_limit=None,
               client_mock=None,
               **mock_kwargs):
-    with flow_test_lib.TestWorker(threadpool_size=0, token=True) as test_worker:
+    with flow_test_lib.TestWorker() as test_worker:
       self.AssignTasksToClients(client_ids=client_ids, worker=test_worker)
 
       if client_mock is None:
@@ -374,19 +312,18 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       return TestHuntHelper(
           client_mock,
           client_ids or self.client_ids,
-          check_flow_errors=False,
           iteration_limit=iteration_limit,
           worker=test_worker,
           token=self.token)
 
   def RunHuntWithClientCrashes(self, client_ids):
-    with flow_test_lib.TestWorker(threadpool_size=0, token=True) as test_worker:
+    with flow_test_lib.TestWorker() as test_worker:
       client_mocks = dict([
           (client_id, flow_test_lib.CrashClientMock(client_id, self.token))
           for client_id in client_ids
       ])
       self.AssignTasksToClients(client_ids=client_ids, worker=test_worker)
-      return TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
+      return TestHuntHelperWithMultipleMocks(client_mocks, self.token)
 
   def _EnsureClientHasHunt(self, client_id, hunt_id):
     try:
@@ -398,82 +335,36 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     return hunt_id
 
   def AddResultsToHunt(self, hunt_id, client_id, values):
-    if isinstance(client_id, rdfvalue.RDFURN):
-      client_id = client_id.Basename()
+    flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
-    if isinstance(hunt_id, rdfvalue.RDFURN):
-      hunt_id = hunt_id.Basename()
-
-    if data_store.RelationalDBEnabled():
-      flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
-
-      for value in values:
-        data_store.REL_DB.WriteFlowResults([
-            rdf_flow_objects.FlowResult(
-                client_id=client_id,
-                flow_id=flow_id,
-                hunt_id=hunt_id,
-                payload=value)
-        ])
-    else:
-      collection = aff4.FACTORY.Open(
-          rdfvalue.RDFURN("hunts").Add(hunt_id),
-          token=self.token).ResultCollection()
-      with data_store.DB.GetMutationPool() as pool:
-        for value in values:
-          collection.Add(
-              rdf_flows.GrrMessage(payload=value, source=client_id),
-              mutation_pool=pool)
-
-  def AddLogToHunt(self, hunt_id, client_id, message):
-    if isinstance(client_id, rdfvalue.RDFURN):
-      client_id = client_id.Basename()
-
-    if isinstance(hunt_id, rdfvalue.RDFURN):
-      hunt_id = hunt_id.Basename()
-
-    if data_store.RelationalDBEnabled():
-      flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
-
-      data_store.REL_DB.WriteFlowLogEntries([
-          rdf_flow_objects.FlowLogEntry(
+    for value in values:
+      data_store.REL_DB.WriteFlowResults([
+          rdf_flow_objects.FlowResult(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_id,
-              message=message)
+              payload=value)
       ])
-    else:
-      hunt_obj = aff4.FACTORY.Open(rdfvalue.RDFURN("hunts").Add(hunt_id))
-      logs_collection_urn = hunt_obj.logs_collection_urn
 
-      log_entry = rdf_flows.FlowLog(
-          client_id=client_id,
-          urn=rdf_client.ClientURN(client_id).Add(hunt_id),
-          flow_name=hunt_obj.__class__.__name__,
-          log_message=message)
-      with data_store.DB.GetMutationPool() as pool:
-        grr_collections.LogCollection.StaticAdd(
-            logs_collection_urn, log_entry, mutation_pool=pool)
+  def AddLogToHunt(self, hunt_id, client_id, message):
+    flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
+
+    data_store.REL_DB.WriteFlowLogEntries([
+        rdf_flow_objects.FlowLogEntry(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_id,
+            message=message)
+    ])
 
   def AddErrorToHunt(self, hunt_id, client_id, message, backtrace):
-    if isinstance(client_id, rdfvalue.RDFURN):
-      client_id = client_id.Basename()
+    flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
-    if isinstance(hunt_id, rdfvalue.RDFURN):
-      hunt_id = hunt_id.Basename()
-
-    if data_store.RelationalDBEnabled():
-      flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
-
-      flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      flow_obj.flow_state = flow_obj.FlowState.ERROR
-      flow_obj.error_message = message
-      flow_obj.backtrace = backtrace
-      data_store.REL_DB.UpdateFlow(client_id, flow_id, flow_obj=flow_obj)
-    else:
-      hunt_obj = aff4.FACTORY.Open(rdfvalue.RDFURN("hunts").Add(hunt_id))
-      hunt_obj.LogClientError(
-          rdf_client.ClientURN(client_id), message, backtrace)
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    flow_obj.flow_state = flow_obj.FlowState.ERROR
+    flow_obj.error_message = message
+    flow_obj.backtrace = backtrace
+    data_store.REL_DB.UpdateFlow(client_id, flow_id, flow_obj=flow_obj)
 
   def GetHuntResults(self, hunt_id):
     """Gets flow results for a given flow.
@@ -484,41 +375,7 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     Returns:
       List with hunt results payloads.
     """
-    if isinstance(hunt_id, rdfvalue.RDFURN):
-      hunt_id = hunt_id.Basename()
-
-    if data_store.RelationalDBEnabled():
-      return data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
-    else:
-      hunt_obj = aff4.FACTORY.Open(rdfvalue.RDFURN("hunts").Add(hunt_id))
-      return list(hunt_obj.ResultCollection())
-
-  def StopHunt(self, hunt_urn):
-    # Stop the hunt now.
-    with aff4.FACTORY.Open(
-        hunt_urn, age=aff4.ALL_TIMES, mode="rw", token=self.token) as hunt_obj:
-      hunt_obj.Stop()
-
-  def ProcessHuntOutputPlugins(self):
-    if data_store.RelationalDBEnabled():
-      # No processing needed for new style hunts.
-      return
-
-    if data_store.RelationalDBEnabled():
-      job = rdf_cronjobs.CronJob(
-          cron_job_id="some/id", lifetime=rdfvalue.DurationSeconds("1h"))
-      run_state = rdf_cronjobs.CronJobRun(
-          cron_job_id="some/id",
-          status="RUNNING",
-          started_at=rdfvalue.RDFDatetime.Now())
-      process_results.ProcessHuntResultCollectionsCronJob(run_state, job).Run()
-    else:
-      flow_urn = flow.StartAFF4Flow(
-          flow_name=process_results.ProcessHuntResultCollectionsCronFlow
-          .__name__,
-          token=self.token)
-      flow_test_lib.TestFlowHelper(flow_urn, token=self.token)
-      return flow_urn
+    return data_store.REL_DB.ReadHuntResults(hunt_id, 0, sys.maxsize)
 
 
 class DummyHuntOutputPlugin(output_plugin.OutputPlugin):

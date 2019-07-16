@@ -37,11 +37,7 @@ def EPrint(message):
   sys.stderr.write("%s\n" % message)
 
 
-def UploadSignedConfigBlob(content,
-                           aff4_path,
-                           client_context=None,
-                           limit=None,
-                           token=None):
+def UploadSignedConfigBlob(content, aff4_path, client_context=None, limit=None):
   """Upload a signed blob into the datastore.
 
   Args:
@@ -49,7 +45,6 @@ def UploadSignedConfigBlob(content,
     aff4_path: aff4 path to upload to.
     client_context: The configuration contexts to use.
     limit: The maximum size of the chunk to use.
-    token: A security token.
 
   Raises:
     IOError: On failure to write.
@@ -77,8 +72,7 @@ def UploadSignedConfigBlob(content,
       content,
       signing_key,
       public_key=verification_key,
-      chunk_size=limit,
-      token=token)
+      chunk_size=limit)
 
   logging.info("Uploaded to %s", aff4_path)
 

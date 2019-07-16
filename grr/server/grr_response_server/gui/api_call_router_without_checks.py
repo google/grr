@@ -40,6 +40,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def SearchClients(self, args, token=None):
     return api_client.ApiSearchClientsHandler()
 
+  def VerifyAccess(self, args, token=None):
+    return api_client.ApiVerifyAccessHandler()
+
   def GetClient(self, args, token=None):
     return api_client.ApiGetClientHandler()
 
@@ -359,9 +362,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ListFlowDescriptors(self, args, token=None):
     # TODO(user): move to reflection.py
     return api_flow.ApiListFlowDescriptorsHandler()
-
-  def ListAff4AttributeDescriptors(self, args, token=None):
-    return api_reflection.ApiListAff4AttributeDescriptorsHandler()
 
   def GetRDFValueDescriptor(self, args, token=None):
     return api_reflection.ApiGetRDFValueDescriptorHandler()

@@ -7,13 +7,10 @@ from absl import app
 from absl.testing import absltest
 import mock
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.util import temp
 from grr_response_server import artifact_registry as ar
 from grr_response_server import data_store
-from grr.test_lib import db_test_lib
-from grr.test_lib import skip
 from grr.test_lib import test_lib
 
 
@@ -31,12 +28,6 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
     self.assertTrue(self.sources.AddDir("foo/"))
     self.assertFalse(self.sources.AddDir("foo/"))
 
-  def testDuplicatedAddDatastore(self):
-    sources = self.sources
-
-    self.assertTrue(sources.AddDatastore(rdfvalue.RDFURN("aff4:/artifacts")))
-    self.assertFalse(sources.AddDatastore(rdfvalue.RDFURN("aff4:/artifacts")))
-
   def testGetFiles(self):
     self.assertTrue(self.sources.AddFile("foo/bar.json"))
     self.assertTrue(self.sources.AddFile("foo/baz.yaml"))
@@ -52,16 +43,6 @@ class ArtifactRegistrySourcesTest(absltest.TestCase):
     dirs = list(self.sources.GetDirs())
     self.assertIn("foo/", dirs)
     self.assertIn("bar/", dirs)
-
-  def testGetDatastores(self):
-    sources = self.sources
-
-    self.assertTrue(sources.AddDatastore(rdfvalue.RDFURN("aff4:/foos")))
-    self.assertTrue(sources.AddDatastore(rdfvalue.RDFURN("aff4:/bars")))
-
-    datastores = list(sources.GetDatastores())
-    self.assertIn(rdfvalue.RDFURN("aff4:/foos"), datastores)
-    self.assertIn(rdfvalue.RDFURN("aff4:/bars"), datastores)
 
   def testGetAllFiles(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as tmpdir_path:
@@ -277,12 +258,8 @@ class ArtifactSourceTest(absltest.TestCase):
       source.Validate()
 
 
-class ArtifactRegistryTest(db_test_lib.RelationalDBEnabledMixin,
-                           absltest.TestCase):
+class ArtifactRegistryTest(absltest.TestCase):
 
-  @skip.Unless(
-      data_store.RelationalDBEnabled,
-      reason="Case only applicable for relational database.")
   def testDatabaseArtifactsAreLoadedEvenIfNoDatastoreIsRegistered(self):
     rel_db = data_store.REL_DB
 

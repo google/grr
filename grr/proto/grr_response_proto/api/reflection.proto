@@ -134,14 +134,6 @@ message ApiListRDFValueDescriptorsResult {
   repeated ApiRDFValueDescriptor items = 1;
 }
 
-message ApiAff4AttributeDescriptor {
-  optional string name = 1;
-}
-
-message ApiListAff4AttributeDescriptorsResult {
-  repeated ApiAff4AttributeDescriptor items = 1;
-}
-
 message ApiListOutputPluginDescriptorsResult {
   repeated ApiOutputPluginDescriptor items = 1;
 }

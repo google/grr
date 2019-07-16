@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 # These imports populate the Flow registry
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import artifact_fallbacks
-from grr_response_server.flows.general import audit
 from grr_response_server.flows.general import ca_enroller
 from grr_response_server.flows.general import checks
 from grr_response_server.flows.general import collectors

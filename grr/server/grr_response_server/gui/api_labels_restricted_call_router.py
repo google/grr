@@ -12,10 +12,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
 from grr_response_server import access_control
 
-from grr_response_server import aff4
 from grr_response_server import data_store
-
-from grr_response_server.aff4_objects import aff4_grr
 
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_with_approval_checks
@@ -31,17 +28,12 @@ def CheckClientLabels(client_id,
                       labels_owners_whitelist=None,
                       token=None):
   """Checks a given client against labels/owners whitelists."""
+  del token  # Unused.
 
   labels_whitelist = labels_whitelist or []
   labels_owners_whitelist = labels_owners_whitelist or []
 
-  if data_store.RelationalDBEnabled():
-    labels = data_store.REL_DB.ReadClientLabels(str(client_id))
-  else:
-    with aff4.FACTORY.Open(
-        client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient,
-        token=token) as fd:
-      labels = fd.GetLabels()
+  labels = data_store.REL_DB.ReadClientLabels(str(client_id))
 
   for label in labels:
     if (label.name in labels_whitelist and
@@ -73,10 +65,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
                                        ["GRR"])
 
     if not access_checker:
-      if data_store.RelationalDBEnabled():
-        access_checker = api_call_router_with_approval_checks.RelDBChecker()
-      else:
-        access_checker = api_call_router_with_approval_checks.LegacyChecker()
+      access_checker = api_call_router_with_approval_checks.AccessChecker()
     self.access_checker = access_checker
 
     if not delegate:
@@ -349,11 +338,6 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     # Everybody can list flow descritors.
 
     return self.delegate.ListFlowDescriptors(args, token=token)
-
-  def ListAff4AttributeDescriptors(self, args, token=None):
-    # Everybody can list aff4 attribute descriptors.
-
-    return self.delegate.ListAff4AttributeDescriptors(args, token=token)
 
   def GetRDFValueDescriptor(self, args, token=None):
     # Everybody can get rdfvalue descriptors.

@@ -20,7 +20,6 @@ import re
 import sys
 import traceback
 
-
 from absl import flags
 import configparser
 from future.builtins import str

@@ -4,22 +4,19 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestCrashView(db_test_lib.RelationalDBEnabledMixin,
-                    gui_test_lib.GRRSeleniumHuntTest):
+class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
   """Tests the crash view."""
 
   def setUp(self):
     super(TestCrashView, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
 
   def SetUpCrashedFlow(self):
     client = flow_test_lib.CrashClientMock(self.client_id, self.token)
@@ -31,7 +28,7 @@ class TestCrashView(db_test_lib.RelationalDBEnabledMixin,
         check_flow_errors=False)
 
   def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.Open("/#/clients/%s/crashes" % client_id)
 
     # As we don't have an approval for the client, we should be
@@ -75,20 +72,19 @@ class TestCrashView(db_test_lib.RelationalDBEnabledMixin,
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = self.SetupClients(10)
-    hunt_urn = self.StartHunt()
+    hunt_id = self.StartHunt()
     self.RunHuntWithClientCrashes(client_ids)
 
-    return hunt_urn, client_ids
+    return hunt_id, client_ids
 
   def testClientCrashedFlowInHunt(self):
-    hunt_urn, client_urns = self.SetUpCrashedFlowInHunt()
-    client_ids = [c.Basename() for c in client_urns]
+    hunt_id, client_ids = self.SetUpCrashedFlowInHunt()
 
     self.Open("/")
 
     # Go to hunt manager and select a hunt.
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('%s')" % hunt_urn.Basename())
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on "Crashes" tab.
     self.Click("css=li[heading=Crashes]")
@@ -118,13 +114,13 @@ class TestCrashView(db_test_lib.RelationalDBEnabledMixin,
     ])
 
   def testHuntClientCrashesTabShowsDatesInUTC(self):
-    hunt_urn, _ = self.SetUpCrashedFlowInHunt()
+    hunt_id, _ = self.SetUpCrashedFlowInHunt()
 
     self.Open("/")
 
     # Go to hunt manager, select a hunt, open "Crashes" tab.
     self.Click("css=a[grrtarget=hunts]")
-    self.Click("css=td:contains('%s')" % hunt_urn.Basename())
+    self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Crashes]")
 
     self.WaitUntil(

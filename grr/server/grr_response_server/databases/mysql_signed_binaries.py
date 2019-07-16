@@ -23,14 +23,10 @@ class MySQLDBSignedBinariesMixin(object):
                                   cursor=None):
     """Writes blob references for a signed binary to the DB."""
     args = {
-        "binary_type":
-            binary_id.binary_type.SerializeToDataStore(),
-        "binary_path":
-            binary_id.path,
-        "binary_path_hash":
-            mysql_utils.Hash(binary_id.path),
-        "blob_references":
-            references.SerializeToString()
+        "binary_type": binary_id.binary_type.SerializeToDataStore(),
+        "binary_path": binary_id.path,
+        "binary_path_hash": mysql_utils.Hash(binary_id.path),
+        "blob_references": references.SerializeToString()
     }
     query = """
       INSERT INTO signed_binary_references {cols}

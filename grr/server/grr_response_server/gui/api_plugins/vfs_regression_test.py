@@ -17,21 +17,21 @@ from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.gui.api_plugins import vfs_test as vfs_plugin_test
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiListFilesHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "ListFiles"
   handler = vfs_plugin.ApiListFilesHandler
 
   def Run(self):
-    client_id = self.SetupClient(0).Basename()
-    fixture_test_lib.ClientFixture(client_id, token=self.token, age=42)
+    client_id = self.SetupClient(0)
+    with test_lib.FakeTime(42):
+      fixture_test_lib.ClientFixture(client_id)
     self.Check(
         "ListFiles",
         vfs_plugin.ApiListFilesArgs(
@@ -45,7 +45,6 @@ class ApiListFilesHandlerRegressionTest(
 
 
 class ApiGetFileTextHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "GetFileText"
@@ -59,24 +58,20 @@ class ApiGetFileTextHandlerRegressionTest(
     self.Check(
         "GetFileText",
         args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id.Basename(), file_path=self.file_path))
+            client_id=client_id, file_path=self.file_path))
     self.Check(
         "GetFileText",
         args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id.Basename(),
-            file_path=self.file_path,
-            offset=3,
-            length=3))
+            client_id=client_id, file_path=self.file_path, offset=3, length=3))
     self.Check(
         "GetFileText",
         args=vfs_plugin.ApiGetFileTextArgs(
-            client_id=client_id.Basename(),
+            client_id=client_id,
             file_path=self.file_path,
             timestamp=self.time_1))
 
 
 class ApiGetFileVersionTimesHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "GetFileVersionTimes"
@@ -90,11 +85,10 @@ class ApiGetFileVersionTimesHandlerRegressionTest(
     self.Check(
         "GetFileVersionTimes",
         args=vfs_plugin.ApiGetFileVersionTimesArgs(
-            client_id=client_id.Basename(), file_path=self.file_path))
+            client_id=client_id, file_path=self.file_path))
 
 
 class ApiListKnownEncodingsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "ListKnownEncodings"
@@ -105,14 +99,13 @@ class ApiListKnownEncodingsHandlerRegressionTest(
 
 
 class ApiGetFileDownloadCommandHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
 
   api_method = "GetFileDownloadCommand"
   handler = vfs_plugin.ApiGetFileDownloadCommandHandler
 
   def Run(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.file_path = "fs/os/etc"
     self.Check(
         "GetFileDownloadCommand",
@@ -121,7 +114,6 @@ class ApiGetFileDownloadCommandHandlerRegressionTest(
 
 
 class ApiCreateVfsRefreshOperationHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiCreateVfsRefreshOperationHandler."""
 
@@ -129,13 +121,12 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
   handler = vfs_plugin.ApiCreateVfsRefreshOperationHandler
 
   def Run(self):
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
 
     # Choose some directory with pathspec in the ClientFixture.
     self.file_path = "fs/os/Users/Shared"
 
-    fixture_test_lib.ClientFixture(client_urn, token=self.token)
+    fixture_test_lib.ClientFixture(client_id)
 
     def ReplaceFlowId():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
@@ -150,7 +141,6 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
 
 
 class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
   """Regression test for ApiGetVfsRefreshOperationStateHandler."""
 
@@ -159,23 +149,23 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
   def Run(self):
     acl_test_lib.CreateUser(self.token.username)
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     # Create a running mock refresh operation.
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
-    running_flow_id = api_regression_test_lib.StartFlow(
-        client_id,
+    running_flow_id = flow_test_lib.StartFlow(
         filesystem.RecursiveListDirectory,
+        client_id,
         flow_args=flow_args,
-        token=self.token)
+        creator=self.token.username)
 
     # Create a mock refresh operation and complete it.
-    finished_flow_id = api_regression_test_lib.StartFlow(
-        client_id,
+    finished_flow_id = flow_test_lib.StartFlow(
         filesystem.RecursiveListDirectory,
+        client_id,
         flow_args=flow_args,
-        token=self.token)
+        creator=self.token.username)
 
     # Kill flow.
     rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
@@ -186,8 +176,8 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     data_store.REL_DB.ReleaseProcessedFlow(rdf_flow)
 
     # Create an arbitrary flow to check on 404s.
-    non_refresh_flow_id = api_regression_test_lib.StartFlow(
-        client_id, discovery.Interrogate, token=self.token)
+    non_refresh_flow_id = flow_test_lib.StartFlow(
+        discovery.Interrogate, client_id, creator=self.token.username)
 
     # Unkonwn flow ids should also cause 404s.
     unknown_flow_id = "F:12345678"
@@ -216,7 +206,6 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
 
 class ApiUpdateVfsFileContentHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiUpdateVfsFileContentHandler."""
 
@@ -224,11 +213,10 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
   handler = vfs_plugin.ApiUpdateVfsFileContentHandler
 
   def Run(self):
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/bin/bash"
 
-    fixture_test_lib.ClientFixture(client_urn, token=self.token)
+    fixture_test_lib.ClientFixture(client_id)
 
     def ReplaceFlowId():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
@@ -243,7 +231,6 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
 
 
 class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, vfs_plugin_test.VfsTestMixin):
   """Regression test for ApiGetVfsFileContentUpdateStateHandler."""
 
@@ -251,18 +238,17 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
   handler = vfs_plugin.ApiGetVfsFileContentUpdateStateHandler
 
   def Run(self):
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
 
     acl_test_lib.CreateUser(self.token.username)
 
     # Create a running mock refresh operation.
     running_flow_id = self.CreateMultiGetFileFlow(
-        client_urn, file_path="fs/os/c/bin/bash")
+        client_id, file_path="fs/os/c/bin/bash")
 
     # Create a mock refresh operation and complete it.
     finished_flow_id = self.CreateMultiGetFileFlow(
-        client_urn, file_path="fs/os/c/bin/bash")
+        client_id, file_path="fs/os/c/bin/bash")
 
     flow_base.TerminateFlow(client_id, finished_flow_id, reason="Fake Error")
 
@@ -297,7 +283,6 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
 
 
 class ApiGetVfsTimelineHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     vfs_plugin_test.VfsTimelineTestMixin):
   """Regression test for ApiGetVfsTimelineHandler."""
@@ -311,7 +296,7 @@ class ApiGetVfsTimelineHandlerRegressionTest(
     self.Check(
         "GetVfsTimeline",
         args=vfs_plugin.ApiGetVfsTimelineArgs(
-            client_id=client_id.Basename(), file_path=self.folder_path))
+            client_id=client_id, file_path=self.folder_path))
 
 
 def main(argv):

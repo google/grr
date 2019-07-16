@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 import requests
 
@@ -14,12 +13,10 @@ from grr_response_core.lib.util.compat import json
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class CSRFProtectionTest(db_test_lib.RelationalDBEnabledMixin,
-                         api_e2e_test_lib.ApiE2ETest):
+class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
   """Tests GRR's CSRF protection logic for the HTTP API."""
 
   def setUp(self):
@@ -72,12 +69,14 @@ class CSRFProtectionTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertIn("CSRF", response.text)
 
   def testPOSTRequestWithCSRFTokenInHeadersAndCookiesSucceeds(self):
+    client_id = self.SetupClient(0)
+
     # Fetch csrf token from the cookie set on the main page.
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
     headers = {"x-csrftoken": csrf_token}
-    data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+    data = {"client_ids": [client_id], "labels": ["foo", "bar"]}
     cookies = {"csrftoken": csrf_token}
 
     response = requests.post(
@@ -88,12 +87,14 @@ class CSRFProtectionTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(response.status_code, 200)
 
   def testPOSTRequestFailsIfCSRFTokenIsExpired(self):
+    client_id = self.SetupClient(0)
+
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)):
       index_response = requests.get(self.base_url)
       csrf_token = index_response.cookies.get("csrftoken")
 
       headers = {"x-csrftoken": csrf_token}
-      data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+      data = {"client_ids": [client_id], "labels": ["foo", "bar"]}
       cookies = {"csrftoken": csrf_token}
 
       response = requests.post(

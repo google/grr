@@ -68,7 +68,6 @@ sudo service nginx restart
 
 cat << EOF > /etc/grr/server.local.yaml
 Blobstore.implementation: DbBlobStore
-Database.aff4_enabled: False
 Database.enabled: True
 Database.implementation: MysqlDB
 Mysql.host: ${mysql_host}

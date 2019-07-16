@@ -8,7 +8,6 @@ import collections
 import io
 import os
 
-
 from future.builtins import zip
 from future.utils import iteritems
 from future.utils import iterkeys

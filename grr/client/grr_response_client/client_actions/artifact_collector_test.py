@@ -208,8 +208,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         collected_artifact = self.RunArtifactCollector(request)
         file_stat = collected_artifact.action_results[0].value
         self.assertIsInstance(file_stat, rdf_client_fs.StatEntry)
-        urn = file_stat.pathspec.AFF4Path(self.SetupClient(0))
-        self.assertEndsWith(str(urn), "BootExecute")
+        self.assertEndsWith(file_stat.pathspec.CollapsePath(), "BootExecute")
 
   def testRegistryKeyArtifact(self):
     """Test the basic Registry Key collection."""

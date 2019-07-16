@@ -18,19 +18,16 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui import archive_generator
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.GRRSeleniumHuntTest):
+class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt archive download functionality."""
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -42,8 +39,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
                       "Files referenced in this collection can be downloaded")
 
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
-    hunt_urn, _ = self.CreateGenericHuntWithCollection([])
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection([])
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -60,8 +56,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -79,8 +74,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -96,8 +90,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/#/hunts/%s/results" % hunt_id)
     self.Click("link=Show export command")
@@ -106,11 +99,10 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
         self.IsTextPresent, "/usr/bin/grr_api_shell 'http://localhost:8000/' "
         "--exec_code 'grrapi.Hunt(\"%s\").GetFilesArchive()."
         "WriteToFile(\"./hunt_results_%s.zip\")'" %
-        (hunt_urn.Basename(), hunt_urn.Basename().replace(":", "_")))
+        (hunt_id, hunt_id.replace(":", "_")))
 
   def testExportCommandIsNotShownWhenNoResults(self):
-    hunt_urn, _ = self.CreateGenericHuntWithCollection([])
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection([])
 
     self.Open("/#/hunts/%s/results" % hunt_id)
     self.WaitUntil(self.IsElementPresent,
@@ -120,8 +112,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
   def testExportCommandIsNotShownForNonFileResults(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/#/hunts/%s/results" % hunt_id)
     self.WaitUntil(self.IsElementPresent,
@@ -134,8 +125,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -146,8 +136,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testGenerateZipButtonGetsDisabledAfterClick(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
+    hunt_id = self._CreateHuntWithDownloadedFile()
     self.RequestAndGrantHuntApproval(hunt_id)
 
     self.Open("/")
@@ -160,8 +149,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
+    hunt_id = self._CreateHuntWithDownloadedFile()
     self.RequestAndGrantHuntApproval(hunt_id)
 
     self.Open("/")
@@ -177,8 +165,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntilNot(self.IsUserNotificationPresent, "terminated due to error")
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
+    hunt_id = self._CreateHuntWithDownloadedFile()
     self.RequestAndGrantHuntApproval(hunt_id)
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -197,8 +184,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
                      "Archive generation failed for hunt")
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
+    hunt_id = self._CreateHuntWithDownloadedFile()
     self.RequestAndGrantHuntApproval(hunt_id)
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -223,8 +209,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
   def testDoesNotShowPerFileDownloadButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -242,8 +227,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
             path="/foo/bar", pathtype=rdf_paths.PathSpec.PathType.OS))
     values = [rdf_file_finder.FileFinderResult(stat_entry=stat_entry)]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -262,8 +246,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
         collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
     ]
 
-    hunt_urn, _ = self.CreateGenericHuntWithCollection(values=values)
-    hunt_id = hunt_urn.Basename()
+    hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -275,8 +258,7 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
         "css=grr-results-collection button:has(span.glyphicon-download)")
 
   def testHuntAuthorizationIsRequiredToDownloadSingleHuntFile(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
+    hunt_id = self._CreateHuntWithDownloadedFile()
 
     self.Open("/")
     self.Click("css=a[grrtarget=hunts]")
@@ -287,9 +269,8 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
   def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
-    results = self.GetHuntResults(hunt_urn)
+    hunt_id = self._CreateHuntWithDownloadedFile()
+    results = self.GetHuntResults(hunt_id)
 
     self.RequestAndGrantHuntApproval(hunt_id)
 
@@ -306,16 +287,15 @@ class TestHuntArchiving(db_test_lib.RelationalDBEnabledMixin,
       self.WaitUntil(lambda: mock_obj.called)
 
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
-    hunt_urn = self._CreateHuntWithDownloadedFile()
-    hunt_id = hunt_urn.Basename()
-    results = self.GetHuntResults(hunt_urn)
+    hunt_id = self._CreateHuntWithDownloadedFile()
+    results = self.GetHuntResults(hunt_id)
     original_result = results[0]
 
     payload = original_result.payload.Copy()
     payload.pathspec.path += "blah"
 
     client_id = self.SetupClients(1)[0]
-    self.AddResultsToHunt(hunt_urn, client_id, [payload])
+    self.AddResultsToHunt(hunt_id, client_id, [payload])
 
     self.RequestAndGrantHuntApproval(hunt_id)
 

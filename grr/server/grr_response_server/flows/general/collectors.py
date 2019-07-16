@@ -2,27 +2,28 @@
 """Flows for handling the collection for artifacts."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
 
-
 from future.builtins import map
 from future.builtins import str
 from future.utils import iteritems
-from future.utils import string_types
+from typing import Optional
+from typing import Sequence
 from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 # For file collection artifacts. pylint: disable=unused-import
 from grr_response_core.lib.parsers import registry_init
 # pylint: enable=unused-import
 from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -30,14 +31,10 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
-from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
-from grr_response_server import sequential_collection
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import file_finder
@@ -45,19 +42,13 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 
 
-def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False, token=None):
-  if data_store.RelationalDBEnabled():
-    client = data_store.REL_DB.ReadClientSnapshot(client_id)
-    return artifact.GetKnowledgeBase(
-        client, allow_uninitialized=allow_uninitialized)
-  else:
-    client = aff4.FACTORY.Open(client_id, token=token)
-    return artifact.GetArtifactKnowledgeBase(
-        client, allow_uninitialized=allow_uninitialized)
+def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False):
+  client = data_store.REL_DB.ReadClientSnapshot(client_id)
+  return artifact.GetKnowledgeBase(
+      client, allow_uninitialized=allow_uninitialized)
 
 
-@flow_base.DualDBFlow
-class ArtifactCollectorFlowMixin(object):
+class ArtifactCollectorFlow(flow_base.FlowBase):
   """Flow that takes a list of artifacts and collects them.
 
   This flow is the core of the Artifact implementation for GRR. Artifacts are
@@ -87,7 +78,7 @@ class ArtifactCollectorFlowMixin(object):
 
   category = "/Collectors/"
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
@@ -108,8 +99,7 @@ class ArtifactCollectorFlowMixin(object):
           .Dependency.USE_CACHED) and (not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
-        self.state.knowledge_base = _ReadClientKnowledgeBase(
-            self.client_id, token=self.token)
+        self.state.knowledge_base = _ReadClientKnowledgeBase(self.client_id)
       except artifact_utils.KnowledgeBaseUninitializedError:
         # If no-one has ever initialized the knowledge base, we should do so
         # now.
@@ -139,7 +129,7 @@ class ArtifactCollectorFlowMixin(object):
 
     if not self.state.knowledge_base:
       self.state.knowledge_base = _ReadClientKnowledgeBase(
-          self.client_id, allow_uninitialized=True, token=self.token)
+          self.client_id, allow_uninitialized=True)
 
     for artifact_name in self.args.artifact_list:
       artifact_obj = self._GetArtifactFromName(artifact_name)
@@ -237,12 +227,17 @@ class ArtifactCollectorFlowMixin(object):
     """Get a set of files."""
     new_path_list = []
     for path in source.attributes["paths"]:
-      # Interpolate any attributes from the knowledgebase.
-      new_path_list.extend(
-          artifact_utils.InterpolateKbAttributes(
-              path,
-              self.state.knowledge_base,
-              ignore_errors=self.args.ignore_interpolation_errors))
+      try:
+        interpolated = artifact_utils.InterpolateKbAttributes(
+            path, self.state.knowledge_base)
+      except artifact_utils.KbInterpolationMissingAttributesError as error:
+        logging.error(str(error))
+        if not self.args.ignore_interpolation_errors:
+          raise
+        else:
+          interpolated = []
+
+      new_path_list.extend(interpolated)
 
     action = rdf_file_finder.FileFinderAction.Download(max_size=max_size)
 
@@ -367,10 +362,15 @@ class ArtifactCollectorFlowMixin(object):
         # we do here.
         path = kvdict["key"]
 
-      expanded_paths = artifact_utils.InterpolateKbAttributes(
-          path,
-          self.state.knowledge_base,
-          ignore_errors=self.args.ignore_interpolation_errors)
+      try:
+        expanded_paths = artifact_utils.InterpolateKbAttributes(
+            path, self.state.knowledge_base)
+      except artifact_utils.KbInterpolationMissingAttributesError as error:
+        logging.error(str(error))
+        if not self.args.ignore_interpolation_errors:
+          raise
+        else:
+          expanded_paths = []
       new_paths.update(expanded_paths)
 
     if has_glob:
@@ -411,7 +411,7 @@ class ArtifactCollectorFlowMixin(object):
 
   def _StartSubArtifactCollector(self, artifact_list, source, next_state):
     self.CallFlow(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        ArtifactCollectorFlow.__name__,
         artifact_list=artifact_list,
         use_tsk=self.args.use_tsk,
         apply_parsers=self.args.apply_parsers,
@@ -453,10 +453,7 @@ class ArtifactCollectorFlowMixin(object):
   def WMIQuery(self, source):
     """Run a Windows WMI Query."""
     query = source.attributes["query"]
-    queries = artifact_utils.InterpolateKbAttributes(
-        query,
-        self.state.knowledge_base,
-        ignore_errors=self.args.ignore_interpolation_errors)
+    queries = self._Interpolate(query)
     base_object = source.attributes.get("base_object")
     for query in queries:
       self.CallClient(
@@ -470,11 +467,7 @@ class ArtifactCollectorFlowMixin(object):
           next_state="ProcessCollected")
 
   def _GetSingleExpansion(self, value):
-    results = list(
-        artifact_utils.InterpolateKbAttributes(
-            value,
-            self.state.knowledge_base,
-            ignore_errors=self.args.ignore_interpolation_errors))
+    results = list(self._Interpolate(value))
     if len(results) > 1:
       raise ValueError("Interpolation generated multiple results, use a"
                        " list for multi-value expansions. %s yielded: %s" %
@@ -492,7 +485,7 @@ class ArtifactCollectorFlowMixin(object):
     """
     new_args = {}
     for key, value in iteritems(input_dict):
-      if isinstance(value, string_types):
+      if isinstance(value, Text) or isinstance(value, bytes):
         new_args[key] = self._GetSingleExpansion(value)
       elif isinstance(value, list):
         new_args[key] = self.InterpolateList(value)
@@ -509,33 +502,17 @@ class ArtifactCollectorFlowMixin(object):
     Returns:
       original list of values extended with strings interpolated
     """
-    # We want to ignore errors either when it was explicitly requested by the
-    # user or when the fallback mode is turned on (because one of the older
-    # snapshot might successfully interpolate without errors).
-    ignore_interpolation_errors = (
-        self.args.ignore_interpolation_errors or
-        self.args.old_client_snapshot_fallback)
-
     new_args = []
     for value in input_list:
-      if isinstance(value, string_types):
-        results = list(
-            artifact_utils.InterpolateKbAttributes(
-                value,
-                self.state.knowledge_base,
-                ignore_errors=ignore_interpolation_errors))
+      if isinstance(value, Text) or isinstance(value, bytes):
+        results = self._Interpolate(value)
 
         if not results and self.args.old_client_snapshot_fallback:
           client_id = self.client_id
           snapshots = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
 
           for snapshot in snapshots:
-            results = list(
-                artifact_utils.InterpolateKbAttributes(
-                    value,
-                    knowledge_base=snapshot.knowledge_base,
-                    ignore_errors=True))
-
+            results = self._Interpolate(value, snapshot.knowledge_base)
             if results:
               break
 
@@ -543,6 +520,32 @@ class ArtifactCollectorFlowMixin(object):
       else:
         new_args.extend(value)
     return new_args
+
+  def _Interpolate(self,
+                   pattern,
+                   knowledgebase = None):
+    """Performs a knowledgebase interpolation.
+
+    Args:
+      pattern: A pattern to interpolate.
+      knowledgebase: Knowledgebase to use for interpolation. If no knowledgebase
+        is provided, the one provided as a flow argument is used.
+
+    Returns:
+      A list of possible interpolation results.
+    """
+    if knowledgebase is None:
+      knowledgebase = self.state.knowledge_base
+
+    try:
+      return artifact_utils.InterpolateKbAttributes(pattern, knowledgebase)
+    except artifact_utils.KbInterpolationMissingAttributesError as error:
+      if self.args.old_client_snapshot_fallback:
+        return []
+      if self.args.ignore_interpolation_errors:
+        logging.error(str(error))
+        return []
+      raise
 
   def RunGrrClientAction(self, source):
     """Call a GRR Client Action."""
@@ -631,13 +634,8 @@ class ArtifactCollectorFlowMixin(object):
       self.CallStateInline(next_state="ProcessCollected", responses=responses)
       return
 
-    with data_store.DB.GetMutationPool() as pool:
-      stat_entries = list(map(rdf_client_fs.StatEntry, responses))
-      filesystem.WriteStatEntries(
-          stat_entries,
-          client_id=self.client_id,
-          mutation_pool=pool,
-          token=self.token)
+    stat_entries = list(map(rdf_client_fs.StatEntry, responses))
+    filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)
 
     self.CallStateInline(
         next_state="ProcessCollected",
@@ -676,7 +674,7 @@ class ArtifactCollectorFlowMixin(object):
         except AttributeError:
           pass
 
-      if isinstance(pathspec, string_types):
+      if isinstance(pathspec, Text):
         pathspec = rdf_paths.PathSpec(path=pathspec)
         if self.args.use_tsk:
           pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
@@ -735,12 +733,6 @@ class ArtifactCollectorFlowMixin(object):
         self.state.response_count += 1
         self.SendReply(result, tag="artifact:%s" % artifact_name)
 
-  @classmethod
-  def ResultCollectionForArtifact(cls, session_id, artifact_name):
-    urn = rdfvalue.RDFURN("_".join((str(session_id.Add(flow.RESULTS_SUFFIX)),
-                                    utils.SmartStr(artifact_name))))
-    return sequential_collection.GeneralIndexedCollection(urn)
-
   def End(self, responses):
     del responses
     # If we got no responses, and user asked for it, we error out.
@@ -769,8 +761,8 @@ class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
       return rdfvalue.RDFValue.classes.get(self.original_result_type)
 
 
-@flow_base.DualDBFlow
-class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
+class ArtifactFilesDownloaderFlow(flow_base.FlowBase,
+                                  transfer.MultiGetFileLogic):
   """Flow that downloads files referenced by collected artifacts."""
 
   category = "/Collectors/"
@@ -786,7 +778,7 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
         ]):
       return [response.pathspec]
 
-    knowledge_base = _ReadClientKnowledgeBase(self.client_id, token=self.token)
+    knowledge_base = _ReadClientKnowledgeBase(self.client_id)
 
     if self.args.use_tsk:
       path_type = rdf_paths.PathSpec.PathType.TSK
@@ -799,13 +791,13 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
     return [item.pathspec for item in parsed_items]
 
   def Start(self):
-    super(ArtifactFilesDownloaderFlowMixin, self).Start()
+    super(ArtifactFilesDownloaderFlow, self).Start()
 
     self.state.file_size = self.args.max_file_size
     self.state.results_to_download = []
 
     self.CallFlow(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        ArtifactCollectorFlow.__name__,
         next_state="DownloadFiles",
         artifact_list=self.args.artifact_list,
         use_tsk=self.args.use_tsk,
@@ -833,8 +825,8 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
             original_result=response)
         results_without_pathspecs.append(result)
 
-    grouped_results = collection.Group(
-        results_with_pathspecs, lambda x: x.found_pathspec)
+    grouped_results = collection.Group(results_with_pathspecs,
+                                       lambda x: x.found_pathspec)
     for pathspec, group in iteritems(grouped_results):
       self.StartFileFetch(pathspec, request_data=dict(results=group))
 
@@ -857,17 +849,16 @@ class ArtifactFilesDownloaderFlowMixin(transfer.MultiGetFileLogic):
       self.SendReply(result)
 
 
-@flow_base.DualDBFlow
-class ClientArtifactCollectorMixin(object):
+class ClientArtifactCollector(flow_base.FlowBase):
   """A client side artifact collector."""
 
   category = "/Collectors/"
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
 
   def Start(self):
     """Issue the artifact collection request."""
-    super(ClientArtifactCollectorMixin, self).Start()
+    super(ClientArtifactCollector, self).Start()
 
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
@@ -883,8 +874,7 @@ class ClientArtifactCollectorMixin(object):
           not self.state.knowledge_base):
         # If not provided, get a knowledge base from the client.
         try:
-          self.state.knowledge_base = _ReadClientKnowledgeBase(
-              self.client_id, token=self.token)
+          self.state.knowledge_base = _ReadClientKnowledgeBase(self.client_id)
         except artifact_utils.KnowledgeBaseUninitializedError:
           # If no-one has ever initialized the knowledge base, we should do so
           # now.
@@ -906,7 +896,7 @@ class ClientArtifactCollectorMixin(object):
     # Do we use it in any way?
     if not self.state.knowledge_base:
       self.state.knowledge_base = _ReadClientKnowledgeBase(
-          self.client_id, allow_uninitialized=True, token=self.token)
+          self.client_id, allow_uninitialized=True)
 
     request = GetArtifactCollectorArgs(self.args, self.state.knowledge_base)
     self.CollectArtifacts(request)
@@ -947,7 +937,7 @@ class ClientArtifactCollectorMixin(object):
       self.state.response_count += 1
 
   def End(self, responses):
-    super(ClientArtifactCollectorMixin, self).End(responses)
+    super(ClientArtifactCollector, self).End(responses)
 
     # If we got no responses, and user asked for it, we error out.
     if self.args.error_on_no_results and self.state.response_count == 0:

@@ -20,15 +20,11 @@ from grr_response_client.client_actions import tempfiles
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
-from grr_response_server import aff4
-from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import memory
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -85,9 +81,11 @@ def GeneratePattern(seed, length):
   if not b"A" <= seed <= b"Z":
     raise ValueError("Needs an upper case letter as seed")
 
-  res = string.ascii_uppercase[string.ascii_uppercase.find(seed):]
+  ascii_uppercase = b"".join(_.encode("ascii") for _ in string.ascii_uppercase)
+
+  res = ascii_uppercase[ascii_uppercase.find(seed):]
   while len(res) < length:
-    res += string.ascii_uppercase
+    res += ascii_uppercase
   return res[:length]
 
 
@@ -135,8 +133,7 @@ class FakeMemoryProcess(object):
       yield start, len(data)
 
 
-class TestYaraFlows(db_test_lib.RelationalDBEnabledMixin,
-                    flow_test_lib.FlowTestsBaseclass):
+class TestYaraFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the Yara flows."""
 
   def process(self, processes, pid=None):
@@ -173,7 +170,7 @@ class TestYaraFlows(db_test_lib.RelationalDBEnabledMixin,
           token=self.token,
           **kw)
 
-    res = flow_test_lib.GetFlowResults(self.client_id.Basename(), session_id)
+    res = flow_test_lib.GetFlowResults(self.client_id, session_id)
     matches = [r for r in res if isinstance(r, rdf_memory.YaraProcessScanMatch)]
     errors = [r for r in res if isinstance(r, rdf_memory.ProcessMemoryError)]
     misses = [r for r in res if isinstance(r, rdf_memory.YaraProcessScanMiss)]
@@ -397,17 +394,12 @@ class TestYaraFlows(db_test_lib.RelationalDBEnabledMixin,
           client_id=self.client_id,
           ignore_grr_process=True,
           token=self.token)
-    return flow_test_lib.GetFlowResults(self.client_id.Basename(), session_id)
+    return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def _ReadFromPathspec(self, pathspec, num_bytes):
-    if data_store.AFF4Enabled():
-      image = aff4.FACTORY.Open(
-          pathspec.AFF4Path(self.client_id), aff4_grr.VFSBlobImage)
-      return image.read(num_bytes)
-    else:
-      fd = file_store.OpenFile(
-          db.ClientPath.FromPathSpec(self.client_id.Basename(), pathspec))
-      return fd.read(num_bytes)
+    fd = file_store.OpenFile(
+        db.ClientPath.FromPathSpec(self.client_id, pathspec))
+    return fd.read(num_bytes)
 
   def testProcessDump(self):
     results = self._RunProcessDump()
@@ -521,8 +513,7 @@ class TestYaraFlows(db_test_lib.RelationalDBEnabledMixin,
     # Process dumps are not pushed to external file stores.
     self.assertEqual(efs.call_count, 0)
 
-    results = flow_test_lib.GetFlowResults(self.client_id.Basename(),
-                                           session_id)
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     # 1. Scan result match.
     # 2. Scan result miss.

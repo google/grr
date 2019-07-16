@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.builtins import range
 from future.builtins import str
@@ -12,13 +11,13 @@ from future.builtins import zip
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import access_control
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import notification
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
@@ -26,14 +25,12 @@ from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
-                          acl_test_lib.AclTestMixin,
+class ApiNotificationTest(acl_test_lib.AclTestMixin,
                           notification_test_lib.NotificationTestMixin,
                           api_test_lib.ApiCallHandlerTest):
   """Tests for ApiNotification class."""
@@ -56,22 +53,20 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(
-                client_id=self.client_id.Basename())))
+            client=rdf_objects.ClientReference(client_id=self.client_id)))
 
     self.assertEqual(n.reference.type, "CLIENT")
-    self.assertEqual(n.reference.client.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(n.reference.client.client_id.ToString(), self.client_id)
 
   def testClientApprovalGrantedNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
         rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(
-                client_id=self.client_id.Basename())))
+            client=rdf_objects.ClientReference(client_id=self.client_id)))
 
     self.assertEqual(n.reference.type, "CLIENT")
-    self.assertEqual(n.reference.client.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(n.reference.client.client_id.ToString(), self.client_id)
 
   def testHuntNotificationIsParsedCorrectly(self):
     n = self.InitFromObj_(
@@ -99,10 +94,10 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=rdf_objects.FlowReference(
-                client_id=self.client_id.Basename(), flow_id="F:123456")))
+                client_id=self.client_id, flow_id="F:123456")))
 
     self.assertEqual(n.reference.type, "FLOW")
-    self.assertEqual(n.reference.flow.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(n.reference.flow.client_id.ToString(), self.client_id)
     self.assertEqual(n.reference.flow.flow_id, "F:123456")
 
   def testFlowFailureNotificationIsParsedCorrectly(self):
@@ -111,10 +106,10 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=rdf_objects.FlowReference(
-                client_id=self.client_id.Basename(), flow_id="F:123456")))
+                client_id=self.client_id, flow_id="F:123456")))
 
     self.assertEqual(n.reference.type, "FLOW")
-    self.assertEqual(n.reference.flow.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(n.reference.flow.client_id.ToString(), self.client_id)
     self.assertEqual(n.reference.flow.flow_id, "F:123456")
 
   def testVfsNotificationIsParsedCorrectly(self):
@@ -123,12 +118,12 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=rdf_objects.VfsFileReference(
-                client_id=self.client_id.Basename(),
+                client_id=self.client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
                 path_components=["foo", "bar"])))
 
     self.assertEqual(n.reference.type, "VFS")
-    self.assertEqual(n.reference.vfs.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(n.reference.vfs.client_id.ToString(), self.client_id)
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testVfsNotificationWithInvalidReferenceIsParsedDefensively(self):
@@ -137,7 +132,7 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=rdf_objects.VfsFileReference(
-                client_id=self.client_id.Basename(),
+                client_id=self.client_id,
                 # UNSET path type is an invalid value here:
                 # it make it impossible to find the file.
                 path_type=rdf_objects.PathInfo.PathType.UNSET,
@@ -154,13 +149,13 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
                 approval_type=rdf_objects.ApprovalRequest.ApprovalType
                 .APPROVAL_TYPE_CLIENT,
                 approval_id="foo-bar",
-                subject_id=self.client_id.Basename(),
+                subject_id=self.client_id,
                 requestor_username=self.token.username)))
 
     self.assertEqual(n.reference.type, "CLIENT_APPROVAL")
 
     client_approval = n.reference.client_approval
-    self.assertEqual(client_approval.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(client_approval.client_id.ToString(), self.client_id)
     self.assertEqual(client_approval.username, self.token.username)
     self.assertEqual(client_approval.approval_id, "foo-bar")
 
@@ -213,21 +208,20 @@ class ApiNotificationTest(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=rdf_objects.VfsFileReference(
-                client_id=self.client_id.Basename(),
+                client_id=self.client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
                 path_components=["foo", "bar"])))
 
     self.assertEqual(n.reference.type, "VFS")
-    self.assertEqual(n.reference.vfs.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(n.reference.vfs.client_id.ToString(), self.client_id)
     self.assertEqual(n.reference.vfs.vfs_path, "fs/os/foo/bar")
 
   def testUnknownNotificationIsParsedCorrectly(self):
+    urn = rdf_client.ClientURN(self.client_id).Add("foo/bar")
     n = user_plugin.ApiNotification().InitFromNotification(
-        rdf_flows.Notification(
-            type="ViewObject", subject=self.client_id.Add("foo/bar")))
+        rdf_flows.Notification(type="ViewObject", subject=urn))
     self.assertEqual(n.reference.type, "UNKNOWN")
-    self.assertEqual(n.reference.unknown.subject_urn,
-                     self.client_id.Add("foo/bar"))
+    self.assertEqual(n.reference.unknown.subject_urn, urn)
 
     n = user_plugin.ApiNotification().InitFromNotification(
         rdf_flows.Notification(type="FlowStatus", subject="foo/bar"))
@@ -304,8 +298,7 @@ class ApiCreateApprovalHandlerTestMixin(
                      (u"approver", self.token.username, "test@example.com"))
 
 
-class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                      acl_test_lib.AclTestMixin,
+class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientApprovalHandler."""
 
@@ -316,7 +309,7 @@ class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testRendersRequestedClientApproval(self):
     approval_id = self.RequestClientApproval(
-        self.client_id.Basename(),
+        self.client_id,
         requestor=self.token.username,
         reason="blah",
         approver=u"approver",
@@ -328,7 +321,7 @@ class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         username=self.token.username)
     result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(result.subject.client_id.ToClientURN(), self.client_id)
+    self.assertEqual(result.subject.client_id.ToString(), self.client_id)
     self.assertEqual(result.reason, "blah")
     self.assertEqual(result.is_valid, False)
     self.assertEqual(result.is_valid_message,
@@ -342,7 +335,7 @@ class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testIncludesApproversInResultWhenApprovalIsGranted(self):
     approval_id = self.RequestAndGrantClientApproval(
-        self.client_id.Basename(),
+        self.client_id,
         reason=u"blah",
         approver=u"approver",
         requestor=self.token.username)
@@ -367,8 +360,7 @@ class ApiGetClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiCreateClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                         api_test_lib.ApiCallHandlerTest,
+class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                          ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateClientApprovalHandler."""
 
@@ -383,11 +375,12 @@ class ApiCreateClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
     self.SetUpApprovalTest()
 
-    self.subject_urn = client_id = self.SetupClient(0)
+    self.client_id = self.SetupClient(0)
 
     self.handler = user_plugin.ApiCreateClientApprovalHandler()
 
-    self.args = user_plugin.ApiCreateClientApprovalArgs(client_id=client_id)
+    self.args = user_plugin.ApiCreateClientApprovalArgs(
+        client_id=self.client_id)
     self.args.approval.reason = self.token.reason
     self.args.approval.notified_users = [u"approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
@@ -403,8 +396,7 @@ class ApiCreateClientApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(flow_class_names, ["KeepAlive"])
 
 
-class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        api_test_lib.ApiCallHandlerTest,
+class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         acl_test_lib.AclTestMixin):
   """Test for ApiListApprovalsHandler."""
 
@@ -418,7 +410,7 @@ class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
   def _RequestClientApprovals(self):
     approval_ids = []
     for client_id in self.client_ids:
-      approval_ids.append(self.RequestClientApproval(client_id.Basename()))
+      approval_ids.append(self.RequestClientApproval(client_id))
     return approval_ids
 
   def testRendersRequestedClientApprovals(self):
@@ -440,7 +432,7 @@ class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     result = self.handler.Handle(args, token=self.token)
 
     self.assertLen(result.items, 1)
-    self.assertEqual(result.items[0].subject.client_id.ToClientURN(), client_id)
+    self.assertEqual(result.items[0].subject.client_id.ToString(), client_id)
 
   def testFiltersApprovalsByInvalidState(self):
     approval_ids = self._RequestClientApprovals()
@@ -473,12 +465,12 @@ class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
     # Grant access to one client. Now exactly one approval should be valid.
     self.GrantClientApproval(
-        self.client_ids[0].Basename(),
+        self.client_ids[0],
         requestor=self.token.username,
         approval_id=approval_ids[0])
     result = self.handler.Handle(args, token=self.token)
     self.assertLen(result.items, 1)
-    self.assertEqual(result.items[0].subject.client_id.ToClientURN(),
+    self.assertEqual(result.items[0].subject.client_id.ToString(),
                      self.client_ids[0])
 
   def testFiltersApprovalsByClientIdAndState(self):
@@ -488,9 +480,7 @@ class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
     # Grant approval to a certain client.
     self.GrantClientApproval(
-        client_id.Basename(),
-        requestor=self.token.username,
-        approval_id=approval_ids[0])
+        client_id, requestor=self.token.username, approval_id=approval_ids[0])
 
     args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id,
@@ -512,8 +502,7 @@ class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     # Create five approval requests without granting them.
     for i in range(10):
       with test_lib.FakeTime(42 + i):
-        self.RequestClientApproval(
-            client_id.Basename(), reason="Request reason %d" % i)
+        self.RequestClientApproval(client_id, reason="Request reason %d" % i)
 
     args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id, offset=0, count=5)
@@ -534,8 +523,7 @@ class ApiListClientApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
-class ApiCreateHuntApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                       ApiCreateApprovalHandlerTestMixin,
+class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
                                        hunt_test_lib.StandardHuntTestMixin,
                                        api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateHuntApprovalHandler."""
@@ -551,8 +539,7 @@ class ApiCreateHuntApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
     self.SetUpApprovalTest()
 
-    hunt_urn = self.StartHunt(description="foo")
-    hunt_id = hunt_urn.Basename()
+    hunt_id = self.StartHunt(description="foo")
 
     self.handler = user_plugin.ApiCreateHuntApprovalHandler()
 
@@ -562,8 +549,7 @@ class ApiCreateHuntApprovalHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiListHuntApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                      hunt_test_lib.StandardHuntTestMixin,
+class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                                       api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
 
@@ -572,10 +558,10 @@ class ApiListHuntApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.handler = user_plugin.ApiListHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    hunt_urn = self.StartHunt()
+    hunt_id = self.StartHunt()
 
     self.RequestHuntApproval(
-        hunt_urn.Basename(),
+        hunt_id,
         reason=self.token.reason,
         approver=u"approver",
         requestor=self.token.username)
@@ -587,7 +573,6 @@ class ApiListHuntApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
 
 class ApiCreateCronJobApprovalHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin,
     ApiCreateApprovalHandlerTestMixin,
     api_test_lib.ApiCallHandlerTest,
 ):
@@ -617,8 +602,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiListCronJobApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                         acl_test_lib.AclTestMixin,
+class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
                                          api_test_lib.ApiCallHandlerTest):
   """Test for ApiListCronJobApprovalsHandler."""
 
@@ -644,8 +628,7 @@ class ApiListCronJobApprovalsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(result.items, 1)
 
 
-class ApiGetOwnGrrUserHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                  api_test_lib.ApiCallHandlerTest):
+class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
@@ -697,7 +680,7 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
 
   def testSetsSettingsForUserCorrespondingToToken(self):
-    settings = aff4_users.GUISettings(mode="ADVANCED", canary_mode=True)
+    settings = user_plugin.GUISettings(mode="ADVANCED", canary_mode=True)
     user = user_plugin.ApiGrrUser(settings=settings)
 
     self.handler.Handle(user, token=access_control.ACLToken(username=u"foo"))
@@ -708,10 +691,10 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
 
 
 class ApiDeletePendingUserNotificationHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest):
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiDeletePendingUserNotificationHandler."""
 
-  TIME_0 = rdfvalue.RDFDatetime(42 * rdfvalue.MICROSECONDS)
+  TIME_0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
   TIME_1 = TIME_0 + rdfvalue.DurationSeconds("1d")
   TIME_2 = TIME_1 + rdfvalue.DurationSeconds("1d")
 
@@ -727,8 +710,7 @@ class ApiDeletePendingUserNotificationHandlerTest(
           "<some message>",
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(
-                  client_id=self.client_id.Basename())))
+              client=rdf_objects.ClientReference(client_id=self.client_id)))
 
       notification.Notify(
           self.token.username,
@@ -736,8 +718,7 @@ class ApiDeletePendingUserNotificationHandlerTest(
           "<some message with identical time>",
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(
-                  client_id=self.client_id.Basename())))
+              client=rdf_objects.ClientReference(client_id=self.client_id)))
 
     with test_lib.FakeTime(self.TIME_1):
       notification.Notify(
@@ -746,8 +727,7 @@ class ApiDeletePendingUserNotificationHandlerTest(
           "<some other message>",
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-              client=rdf_objects.ClientReference(
-                  client_id=self.client_id.Basename())))
+              client=rdf_objects.ClientReference(client_id=self.client_id)))
 
   def _GetNotifications(self):
     pending = data_store.REL_DB.ReadUserNotifications(
@@ -794,9 +774,8 @@ class ApiDeletePendingUserNotificationHandlerTest(
     self.assertEmpty(shown)
 
 
-class ApiListApproverSuggestionsHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
-    api_test_lib.ApiCallHandlerTest):
+class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
+                                            api_test_lib.ApiCallHandlerTest):
   """Test for ApiListApproverSuggestionsHandler."""
 
   def setUp(self):

@@ -5,11 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import pdb
 import sys
 
-
-from absl import flags
 from future.builtins import range
 from future.utils import iteritems
 from typing import Text
@@ -20,31 +17,25 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import tests_pb2
-from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import handler_registry
-from grr_response_server import queue_manager
+from grr_response_server import message_handlers
 from grr_response_server import server_stubs
 from grr_response_server import worker_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
-from grr.test_lib import worker_test_lib
 
 
-@flow_base.DualDBFlow
-class InfiniteFlowMixin(object):
+class InfiniteFlow(flow_base.FlowBase):
   """Flow that never ends."""
 
   def Start(self):
@@ -59,18 +50,15 @@ class InfiniteFlowMixin(object):
     self.CallClient(server_stubs.GetFileStat, next_state="NextState")
 
 
-@flow_base.DualDBFlow
-class ClientFlowWithoutCategoryMixin(object):
+class ClientFlowWithoutCategory(flow_base.FlowBase):
   pass
 
 
-@flow_base.DualDBFlow
-class ClientFlowWithCategoryMixin(object):
+class ClientFlowWithCategory(flow_base.FlowBase):
   category = "/Test/"
 
 
-@flow_base.DualDBFlow
-class CPULimitFlowMixin(object):
+class CPULimitFlow(flow_base.FlowBase):
   """This flow is used to test the cpu limit."""
 
   def Start(self):
@@ -97,39 +85,18 @@ class CPULimitFlowMixin(object):
     pass
 
 
-@flow_base.DualDBFlow
-class FlowWithOneClientRequestMixin(object):
+class FlowWithOneClientRequest(flow_base.FlowBase):
   """Test flow that does one client request in Start() state."""
 
   def Start(self):
     self.CallClient(client_test_lib.Test, data=b"test", next_state="End")
 
 
-@flow_base.DualDBFlow
-class FlowOrderTestMixin(object):
-  """Tests ordering of inbound messages."""
-
-  def __init__(self, *args, **kwargs):
-    self.messages = []
-    flow.GRRFlow.__init__(self, *args, **kwargs)
-
-  def Start(self):
-    self.CallClient(client_test_lib.Test, data=b"test", next_state="Incoming")
-
-  def Incoming(self, responses):
-    """Record the message id for testing."""
-    self.messages = []
-
-    for r in responses:
-      self.messages.append(r.integer)
-
-
 class SendingFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SendingFlowArgs
 
 
-@flow_base.DualDBFlow
-class SendingFlowMixin(object):
+class SendingFlow(flow_base.FlowBase):
   """Tests sending messages to clients."""
   args_type = SendingFlowArgs
 
@@ -145,16 +112,14 @@ class SendingFlowMixin(object):
           standard.ReadBuffer, offset=0, length=100, next_state="Process")
 
 
-@flow_base.DualDBFlow
-class RaiseOnStartMixin(object):
+class RaiseOnStart(flow_base.FlowBase):
   """A broken flow that raises in the Start method."""
 
   def Start(self):
     raise Exception("Broken Start")
 
 
-@flow_base.DualDBFlow
-class BrokenFlowMixin(object):
+class BrokenFlow(flow_base.FlowBase):
   """A flow which does things wrongly."""
 
   def Start(self):
@@ -162,13 +127,11 @@ class BrokenFlowMixin(object):
     self.CallClient(standard.ReadBuffer, next_state="WrongProcess")
 
 
-@flow_base.DualDBFlow
-class DummyFlowMixin(object):
+class DummyFlow(flow_base.FlowBase):
   """Dummy flow that does nothing."""
 
 
-@flow_base.DualDBFlow
-class FlowWithOneNestedFlowMixin(object):
+class FlowWithOneNestedFlow(flow_base.FlowBase):
   """Flow that calls a nested flow."""
 
   def Start(self):
@@ -178,8 +141,7 @@ class FlowWithOneNestedFlowMixin(object):
     del responses
 
 
-@flow_base.DualDBFlow
-class DummyFlowWithSingleReplyMixin(object):
+class DummyFlowWithSingleReply(flow_base.FlowBase):
   """Just emits 1 reply."""
 
   def Start(self):
@@ -190,8 +152,7 @@ class DummyFlowWithSingleReplyMixin(object):
     self.SendReply(rdfvalue.RDFString("oh"))
 
 
-@flow_base.DualDBFlow
-class DummyLogFlowMixin(object):
+class DummyLogFlow(flow_base.FlowBase):
   """Just emit logs."""
 
   def Start(self):
@@ -206,11 +167,7 @@ class DummyLogFlowMixin(object):
   def NextState(self, responses=None):
     del responses
     self.Log("First")
-    # pylint: disable=undefined-variable
-    # DummyLogFlowChild is not defined at build time, but will be at runtime.
-    # This is a temporary workaround, because of the @flow_base.DualDBFlow hack.
     self.CallFlow(DummyLogFlowChild.__name__, next_state="Done")
-    # pylint: enable=undefined-variable
     self.Log("Second")
 
   def Done(self, responses=None):
@@ -219,8 +176,7 @@ class DummyLogFlowMixin(object):
     self.Log("Fourth")
 
 
-@flow_base.DualDBFlow
-class DummyLogFlowChildMixin(object):
+class DummyLogFlowChild(flow_base.FlowBase):
   """Just emit logs."""
 
   def Start(self):
@@ -235,78 +191,8 @@ class DummyLogFlowChildMixin(object):
     self.Log("Cuatro")
 
 
-class WellKnownSessionTest(flow.WellKnownFlow):
-  """Tests the well known flow implementation."""
-  well_known_session_id = rdfvalue.SessionID(
-      queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId")
-
-  messages = []
-
-  def __init__(self, *args, **kwargs):
-    flow.WellKnownFlow.__init__(self, *args, **kwargs)
-
-  def ProcessMessage(self, message):
-    """Record the message id for testing."""
-    self.messages.append(int(message.payload))
-
-
-class WellKnownSessionTest2(WellKnownSessionTest):
-  """Another testing well known flow."""
-  well_known_session_id = rdfvalue.SessionID(
-      queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId2")
-
-
 class FlowTestsBaseclass(test_lib.GRRBaseTest):
   """The base class for all flow tests."""
-
-  def FlowSetup(self, name, client_id=None):
-    if client_id is None:
-      client_id = self.client_id
-
-    session_id = flow.StartAFF4Flow(
-        client_id=client_id, flow_name=name, token=self.token)
-
-    return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
-
-  def SendResponse(self,
-                   session_id,
-                   data,
-                   client_id=None,
-                   well_known=False,
-                   request_id=None):
-    if not isinstance(data, rdfvalue.RDFValue):
-      data = rdf_protodict.DataBlob(string=data)
-    if well_known:
-      request_id, response_id = 0, 12345
-    else:
-      request_id, response_id = request_id or 1, 1
-    with queue_manager.QueueManager(token=self.token) as flow_manager:
-      flow_manager.QueueResponse(
-          rdf_flows.GrrMessage(
-              source=client_id,
-              session_id=session_id,
-              payload=data,
-              request_id=request_id,
-              auth_state="AUTHENTICATED",
-              response_id=response_id))
-      if not well_known:
-        # For normal flows we have to send a status as well.
-        flow_manager.QueueResponse(
-            rdf_flows.GrrMessage(
-                source=client_id,
-                session_id=session_id,
-                payload=rdf_flows.GrrStatus(
-                    status=rdf_flows.GrrStatus.ReturnedStatus.OK),
-                request_id=request_id,
-                response_id=response_id + 1,
-                auth_state="AUTHENTICATED",
-                type=rdf_flows.GrrMessage.Type.STATUS))
-
-      flow_manager.QueueNotification(
-          session_id=session_id, last_status=request_id)
-      timestamp = flow_manager.frozen_timestamp
-
-    return timestamp
 
 
 class CrashClientMock(action_mocks.ActionMock):
@@ -341,9 +227,6 @@ class MockClient(object):
   """
 
   def __init__(self, client_id, client_mock, token=None):
-    if not isinstance(client_id, rdf_client.ClientURN):
-      client_id = rdf_client.ClientURN(client_id)
-
     if client_mock is None:
       client_mock = action_mocks.InvalidActionMock()
     else:
@@ -353,9 +236,6 @@ class MockClient(object):
     self.client_id = client_id
     self.client_mock = client_mock
     self.token = token
-
-    # Well known flows are run on the front end.
-    self.well_known_flows = flow.WellKnownFlow.GetAllWellKnownFlows(token=token)
 
   def _PushHandlerMessage(self, message):
     """Pushes a message that goes to a message handler."""
@@ -373,25 +253,21 @@ class MockClient(object):
     message.auth_state = "AUTHENTICATED"
     session_id = message.session_id
 
-    if data_store.RelationalDBEnabled():
-      handler_name = queue_manager.session_id_map.get(session_id, None)
-      if handler_name is None:
-        raise ValueError("Unknown well known session id in msg %s" % message)
+    handler_name = message_handlers.session_id_map.get(session_id, None)
+    if handler_name is None:
+      raise ValueError("Unknown well known session id in msg %s" % message)
 
-      logging.info("Running message handler: %s", handler_name)
-      handler_cls = handler_registry.handler_name_map.get(handler_name)
-      handler_request = rdf_objects.MessageHandlerRequest(
-          client_id=self.client_id.Basename(),
-          handler_name=handler_name,
-          request_id=message.response_id,
-          request=message.payload)
+    logging.info("Running message handler: %s", handler_name)
+    handler_cls = handler_registry.handler_name_map.get(handler_name)
+    handler_request = rdf_objects.MessageHandlerRequest(
+        client_id=self.client_id,
+        handler_name=handler_name,
+        request_id=message.response_id,
+        request=message.payload)
 
-      handler_cls(token=self.token).ProcessMessages([handler_request])
-    else:
-      logging.info("Running well known flow: %s", session_id)
-      self.well_known_flows[session_id.FlowName()].ProcessMessage(message)
+    handler_cls(token=self.token).ProcessMessages([handler_request])
 
-  def PushToStateQueue(self, manager, message, **kw):
+  def PushToStateQueue(self, message, **kw):
     """Push given message to the state queue."""
     # Assume the client is authorized
     message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -405,74 +281,39 @@ class MockClient(object):
       self._PushHandlerMessage(message)
       return
 
-    # Use REL_DB if it's enabled and if message in question has to be
-    # delivered to a client. Messages for hunts have to be delivered
-    # using the legacy queue manager until REL_DB hunts implementation
-    # is complete.
-    if data_store.RelationalDBEnabled() and str(
-        message.session_id).startswith("aff4:/C."):
-      data_store.REL_DB.WriteFlowResponses(
-          [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
-    else:
-      manager.QueueResponse(message)
+    data_store.REL_DB.WriteFlowResponses(
+        [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
 
   def Next(self):
     """Grab tasks for us from the server's queue."""
-    with queue_manager.QueueManager(token=self.token) as manager:
-      if data_store.RelationalDBEnabled():
-        request_tasks = data_store.REL_DB.LeaseClientActionRequests(
-            self.client_id.Basename(),
-            lease_time=rdfvalue.DurationSeconds("10000s"),
-            limit=1)
-        request_tasks = [
-            rdf_flow_objects.GRRMessageFromClientActionRequest(r)
-            for r in request_tasks
+    request_tasks = data_store.REL_DB.LeaseClientActionRequests(
+        self.client_id, lease_time=rdfvalue.DurationSeconds("10000s"), limit=1)
+    request_tasks = [
+        rdf_flow_objects.GRRMessageFromClientActionRequest(r)
+        for r in request_tasks
+    ]
+
+    request_tasks.extend(self._mock_task_queue)
+    self._mock_task_queue[:] = []  # Clear the referenced list.
+
+    for message in request_tasks:
+      try:
+        responses = self.client_mock.HandleMessage(message)
+        logging.info("Called client action %s generating %s responses",
+                     message.name,
+                     len(responses) + 1)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Error %s occurred in client", e)
+        responses = [
+            self.client_mock.GenerateStatusMessage(
+                message, 1, status="GENERIC_ERROR")
         ]
-      else:
-        request_tasks = manager.QueryAndOwn(
-            self.client_id.Queue(), limit=1, lease_seconds=10000)
 
-      request_tasks.extend(self._mock_task_queue)
-      self._mock_task_queue[:] = []  # Clear the referenced list.
+      # Now insert those on the flow state queue
+      for response in responses:
+        self.PushToStateQueue(response)
 
-      for message in request_tasks:
-        try:
-          responses = self.client_mock.HandleMessage(message)
-          logging.info("Called client action %s generating %s responses",
-                       message.name,
-                       len(responses) + 1)
-        except Exception as e:  # pylint: disable=broad-except
-          logging.exception("Error %s occurred in client", e)
-          responses = [
-              self.client_mock.GenerateStatusMessage(
-                  message, 1, status="GENERIC_ERROR")
-          ]
-
-        # Now insert those on the flow state queue
-        for response in responses:
-          self.PushToStateQueue(manager, response)
-
-        # Additionally schedule a task for the worker
-        manager.QueueNotification(session_id=message.session_id)
-
-      return len(request_tasks)
-
-
-def CheckFlowErrors(total_flows, token=None):
-  """Checks that all the flows are complete."""
-  for session_id in total_flows:
-    try:
-      flow_obj = aff4.FACTORY.Open(
-          session_id, aff4_type=flow.GRRFlow, mode="r", token=token)
-    except IOError:
-      continue
-
-    if flow_obj.context.state != rdf_flow_runner.FlowContext.State.TERMINATED:
-      if flags.FLAGS.pdb_post_mortem:
-        pdb.set_trace()
-      raise RuntimeError(
-          "Flow %s completed in state %s" %
-          (flow_obj.runner_args.flow_name, flow_obj.context.state))
+    return len(request_tasks)
 
 
 def TestFlowHelper(flow_urn_or_cls_name,
@@ -480,7 +321,6 @@ def TestFlowHelper(flow_urn_or_cls_name,
                    client_id=None,
                    check_flow_errors=True,
                    token=None,
-                   sync=True,
                    **kwargs):
   """Build a full test harness: client - worker + start flow.
 
@@ -493,94 +333,36 @@ def TestFlowHelper(flow_urn_or_cls_name,
     check_flow_errors: If True, TestFlowHelper will raise on errors during flow
       execution.
     token: Security token.
-    sync: Whether StartAFF4Flow call should be synchronous or not.
-    **kwargs: Arbitrary args that will be passed to flow.StartAFF4Flow().
+    **kwargs: Arbitrary args that will be passed to flow.StartFlow().
 
   Returns:
     The session id of the flow that was run.
   """
+  flow_cls = registry.FlowRegistry.FlowClassByName(flow_urn_or_cls_name)
 
-  if data_store.RelationalDBEnabled():
-    if isinstance(client_id, rdfvalue.RDFURN):
-      client_id = client_id.Basename()
-
-    flow_cls = registry.FlowRegistry.FlowClassByName(flow_urn_or_cls_name)
-    return StartAndRunFlow(
-        flow_cls,
-        creator=token.username,
-        client_mock=client_mock,
-        client_id=client_id,
-        check_flow_errors=check_flow_errors,
-        flow_args=kwargs.pop("args", None),
-        **kwargs)
-
-  if client_id or client_mock:
-    client_mock = MockClient(client_id, client_mock, token=token)
-
-  worker_mock = worker_test_lib.MockWorker(
-      check_flow_errors=check_flow_errors, token=token)
-
-  if isinstance(flow_urn_or_cls_name, rdfvalue.RDFURN):
-    session_id = flow_urn_or_cls_name
-  else:
-    # Instantiate the flow:
-    session_id = flow.StartAFF4Flow(
-        client_id=client_id,
-        flow_name=flow_urn_or_cls_name,
-        sync=sync,
-        token=token,
-        **kwargs)
-
-  total_flows = set()
-  total_flows.add(session_id)
-
-  # Run the client and worker until nothing changes any more.
-  while True:
-    if client_mock:
-      client_processed = client_mock.Next()
-    else:
-      client_processed = 0
-
-    flows_run = []
-    for flow_run in worker_mock.Next():
-      total_flows.add(flow_run)
-      flows_run.append(flow_run)
-
-    if client_processed == 0 and not flows_run:
-      break
-
-  # We should check for flow errors:
-  if check_flow_errors:
-    CheckFlowErrors(total_flows, token=token)
-
-  return session_id
+  return StartAndRunFlow(
+      flow_cls,
+      creator=token.username,
+      client_mock=client_mock,
+      client_id=client_id,
+      check_flow_errors=check_flow_errors,
+      flow_args=kwargs.pop("args", None),
+      **kwargs)
 
 
 def StartFlow(flow_cls, client_id=None, flow_args=None, creator=None, **kwargs):
-  """Starts (but not runs) a flow (AFF4/REL_DB compatible)."""
-  if isinstance(client_id, rdfvalue.RDFURN):
-    client_id = client_id.Basename()
+  """Starts (but not runs) a flow."""
+  try:
+    del kwargs["notify_to_user"]
+  except KeyError:
+    pass
 
-  if data_store.RelationalDBEnabled():
-    try:
-      del kwargs["notify_to_user"]
-    except KeyError:
-      pass
-
-    return flow.StartFlow(
-        flow_cls=flow_cls,
-        client_id=client_id,
-        flow_args=flow_args,
-        creator=creator,
-        **kwargs)
-  else:
-    flow_urn = flow.StartAFF4Flow(
-        flow_name=flow_cls.__name__,
-        client_id=client_id,
-        token=access_control.ACLToken(username=creator or "test"),
-        args=flow_args,
-        **kwargs)
-    return flow_urn.Basename()
+  return flow.StartFlow(
+      flow_cls=flow_cls,
+      client_id=client_id,
+      flow_args=flow_args,
+      creator=creator,
+      **kwargs)
 
 
 def StartAndRunFlow(flow_cls,
@@ -604,7 +386,7 @@ def StartAndRunFlow(flow_cls,
   Returns:
     The session id of the flow that was run.
   """
-  with TestWorker(token=True) as worker:
+  with TestWorker() as worker:
     flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kwargs)
 
     if check_flow_errors:
@@ -627,7 +409,6 @@ class TestWorker(worker_lib.GRRWorker):
   """The same class as the real worker but logs all processed flows."""
 
   def __init__(self, *args, **kw):
-    kw["threadpool_prefix"] = "TestWorkerPool"
     super(TestWorker, self).__init__(*args, **kw)
     self.processed_flows = []
 
@@ -664,7 +445,7 @@ def RunFlow(client_id,
 
   try:
     if worker is None:
-      test_worker = TestWorker(token=True)
+      test_worker = TestWorker()
       data_store.REL_DB.RegisterFlowProcessingHandler(test_worker.ProcessFlow)
     else:
       test_worker = worker
@@ -697,26 +478,15 @@ def GetFlowResults(client_id, flow_id):
   """Gets flow results for a given flow.
 
   Args:
-    client_id: String with a client id or a ClientURN.
-    flow_id: String with a flow_id or an URN.
+    client_id: String with a client id.
+    flow_id: String with a flow_id.
 
   Returns:
     List with flow results values (i.e. with payloads).
   """
-  if isinstance(client_id, rdfvalue.RDFURN):
-    client_id = client_id.Basename()
-
-  if isinstance(flow_id, rdfvalue.RDFURN):
-    flow_id = flow_id.Basename()
-
-  if not data_store.RelationalDBEnabled():
-    coll = flow.GRRFlow.ResultCollectionForFID(
-        rdf_client.ClientURN(client_id).Add("flows").Add(flow_id))
-    return list(coll.GenerateItems())
-  else:
-    results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
-                                                sys.maxsize)
-    return [r.payload for r in results]
+  results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
+                                              sys.maxsize)
+  return [r.payload for r in results]
 
 
 def GetFlowResultsByTag(client_id, flow_id):
@@ -730,46 +500,22 @@ def GetFlowResultsByTag(client_id, flow_id):
 
 def FinishAllFlows(**kwargs):
   """Finishes all running flows on all clients (REL_DB-only)."""
-  if data_store.RelationalDBEnabled():
-    for client_id_batch in data_store.REL_DB.ReadAllClientIDs():
-      for client_id in client_id_batch:
-        FinishAllFlowsOnClient(client_id, **kwargs)
-  else:
-    raise NotImplementedError("Finishing all flows is supported only in REL_DB")
+  for client_id_batch in data_store.REL_DB.ReadAllClientIDs():
+    for client_id in client_id_batch:
+      FinishAllFlowsOnClient(client_id, **kwargs)
 
 
 def FinishAllFlowsOnClient(client_id, **kwargs):
-  """Finishes all running flows on a client (AFF4/REL_DB compatible)."""
-  if isinstance(client_id, rdfvalue.RDFURN):
-    client_id = client_id.Basename()
-
-  if data_store.RelationalDBEnabled():
-    for cur_flow in data_store.REL_DB.ReadAllFlowObjects(client_id=client_id):
-      RunFlow(client_id, cur_flow.flow_id, **kwargs)
-  else:
-    fd = aff4.FACTORY.Open(rdfvalue.RDFURN(client_id).Add("flows"))
-    flows = list(fd.OpenChildren())
-    for flow_fd in flows:
-      TestFlowHelper(
-          flow_fd.urn,
-          client_id=client_id,
-          token=access_control.ACLToken(username=flow_fd.creator),
-          **kwargs)
+  """Finishes all running flows on a client."""
+  for cur_flow in data_store.REL_DB.ReadAllFlowObjects(client_id=client_id):
+    RunFlow(client_id, cur_flow.flow_id, **kwargs)
 
 
-def GetFlowState(client_id, flow_id, token=None):
-  if data_store.RelationalDBEnabled():
-    rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
-    return rdf_flow.persistent_data
-  else:
-    flow_obj = aff4.FACTORY.Open(flow_id, mode="r", token=token)
-    return flow_obj.state
+def GetFlowState(client_id, flow_id):
+  rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  return rdf_flow.persistent_data
 
 
-def GetFlowObj(client_id, flow_id, token=None):
-  if data_store.RelationalDBEnabled():
-    rdf_flow = data_store.REL_DB.ReadFlowObject(client_id.Basename(), flow_id)
-    return rdf_flow
-  else:
-    flow_obj = aff4.FACTORY.Open(flow_id, mode="r", token=token)
-    return flow_obj
+def GetFlowObj(client_id, flow_id):
+  rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  return rdf_flow

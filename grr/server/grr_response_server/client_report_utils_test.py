@@ -10,7 +10,6 @@ from future.builtins import range
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_server import client_report_utils
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 # Client label used by tests in this file.
@@ -63,18 +62,15 @@ def _CreateNDayActiveGraphSeries(num_graph_series):
   return graph_series_list
 
 
-class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
-                            test_lib.GRRBaseTest):
+class ClientReportUtilsTest(test_lib.GRRBaseTest):
 
   def testWriteGraphSeries_MultipleGraphs(self):
     # Simulate two runs of the cronjob that computes GRR-version stats.
     graph_series_list = _CreateGRRVersionGraphSeries(2)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[0], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[0], _TEST_LABEL)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[1], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[1], _TEST_LABEL)
     fetched_data = client_report_utils.FetchAllGraphSeries(
         _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION)
     expected_data = {
@@ -87,11 +83,9 @@ class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
     # Simulate two runs of the cronjob that computes n-day-active stats.
     graph_series_list = _CreateNDayActiveGraphSeries(2)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[0], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[0], _TEST_LABEL)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[1], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[1], _TEST_LABEL)
     fetched_data = client_report_utils.FetchAllGraphSeries(
         _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE)
     expected_data = {
@@ -107,7 +101,7 @@ class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testFetchAllGraphSeries_MissingType(self):
     graph_series = _CreateGRRVersionGraphSeries(1)[0]
-    client_report_utils.WriteGraphSeries(graph_series, _TEST_LABEL, token=None)
+    client_report_utils.WriteGraphSeries(graph_series, _TEST_LABEL)
     self.assertNotEmpty(
         client_report_utils.FetchAllGraphSeries(
             _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION))
@@ -119,8 +113,7 @@ class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
     graph_series_list = _CreateGRRVersionGraphSeries(10)
     for i, graph_series in enumerate(graph_series_list):
       with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(i)):
-        client_report_utils.WriteGraphSeries(
-            graph_series, _TEST_LABEL, token=self.token)
+        client_report_utils.WriteGraphSeries(graph_series, _TEST_LABEL)
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10)):
       # It is now 1 second after the last graph-series was written. Fetch all
       # series written starting from 4 seconds ago.
@@ -138,11 +131,9 @@ class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
   def testFetchMostRecentGraphSeries_MultipleGraphs(self):
     graph_series_list = _CreateGRRVersionGraphSeries(2)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[0], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[0], _TEST_LABEL)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[1], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[1], _TEST_LABEL)
     self.assertEqual(
         client_report_utils.FetchMostRecentGraphSeries(
             _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION),
@@ -151,11 +142,9 @@ class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
   def testFetchMostRecentGraphSeries_SingleGraph(self):
     graph_series_list = _CreateNDayActiveGraphSeries(2)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(1000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[0], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[0], _TEST_LABEL)
     with test_lib.FakeTime(rdfvalue.RDFDatetime(2000)):
-      client_report_utils.WriteGraphSeries(
-          graph_series_list[1], _TEST_LABEL, token=self.token)
+      client_report_utils.WriteGraphSeries(graph_series_list[1], _TEST_LABEL)
     self.assertEqual(
         client_report_utils.FetchMostRecentGraphSeries(
             _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE),
@@ -168,7 +157,7 @@ class ClientReportUtilsTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testFetchMostRecentGraphSeries_MissingType(self):
     graph_series = _CreateNDayActiveGraphSeries(1)[0]
-    client_report_utils.WriteGraphSeries(graph_series, _TEST_LABEL, token=None)
+    client_report_utils.WriteGraphSeries(graph_series, _TEST_LABEL)
     self.assertIsNotNone(
         client_report_utils.FetchMostRecentGraphSeries(
             _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE))

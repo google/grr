@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 import socket
 
-
 from future.utils import with_metaclass
 import ipaddress
 

@@ -12,7 +12,6 @@ import subprocess
 import threading
 import time
 
-
 from future.utils import itervalues
 
 from grr_response_client.local import binary_whitelist

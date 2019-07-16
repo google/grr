@@ -17,7 +17,6 @@ from grr_response_core import config
 from grr_response_core.lib.util import temp
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
 from grr.test_lib import skip
@@ -26,8 +25,7 @@ from grr.test_lib import test_lib
 
 @skip.Unless(lambda: config.CONFIG["Osquery.path"],
              "osquery path not specified")
-class OsqueryFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                      flow_test_lib.FlowTestsBaseclass):
+class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   # TODO: Add tests for headers. Currently headers are unordered
   # because they are determined from the JSON output. This is less than ideal
@@ -148,8 +146,7 @@ class OsqueryFlowTest(db_test_lib.RelationalDBEnabledMixin,
       self._RunQuery("UPDATE time SET day = -1;")
 
 
-class FakeOsqueryFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                          flow_test_lib.FlowTestsBaseclass):
+class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(FakeOsqueryFlowTest, self).setUp()

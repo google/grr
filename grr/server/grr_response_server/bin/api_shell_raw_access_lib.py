@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils

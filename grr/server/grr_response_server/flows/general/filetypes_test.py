@@ -13,13 +13,11 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_server.flows.general import filetypes
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestPlistFlows(db_test_lib.RelationalDBEnabledMixin,
-                     flow_test_lib.FlowTestsBaseclass):
+class TestPlistFlows(flow_test_lib.FlowTestsBaseclass):
   """Tests the PlistValueFilter flow."""
 
   def _RunFlow(self, client_id, flow_name, context=None, query=None):
@@ -38,7 +36,7 @@ class TestPlistFlows(db_test_lib.RelationalDBEnabledMixin,
     return session_id
 
   def testPlistValueFilter(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     session_id = self._RunFlow(
         client_id, filetypes.PlistValueFilter.__name__, context="", query="")

@@ -12,34 +12,30 @@ from future.builtins import range
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
 
-from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class TestFileView(db_test_lib.RelationalDBEnabledMixin,
-                   gui_test_lib.GRRSeleniumTest):
+class TestFileView(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   def setUp(self):
     super(TestFileView, self).setUp()
     # Prepare our fixture.
-    self.client_id, self.unapproved_client_id = [
-        u.Basename() for u in self.SetupClients(2)
-    ]
+    self.client_id, self.unapproved_client_id = self.SetupClients(2)
 
-    fixture_test_lib.ClientFixture(self.client_id, self.token)
+    with test_lib.FakeTime(test_lib.FIXED_TIME):
+      fixture_test_lib.ClientFixture(self.client_id)
+
     self.content_1, self.content_2 = gui_test_lib.CreateFileVersions(
-        rdf_client.ClientURN(self.client_id), self.token)
+        self.client_id)
     self.content_1_hash = rdf_objects.SHA256HashID.FromData(
         self.content_1).AsBytes()
     self.content_2_hash = rdf_objects.SHA256HashID.FromData(
@@ -76,12 +72,10 @@ class TestFileView(db_test_lib.RelationalDBEnabledMixin,
   def testSwitchingBetweenFilesRefreshesFileHashes(self):
     vfs_test_lib.CreateFile(
         db.ClientPath.OS(self.client_id, ["c", "Downloads", "a.txt"]),
-        content=self.content_1,
-        token=self.token)
+        content=self.content_1)
     vfs_test_lib.CreateFile(
         db.ClientPath.OS(self.client_id, ["c", "Downloads", "b.txt"]),
-        content=self.content_2,
-        token=self.token)
+        content=self.content_2)
 
     # Open a URL pointing to file "a".
     self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
@@ -102,14 +96,12 @@ class TestFileView(db_test_lib.RelationalDBEnabledMixin,
     with test_lib.FakeTime(gui_test_lib.TIME_0):
       vfs_test_lib.CreateFile(
           db.ClientPath.OS(self.client_id, ["c", "Downloads", "a.txt"]),
-          content=self.content_1,
-          token=self.token)
+          content=self.content_1)
 
     with test_lib.FakeTime(gui_test_lib.TIME_1):
       vfs_test_lib.CreateFile(
           db.ClientPath.OS(self.client_id, ["c", "Downloads", "a.txt"]),
-          content=self.content_2,
-          token=self.token)
+          content=self.content_2)
 
     # Open a URL corresponding to a HEAD version of the file.
     self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
@@ -222,8 +214,7 @@ class TestFileView(db_test_lib.RelationalDBEnabledMixin,
 
     vfs_test_lib.CreateFile(
         db.ClientPath.OS(self.client_id, ["proc", "10", "cmdline"]),
-        content=content,
-        token=self.token)
+        content=content)
 
     self.Open("/#clients/%s/vfs/fs/os/proc/10/" % self.client_id)
 
@@ -288,10 +279,6 @@ class TestFileView(db_test_lib.RelationalDBEnabledMixin,
     # an HTTP 500.
     with self.DisableHttpErrorChecks():
       self.Click("css=button:contains(\"Collect from the client\")")
-      if not data_store.RelationalDBEnabled():
-        # Wait until the error is processed before we leave the
-        # DisableHttpErrorChecks context.
-        self.WaitUntil(self.GetHttpErrors)
 
   def testExportToolHintIsDisplayed(self):
     self.Open("/#/clients/%s/vfs/" % self.client_id)

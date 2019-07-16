@@ -16,9 +16,7 @@ from grr_response_core import config
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.databases import db
 from grr_response_server.gui import validate_iap
 
@@ -111,33 +109,16 @@ class BasicWebAuthManager(BaseWebAuthManager):
         authorization_string = authorization.decode("base64").decode("utf-8")
         user, password = authorization_string.split(":", 1)
 
-        if data_store.AFF4Enabled():
-
-          token = access_control.ACLToken(username=user)
-
-          fd = aff4.FACTORY.Open(
-              "aff4:/users/%s" % user,
-              aff4_type=aff4_users.GRRUser,
-              token=token)
-          crypted_password = fd.Get(fd.Schema.PASSWORD)
-          if crypted_password and crypted_password.CheckPassword(password):
+        try:
+          user_obj = data_store.REL_DB.ReadGRRUser(user)
+          if user_obj.password.CheckPassword(password):
             authorized = True
 
             # The password is ok - update the user
             request.user = user
 
-        else:
-
-          try:
-            user_obj = data_store.REL_DB.ReadGRRUser(user)
-            if user_obj.password.CheckPassword(password):
-              authorized = True
-
-              # The password is ok - update the user
-              request.user = user
-
-          except db.UnknownGRRUserError:
-            pass
+        except db.UnknownGRRUserError:
+          pass
 
     except access_control.UnauthorizedAccess as e:
       logging.warning("UnauthorizedAccess: %s for %s", e, request)

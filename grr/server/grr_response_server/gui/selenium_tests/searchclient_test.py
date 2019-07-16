@@ -4,20 +4,17 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
-                       gui_test_lib.SearchClientTestBase,
+class TestClientSearch(gui_test_lib.SearchClientTestBase,
                        hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -37,15 +34,14 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
     self.AddClientLabel(self.client_ids[1], self.token.username,
                         u"common_test_label")
 
-    snapshot = data_store.REL_DB.ReadClientSnapshot(
-        self.client_ids[0].Basename())
+    snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_ids[0])
     snapshot.knowledge_base.users.Append(
         rdf_client.User(username="sample_user"))
     snapshot.knowledge_base.users.Append(
         rdf_client.User(username=self.token.username))
     data_store.REL_DB.WriteClientSnapshot(snapshot)
     client_index.ClientIndex().AddClient(
-        data_store.REL_DB.ReadClientSnapshot(self.client_ids[0].Basename()))
+        data_store.REL_DB.ReadClientSnapshot(self.client_ids[0]))
 
   def _WaitForSearchResults(self, target_count):
     self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
@@ -85,7 +81,7 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
     self._WaitForSearchResults(target_count=15)
 
   def testSearchByClientId(self):
-    client_name = self.client_ids[0].Basename()
+    client_name = self.client_ids[0]
 
     self.Open("/")
     self.Type("client_query", text=client_name, end_with_enter=True)
@@ -179,7 +175,7 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchingForHuntIdOpensHunt(self):
-    hunt_id = self.StartHunt(description="demo hunt").Basename()
+    hunt_id = self.StartHunt(description="demo hunt")
 
     self.Open("/")
     self.Type("client_query", text=hunt_id, end_with_enter=True)
@@ -218,7 +214,7 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
   def testBackButtonWorksAsExpected(self):
     self.RequestAndGrantClientApproval(self.client_ids[0])
 
-    client_name = self.client_ids[0].Basename()
+    client_name = self.client_ids[0]
 
     self.Open("/#/clients/" + client_name)
     self.WaitUntil(self.IsTextPresent, client_name)
@@ -247,8 +243,7 @@ class TestClientSearch(db_test_lib.RelationalDBEnabledMixin,
                    "css=.active > a[grrtarget='client.launchFlows']")
 
 
-class TestDefaultGUISettings(db_test_lib.RelationalDBEnabledMixin,
-                             gui_test_lib.GRRSeleniumTest):
+class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
 
   def testDefaultGUISettingsWork(self):
     data_store.REL_DB.DeleteGRRUser(self.token.username)

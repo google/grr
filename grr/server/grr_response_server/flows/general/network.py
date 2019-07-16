@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 
@@ -15,12 +14,11 @@ class NetstatArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.NetstatArgs
 
 
-@flow_base.DualDBFlow
-class NetstatMixin(object):
+class Netstat(flow_base.FlowBase):
   """List active network connections on a system."""
 
   category = "/Network/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
   args_type = NetstatArgs
 
   def Start(self):
@@ -47,10 +45,10 @@ class NetstatMixin(object):
       responses: A list of rdf_client_network.NetworkConnection objects.
 
     Raises:
-      flow.FlowError: On failure to get retrieve the connections.
+      flow_base.FlowError: On failure to get retrieve the connections.
     """
     if not responses.success:
-      raise flow.FlowError("Failed to get connections. Err: {0}".format(
+      raise flow_base.FlowError("Failed to get connections. Err: {0}".format(
           responses.status))
 
     for response in responses:

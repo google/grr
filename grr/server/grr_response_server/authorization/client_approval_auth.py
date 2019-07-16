@@ -105,7 +105,7 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
       for user in approval_spec.users:
         self.AuthorizeUser(user, approval_spec.label)
 
-  def CheckApproversForLabel(self, token, client_urn, requester, approvers,
+  def CheckApproversForLabel(self, token, client_id, requester, approvers,
                              label):
     """Checks if requester and approvers have approval privileges for labels.
 
@@ -114,10 +114,11 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
 
     Args:
       token: user token
-      client_urn: ClientURN object of the client
+      client_id: Client ID of the client
       requester: username string of person requesting approval.
       approvers: list of username strings that have approved this client.
       label: label strings to check approval privs for.
+
     Returns:
       True if access is allowed, raises otherwise.
     """
@@ -129,9 +130,9 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
     if auth.requester_must_be_authorized:
       if not self.CheckPermissions(requester, label):
         raise access_control.UnauthorizedAccess(
-            "User %s not in %s or groups:%s for %s" % (requester, auth.users,
-                                                       auth.groups, label),
-            subject=client_urn,
+            "User %s not in %s or groups:%s for %s" %
+            (requester, auth.users, auth.groups, label),
+            subject=client_id,
             requested_access=token.requested_access)
 
     approved_count = 0
@@ -143,7 +144,7 @@ class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
       raise access_control.UnauthorizedAccess(
           "Found %s approvers for %s, needed %s" %
           (approved_count, label, auth.num_approvers_required),
-          subject=client_urn,
+          subject=client_id,
           requested_access=token.requested_access)
     return True
 

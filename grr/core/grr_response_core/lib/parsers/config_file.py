@@ -9,7 +9,6 @@ import collections
 import logging
 import re
 
-
 from future.builtins import zip
 from future.utils import iteritems
 from future.utils import string_types
@@ -374,7 +373,7 @@ class SshdFieldParser(object):
                "x11displayoffset"]  # pyformat: disable
   _booleans = ["allowagentforwarding",
                "challengeresponseauthentication",
-               "dsaauthentication"
+               "dsaauthentication",
                "gssapiauthentication",
                "gssapicleanupcredentials",
                "gssapikeyexchange",

@@ -12,7 +12,6 @@ from future.builtins import zip
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import analysis_pb2
 from grr_response_proto import jobs_pb2
@@ -218,8 +217,11 @@ class Graph(rdf_structs.RDFProtoStruct):
   def __len__(self):
     return len(self.data)
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.data)
+
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
   def __getitem__(self, item):
     return Sample(self.data[item])
@@ -227,26 +229,6 @@ class Graph(rdf_structs.RDFProtoStruct):
   def __iter__(self):
     for x in self.data:
       yield Sample(x)
-
-
-class GraphFloat(Graph):
-  """A Graph that stores sample points as floats."""
-  protobuf = analysis_pb2.GraphFloat
-  rdf_deps = [
-      SampleFloat,
-  ]
-
-  def __getitem__(self, item):
-    return SampleFloat(self.data[item])
-
-  def __iter__(self):
-    for x in self.data:
-      yield SampleFloat(x)
-
-
-class GraphSeries(rdf_protodict.RDFValueArray):
-  """A sequence of graphs (e.g. evolving over time)."""
-  rdf_type = Graph
 
 
 class ClientGraphSeries(rdf_structs.RDFProtoStruct):

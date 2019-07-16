@@ -4,10 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import io
 import os
 import time
-
 
 from future.utils import iteritems
 import mock
@@ -15,18 +13,13 @@ import mock
 from grr_response_client import client_utils
 from grr_response_client import vfs
 from grr_response_core import config
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import precondition
-from grr_response_server import aff4
 from grr_response_server import client_fixture
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -93,9 +86,9 @@ class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
   def IsDirectory(self):
     return bool(self.ListFiles())
 
-  def _FakeDirStat(self, vfs_type=None):
+  def _FakeDirStat(self, vfs_name=None):
     for path in self.pathspec:
-      path.path = self._NormalizeCaseForPath(self.path, vfs_type=vfs_type)
+      path.path = self._NormalizeCaseForPath(self.path, vfs_name=vfs_name)
 
     return rdf_client_fs.StatEntry(
         pathspec=self.pathspec,
@@ -146,7 +139,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
     # The cache is attached to the class so it can be shared by all instance.
     self.paths = self.__class__.cache[self.prefix] = {}
-    for path, (vfs_type, attributes) in client_fixture.VFS:
+    for path, (vfs_name, attributes) in client_fixture.VFS:
       if not path.startswith(self.prefix):
         continue
 
@@ -156,7 +149,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
       stat = rdf_client_fs.StatEntry()
       args = {"client_id": "C.1234"}
-      attrs = attributes.get("aff4:stat")
+      attrs = attributes.get("stat")
 
       if attrs:
         attrs %= args  # Remove any %% and interpolate client_id.
@@ -168,19 +161,19 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       # TODO(user): Once we add tests around not crossing device boundaries,
       # we need to be smarter here, especially for the root entry.
       stat.st_dev = 1
-      path = self._NormalizeCaseForPath(path, vfs_type)
-      self.paths[path] = (vfs_type, stat)
+      path = self._NormalizeCaseForPath(path, vfs_name)
+      self.paths[path] = (vfs_name, stat)
 
     self.BuildIntermediateDirectories()
 
-  def _NormalizeCaseForPath(self, path, vfs_type):
+  def _NormalizeCaseForPath(self, path, vfs_name):
     """Handle casing differences for different filesystems."""
     # Special handling for case sensitivity of registry keys.
     # This mimicks the behavior of the operating system.
     if self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       self.path = self.path.replace("\\", "/")
       parts = path.split("/")
-      if vfs_type == aff4_grr.VFSFile:
+      if vfs_name == "File":
         # If its a file, the last component is a value which is case sensitive.
         lower_parts = [x.lower() for x in parts[0:-1]]
         lower_parts.append(parts[-1])
@@ -207,7 +200,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         if dirname == "/" or dirname in self.paths:
           break
 
-        self.paths[dirname] = (aff4_standard.VFSDirectory,
+        self.paths[dirname] = ("Directory",
                                rdf_client_fs.StatEntry(
                                    st_mode=16877,
                                    st_size=1,
@@ -224,8 +217,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         yield stat
 
   def Read(self, length):
-    result = self.paths.get(
-        self._NormalizeCaseForPath(self.path, aff4_grr.VFSFile))
+    result = self.paths.get(self._NormalizeCaseForPath(self.path, "File"))
     if not result:
       raise IOError("File not found")
 
@@ -250,12 +242,11 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       # Check in case it is a registry value. Unfortunately our API doesn't let
       # the user specify if they are after a value or a key, so we have to try
       # both.
-      stat_data = self.paths.get(
-          self._NormalizeCaseForPath(self.path, aff4_grr.VFSFile))
+      stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, "File"))
     if stat_data:
-      return stat_data[1]  # Strip the vfs_type.
+      return stat_data[1]  # Strip the vfs_name.
     else:
-      return self._FakeDirStat(aff4_grr.VFSFile)
+      return self._FakeDirStat("File")
 
 
 class FakeRegistryVFSHandler(ClientVFSHandlerFixture):
@@ -397,7 +388,7 @@ class RegistryFake(FakeRegistryVFSHandler):
     for path in self.cache[self.prefix]:
       if os.path.dirname(path) == key.value:
         sub_type, stat_entry = self.cache[self.prefix][path]
-        if sub_type.__name__ == "VFSDirectory":
+        if sub_type == "Directory":
           res.append(os.path.basename(stat_entry.pathspec.path))
     return sorted(res)
 
@@ -414,7 +405,7 @@ class RegistryFake(FakeRegistryVFSHandler):
     for path in self.cache[self.prefix]:
       if os.path.dirname(path) == key.value:
         sub_type, stat_entry = self.cache[self.prefix][path]
-        if sub_type.__name__ == "VFSFile":
+        if sub_type == "File":
           res.append(os.path.basename(stat_entry.pathspec.path))
     return sorted(res)
 
@@ -488,13 +479,12 @@ class RegistryVFSStubber(object):
     self.stubber.Stop()
 
 
-def CreateFile(client_path, content=b"", token=None):
+def CreateFile(client_path, content=b""):
   """Creates a file in datastore-agnostic way.
 
   Args:
     client_path: A `ClientPath` instance specifying location of the file.
     content: A content to write to the file.
-    token: A GRR token for accessing the data store.
   """
   precondition.AssertType(client_path, db.ClientPath)
   precondition.AssertType(content, bytes)
@@ -508,47 +498,26 @@ def CreateFile(client_path, content=b"", token=None):
       st_mode=33206,
       st_size=len(content))
 
-  if data_store.RelationalDBEnabled():
-    data_store.BLOBS.WriteBlobs({blob_id: content})
-    blob_ref = rdf_objects.BlobReference(
-        size=len(content), offset=0, blob_id=blob_id)
-    hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_ref])
+  data_store.BLOBS.WriteBlobs({blob_id: content})
+  blob_ref = rdf_objects.BlobReference(
+      size=len(content), offset=0, blob_id=blob_id)
+  hash_id = file_store.AddFileWithUnknownHash(client_path, [blob_ref])
 
-    path_info = rdf_objects.PathInfo()
-    path_info.path_type = client_path.path_type
-    path_info.components = client_path.components
-    path_info.hash_entry.num_bytes = len(content)
-    path_info.hash_entry.sha256 = hash_id.AsBytes()
-    path_info.stat_entry = stat_entry
+  path_info = rdf_objects.PathInfo()
+  path_info.path_type = client_path.path_type
+  path_info.components = client_path.components
+  path_info.hash_entry.num_bytes = len(content)
+  path_info.hash_entry.sha256 = hash_id.AsBytes()
+  path_info.stat_entry = stat_entry
 
-    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
-
-  if data_store.AFF4Enabled():
-    urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
-    with aff4.FACTORY.Create(
-        urn, aff4_grr.VFSBlobImage, token=token) as filedesc:
-      bio = io.BytesIO()
-      bio.write(content)
-      bio.seek(0)
-
-      filedesc.AppendContent(bio)
-      filedesc.Set(filedesc.Schema.STAT, stat_entry)
-
-      filedesc.Set(
-          filedesc.Schema.HASH,
-          rdf_crypto.Hash(
-              sha256=rdf_objects.SHA256HashID.FromData(content).AsBytes(),
-              num_bytes=len(content)))
-
-      filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
 
 
-def CreateDirectory(client_path, token=None):
+def CreateDirectory(client_path):
   """Creates a directory in datastore-agnostic way.
 
   Args:
     client_path: A `ClientPath` instance specifying location of the file.
-    token: A GRR token for accessing the data store.
   """
   precondition.AssertType(client_path, db.ClientPath)
 
@@ -558,18 +527,9 @@ def CreateDirectory(client_path, token=None):
           path="/".join(client_path.components)),
       st_mode=16895)
 
-  if data_store.RelationalDBEnabled():
+  path_info = rdf_objects.PathInfo()
+  path_info.path_type = client_path.path_type
+  path_info.components = client_path.components
+  path_info.stat_entry = stat_entry
 
-    path_info = rdf_objects.PathInfo()
-    path_info.path_type = client_path.path_type
-    path_info.components = client_path.components
-    path_info.stat_entry = stat_entry
-
-    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
-
-  if data_store.AFF4Enabled():
-    urn = aff4.ROOT_URN.Add(client_path.client_id).Add(client_path.vfs_path)
-    with aff4.FACTORY.Create(
-        urn, aff4_standard.VFSDirectory, token=token) as filedesc:
-      filedesc.Set(filedesc.Schema.STAT, stat_entry)
-      filedesc.Set(filedesc.Schema.PATHSPEC, stat_entry.pathspec)
+  data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])

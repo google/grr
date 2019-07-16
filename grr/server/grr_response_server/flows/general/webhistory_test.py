@@ -16,14 +16,11 @@ from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
-from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import webhistory
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
@@ -48,8 +45,7 @@ class WebHistoryFlowTestMixin(flow_test_lib.FlowTestsBaseclass):
     return utils.Stubber(client_utils, "GetRawDevice", MockGetRawdevice)
 
 
-class TestWebHistory(db_test_lib.RelationalDBEnabledMixin,
-                     WebHistoryFlowTestMixin):
+class TestWebHistory(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):
@@ -82,19 +78,14 @@ class TestWebHistory(db_test_lib.RelationalDBEnabledMixin,
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
 
-    output_path = self.client_id.Add("fs/tsk").Add(
-        self.base_path.replace("\\", "/")).Add("test_img.dd").Add(
-            fs_path.replace("\\", "/"))
+    components = filter(bool, self.base_path.split(os.path.sep))
+    components.append("test_img.dd")
+    components.extend(filter(bool, fs_path.split(os.path.sep)))
 
     # Check if the History file is created.
-    if data_store.RelationalDBEnabled():
-      cp = db.ClientPath.TSK(self.client_id.Basename(),
-                             tuple(output_path.Split()[3:]))
-      fd = file_store.OpenFile(cp)
-      self.assertGreater(len(fd.read()), 20000)
-    else:
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      self.assertGreater(fd.size, 20000)
+    cp = db.ClientPath.TSK(self.client_id, tuple(components))
+    fd = file_store.OpenFile(cp)
+    self.assertGreater(len(fd.read()), 20000)
 
     # Check for analysis file.
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
@@ -117,20 +108,14 @@ class TestWebHistory(db_test_lib.RelationalDBEnabledMixin,
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
 
-    output_path = self.client_id.Add("fs/tsk").Add("/".join(
-        [self.base_path.replace("\\", "/"),
-         "test_img.dd"])).Add(fs_path.replace("\\", "/"))
+    components = filter(bool, self.base_path.split(os.path.sep))
+    components.append("test_img.dd")
+    components.extend(filter(bool, fs_path.split(os.path.sep)))
 
     # Check if the History file is created.
-    if data_store.RelationalDBEnabled():
-      cp = db.ClientPath.TSK(self.client_id.Basename(),
-                             tuple(output_path.Split()[3:]))
-      rel_fd = file_store.OpenFile(cp)
-      self.assertEqual(rel_fd.read(15), "SQLite format 3")
-    else:
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      self.assertGreater(fd.size, 20000)
-      self.assertEqual(fd.read(15), "SQLite format 3")
+    cp = db.ClientPath.TSK(self.client_id, tuple(components))
+    rel_fd = file_store.OpenFile(cp)
+    self.assertEqual(rel_fd.read(15), "SQLite format 3")
 
     # Check for analysis file.
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
@@ -164,8 +149,7 @@ class TestWebHistory(db_test_lib.RelationalDBEnabledMixin,
                      "/home/test/.config/google-chrome/Default/Cache/data_1")
 
 
-class TestWebHistoryWithArtifacts(db_test_lib.RelationalDBEnabledMixin,
-                                  WebHistoryFlowTestMixin):
+class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):

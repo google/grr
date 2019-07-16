@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 import ipaddress
 import mock
@@ -45,21 +44,19 @@ class ApiClientIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     with self.assertRaises(ValueError):
       client_plugin.ApiClientId("C." + "1" * 16 + "/foo")
 
-  def testRaisesWhenToClientURNCalledOnUninitializedValue(self):
+  def testRaisesWhenToStringCalledOnUninitializedValue(self):
     client_id = client_plugin.ApiClientId()
     with self.assertRaises(ValueError):
-      client_id.ToClientURN()
+      client_id.ToString()
 
-  def testConvertsToClientURN(self):
+  def testConvertsToString(self):
     client_id = client_plugin.ApiClientId("C." + "1" * 16)
-    client_urn = client_id.ToClientURN()
+    client_id_str = client_id.ToString()
 
-    self.assertEqual(client_urn.Basename(), client_id)
-    self.assertEqual(client_urn, "aff4:/C." + "1" * 16)
+    self.assertEqual(client_id_str, "C." + "1" * 16)
 
 
-class ApiAddClientsLabelsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                     api_test_lib.ApiCallHandlerTest):
+class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiAddClientsLabelsHandler."""
 
   def setUp(self):
@@ -73,14 +70,14 @@ class ApiAddClientsLabelsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
-    cid = self.client_ids[0].Basename()
+    cid = self.client_ids[0]
     labels = data_store.REL_DB.ReadClientLabels(cid)
     self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, self.token.username)
 
     for client_id in self.client_ids[1:]:
-      self.assertFalse(data_store.REL_DB.ReadClientLabels(client_id.Basename()))
+      self.assertFalse(data_store.REL_DB.ReadClientLabels(client_id))
 
   def testAddsTwoLabelsToTwoClients(self):
     self.handler.Handle(
@@ -90,14 +87,13 @@ class ApiAddClientsLabelsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
         token=self.token)
 
     for client_id in self.client_ids[:2]:
-      labels = data_store.REL_DB.ReadClientLabels(client_id.Basename())
+      labels = data_store.REL_DB.ReadClientLabels(client_id)
       self.assertLen(labels, 2)
       self.assertEqual(labels[0].owner, self.token.username)
       self.assertEqual(labels[1].owner, self.token.username)
       self.assertCountEqual([labels[0].name, labels[1].name], [u"bar", u"foo"])
 
-    self.assertFalse(
-        data_store.REL_DB.ReadClientLabels(self.client_ids[2].Basename()))
+    self.assertFalse(data_store.REL_DB.ReadClientLabels(self.client_ids[2]))
 
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -110,71 +106,67 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testRemovesUserLabelFromSingleClient(self):
     data_store.REL_DB.WriteClientMetadata(
-        self.client_ids[0].Basename(), fleetspeak_enabled=False)
-    data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(),
-                                      self.token.username, [u"foo", u"bar"])
+        self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], self.token.username,
+                                      [u"foo", u"bar"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
-    labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
+    labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0])
     self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"bar")
     self.assertEqual(labels[0].owner, self.token.username)
 
   def testDoesNotRemoveSystemLabelFromSingleClient(self):
     data_store.REL_DB.WriteClientMetadata(
-        self.client_ids[0].Basename(), fleetspeak_enabled=False)
-    data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(), u"GRR",
-                                      [u"foo"])
+        self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], u"GRR", [u"foo"])
     idx = client_index.ClientIndex()
-    idx.AddClientLabels(self.client_ids[0].Basename(), [u"foo"])
+    idx.AddClientLabels(self.client_ids[0], [u"foo"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
-    labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
+    labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0])
     self.assertLen(labels, 1)
     # The label is still in the index.
-    self.assertEqual(
-        idx.LookupClients(["label:foo"]), [self.client_ids[0].Basename()])
+    self.assertEqual(idx.LookupClients(["label:foo"]), [self.client_ids[0]])
 
   def testRemovesUserLabelWhenSystemLabelWithSimilarNameAlsoExists(self):
     data_store.REL_DB.WriteClientMetadata(
-        self.client_ids[0].Basename(), fleetspeak_enabled=False)
-    data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(),
-                                      self.token.username, [u"foo"])
-    data_store.REL_DB.AddClientLabels(self.client_ids[0].Basename(), u"GRR",
+        self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], self.token.username,
                                       [u"foo"])
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], u"GRR", [u"foo"])
     idx = client_index.ClientIndex()
-    idx.AddClientLabels(self.client_ids[0].Basename(), [u"foo"])
+    idx.AddClientLabels(self.client_ids[0], [u"foo"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
         token=self.token)
 
-    labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0].Basename())
+    labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0])
     self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
     self.assertEqual(labels[0].owner, u"GRR")
     # The label is still in the index.
-    self.assertEqual(
-        idx.LookupClients(["label:foo"]), [self.client_ids[0].Basename()])
+    self.assertEqual(idx.LookupClients(["label:foo"]), [self.client_ids[0]])
 
 
 class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest):
+    api_test_lib.ApiCallHandlerTest):
   """Tests ApiLabelsRestrictedSearchClientsHandler."""
 
   def setUp(self):
     super(ApiLabelsRestrictedSearchClientsHandlerTestRelational, self).setUp()
 
-    self.client_ids = sorted(self.SetupTestClientObjects(4))
+    self.client_ids = self.SetupClients(4)
 
     data_store.REL_DB.AddClientLabels(self.client_ids[0], u"david", [u"foo"])
     data_store.REL_DB.AddClientLabels(self.client_ids[1], u"david",
@@ -194,7 +186,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
         labels_owners_whitelist=[u"david", u"peter"])
 
   def _Setup100Clients(self):
-    self.client_ids = sorted(self.SetupTestClientObjects(100))
+    self.client_ids = self.SetupClients(100)
     index = client_index.ClientIndex()
     for client_id in self.client_ids:
       data_store.REL_DB.AddClientLabels(client_id, u"david", [u"foo"])
@@ -271,13 +263,12 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     self.assertEqual([str(res.client_id) for res in result], self.client_ids)
 
 
-class ApiInterrogateClientHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                      api_test_lib.ApiCallHandlerTest):
+class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiInterrogateClientHandler."""
 
   def setUp(self):
     super(ApiInterrogateClientHandlerTest, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
     self.handler = client_plugin.ApiInterrogateClientHandler()
 
   def testInterrogateFlowIsStarted(self):
@@ -313,18 +304,10 @@ class ApiGetClientVersionTimesTest(ApiGetClientVersionTimesTestMixin,
                                    api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientVersionTimes using the relational db."""
 
-  def setUp(self):
-    super(ApiGetClientVersionTimesTest, self).setUp()
-
-    enable_relational_db = test_lib.ConfigOverrider({"Database.enabled": True})
-    enable_relational_db.Start()
-    self.addCleanup(enable_relational_db.Stop)
-
   def _SetUpClient(self):
     for time in [42, 45, 100]:
       with test_lib.FakeTime(time):
-        client_obj = self.SetupTestClientObject(0)
-        self.client_id = client_obj.client_id
+        self.client_id = self.SetupClient(0)
 
 
 def TSProtoFromString(string):
@@ -429,8 +412,7 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
 
 
 @db_test_lib.TestDatabases()
-class ApiSearchClientsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                  api_test_lib.ApiCallHandlerTest):
+class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiSearchClientsHandlerTest, self).setUp()
@@ -444,9 +426,8 @@ class ApiSearchClientsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.add_labels_handler.Handle(args=args, token=self.token)
 
   def testSearchByLabel(self):
-    client_urn = self.SetupClient(
+    client_id = self.SetupClient(
         0, ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(13))
-    client_id = client_urn.Basename()
     self._AddLabels(client_id, labels=["foo"])
     api_result = self.search_handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:foo"))
@@ -456,10 +437,10 @@ class ApiSearchClientsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(13))
 
   def testUnicode(self):
-    client_a_id = self.SetupClient(0).Basename()
+    client_a_id = self.SetupClient(0)
     self._AddLabels(client_a_id, labels=["gżegżółka"])
 
-    client_b_id = self.SetupClient(1).Basename()
+    client_b_id = self.SetupClient(1)
     self._AddLabels(client_b_id, labels=["orłosęp"])
 
     args_a = client_plugin.ApiSearchClientsArgs(
@@ -477,10 +458,10 @@ class ApiSearchClientsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(result_b.items[0].client_id, client_b_id)
 
   def testUnicodeMultipleClients(self):
-    client_a_id = self.SetupClient(0).Basename()
+    client_a_id = self.SetupClient(0)
     self._AddLabels(client_a_id, labels=["ścierwnik", "krzyżówka"])
 
-    client_b_id = self.SetupClient(1).Basename()
+    client_b_id = self.SetupClient(1)
     self._AddLabels(client_b_id, labels=["nurogęś", "ścierwnik"])
 
     args = client_plugin.ApiSearchClientsArgs(
@@ -491,13 +472,13 @@ class ApiSearchClientsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertCountEqual(result_client_ids, [client_a_id, client_b_id])
 
   def testUnicodeMultipleLabels(self):
-    client_a_id = self.SetupClient(0).Basename()
+    client_a_id = self.SetupClient(0)
     self._AddLabels(client_a_id, labels=["pustułka", "sokół", "raróg"])
 
-    client_b_id = self.SetupClient(1).Basename()
+    client_b_id = self.SetupClient(1)
     self._AddLabels(client_b_id, labels=["raróg", "żuraw", "białozór"])
 
-    client_c_id = self.SetupClient(2).Basename()
+    client_c_id = self.SetupClient(2)
     self._AddLabels(client_c_id, labels=["raróg", "sokół", "gołąb"])
 
     args = client_plugin.ApiSearchClientsArgs(
@@ -508,7 +489,7 @@ class ApiSearchClientsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertCountEqual(result_client_ids, [client_a_id, client_c_id])
 
   def testUnicodeQuoted(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self._AddLabels(
         client_id, labels=["dzięcioł białoszyi", "świergotek łąkowy"])
 

@@ -8,12 +8,13 @@ if (!$?) {
   throw 'Failed to activate GCE service account.'
 }
 
-# Parse appveyor IS0 8601 commit date string (e.g 2017-07-26T16:49:31.0000000Z)
-# into a Powershell DateTime object
-$raw_commit_dt = [DateTime]$env:APPVEYOR_REPO_COMMIT_TIMESTAMP
+Set-Location C:\grr_src
+
+$unix_commit_timestamp = (git show -s --format=%ct $env:APPVEYOR_REPO_COMMIT)
+$commit_date_time = [DateTimeOffset]::FromUnixTimeSeconds($unix_commit_timestamp).DateTime
 
 # Create a shorter, more readable time string.
-$short_commit_timestamp = $raw_commit_dt.ToString('yyyy-MM-ddTHH:mmUTC')
+$short_commit_timestamp = $commit_date_time.ToUniversalTime().ToString('yyyy-MM-ddTHH:mmUTC')
 
 $gcs_dest = 'gs://{0}/{1}_{2}/appveyor_build_{3}_job_{4}/' -f @(
     $env:GCS_BUCKET,

@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
@@ -119,19 +118,16 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
     for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):
       self._ProcessGraphSeries(graph_series, timestamp, categories)
 
-    graphs = []
-    for k, v in iteritems(categories):
-      graph = dict(label=k, data=v)
-      graphs.append(graph)
+    series = []
+    for label, points in iteritems(categories):
+      series.append(
+          rdf_report_plugins.ApiReportDataSeries2D(
+              label=label,
+              points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
+                      for x, y in points)))
 
     report.line_chart.data = sorted(
-        (rdf_report_plugins.ApiReportDataSeries2D(
-            label=label,
-            points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
-                    for x, y in points))
-         for label, points in iteritems(categories)),
-        key=lambda series: int(series.label.split()[0]),
-        reverse=True)
+        series, key=lambda s: int(s.label.split()[0]), reverse=True)
 
     return report
 
@@ -154,8 +150,7 @@ class OSBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
 
     graph_series = client_report_utils.FetchMostRecentGraphSeries(
         get_report_args.client_label,
-        rdf_stats.ClientGraphSeries.ReportType.OS_TYPE,
-        token=token)
+        rdf_stats.ClientGraphSeries.ReportType.OS_TYPE)
     if graph_series is not None:
       for graph in graph_series.graphs:
         # Find the correct graph and merge the OS categories together
@@ -214,8 +209,7 @@ class OSReleaseBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
 
     graph_series = client_report_utils.FetchMostRecentGraphSeries(
         get_report_args.client_label,
-        rdf_stats.ClientGraphSeries.ReportType.OS_RELEASE,
-        token=token)
+        rdf_stats.ClientGraphSeries.ReportType.OS_RELEASE)
     if graph_series is not None:
       for graph in graph_series.graphs:
         # Find the correct graph and merge the OS categories together

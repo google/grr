@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from future.utils import iteritems
 
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict

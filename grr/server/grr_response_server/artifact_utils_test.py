@@ -192,22 +192,20 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
       source.attributes["names"] = backup  # Restore old source.
 
 
-class ArtifactKBTest(test_lib.GRRBaseTest):
+class InterpolateKbAttributesTest(test_lib.GRRBaseTest):
 
-  def testInterpolation(self):
-    """Check we can interpolate values from the knowledge base."""
+  def assertRaisesMissingAttrs(self):
+    error_cls = artifact_utils.KbInterpolationMissingAttributesError
+    return self.assertRaises(error_cls)
+
+  def assertRaisesUnknownAttrs(self):
+    error_cls = artifact_utils.KbInterpolationUnknownAttributesError
+    return self.assertRaises(error_cls)
+
+  def testMultipleUsers(self):
     kb = rdf_client.KnowledgeBase()
-
-    # No users yet, this should raise
-    self.assertRaises(
-        artifact_utils.KnowledgeBaseInterpolationError, list,
-        artifact_utils.InterpolateKbAttributes("test%%users.username%%test",
-                                               kb))
-
-    # Now we have two users
     kb.users.Append(rdf_client.User(username="joe", uid=1))
     kb.users.Append(rdf_client.User(username="jim", uid=2))
-    kb.Set("environ_allusersprofile", "c:\\programdata")
 
     paths = artifact_utils.InterpolateKbAttributes("test%%users.username%%test",
                                                    kb)
@@ -215,40 +213,81 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     self.assertLen(paths, 2)
     self.assertCountEqual(paths, ["testjoetest", "testjimtest"])
 
+  def testSimpleVariable(self):
+    kb = rdf_client.KnowledgeBase()
+    kb.environ_allusersprofile = "c:\\programdata"
+
     paths = artifact_utils.InterpolateKbAttributes(
         "%%environ_allusersprofile%%\\a", kb)
+
     self.assertEqual(list(paths), ["c:\\programdata\\a"])
 
-    # Check a bad attribute raises
-    self.assertRaises(
-        artifact_utils.KnowledgeBaseInterpolationError, list,
-        artifact_utils.InterpolateKbAttributes("%%nonexistent%%\\a", kb))
+  def testUnknownAttributeVar(self):
+    kb = rdf_client.KnowledgeBase()
 
-    # Empty values should also raise
-    kb.Set("environ_allusersprofile", "")
-    self.assertRaises(
-        artifact_utils.KnowledgeBaseInterpolationError, list,
-        artifact_utils.InterpolateKbAttributes("%%environ_allusersprofile%%\\a",
-                                               kb))
+    with self.assertRaisesUnknownAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("%%nonexistent%%\\a", kb)
 
-    # No users have temp defined, so this should raise
-    self.assertRaises(
-        artifact_utils.KnowledgeBaseInterpolationError, list,
-        artifact_utils.InterpolateKbAttributes("%%users.temp%%\\a", kb))
+    self.assertEqual(context.exception.attrs, ["nonexistent"])
 
-    # One user has users.temp defined, the others do not.  This is common on
-    # windows where users have been created but have never logged in. We should
-    # get just one value back.
-    kb.users.Append(
-        rdf_client.User(
-            username="jason",
-            uid=1,
-            temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
+  def testUnknownAttributeScope(self):
+    kb = rdf_client.KnowledgeBase()
+
+    with self.assertRaisesUnknownAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("%%nonexistent.username%%", kb)
+
+    self.assertEqual(context.exception.attrs, ["nonexistent"])
+
+  def testUnknownAttributeScopeVar(self):
+    kb = rdf_client.KnowledgeBase()
+
+    with self.assertRaisesUnknownAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("%%users.nonexistent%%", kb)
+
+    self.assertEqual(context.exception.attrs, ["users.nonexistent"])
+
+  def testUnknownAttributeScopeNotARealScope(self):
+    kb = rdf_client.KnowledgeBase(os="Linux")
+
+    with self.assertRaisesUnknownAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("%%os.version%%", kb)
+
+    self.assertEqual(context.exception.attrs, ["os"])
+
+  def testMissingAttributeScope(self):
+    kb = rdf_client.KnowledgeBase()
+
+    with self.assertRaisesMissingAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("test%%users.username%%test", kb)
+
+    self.assertEqual(context.exception.attrs, ["users"])
+
+  def testMissingAttributeScopeVar(self):
+    kb = rdf_client.KnowledgeBase()
+    kb.users.Append(rdf_client.User(username="foo", uid=42))
+    with self.assertRaisesMissingAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("test%%users.temp%%test", kb)
+
+    self.assertEqual(context.exception.attrs, ["users.temp"])
+
+  def testEmptyAttribute(self):
+    kb = rdf_client.KnowledgeBase(environ_allusersprofile="")
+
+    with self.assertRaisesMissingAttrs() as context:
+      artifact_utils.InterpolateKbAttributes("%%environ_allusersprofile%%", kb)
+
+    self.assertEqual(context.exception.attrs, ["environ_allusersprofile"])
+
+  def testSingleUserHasValueOthersDoNot(self):
+    kb = rdf_client.KnowledgeBase()
+    kb.users.Append(rdf_client.User(username="foo", uid=1, temp="C:\\Temp"))
+    kb.users.Append(rdf_client.User(username="bar", uid=2))
+    kb.users.Append(rdf_client.User(username="baz", uid=3))
+
     paths = artifact_utils.InterpolateKbAttributes(r"%%users.temp%%\abcd", kb)
-    self.assertCountEqual(paths,
-                          ["C:\\Users\\jason\\AppData\\Local\\Temp\\abcd"])
+    self.assertCountEqual(paths, ["C:\\Temp\\abcd"])
 
-  def testMultipleUserInterpolations(self):
+  def testMultipleUsersHaveValues(self):
     kb = rdf_client.KnowledgeBase()
     kb.users.Append(rdf_client.User(username="joe", uid=1, sid="sid1"))
     kb.users.Append(rdf_client.User(username="jim", uid=2, sid="sid2"))
@@ -259,18 +298,15 @@ class ArtifactKBTest(test_lib.GRRBaseTest):
     self.assertCountEqual(
         paths, ["c:\\programdata\\sid1\\joe", "c:\\programdata\\sid2\\jim"])
 
-    # Only one user has a temp dir set. If we request all usernames and temp
-    # dirs, we should only get one entry.
-    kb.users.Append(
-        rdf_client.User(
-            username="jason",
-            uid=1,
-            temp="C:\\Users\\jason\\AppData\\Local\\Temp"))
+  def testMultipleUsersWithOneFullyApplicableValue(self):
+    kb = rdf_client.KnowledgeBase()
+    kb.users.Append(rdf_client.User(username="foo", uid=1, temp="C:\\Temp"))
+    kb.users.Append(rdf_client.User(username="bar", uid=2))
+    kb.users.Append(rdf_client.User(username="baz", uid=3))
 
     paths = artifact_utils.InterpolateKbAttributes(
         "%%users.temp%%\\%%users.username%%.txt", kb)
-    self.assertCountEqual(paths,
-                          ["C:\\Users\\jason\\AppData\\Local\\Temp\\jason.txt"])
+    self.assertCountEqual(paths, ["C:\\Temp\\foo.txt"])
 
 
 class UserMergeTest(test_lib.GRRBaseTest):

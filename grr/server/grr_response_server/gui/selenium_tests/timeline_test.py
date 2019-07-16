@@ -5,11 +5,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 import mock
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -17,13 +15,11 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import vfs as api_vfs
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
-                   gui_test_lib.GRRSeleniumTest):
+class TestTimeline(gui_test_lib.GRRSeleniumTest):
   """Test the timeline view interface."""
 
   TIMELINE_ITEMS_PER_FILE = 3
@@ -31,14 +27,13 @@ class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
   def setUp(self):
     super(TestTimeline, self).setUp()
     # Prepare our fixture.
-    fixture_test_lib.ClientFixture(u"C.0000000000000001", token=self.token)
-    self.CreateFileWithTimeline(
-        rdf_client.ClientURN(u"C.0000000000000001"), "c/proc/changed.txt",
-        rdf_paths.PathSpec.PathType.OS, self.token)
-    self.CreateFileWithTimeline(
-        rdf_client.ClientURN(u"C.0000000000000001"), "c/proc/other.txt",
-        rdf_paths.PathSpec.PathType.OS, self.token)
-    self.RequestAndGrantClientApproval(u"C.0000000000000001")
+    self.client_id = "C.0000000000000001"
+    fixture_test_lib.ClientFixture(self.client_id)
+    self.CreateFileWithTimeline(self.client_id, "c/proc/changed.txt",
+                                rdf_paths.PathSpec.PathType.OS, self.token)
+    self.CreateFileWithTimeline(self.client_id, "c/proc/other.txt",
+                                rdf_paths.PathSpec.PathType.OS, self.token)
+    self.RequestAndGrantClientApproval(self.client_id)
 
   @staticmethod
   def CreateFileWithTimeline(client_id, path, path_type, token):
@@ -54,10 +49,7 @@ class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
     stat_entry.st_ctime = gui_test_lib.TIME_0.AsSecondsSinceEpoch() - 1000
 
     with test_lib.FakeTime(gui_test_lib.TIME_0):
-      filesystem.WriteStatEntries([stat_entry],
-                                  client_id.Basename(),
-                                  mutation_pool=None,
-                                  token=token)
+      filesystem.WriteStatEntries([stat_entry], client_id)
 
     # Add a version with a stat entry, but without timestamps.
     stat_entry = rdf_client_fs.StatEntry()
@@ -66,10 +58,7 @@ class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
     stat_entry.st_ino = 99
 
     with test_lib.FakeTime(gui_test_lib.TIME_1):
-      filesystem.WriteStatEntries([stat_entry],
-                                  client_id.Basename(),
-                                  mutation_pool=None,
-                                  token=token)
+      filesystem.WriteStatEntries([stat_entry], client_id)
 
   def testTimelineContainsAllChangesForDirectory(self):
     # Open VFS view for client 1 on a specific location.
@@ -205,9 +194,8 @@ class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
                         "css=grr-file-timeline tbody tr")
 
     # Add a new file with several versions.
-    self.CreateFileWithTimeline(
-        rdf_client.ClientURN("C.0000000000000001"), "c/proc/newly_added.txt",
-        rdf_paths.PathSpec.PathType.OS, self.token)
+    self.CreateFileWithTimeline(self.client_id, "c/proc/newly_added.txt",
+                                rdf_paths.PathSpec.PathType.OS, self.token)
 
     # Click on tree again.
     self.Click("link=proc")
@@ -236,7 +224,7 @@ class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
     # permissions) and once for GET request.
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsTimelineAsCsvArgs(
-            client_id=u"C.0000000000000001",
+            client_id=self.client_id,
             file_path="fs/os/c/proc",
             format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.GRR),
         token=mock.ANY)
@@ -259,7 +247,7 @@ class TestTimeline(db_test_lib.RelationalDBEnabledMixin,
     # permissions) and once for GET request.
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsTimelineAsCsvArgs(
-            client_id=u"C.0000000000000001",
+            client_id=self.client_id,
             file_path="fs/os/c/proc",
             format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.BODY),
         token=mock.ANY)

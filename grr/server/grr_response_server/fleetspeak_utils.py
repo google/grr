@@ -10,30 +10,19 @@ from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 
 
-def IsFleetspeakEnabledClient(grr_id, token=None):
+def IsFleetspeakEnabledClient(grr_id):
   """Returns whether the provided GRR id is a Fleetspeak client."""
   if grr_id is None:
     return False
 
-  if data_store.RelationalDBEnabled():
-    md = data_store.REL_DB.ReadClientMetadata(grr_id)
-    if not md:
-      return False
-    return md.fleetspeak_enabled
-
-  else:
-    with aff4.FACTORY.Create(
-        rdf_client.ClientURN(grr_id),
-        aff4.AFF4Object.classes["VFSGRRClient"],
-        mode="r",
-        token=token) as client:
-      return bool(client.Get(client.Schema.FLEETSPEAK_ENABLED))
+  md = data_store.REL_DB.ReadClientMetadata(grr_id)
+  if not md:
+    return False
+  return md.fleetspeak_enabled
 
 
 def SendGrrMessageThroughFleetspeak(grr_id, msg):

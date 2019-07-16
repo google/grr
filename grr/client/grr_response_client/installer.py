@@ -16,7 +16,6 @@ import logging
 import os
 import sys
 
-
 from absl import flags
 
 from grr_response_core import config

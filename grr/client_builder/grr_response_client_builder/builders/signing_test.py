@@ -10,7 +10,6 @@ import platform
 import tempfile
 import unittest
 
-
 from absl import app
 import mock
 import pexpect

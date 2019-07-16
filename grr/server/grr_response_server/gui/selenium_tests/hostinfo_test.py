@@ -5,21 +5,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_server import data_store
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHostInformation(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumTest):
+class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   """Test the host information interface."""
 
   def _WriteClientSnapshot(self, timestamp, version, hostname, memory):
@@ -34,7 +31,9 @@ class TestHostInformation(db_test_lib.RelationalDBEnabledMixin,
     super(TestHostInformation, self).setUp()
     self.client_id = u"C.0000000000000001"
 
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    with test_lib.FakeTime(test_lib.FIXED_TIME):
+      fixture_test_lib.ClientFixture(self.client_id)
+
     self.RequestAndGrantClientApproval(self.client_id)
 
     self._WriteClientSnapshot(gui_test_lib.TIME_0, "6.1.7000", "Hostname T0",

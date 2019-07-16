@@ -15,7 +15,6 @@ import subprocess
 import sys
 import time
 
-
 # Usually we import concrete items from the builtins module. However, here we
 # use `builtins.input` which is stubbed in the test, so we have to always use
 # qualified version.
@@ -262,7 +261,6 @@ def ConfigureMySQLDatastore(config):
       "(if not, a legacy datastore will be used)", True)
   if use_rel_db:
     db_options["Database.enabled"] = True
-    db_options["Database.aff4_enabled"] = False
     db_options["Database.implementation"] = "MysqlDB"
     db_options["Blobstore.implementation"] = "DbBlobStore"
 
@@ -462,7 +460,6 @@ def InstallTemplatePackage():
 
 
 def FinalizeConfigInit(config,
-                       token,
                        admin_password = None,
                        redownload_templates = False,
                        repack_templates = True,
@@ -497,7 +494,7 @@ def FinalizeConfigInit(config,
     InstallTemplatePackage()
   # Build debug binaries, then build release binaries.
   if repack_templates:
-    repacking.TemplateRepacker().RepackAllTemplates(upload=True, token=token)
+    repacking.TemplateRepacker().RepackAllTemplates(upload=True)
   print("\nGRR Initialization complete! You can edit the new configuration "
         "in %s.\n" % config["Config.writeback"])
   print("Please restart the service for the new configuration to take "
@@ -508,8 +505,7 @@ def Initialize(config=None,
                external_hostname = None,
                admin_password = None,
                redownload_templates = False,
-               repack_templates = True,
-               token = None):
+               repack_templates = True):
   """Initialize or update a GRR configuration."""
 
   print("Checking write access on config %s" % config["Config.writeback"])
@@ -550,7 +546,6 @@ def Initialize(config=None,
 
   FinalizeConfigInit(
       config,
-      token,
       admin_password=admin_password,
       redownload_templates=redownload_templates,
       repack_templates=repack_templates,
@@ -570,8 +565,7 @@ def InitializeNoPrompt(config=None,
                        mysql_client_cert_path = None,
                        mysql_ca_cert_path = None,
                        redownload_templates = False,
-                       repack_templates = True,
-                       token = None):
+                       repack_templates = True):
   """Initialize GRR with no prompts.
 
   Args:
@@ -589,7 +583,6 @@ def InitializeNoPrompt(config=None,
     mysql_ca_cert_path: The path name of the CA certificate file.
     redownload_templates: Indicates whether templates should be re-downloaded.
     repack_templates: Indicates whether templates should be re-packed.
-    token: auth token
 
   Raises:
     ValueError: if required flags are not provided, or if the config has
@@ -619,7 +612,6 @@ def InitializeNoPrompt(config=None,
   config_dict = {}
   if use_rel_db:
     config_dict["Database.enabled"] = True
-    config_dict["Database.aff4_enabled"] = False
     config_dict["Database.implementation"] = "MysqlDB"
     config_dict["Blobstore.implementation"] = "DbBlobStore"
 
@@ -660,7 +652,6 @@ def InitializeNoPrompt(config=None,
   config_updater_keys_util.GenerateKeys(config)
   FinalizeConfigInit(
       config,
-      token,
       admin_password=admin_password,
       redownload_templates=redownload_templates,
       repack_templates=repack_templates,
@@ -814,7 +805,6 @@ def SwitchToRelDB(config):
   RetryBoolQuestion("Continue?", True)
 
   config.Set("Database.enabled", True)
-  config.Set("Database.aff4_enabled", False)
   config.Set("Database.implementation", "MysqlDB")
 
   if (config["Blobstore.implementation"] == "MemoryStreamBlobStore" or

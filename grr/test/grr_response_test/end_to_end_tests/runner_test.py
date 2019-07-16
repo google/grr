@@ -7,7 +7,6 @@ import os
 import sys
 import unittest
 
-
 from absl import app
 from future.utils import itervalues
 import mock
@@ -342,7 +341,7 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
         **kwargs)
 
   def _CreateApiClient(self, platform):
-    client_snapshot = self.SetupTestClientObject(0, system=platform)
+    client_snapshot = self._SetupTestClientObject(0, system=platform)
     api_client = plugin_client.ApiClient()
     api_client.InitFromClientObject(client_snapshot)
     return api_client

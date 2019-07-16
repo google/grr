@@ -17,7 +17,6 @@ from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import checks_test_lib
 from grr_response_server.flows.general import checks as flow_checks
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
@@ -26,8 +25,7 @@ from grr.test_lib import vfs_test_lib
 # pylint: mode=test
 
 
-class TestCheckFlows(db_test_lib.RelationalDBEnabledMixin,
-                     flow_test_lib.FlowTestsBaseclass,
+class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
                      checks_test_lib.HostCheckTest):
 
   checks_loaded = False
@@ -72,15 +70,13 @@ class TestCheckFlows(db_test_lib.RelationalDBEnabledMixin,
     client_id = self.SetupLinuxUser()
     session_id, _ = self.RunFlow(client_id)
 
-    state = flow_test_lib.GetFlowState(
-        self.client_id, session_id, token=self.token)
+    state = flow_test_lib.GetFlowState(self.client_id, session_id)
     self.assertIn("DebianPackagesStatus", state.artifacts_wanted)
     self.assertIn("SshdConfigFile", state.artifacts_wanted)
 
     client_id = self.SetupWindowsUser()
     session_id, _ = self.RunFlow(client_id)
-    state = flow_test_lib.GetFlowState(
-        self.client_id, session_id, token=self.token)
+    state = flow_test_lib.GetFlowState(self.client_id, session_id)
     self.assertIn("WMIInstalledSoftware", state.artifacts_wanted)
 
   def testCheckFlowSelectsChecks(self):

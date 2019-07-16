@@ -4,19 +4,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server import data_store
 from grr_response_server import notification
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class NotificationTest(db_test_lib.RelationalDBEnabledMixin,
-                       test_lib.GRRBaseTest):
+class NotificationTest(test_lib.GRRBaseTest):
 
   def testNotifyDoesNotNotifySystemUsers(self):
     # Implicitly test that Notify does not throw Exception because system users

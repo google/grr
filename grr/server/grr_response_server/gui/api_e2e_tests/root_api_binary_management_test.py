@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import io
 
-
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
@@ -14,12 +13,10 @@ from grr_response_core import config as config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_proto.api import config_pb2
 from grr_response_server.gui import api_e2e_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class RootApiBinaryManagementTest(db_test_lib.RelationalDBEnabledMixin,
-                                  api_e2e_test_lib.RootApiE2ETest):
+class RootApiBinaryManagementTest(api_e2e_test_lib.RootApiE2ETest):
   """E2E test for root API user management calls."""
 
   def _Upload(self, binary_type, path, data, private_key=None):

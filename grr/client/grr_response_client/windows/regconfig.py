@@ -24,6 +24,22 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 
 
+class RegistryKeySpec(
+    collections.namedtuple("RegistryKey", ["hive", "winreg_hive", "path"])):
+  __slots__ = ()
+
+  def __str__(self):
+    return "{}\\{}".format(self.hive, self.path)
+
+
+def ParseRegistryURI(uri):
+  url = urlparse.urlparse(uri, scheme="file")
+  return RegistryKeySpec(
+      hive=url.netloc,
+      winreg_hive=getattr(winreg, url.netloc),
+      path=url.path.replace("/", "\\").lstrip("\\"))
+
+
 class RegistryConfigParser(config_lib.GRRConfigParser):
   """A registry based configuration parser.
 
@@ -34,11 +50,8 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
 
   def __init__(self, filename=None):
     """We interpret the name as a key name."""
-    url = urlparse.urlparse(filename, scheme="file")
+    self._key_spec = ParseRegistryURI(filename)
 
-    self.filename = url.path.replace("/", "\\")
-    self.hive = url.netloc
-    self.path = self.filename.lstrip("\\")
     self._root_key = None
 
     try:
@@ -51,9 +64,10 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
   def _AccessRootKey(self):
     if self._root_key is None:
       # Don't use winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self._root_key = winreg.CreateKeyEx(
-          getattr(winreg, self.hive), self.path, 0, winreg.KEY_ALL_ACCESS)
-      self.parsed = self.path
+      self._root_key = winreg.CreateKeyEx(self._key_spec.winreg_hive,
+                                          self._key_spec.path, 0,
+                                          winreg.KEY_ALL_ACCESS)
+      self.parsed = self._key_spec.path
     return self._root_key
 
   def RawData(self):
@@ -76,7 +90,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
     return result
 
   def SaveData(self, raw_data):
-    logging.info("Writing back configuration to key %s", self.filename)
+    logging.info("Writing back configuration to key %s.", self._key_spec)
 
     # Ensure intermediate directories exist.
     try:

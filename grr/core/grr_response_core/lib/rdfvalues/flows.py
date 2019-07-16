@@ -280,3 +280,8 @@ class ClientActionRequest(rdf_structs.RDFProtoStruct):
 
     if not self.HasField("network_bytes_limit"):
       self.network_bytes_limit = 10737418240
+
+
+class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
+  """Some flows do not take argumentnts."""
+  protobuf = flows_pb2.EmptyFlowArgs

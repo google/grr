@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import utils
@@ -15,13 +14,11 @@ from grr_response_server.flows.general import discovery
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins.client import ApiSearchClientsHandler
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestNotifications(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.GRRSeleniumTest):
+class TestNotifications(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   @classmethod
@@ -36,7 +33,7 @@ class TestNotifications(db_test_lib.RelationalDBEnabledMixin,
         "Fake discovery message",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=client_id.Basename())))
+            client=rdf_objects.ClientReference(client_id=client_id)))
 
     # ViewObject: VirtualFileSystem
     notification.Notify(
@@ -46,16 +43,12 @@ class TestNotifications(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=rdf_objects.VfsFileReference(
-                client_id=client_id.Basename(),
+                client_id=client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
                 path_components=["proc", "10", "exe"])))
 
     gui_test_lib.CreateFileVersion(
-        client_id,
-        "fs/os/proc/10/exe",
-        b"",
-        timestamp=gui_test_lib.TIME_0,
-        token=token)
+        client_id, "fs/os/proc/10/exe", b"", timestamp=gui_test_lib.TIME_0)
 
     # ViewObject: Flow
     notification.Notify(
@@ -65,10 +58,10 @@ class TestNotifications(db_test_lib.RelationalDBEnabledMixin,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.FLOW,
             flow=rdf_objects.FlowReference(
-                client_id=client_id.Basename(), flow_id=session_id)))
+                client_id=client_id, flow_id=session_id)))
 
     # FlowError
-    flow_base.TerminateFlow(client_id.Basename(), session_id, "Fake flow error")
+    flow_base.TerminateFlow(client_id, session_id, "Fake flow error")
 
     return session_id
 

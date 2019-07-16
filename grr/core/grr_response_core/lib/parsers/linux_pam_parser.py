@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import os
 import re
 
-
 from future.builtins import zip
 
 from grr_response_core.lib import parsers

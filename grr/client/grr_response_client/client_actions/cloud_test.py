@@ -10,7 +10,6 @@ import platform
 import subprocess
 import unittest
 
-
 from absl import app
 import mock
 import requests

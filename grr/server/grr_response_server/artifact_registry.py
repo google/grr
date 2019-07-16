@@ -9,7 +9,6 @@ import logging
 import os
 import threading
 
-
 from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
@@ -18,15 +17,12 @@ from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import objectfilter
 from grr_response_core.lib import parsers
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util.compat import yaml
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import sequential_collection
 
 
 class ArtifactRegistrySources(object):
@@ -35,7 +31,6 @@ class ArtifactRegistrySources(object):
   def __init__(self):
     self._dirs = set()
     self._files = set()
-    self._datastores = set()
 
   def AddDir(self, dirpath):
     """Adds a directory path as a source.
@@ -65,24 +60,9 @@ class ArtifactRegistrySources(object):
       return True
     return False
 
-  def AddDatastore(self, urn):
-    """Adds a datastore URN as a source.
-
-    Args:
-      urn: an RDF URN value of the datastore.
-
-    Returns:
-      True if the datastore is not an already existing source.
-    """
-    if urn not in self._datastores:
-      self._datastores.add(urn)
-      return True
-    return False
-
   def Clear(self):
     self._dirs.clear()
     self._files.clear()
-    self._datastores.clear()
 
   def GetDirs(self):
     """Returns an iterator over defined source directory paths."""
@@ -91,10 +71,6 @@ class ArtifactRegistrySources(object):
   def GetFiles(self):
     """Returns an iterator over defined source file paths."""
     return iter(self._files)
-
-  def GetDatastores(self):
-    """Returns an iterator over defined datastore URNs."""
-    return iter(self._datastores)
 
   def GetAllFiles(self):
     """Yields all defined source file paths.
@@ -145,13 +121,7 @@ class ArtifactRegistry(object):
     # to be deleted from the data store.
     to_delete = []
 
-    artifact_list = []
-
-    if data_store.RelationalDBEnabled():
-      artifact_list = data_store.REL_DB.ReadAllArtifacts()
-    else:
-      for artifact_coll_urn in self._sources.GetDatastores():
-        artifact_list.extend(ArtifactCollection(artifact_coll_urn))
+    artifact_list = data_store.REL_DB.ReadAllArtifacts()
 
     for artifact_value in artifact_list:
       try:
@@ -270,20 +240,9 @@ class ArtifactRegistry(object):
       self.AddDirSource(dirname)
 
   @utils.Synchronized
-  def AddDatastoreSource(self, urn):
-    self._dirty |= self._sources.AddDatastore(urn)
-
-  @utils.Synchronized
-  def AddDatastoreSources(self, urns):
-    for urn in urns:
-      self.AddDatastoreSource(urn)
-
-  @utils.Synchronized
   def AddDefaultSources(self):
     for path in config.CONFIG["Artifacts.artifact_dirs"]:
       self.AddDirSource(path)
-
-    self.AddDatastoreSources([aff4.ROOT_URN.Add("artifact_store")])
 
   @utils.Synchronized
   def RegisterArtifact(self,
@@ -511,10 +470,6 @@ class ArtifactRegistry(object):
 REGISTRY = ArtifactRegistry()
 
 
-class ArtifactCollection(sequential_collection.IndexedSequentialCollection):
-  RDF_TYPE = rdf_artifacts.Artifact
-
-
 def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
   """Deletes a list of artifacts from the data store."""
   artifacts_list = sorted(
@@ -534,11 +489,8 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
         "Artifact(s) %s depend(s) on one of the artifacts to delete." %
         (",".join(deps)))
 
-  store = ArtifactCollection(rdfvalue.RDFURN("aff4:/artifact_store"))
-  all_artifacts = list(store)
-
   filtered_artifacts, found_artifact_names = set(), set()
-  for artifact_value in all_artifacts:
+  for artifact_value in artifacts_list:
     if artifact_value.name in to_delete:
       found_artifact_names.add(artifact_value.name)
     else:
@@ -549,23 +501,9 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
     raise ValueError("Artifact(s) to delete (%s) not found." %
                      ",".join(not_found))
 
-  # TODO(user): this is ugly and error- and race-condition- prone.
-  # We need to store artifacts not in a *Collection, which is an
-  # append-only object, but in some different way that allows easy
-  # deletion. Possible option - just store each artifact in a separate object
-  # in the same folder.
-  store.Delete()
-
-  with data_store.DB.GetMutationPool() as pool:
-    for artifact_value in filtered_artifacts:
-      store.Add(artifact_value, mutation_pool=pool)
-
-  if data_store.RelationalDBEnabled():
-    for artifact_name in to_delete:
-      data_store.REL_DB.DeleteArtifact(str(artifact_name))
-
-  for artifact_value in to_delete:
-    REGISTRY.UnregisterArtifact(artifact_value)
+  for artifact_name in to_delete:
+    data_store.REL_DB.DeleteArtifact(str(artifact_name))
+    REGISTRY.UnregisterArtifact(artifact_name)
 
 
 def ValidateSyntax(rdf_artifact):

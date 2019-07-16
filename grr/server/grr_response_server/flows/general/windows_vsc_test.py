@@ -12,12 +12,10 @@ from future.builtins import range
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server.flows.general import windows_vsc
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -90,8 +88,7 @@ class TestClient(action_mocks.ActionMock):
     return result
 
 
-class TestListVolumeShadowCopies(db_test_lib.RelationalDBEnabledMixin,
-                                 flow_test_lib.FlowTestsBaseclass):
+class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
   """Test the list Volume Shadow Copies flow."""
 
   def testListVolumeShadowCopies(self):
@@ -103,24 +100,13 @@ class TestListVolumeShadowCopies(db_test_lib.RelationalDBEnabledMixin,
     flow_test_lib.TestFlowHelper(
         flow_name, TestClient(), token=self.token, client_id=client_id)
 
-    if data_store.RelationalDBEnabled():
-      children = data_store.REL_DB.ListChildPathInfos(
-          client_id.Basename(), rdf_objects.PathInfo.PathType.TSK,
-          ["\\\\.\\HarddiskVolumeShadowCopy3"])
+    children = data_store.REL_DB.ListChildPathInfos(
+        client_id, rdf_objects.PathInfo.PathType.TSK,
+        ["\\\\.\\HarddiskVolumeShadowCopy3"])
 
-      self.assertLen(children, 10)
-      self.assertItemsEqual([x.components[-1] for x in children],
-                            ["file %s" % i for i in range(10)])
-
-    else:
-      fd = aff4.FACTORY.Open(
-          client_id.Add("fs/tsk/\\\\.\\HarddiskVolumeShadowCopy3"),
-          token=self.token)
-      children = list(fd.ListChildren())
-
-      self.assertLen(children, 10)
-      self.assertEqual([x.Basename() for x in sorted(children)],
-                       ["file %s" % i for i in range(10)])
+    self.assertLen(children, 10)
+    self.assertItemsEqual([x.components[-1] for x in children],
+                          ["file %s" % i for i in range(10)])
 
 
 def main(argv):

@@ -16,7 +16,6 @@ from __future__ import unicode_literals
 
 import collections
 
-
 from absl import app
 from future.builtins import zip
 from future.utils import iteritems

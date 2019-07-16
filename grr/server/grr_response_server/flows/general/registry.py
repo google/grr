@@ -12,7 +12,6 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.path_detection import windows as path_detection_windows
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
@@ -67,14 +66,13 @@ def _ConditionsToFileFinderConditions(conditions):
   return result
 
 
-@flow_base.DualDBFlow
-class RegistryFinderMixin(object):
+class RegistryFinder(flow_base.FlowBase):
   """This flow looks for registry items matching given criteria."""
 
   friendly_name = "Registry Finder"
   category = "/Registry/"
   args_type = RegistryFinderArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
@@ -95,20 +93,19 @@ class RegistryFinderMixin(object):
 
   def Done(self, responses):
     if not responses.success:
-      raise flow.FlowError("Registry search failed %s" % responses.status)
+      raise flow_base.FlowError("Registry search failed %s" % responses.status)
 
     for response in responses:
       self.SendReply(response)
 
 
-@flow_base.DualDBFlow
-class ClientRegistryFinderMixin(object):
+class ClientRegistryFinder(flow_base.FlowBase):
   """This flow looks for registry items matching given criteria."""
 
   friendly_name = "Client Side Registry Finder"
   category = "/Registry/"
   args_type = RegistryFinderArgs
-  behaviours = flow.GRRFlow.behaviours + "DEBUG"
+  behaviours = flow_base.BEHAVIOUR_DEBUG
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
@@ -127,14 +124,13 @@ class ClientRegistryFinderMixin(object):
 
   def Done(self, responses):
     if not responses.success:
-      raise flow.FlowError("Registry search failed %s" % responses.status)
+      raise flow_base.FlowError("Registry search failed %s" % responses.status)
 
     for response in responses:
       self.SendReply(response)
 
 
-@flow_base.DualDBFlow
-class CollectRunKeyBinariesMixin(object):
+class CollectRunKeyBinaries(flow_base.FlowBase):
   """Collect the binaries used by Run and RunOnce keys on the system.
 
   We use the RunKeys artifact to get RunKey command strings for all users and
@@ -142,7 +138,7 @@ class CollectRunKeyBinariesMixin(object):
   windows system environment variables, and attempts to retrieve the files.
   """
   category = "/Registry/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""

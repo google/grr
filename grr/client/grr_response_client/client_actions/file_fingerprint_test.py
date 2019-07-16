@@ -10,7 +10,6 @@ from __future__ import unicode_literals
 import hashlib
 import os
 
-
 from absl import app
 from future.utils import iteritems
 

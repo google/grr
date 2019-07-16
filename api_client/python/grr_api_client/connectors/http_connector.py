@@ -8,7 +8,6 @@ import collections
 import json
 import logging
 
-
 from future.moves.urllib import parse as urlparse
 from future.utils import iterkeys
 

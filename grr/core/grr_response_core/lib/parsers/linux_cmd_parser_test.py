@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 from absl.testing import absltest
 

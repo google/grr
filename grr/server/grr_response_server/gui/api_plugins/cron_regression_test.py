@@ -14,17 +14,16 @@ from grr_response_server import data_store
 from grr_response_server import foreman_rules
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import filesystem
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr_response_server.gui.api_plugins import cron_test as cron_plugin_test
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import hunts as rdf_hunts
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiListCronJobsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     cron_plugin_test.CronJobsTestMixin):
   """Test cron jobs list handler."""
@@ -36,7 +35,7 @@ class ApiListCronJobsHandlerRegressionTest(
     # Add one "normal" cron job...
     with test_lib.FakeTime(42):
       cron_id_1 = self.CreateCronJob(
-          flow_name=cron_system.GRRVersionBreakDown.__name__,
+          flow_name=file_finder.FileFinder.__name__,
           periodicity="1d",
           lifetime="2h",
           description="foo",
@@ -46,7 +45,7 @@ class ApiListCronJobsHandlerRegressionTest(
     # ...one disabled cron job,
     with test_lib.FakeTime(84):
       cron_id_2 = self.CreateCronJob(
-          flow_name=cron_system.OSBreakDown.__name__,
+          flow_name=file_finder.ClientFileFinder.__name__,
           periodicity="7d",
           lifetime="1d",
           description="bar",
@@ -55,7 +54,7 @@ class ApiListCronJobsHandlerRegressionTest(
     # ...and one failing cron job.
     with test_lib.FakeTime(126):
       cron_id_3 = self.CreateCronJob(
-          flow_name=cron_system.LastAccessStats.__name__,
+          flow_name=filesystem.ListDirectory.__name__,
           periodicity="7d",
           lifetime="1d",
           token=self.token)
@@ -70,9 +69,9 @@ class ApiListCronJobsHandlerRegressionTest(
         "ListCronJobs",
         args=cron_plugin.ApiListCronJobsArgs(),
         replace={
-            cron_id_1: "GRRVersionBreakDown",
-            cron_id_2: "OSBreakDown",
-            cron_id_3: "LastAccessStats"
+            cron_id_1: "FileFinder",
+            cron_id_2: "ClientFileFinder",
+            cron_id_3: "ListDirectory"
         })
 
 
@@ -98,7 +97,6 @@ def _SetupAndRunVersionBreakDownCronjob():
 
 
 class ApiCreateCronJobHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Test handler that creates a new cron job."""
 
@@ -140,7 +138,6 @@ class ApiCreateCronJobHandlerRegressionTest(
 
 
 class ApiListCronJobRunsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     cron_plugin_test.CronJobsTestMixin):
   """Test cron job runs list handler."""
@@ -162,7 +159,6 @@ class ApiListCronJobRunsHandlerRegressionTest(
 
 
 class ApiGetCronJobRunHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Test cron job run getter handler."""
 
@@ -184,7 +180,6 @@ class ApiGetCronJobRunHandlerRegressionTest(
 
 
 class ApiForceRunCronJobRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     cron_plugin_test.CronJobsTestMixin):
   """Test cron job flow getter handler."""
@@ -194,16 +189,15 @@ class ApiForceRunCronJobRegressionTest(
 
   def Run(self):
     cron_job_id = self.CreateCronJob(
-        flow_name=cron_system.OSBreakDown.__name__, token=self.token)
+        flow_name=file_finder.FileFinder.__name__, token=self.token)
 
     self.Check(
         "ForceRunCronJob",
         args=cron_plugin.ApiForceRunCronJobArgs(cron_job_id=cron_job_id),
-        replace={cron_job_id: "OSBreakDown"})
+        replace={cron_job_id: "FileFinder"})
 
 
-class ApiModifyCronJobRegressionTest(db_test_lib.RelationalDBEnabledMixin,
-                                     api_regression_test_lib.ApiRegressionTest,
+class ApiModifyCronJobRegressionTest(api_regression_test_lib.ApiRegressionTest,
                                      cron_plugin_test.CronJobsTestMixin):
   """Test cron job flow getter handler."""
 
@@ -213,25 +207,25 @@ class ApiModifyCronJobRegressionTest(db_test_lib.RelationalDBEnabledMixin,
   def Run(self):
     with test_lib.FakeTime(44):
       cron_job_id1 = self.CreateCronJob(
-          flow_name=cron_system.OSBreakDown.__name__, token=self.token)
+          flow_name=file_finder.FileFinder.__name__, token=self.token)
       cron_job_id2 = self.CreateCronJob(
-          flow_name=cron_system.GRRVersionBreakDown.__name__, token=self.token)
+          flow_name=file_finder.ClientFileFinder.__name__, token=self.token)
 
     self.Check(
         "ModifyCronJob",
         args=cron_plugin.ApiModifyCronJobArgs(
             cron_job_id=cron_job_id1, enabled=True),
         replace={
-            cron_job_id1: "OSBreakDown",
-            cron_job_id2: "GRRVersionBreakDown"
+            cron_job_id1: "FileFinder",
+            cron_job_id2: "ClientFileFinder"
         })
     self.Check(
         "ModifyCronJob",
         args=cron_plugin.ApiModifyCronJobArgs(
             cron_job_id=cron_job_id2, enabled=False),
         replace={
-            cron_job_id1: "OSBreakDown",
-            cron_job_id2: "GRRVersionBreakDown"
+            cron_job_id1: "FileFinder",
+            cron_job_id2: "ClientFileFinder"
         })
 
 

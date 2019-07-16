@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import collections
 
-
 from absl import app
 from future.utils import iteritems
 from future.utils import itervalues

@@ -29,7 +29,6 @@ from grr_response_core.lib.util.compat import json
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -417,7 +416,7 @@ class HttpRequestHandler(object):
       logging.info("Overriding user as %s", impersonated_username)
       request.user = config.CONFIG["AdminUI.debug_impersonate_user"]
 
-    if not aff4_users.GRRUser.IsValidUsername(request.user):
+    if not access_control.IsValidUsername(request.user):
       return self._BuildResponse(
           http.client.FORBIDDEN,
           dict(message="Invalid username: %s" % request.user))
@@ -466,30 +465,6 @@ class HttpRequestHandler(object):
     # clash with datastore ACL checks.
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
-
-    if data_store.AFF4Enabled():
-      # TODO:
-      # AFF4 edge case: if a user is issuing a request, before they are created
-      # using CreateGRRUser (e.g. in E2E tests or with single sign-on),
-      # AFF4's ReadGRRUsers will NEVER contain the user, because the creation
-      # done in the following lines does not add the user to the /users/
-      # collection. Furthermore, subsequent CreateGrrUserHandler calls fail,
-      # because the user technically already exists.
-
-      # We send a blind-write request to ensure that the user object is created
-      # for a user specified by the username.
-      user_urn = rdfvalue.RDFURN("aff4:/users/").Add(request.user)
-      # We can't use conventional AFF4 interface, since aff4.FACTORY.Create will
-      # create a new version of the object for every call.
-      with data_store.DB.GetMutationPool() as pool:
-        pool.MultiSet(
-            user_urn, {
-                aff4_users.GRRUser.SchemaCls.TYPE:
-                    [aff4_users.GRRUser.__name__],
-                aff4_users.GRRUser.SchemaCls.LAST:
-                    [rdfvalue.RDFDatetime.Now().SerializeToDataStore()]
-            },
-            replace=True)
 
     data_store.REL_DB.WriteGRRUser(request.user)
 

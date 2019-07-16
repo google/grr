@@ -16,7 +16,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 
@@ -37,8 +36,7 @@ class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class SystemRootSystemDriveFallbackFlowMixin(object):
+class SystemRootSystemDriveFallbackFlow(flow_base.FlowBase):
   """Flow that attempts to guess systemroot and systemdrive.
 
   This is the fallback flow for the WindowsEnvironmentVariableSystemRoot and
@@ -85,13 +83,13 @@ class SystemRootSystemDriveFallbackFlowMixin(object):
     # If this doesn't work these artifacts are so core to everything that we
     # just want to raise and kill any further collection.
     if not self.state.success:
-      raise flow.FlowError("Couldn't guess the system root and drive location")
+      raise flow_base.FlowError(
+          "Couldn't guess the system root and drive location")
 
-    super(SystemRootSystemDriveFallbackFlowMixin, self).End(responses)
+    super(SystemRootSystemDriveFallbackFlow, self).End(responses)
 
 
-@flow_base.DualDBFlow
-class WindowsAllUsersProfileFallbackFlowMixin(object):
+class WindowsAllUsersProfileFallbackFlow(flow_base.FlowBase):
   r"""Flow that provides a default value for the AllUsersProfile registry key.
 
   Newer versions of Windows will typically not have the

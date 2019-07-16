@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import os
 import sys
 
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order

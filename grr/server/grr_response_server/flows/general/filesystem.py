@@ -8,26 +8,20 @@ import fnmatch
 import re
 import stat
 
-
 from future.builtins import map
 from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import standard
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # This is all bits that define the type of the file in the stat mode. Equal to
@@ -35,23 +29,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 stat_type_mask = (
     stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
     | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
-
-
-# TODO(hanuszczak): Name of this function is pretty bad. Consider changing it.
-def CreateAFF4Object(stat_response, client_id_urn, mutation_pool, token=None):
-  """This creates a File or a Directory from a stat response."""
-
-  urn = stat_response.pathspec.AFF4Path(client_id_urn)
-
-  if stat.S_ISDIR(stat_response.st_mode):
-    ftype = standard.VFSDirectory
-  else:
-    ftype = aff4_grr.VFSFile
-
-  with aff4.FACTORY.Create(
-      urn, ftype, mode="w", mutation_pool=mutation_pool, token=token) as fd:
-    fd.Set(fd.Schema.STAT(stat_response))
-    fd.Set(fd.Schema.PATHSPEC(stat_response.pathspec))
 
 
 def _FilterOutPathInfoDuplicates(path_infos):
@@ -87,14 +64,12 @@ def _FilterOutPathInfoDuplicates(path_infos):
   return [v[0] for v in pi_dict.values()]
 
 
-def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
+def WriteStatEntries(stat_entries, client_id):
   """Persists information about stat entries.
 
   Args:
     stat_entries: A list of `StatEntry` instances.
     client_id: An id of a client the stat entries come from.
-    mutation_pool: A mutation pool used for writing into the AFF4 data store.
-    token: A token used for writing into the AFF4 data store.
   """
 
   for stat_response in stat_entries:
@@ -106,28 +81,19 @@ def WriteStatEntries(stat_entries, client_id, mutation_pool, token=None):
       stat_response.st_mode &= ~stat_type_mask
       stat_response.st_mode |= stat.S_IFREG
 
-  if data_store.AFF4Enabled():
-    for stat_entry in stat_entries:
-      CreateAFF4Object(
-          stat_entry,
-          client_id_urn=rdf_client.ClientURN(client_id),
-          mutation_pool=mutation_pool,
-          token=token)
-
-  if data_store.RelationalDBEnabled():
-    path_infos = [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
-    # NOTE: TSK may return duplicate entries. This is may be either due to
-    # a bug in TSK implementation, or due to the fact that TSK is capable
-    # of returning deleted files information. Our VFS data model only supports
-    # storing multiple versions of the files when we collect the versions
-    # ourselves. At the moment we can't store multiple versions of the files
-    # "as returned by TSK".
-    #
-    # Current behaviour is to simply drop excessive version before the
-    # WritePathInfo call. This way files returned by TSK will still make it
-    # into the flow's results, but not into the VFS data.
-    data_store.REL_DB.WritePathInfos(client_id,
-                                     _FilterOutPathInfoDuplicates(path_infos))
+  path_infos = [rdf_objects.PathInfo.FromStatEntry(s) for s in stat_entries]
+  # NOTE: TSK may return duplicate entries. This is may be either due to
+  # a bug in TSK implementation, or due to the fact that TSK is capable
+  # of returning deleted files information. Our VFS data model only supports
+  # storing multiple versions of the files when we collect the versions
+  # ourselves. At the moment we can't store multiple versions of the files
+  # "as returned by TSK".
+  #
+  # Current behaviour is to simply drop excessive version before the
+  # WritePathInfo call. This way files returned by TSK will still make it
+  # into the flow's results, but not into the VFS data.
+  data_store.REL_DB.WritePathInfos(client_id,
+                                   _FilterOutPathInfoDuplicates(path_infos))
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -137,13 +103,12 @@ class ListDirectoryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class ListDirectoryMixin(object):
+class ListDirectory(flow_base.FlowBase):
   """List files in a directory."""
 
   category = "/Filesystem/"
   args_type = ListDirectoryArgs
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
 
   def Start(self):
     """Issue a request to list the directory."""
@@ -171,7 +136,8 @@ class ListDirectoryMixin(object):
     """Save stat information on the directory."""
     # Did it work?
     if not responses.success:
-      raise flow.FlowError("Could not stat directory: %s" % responses.status)
+      raise flow_base.FlowError("Could not stat directory: %s" %
+                                responses.status)
 
     # Keep the stat response for later.
     stat_entry = rdf_client_fs.StatEntry(responses.First())
@@ -184,39 +150,23 @@ class ListDirectoryMixin(object):
   def List(self, responses):
     """Collect the directory listing and store in the datastore."""
     if not responses.success:
-      raise flow.FlowError(str(responses.status))
+      raise flow_base.FlowError(str(responses.status))
 
     self.Log("Listed %s", self.state.urn)
 
-    with data_store.DB.GetMutationPool() as pool:
-      if data_store.AFF4Enabled():
-        with aff4.FACTORY.Create(
-            self.state.urn,
-            standard.VFSDirectory,
-            mode="w",
-            mutation_pool=pool,
-            token=self.token) as fd:
-          fd.Set(fd.Schema.PATHSPEC(self.state.stat.pathspec))
-          fd.Set(fd.Schema.STAT(self.state.stat))
+    path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
+    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-      if data_store.RelationalDBEnabled():
-        path_info = rdf_objects.PathInfo.FromStatEntry(self.state.stat)
-        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    stat_entries = list(map(rdf_client_fs.StatEntry, responses))
+    WriteStatEntries(stat_entries, client_id=self.client_id)
 
-      stat_entries = list(map(rdf_client_fs.StatEntry, responses))
-      WriteStatEntries(
-          stat_entries,
-          client_id=self.client_id,
-          mutation_pool=pool,
-          token=self.token)
-
-      for stat_entry in stat_entries:
-        self.SendReply(stat_entry)  # Send Stats to parent flows.
+    for stat_entry in stat_entries:
+      self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     """Sends a notification that this flow is done."""
     if not self.state.urn:
-      super(ListDirectoryMixin, self).NotifyAboutEnd()
+      super(ListDirectory, self).NotifyAboutEnd()
       return
 
     st = self.state.stat
@@ -248,8 +198,7 @@ class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class RecursiveListDirectoryMixin(object):
+class RecursiveListDirectory(flow_base.FlowBase):
   """Recursively list directory on the client."""
 
   category = "/Filesystem/"
@@ -300,7 +249,8 @@ class RecursiveListDirectoryMixin(object):
       for stat_response in responses:
         # Queue a list directory for each directory here, but do not follow
         # symlinks.
-        if not stat_response.symlink and stat.S_ISDIR(stat_response.st_mode):
+        is_dir = stat.S_ISDIR(int(stat_response.st_mode))
+        if not stat_response.symlink and is_dir:
           self.CallClient(
               server_stubs.ListDirectory,
               pathspec=stat_response.pathspec,
@@ -315,17 +265,11 @@ class RecursiveListDirectoryMixin(object):
 
   def StoreDirectory(self, responses):
     """Stores all stat responses."""
-    with data_store.DB.GetMutationPool() as pool:
+    stat_entries = list(map(rdf_client_fs.StatEntry, responses))
+    WriteStatEntries(stat_entries, client_id=self.client_id)
 
-      stat_entries = list(map(rdf_client_fs.StatEntry, responses))
-      WriteStatEntries(
-          stat_entries,
-          client_id=self.client_id,
-          mutation_pool=pool,
-          token=self.token)
-
-      for stat_entry in stat_entries:
-        self.SendReply(stat_entry)  # Send Stats to parent flows.
+    for stat_entry in stat_entries:
+      self.SendReply(stat_entry)  # Send Stats to parent flows.
 
   def NotifyAboutEnd(self):
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
@@ -448,7 +392,7 @@ class GlobLogic(object):
           curr_node = curr_node.setdefault(curr_component.SerializeToString(),
                                            {})
 
-    root_path = next(iterkeys(self.state.component_tree))
+    root_path = next(iter(iterkeys(self.state.component_tree)))
     self.CallStateInline(
         messages=[None],
         next_state="ProcessEntry",
@@ -457,11 +401,7 @@ class GlobLogic(object):
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching a StatEntry."""
     # By default write the stat_response to the AFF4 VFS.
-    with data_store.DB.GetMutationPool() as pool:
-      WriteStatEntries([stat_response],
-                       client_id=self.client_id,
-                       mutation_pool=pool,
-                       token=self.token)
+    WriteStatEntries([stat_response], client_id=self.client_id)
 
   # A regex indicating if there are shell globs in this path.
   GLOB_MAGIC_CHECK = re.compile("[*?[]")
@@ -641,7 +581,7 @@ class GlobLogic(object):
         # This reduces the number of TSK opens on the client that may
         # sometimes lead to instabilities due to bugs in the library.
 
-        if response and (not (stat.S_ISDIR(response.st_mode) or
+        if response and (not (stat.S_ISDIR(int(response.st_mode)) or
                               not base_wildcard or
                               self.state.process_non_regular_files)):
           continue
@@ -665,9 +605,9 @@ class GlobLogic(object):
 
           if not next_node:
             # Check for the existence of the last node.
-            if (response is None or (response and
-                                     (response.st_mode == 0 or
-                                      not stat.S_ISREG(response.st_mode)))):
+            if (response is None or
+                (response and (response.st_mode == 0 or
+                               not stat.S_ISREG(int(response.st_mode))))):
               # If next node is empty, this node is a leaf node, we therefore
               # must stat it to check that it is there. There is a special case
               # here where this pathspec points to a file/directory in the root
@@ -740,8 +680,7 @@ class GlobLogic(object):
               request_data=dict(base_path=component_path))
 
 
-@flow_base.DualDBFlow
-class GlobMixin(GlobLogic):
+class Glob(GlobLogic, flow_base.FlowBase):
   """Glob the filesystem for patterns.
 
   Returns:
@@ -749,7 +688,7 @@ class GlobMixin(GlobLogic):
   """
 
   category = "/Filesystem/"
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
   args_type = GlobArgs
 
   def Start(self):
@@ -759,7 +698,7 @@ class GlobMixin(GlobLogic):
     interpolate each component. Finally, we generate a cartesian product of all
     combinations.
     """
-    super(GlobMixin, self).Start()
+    super(Glob, self).Start()
     self.GlobForPaths(
         self.args.paths,
         pathtype=self.args.pathtype,
@@ -768,7 +707,7 @@ class GlobMixin(GlobLogic):
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching StatEntry."""
-    super(GlobMixin, self).GlobReportMatch(stat_response)
+    super(Glob, self).GlobReportMatch(stat_response)
 
     self.SendReply(stat_response)
 
@@ -791,8 +730,7 @@ def PathHasDriveLetter(path):
   return path[1:2] == ":"
 
 
-@flow_base.DualDBFlow
-class DiskVolumeInfoMixin(object):
+class DiskVolumeInfo(flow_base.FlowBase):
   """Get disk volume info for a given path.
 
   On linux and OS X we call StatFS on each path and return the results. For
@@ -801,7 +739,7 @@ class DiskVolumeInfoMixin(object):
   """
   args_type = DiskVolumeInfoArgs
   category = "/Filesystem/"
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
 
   def Start(self):
     self.state.drive_letters = set()
@@ -834,8 +772,8 @@ class DiskVolumeInfoMixin(object):
         # rather than raise.
         self.Log("Error collecting SystemRoot artifact: %s", responses.status)
       else:
-        raise flow.FlowError("Error collecting SystemRoot artifact: %s" %
-                             responses.status)
+        raise flow_base.FlowError("Error collecting SystemRoot artifact: %s" %
+                                  responses.status)
 
     drive = str(responses.First())[0:2]
     if drive:

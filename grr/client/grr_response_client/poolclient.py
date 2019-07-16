@@ -9,7 +9,6 @@ import logging
 import threading
 import time
 
-
 from absl import app
 from absl import flags
 

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-
 from future.utils import iterkeys
 
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict

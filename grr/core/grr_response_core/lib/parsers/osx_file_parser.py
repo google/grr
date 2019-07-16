@@ -10,7 +10,6 @@ import io
 import os
 import stat
 
-
 import biplist
 
 from future.utils import string_types

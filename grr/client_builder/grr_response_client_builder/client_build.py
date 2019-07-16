@@ -14,7 +14,6 @@ import platform
 import subprocess
 import sys
 
-
 from absl import app
 from absl import flags
 from absl.flags import argparse_flags
@@ -73,11 +72,6 @@ parser_build = subparsers.add_parser(
 
 parser_build.add_argument(
     "--output", default=None, help="The path to write the output template.")
-
-parser_build.add_argument(
-    "--fleetspeak_service_config",
-    default="",
-    help="Service config file to use with Fleetspeak.")
 
 # repack arguments
 parser_repack = subparsers.add_parser(
@@ -176,13 +170,11 @@ parser_signer.add_argument(
 class TemplateBuilder(object):
   """Build client templates."""
 
-  def GetBuilder(self, context, fleetspeak_service_config):
+  def GetBuilder(self, context):
     """Get instance of builder class based on flags."""
     try:
       if "Target:Darwin" in context:
-        return builders.DarwinClientBuilder(
-            context=context,
-            fleetspeak_service_config=fleetspeak_service_config)
+        return builders.DarwinClientBuilder(context=context)
       elif "Target:Windows" in context:
         return builders.WindowsClientBuilder(context=context)
       elif "Target:LinuxDeb" in context:
@@ -210,10 +202,7 @@ class TemplateBuilder(object):
       else:
         raise RuntimeError("Unknown distro, can't determine package format")
 
-  def BuildTemplate(self,
-                    context=None,
-                    output=None,
-                    fleetspeak_service_config=None):
+  def BuildTemplate(self, context=None, output=None):
     """Find template builder and call it."""
     context = context or []
     context.append("Arch:%s" % self.GetArch())
@@ -232,7 +221,7 @@ class TemplateBuilder(object):
           grr_config.CONFIG.Get(
               "PyInstaller.template_filename", context=context))
 
-    builder_obj = self.GetBuilder(context, fleetspeak_service_config)
+    builder_obj = self.GetBuilder(context)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
 
 
@@ -427,18 +416,13 @@ def main(args):
   if args.subparser_name == "build":
     if grr_config.CONFIG["Client.fleetspeak_enabled"]:
       if grr_config.CONFIG.ContextApplied("Platform:Darwin"):
-        if not args.fleetspeak_service_config:
-          raise RuntimeError("--fleetspeak_service_config must be provided.")
         if not grr_config.CONFIG.Get("ClientBuilder.install_dir"):
           raise RuntimeError("ClientBuilder.install_dir must be set.")
         if not grr_config.CONFIG.Get("ClientBuilder.fleetspeak_plist_path"):
           raise RuntimeError("ClientBuilder.fleetspeak_plist_path must be set.")
       grr_config.CONFIG.Set("ClientBuilder.client_path",
                             "grr_response_client.grr_fs_client")
-    TemplateBuilder().BuildTemplate(
-        context=context,
-        output=args.output,
-        fleetspeak_service_config=args.fleetspeak_service_config)
+    TemplateBuilder().BuildTemplate(context=context, output=args.output)
   elif args.subparser_name == "repack":
     if args.debug_build:
       context.append("DebugClientBuild Context")

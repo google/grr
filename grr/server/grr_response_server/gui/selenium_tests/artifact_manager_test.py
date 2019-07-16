@@ -8,19 +8,16 @@ from __future__ import unicode_literals
 import io
 import os
 
-
 from absl import app
 
 from grr_response_core import config
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestArtifactManagementRender(db_test_lib.RelationalDBEnabledMixin,
-                                   gui_test_lib.GRRSeleniumTest):
+class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def setUp(self):
@@ -76,7 +73,7 @@ class TestArtifactManagementRender(db_test_lib.RelationalDBEnabledMixin,
                      "TestDrivers: system artifact cannot be overwritten")
 
   def testArtifactAvailableImmediatelyAfterUpload(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     # Test that we have no TestDrivers.
@@ -134,7 +131,7 @@ class TestArtifactManagementRender(db_test_lib.RelationalDBEnabledMixin,
     with io.open(self.json_file, mode="r", encoding="utf-8") as fd:
       artifact.UploadArtifactYamlFile(fd.read())
 
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
     # Test that we have TestDrivers available.

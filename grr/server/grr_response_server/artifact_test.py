@@ -29,13 +29,11 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import action_registry
-from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import filesystem
@@ -44,7 +42,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
@@ -168,8 +165,7 @@ class FooAction(actions.ActionPlugin):
 # pylint: enable=function-redefined
 
 
-class ArtifactTest(db_test_lib.RelationalDBEnabledMixin,
-                   flow_test_lib.FlowTestsBaseclass):
+class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
   """Helper class for tests using artifacts."""
 
   def setUp(self):
@@ -201,11 +197,11 @@ class ArtifactTest(db_test_lib.RelationalDBEnabledMixin,
     def WmiQuery(self, _):
       return WMI_SAMPLE
 
-  def RunCollectorAndGetCollection(self,
-                                   artifact_list,
-                                   client_mock=None,
-                                   client_id=None,
-                                   **kw):
+  def RunCollectorAndGetResults(self,
+                                artifact_list,
+                                client_mock=None,
+                                client_id=None,
+                                **kw):
     """Helper to handle running the collector flow."""
     if client_mock is None:
       client_mock = self.MockClient(client_id=client_id)
@@ -331,10 +327,6 @@ supported_os: [Linux]
     # System artifacts come from the test file.
     self.LoadTestArtifacts()
 
-    # Uploaded files go to this collection.
-    artifact_store_urn = aff4.ROOT_URN.Add("artifact_store")
-    artifact_registry.REGISTRY.AddDatastoreSources([artifact_store_urn])
-
     # WMIActiveScriptEventConsumer is a system artifact, we can't overwrite it.
     with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content)
@@ -345,11 +337,10 @@ supported_os: [Linux]
     # artifact was uploaded to the data store for testing.
     artifact.UploadArtifactYamlFile(content, overwrite_system_artifacts=True)
 
-    # The shadowing artifact is at this point stored in the
-    # collection. On the next full reload of the registry, there will
-    # be an error that we can't overwrite the system artifact. The
-    # artifact should automatically get deleted from the collection to
-    # mitigate the problem.
+    # The shadowing artifact is at this point stored in the data store. On the
+    # next full reload of the registry, there will be an error that we can't
+    # overwrite the system artifact. The artifact should automatically get
+    # deleted from the data store to mitigate the problem.
     with self.assertRaises(rdf_artifacts.ArtifactDefinitionError):
       artifact_registry.REGISTRY._ReloadArtifacts()
 
@@ -363,9 +354,9 @@ supported_os: [Linux]
         "WMIActiveScriptEventConsumer")
     self.assertStartsWith(artifact_obj.loaded_from, "file:")
 
-    # The artifact is gone from the collection.
-    coll = artifact_registry.ArtifactCollection(artifact_store_urn)
-    self.assertNotIn("WMIActiveScriptEventConsumer", coll)
+    # The artifact is gone from the data store.
+    with self.assertRaises(db.UnknownArtifactError):
+      data_store.REL_DB.ReadArtifact("WMIActiveScriptEventConsumer")
 
   def testUploadArtifactBadDependencies(self):
     yaml_artifact = """
@@ -426,25 +417,20 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Check GetFiles artifacts."""
     client_id = test_lib.TEST_CLIENT_ID
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
-                                        client_mock=self.client_mock,
-                                        client_id=client_id)
-      if data_store.RelationalDBEnabled():
-        cp = db.ClientPath.OS(client_id.Basename(), ("var", "log", "auth.log"))
-        fd = file_store.OpenFile(cp)
-        self.assertNotEmpty(fd.read())
-      else:
-        urn = client_id.Add("fs/os/").Add("var/log/auth.log")
-        aff4.FACTORY.Open(
-            urn, aff4_type=aff4_grr.VFSBlobImage, token=self.token)
+      self.RunCollectorAndGetResults(["TestFilesArtifact"],
+                                     client_mock=self.client_mock,
+                                     client_id=client_id)
+      cp = db.ClientPath.OS(client_id, ("var", "log", "auth.log"))
+      fd = file_store.OpenFile(cp)
+      self.assertNotEmpty(fd.read())
 
   @parser_test_lib.WithParser("Passwd", linux_file_parser.PasswdBufferParser)
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
-                                             client_mock=self.client_mock,
-                                             client_id=test_lib.TEST_CLIENT_ID)
+      fd = self.RunCollectorAndGetResults(["LinuxPasswdHomedirs"],
+                                          client_mock=self.client_mock,
+                                          client_id=test_lib.TEST_CLIENT_ID)
 
       self.assertLen(fd, 5)
       self.assertCountEqual(
@@ -464,24 +450,24 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeTestDataVFSHandler):
       # Will raise if something goes wrong.
-      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
-                                        client_mock=self.client_mock,
-                                        client_id=client_id)
+      self.RunCollectorAndGetResults(["TestFilesArtifact"],
+                                     client_mock=self.client_mock,
+                                     client_id=client_id)
 
       # Will raise if something goes wrong.
-      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
-                                        client_mock=self.client_mock,
-                                        client_id=client_id,
-                                        split_output_by_artifact=True)
+      self.RunCollectorAndGetResults(["TestFilesArtifact"],
+                                     client_mock=self.client_mock,
+                                     client_id=client_id,
+                                     split_output_by_artifact=True)
 
       # Test the error_on_no_results option.
       with self.assertRaises(RuntimeError) as context:
         with test_lib.SuppressLogs():
-          self.RunCollectorAndGetCollection(["NullArtifact"],
-                                            client_mock=self.client_mock,
-                                            client_id=client_id,
-                                            split_output_by_artifact=True,
-                                            error_on_no_results=True)
+          self.RunCollectorAndGetResults(["NullArtifact"],
+                                         client_mock=self.client_mock,
+                                         client_id=client_id,
+                                         split_output_by_artifact=True,
+                                         error_on_no_results=True)
       if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
 
@@ -500,8 +486,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     """Check we can run WMI based artifacts."""
     client_id = self.SetupClient(
         0, system="Windows", os_version="6.2", arch="AMD64")
-    col = self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
-                                            client_id=client_id)
+    col = self.RunCollectorAndGetResults(["WMIInstalledSoftware"],
+                                         client_id=client_id)
 
     self.assertLen(col, 1)
     package_list = col[0]
@@ -594,20 +580,12 @@ class GrrKbWindowsTest(GrrKbTest):
         token=self.token)
     path = paths[0].replace("\\", "/")
 
-    if data_store.RelationalDBEnabled():
-      path_info = data_store.REL_DB.ReadPathInfo(
-          client_id.Basename(),
-          rdf_objects.PathInfo.PathType.REGISTRY,
-          components=tuple(path.split("/")))
-      self.assertEqual(path_info.stat_entry.registry_data.GetValue(),
-                       "%SystemDrive%\\Users")
-    else:
-      fd = aff4.FACTORY.Open(
-          client_id.Add("registry").Add(path), token=self.token)
-      self.assertEqual(fd.__class__.__name__, "VFSFile")
-      self.assertEqual(
-          fd.Get(fd.Schema.STAT).registry_data.GetValue(),
-          "%SystemDrive%\\Users")
+    path_info = data_store.REL_DB.ReadPathInfo(
+        client_id,
+        rdf_objects.PathInfo.PathType.REGISTRY,
+        components=tuple(path.split("/")))
+    self.assertEqual(path_info.stat_entry.registry_data.GetValue(),
+                     "%SystemDrive%\\Users")
 
   @parser_test_lib.WithAllParsers
   def testGetKBDependencies(self):

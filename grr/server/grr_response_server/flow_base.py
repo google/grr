@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import sys
 import traceback
 
 from future.builtins import str
@@ -19,17 +18,75 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
 from grr_response_server import action_registry
-from grr_response_server import aff4_flows
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_responses
+from grr_response_server import hunt
 from grr_response_server import notification as notification_lib
-from grr_response_server.aff4_objects import users as aff4_users
-from grr_response_server.databases import db_compat
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+class Error(Exception):
+  """Base class for this package's exceptions."""
+
+
+class FlowError(Error):
+  """A generic flow error."""
+
+
+# TODO(hanuszczak): Consider refactoring the interface of this class.
+class FlowBehaviour(object):
+  """A Behaviour is a property of a flow.
+
+  Behaviours advertise what kind of flow this is. The flow can only advertise
+  predefined behaviours.
+  """
+
+  # A constant which defines all the allowed behaviours and their descriptions.
+  LEXICON = {
+      # What GUI mode should this flow appear in?
+      "BASIC":
+          "Include in the simple UI. This flow is designed for simpler use.",
+      "ADVANCED":
+          "Include in advanced UI. This flow takes more experience to use.",
+      "DEBUG":
+          "This flow only appears in debug mode.",
+  }
+
+  def __init__(self, *args):
+    self.set = set()
+    for arg in args:
+      if arg not in self.LEXICON:
+        raise ValueError("Behaviour %s not known." % arg)
+
+      self.set.add(str(arg))
+
+  def __add__(self, other):
+    other = str(other)
+
+    if other not in self.LEXICON:
+      raise ValueError("Behaviour %s not known." % other)
+
+    return self.__class__(other, *list(self.set))
+
+  def __sub__(self, other):
+    other = str(other)
+
+    result = self.set.copy()
+    result.discard(other)
+
+    return self.__class__(*list(result))
+
+  def __iter__(self):
+    return iter(self.set)
+
+
+BEHAVIOUR_ADVANCED = FlowBehaviour("ADVANCED")
+BEHAVIOUR_BASIC = FlowBehaviour("ADVANCED", "BASIC")
+BEHAVIOUR_DEBUG = FlowBehaviour("DEBUG")
 
 
 def _TerminateFlow(rdf_flow,
@@ -92,7 +149,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   # Alternatively we can specify a single semantic protobuf that will be used to
   # provide the args.
-  args_type = flow.EmptyFlowArgs
+  args_type = rdf_flows.EmptyFlowArgs
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -100,7 +157,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   # Behaviors set attributes of this flow. See FlowBehavior() in
   # grr_response_server/flow.py.
-  behaviours = flow.FlowBehaviour("ADVANCED")
+  behaviours = BEHAVIOUR_ADVANCED
 
   def __init__(self, rdf_flow):
     self.rdf_flow = rdf_flow
@@ -415,11 +472,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       if self.rdf_flow.parent_flow_id:
         self.flow_responses.append(status_msg)
       elif self.rdf_flow.parent_hunt_id:
-        db_compat.ProcessHuntFlowError(
-            self.rdf_flow,
-            error_message=error_message,
-            backtrace=backtrace,
-            status_msg=status_msg)
+        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
 
     self.rdf_flow.flow_state = self.rdf_flow.FlowState.ERROR
     if backtrace is not None:
@@ -490,7 +543,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       if self.rdf_flow.parent_flow_id:
         self.flow_responses.append(status)
       elif self.rdf_flow.parent_hunt_id:
-        db_compat.ProcessHuntFlowDone(self.rdf_flow, status_msg=status)
+        hunt_obj = hunt.StopHuntIfCPUOrNetworkLimitsExceeded(
+            self.rdf_flow.parent_hunt_id)
+        hunt.CompleteHuntIfExpirationTimeReached(hunt_obj)
 
     self.rdf_flow.flow_state = self.rdf_flow.FlowState.FINISHED
 
@@ -510,8 +565,6 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         hunt_id=self.rdf_flow.parent_hunt_id,
         message=format_str % args)
     data_store.REL_DB.WriteFlowLogEntries([log_entry])
-    if self.rdf_flow.parent_hunt_id:
-      db_compat.ProcessHuntFlowLog(self.rdf_flow, format_str % args)
 
   def RunStateMethod(self, method_name, request=None, responses=None):
     """Completes the request by calling the state method.
@@ -520,6 +573,9 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       method_name: The name of the state method to call.
       request: A RequestState protobuf.
       responses: A list of FlowMessages responding to the request.
+
+    Raises:
+      FlowError: Processing time for the flow has expired.
     """
     if self.rdf_flow.pending_termination:
       self.Error(error_message=self.rdf_flow.pending_termination.reason)
@@ -529,8 +585,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     deadline = self.rdf_flow.processing_deadline
     if deadline and rdfvalue.RDFDatetime.Now() > deadline:
-      raise flow.FlowError("Processing time for flow %s on %s expired." %
-                           (self.rdf_flow.flow_id, self.rdf_flow.client_id))
+      raise FlowError("Processing time for flow %s on %s expired." %
+                      (self.rdf_flow.flow_id, self.rdf_flow.client_id))
 
     self.rdf_flow.current_state = method_name
     if request and responses:
@@ -683,17 +739,13 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     if self.replies_to_write:
       # For top-level hunt-induced flows, write results to the hunt collection.
       if self.rdf_flow.parent_hunt_id and not self.rdf_flow.parent_flow_id:
-        db_compat.WriteHuntResults(self.rdf_flow.client_id,
-                                   self.rdf_flow.parent_hunt_id,
-                                   self.replies_to_write)
+        data_store.REL_DB.WriteFlowResults(self.replies_to_write)
+        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
       else:
         data_store.REL_DB.WriteFlowResults(self.replies_to_write)
       self.replies_to_write = []
 
   def _ProcessRepliesWithHuntOutputPlugins(self, replies):
-    if db_compat.IsLegacyHunt(self.rdf_flow.parent_hunt_id):
-      return
-
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
     self.rdf_flow.output_plugins = hunt_obj.output_plugins
     hunt_output_plugins_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
@@ -803,7 +855,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
   def ShouldSendNotifications(self):
     return bool(not self.rdf_flow.parent_flow_id and
                 not self.rdf_flow.parent_hunt_id and self.creator and
-                self.creator not in aff4_users.GRRUser.SYSTEM_USERS)
+                self.creator not in access_control.SYSTEM_USERS)
 
   def IsRunning(self):
     return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
@@ -859,24 +911,3 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
   @classmethod
   def GetDefaultArgs(cls, username=None):
     return cls.args_type()
-
-
-def DualDBFlow(cls):
-  """Decorator that creates AFF4 and RELDB flows from a given mixin."""
-
-  if issubclass(cls, flow.GRRFlow):
-    raise ValueError("Mixin class shouldn't inherit from GRRFlow.")
-
-  if cls.__name__[-5:] != "Mixin":
-    raise ValueError("Flow mixin should have a name that ends in 'Mixin'.")
-
-  flow_name = cls.__name__[:-5]
-  aff4_cls = type(flow_name, (cls, flow.GRRFlow), {})
-  aff4_cls.__doc__ = cls.__doc__
-  setattr(aff4_flows, flow_name, aff4_cls)
-
-  reldb_cls = type(flow_name, (cls, FlowBase), {})
-  reldb_cls.__doc__ = cls.__doc__
-  setattr(sys.modules[cls.__module__], flow_name, reldb_cls)
-
-  return cls

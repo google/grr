@@ -10,36 +10,19 @@ from __future__ import unicode_literals
 
 import logging
 
-
 from absl import app
 from absl import flags
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
-# pylint: enable=g-bad-import-order
+# pylint: enable=unused-import,g-bad-import-order
 
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
-from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
-from grr_response_server import access_control
-from grr_response_server import aff4
-from grr_response_server import artifact
-from grr_response_server import data_store
-from grr_response_server import export_utils
 from grr_response_server import fleetspeak_connector
-from grr_response_server import flow
-from grr_response_server import flow_runner
-from grr_response_server import flow_utils
-from grr_response_server import hunts
 from grr_response_server import ipshell
-from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
-from grr_response_server import worker_lib
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import security
 
 flags.DEFINE_string(
     "code_to_execute", None,
@@ -83,10 +66,6 @@ def main(argv):
 
   locals_vars = {
       "__name__": "GRR Console",
-
-      # Bring some symbols from other modules into the console's
-      # namespace.
-      "StartFlowAndWait": flow_utils.StartFlowAndWait,
   }
 
   locals_vars.update(globals())  # add global variables to console

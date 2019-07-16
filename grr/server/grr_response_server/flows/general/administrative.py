@@ -7,20 +7,16 @@ from __future__ import unicode_literals
 
 import logging
 import shlex
-import threading
 import time
-
 
 import jinja2
 from typing import Text
 
 from grr_response_core import config
-from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
@@ -28,87 +24,36 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import events
-from grr_response_server import flow
 from grr_response_server import flow_base
-from grr_response_server import grr_collections
 from grr_response_server import hunt
 from grr_response_server import message_handlers
 from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
-from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
-def ExtractHuntId(flow_session_id):
-  hunt_str, hunt_id, _ = flow_session_id.Split(3)
-  if hunt_str == "hunts":
-    return aff4.ROOT_URN.Add("hunts").Add(hunt_id)
-
-
-def WriteAllCrashDetails(client_id,
-                         crash_details,
-                         flow_session_id=None,
-                         hunt_session_id=None,
-                         token=None):
+def WriteAllCrashDetails(client_id, crash_details, flow_session_id=None):
   """Updates the last crash attribute of the client."""
-  # AFF4.
-  if data_store.AFF4Enabled():
-    with aff4.FACTORY.Create(
-        client_id, aff4_grr.VFSGRRClient, token=token) as client_obj:
-      client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
-
-    # Duplicate the crash information in a number of places so we can find it
-    # easily.
-    client_urn = rdf_client.ClientURN(client_id)
-    client_crashes = aff4_grr.VFSGRRClient.CrashCollectionURNForCID(client_urn)
-    with data_store.DB.GetMutationPool() as pool:
-      grr_collections.CrashCollection.StaticAdd(
-          client_crashes, crash_details, mutation_pool=pool)
-
-  # Relational db.
-  if data_store.RelationalDBEnabled():
-    try:
-      data_store.REL_DB.WriteClientCrashInfo(client_id, crash_details)
-    except db.UnknownClientError:
-      pass
+  try:
+    data_store.REL_DB.WriteClientCrashInfo(client_id, crash_details)
+  except db.UnknownClientError:
+    pass
 
   if not flow_session_id:
     return
 
-  if data_store.RelationalDBEnabled():
-    flow_id = flow_session_id.Basename()
-    data_store.REL_DB.UpdateFlow(
-        client_id, flow_id, client_crash_info=crash_details)
+  flow_id = flow_session_id.Basename()
+  data_store.REL_DB.UpdateFlow(
+      client_id, flow_id, client_crash_info=crash_details)
 
-    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    if (flow_obj.parent_hunt_id and
-        not hunt.IsLegacyHunt(flow_obj.parent_hunt_id)):
-      hunt.StopHuntIfCrashLimitExceeded(flow_obj.parent_hunt_id)
-  else:
-    with aff4.FACTORY.Open(
-        flow_session_id,
-        flow.GRRFlow,
-        mode="rw",
-        age=aff4.NEWEST_TIME,
-        token=token) as aff4_flow:
-      aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
-
-    hunt_session_id = ExtractHuntId(flow_session_id)
-    if hunt_session_id and hunt_session_id != flow_session_id:
-      hunt_obj = aff4.FACTORY.Open(
-          hunt_session_id,
-          aff4_type=implementation.GRRHunt,
-          mode="rw",
-          token=token)
-      hunt_obj.RegisterCrash(crash_details)
+  flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  if flow_obj.parent_hunt_id:
+    hunt.StopHuntIfCrashLimitExceeded(flow_obj.parent_hunt_id)
 
 
 class ClientCrashHandler(events.EventListener):
@@ -149,20 +94,12 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
       stats_collector_instance.Get().IncrementCounter("grr_client_crashes")
 
       # Write crash data.
-      if data_store.RelationalDBEnabled():
-        client = data_store.REL_DB.ReadClientSnapshot(client_id)
-        if client:
-          crash_details.client_info = client.startup_info.client_info
-          hostname = client.knowledge_base.fqdn
-        else:
-          hostname = ""
-
-      if data_store.AFF4Enabled():
-        client = aff4.FACTORY.Open(client_urn, token=token)
-        client_info = client.Get(client.Schema.CLIENT_INFO)
-        hostname = client.Get(client.Schema.FQDN)
-        if client_info:
-          crash_details.client_info = client_info
+      client = data_store.REL_DB.ReadClientSnapshot(client_id)
+      if client:
+        crash_details.client_info = client.startup_info.client_info
+        hostname = client.knowledge_base.fqdn
+      else:
+        hostname = ""
 
       crash_details.crash_type = "Client Crash"
 
@@ -172,66 +109,42 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
         termination_msg = "Client crashed."
 
       # Terminate the flow.
-      if data_store.RelationalDBEnabled():
-        flow_id = session_id.Basename()
-        flow_base.TerminateFlow(
-            client_id,
-            flow_id,
-            reason=termination_msg,
-            flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
-      else:
-        flow.GRRFlow.TerminateAFF4Flow(
-            session_id, reason=termination_msg, token=token)
+      flow_id = session_id.Basename()
+      flow_base.TerminateFlow(
+          client_id,
+          flow_id,
+          reason=termination_msg,
+          flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
 
-      WriteAllCrashDetails(
-          client_id, crash_details, flow_session_id=session_id, token=token)
+      WriteAllCrashDetails(client_id, crash_details, flow_session_id=session_id)
 
       # Also send email.
-      to_send = []
+      email_address = config.CONFIG["Monitoring.alert_email"]
+      if not email_address:
+        return
+
+      if crash_details.nanny_status:
+        nanny_msg = "Nanny status: %s" % crash_details.nanny_status
+
+      body = self.__class__.mail_template.render(
+          client_id=client_id,
+          admin_ui=config.CONFIG["AdminUI.url"],
+          hostname=utils.SmartUnicode(hostname),
+          url="/clients/%s" % client_id,
+          nanny_msg=utils.SmartUnicode(nanny_msg),
+          signature=config.CONFIG["Email.signature"])
 
       try:
-        hunt_session_id = ExtractHuntId(session_id)
-        if hunt_session_id and hunt_session_id != session_id:
-
-          # TODO(amoser): Enable this for the relational db once we have hunt
-          # metadata.
-          if data_store.AFF4Enabled():
-            hunt_obj = aff4.FACTORY.Open(
-                hunt_session_id, aff4_type=implementation.GRRHunt, token=token)
-            email = hunt_obj.runner_args.crash_alert_email
-
-          if email:
-            to_send.append(email)
-      except aff4.InstantiationError:
-        logging.error("Failed to open hunt %s.", hunt_session_id)
-
-      email = config.CONFIG["Monitoring.alert_email"]
-      if email:
-        to_send.append(email)
-
-      for email_address in to_send:
-        if crash_details.nanny_status:
-          nanny_msg = "Nanny status: %s" % crash_details.nanny_status
-
-        body = self.__class__.mail_template.render(
-            client_id=client_id,
-            admin_ui=config.CONFIG["AdminUI.url"],
-            hostname=utils.SmartUnicode(hostname),
-            url="/clients/%s" % client_id,
-            nanny_msg=utils.SmartUnicode(nanny_msg),
-            signature=config.CONFIG["Email.signature"])
-
-        try:
-          email_alerts.EMAIL_ALERTER.SendEmail(
-              email_address,
-              "GRR server",
-              "Client %s reported a crash." % client_id,
-              utils.SmartStr(body),
-              is_html=True)
-        except email_alerts.EmailNotSentError as e:
-          # We have already written the crash details to the DB, so failing
-          # to send an email isn't super-critical.
-          logging.warning(e)
+        email_alerts.EMAIL_ALERTER.SendEmail(
+            email_address,
+            "GRR server",
+            "Client %s reported a crash." % client_id,
+            body,
+            is_html=True)
+      except email_alerts.EmailNotSentError as e:
+        # We have already written the crash details to the DB, so failing
+        # to send an email isn't super-critical.
+        logging.warning(e)
 
 
 class GetClientStatsProcessResponseMixin(object):
@@ -242,22 +155,12 @@ class GetClientStatsProcessResponseMixin(object):
     precondition.AssertType(client_id, Text)
     downsampled = rdf_client_stats.ClientStats.Downsampled(response)
 
-    if data_store.AFF4Enabled():
-      urn = rdf_client.ClientURN(client_id).Add("stats")
-
-      with aff4.FACTORY.Create(
-          urn, aff4_stats.ClientStats, token=self.token, mode="w") as stats_fd:
-        # Only keep the average of all values that fall within one minute.
-        stats_fd.AddAttribute(stats_fd.Schema.STATS, downsampled)
-
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.WriteClientStats(client_id, downsampled)
+    data_store.REL_DB.WriteClientStats(client_id, downsampled)
 
     return downsampled
 
 
-@flow_base.DualDBFlow
-class GetClientStatsMixin(GetClientStatsProcessResponseMixin):
+class GetClientStats(flow_base.FlowBase, GetClientStatsProcessResponseMixin):
   """This flow retrieves information about the GRR client process."""
 
   category = "/Administrative/"
@@ -277,20 +180,6 @@ class GetClientStatsMixin(GetClientStatsProcessResponseMixin):
       self.SendReply(downsampled)
 
 
-class GetClientStatsAuto(flow.WellKnownFlow,
-                         GetClientStatsProcessResponseMixin):
-  """This action pushes client stats to the server automatically."""
-
-  category = None
-
-  well_known_session_id = rdfvalue.SessionID(
-      flow_name="Stats", queue=queues.STATS)
-
-  def ProcessMessage(self, message):
-    """Processes a stats response from the client."""
-    self.ProcessResponse(message.source.Basename(), message.payload)
-
-
 class ClientStatsHandler(message_handlers.MessageHandler,
                          GetClientStatsProcessResponseMixin):
 
@@ -308,8 +197,7 @@ class DeleteGRRTempFilesArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class DeleteGRRTempFilesMixin(object):
+class DeleteGRRTempFiles(flow_base.FlowBase):
   """Delete all the GRR temp files in path.
 
   If path is a directory, look in the top level for filenames beginning with
@@ -328,7 +216,7 @@ class DeleteGRRTempFilesMixin(object):
 
   def Done(self, responses):
     if not responses.success:
-      raise flow.FlowError(str(responses.status))
+      raise flow_base.FlowError(str(responses.status))
 
     for response in responses:
       self.Log(response.data)
@@ -338,8 +226,7 @@ class UninstallArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UninstallArgs
 
 
-@flow_base.DualDBFlow
-class UninstallMixin(object):
+class Uninstall(flow_base.FlowBase):
   """Removes the persistence mechanism which the client uses at boot.
 
   For Windows and OSX, this will disable the service, and then stop the service.
@@ -371,8 +258,7 @@ class UninstallMixin(object):
       self.Log("Kill failed on the client.")
 
 
-@flow_base.DualDBFlow
-class KillMixin(object):
+class Kill(flow_base.FlowBase):
   """Terminate a running client (does not disable, just kill)."""
 
   category = "/Administrative/"
@@ -394,8 +280,7 @@ class UpdateConfigurationArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class UpdateConfigurationMixin(object):
+class UpdateConfiguration(flow_base.FlowBase):
   """Update the configuration of the client.
 
     Note: This flow is somewhat dangerous, so we don't expose it in the UI.
@@ -415,7 +300,7 @@ class UpdateConfigurationMixin(object):
   def Confirmation(self, responses):
     """Confirmation."""
     if not responses.success:
-      raise flow.FlowError("Failed to write config. Err: {0}".format(
+      raise flow_base.FlowError("Failed to write config. Err: {0}".format(
           responses.status))
 
 
@@ -426,8 +311,7 @@ class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class ExecutePythonHackMixin(object):
+class ExecutePythonHack(flow_base.FlowBase):
   """Execute a signed python hack on a client."""
 
   category = "/Administrative/"
@@ -440,9 +324,10 @@ class ExecutePythonHackMixin(object):
 
     try:
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-          python_hack_urn, token=self.token)
+          python_hack_urn)
     except signed_binary_utils.SignedBinaryNotFoundError:
-      raise flow.FlowError("Python hack %s not found." % self.args.hack_name)
+      raise flow_base.FlowError("Python hack %s not found." %
+                                self.args.hack_name)
 
     # TODO(amoser): This will break if someone wants to execute lots of Python.
     for python_blob in blob_iterator:
@@ -456,7 +341,8 @@ class ExecutePythonHackMixin(object):
     """Retrieves the output for the hack."""
     response = responses.First()
     if not responses.success:
-      raise flow.FlowError("Execute Python hack failed: %s" % responses.status)
+      raise flow_base.FlowError("Execute Python hack failed: %s" %
+                                responses.status)
     if response:
       result = utils.SmartStr(response.return_val)
       # Send reply with full data, but only log the first 200 bytes.
@@ -471,8 +357,7 @@ class ExecuteCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ExecuteCommandArgs
 
 
-@flow_base.DualDBFlow
-class ExecuteCommandMixin(object):
+class ExecuteCommand(flow_base.FlowBase):
   """Execute a predefined command on the client."""
 
   args_type = ExecuteCommandArgs
@@ -514,42 +399,6 @@ class ExecuteCommandMixin(object):
       self.Log("Execute failed.")
 
 
-class Foreman(flow.WellKnownFlow):
-  """The foreman assigns new flows to clients based on their type.
-
-  Clients periodically call the foreman flow to ask for new flows that might be
-  scheduled for them based on their types. This allows the server to schedule
-  flows for entire classes of machines based on certain criteria.
-  """
-  well_known_session_id = rdfvalue.SessionID(flow_name="Foreman")
-  foreman_cache = None
-
-  # How often we refresh the rule set from the data store.
-  cache_refresh_time = 60
-
-  lock = threading.Lock()
-
-  def ProcessMessage(self, message):
-    """Run the foreman on the client."""
-    # Only accept authenticated messages
-    if (message.auth_state !=
-        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
-      return
-
-    now = time.time()
-
-    # Maintain a cache of the foreman
-    with self.lock:
-      if (self.foreman_cache is None or
-          now > self.foreman_cache.age + self.cache_refresh_time):
-        self.foreman_cache = aff4.FACTORY.Open(
-            "aff4:/foreman", mode="rw", token=self.token)
-        self.foreman_cache.age = now
-
-    if message.source:
-      self.foreman_cache.AssignTasksToClient(message.source.Basename())
-
-
 class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.OnlineNotificationArgs
   rdf_deps = [
@@ -557,12 +406,11 @@ class OnlineNotificationArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class OnlineNotificationMixin(object):
+class OnlineNotification(flow_base.FlowBase):
   """Notifies by email when a client comes online in GRR."""
 
   category = "/Administrative/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   subject_template = jinja2.Template(
       "GRR Client on {{ hostname }} became available.", autoescape=True)
@@ -604,31 +452,24 @@ class OnlineNotificationMixin(object):
 
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
-    if responses.success:
-      if data_store.RelationalDBEnabled():
-        client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-        hostname = client.knowledge_base.fqdn
-      else:
-        client = aff4.FACTORY.Open(self.client_id, token=self.token)
-        hostname = client.Get(client.Schema.FQDN)
+    if not responses.success:
+      flow_base.FlowError("Error while pinging client.")
+      return
 
-      subject = self.__class__.subject_template.render(hostname=hostname)
-      body = self.__class__.template.render(
-          client_id=self.client_id,
-          admin_ui=config.CONFIG["AdminUI.url"],
-          hostname=hostname,
-          url="/clients/%s" % self.client_id,
-          creator=self.token.username,
-          signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
+    client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    hostname = client.knowledge_base.fqdn
 
-      email_alerts.EMAIL_ALERTER.SendEmail(
-          self.args.email,
-          "grr-noreply",
-          utils.SmartStr(subject),
-          utils.SmartStr(body),
-          is_html=True)
-    else:
-      flow.FlowError("Error while pinging client.")
+    subject = self.__class__.subject_template.render(hostname=hostname)
+    body = self.__class__.template.render(
+        client_id=self.client_id,
+        admin_ui=config.CONFIG["AdminUI.url"],
+        hostname=hostname,
+        url="/clients/%s" % self.client_id,
+        creator=self.token.username,
+        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
+
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        self.args.email, "grr-noreply", subject, body, is_html=True)
 
 
 class UpdateClientArgs(rdf_structs.RDFProtoStruct):
@@ -638,8 +479,7 @@ class UpdateClientArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class UpdateClientMixin(object):
+class UpdateClient(flow_base.FlowBase):
   """Updates the GRR client to a new version replacing the current client.
 
   This will execute the specified installer on the client and then run
@@ -659,16 +499,16 @@ class UpdateClientMixin(object):
   def _BlobIterator(self, binary_urn):
     try:
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-          binary_urn, token=self.token)
+          binary_urn)
     except signed_binary_utils.SignedBinaryNotFoundError:
-      raise flow.FlowError("%s is not a valid signed binary." %
-                           self.args.blob_path)
+      raise flow_base.FlowError("%s is not a valid signed binary." %
+                                self.args.blob_path)
     return blob_iterator
 
   def Start(self):
     """Start."""
     if not self.args.blob_path:
-      raise flow.FlowError("Installer binary path is not specified.")
+      raise flow_base.FlowError("Installer binary path is not specified.")
 
     binary_urn = rdfvalue.RDFURN(self.args.blob_path)
     self.state.write_path = "%d_%s" % (int(time.time()), binary_urn.Basename())
@@ -677,7 +517,7 @@ class UpdateClientMixin(object):
     try:
       first_blob = next(blob_iterator)
     except StopIteration:
-      raise flow.FlowError("File %s is empty." % self.args.blob_path)
+      raise flow_base.FlowError("File %s is empty." % self.args.blob_path)
 
     try:
       next(blob_iterator)
@@ -706,8 +546,8 @@ class UpdateClientMixin(object):
   def SendBlobs(self, responses):
     """Sends all blobs that are not the first or the last."""
     if not responses.success:
-      raise flow.FlowError("Error while calling UpdateAgent: %s" %
-                           responses.status)
+      raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
+                                responses.status)
 
     binary_urn = rdfvalue.RDFURN(self.args.blob_path)
     blobs = list(self._BlobIterator(binary_urn))
@@ -737,8 +577,8 @@ class UpdateClientMixin(object):
   def SendLastBlob(self, responses):
     """Sends the last blob."""
     if not responses.success:
-      raise flow.FlowError("Error while calling UpdateAgent: %s" %
-                           responses.status)
+      raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
+                                responses.status)
 
     binary_urn = rdfvalue.RDFURN(self.args.blob_path)
     blobs = list(self._BlobIterator(binary_urn))
@@ -757,19 +597,20 @@ class UpdateClientMixin(object):
 
   def CheckUpdateAgent(self, responses):
     if not responses.success:
-      raise flow.FlowError("Error while calling UpdateAgent: %s" %
-                           responses.status)
+      raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
+                                responses.status)
 
   def Interrogate(self, responses):
     if not responses.success:
-      raise flow.FlowError("Installer reported an error: %s" % responses.status)
+      raise flow_base.FlowError("Installer reported an error: %s" %
+                                responses.status)
 
     self.Log("Installer completed.")
     self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
 
   def Done(self, responses):
     if not responses.success:
-      raise flow.FlowError(responses.status)
+      raise flow_base.FlowError(responses.status)
 
 
 class NannyMessageHandlerMixin(object):
@@ -802,15 +643,10 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
     hostname = None
 
     # Write crash data.
-    if data_store.RelationalDBEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(client_id)
-      if client is not None:
-        client_info = client.startup_info.client_info
-        hostname = client.knowledge_base.fqdn
-    else:
-      client = aff4.FACTORY.Open(client_id, token=self.token)
-      client_info = client.Get(client.Schema.CLIENT_INFO)
-      hostname = client.Get(client.Schema.FQDN)
+    client = data_store.REL_DB.ReadClientSnapshot(client_id)
+    if client is not None:
+      client_info = client.startup_info.client_info
+      hostname = client.knowledge_base.fqdn
 
     crash_details = rdf_client.ClientCrash(
         client_id=client_id,
@@ -819,7 +655,7 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
         timestamp=int(time.time() * 1e6),
         crash_type="Nanny Message")
 
-    WriteAllCrashDetails(client_id, crash_details, token=self.token)
+    WriteAllCrashDetails(client_id, crash_details)
 
     # Also send email.
     if config.CONFIG["Monitoring.alert_email"]:
@@ -835,17 +671,8 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
           config.CONFIG["Monitoring.alert_email"],
           "GRR server",
           self.subject % client_id,
-          utils.SmartStr(body),
+          body,
           is_html=True)
-
-
-class NannyMessageHandlerFlow(NannyMessageHandlerMixin, flow.WellKnownFlow):
-  """A listener for nanny messages."""
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="NannyMessage")
-
-  def ProcessMessage(self, message=None):
-    self.SendEmail(message.source.Basename(), message.payload.string)
 
 
 class NannyMessageHandler(NannyMessageHandlerMixin,
@@ -881,14 +708,6 @@ Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
   logline = "Client message from %s: %s"
 
 
-class ClientAlertHandlerFlow(ClientAlertHandlerMixin, flow.WellKnownFlow):
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="ClientAlert")
-
-  def ProcessMessage(self, message=None):
-    self.SendEmail(message.source.Basename(), message.payload.string)
-
-
 class ClientAlertHandler(ClientAlertHandlerMixin,
                          message_handlers.MessageHandler):
 
@@ -906,55 +725,18 @@ class ClientStartupHandlerMixin(object):
     """Handle a startup event."""
     drift = rdfvalue.DurationSeconds("5m")
 
-    if data_store.RelationalDBEnabled():
-      current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
 
-      # We write the updated record if the client_info has any changes
-      # or the boot time is more than 5 minutes different.
-      if (not current_si or current_si.client_info != new_si.client_info or
-          not current_si.boot_time or
-          abs(current_si.boot_time - new_si.boot_time) > drift):
-        try:
-          data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
-        except db.UnknownClientError:
-          # On first contact with a new client, this write will fail.
-          logging.info("Can't write StartupInfo for unknown client %s",
-                       client_id)
-    else:
-      changes = False
-      with aff4.FACTORY.Create(
-          client_id, aff4_grr.VFSGRRClient, mode="rw",
-          token=self.token) as client:
-        old_info = client.Get(client.Schema.CLIENT_INFO)
-        old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)
-
-        info = new_si.client_info
-
-        # Only write to the datastore if we have new information.
-        if info != old_info:
-          client.Set(client.Schema.CLIENT_INFO(info))
-          changes = True
-
-        client.AddLabels(info.labels, owner="GRR")
-
-        # Allow for some drift in the boot times (5 minutes).
-        if not old_boot or abs(old_boot - new_si.boot_time) > drift:
-          client.Set(client.Schema.LAST_BOOT_TIME(new_si.boot_time))
-          changes = True
-
-      if data_store.RelationalDBEnabled() and changes:
-        try:
-          data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
-        except db.UnknownClientError:
-          pass
-
-
-class ClientStartupHandlerFlow(ClientStartupHandlerMixin, flow.WellKnownFlow):
-
-  well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
-
-  def ProcessMessage(self, message=None):
-    self.WriteClientStartupInfo(message.source.Basename(), message.payload)
+    # We write the updated record if the client_info has any changes
+    # or the boot time is more than 5 minutes different.
+    if (not current_si or current_si.client_info != new_si.client_info or
+        not current_si.boot_time or
+        abs(current_si.boot_time - new_si.boot_time) > drift):
+      try:
+        data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
+      except db.UnknownClientError:
+        # On first contact with a new client, this write will fail.
+        logging.info("Can't write StartupInfo for unknown client %s", client_id)
 
 
 class ClientStartupHandler(ClientStartupHandlerMixin,
@@ -974,12 +756,11 @@ class KeepAliveArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class KeepAliveMixin(object):
+class KeepAlive(flow_base.FlowBase):
   """Requests that the clients stays alive for a period of time."""
 
   category = "/Administrative/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   sleep_time = 60
   args_type = KeepAliveArgs
@@ -991,14 +772,14 @@ class KeepAliveMixin(object):
   def SendMessage(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
-      raise flow.FlowError(responses.status.error_message)
+      raise flow_base.FlowError(responses.status.error_message)
 
     self.CallClient(server_stubs.Echo, data="Wake up!", next_state="Sleep")
 
   def Sleep(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
-      raise flow.FlowError(responses.status.error_message)
+      raise flow_base.FlowError(responses.status.error_message)
 
     if rdfvalue.RDFDatetime.Now() < self.state.end_time - self.sleep_time:
       start_time = rdfvalue.RDFDatetime.Now() + self.sleep_time
@@ -1012,8 +793,7 @@ class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class LaunchBinaryMixin(object):
+class LaunchBinary(flow_base.FlowBase):
   """Launch a signed binary on a client."""
 
   category = "/Administrative/"
@@ -1023,16 +803,17 @@ class LaunchBinaryMixin(object):
   def _BlobIterator(self, binary_urn):
     try:
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-          binary_urn, token=self.token)
+          binary_urn)
     except signed_binary_utils.SignedBinaryNotFoundError:
-      raise flow.FlowError("Executable binary %s not found." % self.args.binary)
+      raise flow_base.FlowError("Executable binary %s not found." %
+                                self.args.binary)
 
     return blob_iterator
 
   def Start(self):
     """The start method."""
     if not self.args.binary:
-      raise flow.FlowError("Please specify a binary.")
+      raise flow_base.FlowError("Please specify a binary.")
 
     binary_urn = rdfvalue.RDFURN(self.args.binary)
     self.state.write_path = "%d_%s" % (time.time(), binary_urn.Basename())
@@ -1041,7 +822,7 @@ class LaunchBinaryMixin(object):
     try:
       first_blob = next(blob_iterator)
     except StopIteration:
-      raise flow.FlowError("File %s is empty." % self.args.binary)
+      raise flow_base.FlowError("File %s is empty." % self.args.binary)
 
     try:
       next(blob_iterator)
@@ -1069,8 +850,8 @@ class LaunchBinaryMixin(object):
   def SendBlobs(self, responses):
     """Sends all blobs that are not the first or the last."""
     if not responses.success:
-      raise flow.FlowError("Error while calling UpdateAgent: %s" %
-                           responses.status)
+      raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
+                                responses.status)
 
     binary_urn = rdfvalue.RDFURN(self.args.binary)
     blobs = list(self._BlobIterator(binary_urn))
@@ -1099,8 +880,8 @@ class LaunchBinaryMixin(object):
   def SendLastBlob(self, responses):
     """Sends the last blob."""
     if not responses.success:
-      raise flow.FlowError("Error while calling UpdateAgent: %s" %
-                           responses.status)
+      raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
+                                responses.status)
 
     binary_urn = rdfvalue.RDFURN(self.args.binary)
     blobs = list(self._BlobIterator(binary_urn))
@@ -1120,8 +901,8 @@ class LaunchBinaryMixin(object):
 
   def CheckResponse(self, responses):
     if not responses.success:
-      raise flow.FlowError("Error while calling ExecuteBinaryCommand: %s" %
-                           responses.status)
+      raise flow_base.FlowError("Error while calling ExecuteBinaryCommand: %s" %
+                                responses.status)
 
   def _SanitizeOutput(self, data):
     if len(data) > 2000:

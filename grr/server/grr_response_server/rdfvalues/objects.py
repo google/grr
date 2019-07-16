@@ -15,7 +15,6 @@ import itertools
 import os
 import stat
 
-
 from future.builtins import str
 from future.utils import python_2_unicode_compatible
 from typing import Text
@@ -31,7 +30,6 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import objects_pb2
-
 
 _UNKNOWN_GRR_VERSION = "Unknown-GRR-version"
 
@@ -238,8 +236,8 @@ class HashID(rdfvalue.RDFValue):
 
   def ParseFromString(self, string):
     if not isinstance(string, (bytes, rdfvalue.RDFBytes)):
-      raise TypeError(
-          "Expected bytes or RDFBytes but got `%s` instead" % type(string))
+      raise TypeError("Expected bytes or RDFBytes but got `%s` instead" %
+                      type(string))
     if len(string) != self.__class__.hash_id_length:
       raise ValueError("Expected %s bytes but got `%s` instead" %
                        (self.__class__.hash_id_length, len(string)))
@@ -290,6 +288,9 @@ class HashID(rdfvalue.RDFValue):
       return self._value == other._value  # pylint: disable=protected-access
     else:
       return self._value == other
+
+  # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
+  __hash__ = rdfvalue.RDFValue.__hash__
 
 
 class PathID(HashID):
@@ -404,7 +405,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
   @classmethod
   def FromStatEntry(cls, stat_entry):
     result = cls.FromPathSpec(stat_entry.pathspec)
-    result.directory = stat.S_ISDIR(stat_entry.st_mode)
+    result.directory = stat.S_ISDIR(int(stat_entry.st_mode))
     result.stat_entry = stat_entry
     return result
 
@@ -474,8 +475,9 @@ class PathInfo(rdf_structs.RDFProtoStruct):
           "src [%s] does not represent the same path type as self [%s]" %
           (src.path_type, self.path_type))
     if self.components != src.components:
-      raise ValueError("src [%s] does not represent the same path as self [%s]"
-                       % (src.components, self.components))
+      raise ValueError(
+          "src [%s] does not represent the same path as self [%s]" %
+          (src.components, self.components))
 
     if src.HasField("stat_entry"):
       self.stat_entry = src.stat_entry
@@ -547,9 +549,6 @@ class HuntReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.HuntReference
   rdf_deps = []
 
-  def ToHuntURN(self):
-    return rdfvalue.RDFURN("aff4:/hunts").Add(self.hunt_id)
-
 
 class CronJobReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.CronJobReference
@@ -560,30 +559,12 @@ class FlowReference(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.FlowReference
   rdf_deps = []
 
-  def ToFlowURN(self):
-    return rdfvalue.RDFURN(self.client_id).Add("flows").Add(self.flow_id)
-
 
 class VfsFileReference(rdf_structs.RDFProtoStruct):
   """Object reference pointing to a VFS file."""
 
   protobuf = objects_pb2.VfsFileReference
   rdf_deps = []
-
-  def ToURN(self):
-    """Converts a reference into an URN."""
-
-    if self.path_type in [PathInfo.PathType.OS, PathInfo.PathType.TSK]:
-      return rdfvalue.RDFURN(self.client_id).Add("fs").Add(
-          self.path_type.name.lower()).Add("/".join(self.path_components))
-    elif self.path_type == PathInfo.PathType.REGISTRY:
-      return rdfvalue.RDFURN(self.client_id).Add("registry").Add("/".join(
-          self.path_components))
-    elif self.path_type == PathInfo.PathType.TEMP:
-      return rdfvalue.RDFURN(self.client_id).Add("temp").Add("/".join(
-          self.path_components))
-
-    raise ValueError("Unsupported path type: %s" % self.path_type)
 
   def ToPath(self):
     """Converts a reference into a VFS file path."""

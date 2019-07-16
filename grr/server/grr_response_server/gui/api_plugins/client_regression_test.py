@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.builtins import range
 from future.builtins import str
@@ -20,14 +19,12 @@ from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiSearchClientsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "SearchClients"
@@ -36,8 +33,7 @@ class ApiSearchClientsHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_obj = self.SetupTestClientObject(0)
-      client_id = client_obj.client_id
+      client_id = self.SetupClient(0)
 
       self.Check(
           "SearchClients",
@@ -45,7 +41,6 @@ class ApiSearchClientsHandlerRegressionTest(
 
 
 class ApiGetClientHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetClient"
@@ -54,27 +49,26 @@ class ApiGetClientHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_obj = self.SetupTestClientObject(
-          0, memory_size=4294967296, add_cert=False)
-      client_id = client_obj.client_id
+      client_id = self.SetupClient(0, memory_size=4294967296, add_cert=False)
 
     self.Check(
         "GetClient", args=client_plugin.ApiGetClientArgs(client_id=client_id))
 
 
-class ApiGetClientVersionsRegressionTestMixin(object):
+class ApiGetClientVersionsRegressionTest(
+    api_regression_test_lib.ApiRegressionTest):
+
+  mode = "FULL"
 
   api_method = "GetClientVersions"
   handler = client_plugin.ApiGetClientVersionsHandler
 
   def _SetupTestClient(self):
     with test_lib.FakeTime(42):
-      client_obj = self.SetupTestClientObject(
-          0, memory_size=4294967296, add_cert=False)
-      client_id = client_obj.client_id
+      client_id = self.SetupClient(0, memory_size=4294967296, add_cert=False)
 
     with test_lib.FakeTime(45):
-      self.SetupTestClientObject(
+      self.SetupClient(
           0,
           fqdn="some-other-hostname.org",
           memory_size=4294967296,
@@ -105,16 +99,7 @@ class ApiGetClientVersionsRegressionTestMixin(object):
               mode=self.mode))
 
 
-class ApiGetClientVersionsRegressionTest(
-    ApiGetClientVersionsRegressionTestMixin,
-    api_regression_test_lib.ApiRegressionTest,
-):
-
-  mode = "FULL"
-
-
 class ApiGetLastClientIPAddressHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetLastClientIPAddress"
@@ -123,8 +108,7 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_obj = self.SetupTestClientObject(0)
-      client_id = client_obj.client_id
+      client_id = self.SetupClient(0)
 
       ip = rdf_client_network.NetworkAddress(
           human_readable_address="192.168.100.42",
@@ -137,7 +121,6 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
 
 
 class ApiListClientsLabelsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "ListClientsLabels"
@@ -164,7 +147,6 @@ class ApiListKbFieldsHandlerTest(api_regression_test_lib.ApiRegressionTest):
 
 
 class ApiListClientCrashesHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin):
 
@@ -172,27 +154,21 @@ class ApiListClientCrashesHandlerRegressionTest(
   handler = client_plugin.ApiListClientCrashesHandler
 
   def Run(self):
-    client = self.SetupTestClientObject(0)
-    client_id = client.client_id
-    client_ids = [rdf_client.ClientURN(client_id)]
+    client_id = self.SetupClient(0)
 
-    client_mock = flow_test_lib.CrashClientMock(
-        rdf_client.ClientURN(client_id), self.token)
+    client_mock = flow_test_lib.CrashClientMock(client_id, self.token)
 
     with test_lib.FakeTime(42):
-      hunt_urn = self.StartHunt(description="the hunt")
+      hunt_id = self.StartHunt(description="the hunt")
 
     with test_lib.FakeTime(45):
-      self.AssignTasksToClients(client_ids)
+      self.AssignTasksToClients([client_id])
       hunt_test_lib.TestHuntHelperWithMultipleMocks({client_id: client_mock},
-                                                    False, self.token)
+                                                    self.token)
 
     crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(client_id))
     crash = list(crashes)[0]
-    replace = {
-        hunt_urn.Basename(): "H:123456",
-        str(crash.session_id): "<some session id>"
-    }
+    replace = {hunt_id: "H:123456", str(crash.session_id): "<some session id>"}
 
     self.Check(
         "ListClientCrashes",
@@ -211,7 +187,6 @@ class ApiListClientCrashesHandlerRegressionTest(
 
 
 class ApiListClientActionRequestsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin):
 
@@ -259,8 +234,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
     return flow_id
 
   def Run(self):
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
 
     with test_lib.FakeTime(42):
       flow_id = self._StartFlow(client_id, processes.ListProcesses)
@@ -279,7 +253,6 @@ class ApiListClientActionRequestsHandlerRegressionTest(
 
 
 class ApiGetClientLoadStatsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
 
   api_method = "GetClientLoadStats"
@@ -306,8 +279,7 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
 
     for st in stats:
       with test_lib.FakeTime(st.cpu_samples[0].timestamp):
-        data_store.REL_DB.WriteClientStats(
-            client_id=client_id.Basename(), stats=st)
+        data_store.REL_DB.WriteClientStats(client_id=client_id, stats=st)
 
   def Run(self):
     client_id = self.SetupClient(0)
@@ -316,14 +288,14 @@ class ApiGetClientLoadStatsHandlerRegressionTest(
     self.Check(
         "GetClientLoadStats",
         args=client_plugin.ApiGetClientLoadStatsArgs(
-            client_id=client_id.Basename(),
+            client_id=client_id,
             metric="CPU_PERCENT",
             start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10),
             end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(21)))
     self.Check(
         "GetClientLoadStats",
         args=client_plugin.ApiGetClientLoadStatsArgs(
-            client_id=client_id.Basename(),
+            client_id=client_id,
             metric="IO_WRITE_BYTES",
             start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10),
             end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(21)))

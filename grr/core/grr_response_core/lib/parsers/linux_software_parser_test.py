@@ -9,7 +9,6 @@ from __future__ import unicode_literals
 import os
 import unittest
 
-
 from absl import app
 
 from grr_response_core.lib.parsers import linux_software_parser

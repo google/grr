@@ -141,7 +141,7 @@ class BlobStoreTestMixin(
     with mock.patch.object(
         self.blob_store, "ReadBlobs", return_value=blobs) as read_mock:
       results = self.blob_store.ReadAndWaitForBlobs(
-          [a_id, b_id], timeout=rdfvalue.DurationSeconds.FromSeconds(10))
+          [a_id, b_id], timeout=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
     sleep_mock.assert_not_called()
     read_mock.assert_called_once()
@@ -168,7 +168,7 @@ class BlobStoreTestMixin(
       with mock.patch.object(
           self.blob_store, "ReadBlobs", side_effect=effect) as read_mock:
         results = self.blob_store.ReadAndWaitForBlobs(
-            [a_id, b_id], timeout=rdfvalue.DurationSeconds.FromSeconds(10))
+            [a_id, b_id], timeout=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
     self.assertEqual({a_id: b"aa", b_id: b"bb"}, results)
     self.assertEqual(read_mock.call_count, 4)
@@ -197,7 +197,7 @@ class BlobStoreTestMixin(
       with mock.patch.object(
           self.blob_store, "ReadBlobs", side_effect=effect) as read_mock:
         results = self.blob_store.ReadAndWaitForBlobs(
-            [a_id, b_id], timeout=rdfvalue.DurationSeconds.FromSeconds(3))
+            [a_id, b_id], timeout=rdfvalue.Duration.From(3, rdfvalue.SECONDS))
 
     self.assertEqual({a_id: b"aa", b_id: None}, results)
     self.assertGreaterEqual(read_mock.call_count, 3)
@@ -217,5 +217,6 @@ class BlobStoreTestMixin(
     with mock.patch.object(self.blob_store, "ReadBlobs", return_value=blobs):
       with self.assertStatsCounterDelta(2, "blob_store_poll_hit_latency"):
         with self.assertStatsCounterDelta(2, "blob_store_poll_hit_iteration"):
-          self.blob_store.ReadAndWaitForBlobs(
-              [a_id, b_id], timeout=rdfvalue.DurationSeconds.FromSeconds(10))
+          self.blob_store.ReadAndWaitForBlobs([a_id, b_id],
+                                              timeout=rdfvalue.Duration.From(
+                                                  10, rdfvalue.SECONDS))

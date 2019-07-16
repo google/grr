@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import abc
 
-
 from future.utils import with_metaclass
 
 from grr_response_client import client_utils

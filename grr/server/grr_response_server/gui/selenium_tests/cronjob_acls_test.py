@@ -11,12 +11,10 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestCronACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumTest):
+class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
   reason = u"Cóż, po prostu taką miałem zachciankę."
 
@@ -73,7 +71,7 @@ class TestCronACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
                    "The user %s has requested" % self.token.username)
 
     # Cron job overview should be visible
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
     self.WaitUntil(self.IsTextPresent, "Frequency")
 
     self.Click("css=button:contains('Approve')")
@@ -89,7 +87,7 @@ class TestCronACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
                    "a cron job')")
     self.Click("css=tr:contains('has granted you access') a")
 
-    # Enable OSBreakDown cron job (it should be selected by default).
+    # Enable OSBreakDownCronJob (it should be selected by default).
     self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable and wait for dialog again.
@@ -122,9 +120,9 @@ class TestCronACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     # Wait for modal backdrop to go away.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
 
-    # Enable OSBreakDown cron job (it should be selected by default).
+    # Enable OSBreakDownCronJob (it should be selected by default).
     self.Click("css=button[name=EnableCronJob]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to ENABLE this cron job?")
@@ -143,7 +141,7 @@ class TestCronACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
 
-    # Select and enable OSBreakDown cron job.
+    # Select and enable OSBreakDownCronJob.
     self.Click("css=td:contains('%s')" % cron_job_id)
 
     # Click on Enable button and check that dialog appears.

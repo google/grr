@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import re
 
-
 from absl import app
 from future.moves.urllib import parse as urlparse
 
@@ -17,12 +16,10 @@ from grr_response_server import cronjobs
 from grr_response_server import email_alerts
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
-                     gui_test_lib.GRRSeleniumHuntTest):
+class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
   APPROVAL_REASON = "Please please let me"
   GRANTOR_USERNAME = u"igrantapproval"
@@ -50,7 +47,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
     client_id = self.SetupClient(0)
 
     self.RequestClientApproval(
-        client_id.Basename(),
+        client_id,
         reason="Please please let me",
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
@@ -60,7 +57,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
 
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.token.username, message)
-    self.assertIn(client_id.Basename(), message)
+    self.assertIn(client_id, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
@@ -68,7 +65,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, self.token.username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, client_id.Basename())
+    self.WaitUntil(self.IsTextPresent, client_id)
     self.WaitUntil(self.IsTextPresent, "Host-0")
 
   def testEmailClientApprovalGrantNotificationLinkLeadsToACorrectPage(self):
@@ -88,13 +85,13 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
 
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.GRANTOR_USERNAME, message)
-    self.assertIn(client_id.Basename(), message)
+    self.assertIn(client_id, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
     # We should end up on client's page. Check that host information is
     # displayed.
-    self.WaitUntil(self.IsTextPresent, client_id.Basename())
+    self.WaitUntil(self.IsTextPresent, client_id)
     self.WaitUntil(self.IsTextPresent, "Host-0")
     # Check that the reason is displayed.
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
@@ -104,7 +101,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
 
     # Request hunt approval, it will trigger an email message.
     self.RequestHuntApproval(
-        hunt_id.Basename(),
+        hunt_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
@@ -114,7 +111,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
 
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.token.username, message)
-    self.assertIn(hunt_id.Basename(), message)
+    self.assertIn(hunt_id, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
@@ -122,14 +119,14 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, self.token.username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
+    self.WaitUntil(self.IsTextPresent, hunt_id)
     self.WaitUntil(self.IsTextPresent, "foobar")
 
   def testEmailHuntApprovalGrantNotificationLinkLeadsToCorrectPage(self):
     hunt_id = self.StartHunt()
 
     self.RequestAndGrantHuntApproval(
-        hunt_id.Basename(),
+        hunt_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
         requestor=self.token.username)
@@ -141,12 +138,12 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
     message = self.messages_sent[1]
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.GRANTOR_USERNAME, message)
-    self.assertIn(hunt_id.Basename(), message)
+    self.assertIn(hunt_id, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
     # We should end up on hunts's page.
-    self.WaitUntil(self.IsTextPresent, hunt_id.Basename())
+    self.WaitUntil(self.IsTextPresent, hunt_id)
 
   def _CreateOSBreakDownCronJobApproval(self):
     job_name = compatibility.GetName(cron_system.OSBreakDownCronJob)
@@ -168,7 +165,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
 
     self.assertIn(self.APPROVAL_REASON, message)
     self.assertIn(self.token.username, message)
-    self.assertIn("OSBreakDown", message)
+    self.assertIn("OSBreakDownCronJob", message)
 
     # Extract link from the message text and open it.
     m = re.search(r"href='(.+?)'", message, re.MULTILINE)
@@ -179,7 +176,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, self.token.username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDown.__name__)
+    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
     self.WaitUntil(self.IsTextPresent, "Frequency")
 
   def testEmailCronJobApprovalGrantNotificationLinkLeadsToCorrectPage(self):
@@ -199,7 +196,7 @@ class TestEmailLinks(db_test_lib.RelationalDBEnabledMixin,
 
     self.Open(self._ExtractLinkFromMessage(message))
 
-    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, "OSBreakDownCronJob")
 
 
 if __name__ == "__main__":

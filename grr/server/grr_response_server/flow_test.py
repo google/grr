@@ -23,7 +23,6 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
@@ -65,12 +64,11 @@ class CallStateFlow(flow_base.FlowBase):
     CallStateFlow.success = True
 
 
-class BasicFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                    flow_test_lib.FlowTestsBaseclass):
+class BasicFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(BasicFlowTest, self).setUp()
-    self.client_id = self.SetupTestClientObject(0).client_id
+    self.client_id = self.SetupClient(0)
 
 
 class FlowWithMultipleResultTypes(flow_base.FlowBase):
@@ -188,7 +186,7 @@ class FlowCreationTest(BasicFlowTest):
     data_store.REL_DB.UpdateFlow(
         self.client_id, flow_id, pending_termination=pending_termination)
 
-    with flow_test_lib.TestWorker(token=True) as worker:
+    with flow_test_lib.TestWorker() as worker:
       with test_lib.SuppressLogs():
         flow_test_lib.RunFlow(
             self.client_id,

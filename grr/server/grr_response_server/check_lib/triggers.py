@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-
 from future.builtins import map
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -33,17 +32,11 @@ class Target(rdf_structs.RDFProtoStruct):
       conf = kwargs
     super(Target, self).__init__(initializer=initializer, age=age, **conf)
 
-  def __nonzero__(self):
+  def __bool__(self):
     return any([self.cpe, self.os, self.label])
 
-  def Validate(self):
-    if self.cpe:
-      # TODO(user): Add CPE library to GRR.
-      pass
-    if self.os:
-      pass
-    if self.label:
-      pass
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
 
 class Condition(object):

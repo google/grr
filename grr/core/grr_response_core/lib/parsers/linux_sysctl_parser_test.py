@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import io
 
-
 from absl import app
 
 from grr_response_core.lib import utils

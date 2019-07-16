@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import collections
 
-
 from future.builtins import map
 from future.builtins import str
 from future.utils import iteritems

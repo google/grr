@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import collections
 import sys
 
-
 from absl import app
 import mock
 

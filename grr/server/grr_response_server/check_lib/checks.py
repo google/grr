@@ -10,7 +10,6 @@ import itertools
 import logging
 import os
 
-
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
@@ -107,12 +106,6 @@ class Hint(rdf_structs.RDFProtoStruct):
     """Creates an anomaly explanation/fix string."""
     if self.fix:
       return self.fix.strip()
-
-  def Validate(self):
-    """Ensures that required values are set and formatting rules compile."""
-    # TODO(user): Default format string.
-    if self.problem:
-      pass
 
 
 class Filter(rdf_structs.RDFProtoStruct):
@@ -306,8 +299,11 @@ class CheckResult(rdf_structs.RDFProtoStruct):
       rdf_anomaly.Anomaly,
   ]
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.anomaly)
+
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
   def ExtendAnomalies(self, other):
     """Merge anomalies from another CheckResult."""
@@ -324,8 +320,11 @@ class CheckResults(rdf_structs.RDFProtoStruct):
       rdf_client.KnowledgeBase,
   ]
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.result)
+
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
 
 class Check(rdf_structs.RDFProtoStruct):

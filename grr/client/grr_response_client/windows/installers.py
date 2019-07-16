@@ -17,6 +17,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import errno
+import itertools
 import logging
 import os
 import shutil
@@ -32,6 +33,7 @@ import win32service
 import win32serviceutil
 import winerror
 
+from grr_response_client.windows import regconfig
 from grr_response_core import config
 
 
@@ -211,12 +213,18 @@ def _CopyToSystemDir():
 
 
 # These options will be copied to the registry to configure the nanny service.
-_NANNY_OPTIONS = (
+_NANNY_OPTIONS = frozenset([
     "Nanny.child_binary",
     "Nanny.child_command_line",
     "Nanny.service_name",
     "Nanny.service_description",
-)
+])
+
+# Options for the legacy (non-Fleetspeak) GRR installation that should get
+# deleted when installing Fleetspeak-enabled GRR clients.
+_LEGACY_OPTIONS = frozenset(
+    itertools.chain(_NANNY_OPTIONS,
+                    ["Nanny.status", "Nanny.heartbeat", "Client.labels"]))
 
 
 def _InstallNanny():
@@ -242,6 +250,31 @@ def _InstallNanny():
   logging.debug("%s", output)
 
 
+def _DeleteLegacyConfigOptions(registry_key_uri):
+  """Deletes config values in the registry for legacy GRR installations."""
+  key_spec = regconfig.ParseRegistryURI(registry_key_uri)
+  try:
+    regkey = winreg.OpenKeyEx(key_spec.winreg_hive, key_spec.path, 0,
+                              winreg.KEY_ALL_ACCESS)
+  except OSError as e:
+    if e.errno == errno.ENOENT:
+      logging.info("Skipping legacy config purge for non-existent key: %s.",
+                   registry_key_uri)
+      return
+    else:
+      raise
+  for option in _LEGACY_OPTIONS:
+    try:
+      winreg.DeleteValue(regkey, option)
+      logging.info("Deleted value '%s' of key %s.", option, key_spec)
+    except OSError as e:
+      # Windows will raise a no-such-file-or-directory error if the config
+      # option does not exist in the registry. This is expected when upgrading
+      # to a newer Fleetspeak-enabled version.
+      if e.errno != errno.ENOENT:
+        raise
+
+
 def Run():
   """Installs the windows client binary."""
   _CheckForWow64()
@@ -255,6 +288,7 @@ def Run():
   # Remove the Nanny service for the legacy GRR since it will
   # not be needed any more.
   _RemoveService(config.CONFIG["Nanny.service_name"])
+  _DeleteLegacyConfigOptions(config.CONFIG["Config.writeback"])
 
   # Write the Fleetspeak config to the registry.
   key_path = config.CONFIG["Client.fleetspeak_unsigned_services_regkey"]

@@ -11,9 +11,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import cron_pb2
-from grr_response_server import aff4
 from grr_response_server import cronjobs
-from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
@@ -34,18 +32,9 @@ class CronJobRunNotFoundError(api_call_handler_base.ResourceNotFoundError):
 class ApiCronJobId(rdfvalue.RDFString):
   """Class encapsulating cron job ids."""
 
-  def ToURN(self):
-    if not self._value:
-      raise ValueError("Can't call ToURN() on an empty cron job id.")
-
-    return aff4_cronjobs.CronManager.CRON_JOBS_PATH.Add(self._value)
-
 
 class ApiCronJobRunId(rdfvalue.RDFString):
   """Class encapsulating cron job run ids."""
-
-  def ToURN(self, cron_job_id):
-    return cron_job_id.ToURN().Add(self._value)
 
 
 class ApiCronJob(rdf_structs.RDFProtoStruct):
@@ -246,7 +235,7 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
           str(args.cron_job_id), token=token)
 
       return ApiCronJob.InitFromObject(cron_job)
-    except (aff4.InstantiationError, db.UnknownCronJobError):
+    except db.UnknownCronJobError:
       raise CronJobNotFoundError("Cron job with id %s could not be found" %
                                  args.cron_job_id)
 

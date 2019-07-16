@@ -10,7 +10,6 @@ import re
 import stat
 import zipfile
 
-
 from future.builtins import filter
 from future.builtins import range
 from future.builtins import str
@@ -359,7 +358,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     temp_item.is_directory = True
     items.append(temp_item)
 
-    if data_store_utils.GetClientOs(client_id, token=token) == "Windows":
+    if data_store_utils.GetClientOs(client_id) == "Windows":
       registry_item = ApiFile()
       registry_item.name = "registry"
       registry_item.path = "registry"
@@ -396,8 +395,6 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     return ApiListFilesResult(items=items)
 
   def Handle(self, args, token=None):
-    client_id = args.client_id.ToClientURN()
-
     if not args.file_path or args.file_path == "/":
       return self._GetRootChildren(args, token=token)
 
@@ -407,7 +404,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
     child_path_infos = data_store.REL_DB.ListChildPathInfos(
-        client_id=client_id.Basename(),
+        client_id=args.client_id.ToString(),
         path_type=path_type,
         components=components,
         timestamp=args.timestamp)

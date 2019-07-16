@@ -16,6 +16,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -764,6 +765,117 @@ message DynamicTypeTest {{
   def testUnsetFieldsHaveSymmetricEqualityWithDefaultValues(self):
     self.assertEqual(TestStruct(repeated=[]), TestStruct())
     self.assertEqual(TestStruct(), TestStruct(repeated=[]))
+
+
+class GenericRDFProtoTest(test_lib.GRRBaseTest):
+
+  def testNestedProtobufAssignment(self):
+    """Check that we can assign a nested protobuf."""
+    container = rdf_client.BufferReference()
+    test_path = "C:\\test"
+    pathspec = rdf_paths.PathSpec(path=test_path, pathtype=1)
+
+    # Should raise - incompatible RDFType.
+    self.assertRaises(ValueError, setattr, container, "pathspec",
+                      rdfvalue.RDFString("hello"))
+
+    # Should raise - incompatible RDFProto type.
+    self.assertRaises(ValueError, setattr, container, "pathspec",
+                      rdf_client_fs.StatEntry(st_size=5))
+
+    # Assign directly.
+    container.device = pathspec
+
+    self.assertEqual(container.device.path, test_path)
+
+    # Clear the field.
+    container.device = None
+
+    # Check the protobuf does not have the field set at all.
+    self.assertFalse(container.HasField("pathspec"))
+
+  def testSimpleTypeAssignment(self):
+    sample = rdf_client_fs.StatEntry()
+    sample.AddDescriptor(
+        rdf_structs.ProtoRDFValue(
+            name="test",
+            field_number=45,
+            default=rdfvalue.RDFInteger(0),
+            rdf_type=rdfvalue.RDFInteger))
+
+    self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
+
+    # Can we assign an RDFValue instance?
+    sample.test = rdfvalue.RDFInteger(5)
+
+    self.assertEqual(sample.test, 5)
+
+    # Check that bare values can be coerced.
+    sample.test = 6
+    self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
+    self.assertEqual(sample.test, 6)
+
+    # Assign an enum.
+    sample.registry_type = sample.RegistryType.REG_DWORD
+    self.assertEqual(sample.registry_type, sample.RegistryType.REG_DWORD)
+
+    sample.registry_type = rdf_client_fs.StatEntry.RegistryType.REG_SZ
+    self.assertEqual(sample.registry_type, sample.RegistryType.REG_SZ)
+
+    # We can also assign the string value.
+    sample.registry_type = "REG_QWORD"
+    self.assertEqual(sample.registry_type, sample.RegistryType.REG_QWORD)
+
+    # Check that coercing works.
+    sample.test = "10"
+    self.assertEqual(sample.test, 10)
+
+    # Assign an RDFValue which can not be coerced.
+    self.assertRaises(type_info.TypeValueError, setattr, sample, "test",
+                      rdfvalue.RDFString("hello"))
+
+  def testComplexConstruction(self):
+    """Test that we can construct RDFProtos with nested fields."""
+    pathspec = rdf_paths.PathSpec(
+        path="/foobar", pathtype=rdf_paths.PathSpec.PathType.TSK)
+    sample = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=5)
+
+    self.assertEqual(sample.pathspec.path, "/foobar")
+    self.assertEqual(sample.st_size, 5)
+
+    self.assertRaises(AttributeError, rdf_client_fs.StatEntry, foobar=1)
+
+  def testUnicodeSupport(self):
+    pathspec = rdf_paths.PathSpec(
+        path="/foobar", pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec.path = u"Grüezi"
+
+    self.assertEqual(pathspec.path, u"Grüezi")
+
+  def testRepeatedFields(self):
+    """Test handling of protobuf repeated fields."""
+    sample = rdf_client_network.Interface()
+
+    # Add an invalid type.
+    self.assertRaises(type_info.TypeValueError, sample.addresses.Append, 2)
+
+    # Add an rdfvalue by kwargs.
+    sample.addresses.Append(human_readable_address="127.0.0.1")
+
+    self.assertEqual(sample.addresses[0].human_readable_address, "127.0.0.1")
+    self.assertLen(sample.addresses, 1)
+
+    # Add an rdfvalue.
+    sample.addresses.Append(
+        rdf_client_network.NetworkAddress(human_readable_address="1.2.3.4"))
+
+    self.assertLen(sample.addresses, 2)
+    self.assertEqual(sample.addresses[1].human_readable_address, "1.2.3.4")
+
+  def testEnums(self):
+    """Check that enums are wrapped in a descriptor class."""
+    sample = rdf_flows.GrrStatus()
+    self.assertEqual(sample.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
 
 def main(argv):

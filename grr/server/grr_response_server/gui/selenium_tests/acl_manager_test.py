@@ -5,17 +5,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import utils
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
-                      gui_test_lib.GRRSeleniumTest):
+class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   """Tests the access control workflow."""
 
   # Using an Unicode string for the test here would be optimal but Selenium
@@ -24,8 +21,8 @@ class TestACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
 
   def setUp(self):
     super(TestACLWorkflow, self).setUp()
-    self.client_id_1 = self.SetupClient(0).Basename()
-    self.client_id_2 = self.SetupClient(1).Basename()
+    self.client_id_1 = self.SetupClient(0)
+    self.client_id_2 = self.SetupClient(1)
 
   def testNavigatorLinksDisabledForClientWithoutApproval(self):
     self.Open("/#/clients/%s?navigator-test" % self.client_id_1)

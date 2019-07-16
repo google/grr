@@ -12,9 +12,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import user_managers
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -22,44 +20,17 @@ from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import user as api_user
-from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-class LegacyChecker(object):
-  """Legacy access checker implementation."""
-
-  def __init__(self):
-    super(LegacyChecker, self).__init__()
-    self.legacy_manager = user_managers.FullAccessControlManager()
-
-  def CheckClientAccess(self, username, client_id):
-    token = access_control.ACLToken(username=username)
-    self.legacy_manager.CheckClientAccess(token, client_id.ToClientURN())
-
-  def CheckHuntAccess(self, username, hunt_id):
-    token = access_control.ACLToken(username=username)
-    self.legacy_manager.CheckHuntAccess(token, hunt_id.ToURN())
-
-  def CheckCronJobAccess(self, username, cron_job_id):
-    token = access_control.ACLToken(username=username)
-    self.legacy_manager.CheckCronJobAccess(token, cron_job_id.ToURN())
-
-  def CheckIfCanStartClientFlow(self, username, flow_name):
-    token = access_control.ACLToken(username=username)
-    self.legacy_manager.CheckIfCanStartFlow(token, flow_name)
-
-  def CheckIfUserIsAdmin(self, username):
-    user_managers.CheckUserForLabels(username, ["admin"])
-
-
-class RelDBChecker(object):
+class AccessChecker(object):
   """Relational DB-based access checker implementation."""
 
+  APPROVAL_CACHE_TIME = 60
+
   def __init__(self):
-    self.approval_cache_time = 60
     self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=self.approval_cache_time)
+        max_size=10000, max_age=self.APPROVAL_CACHE_TIME)
 
   def _CheckAccess(self, username, subject_id, approval_type):
     """Checks access to a given subject by a given user."""
@@ -119,10 +90,7 @@ class RelDBChecker(object):
     """Checks whether a given user can start a given flow."""
     del username  # Unused.
 
-    if data_store.RelationalDBEnabled():
-      flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
-    else:
-      flow_cls = registry.AFF4FlowRegistry.FLOW_REGISTRY.get(flow_name)
+    flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
 
     if not flow_cls.category:
       raise access_control.UnauthorizedAccess(
@@ -151,10 +119,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     cls = ApiCallRouterWithApprovalChecks
 
     if cls.access_checker is None:
-      if data_store.RelationalDBEnabled():
-        cls.access_checker = RelDBChecker()
-      else:
-        cls.access_checker = LegacyChecker()
+      cls.access_checker = AccessChecker()
 
     return cls.access_checker
 
@@ -194,6 +159,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody is allowed to search clients.
 
     return self.delegate.SearchClients(args, token=token)
+
+  def VerifyAccess(self, args, token=None):
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
+
+    return self.delegate.VerifyAccess(args, token=token)
 
   def GetClient(self, args, token=None):
     # Everybody is allowed to get information about a particular client.
@@ -542,20 +512,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ModifyHunt(args, token=token)
 
   def _GetHuntObj(self, hunt_id, token=None):
-    if data_store.RelationalDBEnabled():
-      try:
-        return data_store.REL_DB.ReadHuntObject(str(hunt_id))
-      except db.UnknownHuntError:
-        raise api_call_handler_base.ResourceNotFoundError(
-            "Hunt with id %s could not be found" % hunt_id)
-    else:
-      hunt_urn = hunt_id.ToURN()
-      try:
-        return aff4.FACTORY.Open(
-            hunt_urn, aff4_type=implementation.GRRHunt, token=token)
-      except aff4.InstantiationError:
-        raise api_call_handler_base.ResourceNotFoundError(
-            "Hunt with id %s could not be found" % hunt_id)
+    try:
+      return data_store.REL_DB.ReadHuntObject(str(hunt_id))
+    except db.UnknownHuntError:
+      raise api_call_handler_base.ResourceNotFoundError(
+          "Hunt with id %s could not be found" % hunt_id)
 
   def DeleteHunt(self, args, token=None):
     hunt_obj = self._GetHuntObj(args.hunt_id, token=token)
@@ -764,11 +725,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return api_flow.ApiListFlowDescriptorsHandler(
         self.access_checker.CheckIfCanStartClientFlow)
-
-  def ListAff4AttributeDescriptors(self, args, token=None):
-    # Everybody can list aff4 attribute descriptors.
-
-    return self.delegate.ListAff4AttributeDescriptors(args, token=token)
 
   def GetRDFValueDescriptor(self, args, token=None):
     # Everybody can get rdfvalue descriptors.

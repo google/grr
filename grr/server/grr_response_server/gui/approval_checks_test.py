@@ -14,7 +14,6 @@ from grr_response_server.authorization import client_approval_auth
 from grr_response_server.gui import approval_checks
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -35,8 +34,7 @@ def _CreateApprovalRequest(approval_type,
       grants=grants)
 
 
-class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
-                                     acl_test_lib.AclTestMixin,
+class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
                                      test_lib.GRRBaseTest):
 
   def _CreateRequest(self, expiration_time=None, grants=None):
@@ -44,13 +42,13 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
                                           rdfvalue.DurationSeconds("1h"))
     return _CreateApprovalRequest(
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
-        self.client.client_id,
+        self.client_id,
         expiration_time=expiration_time,
         grants=grants)
 
   def setUp(self):
     super(CheckClientApprovalRequestTest, self).setUp()
-    self.client = self.SetupTestClientObject(0)
+    self.client_id = self.SetupClient(0)
 
   def testRaisesWhenNoGrants(self):
     approval_request = self._CreateRequest(grants=[])
@@ -104,8 +102,7 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveChecksApproversForEachClientLabel(self, mock_mgr):
-    data_store.REL_DB.AddClientLabels(self.client.client_id, u"GRR",
-                                      [u"foo", u"bar"])
+    data_store.REL_DB.AddClientLabels(self.client_id, u"GRR", [u"foo", u"bar"])
 
     approval_request = self._CreateRequest(grants=[
         rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
@@ -120,19 +117,17 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(mock_mgr.CheckApproversForLabel.mock_calls, 2)
 
     args = mock_mgr.CheckApproversForLabel.mock_calls[0][1]
-    self.assertEqual(args,
-                     (access_control.ACLToken(username=u"requestor"),
-                      rdfvalue.RDFURN(self.client.client_id), u"requestor",
-                      set(["grantor1", "grantor2"]), u"bar"))
+    self.assertEqual(args, (access_control.ACLToken(username=u"requestor"),
+                            rdfvalue.RDFURN(self.client_id), u"requestor",
+                            set(["grantor1", "grantor2"]), u"bar"))
     args = mock_mgr.CheckApproversForLabel.mock_calls[1][1]
-    self.assertEqual(args,
-                     (access_control.ACLToken(username=u"requestor"),
-                      rdfvalue.RDFURN(self.client.client_id), u"requestor",
-                      set(["grantor1", "grantor2"]), u"foo"))
+    self.assertEqual(args, (access_control.ACLToken(username=u"requestor"),
+                            rdfvalue.RDFURN(self.client_id), u"requestor",
+                            set(["grantor1", "grantor2"]), u"foo"))
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveRaisesIfAuthMgrRaises(self, mock_mgr):
-    data_store.REL_DB.AddClientLabels(self.client.client_id, u"GRR", [u"foo"])
+    data_store.REL_DB.AddClientLabels(self.client_id, u"GRR", [u"foo"])
 
     approval_request = self._CreateRequest(grants=[
         rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
@@ -151,8 +146,7 @@ class CheckClientApprovalRequestTest(db_test_lib.RelationalDBEnabledMixin,
       approval_checks.CheckApprovalRequest(approval_request)
 
 
-class CheckHuntAndCronJobApprovalRequestTestMixin(
-    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin):
+class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
 
   APPROVAL_TYPE = None
 

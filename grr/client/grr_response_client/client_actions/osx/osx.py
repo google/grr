@@ -18,7 +18,6 @@ import socket
 import struct
 import sys
 
-
 from future.builtins import bytes
 from future.builtins import str
 from future.utils import iteritems

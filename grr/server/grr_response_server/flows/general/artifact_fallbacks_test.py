@@ -9,14 +9,12 @@ from absl import app
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.flows.general import artifact_fallbacks
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class TestSystemRootSystemDriveFallbackFlow(
-    db_test_lib.RelationalDBEnabledMixin, flow_test_lib.FlowTestsBaseclass):
+class TestSystemRootSystemDriveFallbackFlow(flow_test_lib.FlowTestsBaseclass):
 
   def testSystemRootFallback(self):
     client_id = self.SetupClient(0)

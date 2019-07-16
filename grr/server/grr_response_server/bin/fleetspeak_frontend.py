@@ -84,7 +84,7 @@ class GRRFSServer(object):
       grr_message.auth_state = (
           rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
     client_is_new = self.frontend.EnrolFleetspeakClient(client_id=grr_client_id)
-    if not client_is_new and data_store.RelationalDBEnabled():
+    if not client_is_new:
       data_store.REL_DB.WriteClientMetadata(
           grr_client_id, last_ping=rdfvalue.RDFDatetime.Now())
     self.frontend.ReceiveMessages(

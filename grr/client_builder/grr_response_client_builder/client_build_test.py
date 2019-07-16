@@ -10,7 +10,6 @@ import os
 import platform
 import unittest
 
-
 from absl.testing import absltest
 import mock
 

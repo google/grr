@@ -14,13 +14,11 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ListProcessesTest(db_test_lib.RelationalDBEnabledMixin,
-                        flow_test_lib.FlowTestsBaseclass):
+class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testProcessListingOnly(self):
@@ -50,7 +48,7 @@ class ListProcessesTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testProcessListingWithFilter(self):
     """Test that the ListProcesses flow works with filter."""
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     client_mock = action_mocks.ListProcessesMock([
         rdf_client.Process(

@@ -15,7 +15,6 @@ from grr_response_core import config
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
 from grr_response_server import artifact_registry
 
 
@@ -141,15 +140,12 @@ def CreateDefaultArtifactRegistry():
 
 
 def CreateDatastoreOnlyArtifactRegistry():
-  r = artifact_registry.ArtifactRegistry()
-  r.AddDatastoreSources([aff4.ROOT_URN.Add("artifact_store")])
-  return r
+  return artifact_registry.ArtifactRegistry()
 
 
 def CreateTestArtifactRegistry():
   r = artifact_registry.ArtifactRegistry()
   r.AddDirSource(os.path.join(config.CONFIG["Test.data_dir"], "artifacts"))
-  r.AddDatastoreSources([aff4.ROOT_URN.Add("artifact_store")])
   return r
 
 

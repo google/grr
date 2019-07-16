@@ -8,10 +8,8 @@ from __future__ import unicode_literals
 import subprocess
 import sys
 
-
 from absl import app
 from future.builtins import range
-from future.builtins import zip
 import mock
 import psutil
 
@@ -27,22 +25,17 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow_base
 from grr_response_server import maintenance_utils
 from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import stats as aff4_stats
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import discovery
-from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -52,8 +45,7 @@ class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.ClientActionRunnerArgs
 
 
-@flow_base.DualDBFlow
-class ClientActionRunnerMixin(object):
+class ClientActionRunner(flow_base.FlowBase):
   """Just call the specified client action directly."""
   args_type = ClientActionRunnerArgs
 
@@ -63,8 +55,7 @@ class ClientActionRunnerMixin(object):
         next_state="End")
 
 
-class KeepAliveFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                        flow_test_lib.FlowTestsBaseclass):
+class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Tests for the KeepAlive flow."""
 
   def testKeepAliveRunsSuccessfully(self):
@@ -78,20 +69,21 @@ class KeepAliveFlowTest(db_test_lib.RelationalDBEnabledMixin,
         token=self.token)
 
 
-class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
-                              flow_test_lib.FlowTestsBaseclass,
+class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
                               hunt_test_lib.StandardHuntTestMixin):
   """Tests the administrative flows."""
 
   def setUp(self):
     super(TestAdministrativeFlows, self).setUp()
 
-    # Make sure that Client.tempdir_roots are unique. Otherwise parallel tests
-    # execution may lead to races.
-    tempdir_overrider = test_lib.ConfigOverrider(
-        {"Client.tempdir_roots": [self.temp_dir]})
-    tempdir_overrider.Start()
-    self.addCleanup(tempdir_overrider.Stop)
+    config_overrider = test_lib.ConfigOverrider({
+        # Make sure that Client.tempdir_roots are unique. Otherwise parallel
+        # test execution may lead to races.
+        "Client.tempdir_roots": [self.temp_dir],
+        "Monitoring.alert_email": "grr-monitoring@localhost",
+    })
+    config_overrider.Start()
+    self.addCleanup(config_overrider.Stop)
 
   def testUpdateConfig(self):
     """Ensure we can retrieve and update the config."""
@@ -129,18 +121,18 @@ class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
-      config_dat = {item.key: item.value for item in client.grr_configuration}
-      # The grr_configuration only contains strings.
-      self.assertEqual(config_dat["Client.server_urls"],
-                       "[u'http://www.example.com/']")
-      self.assertEqual(config_dat["Client.poll_min"], "1.0")
-    else:
-      fd = aff4.FACTORY.Open(client_id, token=self.token)
-      config_dat = fd.Get(fd.Schema.GRR_CONFIGURATION)
-      self.assertEqual(config_dat["Client.server_urls"], [loc])
-      self.assertEqual(config_dat["Client.poll_min"], 1)
+    client = data_store.REL_DB.ReadClientSnapshot(client_id)
+    config_dat = {item.key: item.value for item in client.grr_configuration}
+    # The grr_configuration only contains strings.
+    # TODO: We use eval here, because in Python 2 these server URLs
+    # are a stringified list and have leading 'u' characters (to denote unicode
+    # literals). To overcome this difference in Python versions, we use `eval`
+    # to evaluate these lists. Once support for Python 2 is dropped, this can be
+    # again made an equality check for raw string contents.
+    self.assertEqual(
+        eval(config_dat["Client.server_urls"]),  # pylint: disable=eval-used
+        ["http://www.example.com/"])
+    self.assertEqual(config_dat["Client.poll_min"], "1.0")
 
   def CheckCrash(self, crash, expected_session_id, client_id):
     """Checks that ClientCrash object's fields are correctly filled in."""
@@ -154,7 +146,6 @@ class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
   def testAlertEmailIsSentWhenClientKilled(self):
     """Test that client killed messages are handled correctly."""
     client_id = self.SetupClient(0)
-    self.SetupTestClientObject(0)
 
     self.email_messages = []
 
@@ -184,45 +175,13 @@ class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
     self.assertIn("http://localhost:8000/#/clients/C.1000000000000000",
                   email_message["message"])
 
-    if data_store.RelationalDBEnabled():
-      self.assertIn(client_id.Basename(), email_message["title"])
-      rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id.Basename(),
-                                                      flow_id)
-      self.assertEqual(rel_flow_obj.flow_state, rel_flow_obj.FlowState.CRASHED)
+    self.assertIn(client_id, email_message["title"])
+    rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(rel_flow_obj.flow_state, rel_flow_obj.FlowState.CRASHED)
 
-      # Make sure client object is updated with the last crash.
-      crash = data_store.REL_DB.ReadClientCrashInfo(client_id.Basename())
-      self.CheckCrash(crash, client.flow_id, client_id.Basename())
-    else:
-      self.assertIn(client_id.Basename(), email_message["title"])
-      flow_obj = aff4.FACTORY.Open(
-          flow_id, age=aff4.ALL_TIMES, token=self.token)
-      self.assertEqual(flow_obj.context.state,
-                       rdf_flow_runner.FlowContext.State.ERROR)
-
-      # Make sure client object is updated with the last crash.
-      client_obj = aff4.FACTORY.Open(client_id, token=self.token)
-      crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
-      self.CheckCrash(crash, client.flow_id, client_id)
-
-      # Make sure crashes collections are created and written
-      # into proper locations. First check the per-client crashes collection.
-      client_crashes = sorted(
-          list(aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id)),
-          key=lambda x: x.timestamp)
-
-      self.assertLen(client_crashes, 1)
-      crash = list(client_crashes)[0]
-      self.CheckCrash(crash, client.flow_id, client_id)
-
-      # Check per-flow crash collection. Check that crash written there is
-      # equal to per-client crash.
-      flow_crashes = sorted(
-          list(flow_obj.GetValuesForAttribute(flow_obj.Schema.CLIENT_CRASH)),
-          key=lambda x: x.timestamp)
-      self.assertLen(flow_crashes, len(client_crashes))
-      for a, b in zip(flow_crashes, client_crashes):
-        self.assertEqual(a, b)
+    # Make sure client object is updated with the last crash.
+    crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
+    self.CheckCrash(crash, client.flow_id, client_id)
 
   def _CheckNannyEmail(self, client_id, nanny_message, email_dict):
     # We expect the email to be sent.
@@ -232,19 +191,8 @@ class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
     # Make sure the message is included in the email message.
     self.assertIn(nanny_message, email_dict["message"])
 
-    if data_store.RelationalDBEnabled():
-      self.assertIn(client_id, email_dict["title"])
-      crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
-    else:
-      self.assertIn(client_id.Basename(), email_dict["title"])
-
-      # Make sure crashes collections are created and written
-      # into proper locations. First check the per-client crashes collection.
-      client_crashes = list(
-          aff4_grr.VFSGRRClient.CrashCollectionForCID(client_id))
-
-      self.assertLen(client_crashes, 1)
-      crash = client_crashes[0]
+    self.assertIn(client_id, email_dict["title"])
+    crash = data_store.REL_DB.ReadClientCrashInfo(client_id)
 
     self.assertEqual(crash.client_id, client_id)
     self.assertEqual(crash.client_info.client_name, "GRR Monitor")
@@ -256,10 +204,7 @@ class TestAdministrativeFlows(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(
         email_dict.get("address"), config.CONFIG["Monitoring.alert_email"])
 
-    if data_store.RelationalDBEnabled():
-      self.assertIn(client_id, email_dict["title"])
-    else:
-      self.assertIn(client_id.Basename(), email_dict["title"])
+    self.assertIn(client_id, email_dict["title"])
 
     # Make sure the message is included in the email message.
     self.assertIn(message, email_dict["message"])
@@ -287,9 +232,7 @@ import sys
 sys.test_code_ran_here = True
 """
     maintenance_utils.UploadSignedConfigBlob(
-        code.encode("utf-8"),
-        aff4_path="aff4:/config/python_hacks/test",
-        token=self.token)
+        code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/test")
 
     flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
@@ -308,9 +251,7 @@ sys.test_code_ran_here = True
     client_id = self.SetupClient(0)
 
     maintenance_utils.UploadSignedConfigBlob(
-        code.encode("utf-8"),
-        aff4_path="aff4:/config/python_hacks/test",
-        token=self.token)
+        code.encode("utf-8"), aff4_path="aff4:/config/python_hacks/test")
 
     flow_test_lib.TestFlowHelper(
         administrative.ExecutePythonHack.__name__,
@@ -329,12 +270,10 @@ sys.test_code_ran_here = True
     upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
         config.CONFIG["Client.platform"]).Add("test.exe")
 
-    maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path=upload_path, token=self.token)
+    maintenance_utils.UploadSignedConfigBlob(code, aff4_path=upload_path)
 
     binary_urn = rdfvalue.RDFURN(upload_path)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-        binary_urn, token=self.token)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
 
     # There should be only a single part to this binary.
     self.assertLen(list(blob_iterator), 1)
@@ -374,13 +313,11 @@ sys.test_code_ran_here = True
         config.CONFIG["Client.platform"]).Add("test.exe")
 
     maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path=upload_path, limit=100, token=self.token)
+        code, aff4_path=upload_path, limit=100)
 
     binary_urn = rdfvalue.RDFURN(upload_path)
-    binary_size = signed_binary_utils.FetchSizeOfSignedBinary(
-        binary_urn, token=self.token)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-        binary_urn, token=self.token)
+    binary_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_urn)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
 
     # Total size is 2400.
     self.assertEqual(binary_size, 2400)
@@ -418,7 +355,7 @@ sys.test_code_ran_here = True
   def testExecuteBinaryWeirdOutput(self):
     binary_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add("foo.exe")
     maintenance_utils.UploadSignedConfigBlob(
-        b"foobarbaz", aff4_path=binary_path, token=self.token)
+        b"foobarbaz", aff4_path=binary_path)
 
     client_id = self.SetupClient(0)
 
@@ -448,10 +385,9 @@ sys.test_code_ran_here = True
     upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
         config.CONFIG["Client.platform"]).Add("test.deb")
     maintenance_utils.UploadSignedConfigBlob(
-        fake_installer, aff4_path=upload_path, limit=100, token=self.token)
+        fake_installer, aff4_path=upload_path, limit=100)
 
-    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-        upload_path, token=self.token)
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(upload_path)
     self.assertLen(list(blob_list), 4)
 
     acl_test_lib.CreateAdminUser(self.token.username)
@@ -470,10 +406,9 @@ sys.test_code_ran_here = True
     upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
         config.CONFIG["Client.platform"]).Add("test.deb")
     maintenance_utils.UploadSignedConfigBlob(
-        fake_installer, aff4_path=upload_path, limit=1000, token=self.token)
+        fake_installer, aff4_path=upload_path, limit=1000)
 
-    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-        upload_path, token=self.token)
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(upload_path)
     self.assertLen(list(blob_list), 1)
 
     acl_test_lib.CreateAdminUser(self.token.username)
@@ -516,18 +451,12 @@ sys.test_code_ran_here = True
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBEnabled():
-      samples = data_store.REL_DB.ReadClientStats(
-          client_id=client_id.Basename(),
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
-          max_timestamp=rdfvalue.RDFDatetime.Now())
-      self.assertNotEmpty(samples)
-      sample = samples[0]
-    else:
-      urn = client_id.Add("stats")
-      stats_fd = aff4.FACTORY.Create(
-          urn, aff4_stats.ClientStats, token=self.token, mode="rw")
-      sample = stats_fd.Get(stats_fd.Schema.STATS)
+    samples = data_store.REL_DB.ReadClientStats(
+        client_id=client_id,
+        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
+        max_timestamp=rdfvalue.RDFDatetime.Now())
+    self.assertNotEmpty(samples)
+    sample = samples[0]
 
     # Samples are taken at the following timestamps and should be split into 2
     # bins as follows (sample_interval is 60000000):
@@ -576,49 +505,46 @@ sys.test_code_ran_here = True
                      "GRR Client on Host-0.example.com became available.")
 
   def testStartupHandler(self):
-    with test_lib.ConfigOverrider({
-        "Database.enabled": True,
-    }):
-      client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
-      self._RunSendStartupInfo(client_id)
+    self._RunSendStartupInfo(client_id)
 
-      si = data_store.REL_DB.ReadClientStartupInfo(client_id)
-      self.assertIsNotNone(si)
-      self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
-      self.assertEqual(si.client_info.client_description,
-                       config.CONFIG["Client.description"])
+    si = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    self.assertIsNotNone(si)
+    self.assertEqual(si.client_info.client_name, config.CONFIG["Client.name"])
+    self.assertEqual(si.client_info.client_description,
+                     config.CONFIG["Client.description"])
 
-      # Run it again - this should not update any record.
+    # Run it again - this should not update any record.
+    self._RunSendStartupInfo(client_id)
+
+    new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    self.assertEqual(new_si, si)
+
+    # Simulate a reboot.
+    current_boot_time = psutil.boot_time()
+    with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
+
+      # Run it again - this should now update the boot time.
       self._RunSendStartupInfo(client_id)
 
       new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
-      self.assertEqual(new_si, si)
+      self.assertIsNotNone(new_si)
+      self.assertNotEqual(new_si.boot_time, si.boot_time)
 
-      # Simulate a reboot.
-      current_boot_time = psutil.boot_time()
-      with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
+      # Now set a new client build time.
+      build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
+      with test_lib.ConfigOverrider({"Client.build_time": build_time}):
 
-        # Run it again - this should now update the boot time.
+        # Run it again - this should now update the client info.
         self._RunSendStartupInfo(client_id)
 
         new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
         self.assertIsNotNone(new_si)
-        self.assertNotEqual(new_si.boot_time, si.boot_time)
-
-        # Now set a new client build time.
-        build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
-        with test_lib.ConfigOverrider({"Client.build_time": build_time}):
-
-          # Run it again - this should now update the client info.
-          self._RunSendStartupInfo(client_id)
-
-          new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
-          self.assertIsNotNone(new_si)
-          self.assertNotEqual(new_si.client_info, si.client_info)
+        self.assertNotEqual(new_si.client_info, si.client_info)
 
   def testNannyMessageHandler(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     nanny_message = "Oh no!"
     email_dict = {}
 
@@ -626,18 +552,15 @@ sys.test_code_ran_here = True
       email_dict.update(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with test_lib.ConfigOverrider({
-        "Database.enabled": True,
-    }):
-      with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-        flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
-            rdf_flows.GrrMessage(
-                source=client_id,
-                session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-                payload=rdf_protodict.DataBlob(string=nanny_message),
-                request_id=0,
-                auth_state="AUTHENTICATED",
-                response_id=123))
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
+              payload=rdf_protodict.DataBlob(string=nanny_message),
+              request_id=0,
+              auth_state="AUTHENTICATED",
+              response_id=123))
 
     self._CheckNannyEmail(client_id, nanny_message, email_dict)
 
@@ -650,18 +573,15 @@ sys.test_code_ran_here = True
       email_dict.update(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with test_lib.ConfigOverrider({
-        "Database.enabled": True,
-    }):
-      with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-        flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
-            rdf_flows.GrrMessage(
-                source=client_id,
-                session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
-                payload=rdf_protodict.DataBlob(string=nanny_message),
-                request_id=0,
-                auth_state="AUTHENTICATED",
-                response_id=123))
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=rdfvalue.SessionID(flow_name="NannyMessage"),
+              payload=rdf_protodict.DataBlob(string=nanny_message),
+              request_id=0,
+              auth_state="AUTHENTICATED",
+              response_id=123))
 
     # We expect the email to be sent.
     self.assertEqual(
@@ -670,13 +590,10 @@ sys.test_code_ran_here = True
     # Make sure the message is included in the email message.
     self.assertIn(nanny_message, email_dict["message"])
 
-    if data_store.RelationalDBEnabled():
-      self.assertIn(client_id, email_dict["title"])
-    else:
-      self.assertIn(client_id.Basename(), email_dict["title"])
+    self.assertIn(client_id, email_dict["title"])
 
   def testClientAlertHandler(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     client_message = "Oh no!"
     email_dict = {}
 
@@ -684,18 +601,15 @@ sys.test_code_ran_here = True
       email_dict.update(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with test_lib.ConfigOverrider({
-        "Database.enabled": True,
-    }):
-      with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-        flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
-            rdf_flows.GrrMessage(
-                source=client_id,
-                session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
-                payload=rdf_protodict.DataBlob(string=client_message),
-                request_id=0,
-                auth_state="AUTHENTICATED",
-                response_id=123))
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+      flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=rdfvalue.SessionID(flow_name="ClientAlert"),
+              payload=rdf_protodict.DataBlob(string=client_message),
+              request_id=0,
+              auth_state="AUTHENTICATED",
+              response_id=123))
 
     self._CheckAlertEmail(client_id, client_message, email_dict)
 

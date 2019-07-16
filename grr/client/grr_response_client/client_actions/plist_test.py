@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 
 from grr_response_client.client_actions import plist

@@ -11,7 +11,6 @@ from __future__ import unicode_literals
 import os
 import shutil
 
-
 from absl import app
 from future.builtins import filter
 import mock
@@ -33,9 +32,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
-from grr_response_server import aff4
-from grr_response_server import aff4_flows
-from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -46,7 +42,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import client_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -81,8 +76,7 @@ class ArtifactCollectorsTestMixin(object):
     self.output_count = 0
 
 
-class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
-                             ArtifactCollectorsTestMixin,
+class TestArtifactCollectors(ArtifactCollectorsTestMixin,
                              flow_test_lib.FlowTestsBaseclass):
   """Test the artifact collection mechanism with fake artifacts."""
 
@@ -216,18 +210,9 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
 
     artifact_obj = artifact_registry.REGISTRY.ArtifactsFromYaml(
         artifact_source)[0]
-    artifact_registry.REGISTRY.AddDatastoreSources(
-        [artifact.ARTIFACT_STORE_ROOT_URN])
     artifact_registry.REGISTRY._CheckDirty()
 
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.WriteArtifact(artifact_obj)
-    else:
-      with data_store.DB.GetMutationPool() as pool:
-        artifact_coll = artifact_registry.ArtifactCollection(
-            artifact.ARTIFACT_STORE_ROOT_URN)
-        artifact_coll.Delete()
-        artifact_coll.Add(artifact_obj, mutation_pool=pool)
+    data_store.REL_DB.WriteArtifact(artifact_obj)
 
     # Make sure that the artifact is not yet registered and the flow will have
     # to read it from the data store.
@@ -243,7 +228,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
 
     artifact_list = [artifact_name]
     flow_test_lib.TestFlowHelper(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         use_tsk=False,
@@ -254,22 +239,15 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
     fd2.seek(0, 2)
     expected_size = fd2.tell()
 
-    if data_store.AFF4Enabled():
-      # Test the AFF4 file that was created.
-      fd1 = aff4.FACTORY.Open(
-          "%s/fs/os/%s" % (client_id, file_path), token=self.token)
-      size = fd1.Get(fd1.Schema.SIZE)
-      self.assertEqual(size, expected_size)
-    else:
-      components = file_path.strip("/").split("/")
-      fd = file_store.OpenFile(
-          db.ClientPath(
-              client_id.Basename(),
-              rdf_objects.PathInfo.PathType.OS,
-              components=tuple(components)))
-      fd.Seek(0, 2)
-      size = fd.Tell()
-      self.assertEqual(size, expected_size)
+    components = file_path.strip("/").split("/")
+    fd = file_store.OpenFile(
+        db.ClientPath(
+            client_id,
+            rdf_objects.PathInfo.PathType.OS,
+            components=tuple(components)))
+    fd.Seek(0, 2)
+    size = fd.Tell()
+    self.assertEqual(size, expected_size)
 
   def testArtifactSkipping(self):
     client_mock = action_mocks.ActionMock()
@@ -278,20 +256,15 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
 
     artifact_list = ["FakeArtifact"]
     session_id = flow_test_lib.TestFlowHelper(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         use_tsk=False,
         token=self.token,
         client_id=client_id)
 
-    if data_store.RelationalDBEnabled():
-      flow_obj = data_store.REL_DB.ReadFlowObject(client_id.Basename(),
-                                                  session_id)
-      state = flow_obj.persistent_data
-    else:
-      flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-      state = flow_obj.state
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, session_id)
+    state = flow_obj.persistent_data
 
     self.assertLen(state.artifacts_skipped_due_to_condition, 1)
     self.assertEqual(state.artifacts_skipped_due_to_condition[0],
@@ -309,7 +282,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
       session_id = flow_test_lib.TestFlowHelper(
-          aff4_flows.ArtifactCollectorFlow.__name__,
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
@@ -371,7 +344,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         session_id = flow_test_lib.TestFlowHelper(
-            aff4_flows.ArtifactCollectorFlow.__name__,
+            collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
@@ -401,7 +374,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         session_id = flow_test_lib.TestFlowHelper(
-            aff4_flows.ArtifactCollectorFlow.__name__,
+            collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
@@ -447,7 +420,7 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
   def _RunClientActionArtifact(self, client_id, client_mock, artifact_list):
     self.output_count += 1
     session_id = flow_test_lib.TestFlowHelper(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         token=self.token,
@@ -457,7 +430,6 @@ class TestArtifactCollectors(db_test_lib.RelationalDBEnabledMixin,
 
 
 class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
-                                       db_test_lib.RelationalDBEnabledMixin,
                                        test_lib.GRRBaseTest):
 
   def testRunGrrClientActionArtifactSplit(self):
@@ -473,14 +445,13 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
       session_id = flow_test_lib.TestFlowHelper(
-          aff4_flows.ArtifactCollectorFlow.__name__,
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=client_id,
           split_output_by_artifact=True)
-      results_by_tag = flow_test_lib.GetFlowResultsByTag(
-          client_id.Basename(), session_id)
+      results_by_tag = flow_test_lib.GetFlowResultsByTag(client_id, session_id)
       self.assertCountEqual(results_by_tag.keys(),
                             ["artifact:FakeArtifact", "artifact:FakeArtifact2"])
 
@@ -909,8 +880,7 @@ def InitGRRWithTestSources(self, artifacts_data):
   self.addCleanup(artifact_registry.REGISTRY.ClearSources)
 
 
-class ClientArtifactCollectorFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                                      flow_test_lib.FlowTestsBaseclass):
+class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the client side artifact collection test artifacts."""
 
   def setUp(self):
@@ -952,7 +922,7 @@ class ClientArtifactCollectorFlowTest(db_test_lib.RelationalDBEnabledMixin,
     artifact_list = ["TestCmdArtifact"]
 
     results = self._RunFlow(
-        aff4_flows.ClientArtifactCollector,
+        collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)
@@ -971,7 +941,7 @@ class ClientArtifactCollectorFlowTest(db_test_lib.RelationalDBEnabledMixin,
     artifact_list = ["TestCmdArtifact", "TestOSAgnostic"]
 
     results = self._RunFlow(
-        aff4_flows.ClientArtifactCollector,
+        collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)
@@ -1006,7 +976,7 @@ supported_os: [Linux]
 
     # Run the ArtifactCollector to get the expected result.
     expected = self._RunFlow(
-        aff4_flows.ArtifactCollectorFlow,
+        collectors.ArtifactCollectorFlow,
         standard.ExecuteCommand,
         artifact_list,
         apply_parsers=False)
@@ -1015,7 +985,7 @@ supported_os: [Linux]
 
     # Run the ClientArtifactCollector to get the actual result.
     results = self._RunFlow(
-        aff4_flows.ClientArtifactCollector,
+        collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)
@@ -1048,7 +1018,7 @@ sources:
 
         # Run the ArtifactCollector to get the expected result.
         session_id = flow_test_lib.TestFlowHelper(
-            aff4_flows.ArtifactCollectorFlow.__name__,
+            collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
             token=self.token,
@@ -1060,7 +1030,7 @@ sources:
 
         # Run the ClientArtifactCollector to get the actual result.
         cac_results = self._RunFlow(
-            aff4_flows.ClientArtifactCollector,
+            collectors.ClientArtifactCollector,
             artifact_collector.ArtifactCollector,
             artifact_list,
             apply_parsers=False)
@@ -1093,7 +1063,7 @@ sources:
 
         # Run the ArtifactCollector to get the expected result.
         session_id = flow_test_lib.TestFlowHelper(
-            aff4_flows.ArtifactCollectorFlow.__name__,
+            collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
             token=self.token,
@@ -1104,7 +1074,7 @@ sources:
 
         # Run the ClientArtifactCollector to get the actual result.
         cac_results = self._RunFlow(
-            aff4_flows.ClientArtifactCollector,
+            collectors.ClientArtifactCollector,
             artifact_collector.ArtifactCollector,
             artifact_list,
             apply_parsers=False)
@@ -1137,7 +1107,7 @@ sources:
 
         # Run the ArtifactCollector to get the expected result.
         session_id = flow_test_lib.TestFlowHelper(
-            aff4_flows.ArtifactCollectorFlow.__name__,
+            collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
             token=self.token,
@@ -1148,7 +1118,7 @@ sources:
 
         # Run the ClientArtifactCollector to get the actual result.
         results = self._RunFlow(
-            aff4_flows.ClientArtifactCollector,
+            collectors.ClientArtifactCollector,
             artifact_collector.ArtifactCollector,
             artifact_list,
             apply_parsers=False)
@@ -1170,7 +1140,7 @@ sources:
 
       # Run the ArtifactCollector to get the expected result.
       expected = self._RunFlow(
-          aff4_flows.ArtifactCollectorFlow,
+          collectors.ArtifactCollectorFlow,
           standard.ExecuteCommand,
           artifact_list,
           apply_parsers=True)
@@ -1180,7 +1150,7 @@ sources:
 
       # Run the ClientArtifactCollector to get the actual result.
       results = self._RunFlow(
-          aff4_flows.ClientArtifactCollector,
+          collectors.ClientArtifactCollector,
           artifact_collector.ArtifactCollector,
           artifact_list,
           apply_parsers=True)
@@ -1204,7 +1174,7 @@ sources:
 
       # Run the ArtifactCollector to get the expected result.
       session_id = flow_test_lib.TestFlowHelper(
-          aff4_flows.ArtifactCollectorFlow.__name__,
+          collectors.ArtifactCollectorFlow.__name__,
           action_mocks.FileFinderClientMock(),
           artifact_list=artifact_list,
           token=self.token,
@@ -1218,7 +1188,7 @@ sources:
 
       # Run the ClientArtifactCollector to get the actual result.
       cac_results = self._RunFlow(
-          aff4_flows.ClientArtifactCollector,
+          collectors.ClientArtifactCollector,
           artifact_collector.ArtifactCollector,
           artifact_list,
           apply_parsers=True)
@@ -1237,7 +1207,7 @@ sources:
     self.InitializeTestFileArtifact()
 
     results = self._RunFlow(
-        aff4_flows.ClientArtifactCollector,
+        collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)
@@ -1248,7 +1218,7 @@ sources:
 
     artifact_response = results[1]
     self.assertIsInstance(artifact_response, rdf_client_action.ExecuteResponse)
-    self.assertEqual(artifact_response.stdout, "1\n")
+    self.assertEqual(artifact_response.stdout, b"1\n")
 
   def testArtifactFiles(self):
     """Test collecting an ArtifactFiles artifact."""
@@ -1259,7 +1229,7 @@ sources:
 
     # Run the ArtifactCollector to get the expected result.
     session_id = flow_test_lib.TestFlowHelper(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
         token=self.token,
@@ -1272,7 +1242,7 @@ sources:
 
     # Run the ClientArtifactCollector to get the actual result.
     cac_results = self._RunFlow(
-        aff4_flows.ClientArtifactCollector,
+        collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)
@@ -1289,7 +1259,7 @@ sources:
 
     # Run the ArtifactCollector to get the expected result.
     session_id = flow_test_lib.TestFlowHelper(
-        aff4_flows.ArtifactCollectorFlow.__name__,
+        collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
         token=self.token,
@@ -1302,7 +1272,7 @@ sources:
 
     # Run the ClientArtifactCollector to get the actual result.
     cac_results = self._RunFlow(
-        aff4_flows.ClientArtifactCollector,
+        collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)

@@ -6,71 +6,32 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import compatibility
-from grr_response_server import aff4
-from grr_response_server import data_store
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui import webauth
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class ApprovalByLabelE2ETest(db_test_lib.RelationalDBEnabledMixin,
-                             api_e2e_test_lib.ApiE2ETest):
-
-  def SetUpLegacy(self):
-    # Set up clients and labels before we turn on the FullACM. We need to create
-    # the client because to check labels the client needs to exist.
-    client_nolabel, client_legal, client_prod = self.SetupClients(3)
-
-    self.client_nolabel_id = client_nolabel.Basename()
-    self.client_legal_id = client_legal.Basename()
-    self.client_prod_id = client_prod.Basename()
-
-    with aff4.FACTORY.Open(
-        client_legal,
-        aff4_type=aff4_grr.VFSGRRClient,
-        mode="rw",
-        token=self.token) as client_obj:
-      client_obj.AddLabel(u"legal_approval")
-
-    with aff4.FACTORY.Open(
-        client_prod,
-        aff4_type=aff4_grr.VFSGRRClient,
-        mode="rw",
-        token=self.token) as client_obj:
-      client_obj.AddLabels([u"legal_approval", u"prod_admin_approval"])
-
-  def SetUpRelationalDB(self):
-    self.client_nolabel_id = self.SetupTestClientObject(0).client_id
-    self.client_legal_id = self.SetupTestClientObject(
-        1, labels=[u"legal_approval"]).client_id
-    self.client_prod_id = self.SetupTestClientObject(
-        2, labels=[u"legal_approval", u"prod_admin_approval"]).client_id
+class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   def TouchFile(self, client_id, path):
-    gui_test_lib.CreateFileVersion(
-        client_id=client_id, path=path, token=self.token)
+    gui_test_lib.CreateFileVersion(client_id=client_id, path=path)
 
   def setUp(self):
     super(ApprovalByLabelE2ETest, self).setUp()
 
-    if data_store.AFF4Enabled():
-      self.SetUpLegacy()
-
-    if data_store.RelationalDBEnabled():
-      self.SetUpRelationalDB()
+    self.client_nolabel_id = self.SetupClient(0)
+    self.client_legal_id = self.SetupClient(1, labels=[u"legal_approval"])
+    self.client_prod_id = self.SetupClient(
+        2, labels=[u"legal_approval", u"prod_admin_approval"])
 
     cls = (api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
     cls.ClearCache()
@@ -95,7 +56,7 @@ class ApprovalByLabelE2ETest(db_test_lib.RelationalDBEnabledMixin,
     api_auth_manager.InitializeApiAuthManager()
 
   def testClientNoLabels(self):
-    self.TouchFile(rdf_client.ClientURN(self.client_nolabel_id), "fs/os/foo")
+    self.TouchFile(self.client_nolabel_id, "fs/os/foo")
 
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
@@ -111,7 +72,7 @@ class ApprovalByLabelE2ETest(db_test_lib.RelationalDBEnabledMixin,
 
   def testClientApprovalSingleLabel(self):
     """Client requires an approval from a member of "legal_approval"."""
-    self.TouchFile(rdf_client.ClientURN(self.client_legal_id), "fs/os/foo")
+    self.TouchFile(self.client_legal_id, "fs/os/foo")
 
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
@@ -142,7 +103,7 @@ class ApprovalByLabelE2ETest(db_test_lib.RelationalDBEnabledMixin,
     This client requires one legal and two prod admin approvals. The requester
     must also be in the prod admin group.
     """
-    self.TouchFile(rdf_client.ClientURN(self.client_prod_id), "fs/os/foo")
+    self.TouchFile(self.client_prod_id, "fs/os/foo")
 
     self.token.username = u"prod1"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
@@ -198,7 +159,7 @@ class ApprovalByLabelE2ETest(db_test_lib.RelationalDBEnabledMixin,
 
   def testClientApprovalMultiLabelCheckRequester(self):
     """Requester must be listed as prod_admin_approval in approvals.yaml."""
-    self.TouchFile(rdf_client.ClientURN(self.client_prod_id), "fs/os/foo")
+    self.TouchFile(self.client_prod_id, "fs/os/foo")
 
     # No approvals yet, this should fail.
     self.assertRaises(

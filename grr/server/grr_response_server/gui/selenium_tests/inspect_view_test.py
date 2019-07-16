@@ -5,18 +5,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.flows.general import discovery as flow_discovery
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -24,19 +21,17 @@ class TestInspectViewBase(gui_test_lib.GRRSeleniumTest):
   pass
 
 
-class TestClientLoadView(db_test_lib.RelationalDBEnabledMixin,
-                         TestInspectViewBase):
+class TestClientLoadView(TestInspectViewBase):
   """Tests for ClientLoadView."""
 
   def setUp(self):
     super(TestClientLoadView, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
 
   def CreateLeasedClientRequest(self, client_id=None, token=None):
-    flow.StartFlow(
-        client_id=client_id.Basename(), flow_cls=processes.ListProcesses)
+    flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses)
     client_messages = data_store.REL_DB.LeaseClientActionRequests(
-        client_id.Basename(), lease_time=rdfvalue.DurationSeconds("10000s"))
+        client_id, lease_time=rdfvalue.DurationSeconds("10000s"))
     self.assertNotEmpty(client_messages)
 
   def testNoClientActionIsDisplayed(self):
@@ -47,22 +42,19 @@ class TestClientLoadView(db_test_lib.RelationalDBEnabledMixin,
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
     self.RequestAndGrantClientApproval(self.client_id)
-    client_urn = rdf_client.ClientURN(self.client_id)
-    self.CreateLeasedClientRequest(client_id=client_urn, token=self.token)
+    self.CreateLeasedClientRequest(client_id=self.client_id, token=self.token)
 
     self.Open("/#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "Leased until")
 
 
-class TestDebugClientRequestsView(db_test_lib.RelationalDBEnabledMixin,
-                                  TestInspectViewBase):
+class TestDebugClientRequestsView(TestInspectViewBase):
   """Test the inspect interface."""
 
   def testInspect(self):
     """Test the inspect UI."""
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
 
     self.RequestAndGrantClientApproval(client_id)
 

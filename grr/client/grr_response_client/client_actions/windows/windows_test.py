@@ -8,7 +8,6 @@ import platform
 import stat
 import unittest
 
-
 from absl import app
 from future.utils import iteritems
 from future.utils import iterkeys

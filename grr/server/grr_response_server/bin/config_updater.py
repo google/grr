@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 import sys
 
-
 from absl import app
 from absl.flags import argparse_flags
 from future.builtins import input
@@ -269,7 +268,6 @@ parser_rotate_key.add_argument(
 
 def main(args):
   """Main."""
-  token = config_updater_util.GetToken()
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
 
@@ -290,16 +288,14 @@ def main(args):
           mysql_ca_cert_path=args.mysql_ca_cert_path,
           use_rel_db=args.use_rel_db,
           redownload_templates=args.redownload_templates,
-          repack_templates=not args.norepack_templates,
-          token=token)
+          repack_templates=not args.norepack_templates)
     else:
       config_updater_util.Initialize(
           grr_config.CONFIG,
           external_hostname=args.external_hostname,
           admin_password=args.admin_password,
           redownload_templates=args.redownload_templates,
-          repack_templates=not args.norepack_templates,
-          token=token)
+          repack_templates=not args.norepack_templates)
     return
 
   server_startup.Init()
@@ -321,7 +317,7 @@ def main(args):
 
   elif args.subparser_name == "repack_clients":
     upload = not args.noupload
-    repacking.TemplateRepacker().RepackAllTemplates(upload=upload, token=token)
+    repacking.TemplateRepacker().RepackAllTemplates(upload=upload)
 
   elif args.subparser_name == "show_user":
     if args.username:
@@ -381,7 +377,7 @@ def main(args):
     artifact_list = args.artifact
     if not artifact_list:
       raise ValueError("No artifact to delete given.")
-    artifact_registry.DeleteArtifactsFromDatastore(artifact_list, token=token)
+    artifact_registry.DeleteArtifactsFromDatastore(artifact_list)
     print("Artifacts %s deleted." % artifact_list)
 
   elif args.subparser_name == "rotate_server_key":

@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 import zipfile
 
-
 from absl import app
 from future.builtins import range
 from future.builtins import zip
@@ -21,7 +20,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import decoders
 from grr_response_server import flow
@@ -34,7 +32,6 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import vfs as vfs_plugin
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
@@ -55,22 +52,19 @@ class VfsTestMixin(object):
   def CreateFileVersions(self, client_id, file_path):
     """Add a new version for a file."""
     path_type, components = rdf_objects.ParseCategorizedPath(file_path)
-    client_path = db.ClientPath(client_id.Basename(), path_type, components)
-    token = access_control.ACLToken(username="test")
+    client_path = db.ClientPath(client_id, path_type, components)
 
     with test_lib.FakeTime(self.time_1):
-      vfs_test_lib.CreateFile(
-          client_path, "Hello World".encode("utf-8"), token=token)
+      vfs_test_lib.CreateFile(client_path, "Hello World".encode("utf-8"))
 
     with test_lib.FakeTime(self.time_2):
-      vfs_test_lib.CreateFile(
-          client_path, "Goodbye World".encode("utf-8"), token=token)
+      vfs_test_lib.CreateFile(client_path, "Goodbye World".encode("utf-8"))
 
   def CreateRecursiveListFlow(self, client_id):
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
     return flow.StartFlow(
-        client_id=client_id.Basename(),
+        client_id=client_id,
         flow_cls=filesystem.RecursiveListDirectory,
         flow_args=flow_args)
 
@@ -80,13 +74,12 @@ class VfsTestMixin(object):
     flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
 
     return flow.StartFlow(
-        client_id=client_id.Basename(),
+        client_id=client_id,
         flow_cls=transfer.MultiGetFile,
         flow_args=flow_args)
 
 
-class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   api_test_lib.ApiCallHandlerTest,
+class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
                                    VfsTestMixin):
   """Test for ApiGetFileDetailsHandler."""
 
@@ -165,10 +158,8 @@ class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     # Set up a directory.
     dir_path = "fs/os/Random/Directory"
     path_type, components = rdf_objects.ParseCategorizedPath(dir_path)
-    client_path = db.ClientPath(self.client_id.Basename(), path_type,
-                                components)
-    token = access_control.ACLToken(username="test")
-    vfs_test_lib.CreateDirectory(client_path, token=token)
+    client_path = db.ClientPath(self.client_id, path_type, components)
+    vfs_test_lib.CreateDirectory(client_path)
 
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path)
@@ -181,8 +172,7 @@ class ApiGetFileDetailsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(result.file.is_directory)
 
 
-class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                              api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiListFilesHandler."""
 
   def setUp(self):
@@ -206,7 +196,7 @@ class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
   def testHandlerListsFilesAndDirectories(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     # Fetch all children of a directory.
     args = vfs_plugin.ApiListFilesArgs(
@@ -219,7 +209,7 @@ class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertIn(self.file_path, item.path)
 
   def testHandlerFiltersDirectoriesIfFlagIsSet(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     # Only fetch sub-directories.
     args = vfs_plugin.ApiListFilesArgs(
@@ -261,8 +251,7 @@ class ApiListFilesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEmpty(result.items)
 
 
-class ApiGetFileTextHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
 
   def setUp(self):
@@ -321,8 +310,7 @@ class ApiGetFileTextHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(result.total_size, 13)
 
 
-class ApiGetFileBlobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_test_lib.ApiCallHandlerTest, VfsTestMixin):
+class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def setUp(self):
     super(ApiGetFileBlobHandlerTest, self).setUp()
@@ -380,12 +368,11 @@ class ApiGetFileBlobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     # Overwrite CHUNK_SIZE in handler for smaller test streams.
     self.handler.CHUNK_SIZE = 5
 
-    client_path = db.ClientPath.OS(self.client_id.Basename(),
+    client_path = db.ClientPath.OS(self.client_id,
                                    ["c", "Downloads", "huge.txt"])
     vfs_test_lib.CreateFile(
         client_path,
-        content=b"".join([c * self.handler.CHUNK_SIZE for c in chars]),
-        token=self.token)
+        content=b"".join([c * self.handler.CHUNK_SIZE for c in chars]))
 
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="fs/os/c/Downloads/huge.txt")
@@ -396,8 +383,7 @@ class ApiGetFileBlobHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(chunk, char * self.handler.CHUNK_SIZE)
 
 
-class ApiGetFileVersionTimesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        api_test_lib.ApiCallHandlerTest,
+class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTestMixin):
 
   def setUp(self):
@@ -424,8 +410,7 @@ class ApiGetFileVersionTimesHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetFileDownloadCommandHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                           api_test_lib.ApiCallHandlerTest,
+class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
                                            VfsTestMixin):
 
   def setUp(self):
@@ -453,7 +438,6 @@ class ApiGetFileDownloadCommandHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
 
 class ApiCreateVfsRefreshOperationHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin,
     notification_test_lib.NotificationTestMixin,
     api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateVfsRefreshOperationHandler."""
@@ -484,29 +468,29 @@ class ApiCreateVfsRefreshOperationHandlerTest(
       self.handler.Handle(args, token=self.token)
 
   def testHandlerRefreshStartsListDirectoryFlow(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.file_path, max_depth=1)
     result = self.handler.Handle(args, token=self.token)
 
-    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
     self.assertEqual(flow_obj.flow_class_name, "ListDirectory")
 
   def testHandlerRefreshStartsRecursiveListDirectoryFlow(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.file_path, max_depth=5)
     result = self.handler.Handle(args, token=self.token)
 
-    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
     self.assertEqual(flow_obj.flow_class_name, "RecursiveListDirectory")
 
   def testNotificationIsSent(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id,
@@ -528,9 +512,8 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         ["Users", "Shared"])
 
 
-class ApiGetVfsRefreshOperationStateHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
-    VfsTestMixin):
+class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                                VfsTestMixin):
   """Test for GetVfsRefreshOperationStateHandler."""
 
   def setUp(self):
@@ -550,7 +533,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
+    flow_base.TerminateFlow(self.client_id, flow_id, "Fake error")
 
     # Recheck status and see if it changed.
     result = self.handler.Handle(args, token=self.token)
@@ -559,7 +542,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
     flow_id = flow.StartFlow(
-        client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
+        client_id=self.client_id, flow_cls=discovery.Interrogate)
 
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
         client_id=self.client_id, operation_id=flow_id)
@@ -578,8 +561,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(
       self.handler.Handle(args, token=self.token)
 
 
-class ApiUpdateVfsFileContentHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                         api_test_lib.ApiCallHandlerTest):
+class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiUpdateVfsFileContentHandler."""
 
   def setUp(self):
@@ -607,21 +589,20 @@ class ApiUpdateVfsFileContentHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
   def testHandlerStartsFlow(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
-    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id.Basename(),
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
     self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
     self.assertEqual(flow_obj.creator, self.token.username)
 
 
 class ApiGetVfsFileContentUpdateStateHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
-    VfsTestMixin):
+    api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetVfsFileContentUpdateStateHandler."""
 
   def setUp(self):
@@ -642,7 +623,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    flow_base.TerminateFlow(self.client_id.Basename(), flow_id, "Fake error")
+    flow_base.TerminateFlow(self.client_id, flow_id, "Fake error")
 
     # Recheck status and see if it changed.
     result = self.handler.Handle(args, token=self.token)
@@ -651,7 +632,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
     flow_id = flow.StartFlow(
-        client_id=self.client_id.Basename(), flow_cls=discovery.Interrogate)
+        client_id=self.client_id, flow_cls=discovery.Interrogate)
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
         client_id=self.client_id, operation_id=flow_id)
@@ -675,7 +656,7 @@ class VfsTimelineTestMixin(object):
 
   def SetupTestTimeline(self):
     client_id = self.SetupClient(0)
-    fixture_test_lib.ClientFixture(client_id, token=self.token)
+    fixture_test_lib.ClientFixture(client_id)
 
     # Choose some directory with pathspec in the ClientFixture.
     self.category_path = u"fs/os"
@@ -701,8 +682,7 @@ class VfsTimelineTestMixin(object):
 
     return client_id
 
-  def SetupFileMetadata(self, client_urn, vfs_path, stat_entry, hash_entry):
-    client_id = client_urn.Basename()
+  def SetupFileMetadata(self, client_id, vfs_path, stat_entry, hash_entry):
     if stat_entry:
       path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
     else:
@@ -711,8 +691,7 @@ class VfsTimelineTestMixin(object):
     data_store.REL_DB.WritePathInfos(client_id, [path_info])
 
 
-class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        api_test_lib.ApiCallHandlerTest,
+class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTimelineTestMixin):
 
   def setUp(self):
@@ -784,19 +763,19 @@ class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(content, expected_csv.encode("utf-8"))
 
   def testTimelineInBodyFormatWithHashCorrectlyReturned(self):
-    client_urn = self.SetupClient(1)
+    client_id = self.SetupClient(1)
     stat_entry = rdf_client_fs.StatEntry(st_size=1337)
     stat_entry.pathspec.path = u"foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
     hash_entry = rdf_crypto.Hash(md5=b"quux", sha256=b"norf")
     self.SetupFileMetadata(
-        client_urn,
+        client_id,
         u"fs/os/foo/bar",
         stat_entry=stat_entry,
         hash_entry=hash_entry)
 
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
-        client_id=client_urn,
+        client_id=client_id,
         file_path=u"fs/os/foo",
         format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
     result = self.handler.Handle(args, token=self.token)
@@ -806,12 +785,12 @@ class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(content, expected_csv.encode("utf-8"))
 
   def testTimelineEntriesWithHashOnlyAreIgnoredOnBodyExport(self):
-    client_urn = self.SetupClient(1)
+    client_id = self.SetupClient(1)
     hash_entry = rdf_crypto.Hash(sha256=b"quux")
     self.SetupFileMetadata(
-        client_urn, u"fs/os/foo/bar", stat_entry=None, hash_entry=hash_entry)
+        client_id, u"fs/os/foo/bar", stat_entry=None, hash_entry=hash_entry)
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
-        client_id=client_urn,
+        client_id=client_id,
         file_path=u"fs/os/foo",
         format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
     result = self.handler.Handle(args, token=self.token)
@@ -820,8 +799,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(content, b"")
 
 
-class ApiGetVfsTimelineHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   api_test_lib.ApiCallHandlerTest,
+class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
                                    VfsTimelineTestMixin):
 
   def setUp(self):
@@ -848,8 +826,7 @@ class ApiGetVfsTimelineHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetVfsFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                       api_test_lib.ApiCallHandlerTest,
+class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
                                        VfsTestMixin):
   """Tests for ApiGetVfsFileArchiveHandler."""
 
@@ -966,14 +943,11 @@ class DecodersTestMixin(object):
   def Touch(self, vfs_path, content=b""):
     path_type, components = rdf_objects.ParseCategorizedPath(vfs_path)
     client_path = db.ClientPath(
-        client_id=self.client_id.Basename(),
-        path_type=path_type,
-        components=components)
+        client_id=self.client_id, path_type=path_type, components=components)
     vfs_test_lib.CreateFile(client_path, content=content)
 
 
-class ApiGetFileDecodersHandler(db_test_lib.RelationalDBEnabledMixin,
-                                DecodersTestMixin,
+class ApiGetFileDecodersHandler(DecodersTestMixin,
                                 api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -1041,8 +1015,7 @@ class ApiGetFileDecodersHandler(db_test_lib.RelationalDBEnabledMixin,
     self.assertCountEqual(result.decoder_names, ["BarQuux", "BazQuux"])
 
 
-class ApiGetDecodedFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   DecodersTestMixin,
+class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
                                    api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):

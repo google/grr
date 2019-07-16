@@ -10,10 +10,9 @@ from grr_response_core.lib import config_lib
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 512 * 1024,
                           "Maximum blob size we may store in the datastore.")
 
-config_lib.DEFINE_string("Datastore.implementation", "FakeDataStore",
-                         "Storage subsystem to use.")
+config_lib.DEFINE_string("Datastore.implementation", "", "Deprecated")
 
-config_lib.DEFINE_string("Blobstore.implementation", "MemoryStreamBlobStore",
+config_lib.DEFINE_string("Blobstore.implementation", "DbBlobStore",
                          "Blob storage subsystem to use.")
 
 config_lib.DEFINE_string("Database.implementation", "",
@@ -23,8 +22,7 @@ config_lib.DEFINE_bool(
     "Database.enabled", False,
     "Use relational database for reading as well as for writing.")
 
-config_lib.DEFINE_bool("Database.aff4_enabled", True,
-                       "Enables reading/writing to the legacy data store.")
+config_lib.DEFINE_bool("Database.aff4_enabled", False, "Deprecated.")
 
 config_lib.DEFINE_string(
     "Datastore.location",
@@ -66,7 +64,7 @@ config_lib.DEFINE_integer(
     help=("Number of file handles kept in the SQLite "
           "data_store cache."))
 
-# MySQL configuration (relational database and legacy MySQLAdvancedDataStore).
+# MySQL configuration.
 config_lib.DEFINE_string("Mysql.host", "localhost",
                          "The MySQL server hostname.")
 
@@ -116,54 +114,35 @@ config_lib.DEFINE_string(
 
 # Legacy MySQLAdvancedDataStore used as AFF4 backend.
 config_lib.DEFINE_string(
-    "Mysql.database_name",
-    default="grr",
-    help="Name of the database to use for legacy MySQL-AFF4.")
+    "Mysql.database_name", default="grr", help="Deprecated.")
+
+config_lib.DEFINE_string("Mysql.table_name", default="aff4", help="Deprecated.")
 
 config_lib.DEFINE_string(
-    "Mysql.table_name",
-    default="aff4",
-    help="Name of the table to use for legacy MySQL-AFF4.")
+    "Mysql.database_username", default="root", help="Deprecated.")
 
 config_lib.DEFINE_string(
-    "Mysql.database_username",
-    default="root",
-    help="The user to connect to the database for legacy MySQL-AFF4.")
+    "Mysql.database_password", default="", help="Deprecated.")
+
+config_lib.DEFINE_integer("Mysql.conn_pool_min", 5, help="Deprecated.")
+
+config_lib.DEFINE_integer("Mysql.max_connect_wait", 600, help="Deprecated.")
+
+config_lib.DEFINE_integer(
+    "Mysql.max_query_size", 8 * 1024 * 1024, help="Deprecated.")
+
+config_lib.DEFINE_integer(
+    "Mysql.max_values_per_query", 10000, help="Deprecated.")
+
+config_lib.DEFINE_integer("Mysql.max_retries", 10, help="Deprecated.")
+
+# DualBlobStore blob storage proxy
+config_lib.DEFINE_string(
+    "DualBlobStore.primary_implementation", "",
+    "Class name of the blob storage to use as primary backend (reading & "
+    "writing)")
 
 config_lib.DEFINE_string(
-    "Mysql.database_password",
-    default="",
-    help="The password to connect to the database for legacy MySQL-AFF4.")
-
-config_lib.DEFINE_integer(
-    "Mysql.conn_pool_min",
-    5,
-    help="The minimum number of open connections to keep"
-    " available in the pool for legacy MySQL-AFF4.")
-
-config_lib.DEFINE_integer(
-    "Mysql.max_connect_wait",
-    600,
-    help="Total number of seconds we wait for a "
-    "connection before failing (0 means we wait "
-    "forever) for legacy MySQL-AFF4..")
-
-config_lib.DEFINE_integer(
-    "Mysql.max_query_size",
-    8 * 1024 * 1024,
-    help="Maximum query size (in bytes). Queries sent by GRR to MySQL "
-    "may be slightly bigger than the specified maximum. This "
-    "value has to be smaller than MySQL's max_allowed_packet "
-    "configuration value (for legacy MySQL-AFF4).")
-
-config_lib.DEFINE_integer(
-    "Mysql.max_values_per_query",
-    10000,
-    help="Maximum number of subjects touched by a single query "
-    "for legacy MySQL-AFF4.")
-
-config_lib.DEFINE_integer(
-    "Mysql.max_retries",
-    10,
-    help="Maximum number of retries (happens in case a query fails) "
-    "for legacy MySQL-AFF4.")
+    "DualBlobStore.secondary_implementation", "",
+    "Class name of the blob storage to use as secondary backend (writing, not "
+    "reading)")

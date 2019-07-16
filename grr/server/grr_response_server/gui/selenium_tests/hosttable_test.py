@@ -4,21 +4,18 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHostTable(db_test_lib.RelationalDBEnabledMixin,
-                    gui_test_lib.SearchClientTestBase):
+class TestHostTable(gui_test_lib.SearchClientTestBase):
   """Tests the main content view."""
 
   def setUp(self):
     super(TestHostTable, self).setUp()
-    self.client_ids = [u.Basename() for u in self.SetupClients(10)]
+    self.client_ids = self.SetupClients(10)
 
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
     self.AddClientLabel(self.client_ids[0], self.token.username, u"foo")
@@ -67,25 +64,6 @@ class TestHostTable(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(
         self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
         "contains('%s')" % self.client_ids[6])
-
-  @db_test_lib.LegacyDataStoreOnly
-  def testAddClientsLabelsDialogShowsErrorWhenAddingLabelWithComma(self):
-    self.Open("/#/search?q=.")
-
-    # Select 1 client and click 'Add Label' button.
-    self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
-    self.Click("css=button[name=AddLabels]:not([disabled])")
-
-    # Type label name
-    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]", "a,b")
-
-    # Click proceed and check that error message is displayed and that
-    # dialog is not going away.
-    # TODO(user): convert to Bad Request (400) status code.
-    with self.DisableHttpErrorChecks():
-      self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
-      self.WaitUntil(self.IsTextPresent, "Label name can only contain")
-      self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
   def testLabelIsAppliedCorrectlyViaAddClientsLabelsDialog(self):
     self.Open("/#/search?q=.")

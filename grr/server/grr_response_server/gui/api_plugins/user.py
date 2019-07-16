@@ -9,7 +9,6 @@ import functools
 import itertools
 import logging
 
-
 from future.builtins import str
 from future.utils import itervalues
 import jinja2
@@ -22,7 +21,8 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto.api import user_pb2
+from grr_response_proto import user_pb2
+from grr_response_proto.api import user_pb2 as api_user_pb2
 
 from grr_response_server import access_control
 from grr_response_server import cronjobs
@@ -30,7 +30,6 @@ from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import notification as notification_lib
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.databases import db
 from grr_response_server.flows.general import administrative
 from grr_response_server.gui import api_call_handler_base
@@ -49,29 +48,33 @@ class ApprovalNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a specific approval object could not be found."""
 
 
+class GUISettings(rdf_structs.RDFProtoStruct):
+  protobuf = user_pb2.GUISettings
+
+
 class ApiNotificationClientReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationClientReference
+  protobuf = api_user_pb2.ApiNotificationClientReference
   rdf_deps = [
       api_client.ApiClientId,
   ]
 
 
 class ApiNotificationHuntReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationHuntReference
+  protobuf = api_user_pb2.ApiNotificationHuntReference
   rdf_deps = [
       api_hunt.ApiHuntId,
   ]
 
 
 class ApiNotificationCronReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationCronReference
+  protobuf = api_user_pb2.ApiNotificationCronReference
   rdf_deps = [
       api_cron.ApiCronJobId,
   ]
 
 
 class ApiNotificationFlowReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationFlowReference
+  protobuf = api_user_pb2.ApiNotificationFlowReference
   rdf_deps = [
       api_client.ApiClientId,
       api_flow.ApiFlowId,
@@ -79,35 +82,35 @@ class ApiNotificationFlowReference(rdf_structs.RDFProtoStruct):
 
 
 class ApiNotificationVfsReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationVfsReference
+  protobuf = api_user_pb2.ApiNotificationVfsReference
   rdf_deps = [
       api_client.ApiClientId,
   ]
 
 
 class ApiNotificationClientApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationClientApprovalReference
+  protobuf = api_user_pb2.ApiNotificationClientApprovalReference
   rdf_deps = [
       api_client.ApiClientId,
   ]
 
 
 class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationHuntApprovalReference
+  protobuf = api_user_pb2.ApiNotificationHuntApprovalReference
   rdf_deps = [
       api_hunt.ApiHuntId,
   ]
 
 
 class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationCronJobApprovalReference
+  protobuf = api_user_pb2.ApiNotificationCronJobApprovalReference
   rdf_deps = [
       api_cron.ApiCronJobId,
   ]
 
 
 class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiNotificationUnknownReference
+  protobuf = api_user_pb2.ApiNotificationUnknownReference
   rdf_deps = [
       rdfvalue.RDFURN,
   ]
@@ -116,7 +119,7 @@ class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
 class ApiNotificationReference(rdf_structs.RDFProtoStruct):
   """Object reference used in ApiNotifications."""
 
-  protobuf = user_pb2.ApiNotificationReference
+  protobuf = api_user_pb2.ApiNotificationReference
   rdf_deps = [
       ApiNotificationClientReference,
       ApiNotificationClientApprovalReference,
@@ -193,7 +196,7 @@ class ApiNotificationReference(rdf_structs.RDFProtoStruct):
 class ApiNotification(rdf_structs.RDFProtoStruct):
   """Represents a user notification."""
 
-  protobuf = user_pb2.ApiNotification
+  protobuf = api_user_pb2.ApiNotification
   rdf_deps = [
       ApiNotificationReference,
       rdfvalue.RDFDatetime,
@@ -227,7 +230,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
     reference_type_enum = ApiNotificationReference.Type
 
-    # Please see the comments to aff4_objects.GRRUser.Notify implementation
+    # Please see the comments to notification.Notify implementation
     # for the details of notification.type format. Short summary:
     # notification.type may be one of legacy values (i.e. "ViewObject") or
     # have a format of "[legacy value]:[new-style notification type]", i.e.
@@ -332,7 +335,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
 
 class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiGrrUserInterfaceTraits
+  protobuf = api_user_pb2.ApiGrrUserInterfaceTraits
 
   def EnableAll(self):
     for type_descriptor in self.type_infos:
@@ -344,10 +347,10 @@ class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
 class ApiGrrUser(rdf_structs.RDFProtoStruct):
   """API object describing the user."""
 
-  protobuf = user_pb2.ApiGrrUser
+  protobuf = api_user_pb2.ApiGrrUser
   rdf_deps = [
       ApiGrrUserInterfaceTraits,
-      aff4_users.GUISettings,
+      GUISettings,
   ]
 
   def InitFromDatabaseObject(self, db_obj):
@@ -390,7 +393,7 @@ def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
 class ApiClientApproval(rdf_structs.RDFProtoStruct):
   """API client approval object."""
 
-  protobuf = user_pb2.ApiClientApproval
+  protobuf = api_user_pb2.ApiClientApproval
   rdf_deps = [
       api_client.ApiClient,
   ]
@@ -435,7 +438,7 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
 class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   """API hunt approval object."""
 
-  protobuf = user_pb2.ApiHuntApproval
+  protobuf = api_user_pb2.ApiHuntApproval
   rdf_deps = [
       api_flow.ApiFlow,
       api_hunt.ApiHunt,
@@ -502,23 +505,20 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   """API cron job approval object."""
 
-  protobuf = user_pb2.ApiCronJobApproval
+  protobuf = api_user_pb2.ApiCronJobApproval
   rdf_deps = [
       api_cron.ApiCronJob,
   ]
 
-  def _FillInSubject(self, subject_urn, approval_subject_obj=None):
+  def _FillInSubject(self, job_id, approval_subject_obj=None):
     if not approval_subject_obj:
-      job_id = subject_urn.Basename()
       approval_subject_obj = cronjobs.CronManager().ReadJob(job_id)
       self.subject = api_cron.ApiCronJob.InitFromObject(approval_subject_obj)
 
-  # TODO(user): migrate to using REL_DB.
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
     _InitApiApprovalFromDatabaseObject(self, db_obj)
     self._FillInSubject(
-        rdfvalue.RDFURN("aff4:/cron").Add(db_obj.subject_id),
-        approval_subject_obj=approval_subject_obj)
+        db_obj.subject_id, approval_subject_obj=approval_subject_obj)
     return self
 
   @property
@@ -783,15 +783,12 @@ class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  def BuildSubjectUrn(self):
-    return self.client_id.ToClientURN()
-
   def BuildSubjectId(self):
     return utils.SmartStr(self.client_id)
 
 
 class ApiCreateClientApprovalArgs(ApiClientApprovalArgsBase):
-  protobuf = user_pb2.ApiCreateClientApprovalArgs
+  protobuf = api_user_pb2.ApiCreateClientApprovalArgs
   rdf_deps = [
       ApiClientApproval,
       api_client.ApiClientId,
@@ -823,7 +820,7 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
 
 
 class ApiGetClientApprovalArgs(ApiClientApprovalArgsBase):
-  protobuf = user_pb2.ApiGetClientApprovalArgs
+  protobuf = api_user_pb2.ApiGetClientApprovalArgs
   rdf_deps = [
       api_client.ApiClientId,
   ]
@@ -839,7 +836,7 @@ class ApiGetClientApprovalHandler(ApiGetApprovalHandlerBase):
 
 
 class ApiGrantClientApprovalArgs(ApiClientApprovalArgsBase):
-  protobuf = user_pb2.ApiGrantClientApprovalArgs
+  protobuf = api_user_pb2.ApiGrantClientApprovalArgs
   rdf_deps = [
       api_client.ApiClientId,
   ]
@@ -857,14 +854,14 @@ class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
 
 
 class ApiListClientApprovalsArgs(ApiClientApprovalArgsBase):
-  protobuf = user_pb2.ApiListClientApprovalsArgs
+  protobuf = api_user_pb2.ApiListClientApprovalsArgs
   rdf_deps = [
       api_client.ApiClientId,
   ]
 
 
 class ApiListClientApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListClientApprovalsResult
+  protobuf = api_user_pb2.ApiListClientApprovalsResult
   rdf_deps = [
       ApiClientApproval,
   ]
@@ -946,15 +943,12 @@ class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  def BuildSubjectUrn(self):
-    return self.hunt_id.ToURN()
-
   def BuildSubjectId(self):
     return utils.SmartStr(self.hunt_id)
 
 
 class ApiCreateHuntApprovalArgs(ApiHuntApprovalArgsBase):
-  protobuf = user_pb2.ApiCreateHuntApprovalArgs
+  protobuf = api_user_pb2.ApiCreateHuntApprovalArgs
   rdf_deps = [
       ApiHuntApproval,
       api_hunt.ApiHuntId,
@@ -973,7 +967,7 @@ class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
 
 
 class ApiGetHuntApprovalArgs(ApiHuntApprovalArgsBase):
-  protobuf = user_pb2.ApiGetHuntApprovalArgs
+  protobuf = api_user_pb2.ApiGetHuntApprovalArgs
   rdf_deps = [
       api_hunt.ApiHuntId,
   ]
@@ -989,7 +983,7 @@ class ApiGetHuntApprovalHandler(ApiGetApprovalHandlerBase):
 
 
 class ApiGrantHuntApprovalArgs(ApiHuntApprovalArgsBase):
-  protobuf = user_pb2.ApiGrantHuntApprovalArgs
+  protobuf = api_user_pb2.ApiGrantHuntApprovalArgs
   rdf_deps = [
       api_hunt.ApiHuntId,
   ]
@@ -1007,11 +1001,11 @@ class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
 
 
 class ApiListHuntApprovalsArgs(ApiHuntApprovalArgsBase):
-  protobuf = user_pb2.ApiListHuntApprovalsArgs
+  protobuf = api_user_pb2.ApiListHuntApprovalsArgs
 
 
 class ApiListHuntApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListHuntApprovalsResult
+  protobuf = api_user_pb2.ApiListHuntApprovalsResult
   rdf_deps = [
       ApiHuntApproval,
   ]
@@ -1051,15 +1045,12 @@ class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  def BuildSubjectUrn(self):
-    return self.cron_job_id.ToURN()
-
   def BuildSubjectId(self):
     return utils.SmartStr(self.cron_job_id)
 
 
 class ApiCreateCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
-  protobuf = user_pb2.ApiCreateCronJobApprovalArgs
+  protobuf = api_user_pb2.ApiCreateCronJobApprovalArgs
   rdf_deps = [
       api_cron.ApiCronJobId,
       ApiCronJobApproval,
@@ -1079,7 +1070,7 @@ class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
 
 
 class ApiGetCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
-  protobuf = user_pb2.ApiGetCronJobApprovalArgs
+  protobuf = api_user_pb2.ApiGetCronJobApprovalArgs
   rdf_deps = [
       api_cron.ApiCronJobId,
   ]
@@ -1096,7 +1087,7 @@ class ApiGetCronJobApprovalHandler(ApiGetApprovalHandlerBase):
 
 
 class ApiGrantCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
-  protobuf = user_pb2.ApiGrantCronJobApprovalArgs
+  protobuf = api_user_pb2.ApiGrantCronJobApprovalArgs
   rdf_deps = [
       api_cron.ApiCronJobId,
   ]
@@ -1115,11 +1106,11 @@ class ApiGrantCronJobApprovalHandler(ApiGrantApprovalHandlerBase):
 
 
 class ApiListCronJobApprovalsArgs(ApiCronJobApprovalArgsBase):
-  protobuf = user_pb2.ApiListCronJobApprovalsArgs
+  protobuf = api_user_pb2.ApiListCronJobApprovalsArgs
 
 
 class ApiListCronJobApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListCronJobApprovalsResult
+  protobuf = api_user_pb2.ApiListCronJobApprovalsResult
   rdf_deps = [
       ApiCronJobApproval,
   ]
@@ -1193,7 +1184,7 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiGetPendingUserNotificationsCountResult
+  protobuf = api_user_pb2.ApiGetPendingUserNotificationsCountResult
 
 
 class ApiGetPendingUserNotificationsCountHandler(
@@ -1212,14 +1203,14 @@ class ApiGetPendingUserNotificationsCountHandler(
 
 
 class ApiListPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListPendingUserNotificationsArgs
+  protobuf = api_user_pb2.ApiListPendingUserNotificationsArgs
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
 
 
 class ApiListPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListPendingUserNotificationsResult
+  protobuf = api_user_pb2.ApiListPendingUserNotificationsResult
   rdf_deps = [
       ApiNotification,
   ]
@@ -1239,8 +1230,8 @@ class ApiListPendingUserNotificationsHandler(
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         timerange=(args.timestamp, None))
 
-    # TODO(user): after AFF4 migration, remove this, so that the order
-    # is reversed.
+    # TODO(user): Remove this, so that the order is reversed. This will
+    # be an API-breaking change.
     ns = sorted(ns, key=lambda x: x.timestamp)
 
     # Make sure that only notifications with timestamp > args.timestamp
@@ -1255,7 +1246,7 @@ class ApiListPendingUserNotificationsHandler(
 
 
 class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiDeletePendingUserNotificationArgs
+  protobuf = api_user_pb2.ApiDeletePendingUserNotificationArgs
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
@@ -1275,11 +1266,11 @@ class ApiDeletePendingUserNotificationHandler(
 
 
 class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListAndResetUserNotificationsArgs
+  protobuf = api_user_pb2.ApiListAndResetUserNotificationsArgs
 
 
 class ApiListAndResetUserNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListAndResetUserNotificationsResult
+  protobuf = api_user_pb2.ApiListAndResetUserNotificationsResult
   rdf_deps = [
       ApiNotification,
   ]
@@ -1332,17 +1323,17 @@ class ApiListAndResetUserNotificationsHandler(
 
 
 class ApiListApproverSuggestionsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListApproverSuggestionsArgs
+  protobuf = api_user_pb2.ApiListApproverSuggestionsArgs
   rdf_deps = []
 
 
 class ApproverSuggestion(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListApproverSuggestionsResult.ApproverSuggestion
+  protobuf = api_user_pb2.ApiListApproverSuggestionsResult.ApproverSuggestion
   rdf_deps = []
 
 
 class ApiListApproverSuggestionsResult(rdf_structs.RDFProtoStruct):
-  protobuf = user_pb2.ApiListApproverSuggestionsResult
+  protobuf = api_user_pb2.ApiListApproverSuggestionsResult
   rdf_deps = [ApproverSuggestion]
 
 

@@ -9,7 +9,6 @@ import io
 import logging
 import time
 
-
 from absl import flags
 from absl.testing import absltest
 from future.utils import with_metaclass
@@ -36,11 +35,11 @@ def GetClientTestTargets(grr_api=None,
 
   Args:
     grr_api: GRR API object.
-    client_ids: list of client id URN strings or rdf_client.ClientURNs.
+    client_ids: list of client id strings.
     hostnames: list of hostnames to search for.
     checkin_duration_threshold: clients that haven't checked in for this long
-                                will be excluded. Value is specified in seconds.
-                                Default is 1 hour.
+      will be excluded. Value is specified in seconds. Default is 1 hour.
+
   Returns:
     client_id_set: list of api_client.Client objects corresponding to every
                    client found.
@@ -134,8 +133,9 @@ class WaitForNewFileContextManager(object):
           return
 
       if time.time() - start_time > flags.FLAGS.flow_results_sla_secs:
-        raise RuntimeError("File couldn't be found after %d seconds of trying."
-                           % flags.FLAGS.flow_results_sla_secs)
+        raise RuntimeError(
+            "File couldn't be found after %d seconds of trying." %
+            flags.FLAGS.flow_results_sla_secs)
 
       time.sleep(EndToEndTest.RETRY_DELAY)
 

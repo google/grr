@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import copy
 import logging
 
-
 from future.utils import iteritems
 
 from grr_response_core import config

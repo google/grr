@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-
 from future.moves.urllib import parse as urlparse
 from past.builtins import long
 

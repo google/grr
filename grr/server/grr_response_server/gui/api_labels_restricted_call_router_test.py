@@ -4,13 +4,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.utils import iteritems
 from future.utils import iterkeys
 
 from grr_response_server import access_control
-from grr_response_server import aff4
 from grr_response_server import data_store
 
 from grr_response_server.flows.general import processes
@@ -19,30 +17,21 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class CheckClientLabelsTest(db_test_lib.RelationalDBEnabledMixin,
-                            test_lib.GRRBaseTest):
+class CheckClientLabelsTest(test_lib.GRRBaseTest):
   """Tests for CheckClientLabels function."""
 
   def setUp(self):
     super(CheckClientLabelsTest, self).setUp()
-    self.client_urn = self.SetupClient(0)
-    self.client_id = api_client.ApiClientId(self.client_urn.Basename())
+    self.client_id = self.SetupClient(0)
 
     self.labels_whitelist = ["foo"]
     self.labels_owners_whitelist = ["GRR"]
 
   def _AddLabel(self, name, owner=None):
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.AddClientLabels(self.client_urn.Basename(), owner,
-                                        [name])
-    else:
-      with aff4.FACTORY.Open(
-          self.client_urn, mode="rw", token=self.token) as fd:
-        fd.AddLabel(name, owner=owner)
+    data_store.REL_DB.AddClientLabels(self.client_id, owner, [name])
 
   def testDoesNotRaiseWhenLabelMatches(self):
     self._AddLabel("foo", owner="GRR")
@@ -99,8 +88,7 @@ class CheckClientLabelsTest(db_test_lib.RelationalDBEnabledMixin,
           token=self.token)
 
 
-class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
-                                        test_lib.GRRBaseTest,
+class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
                                         acl_test_lib.AclTestMixin):
   """Tests for an ApiLabelsRestrictedCallRouter."""
 
@@ -120,7 +108,6 @@ class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
       # Reflection methods.
       "ListKbFields",
       "ListFlowDescriptors",
-      "ListAff4AttributeDescriptors",
       "GetRDFValueDescriptor",
       "ListRDFValuesDescriptors",
       "ListOutputPluginDescriptors",
@@ -158,15 +145,8 @@ class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
   def setUp(self):
     super(ApiLabelsRestrictedCallRouterTest, self).setUp()
 
-    self.client_urn = self.SetupClient(0)
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.AddClientLabels(self.client_urn.Basename(), "GRR",
-                                        ["foo"])
-    else:
-      with aff4.FACTORY.Open(
-          self.client_urn, mode="rw", token=self.token) as fd:
-        fd.AddLabel("foo", owner="GRR")
-    self.client_id = self.client_urn.Basename()
+    self.client_id = self.SetupClient(0)
+    data_store.REL_DB.AddClientLabels(self.client_id, "GRR", ["foo"])
 
     self.hunt_id = "H:123456"
 
@@ -267,7 +247,6 @@ class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
     # Reflection methods.
     self.CheckMethod(c.ListKbFields)
     self.CheckMethod(c.ListFlowDescriptors)
-    self.CheckMethod(c.ListAff4AttributeDescriptors)
     self.CheckMethod(c.GetRDFValueDescriptor)
     self.CheckMethod(c.ListRDFValuesDescriptors)
     self.CheckMethod(c.ListOutputPluginDescriptors)
@@ -341,7 +320,7 @@ class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledApprovedClient(self):
-    self.RequestAndGrantClientApproval(self.client_urn)
+    self.RequestAndGrantClientApproval(self.client_id)
 
     params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"])
@@ -391,7 +370,7 @@ class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledAndApprovedClient(self):
-    self.RequestAndGrantClientApproval(self.client_urn)
+    self.RequestAndGrantClientApproval(self.client_id)
 
     params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], allow_vfs_access=True)
@@ -447,7 +426,7 @@ class ApiLabelsRestrictedCallRouterTest(db_test_lib.RelationalDBEnabledMixin,
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledAndApprovedClient(self):
-    self.RequestAndGrantClientApproval(self.client_urn)
+    self.RequestAndGrantClientApproval(self.client_id)
 
     params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], allow_flows_access=True)

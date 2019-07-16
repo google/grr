@@ -26,18 +26,14 @@ from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import export
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.check_lib import checks
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
-from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import export_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -122,7 +118,7 @@ class ExportTestBase(test_lib.GRRBaseTest):
     self.metadata = export.ExportedMetadata(client_urn=self.client_id)
 
 
-class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
+class ExportTest(ExportTestBase):
   """Tests export converters."""
 
   def testConverterIsCorrectlyFound(self):
@@ -163,53 +159,6 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
                     (result[0] == DummyRDFValue2("someB") and
                      result[1] == DummyRDFValue("someA")))
 
-  def _ConvertsCollectionWithValuesWithSingleConverter(self, coll_type):
-    with data_store.DB.GetMutationPool() as pool:
-      fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"))
-      src1 = rdf_client.ClientURN("C.0000000000000000")
-      fd.AddAsMessage(DummyRDFValue("some"), src1, mutation_pool=pool)
-      fixture_test_lib.ClientFixture(src1, token=self.token)
-
-      src2 = rdf_client.ClientURN("C.0000000000000001")
-      fd.AddAsMessage(DummyRDFValue("some2"), src2, mutation_pool=pool)
-      fixture_test_lib.ClientFixture(src2, token=self.token)
-
-    results = export.ConvertValues(self.metadata, [fd], token=self.token)
-    results = sorted(str(v) for v in results)
-
-    self.assertLen(results, 2)
-    self.assertEqual(results[0], "some")
-    self.assertEqual(results[1], "some2")
-
-  def testConvertsHuntResultCollectionWithValuesWithSingleConverter(self):
-    self._ConvertsCollectionWithValuesWithSingleConverter(
-        hunts_results.HuntResultCollection)
-
-  def _ConvertsCollectionWithMultipleConverters(self, coll_type):
-    fd = coll_type(rdfvalue.RDFURN("aff4:/testcoll"))
-
-    with data_store.DB.GetMutationPool() as pool:
-      src1 = rdf_client.ClientURN("C.0000000000000000")
-      fd.AddAsMessage(DummyRDFValue3("some1"), src1, mutation_pool=pool)
-      fixture_test_lib.ClientFixture(src1, token=self.token)
-
-      src2 = rdf_client.ClientURN("C.0000000000000001")
-      fd.AddAsMessage(DummyRDFValue3("some2"), src2, mutation_pool=pool)
-      fixture_test_lib.ClientFixture(src2, token=self.token)
-
-    results = export.ConvertValues(self.metadata, [fd], token=self.token)
-    results = sorted(results, key=str)
-
-    self.assertLen(results, 4)
-    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue)],
-                     ["some1A", "some2A"])
-    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue2)],
-                     ["some1B", "some2B"])
-
-  def testConvertsHuntResultCollectionWithValuesWithMultipleConverters(self):
-    self._ConvertsCollectionWithMultipleConverters(
-        hunts_results.HuntResultCollection)
-
   def testStatEntryToExportedFileConverterWithMissingAFF4File(self):
     stat = rdf_client_fs.StatEntry(
         pathspec=rdf_paths.PathSpec(
@@ -225,7 +174,8 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].basename, "path")
-    self.assertEqual(results[0].urn, self.client_id.Add("fs/os/some/path"))
+    self.assertEqual(results[0].urn,
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
     self.assertEqual(results[0].st_mode, 33184)
     self.assertEqual(results[0].st_ino, 1063090)
     self.assertEqual(results[0].st_atime, 1336469177)
@@ -253,18 +203,11 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
         client_id=self.client_id,
         pathspec=pathspec)
 
-    urn = pathspec.AFF4Path(self.client_id)
-
-    if data_store.RelationalDBEnabled():
-      path_info = data_store.REL_DB.ReadPathInfo(
-          self.client_id.Basename(),
-          rdf_objects.PathInfo.PathType.TSK,
-          components=tuple(pathspec.CollapsePath().lstrip("/").split("/")))
-      stat = path_info.stat_entry
-    else:
-      fd = aff4.FACTORY.Open(urn, token=self.token)
-
-      stat = fd.Get(fd.Schema.STAT)
+    path_info = data_store.REL_DB.ReadPathInfo(
+        self.client_id,
+        rdf_objects.PathInfo.PathType.TSK,
+        components=tuple(pathspec.CollapsePath().lstrip("/").split("/")))
+    stat = path_info.stat_entry
 
     self.assertTrue(stat)
 
@@ -273,6 +216,7 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].basename, "Ext2IFS_1_10b.exe")
+    urn = "aff4:/%s/fs/tsk%s" % (self.client_id, pathspec.CollapsePath())
     self.assertEqual(results[0].urn, urn)
 
     # Check that by default file contents are not exported
@@ -305,7 +249,7 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
         pathspec=pathspec)
 
     path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-    path_info = data_store.REL_DB.ReadPathInfo(self.client_id.Basename(),
+    path_info = data_store.REL_DB.ReadPathInfo(self.client_id,
                                                path_info.path_type,
                                                tuple(path_info.components))
     hash_value = path_info.hash_entry
@@ -360,9 +304,8 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
 
     self.assertLen(results, 1)
     self.assertEqual(
-        results[0].urn,
-        self.client_id.Add("registry/HKEY_USERS/S-1-5-20/Software/"
-                           "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
+        results[0].urn, "aff4:/%s/registry/HKEY_USERS/S-1-5-20/Software/"
+        "Microsoft/Windows/CurrentVersion/Run/Sidebar" % self.client_id)
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].type,
@@ -401,9 +344,9 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
     self.assertLen(results, 1)
     self.assertEqual(
         results[0].urn,
-        rdfvalue.RDFURN(
-            self.client_id.Add("registry/HKEY_USERS/S-1-5-20/Software/"
-                               "Microsoft/Windows/CurrentVersion/Run/Sidebar")))
+        rdfvalue.RDFURN("aff4:/%s/registry/HKEY_USERS/S-1-5-20/Software/"
+                        "Microsoft/Windows/CurrentVersion/Run/Sidebar" %
+                        self.client_id))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].data, "")
@@ -496,38 +439,6 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
     self.assertEqual(results[1].remote_address.port, 6667)
     self.assertEqual(results[1].pid, 1)
     self.assertEqual(results[1].ctime, 0)
-
-  def testRDFURNConverterWithURNPointingToFile(self):
-    if data_store.RelationalDBEnabled():
-      self.skipTest("This converter is used with AFF4 only.")
-
-    urn = self.client_id.Add("fs/os/some/path")
-
-    stat_entry = rdf_client_fs.StatEntry()
-    stat_entry.pathspec.path = "/some/path"
-    stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-    stat_entry.st_mode = 33184
-    stat_entry.st_ino = 1063090
-    stat_entry.st_atime = 1336469177
-    stat_entry.st_mtime = 1336129892
-    stat_entry.st_ctime = 1336129892
-
-    with aff4.FACTORY.Create(urn, aff4_grr.VFSFile, token=self.token) as fd:
-      fd.Set(fd.Schema.STAT(stat_entry))
-
-    converter = export.RDFURNConverter()
-    results = list(converter.Convert(self.metadata, urn, token=self.token))
-
-    self.assertNotEmpty(results)
-
-    exported_files = [
-        r for r in results if r.__class__.__name__ == "ExportedFile"
-    ]
-    self.assertLen(exported_files, 1)
-    exported_file = exported_files[0]
-
-    self.assertTrue(exported_file)
-    self.assertEqual(exported_file.urn, urn)
 
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
     client_summary = rdf_client.ClientSummary(interfaces=[
@@ -652,7 +563,8 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
     self.assertEqual(results[0].offset, 42)
     self.assertEqual(results[0].length, 43)
     self.assertEqual(results[0].data, b"somedata")
-    self.assertEqual(results[0].urn, self.client_id.Add("fs/os/some/path"))
+    self.assertEqual(results[0].urn,
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
 
   def testFileFinderResultExportConverter(self):
     pathspec = rdf_paths.PathSpec(
@@ -685,7 +597,7 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
 
     self.assertEqual(exported_files[0].basename, "path")
     self.assertEqual(exported_files[0].urn,
-                     self.client_id.Add("fs/os/some/path"))
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
     self.assertEqual(exported_files[0].st_mode, 33184)
     self.assertEqual(exported_files[0].st_ino, 1063090)
     self.assertEqual(exported_files[0].st_atime, 1336469177)
@@ -709,13 +621,13 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
     self.assertEqual(exported_matches[0].length, 43)
     self.assertEqual(exported_matches[0].data, b"somedata1")
     self.assertEqual(exported_matches[0].urn,
-                     self.client_id.Add("fs/os/some/path"))
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
 
     self.assertEqual(exported_matches[1].offset, 44)
     self.assertEqual(exported_matches[1].length, 45)
     self.assertEqual(exported_matches[1].data, b"somedata2")
     self.assertEqual(exported_matches[1].urn,
-                     self.client_id.Add("fs/os/some/path"))
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
 
     # Also test registry entries.
     data = rdf_protodict.DataBlob()
@@ -737,7 +649,7 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
     self.assertEqual(result.data, b"testdata")
     self.assertEqual(
         result.urn,
-        self.client_id.Add("registry/HKEY_USERS/S-1-1-1-1/Software"))
+        "aff4:/%s/registry/HKEY_USERS/S-1-1-1-1/Software" % self.client_id)
 
   def testFileFinderResultExportConverterConvertsHashes(self):
     pathspec = rdf_paths.PathSpec(
@@ -898,7 +810,7 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
         "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg = rdf_flows.GrrMessage(payload=payload)
     msg.source = self.client_id
-    fixture_test_lib.ClientFixture(msg.source, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     metadata = export.ExportedMetadata(
         source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
@@ -917,16 +829,19 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
                      "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
 
   def testGrrMessageConverterWithOneMissingClient(self):
+    client_id_1 = "C.0000000000000000"
+    client_id_2 = "C.0000000000000001"
+
     payload1 = DummyRDFValue4(
         "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg1 = rdf_flows.GrrMessage(payload=payload1)
-    msg1.source = rdf_client.ClientURN("C.0000000000000000")
-    fixture_test_lib.ClientFixture(msg1.source, token=self.token)
+    msg1.source = client_id_1
+    fixture_test_lib.ClientFixture(client_id_1)
 
     payload2 = DummyRDFValue4(
         "some2", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg2 = rdf_flows.GrrMessage(payload=payload2)
-    msg2.source = rdf_client.ClientURN("C.0000000000000001")
+    msg2.source = client_id_2
 
     metadata1 = export.ExportedMetadata(
         source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
@@ -952,14 +867,15 @@ class ExportTest(db_test_lib.RelationalDBEnabledMixin, ExportTestBase):
   def testGrrMessageConverterMultipleTypes(self):
     payload1 = DummyRDFValue3(
         "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    client_id = "C.0000000000000000"
     msg1 = rdf_flows.GrrMessage(payload=payload1)
-    msg1.source = rdf_client.ClientURN("C.0000000000000000")
-    fixture_test_lib.ClientFixture(msg1.source, token=self.token)
+    msg1.source = client_id
+    fixture_test_lib.ClientFixture(client_id)
 
     payload2 = DummyRDFValue5(
         "some2", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     msg2 = rdf_flows.GrrMessage(payload=payload2)
-    msg2.source = rdf_client.ClientURN("C.0000000000000000")
+    msg2.source = client_id
 
     metadata1 = export.ExportedMetadata(
         source_urn=rdfvalue.RDFURN("aff4:/hunts/" + str(queues.HUNTS) +
@@ -1136,8 +1052,8 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
     # Test that something gets exported and that this something wasn't
     # produced by ArtifactFilesDownloaderResultConverter.
     self.assertLen(converted, 1)
-    self.assertFalse(
-        isinstance(converted[0], export.ExportedArtifactFilesDownloaderResult))
+    self.assertNotIsInstance(converted[0],
+                             export.ExportedArtifactFilesDownloaderResult)
 
   def testExportsOriginalResultIfOriginalResultIsNotRegistryOrFileStatEntry(
       self):
@@ -1152,8 +1068,8 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
     # Test that something gets exported and that this something wasn't
     # produced by ArtifactFilesDownloaderResultConverter.
     self.assertLen(converted, 1)
-    self.assertFalse(
-        isinstance(converted[0], export.ExportedArtifactFilesDownloaderResult))
+    self.assertNotIsInstance(converted[0],
+                             export.ExportedArtifactFilesDownloaderResult)
 
   def testYieldsOneResultAndOneOriginalValueForFileStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
@@ -1436,8 +1352,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
     self.assertIsInstance(converted_value.urn_value, rdfvalue.RDFURN)
     self.assertEqual(converted_value.urn_value, rdfvalue.RDFURN("aff4:/bar"))
 
-    self.assertTrue(
-        isinstance(converted_value.datetime_value, rdfvalue.RDFDatetime))
+    self.assertIsInstance(converted_value.datetime_value, rdfvalue.RDFDatetime)
     self.assertEqual(converted_value.datetime_value,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
 
@@ -1533,15 +1448,14 @@ class OsqueryExportConverterTest(absltest.TestCase):
     self.assertEqual(results[2].foo, "blargh")
 
 
-class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
-                      test_lib.GRRBaseTest):
+class GetMetadataTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(GetMetadataTest, self).setUp()
     self.client_id = "C.4815162342108107"
 
   def testGetMetadataWithSingleUserLabel(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
     self.AddClientLabel(self.client_id, self.token.username, "client-label-24")
 
     metadata = export.GetMetadata(
@@ -1553,7 +1467,7 @@ class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(metadata.hardware_info.bios_version, "Version 1.23v")
 
   def testGetMetadataWithTwoUserLabels(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
     self.AddClientLabel(self.client_id, self.token.username, "a")
     self.AddClientLabel(self.client_id, self.token.username, "b")
 
@@ -1565,7 +1479,7 @@ class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(metadata.system_labels, "")
 
   def testGetMetadataWithSystemLabels(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
     self.AddClientLabel(self.client_id, self.token.username, "a")
     self.AddClientLabel(self.client_id, self.token.username, "b")
     self.AddClientLabel(self.client_id, "GRR", "c")
@@ -1589,7 +1503,7 @@ class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(metadata.usernames)
 
   def testGetMetadataWithoutCloudInstanceSet(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
 
     metadata = export.GetMetadata(
         self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
@@ -1597,7 +1511,7 @@ class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(metadata.HasField("cloud_instance_id"))
 
   def testGetMetadataWithGoogleCloudInstanceID(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
     snapshot.cloud_instance = rdf_cloud.CloudInstance(
         cloud_type=rdf_cloud.CloudInstance.InstanceType.GOOGLE,
@@ -1611,7 +1525,7 @@ class GetMetadataTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(metadata.cloud_instance_id, "foo/bar")
 
   def testGetMetadataWithAmazonCloudInstanceID(self):
-    fixture_test_lib.ClientFixture(self.client_id, token=self.token)
+    fixture_test_lib.ClientFixture(self.client_id)
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
     snapshot.cloud_instance = rdf_cloud.CloudInstance(
         cloud_type=rdf_cloud.CloudInstance.InstanceType.AMAZON,

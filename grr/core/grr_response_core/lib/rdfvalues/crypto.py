@@ -10,7 +10,6 @@ import hashlib
 import logging
 import os
 
-
 from cryptography import exceptions
 from cryptography import x509
 from cryptography.hazmat.backends import openssl
@@ -38,6 +37,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import random
 from grr_response_proto import jobs_pb2
@@ -63,6 +63,7 @@ class Certificate(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.Certificate
 
 
+@python_2_unicode_compatible
 class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
@@ -120,14 +121,14 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
 
   def SerializeToString(self):
     if self._value is None:
-      return ""
+      return b""
     return self._value.public_bytes(encoding=serialization.Encoding.PEM)
 
   def AsPEM(self):
     return self.SerializeToString()
 
   def __str__(self):
-    return self.SerializeToString()
+    return self.SerializeToString().decode("ascii")
 
   def Verify(self, public_key):
     """Verifies the certificate using the given key.
@@ -208,6 +209,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     return type(self), (self.SerializeToString(), self.age)
 
 
+@python_2_unicode_compatible
 class CertificateSigningRequest(rdfvalue.RDFValue):
   """A CSR Rdfvalue."""
 
@@ -244,14 +246,14 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
 
   def SerializeToString(self):
     if self._value is None:
-      return ""
+      return b""
     return self._value.public_bytes(serialization.Encoding.PEM)
 
   def AsPEM(self):
     return self.SerializeToString()
 
   def __str__(self):
-    return self.SerializeToString()
+    return self.SerializeToString().decode("ascii")
 
   def GetCN(self):
     subject = self._value.subject
@@ -276,6 +278,7 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
     return True
 
 
+@python_2_unicode_compatible
 class RSAPublicKey(rdfvalue.RDFPrimitive):
   """An RSA public key."""
 
@@ -313,7 +316,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
 
   def SerializeToString(self):
     if self._value is None:
-      return ""
+      return b""
     return self._value.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo)
@@ -322,7 +325,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return self._value.public_numbers().n
 
   def __str__(self):
-    return self.SerializeToString()
+    return self.SerializeToString().decode("ascii")
 
   def AsPEM(self):
     return self.SerializeToString()
@@ -372,6 +375,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     raise VerificationError(last_e)
 
 
+@python_2_unicode_compatible
 class RSAPrivateKey(rdfvalue.RDFPrimitive):
   """An RSA private key."""
 
@@ -478,7 +482,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
 
   def SerializeToString(self):
     if self._value is None:
-      return ""
+      return b""
     return self._value.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,
@@ -486,7 +490,14 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
 
   def __str__(self):
     digest = hashlib.sha256(self.AsPEM()).hexdigest()
-    return "%s (%s)" % (self.__class__.__name__, digest)
+
+    # TODO: `hexdigest` returns a unicode object in Python 3, but
+    # bytes object in Python 2. Once support for Python 2 is dropped, this can
+    # be safely removed.
+    if compatibility.PY2:
+      digest = digest.decode("ascii")
+
+    return "%s (%s)" % (compatibility.GetName(self.__class__), digest)
 
   def AsPEM(self):
     return self.SerializeToString()

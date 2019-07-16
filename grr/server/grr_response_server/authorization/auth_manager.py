@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import collections
 import logging
 
-
 from future.utils import iterkeys
 from future.utils import itervalues
 import yaml as pyyaml

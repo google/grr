@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from selenium.webdriver.common import keys
 
@@ -19,12 +18,10 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.GRRSeleniumHuntTest):
+class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   """Test the "new hunt wizard" GUI."""
 
   @staticmethod
@@ -444,7 +441,7 @@ class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
                      "css=grr-wizard-form:contains('DummyOutputPlugin')")
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     self.AddClientLabel(client_id, u"owner1", u"foo")
     self.AddClientLabel(client_id, u"owner2", u"bar")
@@ -536,9 +533,9 @@ class TestNewHuntWizard(db_test_lib.RelationalDBEnabledMixin,
     hunt = hunts_list[0]
     lib_hunt.StartHunt(hunt.hunt_id)
 
-    foreman_obj = foreman.GetForeman(token=self.token)
+    foreman_obj = foreman.Foreman()
     for client_id in client_ids:
-      tasks_assigned = foreman_obj.AssignTasksToClient(client_id.Basename())
+      tasks_assigned = foreman_obj.AssignTasksToClient(client_id)
       if client_id in [client_ids[1], client_ids[7]]:
         self.assertTrue(tasks_assigned)
       else:

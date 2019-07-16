@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.utils import itervalues
 
@@ -59,7 +58,7 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
     methods = api_call_router.ApiCallRouterStub.GetAnnotatedMethods()
     for method in itervalues(methods):
       if method.args_type is None:
-        continue  # Skip methods like ListAff4AttributeDescriptors.
+        continue  # Skip methods like ListOutputPluginDescriptors.
 
       valid_parameters = method.args_type.type_infos.descriptor_names
       for name in method.GetQueryParamsNames():

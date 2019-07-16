@@ -8,7 +8,6 @@ import logging
 import threading
 import time
 
-
 from absl import app
 from future.builtins import range
 import queue

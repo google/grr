@@ -15,28 +15,21 @@ from grr_response_core.lib import communicator
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
-from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import ip_resolver
 from grr_response_server import prometheus_stats_collector
-from grr_response_server import sequential_collection
 from grr_response_server import server_logging
 from grr_response_server import server_metrics
 from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server import stats_server
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import cronjobs
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.check_lib import checks
-from grr_response_server.data_stores import fake_data_store
 from grr_response_server.gui import gui_plugins  # pylint: disable=unused-import
 from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
-from grr_response_server.hunts import results
 from grr.test_lib import blob_store_test_lib
 
 # Make sure we do not reinitialize multiple times.
@@ -83,12 +76,6 @@ def TestInit():
   config.CONFIG.AddContext(contexts.TEST_CONTEXT,
                            "Context applied when we run tests.")
 
-  test_ds = flags.FLAGS.test_data_store
-  if test_ds is None:
-    test_ds = compatibility.GetName(fake_data_store.FakeDataStore)
-
-  config.CONFIG.Set("Datastore.implementation", test_ds)
-
   if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()
     server_logging.SetTestVerbosity()
@@ -97,26 +84,14 @@ def TestInit():
 
   data_store.InitializeDataStore()
 
-  if data_store.AFF4Enabled():
-    aff4.AFF4Init()  # Requires data_store.InitializeDataStore.
-    aff4_grr.GRRAFF4Init()  # Requires aff4.AFF4Init.
-    results.ResultQueueInit()  # Requires aff4.AFF4Init.
-    sequential_collection.StartUpdaterOnce()
-
-  artifact.LoadArtifactsOnce()  # Requires aff4.AFF4Init.
+  artifact.LoadArtifactsOnce()
   checks.LoadChecksFromFilesystemOnce()
   client_approval_auth.InitializeClientApprovalAuthorizationManagerOnce()
-  cronjobs.InitializeCronWorkerOnce()  # Requires aff4.AFF4Init.
   email_alerts.InitializeEmailAlerterOnce()
   http_api.InitializeHttpRequestHandlerOnce()
   ip_resolver.IPResolverInitOnce()
   stats_server.InitializeStatsServerOnce()
   webauth.InitializeWebAuthOnce()
-
-  db = data_store.DB.SetupTestDB()
-  if db:
-    data_store.DB = db
-  data_store.DB.Initialize()
 
   if not utils.TimeBasedCache.house_keeper_thread:
     utils.TimeBasedCache()

@@ -11,30 +11,27 @@ from grr_response_core.lib import utils
 from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
-from grr.test_lib import db_test_lib
+from grr_response_server import hunt
 from grr.test_lib import test_lib
 
 
-class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
+class ForemanTests(test_lib.GRRBaseTest):
   """Tests the Foreman."""
 
   clients_started = []
 
-  def StartClients(self, hunt_id, clients):
+  def StartHuntFlowOnClient(self, client_id, hunt_id):
     # Keep a record of all the clients
-    for client in clients:
-      self.clients_started.append((hunt_id, client))
+    self.clients_started.append((hunt_id, client_id))
 
   def testOperatingSystemSelection(self):
     """Tests that we can distinguish based on operating system."""
-    self.SetupTestClientObject(1, system="Windows XP")
-    self.SetupTestClientObject(2, system="Linux")
-    self.SetupTestClientObject(3, system="Windows 7")
+    self.SetupClient(1, system="Windows XP")
+    self.SetupClient(2, system="Linux")
+    self.SetupClient(3, system="Windows 7")
 
-    with utils.Stubber(implementation.GRRHunt, "StartClients",
-                       self.StartClients):
+    with utils.Stubber(hunt, "StartHuntFlowOnClient",
+                       self.StartHuntFlowOnClient):
       # Now setup the filters
       now = rdfvalue.RDFDatetime.Now()
       expiration_time = now + rdfvalue.DurationSeconds("1h")
@@ -44,8 +41,7 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
           creation_time=now,
           expiration_time=expiration_time,
           description="Test rule",
-          hunt_name=standard.GenericHunt.__name__,
-          hunt_id="H:111111")
+          hunt_id="111111")
 
       # Matches Windows boxes
       rule.client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
@@ -57,7 +53,7 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
       data_store.REL_DB.WriteForemanRule(rule)
 
       self.clients_started = []
-      foreman_obj = foreman.GetForeman()
+      foreman_obj = foreman.Foreman()
       foreman_obj.AssignTasksToClient(u"C.1000000000000001")
       foreman_obj.AssignTasksToClient(u"C.1000000000000002")
       foreman_obj.AssignTasksToClient(u"C.1000000000000003")
@@ -82,18 +78,15 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
     base_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1336480583.077736)
     boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1336300000.000000)
 
-    self.SetupTestClientObject(
-        0x11, system="Windows XP", install_time=base_time)
-    self.SetupTestClientObject(0x12, system="Windows 7", install_time=base_time)
+    self.SetupClient(0x11, system="Windows XP", install_time=base_time)
+    self.SetupClient(0x12, system="Windows 7", install_time=base_time)
     # This one was installed one week earlier.
     one_week_ago = base_time - rdfvalue.DurationSeconds("1w")
-    self.SetupTestClientObject(
-        0x13, system="Windows 7", install_time=one_week_ago)
-    self.SetupTestClientObject(
-        0x14, system="Windows 7", last_boot_time=boot_time)
+    self.SetupClient(0x13, system="Windows 7", install_time=one_week_ago)
+    self.SetupClient(0x14, system="Windows 7", last_boot_time=boot_time)
 
-    with utils.Stubber(implementation.GRRHunt, "StartClients",
-                       self.StartClients):
+    with utils.Stubber(hunt, "StartHuntFlowOnClient",
+                       self.StartHuntFlowOnClient):
       now = rdfvalue.RDFDatetime.Now()
       expiration_time = now + rdfvalue.DurationSeconds("1h")
 
@@ -102,8 +95,7 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
           creation_time=now,
           expiration_time=expiration_time,
           description="Test rule(old)",
-          hunt_name=standard.GenericHunt.__name__,
-          hunt_id="H:111111")
+          hunt_id="111111")
 
       # Matches the old client
       one_hour_ago = base_time - rdfvalue.DurationSeconds("1h")
@@ -124,8 +116,7 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
           creation_time=now,
           expiration_time=expiration_time,
           description="Test rule(new)",
-          hunt_name=standard.GenericHunt.__name__,
-          hunt_id="H:222222")
+          hunt_id="222222")
 
       # Matches the newer clients
       rule.client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
@@ -145,8 +136,7 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
           creation_time=now,
           expiration_time=expiration_time,
           description="Test rule(eq)",
-          hunt_name=standard.GenericHunt.__name__,
-          hunt_id="H:333333")
+          hunt_id="333333")
 
       # Note that this also tests the handling of nonexistent attributes.
       rule.client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
@@ -160,7 +150,7 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
 
       data_store.REL_DB.WriteForemanRule(rule)
 
-      foreman_obj = foreman.GetForeman()
+      foreman_obj = foreman.Foreman()
 
       self.clients_started = []
       foreman_obj.AssignTasksToClient(u"C.1000000000000011")
@@ -171,17 +161,17 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
       # Make sure that the clients ran the correct flows.
       self.assertLen(self.clients_started, 4)
       self.assertEqual(self.clients_started[0][1], u"C.1000000000000011")
-      self.assertEqual("H:222222", self.clients_started[0][0].Basename())
+      self.assertEqual("222222", self.clients_started[0][0])
       self.assertEqual(self.clients_started[1][1], u"C.1000000000000012")
-      self.assertEqual("H:222222", self.clients_started[1][0].Basename())
+      self.assertEqual("222222", self.clients_started[1][0])
       self.assertEqual(self.clients_started[2][1], u"C.1000000000000013")
-      self.assertEqual("H:111111", self.clients_started[2][0].Basename())
+      self.assertEqual("111111", self.clients_started[2][0])
       self.assertEqual(self.clients_started[3][1], u"C.1000000000000014")
-      self.assertEqual("H:333333", self.clients_started[3][0].Basename())
+      self.assertEqual("333333", self.clients_started[3][0])
 
   def testRuleExpiration(self):
     with test_lib.FakeTime(1000):
-      foreman_obj = foreman.GetForeman()
+      foreman_obj = foreman.Foreman()
 
       rules = []
       rules.append(
@@ -189,27 +179,27 @@ class ForemanTests(db_test_lib.RelationalDBEnabledMixin, test_lib.GRRBaseTest):
               creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
               expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1500),
               description="Test rule1",
-              hunt_id="H:111111"))
+              hunt_id="111111"))
       rules.append(
           foreman_rules.ForemanCondition(
               creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
               expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1200),
               description="Test rule2",
-              hunt_id="H:222222"))
+              hunt_id="222222"))
       rules.append(
           foreman_rules.ForemanCondition(
               creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
               expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1500),
               description="Test rule3",
-              hunt_id="H:333333"))
+              hunt_id="333333"))
       rules.append(
           foreman_rules.ForemanCondition(
               creation_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1000),
               expiration_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1300),
               description="Test rule4",
-              hunt_id="H:444444"))
+              hunt_id="444444"))
 
-      client_id = self.SetupTestClientObject(0x21).client_id
+      client_id = self.SetupClient(0x21)
 
       # Clear the rule set and add the new rules to it.
       for rule in rules:

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import logging
 
-
 from future.utils import with_metaclass
 
 from grr_response_core import config

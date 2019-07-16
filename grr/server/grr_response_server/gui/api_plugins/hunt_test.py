@@ -9,7 +9,6 @@ import os
 import tarfile
 import zipfile
 
-
 from absl import app
 from future.builtins import range
 import yaml
@@ -17,21 +16,17 @@ import yaml
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
-from grr_response_server.hunts import implementation
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -55,21 +50,19 @@ class ApiHuntIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     with self.assertRaises(ValueError):
       hunt_plugin.ApiHuntId("H:1234/foo")
 
-  def testRaisesWhenToURNCalledOnUninitializedValue(self):
+  def testRaisesWhenToStringCalledOnUninitializedValue(self):
     hunt_id = hunt_plugin.ApiHuntId()
     with self.assertRaises(ValueError):
-      hunt_id.ToURN()
+      hunt_id.ToString()
 
-  def testConvertsToHuntURN(self):
-    hunt_id = hunt_plugin.ApiHuntId("H:1234")
-    hunt_urn = hunt_id.ToURN()
+  def testConvertsToString(self):
+    hunt_id = hunt_plugin.ApiHuntId("1234")
+    hunt_id_str = hunt_id.ToString()
 
-    self.assertEqual(hunt_urn.Basename(), hunt_id)
-    self.assertEqual(hunt_urn, "aff4:/hunts/H:1234")
+    self.assertEqual(hunt_id_str, "1234")
 
 
-class ApiCreateHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest,
+class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiCreateHuntHandler."""
 
@@ -85,8 +78,7 @@ class ApiCreateHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(result.hunt_runner_args.HasField("queue"))
 
 
-class ApiListHuntsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                              api_test_lib.ApiCallHandlerTest,
+class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
                               hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiListHuntsHandler."""
 
@@ -147,25 +139,12 @@ class ApiListHuntsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(create_times[0], 10 * 60 * 1000000)
     self.assertEqual(create_times[1], 9 * 60 * 1000000)
 
-  # New implementation doesn't have this resriction.
-  @db_test_lib.LegacyDataStoreOnly
-  def testRaisesIfCreatedByFilterUsedWithoutActiveWithinFilter(self):
-    self.assertRaises(
-        ValueError,
-        self.handler.Handle,
-        hunt_plugin.ApiListHuntsArgs(created_by="user-bar"),
-        token=self.token)
-
   def testFiltersHuntsByCreator(self):
     for i in range(5):
-      self.CreateHunt(
-          description="foo_hunt_%d" % i,
-          token=access_control.ACLToken(username="user-foo"))
+      self.CreateHunt(description="foo_hunt_%d" % i, creator="user-foo")
 
     for i in range(3):
-      self.CreateHunt(
-          description="bar_hunt_%d" % i,
-          token=access_control.ACLToken(username="user-bar"))
+      self.CreateHunt(description="bar_hunt_%d" % i, creator="user-bar")
 
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntsArgs(created_by="user-foo", active_within="1d"),
@@ -241,8 +220,7 @@ class ApiListHuntsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEmpty(result.items)
 
 
-class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                        hunt_test_lib.StandardHuntTestMixin,
+class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                                         api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
@@ -251,7 +229,7 @@ class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.handler = hunt_plugin.ApiGetHuntFilesArchiveHandler()
 
     self.client_ids = self.SetupClients(10)
-    self.hunt_urn = self.StartHunt(
+    self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(
@@ -259,8 +237,7 @@ class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
             action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         ),
         client_rate=0,
-        token=self.token)
-    self.hunt_id = self.hunt_urn.Basename()
+        creator=self.token.username)
 
     self.RunHunt(
         client_ids=self.client_ids,
@@ -324,8 +301,7 @@ class ApiGetHuntFilesArchiveHandlerTest(db_test_lib.RelationalDBEnabledMixin,
             }, manifest)
 
 
-class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_test_lib.ApiCallHandlerTest,
+class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -334,9 +310,9 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.handler = hunt_plugin.ApiGetHuntFileHandler()
 
     self.file_path = os.path.join(self.base_path, "test.plist")
-    self.aff4_file_path = "fs/os/%s" % self.file_path
+    self.vfs_file_path = "fs/os/%s" % self.file_path
 
-    self.hunt_urn = self.StartHunt(
+    self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(
@@ -344,8 +320,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
             action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         ),
         client_rate=0,
-        token=self.token)
-    self.hunt_id = self.hunt_urn.Basename()
+        creator=self.token.username)
 
     self.client_id = self.SetupClient(0)
     self.RunHunt(
@@ -356,7 +331,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     model_args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
+        vfs_path=self.vfs_file_path,
         timestamp=rdfvalue.RDFDatetime.Now())
 
     args = model_args.Copy()
@@ -395,27 +370,10 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
+        vfs_path=self.vfs_file_path,
         timestamp=results[0].age + rdfvalue.DurationSeconds("1s"))
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
-
-  def _FillInStubResults(self):
-    results = implementation.GRRHunt.ResultCollectionForHID(
-        self.hunt_urn, token=self.token)
-    result = results[0]
-
-    with data_store.DB.GetMutationPool() as pool:
-      for i in range(self.handler.MAX_RECORDS_TO_CHECK):
-        wrong_result = rdf_flows.GrrMessage(
-            payload=rdfvalue.RDFString("foo/bar"),
-            age=(result.age - (self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
-                 rdfvalue.DurationSeconds("1s")),
-            source=self.client_id)
-        results.Add(
-            wrong_result, timestamp=wrong_result.age, mutation_pool=pool)
-
-    return result
 
   def testRaisesIfResultFileDoesNotExist(self):
     results = data_store.REL_DB.ReadHuntResults(self.hunt_id, 0, 1)
@@ -433,7 +391,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
-        vfs_path=self.aff4_file_path + "blah",
+        vfs_path=self.vfs_file_path + "blah",
         timestamp=wrong_result_timestamp)
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
@@ -446,7 +404,7 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,
-        vfs_path=self.aff4_file_path,
+        vfs_path=self.vfs_file_path,
         timestamp=timestamp)
 
     result = self.handler.Handle(args, token=self.token)
@@ -455,9 +413,9 @@ class ApiGetHuntFileHandlerTest(db_test_lib.RelationalDBEnabledMixin,
                      results[0].payload.stat_entry.st_size)
 
 
-class ApiListHuntOutputPluginLogsHandlerTest(
-    db_test_lib.RelationalDBEnabledMixin, api_test_lib.ApiCallHandlerTest,
-    hunt_test_lib.StandardHuntTestMixin):
+class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                             hunt_test_lib.StandardHuntTestMixin
+                                            ):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -477,20 +435,19 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     ]
 
   def RunHuntWithOutputPlugins(self, output_plugins):
-    hunt_urn = self.StartHunt(
+    hunt_id = self.StartHunt(
         description="the hunt", output_plugins=output_plugins)
 
     for client_id in self.client_ids:
       self.RunHunt(client_ids=[client_id], failrate=-1)
-      self.ProcessHuntOutputPlugins()
 
-    return hunt_urn
+    return hunt_id
 
   def testReturnsLogsWhenJustOnePlugin(self):
-    hunt_urn = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
+    hunt_id = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
-            hunt_id=hunt_urn.Basename(),
+            hunt_id=hunt_id,
             plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
@@ -498,10 +455,10 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertLen(result.items, 5)
 
   def testReturnsLogsWhenMultiplePlugins(self):
-    hunt_urn = self.RunHuntWithOutputPlugins(self.output_plugins)
+    hunt_id = self.RunHuntWithOutputPlugins(self.output_plugins)
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
-            hunt_id=hunt_urn.Basename(),
+            hunt_id=hunt_id,
             plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
@@ -509,10 +466,10 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertLen(result.items, 5)
 
   def testSlicesLogsWhenJustOnePlugin(self):
-    hunt_urn = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
+    hunt_id = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
-            hunt_id=hunt_urn.Basename(),
+            hunt_id=hunt_id,
             offset=2,
             count=2,
             plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_0"),
@@ -522,10 +479,10 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertLen(result.items, 2)
 
   def testSlicesLogsWhenMultiplePlugins(self):
-    hunt_urn = self.RunHuntWithOutputPlugins(self.output_plugins)
+    hunt_id = self.RunHuntWithOutputPlugins(self.output_plugins)
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
-            hunt_id=hunt_urn.Basename(),
+            hunt_id=hunt_id,
             offset=2,
             count=2,
             plugin_id=test_plugins.DummyHuntTestOutputPlugin.__name__ + "_1"),
@@ -535,8 +492,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     self.assertLen(result.items, 2)
 
 
-class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest,
+class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiModifyHuntHandler."""
 
@@ -617,8 +573,7 @@ class ApiModifyHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(after.duration, rdfvalue.DurationSeconds("1d"))
 
 
-class ApiDeleteHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                               api_test_lib.ApiCallHandlerTest,
+class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                hunt_test_lib.StandardHuntTestMixin):
   """Test for ApiDeleteHuntHandler."""
 
@@ -649,8 +604,7 @@ class ApiDeleteHuntHandlerTest(db_test_lib.RelationalDBEnabledMixin,
       data_store.REL_DB.ReadHuntObject(self.hunt_id)
 
 
-class ApiGetExportedHuntResultsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
-                                           test_lib.GRRBaseTest,
+class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
                                            hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -658,11 +612,10 @@ class ApiGetExportedHuntResultsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
 
     self.handler = hunt_plugin.ApiGetExportedHuntResultsHandler()
 
-    hunt_urn = self.StartHunt(
+    self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__),
         client_rate=0)
-    self.hunt_id = hunt_urn.Basename()
 
     self.client_ids = self.SetupClients(5)
     # Ensure that clients are processed sequentially - this way the test won't
@@ -683,16 +636,16 @@ class ApiGetExportedHuntResultsHandlerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertListEqual(chunks, [
         "Start: aff4:/hunts/%s" % self.hunt_id,
         "Values of type: RDFString",
-        "First pass: oh (source=%s)" % self.client_ids[0],
-        "First pass: oh (source=%s)" % self.client_ids[1],
-        "First pass: oh (source=%s)" % self.client_ids[2],
-        "First pass: oh (source=%s)" % self.client_ids[3],
-        "First pass: oh (source=%s)" % self.client_ids[4],
-        "Second pass: oh (source=%s)" % self.client_ids[0],
-        "Second pass: oh (source=%s)" % self.client_ids[1],
-        "Second pass: oh (source=%s)" % self.client_ids[2],
-        "Second pass: oh (source=%s)" % self.client_ids[3],
-        "Second pass: oh (source=%s)" % self.client_ids[4],
+        "First pass: oh (source=aff4:/%s)" % self.client_ids[0],
+        "First pass: oh (source=aff4:/%s)" % self.client_ids[1],
+        "First pass: oh (source=aff4:/%s)" % self.client_ids[2],
+        "First pass: oh (source=aff4:/%s)" % self.client_ids[3],
+        "First pass: oh (source=aff4:/%s)" % self.client_ids[4],
+        "Second pass: oh (source=aff4:/%s)" % self.client_ids[0],
+        "Second pass: oh (source=aff4:/%s)" % self.client_ids[1],
+        "Second pass: oh (source=aff4:/%s)" % self.client_ids[2],
+        "Second pass: oh (source=aff4:/%s)" % self.client_ids[3],
+        "Second pass: oh (source=aff4:/%s)" % self.client_ids[4],
         "Finish: aff4:/hunts/%s" % self.hunt_id,
     ])
 

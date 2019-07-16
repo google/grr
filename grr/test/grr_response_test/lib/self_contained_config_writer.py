@@ -56,7 +56,6 @@ def main(argv):
   config.CONFIG.SetWriteBack(flags.FLAGS.dest_server_config_path)
 
   # TODO(user): remove when AFF4 is gone.
-  config.CONFIG.Set("Database.aff4_enabled", False)
   config.CONFIG.Set("Database.enabled", True)
 
   config.CONFIG.Set("Blobstore.implementation", "DbBlobStore")

@@ -16,7 +16,6 @@ from __future__ import unicode_literals
 import logging
 import time
 
-
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
@@ -24,6 +23,15 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import flows_pb2
+
+SYSTEM_USERS = frozenset([
+    "GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd", "GRRConsole",
+    "GRRArtifactRegistry", "GRRStatsStore", "GRREndToEndTest", "GRR",
+    "GRRBenchmarkTest", "Cron"
+])
+
+_SYSTEM_USERS_LOWERCASE = frozenset(
+    username.lower() for username in SYSTEM_USERS)
 
 
 class Error(Exception):
@@ -113,8 +121,7 @@ class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
 
     If the flow is to be started on a particular client, it's assumed that
     CheckClientAccess passes on that client. If the flow is to be started
-    as a global flow, no additional checks will be made. See
-    GRRFlow.StartAFF4Flow implementation in lib/flow.py for details.
+    as a global flow, no additional checks will be made.
 
     Args:
       token: User credentials token.
@@ -134,12 +141,10 @@ class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
 
     Args:
       token: An instance of ACLToken security token.
-
-      subjects: The list of subject URNs which the user is requesting access
-         to. If any of these fail, the whole request is denied.
-
+      subjects: The list of subject URNs which the user is requesting access to.
+        If any of these fail, the whole request is denied.
       requested_access: A string specifying the desired level of access ("r" for
-         read and "w" for write, "q" for query).
+        read and "w" for write, "q" for query).
 
     Raises:
        UnauthorizedAccess: If the user is not authorized to perform the action
@@ -190,3 +195,7 @@ class ACLToken(rdf_structs.RDFProtoStruct):
     result.supervisor = False
 
     return result
+
+
+def IsValidUsername(username):
+  return username.lower() not in _SYSTEM_USERS_LOWERCASE

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import io
 
-
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths

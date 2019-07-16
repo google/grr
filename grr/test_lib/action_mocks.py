@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import io
 import itertools
 
-
 from future.utils import iteritems
 
 from grr_response_client.client_actions import admin

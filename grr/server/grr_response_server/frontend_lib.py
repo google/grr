@@ -8,7 +8,6 @@ import logging
 import operator
 import time
 
-
 from future.utils import iteritems
 
 from grr_response_core.lib import communicator
@@ -25,7 +24,7 @@ from grr_response_core.stats import stats_utils
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import events
-from grr_response_server import queue_manager
+from grr_response_server import message_handlers
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -193,8 +192,6 @@ class FrontEndServer(object):
     self.unauth_allowed_session_id = rdfvalue.SessionID(
         queue=queues.ENROLLMENT, flow_name="Enrol")
 
-    self.well_known_flows = {}
-
   @stats_utils.Counted("grr_frontendserver_handle_num")
   @stats_utils.Timed("grr_frontendserver_handle_time")
   def HandleMessageBundles(self, request_comms, response_comms):
@@ -224,14 +221,14 @@ class FrontEndServer(object):
 
     # We send the client a maximum of self.max_queue_size messages
     required_count = max(0, self.max_queue_size - request_comms.queue_size)
-    tasks = []
 
     message_list = rdf_flows.MessageList()
     # Only give the client messages if we are able to receive them in a
     # reasonable time.
     if time.time() - now < 10:
-      tasks = self.DrainTaskSchedulerQueueForClient(source, required_count)
-      message_list.job = tasks
+      client_id = source.Basename()
+      message_list.job = self.DrainTaskSchedulerQueueForClient(
+          client_id, required_count)
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
@@ -247,13 +244,8 @@ class FrontEndServer(object):
   def DrainTaskSchedulerQueueForClient(self, client, max_count=None):
     """Drains the client's Task Scheduler queue.
 
-    1) Get all messages in the client queue.
-    2) Sort these into a set of session_ids.
-    3) Use data_store.DB.ResolvePrefix() to query all requests.
-    4) Delete all responses for retransmitted messages (if needed).
-
     Args:
-       client: The ClientURN object specifying this client.
+       client: The client id specifying this client.
        max_count: The maximum number of messages we will issue for the client.
          If not given, uses self.max_queue_size .
 
@@ -267,11 +259,10 @@ class FrontEndServer(object):
     if max_count <= 0:
       return []
 
-    client = rdf_client.ClientURN(client)
     start_time = time.time()
     # Drain the queue for this client
     action_requests = data_store.REL_DB.LeaseClientActionRequests(
-        client.Basename(),
+        client,
         lease_time=rdfvalue.DurationSeconds.FromSeconds(
             self.message_expiry_time),
         limit=max_count)
@@ -340,22 +331,19 @@ class FrontEndServer(object):
     for session_id, msgs in iteritems(
         collection.Group(messages, operator.attrgetter("session_id"))):
 
-      # Remove and handle messages to WellKnownFlows
-      leftover_msgs = self.HandleWellKnownFlows(msgs)
-
-      for msg in leftover_msgs:
+      for msg in msgs:
         if (msg.auth_state != msg.AuthorizationState.AUTHENTICATED and
             msg.session_id != self.unauth_allowed_session_id):
           dropped_count += 1
           continue
 
         session_id_str = str(session_id)
-        if session_id_str in queue_manager.session_id_map:
+        if session_id_str in message_handlers.session_id_map:
           message_handler_requests.append(
               rdf_objects.MessageHandlerRequest(
                   client_id=msg.source.Basename(),
-                  handler_name=queue_manager.session_id_map[session_id],
-                  request_id=msg.response_id,
+                  handler_name=message_handlers.session_id_map[session_id],
+                  request_id=msg.response_id or random.UInt32(),
                   request=msg.payload))
         elif session_id_str in self.legacy_well_known_session_ids:
           logging.debug("Dropping message for legacy well known session id %s",
@@ -396,44 +384,3 @@ class FrontEndServer(object):
     logging.debug("Received %s messages from %s in %s sec", len(messages),
                   client_id,
                   time.time() - now)
-
-  def HandleWellKnownFlows(self, messages):
-    """Hands off messages to well known flows."""
-    msgs_by_wkf = {}
-    result = []
-    for msg in messages:
-      # Regular message - queue it.
-      if msg.response_id != 0:
-        result.append(msg)
-        continue
-
-      # Well known flows:
-      flow_name = msg.session_id.FlowName()
-
-      if flow_name in self.well_known_flows:
-        # This message should be processed directly on the front end.
-        msgs_by_wkf.setdefault(flow_name, []).append(msg)
-
-        # TODO(user): Deprecate in favor of 'well_known_flow_requests'
-        # metric.
-        stats_collector_instance.Get().IncrementCounter(
-            "grr_well_known_flow_requests")
-
-        stats_collector_instance.Get().IncrementCounter(
-            "well_known_flow_requests", fields=[str(msg.session_id)])
-      else:
-        # Message should be queued to be processed in the backend.
-
-        # Well known flows have a response_id==0, but if we queue up the state
-        # as that it will overwrite some other message that is queued. So we
-        # change it to a random number here.
-        msg.response_id = random.UInt32()
-
-        # Queue the message in the data store.
-        result.append(msg)
-
-    for flow_name, msg_list in iteritems(msgs_by_wkf):
-      wkf = self.well_known_flows[flow_name]
-      wkf.ProcessMessages(msg_list)
-
-    return result

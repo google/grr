@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 from future.builtins import str
 from future.utils import iterkeys

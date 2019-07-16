@@ -10,7 +10,6 @@ import logging
 import os
 import threading
 
-
 from absl import flags
 import portpicker
 import requests
@@ -22,14 +21,12 @@ from grr_api_client.connectors import http_connector
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import json
-from grr_response_server import data_store
 from grr_response_server import gui
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui import http_api
 from grr_response_server.gui import wsgiapp_testlib
-from grr.test_lib import db_test_lib
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
@@ -41,7 +38,6 @@ class HttpApiRegressionTestMixinBase(object):
   """Load only API E2E test cases."""
 
   api_version = None
-  read_from_relational_db = False
   _get_connector_lock = threading.RLock()
 
   @staticmethod
@@ -176,19 +172,12 @@ class HttpApiRegressionTestMixinBase(object):
 # hence the duplication. Again, this will go away soon.
 
 
-class HttpApiV1RelationalDBRegressionTestMixin(
-    db_test_lib.RelationalDBEnabledMixin, HttpApiRegressionTestMixinBase):
+class HttpApiV1RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
   """Test class for HTTP v1 protocol with Database.enabled=True."""
 
-  read_from_relational_db = True
-  connection_type = "http_v1_rel_db"
-  use_golden_files_of = "http_v1"
+  connection_type = "http_v1"
   skip_legacy_dynamic_proto_tests = False
   api_version = 1
-
-  def testRelationalDBReadsEnabled(self):
-    if not getattr(self, "aff4_only_test", False):
-      self.assertTrue(data_store.RelationalDBEnabled())
 
   @property
   def output_file_name(self):
@@ -196,19 +185,12 @@ class HttpApiV1RelationalDBRegressionTestMixin(
                         "angular-components/docs/api-docs-examples.json")
 
 
-class HttpApiV2RelationalDBRegressionTestMixin(
-    db_test_lib.RelationalDBEnabledMixin, HttpApiRegressionTestMixinBase):
+class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
   """Test class for HTTP v2 protocol with Database.enabled=True."""
 
-  read_from_relational_db = True
-  connection_type = "http_v2_rel_db"
-  use_golden_files_of = "http_v2"
+  connection_type = "http_v2"
   skip_legacy_dynamic_proto_tests = True
   api_version = 2
-
-  def testRelationalDBReadsEnabled(self):
-    if not getattr(self, "aff4_only_test", False):
-      self.assertTrue(data_store.RelationalDBEnabled())
 
   @property
   def output_file_name(self):

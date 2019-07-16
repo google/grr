@@ -8,7 +8,6 @@ import collections
 import sys
 import threading
 
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition

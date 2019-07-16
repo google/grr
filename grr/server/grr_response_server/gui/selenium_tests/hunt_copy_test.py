@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -16,15 +15,13 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
-                   gui_test_lib.GRRSeleniumHuntTest):
+class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test the hunt copying GUI."""
 
-  def CreateSampleHunt(self, description, token=None):
+  def CreateSampleHunt(self, description, creator=None):
     self.StartHunt(
         description=description,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
@@ -43,10 +40,10 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
         ],
         client_rate=60,
         paused=True,
-        token=token)
+        creator=creator)
 
   def testCopyHuntPrefillsNewHuntWizard(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -130,7 +127,7 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsTextPresent, "60")
 
   def testCopyHuntCreatesExactCopyWithChangedDescription(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -177,7 +174,7 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(first_hunt.client_rule_set, last_hunt.client_rule_set)
 
   def testCopyHuntRespectsUserChanges(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt")
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -301,8 +298,7 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
                     condition_type="CONTENTS_LITERAL_MATCH",
                     contents_literal_match=literal_match)
             ],
-            paths=["/tmp/evil.txt"]),
-        token=self.token)
+            paths=["/tmp/evil.txt"]))
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -370,7 +366,7 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
                 rule_type=foreman_rules.ForemanClientRule.Type.OS,
                 os=foreman_rules.ForemanOsClientRule(os_darwin=True))
         ]),
-        token=self.token)
+        creator=self.token.username)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -464,7 +460,7 @@ class HuntCopyTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertFalse(rule.os.os_windows)
 
   def testApprovalIndicatesThatHuntWasCopiedFromAnotherHunt(self):
-    self.CreateSampleHunt("model hunt", token=self.token)
+    self.CreateSampleHunt("model hunt", creator=self.token.username)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")

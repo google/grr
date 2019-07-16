@@ -5,47 +5,36 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class DirRecursiveRefreshTest(db_test_lib.RelationalDBEnabledMixin,
-                              gui_test_lib.GRRSeleniumTest):
+class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def _RunUpdateFlow(self, client_id):
     gui_test_lib.CreateFileVersion(
         client_id,
         "fs/os/c/a.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        timestamp=gui_test_lib.TIME_0)
     gui_test_lib.CreateFolder(
-        client_id,
-        "fs/os/c/TestFolder",
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        client_id, "fs/os/c/TestFolder", timestamp=gui_test_lib.TIME_0)
     gui_test_lib.CreateFolder(
-        client_id,
-        "fs/os/c/bin/TestBinFolder",
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        client_id, "fs/os/c/bin/TestBinFolder", timestamp=gui_test_lib.TIME_0)
 
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
   def setUp(self):
     super(DirRecursiveRefreshTest, self).setUp()
     # Prepare our fixture.
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(self.client_id, self.token)
-    self.RequestAndGrantClientApproval("C.0000000000000001")
+    self.client_id = "C.0000000000000001"
+    fixture_test_lib.ClientFixture(self.client_id)
+    gui_test_lib.CreateFileVersions(self.client_id)
+    self.RequestAndGrantClientApproval(self.client_id)
 
   def testRecursiveRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
@@ -61,8 +50,7 @@ class DirRecursiveRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RecursiveRefresh][disabled]")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # Ensure that refresh button is enabled again.
     #
@@ -82,8 +70,7 @@ class DirRecursiveRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RecursiveRefresh][disabled]")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # Check that the button got enabled again.
     self.WaitUntil(self.IsElementPresent,
@@ -116,8 +103,7 @@ class DirRecursiveRefreshTest(db_test_lib.RelationalDBEnabledMixin,
         self.IsElementPresent,
         "css=.modal-header:contains('Recursive Directory Refresh')")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # The flow should be finished now, and file/tree lists update should
     # be triggered.
@@ -141,8 +127,7 @@ class DirRecursiveRefreshTest(db_test_lib.RelationalDBEnabledMixin,
                    "css=button[name=RecursiveRefresh][disabled]")
     self.Click("css=#_fs-os-c-bin a")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # The flow should be finished now, and directory tree update should
     # be triggered, even though the selection has changed during the update.

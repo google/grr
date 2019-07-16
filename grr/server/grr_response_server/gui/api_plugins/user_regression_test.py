@@ -6,11 +6,9 @@ from __future__ import unicode_literals
 
 from absl import app
 
-from grr_response_server import aff4
+from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
-from grr_response_server.aff4_objects import cronjobs as aff4_cronjobs
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
@@ -19,14 +17,12 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiGetClientApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetClientApprovalHandler."""
 
@@ -38,31 +34,24 @@ class ApiGetClientApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       clients = self.SetupClients(2)
-      if data_store.AFF4Enabled():
-        for client_id in clients:
-          # Delete the certificate as it's being regenerated every time the
-          # client is created.
-          with aff4.FACTORY.Open(
-              client_id, mode="rw", token=self.token) as grr_client:
-            grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestClientApproval(
-          clients[0].Basename(),
+          clients[0],
           reason="foo",
           approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestClientApproval(
-          clients[1].Basename(),
+          clients[1],
           reason="bar",
           approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(84):
       self.GrantClientApproval(
-          clients[1].Basename(),
+          clients[1],
           approval_id=approval2_id,
           approver=u"approver",
           requestor=self.token.username)
@@ -71,21 +60,20 @@ class ApiGetClientApprovalHandlerRegressionTest(
       self.Check(
           "GetClientApproval",
           args=user_plugin.ApiGetClientApprovalArgs(
-              client_id=clients[0].Basename(),
+              client_id=clients[0],
               approval_id=approval1_id,
               username=self.token.username),
           replace={approval1_id: "approval:111111"})
       self.Check(
           "GetClientApproval",
           args=user_plugin.ApiGetClientApprovalArgs(
-              client_id=clients[1].Basename(),
+              client_id=clients[1],
               approval_id=approval2_id,
               username=self.token.username),
           replace={approval2_id: "approval:222222"})
 
 
 class ApiGrantClientApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantClientApprovalHandler."""
 
@@ -97,16 +85,10 @@ class ApiGrantClientApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"requestor")
 
       client_id = self.SetupClient(0)
-      if data_store.AFF4Enabled():
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestClientApproval(
-          client_id.Basename(),
+          client_id,
           reason="foo",
           approver=self.token.username,
           requestor=u"requestor")
@@ -115,14 +97,13 @@ class ApiGrantClientApprovalHandlerRegressionTest(
       self.Check(
           "GrantClientApproval",
           args=user_plugin.ApiGrantClientApprovalArgs(
-              client_id=client_id.Basename(),
+              client_id=client_id,
               approval_id=approval_id,
               username=u"requestor"),
           replace={approval_id: "approval:111111"})
 
 
 class ApiCreateClientApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateClientApprovalHandler."""
 
@@ -132,15 +113,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateUser(u"approver")
-
       client_id = self.SetupClient(0)
-
-      if data_store.AFF4Enabled():
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     def ReplaceApprovalId():
       approvals = self.ListClientApprovals()
@@ -150,7 +123,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
       self.Check(
           "CreateClientApproval",
           args=user_plugin.ApiCreateClientApprovalArgs(
-              client_id=client_id.Basename(),
+              client_id=client_id,
               approval=user_plugin.ApiClientApproval(
                   reason="really important reason!",
                   notified_users=[u"approver1", u"approver2"],
@@ -159,7 +132,6 @@ class ApiCreateClientApprovalHandlerRegressionTest(
 
 
 class ApiListClientApprovalsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
@@ -171,31 +143,24 @@ class ApiListClientApprovalsHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       clients = self.SetupClients(2)
-      if data_store.AFF4Enabled():
-        for client_id in clients:
-          # Delete the certificate as it's being regenerated every time the
-          # client is created.
-          with aff4.FACTORY.Open(
-              client_id, mode="rw", token=self.token) as grr_client:
-            grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestClientApproval(
-          clients[0].Basename(),
+          clients[0],
           reason=self.token.reason,
           approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestClientApproval(
-          clients[1].Basename(),
+          clients[1],
           reason=self.token.reason,
           approver=u"approver",
           requestor=self.token.username)
 
     with test_lib.FakeTime(84):
       self.GrantClientApproval(
-          clients[1].Basename(),
+          clients[1],
           requestor=self.token.username,
           approval_id=approval2_id,
           approver=u"approver")
@@ -210,8 +175,7 @@ class ApiListClientApprovalsHandlerRegressionTest(
           })
       self.Check(
           "ListClientApprovals",
-          args=user_plugin.ApiListClientApprovalsArgs(
-              client_id=clients[0].Basename()),
+          args=user_plugin.ApiListClientApprovalsArgs(client_id=clients[0]),
           replace={
               approval1_id: "approval:111111",
               approval2_id: "approval:222222"
@@ -219,7 +183,6 @@ class ApiListClientApprovalsHandlerRegressionTest(
 
 
 class ApiGetHuntApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetHuntApprovalHandler."""
@@ -231,8 +194,10 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
 
-      hunt1_id = self.StartHunt(description="hunt1", paused=True).Basename()
-      hunt2_id = self.StartHunt(description="hunt2", paused=True).Basename()
+      hunt1_id = self.StartHunt(
+          description="hunt1", paused=True, creator=self.token.username)
+      hunt2_id = self.StartHunt(
+          description="hunt2", paused=True, creator=self.token.username)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestHuntApproval(
@@ -273,12 +238,14 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       hunt1_id = self.StartHunt(
-          description="original hunt", paused=True).Basename()
+          description="original hunt", paused=True, creator=self.token.username)
 
       ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(hunt1_id)
       hunt2_id = self.StartHunt(
-          description="copied hunt", original_object=ref,
-          paused=True).Basename()
+          description="copied hunt",
+          original_object=ref,
+          paused=True,
+          creator=self.token.username)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -301,19 +268,20 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
 
-      client_urn = self.SetupClient(0)
+      client_id = self.SetupClient(0)
       flow_id = flow_test_lib.StartFlow(
           discovery.Interrogate,
-          client_id=client_urn,
+          client_id=client_id,
           creator=self.token.username,
           notify_to_user=True)
 
       ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-          flow_id, client_urn.Basename())
+          flow_id, client_id)
       hunt_id = self.StartHunt(
           description="hunt started from flow",
           original_object=ref,
-          paused=True).Basename()
+          paused=True,
+          creator=self.token.username)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -329,8 +297,8 @@ class ApiGetHuntApprovalHandlerRegressionTest(
           replace={
               # TODO(user): remove this replacement as soon as REL_DB
               # migration is done.
-              "%s/%s" % (client_urn.Basename(), flow_id):
-                  "%s/flows/F:112233" % (client_urn.Basename()),
+              "%s/%s" % (client_id, flow_id):
+                  "%s/flows/F:112233" % (client_id),
               flow_id:
                   "F:112233",
               hunt_id:
@@ -346,7 +314,6 @@ class ApiGetHuntApprovalHandlerRegressionTest(
 
 
 class ApiGrantHuntApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantHuntApprovalHandler."""
@@ -357,7 +324,8 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"requestor")
-      hunt_id = self.StartHunt(description="a hunt", paused=True).Basename()
+      hunt_id = self.StartHunt(
+          description="a hunt", paused=True, creator=self.token.username)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -378,7 +346,6 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
 
 
 class ApiCreateHuntApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest,
     hunt_test_lib.StandardHuntTestMixin, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateHuntApprovalHandler."""
@@ -389,7 +356,8 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateUser(u"approver")
-      hunt_id = self.StartHunt(description="foo", paused=True).Basename()
+      hunt_id = self.StartHunt(
+          description="foo", paused=True, creator=self.token.username)
 
     def ReplaceHuntAndApprovalIds():
       approvals = self.ListHuntApprovals()
@@ -408,7 +376,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
 
 
 class ApiListHuntApprovalsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin, hunt_test_lib.StandardHuntTestMixin,
+    hunt_test_lib.StandardHuntTestMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
@@ -418,12 +386,12 @@ class ApiListHuntApprovalsHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
-      hunt_urn = self.StartHunt(
-          description="foo", token=self.token, paused=True)
+      hunt_id = self.StartHunt(
+          description="foo", paused=True, creator=self.token.username)
 
     with test_lib.FakeTime(43):
       approval_id = self.RequestHuntApproval(
-          hunt_urn.Basename(),
+          hunt_id,
           reason=self.token.reason,
           approver=u"approver",
           requestor=self.token.username)
@@ -432,13 +400,12 @@ class ApiListHuntApprovalsHandlerRegressionTest(
       self.Check(
           "ListHuntApprovals",
           replace={
-              hunt_urn.Basename(): "H:123456",
+              hunt_id: "H:123456",
               approval_id: "approval:112233"
           })
 
 
 class ApiGetCronJobApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGetCronJobApprovalHandler."""
 
@@ -449,7 +416,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
 
-      cron_manager = aff4_cronjobs.GetCronManager()
+      cron_manager = cronjobs.CronManager()
       cron_args = rdf_cronjobs.CreateCronJobArgs(
           frequency="1d", allow_overruns=False)
 
@@ -492,7 +459,6 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
 
 
 class ApiGrantCronJobApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiGrantCronJobApprovalHandler."""
 
@@ -503,7 +469,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"requestor")
 
-      cron_manager = aff4_cronjobs.GetCronManager()
+      cron_manager = cronjobs.CronManager()
       cron_args = rdf_cronjobs.CreateCronJobArgs(
           frequency="1d", allow_overruns=False)
       cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -529,7 +495,6 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
 
 
 class ApiCreateCronJobApprovalHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiCreateCronJobApprovalHandler."""
 
@@ -540,7 +505,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateUser(u"approver")
 
-    cron_manager = aff4_cronjobs.GetCronManager()
+    cron_manager = cronjobs.CronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(
         frequency="1d", allow_overruns=False)
     cron_id = cron_manager.CreateJob(cron_args=cron_args, token=self.token)
@@ -562,7 +527,6 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
 
 
 class ApiGetOwnGrrUserHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetUserSettingsHandler."""
 
@@ -570,25 +534,12 @@ class ApiGetOwnGrrUserHandlerRegressionTest(
   handler = user_plugin.ApiGetOwnGrrUserHandler
 
   def Run(self):
-    user_urn = aff4.ROOT_URN.Add("users").Add(self.token.username)
-    if data_store.AFF4Enabled():
-      with test_lib.FakeTime(42):
-        with aff4.FACTORY.Create(
-            user_urn, aff4_type=aff4_users.GRRUser, mode="w",
-            token=self.token) as user_fd:
-          user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                      aff4_users.GUISettings(mode="ADVANCED", canary_mode=True))
-
-    # Setup relational DB.
     data_store.REL_DB.WriteGRRUser(
         username=self.token.username, ui_mode="ADVANCED", canary_mode=True)
 
     self.Check("GetGrrUser")
 
     # Make user an admin and do yet another request.
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Open(user_urn, mode="rw", token=self.token) as user_fd:
-        user_fd.SetLabel("admin", owner="GRR")
     data_store.REL_DB.WriteGRRUser(
         username=self.token.username,
         user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
@@ -603,7 +554,7 @@ def _SendNotifications(username, client_id):
         "<some message>",
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-            client=rdf_objects.ClientReference(client_id=client_id.Basename())))
+            client=rdf_objects.ClientReference(client_id=client_id)))
 
   with test_lib.FakeTime(44):
     notification.Notify(
@@ -613,14 +564,13 @@ def _SendNotifications(username, client_id):
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
             vfs_file=rdf_objects.VfsFileReference(
-                client_id=client_id.Basename(),
+                client_id=client_id,
                 path_type=rdf_objects.PathInfo.PathType.OS,
                 path_components=["foo"])))
 
 
 class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetPendingUserNotificationsCountHandler."""
 
   api_method = "GetPendingUserNotificationsCount"
@@ -635,8 +585,7 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
 
 
 class ApiListPendingUserNotificationsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListPendingUserNotificationsHandler."""
 
   api_method = "ListPendingUserNotifications"
@@ -662,8 +611,7 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
 
 class ApiListAndResetUserNotificationsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListAndResetUserNotificationsHandler."""
 
   api_method = "ListAndResetUserNotifications"
@@ -694,8 +642,7 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
 
 
 class ApiListApproverSuggestionsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin, acl_test_lib.AclTestMixin,
-    api_regression_test_lib.ApiRegressionTest):
+    acl_test_lib.AclTestMixin, api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListApproverSuggestionsHandler."""
 
   api_method = "ListApproverSuggestions"

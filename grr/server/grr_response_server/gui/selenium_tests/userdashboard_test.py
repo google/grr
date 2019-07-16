@@ -4,19 +4,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.builtins import range
 
 from grr_response_core.lib import rdfvalue
-from grr_response_server import access_control
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.SearchClientTestBase):
+class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   """Tests for user dashboard shown on the home page."""
 
   def testShowsNothingByDefault(self):
@@ -29,7 +25,7 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
         "div[name=RecentlyCreatedHunts]:contains('None')")
 
   def testShowsHuntCreatedByCurrentUser(self):
-    self.CreateSampleHunt("foo-description", token=self.token)
+    self.CreateSampleHunt("foo-description", creator=self.token.username)
 
     self.Open("/")
     self.WaitUntil(
@@ -37,8 +33,7 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
         "div[name=RecentlyCreatedHunts]:contains('foo-description')")
 
   def testDoesNotShowHuntCreatedByAnotherUser(self):
-    self.CreateSampleHunt(
-        "foo", token=access_control.ACLToken(username="another"))
+    self.CreateSampleHunt("foo", creator="another")
 
     self.Open("/")
     self.WaitUntil(
@@ -46,7 +41,7 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
         "div[name=RecentlyCreatedHunts]:contains('None')")
 
   def testClickingOnTheHuntRedirectsToThisHunt(self):
-    self.CreateSampleHunt("foo-description", token=self.token)
+    self.CreateSampleHunt("foo-description", creator=self.token.username)
 
     self.Open("/")
     self.Click("css=grr-user-dashboard "
@@ -61,11 +56,11 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
       with test_lib.FakeTime(timestamp + rdfvalue.DurationSeconds(1000 * i)):
         if i % 2 == 0:
           descr = "foo-%d" % i
-          token = access_control.ACLToken(username="another")
+          creator = "another"
         else:
           descr = "bar-%d" % i
-          token = self.token
-        self.CreateSampleHunt(descr, token=token)
+          creator = self.token.username
+        self.CreateSampleHunt(descr, creator=creator)
 
     self.Open("/")
     for i in range(11, 20, 2):
@@ -80,10 +75,10 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
   def testDoesNotShowHuntsOlderThan31Days(self):
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now - rdfvalue.DurationSeconds("30d")):
-      self.CreateSampleHunt("foo", token=self.token)
+      self.CreateSampleHunt("foo", creator=self.token.username)
 
     with test_lib.FakeTime(now - rdfvalue.DurationSeconds("32d")):
-      self.CreateSampleHunt("bar", token=self.token)
+      self.CreateSampleHunt("bar", creator=self.token.username)
 
     with test_lib.FakeTime(now):
       self.Open("/")
@@ -103,7 +98,7 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients]"
-        ":contains('%s')" % client_id.Basename())
+        ":contains('%s')" % client_id)
 
   def testShowsClientOnceIfTwoApprovalsWereRequested(self):
     client_id = self.SetupClient(0)
@@ -125,21 +120,21 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
     client_ids = self.SetupClients(10)
 
     with test_lib.FakeTime(1000, 1):
-      for c in client_ids:
-        self.RequestAndGrantClientApproval(c)
+      for client_id in client_ids:
+        self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
-    for c in client_ids[3:]:
+    for client_id in client_ids[3:]:
       self.WaitUntil(
           self.IsElementPresent, "css=grr-user-dashboard "
           "div[name=RecentlyAccessedClients]"
-          ":contains('%s')" % c.Basename())
+          ":contains('%s')" % client_id)
 
-    for c in client_ids[:3]:
+    for client_id in client_ids[:3]:
       self.WaitUntilNot(
           self.IsElementPresent, "css=grr-user-dashboard "
           "div[name=RecentlyAccessedClients]"
-          ":contains('%s')" % c.Basename())
+          ":contains('%s')" % client_id)
 
   def testValidApprovalIsNotMarked(self):
     client_id = self.SetupClient(0)
@@ -149,16 +144,16 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients] "
-        "tr:contains('%s')" % client_id.Basename())
+        "tr:contains('%s')" % client_id)
     self.WaitUntilNot(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients] "
-        "tr:contains('%s').half-transparent" % client_id.Basename())
+        "tr:contains('%s').half-transparent" % client_id)
 
   def testNonValidApprovalIsMarked(self):
     client_id = self.SetupClient(0)
     self.RequestClientApproval(
-        client_id.Basename(),
+        client_id,
         reason=self.token.reason,
         approver=u"approver",
         requestor=self.token.username)
@@ -167,7 +162,7 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients] "
-        "tr:contains('%s').half-transparent" % client_id.Basename())
+        "tr:contains('%s').half-transparent" % client_id)
 
   def testClickingOnApprovalRedirectsToClient(self):
     client_id = self.SetupClient(0)
@@ -176,10 +171,10 @@ class TestUserDashboard(db_test_lib.RelationalDBEnabledMixin,
     self.Open("/")
     self.Click("css=grr-user-dashboard "
                "div[name=RecentlyAccessedClients] "
-               "tr:contains('%s')" % client_id.Basename())
+               "tr:contains('%s')" % client_id)
 
     self.WaitUntil(self.IsTextPresent, "Host-0")
-    self.WaitUntil(self.IsTextPresent, client_id.Basename())
+    self.WaitUntil(self.IsTextPresent, client_id)
 
 
 if __name__ == "__main__":

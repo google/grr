@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import abc
 
-
 from future.utils import with_metaclass
 
 from grr_response_test.end_to_end_tests import test_base

@@ -5,29 +5,25 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_server import access_control
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
-                          gui_test_lib.GRRSeleniumHuntTest):
+class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   # Using an Unicode string for the test here would be optimal but Selenium
   # can't correctly enter Unicode text into forms.
   reason = "Felt like it!"
 
   def testHuntACLWorkflow(self):
-    hunt_id = self.StartHunt(paused=True, token=self.token)
+    hunt_id = self.StartHunt(paused=True, creator=self.token.username)
 
     # Open up and click on View Hunts.
     self.Open("/")
@@ -35,7 +31,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=a[grrtarget=hunts]")
 
     # Select a Hunt.
-    self.Click("css=td:contains('%s')" % hunt_id.Basename())
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Click on Run and wait for dialog again.
     self.Click("css=button[name=RunHunt]")
@@ -103,7 +99,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     # Lets add another approver.
     approval_id = self.ListHuntApprovals(requestor=self.token.username)[0].id
     self.GrantHuntApproval(
-        hunt_id.Basename(),
+        hunt_id,
         approval_id=approval_id,
         approver=u"approver",
         requestor=self.token.username,
@@ -149,7 +145,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=a[grrtarget=hunts]")
 
     # Select and run the hunt.
-    self.Click("css=td:contains('%s')" % hunt_id.Basename())
+    self.Click("css=td:contains('%s')" % hunt_id)
 
     # Run the hunt (it should be selected by default).
     self.Click("css=button[name=RunHunt]:not([disabled])")
@@ -163,20 +159,17 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
   def Create2HuntsForDifferentUsers(self):
     # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by us.
     # Both hunts will be approved by user "approver".
-    hunt1_id = self.StartHunt(
-        paused=True, token=access_control.ACLToken(username=u"otheruser"))
-    hunt2_id = self.StartHunt(
-        paused=True,
-        token=access_control.ACLToken(username=self.token.username))
+    hunt1_id = self.StartHunt(paused=True, creator="otheruser")
+    hunt2_id = self.StartHunt(paused=True, creator=self.token.username)
     self.CreateAdminUser(u"approver")
 
     self.RequestAndGrantHuntApproval(
-        hunt1_id.Basename(),
+        hunt1_id,
         reason=self.reason,
         approver=u"approver",
         requestor=u"otheruser")
     self.RequestAndGrantHuntApproval(
-        hunt2_id.Basename(),
+        hunt2_id,
         reason=self.reason,
         approver=u"approver",
         requestor=self.token.username)
@@ -193,8 +186,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     #
     # Check that test user can't start/stop/modify hunt1.
     #
-    self.Click(
-        "css=tr:contains('%s') td:contains('otheruser')" % hunt1_id.Basename())
+    self.Click("css=tr:contains('%s') td:contains('otheruser')" % hunt1_id)
 
     # Run hunt
 
@@ -240,7 +232,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     # Check that test user can start/stop/modify hunt2.
     #
     self.Click("css=tr:contains('%s') td:contains('%s')" %
-               (hunt2_id.Basename(), self.token.username))
+               (hunt2_id, self.token.username))
 
     # Modify hunt
 
@@ -298,7 +290,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
 
   def _RequestAndOpenApprovalFromSelf(self, hunt_id):
     self.RequestHuntApproval(
-        hunt_id.Basename(),
+        hunt_id,
         reason=self.reason,
         approver=self.token.username,
         requestor=self.token.username)
@@ -310,7 +302,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     self.Click("css=td:contains('Please grant access to hunt')")
 
   def testWarningIsShownIfReviewedHuntIsNotACopy(self):
-    hunt_id = self.StartHunt(paused=True, token=self.token)
+    hunt_id = self.StartHunt(paused=True, creator=self.token.username)
     self._RequestAndOpenApprovalFromSelf(hunt_id)
 
     self.WaitUntil(self.IsTextPresent,
@@ -330,7 +322,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
         file_finder.FileFinder, client_id=self.client_id, flow_args=flow_args)
 
     ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
-        session_id, self.client_id.Basename())
+        session_id, self.client_id)
     # Modify flow_args so that there are differences.
     flow_args.paths = ["b/*", "c/*"]
     flow_args.action.action_type = "DOWNLOAD"
@@ -346,8 +338,8 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
         original_object=ref), session_id
 
   def testFlowDiffIsShownIfHuntCreatedFromFlow(self):
-    h_urn, _ = self._CreateHuntFromFlow()
-    self._RequestAndOpenApprovalFromSelf(h_urn)
+    h_id, _ = self._CreateHuntFromFlow()
+    self._RequestAndOpenApprovalFromSelf(h_id)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
     # Make sure that only the correct message appears and the others are not
@@ -369,9 +361,9 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
         ":contains('42')")
 
   def testOriginalFlowLinkIsShownIfHuntCreatedFromFlow(self):
-    h_urn, flow_id = self._CreateHuntFromFlow()
+    h_id, flow_id = self._CreateHuntFromFlow()
     self.RequestAndGrantClientApproval(self.client_id)
-    self._RequestAndOpenApprovalFromSelf(h_urn)
+    self._RequestAndOpenApprovalFromSelf(h_id)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was created from a flow")
     self.Click("css=a:contains('%s')" % flow_id)
@@ -392,7 +384,7 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
         client_rule_set=client_rule_set,
         paused=True)
 
-    ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(source_h.Basename())
+    ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(source_h)
 
     # Modify flow_args so that there are differences.
     flow_args.paths = ["b/*", "c/*"]
@@ -412,8 +404,8 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
     return new_h, source_h
 
   def testHuntDiffIsShownIfHuntIsCopied(self):
-    new_h_urn, _ = self._CreateHuntFromHunt()
-    self._RequestAndOpenApprovalFromSelf(new_h_urn)
+    new_h_id, _ = self._CreateHuntFromHunt()
+    self._RequestAndOpenApprovalFromSelf(new_h_id)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was copied from")
     # Make sure that only the correct message appears and the others are not
@@ -443,11 +435,11 @@ class TestHuntACLWorkflow(db_test_lib.RelationalDBEnabledMixin,
         "contains('REGEX'):contains('FQDN')")
 
   def testOriginalHuntLinkIsShownIfHuntCreatedFromHunt(self):
-    new_h_urn, source_h_urn = self._CreateHuntFromHunt()
-    self._RequestAndOpenApprovalFromSelf(new_h_urn)
+    new_h_id, source_h_id = self._CreateHuntFromHunt()
+    self._RequestAndOpenApprovalFromSelf(new_h_id)
 
     self.WaitUntil(self.IsTextPresent, "This hunt was copied from")
-    self.Click("css=a:contains('%s')" % source_h_urn.Basename())
+    self.Click("css=a:contains('%s')" % source_h_id)
 
     self.WaitUntil(self.IsElementPresent, "css=grr-hunts-view")
 

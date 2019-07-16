@@ -100,7 +100,9 @@ setup_args = dict(
     },
     packages=find_packages(),
     install_requires=[
-        "protobuf==3.6.1",
+
+        "protobuf==3.8.0",
+
     ],
     data=["version.ini"])
 

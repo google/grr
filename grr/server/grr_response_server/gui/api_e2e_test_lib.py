@@ -12,7 +12,6 @@ from __future__ import unicode_literals
 import logging
 import threading
 
-
 import portpicker
 
 from grr_api_client import api as grr_api

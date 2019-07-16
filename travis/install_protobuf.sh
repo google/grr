@@ -21,7 +21,7 @@ if [[ -z "${OS}" ]]; then
   exit 1
 fi
 
-VERSION=3.6.1
+VERSION=3.8.0
 ARCH=$(uname -m)
 # Get arch in the format that the protobuf urls use
 if [ "${ARCH}" == "i686" ]; then

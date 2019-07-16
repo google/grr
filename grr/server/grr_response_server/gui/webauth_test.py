@@ -15,18 +15,14 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from google.oauth2 import id_token
 
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.gui import validate_iap
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class RemoteUserWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
-                                   test_lib.GRRBaseTest):
+class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RemoteUserWebAuthManagerTest, self).setUp()
@@ -82,8 +78,7 @@ class RemoteUserWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(response, self.success_response)
 
 
-class FirebaseWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
-                                 test_lib.GRRBaseTest):
+class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(FirebaseWebAuthManagerTest, self).setUp()
@@ -287,21 +282,10 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     self.assertEqual(response.status_code, 200)
 
 
-class BasicWebAuthManagerTest(db_test_lib.RelationalDBEnabledMixin,
-                              test_lib.GRRBaseTest):
+class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def _SetupUser(self, user, password):
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Open(
-          "aff4:/users/%s" % user,
-          aff4_type=aff4_users.GRRUser,
-          mode="w",
-          token=self.token) as fd:
-        crypted_password = aff4_users.CryptedPassword()
-        crypted_password.SetPassword(password.encode("utf-8"))
-        fd.Set(fd.Schema.PASSWORD, crypted_password)
-    else:
-      data_store.REL_DB.WriteGRRUser(user, password)
+    data_store.REL_DB.WriteGRRUser(user, password)
 
   def testSecurityCheckUnicode(self):
     user = "żymścimił"

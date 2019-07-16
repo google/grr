@@ -4,30 +4,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility
-from grr_response_server import data_store
-from grr_response_server.aff4_objects import user_managers
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
 from grr_response_server.gui import api_e2e_test_lib
 from grr_response_server.gui import gui_test_lib
-from grr_response_server.hunts import implementation
-from grr_response_server.hunts import standard
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
 class ApiCallRouterWithApprovalChecksE2ETest(
-    db_test_lib.RelationalDBEnabledMixin, hunt_test_lib.StandardHuntTestMixin,
-    api_e2e_test_lib.ApiE2ETest):
+    hunt_test_lib.StandardHuntTestMixin, api_e2e_test_lib.ApiE2ETest):
 
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
@@ -59,39 +52,28 @@ class ApiCallRouterWithApprovalChecksE2ETest(
         approver=u"Approver2",
         admin=False)
 
-  def CreateSampleHunt(self):
-    """Creats SampleHunt, writes it to the data store and returns it's id."""
-
-    if data_store.RelationalDBEnabled():
-      return self.CreateHunt()
-    else:
-      with implementation.StartHunt(
-          hunt_name=standard.SampleHunt.__name__,
-          token=self.token.SetUID()) as hunt:
-        return hunt.session_id.Basename()
-
   def testSimpleUnauthorizedAccess(self):
     """Tests that simple access requires a token."""
     client_id = self.SetupClient(0)
-    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo", token=self.token)
+    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo")
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
-      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+      self.api.Client(client_id).File("fs/os/foo").Get()
 
   def testApprovalExpiry(self):
     """Tests that approvals expire after the correct time."""
     client_id = self.SetupClient(0)
-    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo", token=self.token)
+    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo")
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
-      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+      self.api.Client(client_id).File("fs/os/foo").Get()
 
     with test_lib.FakeTime(100.0, increment=1e-3):
       self.RequestAndGrantClientApproval(
           client_id, requestor=self.token.username)
 
       # This should work now.
-      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+      self.api.Client(client_id).File("fs/os/foo").Get()
 
     token_expiry = config.CONFIG["ACL.token_expiry"]
 
@@ -100,7 +82,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     # This is close to expiry but should still work.
     with test_lib.FakeTime(100.0 + token_expiry - 100.0):
-      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+      self.api.Client(client_id).File("fs/os/foo").Get()
 
     # Make sure the caches are reset.
     self.ClearCache()
@@ -108,29 +90,29 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     # Past expiry, should fail.
     with test_lib.FakeTime(100.0 + token_expiry + 100.0):
       with self.assertRaises(grr_api_errors.AccessForbiddenError):
-        self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+        self.api.Client(client_id).File("fs/os/foo").Get()
 
   def testClientApproval(self):
     """Tests that we can create an approval object to access clients."""
     client_id = self.SetupClient(0)
-    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo", token=self.token)
+    gui_test_lib.CreateFileVersion(client_id, "fs/os/foo")
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
-      self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+      self.api.Client(client_id).File("fs/os/foo").Get()
 
     self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
-    self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+    self.api.Client(client_id).File("fs/os/foo").Get()
 
     # Move the clocks forward to make sure the approval expires.
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.Now() + config.CONFIG["ACL.token_expiry"],
         increment=1e-3):
       with self.assertRaises(grr_api_errors.AccessForbiddenError):
-        self.api.Client(client_id.Basename()).File("fs/os/foo").Get()
+        self.api.Client(client_id).File("fs/os/foo").Get()
 
   def testHuntApproval(self):
     """Tests that we can create an approval object to run hunts."""
-    hunt_id = self.CreateSampleHunt()
+    hunt_id = self.CreateHunt()
     self.assertRaises(grr_api_errors.AccessForbiddenError,
                       self.api.Hunt(hunt_id).Start)
 
@@ -145,7 +127,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
   def testFlowAccess(self):
     """Tests access to flows."""
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     self.assertRaises(
         grr_api_errors.AccessForbiddenError,
@@ -169,7 +151,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
   def testCaches(self):
     """Makes sure that results are cached in the security manager."""
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     with test_lib.ConfigOverrider({"ACL.token_expiry": 30}):
       self.RequestAndGrantClientApproval(
@@ -184,15 +166,15 @@ class ApiCallRouterWithApprovalChecksE2ETest(
         # If this doesn't raise now, all answers were cached.
         self.api.Client(client_id).Flow(f.flow_id).Get()
 
-      with test_lib.FakeTime(
-          rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds.FromSeconds(
-              user_managers.FullAccessControlManager.approval_cache_time)):
+      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
+                             rdfvalue.DurationSeconds.FromSeconds(
+                                 api_router.AccessChecker.APPROVAL_CACHE_TIME)):
         # This must raise now.
         self.assertRaises(grr_api_errors.AccessForbiddenError,
                           self.api.Client(client_id).Flow(f.flow_id).Get)
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
@@ -200,7 +182,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
           name=flow_test_lib.ClientFlowWithoutCategory.__name__)
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
 
     self.api.Client(client_id).CreateFlow(

@@ -10,12 +10,10 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class HuntsWithRapidHuntingDisabledTest(db_test_lib.RelationalDBEnabledMixin,
-                                        gui_test_lib.GRRSeleniumHuntTest):
+class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test that rapid hunts logic does nothing when the config flag is off."""
 
   def setUp(self):
@@ -75,12 +73,12 @@ class HuntsWithRapidHuntingDisabledTest(db_test_lib.RelationalDBEnabledMixin,
   def testHuntViewDoesNotShowAnythingForRapidLikeHunts(self):
     # CreateHunt sets client rate to 0. Thus we have a rapid-hunting-like hunt:
     # FileFinder without download and client rate 0.
-    hunt_urn = self.StartHunt(
+    hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"]))
 
-    self.Open("/#/hunts/%s" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_id)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=dt:contains('Client Rate') + dd:contains(0)")
@@ -89,8 +87,7 @@ class HuntsWithRapidHuntingDisabledTest(db_test_lib.RelationalDBEnabledMixin,
         "css=dt:contains('Client Rate') + dd:contains('rapid hunting')")
 
 
-class HuntsWithRapidHuntingEnabledTest(db_test_lib.RelationalDBEnabledMixin,
-                                       gui_test_lib.GRRSeleniumHuntTest):
+class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test rapid hunts logic works correctly when the config flag is on."""
 
   def setUp(self):
@@ -288,12 +285,12 @@ class HuntsWithRapidHuntingEnabledTest(db_test_lib.RelationalDBEnabledMixin,
   def testHuntViewShowsEligibilityNoteForRapidLikeHuntWithClientRate0(self):
     # CreateHunt sets client rate to 0. Thus we have a rapid-hunting-like hunt:
     # FileFinder without download action and client rate 0.
-    hunt_urn = self.StartHunt(
+    hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"]))
 
-    self.Open("/#/hunts/%s" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_id)
 
     self.WaitUntil(
         self.IsElementPresent, "css=dt:contains('Client Rate') + "
@@ -307,12 +304,12 @@ class HuntsWithRapidHuntingEnabledTest(db_test_lib.RelationalDBEnabledMixin,
   def testHuntViewShowsEligibilityNoteForNonRapidHuntWithClientRate0(self):
     # CreateHunt sets client rate to 0. Thus we have a non-eligible hunt:
     # FileFinder with a recursive glob expression and client rate 0.
-    hunt_urn = self.StartHunt(
+    hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/**"]))
 
-    self.Open("/#/hunts/%s" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_id)
 
     self.WaitUntil(
         self.IsElementPresent, "css=dt:contains('Client Rate') + "
@@ -321,13 +318,13 @@ class HuntsWithRapidHuntingEnabledTest(db_test_lib.RelationalDBEnabledMixin,
         self.GetText("css=dt:contains('Client Rate') + dd").startswith("0 "))
 
   def testHuntViewDoesShowsNothingForRapidLikeHuntWithClientRateNon0(self):
-    hunt_urn = self.StartHunt(
+    hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/foo"]),
         client_rate=42)
 
-    self.Open("/#/hunts/%s" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_id)
 
     self.WaitUntil(self.IsElementPresent, "css=dt:contains('Client Rate')")
     self.WaitUntilNot(
@@ -335,13 +332,13 @@ class HuntsWithRapidHuntingEnabledTest(db_test_lib.RelationalDBEnabledMixin,
         "dd:contains('rapid hunting')")
 
   def testHuntViewDoesShowsNothingForNonRapidLikeHuntWithClientRateNon0(self):
-    hunt_urn = self.StartHunt(
+    hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/**"]),
         client_rate=42)
 
-    self.Open("/#/hunts/%s" % hunt_urn.Basename())
+    self.Open("/#/hunts/%s" % hunt_id)
 
     self.WaitUntil(self.IsElementPresent, "css=dt:contains('Client Rate')")
     self.WaitUntilNot(

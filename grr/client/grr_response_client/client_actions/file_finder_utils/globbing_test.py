@@ -9,7 +9,6 @@ import os
 import shutil
 import unittest
 
-
 from absl import app
 from absl.testing import absltest
 from future.builtins import zip

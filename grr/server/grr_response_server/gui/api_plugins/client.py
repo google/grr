@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import re
 
 from future.builtins import str
 from future.moves.urllib import parse as urlparse
@@ -20,7 +21,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
@@ -30,15 +30,12 @@ from grr_response_proto.api import client_pb2
 from grr_response_server import action_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
-from grr_response_server import events
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import ip_resolver
 from grr_response_server import timeseries
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
-from grr_response_server.flows.general import audit
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
@@ -74,6 +71,8 @@ class InterrogateOperationNotFoundError(
 class ApiClientId(rdfvalue.RDFString):
   """Class encapsulating client ids."""
 
+  CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
+
   def __init__(self, initializer=None, age=None):
     if isinstance(initializer, rdf_client.ClientURN):
       initializer = initializer.Basename()
@@ -83,15 +82,15 @@ class ApiClientId(rdfvalue.RDFString):
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
     if self._value:
-      re_match = aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(self._value)
+      re_match = self.CLIENT_ID_RE.match(self._value)
       if not re_match:
         raise ValueError("Invalid client id: %s" % utils.SmartStr(self._value))
 
-  def ToClientURN(self):
+  def ToString(self):
     if not self._value:
-      raise ValueError("Can't call ToClientURN() on an empty client id.")
+      raise ValueError("Can't call ToString() on an empty client id.")
 
-    return rdf_client.ClientURN(self._value)
+    return self._value
 
 
 class ApiClient(rdf_structs.RDFProtoStruct):
@@ -385,6 +384,28 @@ class ApiLabelsRestrictedSearchClientsHandler(
     return ApiSearchClientsResult(items=api_clients)
 
 
+class ApiVerifyAccessArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiVerifyAccessArgs
+  rdf_deps = [
+      ApiClientId,
+  ]
+
+
+class ApiVerifyAccessResult(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiVerifyAccessResult
+  rdf_deps = []
+
+
+class ApiVerifyAccessHandler(api_call_handler_base.ApiCallHandler):
+  """Dummy handler that renders empty message."""
+
+  args_type = ApiVerifyAccessArgs
+  result_type = ApiVerifyAccessResult
+
+  def Handle(self, args, token=None):
+    return ApiVerifyAccessResult()
+
+
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetClientArgs
   rdf_deps = [
@@ -655,34 +676,11 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiAddClientsLabelsArgs
 
   def Handle(self, args, token=None):
-    audit_description = ",".join([
-        token.username + u"." + utils.SmartUnicode(name) for name in args.labels
-    ])
-    audit_events = []
-
-    try:
-      for api_client_id in args.client_ids:
-        audit_events.append(
-            rdf_events.AuditEvent(
-                user=token.username,
-                action="CLIENT_ADD_LABEL",
-                flow_name="handler.ApiAddClientsLabelsHandler",
-                client=api_client_id.ToClientURN(),
-                description=audit_description))
-
-      for api_client_id in args.client_ids:
-        cid = unicode(api_client_id)
-        try:
-          data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
-          idx = client_index.ClientIndex()
-          idx.AddClientLabels(cid, args.labels)
-        except db.UnknownClientError:
-          # TODO(amoser): Remove after data migration.
-          pass
-
-    finally:
-      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                          token=token)
+    for api_client_id in args.client_ids:
+      cid = unicode(api_client_id)
+      data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
+      idx = client_index.ClientIndex()
+      idx.AddClientLabels(cid, args.labels)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -709,33 +707,16 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       client.RemoveLabels(labels_names, owner=owner)
 
   def Handle(self, args, token=None):
-    audit_description = ",".join([
-        token.username + u"." + utils.SmartUnicode(name) for name in args.labels
-    ])
-    audit_events = []
-
-    try:
-      for client_id in args.client_ids:
-        cid = unicode(client_id)
-        data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
-        labels_to_remove = set(args.labels)
-        existing_labels = data_store.REL_DB.ReadClientLabels(cid)
-        for label in existing_labels:
-          labels_to_remove.discard(label.name)
-        if labels_to_remove:
-          idx = client_index.ClientIndex()
-          idx.RemoveClientLabels(cid, labels_to_remove)
-
-        audit_events.append(
-            rdf_events.AuditEvent(
-                user=token.username,
-                action="CLIENT_REMOVE_LABEL",
-                flow_name="handler.ApiRemoveClientsLabelsHandler",
-                client=client_id.ToClientURN(),
-                description=audit_description))
-    finally:
-      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                          token=token)
+    for client_id in args.client_ids:
+      cid = unicode(client_id)
+      data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
+      labels_to_remove = set(args.labels)
+      existing_labels = data_store.REL_DB.ReadClientLabels(cid)
+      for label in existing_labels:
+        labels_to_remove.discard(label.name)
+      if labels_to_remove:
+        idx = client_index.ClientIndex()
+        idx.RemoveClientLabels(cid, labels_to_remove)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):

@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import logging
 import zlib
 
 from future.builtins import range
@@ -17,20 +16,16 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import message_handlers
 from grr_response_server import notification
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -42,8 +37,7 @@ class GetFileArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class GetFileMixin(object):
+class GetFile(flow_base.FlowBase):
   """An efficient file transfer mechanism (deprecated, use MultiGetFile).
 
   This flow is deprecated in favor of MultiGetFile, but kept for now for use by
@@ -159,50 +153,32 @@ class GetFileMixin(object):
     if response.offset + response.length >= self.state.file_size:
       # File is complete.
       stat_entry = self.state.stat_entry
-      urn = self.state.stat_entry.AFF4Path(self.client_urn)
 
-      # TODO(user): when all the code can read files from REL_DB,
-      # protect this with:
-      # if not data_store.RelationalDBEnabled():
-      if data_store.AFF4Enabled():
-        with aff4.FACTORY.Create(
-            urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
-          fd.SetChunksize(self.CHUNK_SIZE)
-          fd.Set(fd.Schema.STAT(stat_entry))
+      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
-          for data, length in self.state.blobs:
-            fd.AddBlob(rdf_objects.BlobID.FromBytes(data), length)
-            fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
+      blob_refs = []
+      offset = 0
+      for data, size in self.state.blobs:
+        blob_refs.append(
+            rdf_objects.BlobReference(
+                offset=offset,
+                size=size,
+                blob_id=rdf_objects.BlobID.FromBytes(data)))
+        offset += size
 
-      if data_store.RelationalDBEnabled():
-        path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+      client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+      hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
 
-        # Adding files to filestore requires reading data from RELDB,
-        # thus protecting this code with a filestore-read-enabled check.
-        if data_store.RelationalDBEnabled():
-          blob_refs = []
-          offset = 0
-          for data, size in self.state.blobs:
-            blob_refs.append(
-                rdf_objects.BlobReference(
-                    offset=offset,
-                    size=size,
-                    blob_id=rdf_objects.BlobID.FromBytes(data)))
-            offset += size
+      path_info.hash_entry.sha256 = hash_id.AsBytes()
 
-          client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-          hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
-
-          path_info.hash_entry.sha256 = hash_id.AsBytes()
-
-        data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
       # Save some space.
       del self.state["blobs"]
       self.state.success = True
 
   def NotifyAboutEnd(self):
-    super(GetFileMixin, self).NotifyAboutEnd()
+    super(GetFile, self).NotifyAboutEnd()
 
     stat_entry = self.state.stat_entry
     if not stat_entry:
@@ -246,7 +222,7 @@ class GetFileMixin(object):
       # Notify any parent flows the file is ready to be used now.
       self.SendReply(stat_entry)
 
-    super(GetFileMixin, self).End(responses)
+    super(GetFile, self).End(responses)
 
 
 class MultiGetFileLogic(object):
@@ -698,51 +674,36 @@ class MultiGetFileLogic(object):
 
     # Write the file to the data store.
     stat_entry = file_tracker["stat_entry"]
-    urn = stat_entry.pathspec.AFF4Path(self.client_urn)
 
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Create(
-          urn, aff4_grr.VFSBlobImage, mode="w", token=self.token) as fd:
+    path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
-        fd.SetChunksize(self.CHUNK_SIZE)
-        fd.Set(fd.Schema.STAT(stat_entry))
-        fd.Set(fd.Schema.PATHSPEC(stat_entry.pathspec))
-        fd.Set(fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
+    blob_refs = []
+    offset = 0
+    for index in sorted(blob_dict):
+      digest, size = blob_dict[index]
+      blob_refs.append(
+          rdf_objects.BlobReference(
+              offset=offset,
+              size=size,
+              blob_id=rdf_objects.BlobID.FromBytes(digest)))
+      offset += size
 
-        for index in sorted(blob_dict):
-          digest, length = blob_dict[index]
-          fd.AddBlob(rdf_objects.BlobID.FromBytes(digest), length)
+    hash_obj = file_tracker["hash_obj"]
 
-    if data_store.RelationalDBEnabled():
-      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+    client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+    hash_id = file_store.AddFileWithUnknownHash(
+        client_path,
+        blob_refs,
+        use_external_stores=self.state.use_external_stores)
+    # If the hash that we've calculated matches what we got from the
+    # client, then simply store the full hash entry.
+    # Otherwise store just the hash that we've calculated.
+    if hash_id.AsBytes() == hash_obj.sha256:
+      path_info.hash_entry = hash_obj
+    else:
+      path_info.hash_entry.sha256 = hash_id.AsBytes()
 
-      blob_refs = []
-      offset = 0
-      for index in sorted(blob_dict):
-        digest, size = blob_dict[index]
-        blob_refs.append(
-            rdf_objects.BlobReference(
-                offset=offset,
-                size=size,
-                blob_id=rdf_objects.BlobID.FromBytes(digest)))
-        offset += size
-
-      hash_obj = file_tracker["hash_obj"]
-
-      client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-      hash_id = file_store.AddFileWithUnknownHash(
-          client_path,
-          blob_refs,
-          use_external_stores=self.state.use_external_stores)
-      # If the hash that we've calculated matches what we got from the
-      # client, then simply store the full hash entry.
-      # Otherwise store just the hash that we've calculated.
-      if hash_id.AsBytes() == hash_obj.sha256:
-        path_info.hash_entry = hash_obj
-      else:
-        path_info.hash_entry.sha256 = hash_id.AsBytes()
-
-      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
     # Save some space.
     del file_tracker["blobs"]
@@ -775,15 +736,14 @@ class MultiGetFileArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class MultiGetFileMixin(MultiGetFileLogic):
+class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
   """A flow to effectively retrieve a number of files."""
 
   args_type = MultiGetFileArgs
 
   def Start(self):
     """Start state of the flow."""
-    super(MultiGetFileMixin, self).Start(
+    super(MultiGetFile, self).Start(
         file_size=self.args.file_size,
         maximum_pending_files=self.args.maximum_pending_files,
         use_external_stores=self.args.use_external_stores)
@@ -810,8 +770,7 @@ class GetMBRArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GetMBRArgs
 
 
-@flow_base.DualDBFlow
-class GetMBRMixin(object):
+class GetMBR(flow_base.FlowBase):
   """A flow to retrieve the MBR.
 
   Returns to parent flow:
@@ -820,7 +779,7 @@ class GetMBRMixin(object):
 
   category = "/Filesystem/"
   args_type = GetMBRArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Schedules the ReadBuffer client action."""
@@ -855,7 +814,7 @@ class GetMBRMixin(object):
     if not responses.success:
       msg = "Could not retrieve MBR: %s" % responses.status
       self.Log(msg)
-      raise flow.FlowError(msg)
+      raise flow_base.FlowError(msg)
 
     response = responses.First()
 
@@ -866,52 +825,8 @@ class GetMBRMixin(object):
       mbr_data = b"".join(self.state.buffers)
       self.state.buffers = None
 
-      if data_store.AFF4Enabled():
-        with aff4.FACTORY.Create(
-            self.client_urn.Add("mbr"),
-            aff4_grr.VFSFile,
-            mode="w",
-            token=self.token) as mbr:
-          mbr.write(mbr_data)
-
       self.Log("Successfully collected the MBR (%d bytes)." % len(mbr_data))
       self.SendReply(rdfvalue.RDFBytes(mbr_data))
-
-
-class TransferStore(flow.WellKnownFlow):
-  """Store a buffer into a determined location."""
-  well_known_session_id = rdfvalue.SessionID(flow_name="TransferStore")
-
-  def ProcessMessages(self, msg_list):
-    blobs = []
-    for message in msg_list:
-      if (message.auth_state !=
-          rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
-        logging.error("TransferStore request from %s is not authenticated.",
-                      message.source)
-        continue
-
-      read_buffer = message.payload
-      data = read_buffer.data
-      if not data:
-        continue
-
-      if (read_buffer.compression ==
-          rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION):
-        data = zlib.decompress(data)
-      elif (read_buffer.compression ==
-            rdf_protodict.DataBlob.CompressionType.UNCOMPRESSED):
-        pass
-      else:
-        raise ValueError("Unsupported compression")
-
-      blobs.append(data)
-
-    data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
-
-  def ProcessMessage(self, message):
-    """Write the blob into the AFF4 blob storage area."""
-    return self.ProcessMessages([message])
 
 
 class BlobHandler(message_handlers.MessageHandler):
@@ -940,8 +855,7 @@ class BlobHandler(message_handlers.MessageHandler):
     data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
 
-@flow_base.DualDBFlow
-class SendFileMixin(object):
+class SendFile(flow_base.FlowBase):
   """This flow sends a file to remote listener.
 
   To use this flow, choose a key and an IV in hex format (if run from the GUI,
@@ -964,4 +878,4 @@ class SendFileMixin(object):
   def Done(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
-      raise flow.FlowError(responses.status.error_message)
+      raise flow_base.FlowError(responses.status.error_message)

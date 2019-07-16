@@ -15,7 +15,6 @@ import struct
 import threading
 import time
 
-
 from absl import flags
 from future.utils import iteritems
 from future.utils import itervalues

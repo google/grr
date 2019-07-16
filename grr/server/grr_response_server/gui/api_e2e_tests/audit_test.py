@@ -4,21 +4,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server import data_store
 from grr_response_server.gui import api_e2e_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class AuditTest(db_test_lib.RelationalDBEnabledMixin,
-                api_e2e_test_lib.ApiE2ETest):
+class AuditTest(api_e2e_test_lib.ApiE2ETest):
 
   def testFlowIsAudited(self):
-    self.assertTrue(data_store.RelationalDBEnabled())
-    self.assertTrue(data_store.RelationalDBEnabled())
 
     self.api.SearchClients(query=".")
 

@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-
 import psutil
 
 from grr_response_client import actions

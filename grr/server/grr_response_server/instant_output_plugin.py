@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import functools
 import re
 
-
 from future.builtins import zip
 from future.utils import itervalues
 from future.utils import with_metaclass
@@ -15,7 +14,6 @@ from future.utils import with_metaclass
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.util import collection
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import export
 
@@ -125,22 +123,13 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
         metadata_to_fetch.add(urn)
 
     if metadata_to_fetch:
-      if data_store.RelationalDBEnabled():
-        client_ids = set(urn.Basename() for urn in metadata_to_fetch)
-        infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
+      client_ids = set(urn.Basename() for urn in metadata_to_fetch)
+      infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
 
-        fetched_metadata = [
-            export.GetMetadata(client_id, info)
-            for client_id, info in infos.items()
-        ]
-      else:
-        client_fds = aff4.FACTORY.MultiOpen(
-            metadata_to_fetch, mode="r", token=self.token)
-
-        fetched_metadata = [
-            export.GetMetadataLegacy(client_fd, token=self.token)
-            for client_fd in client_fds
-        ]
+      fetched_metadata = [
+          export.GetMetadata(client_id, info)
+          for client_id, info in infos.items()
+      ]
 
       for metadata in fetched_metadata:
         metadata.source_urn = self.source_urn

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 
 import time
-
 from absl import app
 from werkzeug import wrappers as werkzeug_wrappers
 

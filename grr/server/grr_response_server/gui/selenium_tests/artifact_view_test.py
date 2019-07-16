@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 import os
 
-
 from absl import app
 
 from grr_response_core import config
@@ -17,7 +16,6 @@ from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server.flows.general import collectors
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 
@@ -28,8 +26,7 @@ class TestCmdProcessor(parser.CommandParser):
   supported_artifacts = ["TestCmdArtifact"]
 
 
-class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
-                         gui_test_lib.GRRSeleniumTest):
+class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def _UploadCustomArtifacts(self):
@@ -56,12 +53,12 @@ class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
 
     self.Open("/")
 
-    self.Type("client_query", self.client_id.Basename())
+    self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
 
     self.WaitUntilEqual(self.client_id, self.GetText, "css=span[type=subject]")
     # Choose client 1
-    self.Click("css=td:contains('%s')" % self.client_id.Basename())
+    self.Click("css=td:contains('%s')" % self.client_id)
 
     # First screen should be the Host Information already.
     self.WaitUntil(self.IsTextPresent, "Host-0")
@@ -100,7 +97,7 @@ class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
   def testSystemArtifactsAreNotMarkedInStartFlowForm(self):
     self._LoadSystemArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -112,7 +109,7 @@ class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
   def testCustomArtifactsAreMarkedInStartFlowForm(self):
     self._UploadCustomArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -123,7 +120,7 @@ class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
   def testSystemArtifactsAreNotMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -139,7 +136,7 @@ class TestArtifactRender(db_test_lib.RelationalDBEnabledMixin,
   def testCustomArtifactsAreMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
+    self.Open("/#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 

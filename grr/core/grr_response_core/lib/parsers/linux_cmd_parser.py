@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 import re
 
-
 from future.utils import iteritems
 
 from grr_response_core.lib import parser

@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.builtins import range
 from future.utils import iteritems
@@ -18,13 +17,12 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import aff4_test_lib
 from grr.test_lib import test_lib
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
 
 
-class ClientIndexTest(aff4_test_lib.AFF4ObjectTest):
+class ClientIndexTest(test_lib.GRRBaseTest):
 
   def testAnalyzeClient(self):
     index = client_index.ClientIndex()

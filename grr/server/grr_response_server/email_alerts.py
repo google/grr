@@ -14,7 +14,6 @@ import re
 import smtplib
 import socket
 
-
 from future.utils import iteritems
 from future.utils import string_types
 from future.utils import with_metaclass

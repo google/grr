@@ -53,9 +53,9 @@ RUN pip install --upgrade --no-cache-dir pip virtualenv && \
 # Install proto compiler
 RUN mkdir -p /usr/share/protobuf && \
 cd /usr/share/protobuf && \
-wget --quiet "https://github.com/google/protobuf/releases/download/v3.6.1/protoc-3.6.1-linux-x86_64.zip" && \
-unzip protoc-3.6.1-linux-x86_64.zip && \
-rm protoc-3.6.1-linux-x86_64.zip
+wget --quiet "https://github.com/google/protobuf/releases/download/v3.8.0/protoc-3.8.0-linux-x86_64.zip" && \
+unzip protoc-3.8.0-linux-x86_64.zip && \
+rm protoc-3.8.0-linux-x86_64.zip
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
     $GRR_VENV/bin/nodeenv -p --prebuilt --node=10.12.0 && \

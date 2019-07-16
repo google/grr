@@ -12,7 +12,6 @@ import subprocess
 import tempfile
 import types
 
-
 import pytest
 
 from grr_response_client import actions

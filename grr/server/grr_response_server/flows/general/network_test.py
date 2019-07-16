@@ -9,7 +9,6 @@ from absl import app
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server.flows.general import network
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -38,8 +37,7 @@ class ClientMock(action_mocks.ActionMock):
     return [conn1, conn2]
 
 
-class NetstatFlowTest(db_test_lib.RelationalDBEnabledMixin,
-                      flow_test_lib.FlowTestsBaseclass):
+class NetstatFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the process listing flow."""
 
   def testNetstat(self):

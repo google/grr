@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import abc
 import re
 
-
 from future.utils import with_metaclass
 from typing import Iterator
 from typing import NamedTuple

@@ -11,7 +11,6 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import output_plugin
@@ -73,16 +72,10 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     if emails_left < 0:
       return
 
-    if data_store.RelationalDBEnabled():
-      client_id = response.source.Basename()
-      client = data_store.REL_DB.ReadClientSnapshot(client_id)
-      hostname = client.knowledge_base.fqdn or "unknown hostname"
-      client_fragment_id = "/clients/%s" % client_id
-    else:
-      client_id = response.source
-      client = aff4.FACTORY.Open(client_id, token=self.token)
-      hostname = client.Get(client.Schema.HOSTNAME) or "unknown hostname"
-      client_fragment_id = "/clients/%s" % client_id.Basename()
+    client_id = response.source.Basename()
+    client = data_store.REL_DB.ReadClientSnapshot(client_id)
+    hostname = client.knowledge_base.fqdn or "unknown hostname"
+    client_fragment_id = "/clients/%s" % client_id
 
     if emails_left == 0:
       additional_message = (self.too_many_mails_msg % self.args.emails_limit)

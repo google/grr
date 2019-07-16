@@ -4,17 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import stat
-
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import standard
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -29,8 +24,7 @@ class FindFilesArgs(rdf_structs.RDFProtoStruct):
     self.findspec.Validate()
 
 
-@flow_base.DualDBFlow
-class FindFilesMixin(object):
+class FindFiles(flow_base.FlowBase):
   r"""Find files on the client.
 
     The logic is:
@@ -88,36 +82,15 @@ class FindFilesMixin(object):
     if not responses.success:
       raise IOError(responses.status)
 
-    with data_store.DB.GetMutationPool() as pool:
-      for response in responses:
+    for response in responses:
 
-        # TODO(amoser): FindSpec is only returned by legacy clients. Remove this
-        # no later than April, 2022.
-        if isinstance(response, rdf_client_fs.FindSpec):
-          response = response.hit
+      # TODO(amoser): FindSpec is only returned by legacy clients. Remove this
+      # no later than April, 2022.
+      if isinstance(response, rdf_client_fs.FindSpec):
+        response = response.hit
 
-        if data_store.AFF4Enabled():
-          # Create the file in the VFS
-          vfs_urn = response.pathspec.AFF4Path(self.client_urn)
+      path_info = rdf_objects.PathInfo.FromStatEntry(response)
+      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-          if stat.S_ISDIR(response.st_mode):
-            fd = aff4.FACTORY.Create(
-                vfs_urn,
-                standard.VFSDirectory,
-                mutation_pool=pool,
-                token=self.token)
-          else:
-            fd = aff4.FACTORY.Create(
-                vfs_urn, aff4_grr.VFSFile, mutation_pool=pool, token=self.token)
-
-          with fd:
-            stat_response = fd.Schema.STAT(response)
-            fd.Set(stat_response)
-            fd.Set(fd.Schema.PATHSPEC(response.pathspec))
-
-        if data_store.RelationalDBEnabled():
-          path_info = rdf_objects.PathInfo.FromStatEntry(response)
-          data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
-
-        # Send the stat to the parent flow.
-        self.SendReply(response)
+      # Send the stat to the parent flow.
+      self.SendReply(response)

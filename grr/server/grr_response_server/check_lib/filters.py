@@ -8,7 +8,6 @@ import os
 import re
 import stat
 
-
 from future.utils import with_metaclass
 
 from grr_response_core.lib import objectfilter

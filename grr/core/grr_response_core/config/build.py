@@ -43,9 +43,15 @@ config_lib.DEFINE_string(
     help="Full module path for GRR client's main file.")
 
 config_lib.DEFINE_string(
-    "ClientBuilder.fleetspeak_service_dir", "/etc/fleetspeak/services",
+    "ClientBuilder.fleetspeak_service_dir", "/etc/fleetspeak/textservices",
     "Directory where Fleetspeak expects service configs to be. Only applies "
     "if Client.fleetspeak_enabled is true.")
+
+config_lib.DEFINE_string(
+    "ClientBuilder.fleetspeak_legacy_config", None,
+    "Path where previous versions of GRR installed Fleetspeak configs to. If "
+    "provided, the file at this location on the target system will be deleted "
+    "before GRR is installed.")
 
 config_lib.DEFINE_string(
     "ClientBuilder.fleetspeak_plist_path", None,

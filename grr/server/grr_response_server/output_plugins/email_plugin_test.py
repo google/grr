@@ -13,13 +13,11 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import email_alerts
 from grr_response_server.output_plugins import email_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class EmailOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
-                            flow_test_lib.FlowTestsBaseclass):
+class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests email output plugin."""
 
   def setUp(self):
@@ -27,7 +25,7 @@ class EmailOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
 
     self.hostname = "somehostname"
     self.client_id = self.SetupClient(0, fqdn=self.hostname)
-    self.results_urn = self.client_id.Add("Results")
+    self.results_urn = rdf_client.ClientURN(self.client_id).Add("Results")
     self.email_messages = []
     self.email_address = "notify@%s" % config.CONFIG["Logging.domain"]
 

@@ -12,7 +12,6 @@ import shutil
 import subprocess
 import sys
 
-
 import win32process
 
 from grr_response_client_builder import build

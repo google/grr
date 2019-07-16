@@ -10,31 +10,28 @@ import threading
 import time
 import zipfile
 
-
 from absl import app
 
 from grr_response_proto.api import vfs_pb2
 from grr_response_server.databases import db
 from grr_response_server.gui import api_e2e_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
-                          api_e2e_test_lib.ApiE2ETest):
+class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
   """Tests VFS operations part of GRR Python API client library."""
 
   def setUp(self):
     super(ApiClientLibVfsTest, self).setUp()
-    self.client_urn = self.SetupClient(0)
-    fixture_test_lib.ClientFixture(self.client_urn, self.token)
+    self.client_id = self.SetupClient(0)
+    fixture_test_lib.ClientFixture(self.client_id)
 
   def testGetFileFromRef(self):
     file_ref = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads/a.txt")
+        client_id=self.client_id).File("fs/os/c/Downloads/a.txt")
     self.assertEqual(file_ref.path, "fs/os/c/Downloads/a.txt")
 
     file_obj = file_ref.Get()
@@ -44,13 +41,13 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testGetFileForDirectory(self):
     file_obj = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads").Get()
+        client_id=self.client_id).File("fs/os/c/Downloads").Get()
     self.assertEqual(file_obj.path, "fs/os/c/Downloads")
     self.assertTrue(file_obj.is_directory)
 
   def testListFiles(self):
-    files_iter = self.api.Client(client_id=self.client_urn.Basename()).File(
-        "fs/os/c/Downloads").ListFiles()
+    files_iter = self.api.Client(
+        client_id=self.client_id).File("fs/os/c/Downloads").ListFiles()
     files_list = list(files_iter)
 
     self.assertEqual(
@@ -60,7 +57,7 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testGetBlob(self):
     out = io.BytesIO()
-    self.api.Client(client_id=self.client_urn.Basename()).File(
+    self.api.Client(client_id=self.client_id).File(
         "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
 
     self.assertEqual(out.getvalue(), "Hello world")
@@ -71,14 +68,14 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
         b"Hello world")
 
     out = io.BytesIO()
-    self.api.Client(client_id=self.client_urn.Basename()).File(
+    self.api.Client(client_id=self.client_id).File(
         u"fs/tsk/c/bin/中国新闻网新闻中").GetBlob().WriteToStream(out)
 
     self.assertEqual(out.getvalue(), "Hello world")
 
   def testGetFilesArchive(self):
     zip_stream = io.BytesIO()
-    self.api.Client(client_id=self.client_urn.Basename()).File(
+    self.api.Client(client_id=self.client_id).File(
         "fs/tsk/c/bin").GetFilesArchive().WriteToStream(zip_stream)
     zip_fd = zipfile.ZipFile(zip_stream)
 
@@ -91,27 +88,26 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
         ]))
 
   def testGetVersionTimes(self):
-    vtimes = self.api.Client(client_id=self.client_urn.Basename()).File(
+    vtimes = self.api.Client(client_id=self.client_id).File(
         "fs/os/c/Downloads/a.txt").GetVersionTimes()
     self.assertLen(vtimes, 1)
 
   def testRefresh(self):
-    operation = self.api.Client(client_id=self.client_urn.Basename()).File(
-        "fs/os/c/Downloads").Refresh()
+    operation = self.api.Client(
+        client_id=self.client_id).File("fs/os/c/Downloads").Refresh()
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
   def testRefreshWaitUntilDone(self):
-    f = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads")
+    f = self.api.Client(client_id=self.client_id).File("fs/os/c/Downloads")
 
-    with flow_test_lib.TestWorker(token=self.token):
+    with flow_test_lib.TestWorker():
       operation = f.Refresh()
       self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
       def ProcessOperation():
         time.sleep(1)
-        flow_test_lib.FinishAllFlowsOnClient(self.client_urn.Basename())
+        flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
       threading.Thread(target=ProcessOperation).start()
       result_f = operation.WaitUntilDone().target_file
@@ -120,22 +116,22 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
   def testRefreshRecursively(self):
-    operation = self.api.Client(client_id=self.client_urn.Basename()).File(
-        "fs/os/c/Downloads").RefreshRecursively(max_depth=5)
+    operation = self.api.Client(
+        client_id=self.client_id).File("fs/os/c/Downloads").RefreshRecursively(
+            max_depth=5)
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
   def testRefreshRecursivelyWaitUntilDone(self):
-    f = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads")
+    f = self.api.Client(client_id=self.client_id).File("fs/os/c/Downloads")
 
-    with flow_test_lib.TestWorker(token=self.token):
+    with flow_test_lib.TestWorker():
       operation = f.RefreshRecursively(max_depth=5)
       self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
       def ProcessOperation():
         time.sleep(1)
-        flow_test_lib.FinishAllFlowsOnClient(self.client_urn.Basename())
+        flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
       threading.Thread(target=ProcessOperation).start()
       result_f = operation.WaitUntilDone().target_file
@@ -144,22 +140,22 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(operation.GetState(), operation.STATE_FINISHED)
 
   def testCollect(self):
-    operation = self.api.Client(client_id=self.client_urn.Basename()).File(
-        "fs/os/c/Downloads/a.txt").Collect()
+    operation = self.api.Client(
+        client_id=self.client_id).File("fs/os/c/Downloads/a.txt").Collect()
     self.assertTrue(operation.operation_id)
     self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
   def testCollectWaitUntilDone(self):
     f = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs/os/c/Downloads/a.txt")
+        client_id=self.client_id).File("fs/os/c/Downloads/a.txt")
 
-    with flow_test_lib.TestWorker(token=self.token):
+    with flow_test_lib.TestWorker():
       operation = f.Collect()
       self.assertEqual(operation.GetState(), operation.STATE_RUNNING)
 
       def ProcessOperation():
         time.sleep(1)
-        flow_test_lib.FinishAllFlowsOnClient(self.client_urn.Basename())
+        flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
       threading.Thread(target=ProcessOperation).start()
       result_f = operation.WaitUntilDone().target_file
@@ -169,14 +165,14 @@ class ApiClientLibVfsTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testGetTimeline(self):
     timeline = self.api.Client(
-        client_id=self.client_urn.Basename()).File("fs/os").GetTimeline()
+        client_id=self.client_id).File("fs/os").GetTimeline()
     self.assertTrue(timeline)
     for item in timeline:
       self.assertIsInstance(item, vfs_pb2.ApiVfsTimelineItem)
 
   def testGetTimelineAsCsv(self):
     out = io.BytesIO()
-    self.api.Client(client_id=self.client_urn.Basename()).File(
+    self.api.Client(client_id=self.client_id).File(
         "fs/os").GetTimelineAsCsv().WriteToStream(out)
     self.assertTrue(out.getvalue())
 

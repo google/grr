@@ -38,7 +38,6 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import vfs as api_vfs
-from grr_response_server.hunts import implementation
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import hunts as rdf_hunts
@@ -94,15 +93,11 @@ class ApiHuntId(rdfvalue.RDFString):
         raise ValueError("Invalid hunt id: %s (%s)" %
                          (utils.SmartStr(self._value), e))
 
-  def ToURN(self):
+  def ToString(self):
     if not self._value:
-      raise ValueError("can't call ToURN() on an empty hunt id.")
+      raise ValueError("can't call ToString() on an empty hunt id.")
 
-    return HUNTS_ROOT_PATH.Add(self._value)
-
-  def IsLegacy(self):
-    """Returns True, if ApiHuntId indicates legacy, AFF4-based hunt."""
-    return self._value.startswith("H:")
+    return self._value
 
 
 class ApiHuntReference(rdf_structs.RDFProtoStruct):
@@ -1018,7 +1013,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   def _WrapContentGenerator(self, generator, collection, args, token=None):
     try:
 
-      for item in generator.Generate(collection, token=token):
+      for item in generator.Generate(collection):
         yield item
 
       notification.Notify(
@@ -1239,17 +1234,6 @@ class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
       api_call_handler_utils.ApiDataObject,
       rdf_hunts.HuntContext,
   ]
-
-  def GetArgsClass(self):
-    hunt_name = self.runner_args.hunt_name
-
-    if hunt_name:
-      hunt_cls = implementation.GRRHunt.classes.get(hunt_name)
-      if hunt_cls is None:
-        raise ValueError("Hunt %s not known." % hunt_name)
-
-      # The required protobuf for this class is in args_type.
-      return hunt_cls.args_type
 
 
 class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):

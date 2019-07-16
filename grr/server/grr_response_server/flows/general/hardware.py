@@ -6,12 +6,8 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
-from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import hardware
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import transfer
 
@@ -20,12 +16,11 @@ class DumpFlashImageArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.DumpFlashImageArgs
 
 
-@flow_base.DualDBFlow
-class DumpFlashImageMixin(object):
+class DumpFlashImage(flow_base.FlowBase):
   """Dump Flash image (BIOS)."""
 
   category = "/Collectors/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
   args_type = DumpFlashImageArgs
 
   def Start(self):
@@ -54,7 +49,7 @@ class DumpFlashImageMixin(object):
           self.Log(log)
 
     if not responses.success:
-      raise flow.FlowError("Failed to dump the flash image: {0}".format(
+      raise flow_base.FlowError("Failed to dump the flash image: {0}".format(
           responses.status))
     elif not responses.First().path:
       self.Log("No path returned. Skipping host.")
@@ -70,22 +65,11 @@ class DumpFlashImageMixin(object):
   def DeleteTemporaryImage(self, responses):
     """Remove the temporary image from the client."""
     if not responses.success:
-      raise flow.FlowError("Unable to collect the flash image: {0}".format(
+      raise flow_base.FlowError("Unable to collect the flash image: {0}".format(
           responses.status))
 
     response = responses.First()
     self.SendReply(response)
-
-    # Writing files (or symlinks) into random places is not supported anymore in
-    # the relational db schema. We are going to replace this with annotations
-    # for collected temp files soon.
-    if data_store.AFF4Enabled():
-      # Update the symbolic link to the new instance.
-      with aff4.FACTORY.Create(
-          self.client_urn.Add("spiflash"), aff4.AFF4Symlink,
-          token=self.token) as symlink:
-        symlink.Set(symlink.Schema.SYMLINK_TARGET,
-                    response.AFF4Path(self.client_urn))
 
     # Clean up the temporary image from the client.
     self.CallClient(
@@ -96,8 +80,8 @@ class DumpFlashImageMixin(object):
   def TemporaryImageRemoved(self, responses):
     """Verify that the temporary image has been removed successfully."""
     if not responses.success:
-      raise flow.FlowError("Unable to delete the temporary flash image: "
-                           "{0}".format(responses.status))
+      raise flow_base.FlowError("Unable to delete the temporary flash image: "
+                                "{0}".format(responses.status))
 
   def End(self, responses):
     del responses
@@ -113,12 +97,11 @@ class DumpACPITableArgs(rdf_structs.RDFProtoStruct):
       raise ValueError("No ACPI table to dump.")
 
 
-@flow_base.DualDBFlow
-class DumpACPITableMixin(object):
+class DumpACPITable(flow_base.FlowBase):
   """Flow to retrieve ACPI tables."""
 
   category = "/Collectors/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
   args_type = DumpACPITableArgs
 
   def Start(self):
@@ -154,17 +137,3 @@ class DumpACPITableMixin(object):
     for acpi_table_response in response.acpi_tables:
       acpi_table_response.table_signature = table_signature
       self.SendReply(acpi_table_response)
-
-    # Writing files (or symlinks) into random places is not supported anymore in
-    # the relational db schema. We are going to replace this with annotations
-    # for collected temp files soon.
-    if not data_store.RelationalDBEnabled():
-
-      with data_store.DB.GetMutationPool() as mutation_pool:
-        # TODO(amoser): Make this work in the UI!?
-        collection_urn = self.client_urn.Add("devices/chipsec/acpi/tables/%s" %
-                                             table_signature)
-        for acpi_table_response in response.acpi_tables:
-          acpi_table_response.table_signature = table_signature
-          hardware.ACPITableDataCollection.StaticAdd(
-              collection_urn, acpi_table_response, mutation_pool=mutation_pool)

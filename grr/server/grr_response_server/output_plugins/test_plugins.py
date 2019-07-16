@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import os
 
-
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import instant_output_plugin
 from grr_response_server import output_plugin
@@ -34,7 +34,7 @@ class InstantOutputPluginTestBase(test_lib.GRRBaseTest):
     super(InstantOutputPluginTestBase, self).setUp()
 
     self.client_id = self.SetupClient(0)
-    self.results_urn = self.client_id.Add("foo/bar")
+    self.results_urn = rdf_client.ClientURN(self.client_id).Add("foo/bar")
 
     # pylint: disable=not-callable
     self.plugin = self.__class__.plugin_cls(

@@ -16,10 +16,8 @@ from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_utils
 from grr_response_server.databases import db
@@ -30,8 +28,7 @@ class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ChromeHistoryArgs
 
 
-@flow_base.DualDBFlow
-class ChromeHistoryMixin(object):
+class ChromeHistory(flow_base.FlowBase):
   r"""Retrieve and analyze the chrome history for a machine.
 
   Default directories as per:
@@ -54,7 +51,7 @@ class ChromeHistoryMixin(object):
 
   category = "/Browser/"
   args_type = ChromeHistoryArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Determine the Chrome directory."""
@@ -68,7 +65,7 @@ class ChromeHistoryMixin(object):
       self.state.history_paths = self.GuessHistoryPaths(self.args.username)
 
     if not self.state.history_paths:
-      raise flow.FlowError("Could not find valid History paths.")
+      raise flow_base.FlowError("Could not find valid History paths.")
 
     filenames = ["History"]
     if self.args.get_archive:
@@ -89,14 +86,9 @@ class ChromeHistoryMixin(object):
     # exist, e.g. Chromium on most machines, so we don't check for success.
     if responses:
       for response in responses:
-        if data_store.RelationalDBEnabled():
-          client_path = db.ClientPath.FromPathSpec(self.client_id,
-                                                   response.stat_entry.pathspec)
-          fd = file_store.OpenFile(client_path)
-        else:
-          fd = aff4.FACTORY.Open(
-              response.stat_entry.AFF4Path(self.client_urn), token=self.token)
-
+        client_path = db.ClientPath.FromPathSpec(self.client_id,
+                                                 response.stat_entry.pathspec)
+        fd = file_store.OpenFile(client_path)
         hist = chrome_history.ChromeParser(fd)
         count = 0
         for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
@@ -121,15 +113,9 @@ class ChromeHistoryMixin(object):
     Raises:
       OSError: On invalid system in the Schema
     """
-    if data_store.RelationalDBEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      system = client.knowledge_base.os
-      user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
-    else:
-      client = aff4.FACTORY.Open(self.client_id, token=self.token)
-      system = client.Get(client.Schema.SYSTEM)
-      kb = client.Get(client.Schema.KNOWLEDGE_BASE)
-      user_info = flow_utils.GetUserInfo(kb, username)
+    client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    system = client.knowledge_base.os
+    user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
 
     if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
@@ -157,8 +143,7 @@ class FirefoxHistoryArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FirefoxHistoryArgs
 
 
-@flow_base.DualDBFlow
-class FirefoxHistoryMixin(object):
+class FirefoxHistory(flow_base.FlowBase):
   r"""Retrieve and analyze the Firefox history for a machine.
 
   Default directories as per:
@@ -182,7 +167,7 @@ class FirefoxHistoryMixin(object):
 
   category = "/Browser/"
   args_type = FirefoxHistoryArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Determine the Firefox history directory."""
@@ -195,7 +180,7 @@ class FirefoxHistoryMixin(object):
       self.state.history_paths = self.GuessHistoryPaths(self.args.username)
 
       if not self.state.history_paths:
-        raise flow.FlowError("Could not find valid History paths.")
+        raise flow_base.FlowError("Could not find valid History paths.")
 
     filename = "places.sqlite"
     for path in self.state.history_paths:
@@ -210,13 +195,9 @@ class FirefoxHistoryMixin(object):
     """Take each file we retrieved and get the history from it."""
     if responses:
       for response in responses:
-        if data_store.RelationalDBEnabled():
-          client_path = db.ClientPath.FromPathSpec(self.client_id,
-                                                   response.stat_entry.pathspec)
-          fd = file_store.OpenFile(client_path)
-        else:
-          fd = aff4.FACTORY.Open(
-              response.stat_entry.AFF4Path(self.client_urn), token=self.token)
+        client_path = db.ClientPath.FromPathSpec(self.client_id,
+                                                 response.stat_entry.pathspec)
+        fd = file_store.OpenFile(client_path)
         hist = firefox3_history.Firefox3History(fd)
         count = 0
         for epoch64, dtype, url, dat1, in hist.Parse():
@@ -240,15 +221,9 @@ class FirefoxHistoryMixin(object):
     Raises:
       OSError: On invalid system in the Schema
     """
-    if data_store.RelationalDBEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      system = client.knowledge_base.os
-      user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
-    else:
-      fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-      system = fd.Get(fd.Schema.SYSTEM)
-      kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-      user_info = flow_utils.GetUserInfo(kb, username)
+    client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    system = client.knowledge_base.os
+    user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
 
     if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
@@ -300,8 +275,7 @@ class CacheGrepArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CacheGrepArgs
 
 
-@flow_base.DualDBFlow
-class CacheGrepMixin(object):
+class CacheGrep(flow_base.FlowBase):
   """Grep the browser profile directories for a regex.
 
   This will check Chrome, Firefox and Internet Explorer profile directories.
@@ -310,20 +284,15 @@ class CacheGrepMixin(object):
 
   category = "/Browser/"
   args_type = CacheGrepArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Redirect to start on the workers and not in the UI."""
 
     # Figure out which paths we are going to check.
-    if data_store.RelationalDBEnabled():
-      client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      kb = client.knowledge_base
-      system = kb.os
-    else:
-      client = aff4.FACTORY.Open(self.client_id, token=self.token)
-      system = client.Get(client.Schema.SYSTEM)
-      kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+    client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    kb = client.knowledge_base
+    system = kb.os
 
     paths = BROWSER_PATHS.get(system)
     self.state.all_paths = []
@@ -334,13 +303,13 @@ class CacheGrepMixin(object):
     if self.args.check_firefox:
       self.state.all_paths += paths.get("Firefox", [])
     if not self.state.all_paths:
-      raise flow.FlowError("Unsupported system %s for CacheGrep" % system)
+      raise flow_base.FlowError("Unsupported system %s for CacheGrep" % system)
 
     self.state.users = []
     for user in self.args.grep_users:
       user_info = flow_utils.GetUserInfo(kb, user)
       if not user_info:
-        raise flow.FlowError("No such user %s" % user)
+        raise flow_base.FlowError("No such user %s" % user)
       self.state.users.append(user_info)
 
     usernames = [

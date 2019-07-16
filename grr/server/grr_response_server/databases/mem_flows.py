@@ -269,9 +269,7 @@ class InMemoryDBFlowMixin(object):
   def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
     """Marks a flow as being processed on this worker and returns it."""
     rdf_flow = self.ReadFlowObject(client_id, flow_id)
-    # TODO(user): remove the check for a legacy hunt prefix as soon as
-    # AFF4 is gone.
-    if rdf_flow.parent_hunt_id and not rdf_flow.parent_hunt_id.startswith("H:"):
+    if rdf_flow.parent_hunt_id:
       rdf_hunt = self.ReadHuntObject(rdf_flow.parent_hunt_id)
       if not rdf_hunt_objects.IsHuntSuitableForFlowProcessing(
           rdf_hunt.hunt_state):

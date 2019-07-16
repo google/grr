@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import utils
@@ -27,7 +26,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
   def _RunRegistryFinder(self, paths=None):
     client_mock = action_mocks.GlobClientMock()
 
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     session_id = flow_test_lib.TestFlowHelper(
         flow_registry.RegistryFinder.__name__,

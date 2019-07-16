@@ -503,42 +503,6 @@ class VfsFileReferenceTest(absltest.TestCase):
     super(VfsFileReferenceTest, self).setUp()
     self.client_id = "C.0000000000000000"
 
-  def testOsPathIsConvertedToURNCorrectly(self):
-    v = rdf_objects.VfsFileReference(
-        client_id=self.client_id,
-        path_type="OS",
-        path_components=["a", "b", "c"])
-    self.assertEqual(v.ToURN(),
-                     rdfvalue.RDFURN("aff4:/%s/fs/os/a/b/c" % self.client_id))
-
-  def testTskPathIsConvertedToURNCorrectly(self):
-    v = rdf_objects.VfsFileReference(
-        client_id=self.client_id,
-        path_type="TSK",
-        path_components=["a", "b", "c"])
-    self.assertEqual(v.ToURN(),
-                     rdfvalue.RDFURN("aff4:/%s/fs/tsk/a/b/c" % self.client_id))
-
-  def testRegistryPathIsConvertedToURNCorrectly(self):
-    v = rdf_objects.VfsFileReference(
-        client_id=self.client_id,
-        path_type="REGISTRY",
-        path_components=["a", "b", "c"])
-    self.assertEqual(
-        v.ToURN(), rdfvalue.RDFURN("aff4:/%s/registry/a/b/c" % self.client_id))
-
-  def testTempPathIsConvertedToURNCorrectly(self):
-    v = rdf_objects.VfsFileReference(
-        client_id=self.client_id,
-        path_type="TEMP",
-        path_components=["a", "b", "c"])
-    self.assertEqual(v.ToURN(),
-                     rdfvalue.RDFURN("aff4:/%s/temp/a/b/c" % self.client_id))
-
-  def testConvertingPathToURNWithUnknownTypeRaises(self):
-    with self.assertRaises(ValueError):
-      rdf_objects.VfsFileReference().ToURN()
-
   def testOsPathIsConvertedVfsPathStringCorrectly(self):
     v = rdf_objects.VfsFileReference(
         client_id=self.client_id,

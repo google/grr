@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import abc
 import stat
 
-
 from future.utils import with_metaclass
 from typing import Callable, Optional
 

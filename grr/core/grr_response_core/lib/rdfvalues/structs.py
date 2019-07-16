@@ -2134,11 +2134,11 @@ class RDFProtoStruct(RDFStruct):
       else:
         return value
 
-  def __nonzero__(self):
-    return bool(self._data)
-
   def __bool__(self):
     return bool(self._data)
+
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
   @classmethod
   def EmitProto(cls):

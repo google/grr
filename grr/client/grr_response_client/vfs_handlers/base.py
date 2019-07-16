@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import abc
 import os
 
-
 from future.builtins import filter
 from future.utils import with_metaclass
 from typing import Optional

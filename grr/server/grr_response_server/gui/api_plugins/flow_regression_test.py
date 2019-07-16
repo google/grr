@@ -4,14 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -27,14 +25,12 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiGetFlowHandlerRegressionTest(db_test_lib.RelationalDBEnabledMixin,
-                                      api_regression_test_lib.ApiRegressionTest
+class ApiGetFlowHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest
                                      ):
   """Regression test for ApiGetFlowHandler."""
 
@@ -44,16 +40,11 @@ class ApiGetFlowHandlerRegressionTest(db_test_lib.RelationalDBEnabledMixin,
   def Run(self):
     # Fix the time to avoid regressions.
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0).Basename()
-      if data_store.AFF4Enabled():
-        # Delete the certificates as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(
-            client_id, mode="rw", token=self.token) as client_obj:
-          client_obj.DeleteAttribute(client_obj.Schema.CERT)
-
-      flow_id = api_regression_test_lib.StartFlow(
-          client_id, discovery.Interrogate, token=self.token)
+      client_id = self.SetupClient(0)
+      flow_id = flow_test_lib.StartFlow(
+          discovery.Interrogate,
+          client_id=client_id,
+          creator=self.token.username)
 
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
           client_id, flow_id, "F:ABCDEF12")
@@ -78,7 +69,6 @@ class ApiGetFlowHandlerRegressionTest(db_test_lib.RelationalDBEnabledMixin,
 
 
 class ApiListFlowsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Test client flows list handler."""
 
@@ -88,15 +78,15 @@ class ApiListFlowsHandlerRegressionTest(
   def Run(self):
     acl_test_lib.CreateUser(self.token.username)
     with test_lib.FakeTime(42):
-      client_id = self.SetupClient(0).Basename()
+      client_id = self.SetupClient(0)
 
     with test_lib.FakeTime(43):
-      flow_id_1 = api_regression_test_lib.StartFlow(
-          client_id, discovery.Interrogate, token=self.token)
+      flow_id_1 = flow_test_lib.StartFlow(
+          discovery.Interrogate, client_id, creator=self.token.username)
 
     with test_lib.FakeTime(44):
-      flow_id_2 = api_regression_test_lib.StartFlow(
-          client_id, processes.ListProcesses, token=self.token)
+      flow_id_2 = flow_test_lib.StartFlow(
+          processes.ListProcesses, client_id, creator=self.token.username)
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(
         client_id, flow_id_1, "F:ABCDEF10")
@@ -111,7 +101,6 @@ class ApiListFlowsHandlerRegressionTest(
 
 
 class ApiListFlowRequestsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListFlowRequestsHandler."""
 
@@ -119,11 +108,10 @@ class ApiListFlowRequestsHandlerRegressionTest(
   handler = flow_plugin.ApiListFlowRequestsHandler
 
   def Run(self):
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
-      flow_id = api_regression_test_lib.StartFlow(
-          client_id, processes.ListProcesses, token=self.token)
+      flow_id = flow_test_lib.StartFlow(
+          processes.ListProcesses, client_id, creator=self.token.username)
       test_process = rdf_client.Process(name="test_process")
       mock = flow_test_lib.MockClient(
           client_id,
@@ -141,7 +129,6 @@ class ApiListFlowRequestsHandlerRegressionTest(
 
 
 class ApiListFlowResultsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListFlowResultsHandler."""
 
@@ -163,7 +150,7 @@ class ApiListFlowResultsHandlerRegressionTest(
 
   def Run(self):
     acl_test_lib.CreateUser(self.token.username)
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
     flow_id = self._RunFlow(client_id)
     self.Check(
@@ -179,7 +166,6 @@ class ApiListFlowResultsHandlerRegressionTest(
 
 
 class ApiListFlowLogsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListFlowResultsHandler."""
 
@@ -192,10 +178,10 @@ class ApiListFlowLogsHandlerRegressionTest(
     data_store.REL_DB.WriteFlowLogEntries([entry])
 
   def Run(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
 
-    flow_id = api_regression_test_lib.StartFlow(
-        client_id, processes.ListProcesses, token=self.token)
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id, creator=self.token.username)
 
     with test_lib.FakeTime(52):
       self._AddLogToFlow(client_id, flow_id, "Sample message: foo.")
@@ -222,7 +208,6 @@ class ApiListFlowLogsHandlerRegressionTest(
 
 
 class ApiGetFlowResultsExportCommandHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiGetFlowResultsExportCommandHandler."""
 
@@ -236,11 +221,10 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
     self.Check(
         "GetFlowResultsExportCommand",
         args=flow_plugin.ApiGetFlowResultsExportCommandArgs(
-            client_id=client_id.Basename(), flow_id=flow_urn))
+            client_id=client_id, flow_id=flow_urn))
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListFlowOutputPluginsHandler."""
 
@@ -263,18 +247,17 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       flow_id = flow.StartFlow(
           flow_cls=processes.ListProcesses,
-          client_id=client_id.Basename(),
+          client_id=client_id,
           output_plugins=[email_descriptor])
 
     self.Check(
         "ListFlowOutputPlugins",
         args=flow_plugin.ApiListFlowOutputPluginsArgs(
-            client_id=client_id.Basename(), flow_id=flow_id),
+            client_id=client_id, flow_id=flow_id),
         replace={flow_id: "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginLogsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListFlowOutputPluginLogsHandler."""
 
@@ -297,20 +280,19 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_cls=flow_test_lib.DummyFlowWithSingleReply,
-          client_id=client_id.Basename(),
+          client_id=client_id,
           output_plugins=[email_descriptor])
 
     self.Check(
         "ListFlowOutputPluginLogs",
         args=flow_plugin.ApiListFlowOutputPluginLogsArgs(
-            client_id=client_id.Basename(),
+            client_id=client_id,
             flow_id=flow_id,
             plugin_id="EmailOutputPlugin_0"),
         replace={flow_id: "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiListFlowOutputPluginErrorsHandler."""
 
@@ -331,20 +313,19 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartAndRunFlow(
           flow_cls=flow_test_lib.DummyFlowWithSingleReply,
-          client_id=client_id.Basename(),
+          client_id=client_id,
           output_plugins=[failing_descriptor])
 
     self.Check(
         "ListFlowOutputPluginErrors",
         args=flow_plugin.ApiListFlowOutputPluginErrorsArgs(
-            client_id=client_id.Basename(),
+            client_id=client_id,
             flow_id=flow_id,
             plugin_id="FailingDummyHuntOutputPlugin_0"),
         replace={flow_id: "W:ABCDEF"})
 
 
 class ApiCreateFlowHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiCreateFlowHandler."""
 
@@ -352,8 +333,7 @@ class ApiCreateFlowHandlerRegressionTest(
   handler = flow_plugin.ApiCreateFlowHandler
 
   def Run(self):
-    client_urn = self.SetupClient(0)
-    client_id = client_urn.Basename()
+    client_id = self.SetupClient(0)
 
     def ReplaceFlowId():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
@@ -377,7 +357,6 @@ class ApiCreateFlowHandlerRegressionTest(
 
 
 class ApiCancelFlowHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest):
   """Regression test for ApiCancelFlowHandler."""
 
@@ -385,7 +364,7 @@ class ApiCancelFlowHandlerRegressionTest(
   handler = flow_plugin.ApiCancelFlowHandler
 
   def Run(self):
-    client_id = self.SetupClient(0).Basename()
+    client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
         flow_cls=processes.ListProcesses, client_id=client_id)
 
@@ -397,7 +376,6 @@ class ApiCancelFlowHandlerRegressionTest(
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(
-    db_test_lib.RelationalDBEnabledMixin,
     api_regression_test_lib.ApiRegressionTest, acl_test_lib.AclTestMixin):
   """Regression test for ApiListFlowDescriptorsHandler."""
 

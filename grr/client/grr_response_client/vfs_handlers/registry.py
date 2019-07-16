@@ -9,7 +9,6 @@ import ctypes.wintypes
 import io
 import os
 import stat
-
 from future.builtins import filter
 from future.builtins import range
 

@@ -11,19 +11,19 @@ import zipfile
 
 from absl import app
 from future.builtins import range
+from future.builtins import str
 import yaml
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util.compat import csv as compat_csv
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.output_plugins import test_plugins
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
-                                 test_plugins.InstantOutputPluginTestBase):
+class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   """Tests instant CSV output plugin."""
 
   plugin_cls = csv_plugin.CSVInstantOutputPlugin
@@ -74,7 +74,8 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(parsed_output, 10)
     for i in range(10):
       # Make sure metadata is filled in.
-      self.assertEqual(parsed_output[i]["metadata.client_urn"], self.client_id)
+      self.assertEqual(parsed_output[i]["metadata.client_urn"],
+                       "aff4:/%s" % self.client_id)
       self.assertEqual(parsed_output[i]["metadata.hostname"],
                        "Host-0.example.com")
       self.assertEqual(parsed_output[i]["metadata.mac_address"],
@@ -85,7 +86,7 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
                        "Bios-Version-0")
 
       self.assertEqual(parsed_output[i]["urn"],
-                       self.client_id.Add("/fs/os/foo/bar").Add(str(i)))
+                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
       self.assertEqual(parsed_output[i]["st_mode"], "-rw-r-----")
       self.assertEqual(parsed_output[i]["st_ino"], "1063090")
       self.assertEqual(parsed_output[i]["st_dev"], "64512")
@@ -135,21 +136,23 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(parsed_output, 1)
 
     # Make sure metadata is filled in.
-    self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
+    self.assertEqual(parsed_output[0]["metadata.client_urn"],
+                     "aff4:/%s" % self.client_id)
     self.assertEqual(parsed_output[0]["metadata.hostname"],
                      "Host-0.example.com")
     self.assertEqual(parsed_output[0]["metadata.mac_address"],
                      "aabbccddee00\nbbccddeeff00")
     self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
     self.assertEqual(parsed_output[0]["urn"],
-                     self.client_id.Add("/fs/os/foo/bar"))
+                     "aff4:/%s/fs/os/foo/bar" % self.client_id)
 
     parsed_output = list(
         csv.DictReader(
             zip_fd.open("%s/ExportedProcess/from_Process.csv" % prefix)))
     self.assertLen(parsed_output, 1)
 
-    self.assertEqual(parsed_output[0]["metadata.client_urn"], self.client_id)
+    self.assertEqual(parsed_output[0]["metadata.client_urn"],
+                     "aff4:/%s" % self.client_id)
     self.assertEqual(parsed_output[0]["metadata.hostname"],
                      "Host-0.example.com")
     self.assertEqual(parsed_output[0]["metadata.mac_address"],
@@ -171,13 +174,13 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
             "%s/ExportedFile/from_StatEntry.csv" % prefix
         ]))
 
-    parsed_output = list(
-        csv.DictReader(
-            zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
+    data = zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix).read()
+    parsed_output = list(compat_csv.Reader(data.decode("utf-8")))
 
-    self.assertLen(parsed_output, 1)
-    self.assertEqual(parsed_output[0]["urn"],
-                     self.client_id.Add("/fs/os/中国新闻网新闻中"))
+    self.assertLen(parsed_output, 2)
+    urn_pos = parsed_output[0].index("urn")
+    urn = parsed_output[1][urn_pos]
+    self.assertEqual(urn, "aff4:/C.1000000000000000/fs/os/中国新闻网新闻中")
 
   def testCSVPluginWritesMoreThanOneBatchOfRowsCorrectly(self):
     num_rows = csv_plugin.CSVInstantOutputPlugin.ROW_BATCH * 2 + 1
@@ -197,7 +200,7 @@ class CSVInstantOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):
       self.assertEqual(parsed_output[i]["urn"],
-                       self.client_id.Add("/fs/os/foo/bar/%d" % i))
+                       "aff4:/%s/fs/os/foo/bar/%d" % (self.client_id, i))
 
 
 def main(argv):

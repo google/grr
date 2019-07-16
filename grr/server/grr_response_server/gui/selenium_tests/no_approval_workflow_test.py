@@ -5,23 +5,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import gui_test_lib
 
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestWorkflowWithoutApprovals(db_test_lib.RelationalDBEnabledMixin,
-                                   gui_test_lib.GRRSeleniumTest):
+class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
   """Tests acl policies when approvals system is not used."""
 
   def setUp(self):
     super(TestWorkflowWithoutApprovals, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
 
   def InstallACLChecks(self):
     # This class purposefully does not install ACL checks.

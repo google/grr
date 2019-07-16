@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import collections
 
-
 from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
@@ -465,8 +464,11 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
     for blob in self.content:
       yield blob.GetValue()
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.content)
+
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
   def Pop(self, index=0):
     return self.content.Pop(index).GetValue()

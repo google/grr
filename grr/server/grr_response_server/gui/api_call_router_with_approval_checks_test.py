@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.utils import iterkeys
 import mock
@@ -118,6 +117,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
         self.router.GetClientLoadStats, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
+      "VerifyAccess",
       "ListFiles",
       "GetVfsFilesArchive",
       "GetFileDetails",
@@ -287,8 +287,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       self.router.DeleteHunt(args, token=self.token)
 
   def testDeleteHuntIsAccessCheckedIfUserIsNotCreator(self):
-    hunt = self.CreateHunt()
-    args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt.urn.Basename())
+    hunt_id = self.CreateHunt(creator=self.token.username)
+    args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt_id)
 
     self.CheckMethodIsAccessChecked(
         self.router.DeleteHunt,
@@ -297,8 +297,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
         token=access_control.ACLToken(username="foo"))
 
   def testDeleteHuntIsNotAccessCheckedIfUserIsCreator(self):
-    hunt = self.CreateHunt()
-    args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt.urn.Basename())
+    hunt_id = self.CreateHunt(creator=self.token.username)
+    args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt_id)
 
     self.CheckMethodIsNotAccessChecked(self.router.DeleteHunt, args=args)
 
@@ -360,8 +360,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testAllOtherMethodsAreNotAccessChecked(self):
     unchecked_methods = (
-        set(iterkeys(self.router.__class__.GetAnnotatedMethods())) - set(
-            self.ACCESS_CHECKED_METHODS))
+        set(iterkeys(self.router.__class__.GetAnnotatedMethods())) -
+        set(self.ACCESS_CHECKED_METHODS))
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:

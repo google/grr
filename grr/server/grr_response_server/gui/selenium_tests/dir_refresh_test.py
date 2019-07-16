@@ -5,32 +5,28 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
-                     gui_test_lib.GRRSeleniumTest):
+class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(DirRefreshTest, self).setUp()
     # Prepare our fixture.
-    self.client_id = rdf_client.ClientURN("C.0000000000000001")
-    fixture_test_lib.ClientFixture(self.client_id, self.token)
-    gui_test_lib.CreateFileVersions(self.client_id, self.token)
+    self.client_id = "C.0000000000000001"
+    fixture_test_lib.ClientFixture(self.client_id)
+    gui_test_lib.CreateFileVersions(self.client_id)
     self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def _RunUpdateFlow(self, client_id):
@@ -38,18 +34,11 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
         client_id,
         "fs/os/c/a.txt",
         "Hello World".encode("utf-8"),
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        timestamp=gui_test_lib.TIME_0)
     gui_test_lib.CreateFolder(
-        client_id,
-        "fs/os/c/TestFolder",
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        client_id, "fs/os/c/TestFolder", timestamp=gui_test_lib.TIME_0)
     gui_test_lib.CreateFolder(
-        client_id,
-        "fs/os/c/bin/TestBinFolder",
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        client_id, "fs/os/c/bin/TestBinFolder", timestamp=gui_test_lib.TIME_0)
 
     flow_test_lib.FinishAllFlowsOnClient(
         client_id,
@@ -66,19 +55,19 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
 
     # Create a new file version (that would have been created by the flow
     # otherwise) and finish the flow.
-    client_id = rdf_client.ClientURN("C.0000000000000001")
 
     # Make sure that the flow has started (when button is clicked, the HTTP
     # API request is sent asynchronously).
     def MultiGetFileStarted():
       return compatibility.GetName(transfer.MultiGetFile) in [
           f.flow_class_name for f in data_store.REL_DB.ReadAllFlowObjects(
-              client_id=client_id.Basename())
+              client_id=self.client_id)
       ]
 
     self.WaitUntil(MultiGetFileStarted)
 
-    flow_test_lib.FinishAllFlowsOnClient(client_id, check_flow_errors=False)
+    flow_test_lib.FinishAllFlowsOnClient(
+        self.client_id, check_flow_errors=False)
 
     time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1h")
     # We have to make sure that the new version will not be within a second
@@ -86,11 +75,10 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     # be indistinguishable in the UI (as it has a 1s precision when
     # displaying versions).
     gui_test_lib.CreateFileVersion(
-        rdf_client.ClientURN("C.0000000000000001"),
+        self.client_id,
         "fs/os/c/Downloads/a.txt",
         "The newest version!".encode("utf-8"),
-        timestamp=time_in_future,
-        token=self.token)
+        timestamp=time_in_future)
 
     # Once the flow has finished, the file view should update and add the
     # newly created, latest version of the file to the list. The selected
@@ -155,8 +143,7 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # Ensure that refresh button is enabled again.
     #
@@ -171,8 +158,7 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # Check that the button got re-enabled.
     self.WaitUntil(self.IsElementPresent,
@@ -200,8 +186,7 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # The flow should be finished now, and file/tree lists update should
     # be triggered.
@@ -221,8 +206,7 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
 
     self.Click("css=#_fs-os-c-bin a")
 
-    client_id = rdf_client.ClientURN("C.0000000000000001")
-    self._RunUpdateFlow(client_id)
+    self._RunUpdateFlow(self.client_id)
 
     # The flow should be finished now, and directory tree update should
     # be triggered, even though the selection has changed during the update.
@@ -236,10 +220,7 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntilNot(self.IsElementPresent, "link=foo")
 
     gui_test_lib.CreateFolder(
-        rdf_client.ClientURN("C.0000000000000001"),
-        "fs/os/c/foo",
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        self.client_id, "fs/os/c/foo", timestamp=gui_test_lib.TIME_0)
 
     self.Click("link=c")
     self.WaitUntil(self.IsElementPresent, "link=foo")
@@ -250,10 +231,7 @@ class DirRefreshTest(db_test_lib.RelationalDBEnabledMixin,
     self.WaitUntilNot(self.IsElementPresent, "link=foo")
 
     gui_test_lib.CreateFolder(
-        rdf_client.ClientURN("C.0000000000000001"),
-        "fs/os/c/foo",
-        timestamp=gui_test_lib.TIME_0,
-        token=self.token)
+        self.client_id, "fs/os/c/foo", timestamp=gui_test_lib.TIME_0)
 
     # Click on the arrow icon, it should close the tree branch.
     self.Click("css=#_fs-os-c i.jstree-icon")

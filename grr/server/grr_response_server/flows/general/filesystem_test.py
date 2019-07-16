@@ -21,14 +21,9 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import flow
-from grr_response_server import flow_base
 from grr_response_server import notification
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import standard as aff4_standard
 from grr_response_server.databases import db
 # TODO(user): break the dependency cycle described in filesystem.py and
 # and remove this import.
@@ -40,7 +35,6 @@ from grr_response_server.flows.general import filesystem
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
@@ -49,8 +43,6 @@ from grr.test_lib import vfs_test_lib
 
 class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
-
-  flow_base_cls = flow.GRRFlow
 
   def setUp(self):
     super(TestFilesystem, self).setUp()
@@ -100,30 +92,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(args[1], com)
       self.assertIn(pb.path, args[2])
 
-    if data_store.AFF4Enabled():
-      # Check the output file is created
-      output_path = self.client_id.Add("fs/tsk").Add(pb.first.path)
-
-      fd = aff4.FACTORY.Open(
-          output_path.Add("Test Directory"), token=self.token)
-      children = list(fd.OpenChildren())
-      self.assertLen(children, 1)
-      child = children[0]
-
-      # Check that the object is stored with the correct casing.
-      self.assertEqual(child.urn.Basename(), "numbers.txt")
-
-      # And the wrong object is not there
-      self.assertRaises(
-          IOError,
-          aff4.FACTORY.Open,
-          output_path.Add("test directory"),
-          aff4_type=aff4_standard.VFSDirectory,
-          token=self.token)
-    else:
-      children = self._ListTestChildPathInfos(["test_img.dd"])
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "Test Directory")
+    children = self._ListTestChildPathInfos(["test_img.dd"])
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "Test Directory")
 
   def testListDirectoryOnNonexistentDir(self):
     """Test that the ListDirectory flow works."""
@@ -146,8 +117,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
                               path_components,
                               path_type=rdf_objects.PathInfo.PathType.TSK):
     components = self.base_path.strip("/").split("/") + path_components
-    return data_store.REL_DB.ListChildPathInfos(self.client_id.Basename(),
-                                                path_type, components)
+    return data_store.REL_DB.ListChildPathInfos(self.client_id, path_type,
+                                                components)
 
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""
@@ -169,19 +140,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         token=self.token)
 
     # Check the output file is created
-    output_path = self.client_id.Add("fs/tsk").Add(pb.CollapsePath())
-
-    if data_store.AFF4Enabled():
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(fd.OpenChildren())
-      self.assertLen(children, 1)
-      child = children[0]
-      filename = child.urn.Basename()
-    else:
-      components = ["test_img.dd", filename]
-      children = self._ListTestChildPathInfos(components)
-      self.assertLen(children, 1)
-      filename = children[0].components[-1]
+    components = ["test_img.dd", filename]
+    children = self._ListTestChildPathInfos(components)
+    self.assertLen(children, 1)
+    filename = children[0].components[-1]
 
     self.assertEqual(filename, "入乡随俗.txt")
 
@@ -208,7 +170,6 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token,
-        sync=False,
         check_flow_errors=False)
 
     expected_files = [
@@ -217,30 +178,17 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     ]
     expected_files.append("VFSFixture")
 
-    if data_store.AFF4Enabled():
-      output_path = client_id.Add("fs/os").Add(self.base_path)
+    children = self._ListTestChildPathInfos(
+        [], path_type=rdf_objects.PathInfo.PathType.OS)
+    found_files = [child.components[-1] for child in children]
 
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      found_files = [urn.Basename() for urn in fd.ListChildren()]
+    self.assertCountEqual(expected_files, found_files)
 
-      self.assertCountEqual(expected_files, found_files)
-
-      fd = aff4.FACTORY.Open(
-          output_path.Add("VFSFixture/var/log"), token=self.token)
-      self.assertCountEqual([urn.Basename() for urn in fd.ListChildren()],
-                            ["wtmp"])
-    else:
-      children = self._ListTestChildPathInfos(
-          [], path_type=rdf_objects.PathInfo.PathType.OS)
-      found_files = [child.components[-1] for child in children]
-
-      self.assertCountEqual(expected_files, found_files)
-
-      children = self._ListTestChildPathInfos(
-          ["VFSFixture", "var", "log"],
-          path_type=rdf_objects.PathInfo.PathType.OS)
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "wtmp")
+    children = self._ListTestChildPathInfos(
+        ["VFSFixture", "var", "log"],
+        path_type=rdf_objects.PathInfo.PathType.OS)
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "wtmp")
 
   def _RunGlob(self, paths):
     client_mock = action_mocks.GlobClientMock()
@@ -281,20 +229,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token)
 
-    if data_store.AFF4Enabled():
-      children = []
-      output_path = self.client_id.Add("fs/tsk").Add(
-          self.base_path).Add("test_img.dd/glob_test/a/b")
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      for child in fd.ListChildren():
-        children.append(child.Basename())
-      # We should find some files.
-      self.assertEqual(children, ["foo"])
-    else:
-      children = self._ListTestChildPathInfos(
-          ["test_img.dd", "glob_test", "a", "b"])
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "foo")
+    children = self._ListTestChildPathInfos(
+        ["test_img.dd", "glob_test", "a", "b"])
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "foo")
 
   def _MakeTestDirs(self):
     fourth_level_dir = utils.JoinPath(self.temp_dir, "1/2/3/4")
@@ -437,19 +375,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token)
 
-    output_path = self.client_id.Add("fs/tsk").Add(
-        os.path.join(self.base_path, "test_img.dd", "glob_test", "a", "b"))
-
-    if data_store.AFF4Enabled():
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(fd.ListChildren())
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].Basename(), "foo")
-    else:
-      children = self._ListTestChildPathInfos(
-          ["test_img.dd", "glob_test", "a", "b"])
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "foo")
+    children = self._ListTestChildPathInfos(
+        ["test_img.dd", "glob_test", "a", "b"])
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "foo")
 
   def testGlobWithWildcardsInsideTSKFileCaseInsensitive(self):
     client_mock = action_mocks.GlobClientMock()
@@ -471,19 +400,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token)
 
-    output_path = self.client_id.Add("fs/tsk").Add(
-        os.path.join(self.base_path, "test_img.dd", "glob_test", "a", "b"))
-
-    if data_store.AFF4Enabled():
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(fd.ListChildren())
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].Basename(), "foo")
-    else:
-      children = self._ListTestChildPathInfos(
-          ["test_img.dd", "glob_test", "a", "b"])
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "foo")
+    children = self._ListTestChildPathInfos(
+        ["test_img.dd", "glob_test", "a", "b"])
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "foo")
 
   def testGlobWildcardsAndTSK(self):
     client_mock = action_mocks.GlobClientMock()
@@ -499,20 +419,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token)
 
-    if data_store.AFF4Enabled():
-      output_path = self.client_id.Add("fs/tsk").Add(
-          os.path.join(self.base_path, "test_img.dd", "glob_test", "a", "b"))
-
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(fd.ListChildren())
-
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].Basename(), "foo")
-    else:
-      children = self._ListTestChildPathInfos(
-          ["test_img.dd", "glob_test", "a", "b"])
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "foo")
+    children = self._ListTestChildPathInfos(
+        ["test_img.dd", "glob_test", "a", "b"])
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "foo")
 
   def testGlobWildcardOnImage(self):
     client_mock = action_mocks.GlobClientMock()
@@ -526,16 +436,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token)
 
-    if data_store.AFF4Enabled():
-      output_path = self.client_id.Add("fs/tsk").Add(
-          os.path.join(self.base_path, "test_img.dd", "glob_test", "a", "b"))
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(fd.ListChildren())
-      self.assertEmpty(children)
-    else:
-      children = self._ListTestChildPathInfos(
-          ["test_img.dd", "glob_test", "a", "b"])
-      self.assertEmpty(children)
+    children = self._ListTestChildPathInfos(
+        ["test_img.dd", "glob_test", "a", "b"])
+    self.assertEmpty(children)
 
   def testGlobDirectory(self):
     """Test that glob expands directories."""
@@ -559,15 +462,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         paths=[path],
         token=self.token)
 
-    if data_store.AFF4Enabled():
-      path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
-
-      aff4.FACTORY.Open(path, aff4_type=aff4_grr.VFSFile, token=self.token)
-    else:
-      children = self._ListTestChildPathInfos(
-          [], path_type=rdf_objects.PathInfo.PathType.OS)
-      self.assertLen(children, 1)
-      self.assertEqual(children[0].components[-1], "index.dat")
+    children = self._ListTestChildPathInfos(
+        [], path_type=rdf_objects.PathInfo.PathType.OS)
+    self.assertLen(children, 1)
+    self.assertEqual(children[0].components[-1], "index.dat")
 
   def testGlobGrouping(self):
     """Tests the glob grouping functionality."""
@@ -585,13 +483,9 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         paths=[path],
         token=self.token)
 
-    if data_store.AFF4Enabled():
-      path = self.client_id.Add("fs/os").Add(self.base_path)
-      files_found = [urn.Basename() for urn in aff4.FACTORY.ListChildren(path)]
-    else:
-      children = self._ListTestChildPathInfos(
-          [], path_type=rdf_objects.PathInfo.PathType.OS)
-      files_found = [child.components[-1] for child in children]
+    children = self._ListTestChildPathInfos(
+        [], path_type=rdf_objects.PathInfo.PathType.OS)
+    files_found = [child.components[-1] for child in children]
 
     self.assertCountEqual(files_found, [
         "ntfs_img.dd",
@@ -608,12 +502,12 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow - we expect an AttributeError error to be raised from the
     # flow since Weird_illegal_attribute is not a valid client attribute.
-    self.assertRaises(
-        artifact_utils.KnowledgeBaseInterpolationError,
-        flow_test_lib.StartFlow,
-        filesystem.Glob,
-        paths=paths,
-        client_id=self.client_id)
+    error_cls = artifact_utils.KbInterpolationUnknownAttributesError
+    with self.assertRaises(error_cls) as context:
+      flow_test_lib.StartFlow(
+          filesystem.Glob, paths=paths, client_id=self.client_id)
+
+    self.assertEqual(context.exception.attrs, ["weird_illegal_attribute"])
 
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""
@@ -662,17 +556,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           self.assertListEqual(sorted(stat_paths), sorted(set(stat_paths)))
 
   def _CheckCasing(self, path, filename):
-    if data_store.AFF4Enabled():
-      output_path = self.client_id.Add("fs/os").Add(
-          os.path.join(self.base_path, path))
-      fd = aff4.FACTORY.Open(output_path, token=self.token)
-      filenames = [urn.Basename() for urn in fd.ListChildren()]
-      self.assertIn(filename, filenames)
-    else:
-      path_infos = self._ListTestChildPathInfos(
-          path.split("/"), path_type=rdf_objects.PathInfo.PathType.OS)
-      filenames = [path_info.components[-1] for path_info in path_infos]
-      self.assertIn(filename, filenames)
+    path_infos = self._ListTestChildPathInfos(
+        path.split("/"), path_type=rdf_objects.PathInfo.PathType.OS)
+    filenames = [path_info.components[-1] for path_info in path_infos]
+    self.assertIn(filename, filenames)
 
   def testGlobCaseCorrection(self):
     # This should get corrected to "a/b/c/helloc.txt"
@@ -714,22 +601,10 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           "a.txt", "b.txt", "c.txt", "d.txt", "sub1", "中国新闻网新闻中.txt"
       ]
 
-      if data_store.AFF4Enabled():
-        # Check if the base path was created
-        output_path = self.client_id.Add("fs/os/c/Downloads")
-
-        output_fd = aff4.FACTORY.Open(output_path, token=self.token)
-        children = list(output_fd.OpenChildren())
-
-        filenames = [child.urn.Basename() for child in children]
-
-        self.assertCountEqual(filenames, expected_filenames)
-      else:
-        children = data_store.REL_DB.ListChildPathInfos(
-            self.client_id.Basename(), rdf_objects.PathInfo.PathType.OS,
-            ["c", "Downloads"])
-        filenames = [child.components[-1] for child in children]
-        self.assertCountEqual(filenames, expected_filenames)
+      children = data_store.REL_DB.ListChildPathInfos(
+          self.client_id, rdf_objects.PathInfo.PathType.OS, ["c", "Downloads"])
+      filenames = [child.components[-1] for child in children]
+      self.assertCountEqual(filenames, expected_filenames)
 
   def _SetupTestDir(self, directory):
     base = utils.JoinPath(self.temp_dir, directory)
@@ -772,28 +647,15 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     # There should be 5 children:
     expected_filenames = ["a.txt", "b.txt", "c.txt", "d.txt", "sub1"]
 
-    if data_store.AFF4Enabled():
-      output_path = self.client_id.Add("fs/os").Add(test_dir)
+    children = data_store.REL_DB.ListChildPathInfos(
+        self.client_id, rdf_objects.PathInfo.PathType.OS,
+        test_dir.strip("/").split("/"))
 
-      output_fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(output_fd.OpenChildren())
-
-      filenames = [child.urn.Basename() for child in children]
-
-      self.assertCountEqual(filenames, expected_filenames)
-
-      fd = aff4.FACTORY.Open(output_path.Add("a.txt"))
-      self.assertEqual(fd.read(), "Hello World!\n")
-    else:
-      children = data_store.REL_DB.ListChildPathInfos(
-          self.client_id.Basename(), rdf_objects.PathInfo.PathType.OS,
-          test_dir.strip("/").split("/"))
-
-      filenames = [child.components[-1] for child in children]
-      self.assertCountEqual(filenames, expected_filenames)
-      fd = file_store.OpenFile(
-          db.ClientPath.FromPathInfo(self.client_id.Basename(), children[0]))
-      self.assertEqual(fd.read(), "Hello World!\n")
+    filenames = [child.components[-1] for child in children]
+    self.assertCountEqual(filenames, expected_filenames)
+    fd = file_store.OpenFile(
+        db.ClientPath.FromPathInfo(self.client_id, children[0]))
+    self.assertEqual(fd.read(), "Hello World!\n")
 
   def testDownloadDirectorySub(self):
     """Test a FileFinder flow with depth=5."""
@@ -813,36 +675,16 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     expected_filenames = ["a.txt", "b.txt", "c.txt", "d.txt", "sub1"]
     expected_filenames_sub = ["a.txt", "b.txt", "c.txt"]
 
-    if data_store.AFF4Enabled():
-      output_path = self.client_id.Add("fs/os").Add(test_dir)
+    components = test_dir.strip("/").split("/")
+    children = data_store.REL_DB.ListChildPathInfos(
+        self.client_id, rdf_objects.PathInfo.PathType.OS, components)
+    filenames = [child.components[-1] for child in children]
+    self.assertCountEqual(filenames, expected_filenames)
 
-      output_fd = aff4.FACTORY.Open(output_path, token=self.token)
-      children = list(output_fd.OpenChildren())
-
-      filenames = [child.urn.Basename() for child in children]
-
-      self.assertCountEqual(filenames, expected_filenames)
-
-      output_fd = aff4.FACTORY.Open(output_path.Add("sub1"), token=self.token)
-      children = list(output_fd.OpenChildren())
-
-      filenames = [child.urn.Basename() for child in children]
-
-      self.assertCountEqual(filenames, expected_filenames_sub)
-
-    else:
-      components = test_dir.strip("/").split("/")
-      children = data_store.REL_DB.ListChildPathInfos(
-          self.client_id.Basename(), rdf_objects.PathInfo.PathType.OS,
-          components)
-      filenames = [child.components[-1] for child in children]
-      self.assertCountEqual(filenames, expected_filenames)
-
-      children = data_store.REL_DB.ListChildPathInfos(
-          self.client_id.Basename(), rdf_objects.PathInfo.PathType.OS,
-          components + ["sub1"])
-      filenames = [child.components[-1] for child in children]
-      self.assertCountEqual(filenames, expected_filenames_sub)
+    children = data_store.REL_DB.ListChildPathInfos(
+        self.client_id, rdf_objects.PathInfo.PathType.OS, components + ["sub1"])
+    filenames = [child.components[-1] for child in children]
+    self.assertCountEqual(filenames, expected_filenames_sub)
 
   def testDiskVolumeInfoOSXLinux(self):
     client_mock = action_mocks.UnixVolumeClientMock()
@@ -966,21 +808,12 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           pathspec=pb,
           token=self.token)
 
-      if data_store.AFF4Enabled():
-        output_path = client_id.Add("registry").Add(pb.first.path)
-        results = list(
-            aff4.FACTORY.Open(output_path, token=self.token).OpenChildren())
-        self.assertLen(results, 2)
-        for result in results:
-          st = result.Get(result.Schema.STAT)
-          self.assertIsNone(st.st_mtime)
-      else:
-        children = data_store.REL_DB.ListChildPathInfos(
-            self.client_id.Basename(), rdf_objects.PathInfo.PathType.REGISTRY,
-            ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
-        self.assertLen(children, 2)
-        for child in children:
-          self.assertIsNone(child.stat_entry.st_mtime)
+      children = data_store.REL_DB.ListChildPathInfos(
+          self.client_id, rdf_objects.PathInfo.PathType.REGISTRY,
+          ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
+      self.assertLen(children, 2)
+      for child in children:
+        self.assertIsNone(child.stat_entry.st_mtime)
 
   def testNotificationWhenListingRegistry(self):
     # Change the username so notifications get written.
@@ -1003,31 +836,13 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           pathspec=pb,
           token=token)
 
-    if data_store.RelationalDBEnabled():
-      notifications = data_store.REL_DB.ReadUserNotifications(token.username)
-      self.assertLen(notifications, 1)
-      n = notifications[0]
-      self.assertEqual(n.reference.vfs_file.path_type,
-                       rdf_objects.PathInfo.PathType.REGISTRY)
-      self.assertEqual(n.reference.vfs_file.path_components,
-                       ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
-    else:
-      user = aff4.FACTORY.Open("aff4:/users/%s" % token.username, token=token)
-      notifications = user.Get(user.Schema.PENDING_NOTIFICATIONS)
-      self.assertLen(notifications, 1)
-      expected_urn = ("aff4:/C.1000000000000000/registry/"
-                      "HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest")
-      self.assertEqual(notifications[0].subject, expected_urn)
-
-
-class RelFlowsTestFilesystem(db_test_lib.RelationalDBEnabledMixin,
-                             TestFilesystem):
-
-  flow_base_cls = flow_base.FlowBase
-
-  # No async flow starts in the new framework anymore.
-  def testIllegalGlobAsync(self):
-    pass
+    notifications = data_store.REL_DB.ReadUserNotifications(token.username)
+    self.assertLen(notifications, 1)
+    n = notifications[0]
+    self.assertEqual(n.reference.vfs_file.path_type,
+                     rdf_objects.PathInfo.PathType.REGISTRY)
+    self.assertEqual(n.reference.vfs_file.path_components,
+                     ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
 
 
 def main(argv):

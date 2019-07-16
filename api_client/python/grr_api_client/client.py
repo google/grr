@@ -213,6 +213,10 @@ class ClientBase(object):
 
     return utils.MapItemsIterator(MapClientApproval, items)
 
+  def VerifyAccess(self):
+    args = client_pb2.ApiVerifyAccessArgs(client_id=self.client_id)
+    self._context.SendRequest("VerifyAccess", args)
+
   def AddLabels(self, labels):
     if not labels:
       raise ValueError("labels list can't be empty")

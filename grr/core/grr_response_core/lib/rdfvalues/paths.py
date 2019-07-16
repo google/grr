@@ -23,7 +23,6 @@ import itertools
 import posixpath
 import re
 
-
 from future.utils import iteritems
 
 from grr_response_core.lib import artifact_utils

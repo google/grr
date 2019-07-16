@@ -11,7 +11,6 @@ import platform
 import stat
 import unittest
 
-
 from absl import app
 from future.builtins import range
 import psutil

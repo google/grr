@@ -17,9 +17,7 @@ from grr_response_core.stats import stats_collector_instance
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server.flows.general import transfer
-from grr_response_server.hunts import standard
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
@@ -66,8 +64,7 @@ def WaitAndSignal(wait_event, signal_event):
   wait_event.wait()
 
 
-class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
-                         test_lib.GRRBaseTest):
+class RelationalCronTest(test_lib.GRRBaseTest):
   """Tests for cron functionality."""
 
   def tearDown(self):
@@ -138,7 +135,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     try:
-      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         cron_manager.RunOnce(token=self.token)
 
       cron_job1 = cron_manager.ReadJob(job_id1, token=self.token)
@@ -161,7 +158,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     try:
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
           frequency="1h", lifetime="1h")
-      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         job_ids = []
         for _ in range(cron_manager.max_threads * 2):
           job_ids.append(cron_manager.CreateJob(cron_args=create_flow_args))
@@ -240,7 +237,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
-    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       try:
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
@@ -271,7 +268,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
-    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       try:
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
@@ -346,7 +343,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
     try:
-      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
@@ -380,7 +377,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     waiting_func = functools.partial(WaitForEvent, event)
     cron_manager = cronjobs.CronManager()
     try:
-      with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+      with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         fake_time = rdfvalue.RDFDatetime.Now()
         with test_lib.FakeTime(fake_time):
           create_flow_args = rdf_cronjobs.CreateCronJobArgs(
@@ -426,7 +423,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
 
-    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       cron_manager = cronjobs.CronManager()
       create_flow_args = rdf_cronjobs.CreateCronJobArgs(
           frequency="1w", lifetime="1d")
@@ -478,7 +475,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     waiting_func = functools.partial(WaitAndSignal, wait_event, signal_event)
 
     fake_time = rdfvalue.RDFDatetime.Now()
-    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       with test_lib.FakeTime(fake_time):
         cron_manager = cronjobs.CronManager()
         create_flow_args = rdf_cronjobs.CreateCronJobArgs()
@@ -565,7 +562,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
     waiting_func = functools.partial(WaitAndSignal, wait_event, signal_event)
 
     fake_time = rdfvalue.RDFDatetime.Now()
-    with mock.patch.object(standard.RunHunt, "Run", wraps=waiting_func):
+    with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
       with test_lib.FakeTime(fake_time):
         cron_manager = cronjobs.CronManager()
         create_flow_args = rdf_cronjobs.CreateCronJobArgs()
@@ -618,7 +615,7 @@ class RelationalCronTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testError(self):
     with mock.patch.object(
-        standard.RunHunt,
+        cronjobs.RunHunt,
         "Run",
         side_effect=ValueError("Random cron job error.")):
       cron_manager = cronjobs.CronManager()

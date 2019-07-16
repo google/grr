@@ -4,20 +4,17 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import itertools
 import math
 
 from absl import app
 from future.builtins import range
+from future.builtins import zip
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
 from grr_response_server import data_store
-from grr_response_server import events
 from grr_response_server.flows.cron import system as cron_system
-
-from grr_response_server.flows.general import audit
 from grr_response_server.gui.api_plugins import stats as stats_api
 from grr_response_server.gui.api_plugins.report_plugins import client_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
@@ -26,8 +23,6 @@ from grr_response_server.gui.api_plugins.report_plugins import report_plugins_te
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
-from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 ApiReportDataPoint2D = rdf_report_plugins.ApiReportDataPoint2D
@@ -67,54 +62,13 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(desc.requires_time_range, True)
 
 
-def AddFakeAuditLog(description=None,
-                    client=None,
-                    user=None,
-                    action=None,
-                    flow_name=None,
-                    urn=None,
-                    router_method_name=None,
-                    http_request_path=None,
-                    token=None):
-  events.Events.PublishEvent(
-      "Audit",
-      rdf_events.AuditEvent(
-          description=description,
-          client=client,
-          urn=urn,
-          user=user,
-          action=action,
-          flow_name=flow_name),
-      token=token)
-
-  if data_store.RelationalDBEnabled():
-    data_store.REL_DB.WriteAPIAuditEntry(
-        rdf_objects.APIAuditEntry(
-            username=user,
-            router_method_name=router_method_name,
-            http_request_path=http_request_path,
-        ))
-
-
-class ReportUtilsTest(test_lib.GRRBaseTest):
-
-  def testAuditLogsForTimespan(self):
-    two_weeks_ago = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("2w")
-    with test_lib.FakeTime(two_weeks_ago):
-      AddFakeAuditLog("Fake outdated audit log.", token=self.token)
-    AddFakeAuditLog("Fake audit description foo.", token=self.token)
-    AddFakeAuditLog("Fake audit description bar.", token=self.token)
-
-    audit_events = {
-        ev.description: ev for fd in audit.LegacyAuditLogsForTimespan(
-            rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d"),
-            rdfvalue.RDFDatetime.Now(),
-            token=self.token) for ev in fd.GenerateItems()
-    }
-
-    self.assertIn("Fake audit description foo.", audit_events)
-    self.assertIn("Fake audit description bar.", audit_events)
-    self.assertNotIn("Fake outdated audit log.", audit_events)
+def AddFakeAuditLog(user=None, router_method_name=None, http_request_path=None):
+  data_store.REL_DB.WriteAPIAuditEntry(
+      rdf_objects.APIAuditEntry(
+          username=user,
+          router_method_name=router_method_name,
+          http_request_path=http_request_path,
+      ))
 
 
 class ClientReportPluginsTest(test_lib.GRRBaseTest):
@@ -128,8 +82,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.MockClients()
 
     # Scan for activity to be reported.
-    flow_test_lib.TestFlowHelper(
-        cron_system.GRRVersionBreakDown.__name__, token=self.token)
+    cron_system.GRRVersionBreakDownCronJob(None, None).Run()
 
     report = report_plugins.GetReportByName(
         client_report_plugins.GRRVersion30ReportPlugin.__name__)
@@ -151,8 +104,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def testGRRVersionReportPluginWithNoActivityToReport(self):
     # Scan for activity to be reported.
-    flow_test_lib.TestFlowHelper(
-        cron_system.GRRVersionBreakDown.__name__, token=self.token)
+    cron_system.GRRVersionBreakDownCronJob(None, None).Run()
 
     report = report_plugins.GetReportByName(
         client_report_plugins.GRRVersion30ReportPlugin.__name__)
@@ -172,8 +124,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.MockClients()
 
     # Scan for activity to be reported.
-    flow_test_lib.TestFlowHelper(
-        cron_system.LastAccessStats.__name__, token=self.token)
+    cron_system.LastAccessStatsCronJob(None, None).Run()
 
     report = report_plugins.GetReportByName(
         client_report_plugins.LastActiveReportPlugin.__name__)
@@ -186,22 +137,21 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(
         api_report_data.representation_type,
         rdf_report_plugins.ApiReportData.RepresentationType.LINE_CHART)
+    self.assertLen(api_report_data.line_chart.data, 5)
 
     labels = [
         "60 day active", "30 day active", "7 day active", "3 day active",
         "1 day active"
     ]
     ys = [20, 20, 0, 0, 0]
-    for series, label, y in itertools.izip(api_report_data.line_chart.data,
-                                           labels, ys):
+    for series, label, y in zip(api_report_data.line_chart.data, labels, ys):
       self.assertEqual(series.label, label)
       self.assertLen(series.points, 1)
       self.assertEqual(series.points[0].y, y)
 
   def testLastActiveReportPluginWithNoActivityToReport(self):
     # Scan for activity to be reported.
-    flow_test_lib.TestFlowHelper(
-        cron_system.LastAccessStats.__name__, token=self.token)
+    cron_system.LastAccessStatsCronJob(None, None).Run()
 
     report = report_plugins.GetReportByName(
         client_report_plugins.LastActiveReportPlugin.__name__)
@@ -212,18 +162,25 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
         token=self.token)
 
     self.assertEqual(
-        api_report_data,
-        rdf_report_plugins.ApiReportData(
-            representation_type=RepresentationType.LINE_CHART,
-            line_chart=rdf_report_plugins.ApiLineChartReportData(data=[])))
+        api_report_data.representation_type,
+        rdf_report_plugins.ApiReportData.RepresentationType.LINE_CHART)
+    self.assertLen(api_report_data.line_chart.data, 5)
+
+    labels = [
+        "60 day active", "30 day active", "7 day active", "3 day active",
+        "1 day active"
+    ]
+    for series, label in zip(api_report_data.line_chart.data, labels):
+      self.assertEqual(series.label, label)
+      self.assertLen(series.points, 1)
+      self.assertEqual(series.points[0].y, 0)
 
   def testOSBreakdownReportPlugin(self):
     # Add a client to be reported.
     self.SetupClients(1)
 
     # Scan for clients to be reported (the one we just added).
-    flow_test_lib.TestFlowHelper(
-        cron_system.OSBreakDown.__name__, token=self.token)
+    cron_system.OSBreakDownCronJob(None, None).Run()
 
     report = report_plugins.GetReportByName(
         client_report_plugins.OSBreakdown30ReportPlugin.__name__)
@@ -261,8 +218,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
     self.SetupClients(1)
 
     # Scan for clients to be reported (the one we just added).
-    flow_test_lib.TestFlowHelper(
-        cron_system.OSBreakDown.__name__, token=self.token)
+    cron_system.OSBreakDownCronJob(None, None).Run()
 
     report = report_plugins.GetReportByName(
         client_report_plugins.OSReleaseBreakdown30ReportPlugin.__name__)
@@ -276,7 +232,8 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
         api_report_data,
         rdf_report_plugins.ApiReportData(
             pie_chart=rdf_report_plugins.ApiPieChartReportData(data=[
-                rdf_report_plugins.ApiReportDataPoint1D(label="Unknown", x=1)
+                rdf_report_plugins.ApiReportDataPoint1D(
+                    label="Linux--buster/sid", x=1)
             ]),
             representation_type=RepresentationType.PIE_CHART))
 
@@ -286,7 +243,7 @@ class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
-            name=report.__class__.__name__, client_label="All"),
+            name=report.__class__.__name__, client_label="Linux--buster/sid"),
         token=self.token)
 
     self.assertEqual(
@@ -318,8 +275,7 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
         ]
     ]
 
-    for series, label, x in itertools.izip(api_report_data.stack_chart.data,
-                                           labels, xs):
+    for series, label, x in zip(api_report_data.stack_chart.data, labels, xs):
       self.assertEqual(series.label, label)
       self.assertAlmostEqual([p.x for p in series.points], [x])
 
@@ -331,44 +287,33 @@ class FileStoreReportPluginsTest(test_lib.GRRBaseTest):
     ])
 
     self.assertAlmostEqual(api_report_data.stack_chart.x_ticks[0].x, 0.)
-    for diff in (
-        t2.x - t1.x
-        for t1, t2 in itertools.izip(api_report_data.stack_chart.x_ticks[:-1],
-                                     api_report_data.stack_chart.x_ticks[1:])):
+    for diff in (t2.x - t1.x
+                 for t1, t2 in zip(api_report_data.stack_chart.x_ticks[:-1],
+                                   api_report_data.stack_chart.x_ticks[1:])):
       self.assertAlmostEqual(math.log10(32), diff)
 
 
-class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
-                              test_lib.GRRBaseTest):
+class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
   def testClientApprovalsReportPlugin(self):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(
-          action=Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
-          user="User123",
-          token=self.token)
+      AddFakeAuditLog(user="User123")
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in range(10):
         AddFakeAuditLog(
-            action=Action.CLIENT_APPROVAL_REQUEST,
             user="user{}".format(i),
             router_method_name="CreateClientApproval",
             http_request_path="/api/users/me/approvals/client/C.{:016X}".format(
-                i),
-            client="C.{:016X}".format(i),
-            token=self.token)
+                i))
 
       AddFakeAuditLog(
-          action=Action.CLIENT_APPROVAL_GRANT,
           user="usera",
-          client="C.0000000000000000",
           router_method_name="GrantClientApproval",
           http_request_path="/api/users/user0/approvals/client/" +
-          "C.0000000000000000/0/",
-          token=self.token)
+          "C.0000000000000000/0/")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.ClientApprovalsReportPlugin.__name__)
@@ -431,22 +376,13 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
   def testHuntActionsReportPlugin(self):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(
-          action=Action.HUNT_CREATED,
-          user="User123",
-          flow_name="Flow123",
-          router_method_name="CreateHunt",
-          token=self.token)
+      AddFakeAuditLog(user="User123", router_method_name="CreateHunt")
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in range(10):
         AddFakeAuditLog(
-            action=Action.HUNT_MODIFIED,
-            user="User{}".format(i),
-            flow_name="Flow{}".format(i),
-            router_method_name="ModifyHunt",
-            token=self.token)
+            user="User{}".format(i), router_method_name="ModifyHunt")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.HuntActionsReportPlugin.__name__)
@@ -505,32 +441,23 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=Action.HUNT_APPROVAL_GRANT,
           user="User123",
-          urn="aff4:/hunts/H:000000",
           router_method_name="GrantHuntApproval",
-          http_request_path="/api/users/u0/approvals/hunt/H:000011/0/",
-          token=self.token)
+          http_request_path="/api/users/u0/approvals/hunt/H:000011/0/")
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in range(10):
         AddFakeAuditLog(
-            action=Action.HUNT_APPROVAL_REQUEST,
             user="User{}".format(i),
-            urn="aff4:/hunts/H:{0:06d}".format(i),
             router_method_name="CreateHuntApproval",
             http_request_path="/api/users/User{0}/approvals/hunt/H:{0:06d}/0/"
-            .format(i),
-            token=self.token)
+            .format(i))
 
       AddFakeAuditLog(
-          action=Action.HUNT_APPROVAL_GRANT,
           user="User456",
-          urn="aff4:/hunts/H:000010",
           router_method_name="GrantHuntApproval",
-          http_request_path="/api/users/u0/approvals/hunt/H:000010/0/",
-          token=self.token)
+          http_request_path="/api/users/u0/approvals/hunt/H:000010/0/")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.HuntApprovalsReportPlugin.__name__)
@@ -603,32 +530,23 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
-          action=Action.CRON_APPROVAL_GRANT,
           user="User123",
-          urn="aff4:/cron/a",
           router_method_name="GrantCronJobApproval",
-          http_request_path="/api/users/u/approvals/cron-job/a/0/",
-          token=self.token)
+          http_request_path="/api/users/u/approvals/cron-job/a/0/")
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22"), increment=1):
       for i in range(10):
         AddFakeAuditLog(
-            action=Action.CRON_APPROVAL_REQUEST,
             user="User{}".format(i),
-            urn="aff4:/cron/a{0}".format(i),
             router_method_name="CreateCronJobApproval",
             http_request_path="/api/users/u{0}/approvals/cron-job/a{0}/0/"
-            .format(i),
-            token=self.token)
+            .format(i))
 
       AddFakeAuditLog(
-          action=Action.CRON_APPROVAL_GRANT,
           user="User456",
-          urn="aff4:/cron/a0",
           router_method_name="GrantCronJobApproval",
-          http_request_path="/api/users/u0/approvals/cron-job/a0/0/",
-          token=self.token)
+          http_request_path="/api/users/u0/approvals/cron-job/a0/0/")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.CronApprovalsReportPlugin.__name__)
@@ -691,14 +609,14 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
   def testMostActiveUsersReportPlugin(self):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(client="C.123", user="User123", token=self.token)
+      AddFakeAuditLog(user="User123")
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
       for _ in range(10):
-        AddFakeAuditLog(client="C.123", user="User123", token=self.token)
+        AddFakeAuditLog(user="User123")
 
-      AddFakeAuditLog(client="C.456", user="User456", token=self.token)
+      AddFakeAuditLog(user="User456")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.MostActiveUsersReportPlugin.__name__)
@@ -745,55 +663,40 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertEmpty(api_report_data.pie_chart.data)
 
   def testSystemFlowsReportPlugin(self):
-    client_id = self.SetupClient(1).Basename()
+    client_id = self.SetupClient(1)
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
 
-      if data_store.RelationalDBEnabled():
+      data_store.REL_DB.WriteFlowObject(
+          rdf_flow_objects.Flow(
+              flow_class_name="GetClientStats",
+              creator="GRR",
+              client_id=client_id,
+              flow_id="0000000B",
+              create_time=rdfvalue.RDFDatetime.Now()))
+      AddFakeAuditLog(user="GRR")
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      for i in range(10):
         data_store.REL_DB.WriteFlowObject(
             rdf_flow_objects.Flow(
                 flow_class_name="GetClientStats",
                 creator="GRR",
                 client_id=client_id,
-                flow_id="0000000B",
+                flow_id="{:08X}".format(i),
                 create_time=rdfvalue.RDFDatetime.Now()))
-      AddFakeAuditLog(
-          action=Action.RUN_FLOW,
-          user="GRR",
-          flow_name="GetClientStats",
-          token=self.token)
+        AddFakeAuditLog(user="GRR",)
 
-    with test_lib.FakeTime(
-        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for i in range(10):
-        if data_store.RelationalDBEnabled():
-          data_store.REL_DB.WriteFlowObject(
-              rdf_flow_objects.Flow(
-                  flow_class_name="GetClientStats",
-                  creator="GRR",
-                  client_id=client_id,
-                  flow_id="{:08X}".format(i),
-                  create_time=rdfvalue.RDFDatetime.Now()))
-        AddFakeAuditLog(
-            action=Action.RUN_FLOW,
-            user="GRR",
-            flow_name="GetClientStats",
-            token=self.token)
-
-      if data_store.RelationalDBEnabled():
-        data_store.REL_DB.WriteFlowObject(
-            rdf_flow_objects.Flow(
-                flow_class_name="ArtifactCollectorFlow",
-                creator="GRR",
-                client_id=client_id,
-                flow_id="0000000A",
-                create_time=rdfvalue.RDFDatetime.Now()))
-      AddFakeAuditLog(
-          action=Action.RUN_FLOW,
-          user="GRR",
-          flow_name="ArtifactCollectorFlow",
-          token=self.token)
+      data_store.REL_DB.WriteFlowObject(
+          rdf_flow_objects.Flow(
+              flow_class_name="ArtifactCollectorFlow",
+              creator="GRR",
+              client_id=client_id,
+              flow_id="0000000A",
+              create_time=rdfvalue.RDFDatetime.Now()))
+      AddFakeAuditLog(user="GRR")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.SystemFlowsReportPlugin.__name__)
@@ -856,7 +759,7 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
       with test_lib.FakeTime(
           rdfvalue.RDFDatetime.FromHumanReadable(date_string)):
         for username in usernames:
-          AddFakeAuditLog(user=username, token=self.token)
+          AddFakeAuditLog(user=username)
 
     report = report_plugins.GetReportByName(
         server_report_plugins.UserActivityReportPlugin.__name__)
@@ -914,54 +817,39 @@ class ServerReportPluginsTest(db_test_lib.RelationalDBEnabledMixin,
             stack_chart=rdf_report_plugins.ApiStackChartReportData(data=[])))
 
   def testUserFlowsReportPlugin(self):
-    client_id = self.SetupClient(1).Basename()
+    client_id = self.SetupClient(1)
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
-      AddFakeAuditLog(
-          action=Action.RUN_FLOW,
-          user="User123",
-          flow_name="GetClientStats",
-          token=self.token)
-      if data_store.RelationalDBEnabled():
+      AddFakeAuditLog(user="User123")
+      data_store.REL_DB.WriteFlowObject(
+          rdf_flow_objects.Flow(
+              flow_class_name="GetClientStats",
+              creator="User123",
+              client_id=client_id,
+              flow_id="E0000000",
+              create_time=rdfvalue.RDFDatetime.Now()))
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      for i in range(10):
         data_store.REL_DB.WriteFlowObject(
             rdf_flow_objects.Flow(
                 flow_class_name="GetClientStats",
                 creator="User123",
                 client_id=client_id,
-                flow_id="E0000000",
+                flow_id="{:08X}".format(i),
                 create_time=rdfvalue.RDFDatetime.Now()))
+        AddFakeAuditLog(user="User123")
 
-    with test_lib.FakeTime(
-        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
-      for i in range(10):
-        if data_store.RelationalDBEnabled():
-          data_store.REL_DB.WriteFlowObject(
-              rdf_flow_objects.Flow(
-                  flow_class_name="GetClientStats",
-                  creator="User123",
-                  client_id=client_id,
-                  flow_id="{:08X}".format(i),
-                  create_time=rdfvalue.RDFDatetime.Now()))
-        AddFakeAuditLog(
-            action=Action.RUN_FLOW,
-            user="User123",
-            flow_name="GetClientStats",
-            token=self.token)
-
-      if data_store.RelationalDBEnabled():
-        data_store.REL_DB.WriteFlowObject(
-            rdf_flow_objects.Flow(
-                flow_class_name="ArtifactCollectorFlow",
-                creator="User456",
-                client_id=client_id,
-                flow_id="F0000000",
-                create_time=rdfvalue.RDFDatetime.Now()))
-      AddFakeAuditLog(
-          action=Action.RUN_FLOW,
-          user="User456",
-          flow_name="ArtifactCollectorFlow",
-          token=self.token)
+      data_store.REL_DB.WriteFlowObject(
+          rdf_flow_objects.Flow(
+              flow_class_name="ArtifactCollectorFlow",
+              creator="User456",
+              client_id=client_id,
+              flow_id="F0000000",
+              create_time=rdfvalue.RDFDatetime.Now()))
+      AddFakeAuditLog(user="User456")
 
     report = report_plugins.GetReportByName(
         server_report_plugins.UserFlowsReportPlugin.__name__)

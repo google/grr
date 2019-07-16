@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -15,21 +14,14 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
 
 
-# Cannot use data_store here, because of circular dependency.
-def RelationalDBEnabled():
-  return config.CONFIG["Database.enabled"]
-
-
-# TODO(amoser): Rename client_obj once relational db becomes standard.
 class ForemanClientRuleBase(rdf_structs.RDFProtoStruct):
   """Abstract base class of foreman client rules."""
 
-  def Evaluate(self, client_obj):
+  def Evaluate(self, client_info):
     """Evaluates the rule represented by this object.
 
     Args:
-      client_obj: Either an aff4 client object or a `db.ClientFullInfo` instance
-        if the relational db is used for reading.
+      client_info: A `db.ClientFullInfo` instance.
 
     Returns:
       A bool value of the evaluation.
@@ -44,11 +36,8 @@ class ForemanOsClientRule(ForemanClientRuleBase):
   """This rule will fire if the client OS is marked as true in the proto."""
   protobuf = jobs_pb2.ForemanOsClientRule
 
-  def Evaluate(self, client_obj):
-    if RelationalDBEnabled():
-      value = client_obj.last_snapshot.knowledge_base.os
-    else:
-      value = client_obj.Get(client_obj.Schema.SYSTEM)
+  def Evaluate(self, client_info):
+    value = client_info.last_snapshot.knowledge_base.os
 
     if not value:
       return False
@@ -67,7 +56,7 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
   """This rule will fire if the client has the selected label."""
   protobuf = jobs_pb2.ForemanLabelClientRule
 
-  def Evaluate(self, client_obj):
+  def Evaluate(self, client_info):
     if self.match_mode == ForemanLabelClientRule.MatchMode.MATCH_ALL:
       quantifier = all
     elif self.match_mode == ForemanLabelClientRule.MatchMode.MATCH_ANY:
@@ -79,10 +68,7 @@ class ForemanLabelClientRule(ForemanClientRuleBase):
     else:
       raise ValueError("Unexpected match mode value: %s" % self.match_mode)
 
-    if RelationalDBEnabled():
-      client_label_names = [label.name for label in client_obj.labels]
-    else:
-      client_label_names = set(client_obj.GetLabelsNames())
+    client_label_names = [label.name for label in client_info.labels]
 
     return quantifier((name in client_label_names) for name in self.label_names)
 
@@ -97,85 +83,39 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       rdf_standard.RegularExpression,
   ]
 
-  def _ResolveFieldAFF4(self, field, client_obj):
-
-    fsf = ForemanRegexClientRule.ForemanStringField
-
-    if field == fsf.UNSET:
-      raise ValueError(
-          "Received regex rule without a valid field specification.")
-    elif field == fsf.USERNAMES:
-      res = client_obj.Get(client_obj.Schema.USERNAMES)
-    elif field == fsf.UNAME:
-      res = client_obj.Get(client_obj.Schema.UNAME)
-    elif field == fsf.FQDN:
-      res = client_obj.Get(client_obj.Schema.FQDN)
-    elif field == fsf.HOST_IPS:
-      res = client_obj.Get(client_obj.Schema.HOST_IPS)
-      if res:
-        res = utils.SmartStr(res).replace("\n", " ")
-    elif field == fsf.CLIENT_NAME:
-      res = None
-      info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
-      if info:
-        res = info.client_name
-    elif field == fsf.CLIENT_DESCRIPTION:
-      res = None
-      info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
-      if info:
-        res = info.client_description
-    elif field == fsf.SYSTEM:
-      res = client_obj.Get(client_obj.Schema.SYSTEM)
-    elif field == fsf.MAC_ADDRESSES:
-      res = client_obj.Get(client_obj.Schema.MAC_ADDRESS)
-      if res:
-        res = utils.SmartStr(res).replace("\n", " ")
-    elif field == fsf.KERNEL_VERSION:
-      res = client_obj.Get(client_obj.Schema.KERNEL_VERSION)
-    elif field == fsf.OS_VERSION:
-      res = client_obj.Get(client_obj.Schema.OS_VERSION)
-    elif field == fsf.OS_RELEASE:
-      res = client_obj.Get(client_obj.Schema.OS_RELEASE)
-    elif field == fsf.CLIENT_LABELS:
-      res = " ".join(client_obj.GetLabelsNames())
-
-    if res is None:
-      return ""
-    return utils.SmartStr(res)
-
   def _ResolveField(self, field, client_info):
 
     fsf = ForemanRegexClientRule.ForemanStringField
-    client_obj = client_info.last_snapshot
+    snapshot = client_info.last_snapshot
     startup_info = client_info.last_startup_info
 
     if field == fsf.UNSET:
       raise ValueError(
           "Received regex rule without a valid field specification.")
     elif field == fsf.USERNAMES:
-      res = " ".join(user.username for user in client_obj.knowledge_base.users)
+      res = " ".join(user.username for user in snapshot.knowledge_base.users)
     elif field == fsf.UNAME:
-      res = client_obj.Uname()
+      res = snapshot.Uname()
     elif field == fsf.FQDN:
-      res = client_obj.knowledge_base.fqdn
+      res = snapshot.knowledge_base.fqdn
     elif field == fsf.HOST_IPS:
-      res = " ".join(client_obj.GetIPAddresses())
+      res = " ".join(snapshot.GetIPAddresses())
     elif field == fsf.CLIENT_NAME:
       res = startup_info and startup_info.client_info.client_name
     elif field == fsf.CLIENT_DESCRIPTION:
       res = startup_info and startup_info.client_info.client_description
     elif field == fsf.SYSTEM:
-      res = client_obj.knowledge_base.os
+      res = snapshot.knowledge_base.os
     elif field == fsf.MAC_ADDRESSES:
-      res = " ".join(client_obj.GetMacAddresses())
+      res = " ".join(snapshot.GetMacAddresses())
     elif field == fsf.KERNEL_VERSION:
-      res = client_obj.kernel
+      res = snapshot.kernel
     elif field == fsf.OS_VERSION:
-      res = client_obj.os_version
+      res = snapshot.os_version
     elif field == fsf.OS_RELEASE:
-      res = client_obj.os_release
+      res = snapshot.os_release
     elif field == fsf.CLIENT_LABELS:
-      system_labels = client_obj.startup_info.client_info.labels
+      system_labels = snapshot.startup_info.client_info.labels
       user_labels = [l.name for l in client_info.labels]
       res = " ".join(itertools.chain(system_labels, user_labels))
 
@@ -183,11 +123,8 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       return ""
     return utils.SmartStr(res)
 
-  def Evaluate(self, client_obj):
-    if RelationalDBEnabled():
-      value = self._ResolveField(self.field, client_obj)
-    else:
-      value = self._ResolveFieldAFF4(self.field, client_obj)
+  def Evaluate(self, client_info):
+    value = self._ResolveField(self.field, client_info)
 
     return self.attribute_regex.Search(value)
 
@@ -201,28 +138,6 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
   protobuf = jobs_pb2.ForemanIntegerClientRule
   rdf_deps = []
 
-  def _ResolveFieldAFF4(self, field, client_obj):
-    if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
-      raise ValueError(
-          "Received integer rule without a valid field specification.")
-
-    if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
-      info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
-      if not info:
-        return info
-      return int(info.client_version or 0)
-
-    elif field == ForemanIntegerClientRule.ForemanIntegerField.INSTALL_TIME:
-      res = client_obj.Get(client_obj.Schema.INSTALL_DATE)
-    elif field == ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME:
-      res = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
-    elif field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_CLOCK:
-      res = client_obj.Get(client_obj.Schema.CLOCK)
-
-    if res is None:
-      return
-    return res.AsSecondsSinceEpoch()
-
   def _ResolveField(self, field, client_info):
     if field == ForemanIntegerClientRule.ForemanIntegerField.UNSET:
       raise ValueError(
@@ -230,13 +145,13 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
 
     startup_info = client_info.last_startup_info
     md = client_info.metadata
-    client_obj = client_info.last_snapshot
+    client_info = client_info.last_snapshot
     if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
       return startup_info.client_info.client_version
     elif field == ForemanIntegerClientRule.ForemanIntegerField.INSTALL_TIME:
-      res = client_obj.install_time
+      res = client_info.install_time
     elif field == ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME:
-      res = client_obj.startup_info.boot_time
+      res = client_info.startup_info.boot_time
     elif field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_CLOCK:
       res = md.clock
 
@@ -244,11 +159,8 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       return
     return res.AsSecondsSinceEpoch()
 
-  def Evaluate(self, client_obj):
-    if RelationalDBEnabled():
-      value = self._ResolveField(self.field, client_obj)
-    else:
-      value = self._ResolveFieldAFF4(self.field, client_obj)
+  def Evaluate(self, client_info):
+    value = self._ResolveField(self.field, client_info)
 
     if value is None:
       return False
@@ -287,8 +199,8 @@ class ForemanClientRule(ForemanClientRuleBase):
       ForemanRegexClientRule,
   ]
 
-  def Evaluate(self, client_obj):
-    return self.UnionCast().Evaluate(client_obj)
+  def Evaluate(self, client_info):
+    return self.UnionCast().Evaluate(client_info)
 
   def Validate(self):
     self.UnionCast().Validate()
@@ -301,12 +213,11 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
       ForemanClientRule,
   ]
 
-  def Evaluate(self, client_obj):
+  def Evaluate(self, client_info):
     """Evaluates rules held in the rule set.
 
     Args:
-      client_obj: Either an aff4 client object or a client_info dict as returned
-        by ReadFullInfoClient if the relational db is used for reading.
+      client_info: A client_info dict as returned by ReadFullInfoClient.
 
     Returns:
       A bool value of the evaluation.
@@ -321,7 +232,7 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
     else:
       raise ValueError("Unexpected match mode value: %s" % self.match_mode)
 
-    return quantifier(rule.Evaluate(client_obj) for rule in self.rules)
+    return quantifier(rule.Evaluate(client_info) for rule in self.rules)
 
   def Validate(self):
     for rule in self.rules:

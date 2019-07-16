@@ -31,15 +31,13 @@ from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import test_lib
 
 
-class HuntTest(db_test_lib.RelationalDBEnabledMixin,
-               notification_test_lib.NotificationTestMixin,
+class HuntTest(notification_test_lib.NotificationTestMixin,
                test_lib.GRRBaseTest):
   """Tests for the relational hunts implementation."""
 
@@ -60,14 +58,14 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     return hunt_obj.hunt_id
 
   def _RunHunt(self, client_ids, client_mock=None, iteration_limit=None):
-    foreman_obj = foreman.GetForeman()
+    foreman_obj = foreman.Foreman()
     for client_id in client_ids:
-      foreman_obj.AssignTasksToClient(client_id.Basename())
+      foreman_obj.AssignTasksToClient(client_id)
 
     if client_mock is None:
       client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
     return hunt_test_lib.TestHuntHelper(
-        client_mock, client_ids, False, iteration_limit=iteration_limit)
+        client_mock, client_ids, iteration_limit=iteration_limit)
 
   def _CreateAndRunHunt(self,
                         num_clients=5,
@@ -183,15 +181,15 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
     # Check matching client.
-    client_id = self.SetupClient(0, system="Windows").Basename()
-    foreman_obj = foreman.GetForeman()
+    client_id = self.SetupClient(0, system="Windows")
+    foreman_obj = foreman.Foreman()
     foreman_obj.AssignTasksToClient(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
     self.assertLen(flows, 1)
 
     # Check non-matching client.
-    client_id = self.SetupClient(1, system="Linux").Basename()
+    client_id = self.SetupClient(1, system="Linux")
     foreman_obj.AssignTasksToClient(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
@@ -219,12 +217,12 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     hunt.CreateHunt(hunt_obj)
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
-    foreman_obj = foreman.GetForeman()
+    foreman_obj = foreman.Foreman()
     for client_id in client_ids:
-      foreman_obj.AssignTasksToClient(client_id.Basename())
+      foreman_obj.AssignTasksToClient(client_id)
 
     client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
-    hunt_test_lib.TestHuntHelper(client_mock, client_ids[1:9], False)
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids[1:9])
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
     self.assertEqual(hunt_counters.num_clients, 10)
@@ -239,8 +237,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         args=self.GetFileHuntArgs())
 
     for client_id in client_ids:
-      flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id=client_id.Basename())
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
       self.assertLen(flows, 1)
 
     hunt.PauseHunt(hunt_id)
@@ -249,8 +246,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     self._RunHunt(client_ids)
 
     for client_id in client_ids:
-      flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id=client_id.Basename())
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
       self.assertLen(flows, 1)
 
   def testHuntIsPausedOnReachingClientLimit(self):
@@ -284,7 +280,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     # already.
     self.assertLen(requests, 9)
     for i, (r, client_id) in enumerate(zip(requests, client_ids[1:])):
-      self.assertEqual(r.client_id, client_id.Basename())
+      self.assertEqual(r.client_id, client_id)
       time_diff = r.delivery_time - (
           now + rdfvalue.DurationSeconds("1m") * (i + 1))
       self.assertLess(time_diff, rdfvalue.DurationSeconds("5s"))
@@ -329,8 +325,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLess(num_iterations, 100)
 
     for client_id in client_ids:
-      flows = data_store.REL_DB.ReadAllFlowObjects(
-          client_id=client_id.Basename())
+      flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
       self.assertLen(flows, 1)
 
       flow_obj = flows[0]
@@ -338,7 +333,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
       self.assertEqual(flow_obj.error_message, "Parent hunt stopped.")
 
       req_resp = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-          client_id.Basename(), flow_obj.flow_id)
+          client_id, flow_obj.flow_id)
       self.assertFalse(req_resp)
 
   def testResultsAreCorrectlyWrittenAndAreFilterable(self):
@@ -382,8 +377,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         count=sys.maxsize,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
     self.assertLen(logs, 5)
-    self.assertItemsEqual([l.client_id for l in logs],
-                          [cid.Basename() for cid in client_ids])
+    self.assertItemsEqual([l.client_id for l in logs], client_ids)
     for l in logs:
       self.assertEqual(l.hunt_id, hunt_id)
       self.assertGreater(l.timestamp, 0)
@@ -411,8 +405,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         count=sys.maxsize,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
-    self.assertItemsEqual([e.client_id for e in errors],
-                          [cid.Basename() for cid in client_ids])
+    self.assertItemsEqual([e.client_id for e in errors], client_ids)
     for e in errors:
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
@@ -464,8 +457,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         count=sys.maxsize,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
-    self.assertItemsEqual([e.client_id for e in errors],
-                          [cid.Basename() for cid in client_ids])
+    self.assertItemsEqual([e.client_id for e in errors], client_ids)
     for e in errors:
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
@@ -812,23 +804,23 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
         args=self.GetFileHuntArgs())
 
     client_mock = hunt_test_lib.SampleHuntMock(failrate=-1)
-    foreman_obj = foreman.GetForeman()
+    foreman_obj = foreman.Foreman()
     for client_id in client_ids:
-      foreman_obj.AssignTasksToClient(client_id.Basename())
+      foreman_obj.AssignTasksToClient(client_id)
 
-    hunt_test_lib.TestHuntHelper(client_mock, client_ids[:3], False)
+    hunt_test_lib.TestHuntHelper(client_mock, client_ids[:3])
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     self.assertEqual(hunt_obj.hunt_state,
                      rdf_hunt_objects.Hunt.HuntState.STARTED)
 
     with test_lib.FakeTime(expiry_time - rdfvalue.DurationSeconds("1s")):
-      hunt_test_lib.TestHuntHelper(client_mock, client_ids[3:4], False)
+      hunt_test_lib.TestHuntHelper(client_mock, client_ids[3:4])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state,
                        rdf_hunt_objects.Hunt.HuntState.STARTED)
 
     with test_lib.FakeTime(expiry_time + rdfvalue.DurationSeconds("1s")):
-      hunt_test_lib.TestHuntHelper(client_mock, client_ids[4:5], False)
+      hunt_test_lib.TestHuntHelper(client_mock, client_ids[4:5])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state,
                        rdf_hunt_objects.Hunt.HuntState.COMPLETED)
@@ -907,9 +899,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     # 4 logs for each flow. Note: DummyLogFlow also calls DummyLogFlowChild,
     # but children flows logs should not be present in the output.
     self.assertLen(hunt_logs, 4 * len(client_ids))
-    self.assertCountEqual(
-        set(log.client_id for log in hunt_logs),
-        [c.Basename() for c in client_ids])
+    self.assertCountEqual(set(log.client_id for log in hunt_logs), client_ids)
 
     messages_set = set(log.message for log in hunt_logs)
     self.assertCountEqual(messages_set, ["First", "Second", "Third", "Fourth"])
@@ -930,8 +920,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     self.assertEqual(hunt_obj.creator, self.token.username)
 
-    flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=client_ids[0].Basename())
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_ids[0])
     self.assertLen(flows, 1)
     self.assertEqual(flows[0].creator, hunt_obj.creator)
 
@@ -947,8 +936,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     self.assertEqual(hunt_obj.creator, self.token.username)
 
-    flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=client_ids[0].Basename())
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_ids[0])
     self.assertLen(flows, 1)
     self.assertEqual(flows[0].cpu_limit, 42)
     self.assertEqual(flows[0].network_bytes_limit, 43)
@@ -961,7 +949,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     for index in range(2):
       hunt_obj.args.variable.flow_groups.append(
           rdf_hunt_objects.VariableHuntFlowGroup(
-              client_ids=[client_id.Basename()],
+              client_ids=[client_id],
               flow_name=compatibility.GetName(transfer.GetFile),
               flow_args=transfer.GetFileArgs(
                   pathspec=rdf_paths.PathSpec(
@@ -975,7 +963,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
       hunt.StartHunt(hunt_obj.hunt_id)
 
     # Check that no flows were scheduled on the client.
-    flows = data_store.REL_DB.ReadAllFlowObjects(client_id.Basename())
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
     self.assertEmpty(flows)
 
   def testVariableHuntCanNotBeScheduledWithNonZeroClientRate(self):
@@ -1001,7 +989,7 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
     for index, pair in enumerate(collection.Batch(client_ids, 2)):
       hunt_obj.args.variable.flow_groups.append(
           rdf_hunt_objects.VariableHuntFlowGroup(
-              client_ids=[c.Basename() for c in pair],
+              client_ids=pair,
               flow_name=compatibility.GetName(transfer.GetFile),
               flow_args=transfer.GetFileArgs(
                   pathspec=rdf_paths.PathSpec(
@@ -1017,12 +1005,11 @@ class HuntTest(db_test_lib.RelationalDBEnabledMixin,
 
     all_flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0,
                                                 sys.maxsize)
-    self.assertItemsEqual([c.Basename() for c in client_ids],
-                          [f.client_id for f in all_flows])
+    self.assertItemsEqual(client_ids, [f.client_id for f in all_flows])
 
     for index, pair in enumerate(collection.Batch(client_ids, 2)):
       for client_id in pair:
-        all_flows = data_store.REL_DB.ReadAllFlowObjects(client_id.Basename())
+        all_flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
         self.assertLen(all_flows, 1)
 
         self.assertEqual(all_flows[0].flow_class_name,

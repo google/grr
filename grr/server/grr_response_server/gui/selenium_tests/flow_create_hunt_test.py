@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib.util import compatibility
@@ -14,19 +13,17 @@ from grr_response_server.gui import gui_test_lib
 from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowCreateHunt(db_test_lib.RelationalDBEnabledMixin,
-                         gui_test_lib.GRRSeleniumTest,
+class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
                          hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
     super(TestFlowCreateHunt, self).setUp()
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 

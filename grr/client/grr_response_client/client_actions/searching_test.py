@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import functools
 import os
 
-
 from absl import app
 from future.builtins import range
 

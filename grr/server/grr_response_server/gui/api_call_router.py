@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import inspect
 import re
 
-
 from future.utils import with_metaclass
 from typing import Text
 
@@ -44,8 +43,8 @@ class Http(object):
       http_methods = []
       setattr(func, "__http_methods__", http_methods)
 
-    http_methods.append((self.method, self.path,
-                         dict(strip_root_types=self.strip_root_types)))
+    http_methods.append(
+        (self.method, self.path, dict(strip_root_types=self.strip_root_types)))
 
     return func
 
@@ -244,6 +243,15 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("GET", "/api/clients")
   def SearchClients(self, args, token=None):
     """Search for clients using a search query."""
+
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiVerifyAccessArgs)
+  @ResultType(api_client.ApiVerifyAccessResult)
+  @Http("GET", "/api/clients/<client_id>/access")
+  def VerifyAccess(self, args, token=None):
+    """Verifies if user has access to a client."""
 
     raise NotImplementedError()
 
@@ -1206,15 +1214,6 @@ class ApiCallRouterStub(ApiCallRouter):
   @NoAuditLogRequired()
   def ListFlowDescriptors(self, args, token=None):
     """List descriptors of all the flows."""
-
-    raise NotImplementedError()
-
-  @Category("Reflection")
-  @ResultType(api_reflection.ApiListAff4AttributeDescriptorsResult)
-  @Http("GET", "/api/reflection/aff4/attributes", strip_root_types=True)
-  @NoAuditLogRequired()
-  def ListAff4AttributeDescriptors(self, args, token=None):
-    """List descriptors of all AFF4 attributes."""
 
     raise NotImplementedError()
 

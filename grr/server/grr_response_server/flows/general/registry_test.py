@@ -16,14 +16,11 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
-from grr_response_server import aff4_flows
 from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server.flows.general import registry
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
@@ -41,8 +38,7 @@ class RegistryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.addCleanup(vfs_overrider.Stop)
 
 
-class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
-                                 RegistryFlowTest):
+class TestFakeRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
 
   runkey = "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
@@ -124,8 +120,7 @@ class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     key = ("/HKEY_USERS/S-1-5-20/"
            "Software/Microsoft/Windows/CurrentVersion/Run")
 
-    self.assertEqual(results[0].stat_entry.AFF4Path(client_id),
-                     "aff4:/C.1000000000000000/registry" + key)
+    self.assertEqual(results[0].stat_entry.pathspec.CollapsePath(), key)
     self.assertEqual(results[0].stat_entry.pathspec.path, key)
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
                      rdf_paths.PathSpec.PathType.REGISTRY)
@@ -166,13 +161,9 @@ class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
                      "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
     self.assertEqual(
-        results[0].stat_entry.AFF4Path(client_id),
-        "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
-        "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(
-        results[0].stat_entry.pathspec.path,
-        "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
-        "CurrentVersion/Run/Sidebar")
+        results[0].stat_entry.pathspec.CollapsePath(),
+        "/HKEY_USERS/S-1-5-20/Software/Microsoft/"
+        "Windows/CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
                      rdf_paths.PathSpec.PathType.REGISTRY)
 
@@ -210,11 +201,7 @@ class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
                      b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
     self.assertEqual(
-        results[0].stat_entry.AFF4Path(client_id),
-        "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
-        "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
-    self.assertEqual(
-        results[0].stat_entry.pathspec.path,
+        results[0].stat_entry.pathspec.CollapsePath(),
         "/HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/"
         "CurrentVersion/Run/Sidebar")
     self.assertEqual(results[0].stat_entry.pathspec.pathtype,
@@ -285,9 +272,9 @@ class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
     self.assertEqual(
-        results[0].stat_entry.AFF4Path(client_id),
-        "aff4:/C.1000000000000000/registry/HKEY_USERS/S-1-5-20/"
-        "Software/Microsoft/Windows/CurrentVersion/Run/Sidebar")
+        results[0].stat_entry.pathspec.CollapsePath(),
+        "/HKEY_USERS/S-1-5-20/Software/Microsoft/"
+        "Windows/CurrentVersion/Run/Sidebar")
 
   def testSizeCondition(self):
     client_id = self.SetupClient(0)
@@ -302,7 +289,7 @@ class TestFakeRegistryFinderFlow(db_test_lib.RelationalDBEnabledMixin,
     self.assertGreater(results[0].stat_entry.st_size, 50)
 
 
-class TestRegistryFlows(db_test_lib.RelationalDBEnabledMixin, RegistryFlowTest):
+class TestRegistryFlows(RegistryFlowTest):
   """Test the Run Key registry flows."""
 
   @parser_test_lib.WithAllParsers
@@ -328,21 +315,12 @@ class TestRegistryFlows(db_test_lib.RelationalDBEnabledMixin, RegistryFlowTest):
 
       kb = flow_test_lib.GetFlowResults(client_id, session_id)[0]
 
-      if data_store.RelationalDBEnabled():
-        client = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
-        client.knowledge_base = kb
-        data_store.REL_DB.WriteClientSnapshot(client)
-      else:
-        with aff4.FACTORY.Open(
-            client_id, token=self.token, mode="rw") as client:
-          client.Set(client.Schema.KNOWLEDGE_BASE, kb)
+      client = data_store.REL_DB.ReadClientSnapshot(client_id)
+      client.knowledge_base = kb
+      data_store.REL_DB.WriteClientSnapshot(client)
 
-      if data_store.RelationalDBEnabled():
-        flow_cls = transfer.MultiGetFile
-      else:
-        flow_cls = aff4_flows.MultiGetFile
-
-      with test_lib.Instrument(flow_cls, "Start") as getfile_instrument:
+      with test_lib.Instrument(transfer.MultiGetFile,
+                               "Start") as getfile_instrument:
         # Run the flow in the emulated way.
         flow_test_lib.TestFlowHelper(
             registry.CollectRunKeyBinaries.__name__,

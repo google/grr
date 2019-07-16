@@ -8,26 +8,21 @@ import io
 import os
 import zipfile
 
-
 from absl import app
 from future.builtins import range
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_server import data_store
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_e2e_test_lib
 
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiCallRobotRouterE2ETest(db_test_lib.RelationalDBEnabledMixin,
-                                api_e2e_test_lib.ApiE2ETest):
+class ApiCallRobotRouterE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   FILE_FINDER_ROUTER_CONFIG = """
 router: "ApiCallRobotRouter"
@@ -69,7 +64,7 @@ users:
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
                           self.token.username)
 
-    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    client_ref = self.api.Client(client_id=self.client_id)
     with self.assertRaises(RuntimeError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
@@ -77,7 +72,7 @@ users:
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
                           self.token.username)
 
-    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    client_ref = self.api.Client(client_id=self.client_id)
 
     args = rdf_file_finder.FileFinderArgs(
         paths=[
@@ -91,19 +86,10 @@ users:
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     # Now run the flow we just started.
-    if data_store.RelationalDBEnabled():
-      flow_test_lib.RunFlow(
-          flow_obj.client_id,
-          flow_obj.flow_id,
-          client_mock=action_mocks.FileFinderClientMock())
-    else:
-      client_id = rdf_client.ClientURN(flow_obj.client_id)
-      flow_urn = client_id.Add("flows").Add(flow_obj.flow_id)
-      flow_test_lib.TestFlowHelper(
-          flow_urn,
-          client_id=client_id,
-          client_mock=action_mocks.FileFinderClientMock(),
-          token=self.token)
+    flow_test_lib.RunFlow(
+        flow_obj.client_id,
+        flow_obj.flow_id,
+        client_mock=action_mocks.FileFinderClientMock())
 
     # Refresh flow.
     flow_obj = client_ref.Flow(flow_obj.flow_id).Get()
@@ -135,9 +121,9 @@ users:
     self.assertEqual(
         sorted([
             # pyformat: disable
-            os.path.join(self.client_id.Basename(), "fs", "os",
-                         self.base_path.strip("/"), "test.plist"),
-            os.path.join(self.client_id.Basename(), "client_info.yaml"),
+            os.path.join(self.client_id, "fs", "os", self.base_path.strip("/"),
+                         "test.plist"),
+            os.path.join(self.client_id, "client_info.yaml"),
             "MANIFEST"
             # pyformat: enable
         ]),
@@ -149,8 +135,7 @@ users:
     flow_id = flow_test_lib.StartFlow(
         flow_cls=file_finder.FileFinder, client_id=self.client_id)
 
-    flow_ref = self.api.Client(
-        client_id=self.client_id.Basename()).Flow(flow_id)
+    flow_ref = self.api.Client(client_id=self.client_id).Flow(flow_id)
     with self.assertRaises(RuntimeError):
       flow_ref.Get()
 
@@ -162,7 +147,7 @@ users:
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
         paths=["tests.plist"]).AsPrimitiveProto()
 
-    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    client_ref = self.api.Client(client_id=self.client_id)
 
     # Create 60 flows in a row to check that no throttling is applied.
     for _ in range(20):
@@ -193,7 +178,7 @@ users:
               action=rdf_file_finder.FileFinderAction(action_type="STAT"),
               paths=[p]).AsPrimitiveProto())
 
-    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    client_ref = self.api.Client(client_id=self.client_id)
 
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args[0])
@@ -214,7 +199,7 @@ users:
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
         paths=["tests.plist"]).AsPrimitiveProto()
 
-    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    client_ref = self.api.Client(client_id=self.client_id)
 
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
@@ -243,7 +228,7 @@ users:
         action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         paths=["tests.plist"]).AsPrimitiveProto()
 
-    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    client_ref = self.api.Client(client_id=self.client_id)
 
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)

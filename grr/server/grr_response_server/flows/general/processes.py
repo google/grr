@@ -8,7 +8,6 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import file_finder
@@ -21,12 +20,11 @@ class ListProcessesArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
-@flow_base.DualDBFlow
-class ListProcessesMixin(object):
+class ListProcesses(flow_base.FlowBase):
   """List running processes on a system."""
 
   category = "/Processes/"
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
   args_type = ListProcessesArgs
 
   def Start(self):
@@ -52,7 +50,8 @@ class ListProcessesMixin(object):
 
     if not responses.success:
       # Check for error, but continue. Errors are common on client.
-      raise flow.FlowError("Error during process listing %s" % responses.status)
+      raise flow_base.FlowError("Error during process listing %s" %
+                                responses.status)
 
     if self.args.fetch_binaries:
       # Filter out processes entries without "exe" attribute and

@@ -5,34 +5,19 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_server import access_control
-
-from grr_response_server import aff4
-
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users
 from grr_response_server.gui.api_plugins import user as api_user
-
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def CreateUser(username):
   """Creates a user."""
-  if data_store.RelationalDBEnabled():
-    data_store.REL_DB.WriteGRRUser(username)
-  else:
-    user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser)
-    user.Flush()
-    return user
+  data_store.REL_DB.WriteGRRUser(username)
 
 
 def CreateAdminUser(username):
-  if data_store.RelationalDBEnabled():
-    data_store.REL_DB.WriteGRRUser(
-        username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
-
-  else:
-    with CreateUser(username) as user:
-      user.SetLabel("admin", owner="GRR")
+  data_store.REL_DB.WriteGRRUser(
+      username, user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
 
 
 class AclTestMixin(object):
@@ -52,9 +37,6 @@ class AclTestMixin(object):
                             email_cc_address=None,
                             approver=u"approver"):
     """Create an approval request to be sent to approver."""
-    if hasattr(client_id, "Basename"):
-      client_id = client_id.Basename()
-
     if not requestor:
       requestor = self.token.username
 
@@ -86,7 +68,7 @@ class AclTestMixin(object):
     """Grant an approval from approver to delegate.
 
     Args:
-      client_id: ClientURN
+      client_id: Client id.
       requestor: username string of the user receiving approval.
       approval_id: id of the approval to grant.
       approver: username string of the user granting approval.
@@ -97,9 +79,6 @@ class AclTestMixin(object):
     """
     if not approval_id:
       raise ValueError("approval_id can't be empty.")
-
-    if hasattr(client_id, "Basename"):
-      client_id = client_id.Basename()
 
     if not requestor:
       requestor = self.token.username

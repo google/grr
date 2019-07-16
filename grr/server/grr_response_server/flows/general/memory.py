@@ -12,22 +12,20 @@ from typing import Union
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
 
 
-@flow_base.DualDBFlow
-class YaraProcessScanMixin(object):
+class YaraProcessScan(flow_base.FlowBase):
   """Scans process memory using Yara."""
 
   category = "/Memory/"
   friendly_name = "Yara Process Scan"
 
   args_type = rdf_memory.YaraProcessScanRequest
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """The start method."""
@@ -35,7 +33,8 @@ class YaraProcessScanMixin(object):
     # Catch signature issues early.
     rules = self.args.yara_signature.GetRules()
     if not list(rules):
-      raise flow.FlowError("No rules found in the signature specification.")
+      raise flow_base.FlowError(
+          "No rules found in the signature specification.")
 
     # Same for regex errors.
     if self.args.process_regex:
@@ -51,7 +50,7 @@ class YaraProcessScanMixin(object):
       responses):
     """Processes the results of the scan."""
     if not responses.success:
-      raise flow.FlowError(responses.status)
+      raise flow_base.FlowError(responses.status)
 
     pids_to_dump = set()
 
@@ -86,21 +85,20 @@ class YaraProcessScanMixin(object):
 
   def CheckDumpProcessMemoryResults(self, responses):
     if not responses.success:
-      raise flow.FlowError(responses.status)
+      raise flow_base.FlowError(responses.status)
 
     for response in responses:
       self.SendReply(response)
 
 
-@flow_base.DualDBFlow
-class DumpProcessMemoryMixin(object):
+class DumpProcessMemory(flow_base.FlowBase):
   """Acquires memory for a given list of processes."""
 
   category = "/Memory/"
   friendly_name = "Process Dump"
 
   args_type = rdf_memory.YaraProcessDumpArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     # Catch regex errors early.
@@ -121,7 +119,7 @@ class DumpProcessMemoryMixin(object):
       responses):
     """Processes the results of the dump."""
     if not responses.success:
-      raise flow.FlowError(responses.status)
+      raise flow_base.FlowError(responses.status)
 
     response = responses.First()
 
@@ -154,7 +152,7 @@ class DumpProcessMemoryMixin(object):
   def DeleteFiles(self,
                   responses):
     if not responses.success:
-      raise flow.FlowError(responses.status)
+      raise flow_base.FlowError(responses.status)
 
     for response in responses:
       self.SendReply(response)
@@ -168,4 +166,4 @@ class DumpProcessMemoryMixin(object):
       self, responses):
     # Check that the DeleteFiles flow worked.
     if not responses.success:
-      raise flow.FlowError("Could not delete file: %s" % responses.status)
+      raise flow_base.FlowError("Could not delete file: %s" % responses.status)

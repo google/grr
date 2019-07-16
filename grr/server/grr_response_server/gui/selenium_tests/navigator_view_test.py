@@ -4,20 +4,17 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestNavigatorView(db_test_lib.RelationalDBEnabledMixin,
-                        gui_test_lib.SearchClientTestBase):
+class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   """Tests for NavigatorView (left side bar)."""
 
   def CreateClient(self, last_ping=None):
@@ -45,7 +42,7 @@ class TestNavigatorView(db_test_lib.RelationalDBEnabledMixin,
 
     client_id = self.SetupClient(0)
 
-    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id.Basename())
+    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
     snapshot.volumes = [volume]
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
@@ -79,36 +76,36 @@ class TestNavigatorView(db_test_lib.RelationalDBEnabledMixin,
     client_id = self.CreateClient()
 
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='online.png']" % client_id.Basename())
+        "img[src$='online.png']" % client_id)
 
   def testOneDayClientStatusInClientSearch(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
                                   rdfvalue.DurationSeconds("1h"))
 
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='online-1d.png']" % client_id.Basename())
+        "img[src$='online-1d.png']" % client_id)
 
   def testOfflineClientStatusInClientSearch(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
                                   rdfvalue.DurationSeconds("1d"))
 
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='offline.png']" % client_id.Basename())
+        "img[src$='offline.png']" % client_id)
 
   def testLatestCrashesStatusIsNotDisplayedWhenThereAreNoCrashes(self):
     client_id = self.CreateClient()
@@ -154,16 +151,15 @@ class TestNavigatorView(db_test_lib.RelationalDBEnabledMixin,
     client_id = self.CreateClient()
 
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     # There should be a result row with the client id.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % client_id)
     # But it shouldn't have the skull.
     self.WaitUntilNot(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='skull-icon.png']" % client_id.Basename())
+        "img[src$='skull-icon.png']" % client_id)
 
   def testCrashIconDoesNotAppearInClientSearchIfClientCrashedLongTimeAgo(self):
     client_id = self.CreateClient()
@@ -172,16 +168,15 @@ class TestNavigatorView(db_test_lib.RelationalDBEnabledMixin,
         rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("25h"))
 
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     # There should be a result row with the client id.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % client_id)
     # But it shouldn't have the skull.
     self.WaitUntilNot(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='skull-icon.png']" % client_id.Basename())
+        "img[src$='skull-icon.png']" % client_id)
 
   def testCrashIconAppearsInClientSearchIfClientCrashedRecently(self):
     timestamp = rdfvalue.RDFDatetime.Now()
@@ -189,46 +184,43 @@ class TestNavigatorView(db_test_lib.RelationalDBEnabledMixin,
     self.RecordCrash(client_id, timestamp)
 
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     # There should be a result row with the client id.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % client_id)
     # And it should have the skull.
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='skull-icon.png']" % client_id.Basename())
+        "img[src$='skull-icon.png']" % client_id)
 
   def testDiskIconDoesNotAppearInClientSearchIfDiskIsNotFull(self):
     client_id = self.CreateClientWithVolumes()
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     # There should be a result row with the client id.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % client_id)
 
     # But it shouldn't have the disk icon.
     self.WaitUntilNot(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='hdd-bang-icon.png']" % client_id.Basename())
+        "img[src$='hdd-bang-icon.png']" % client_id)
 
   def testDiskIconDoesAppearsInClientSearchIfDiskIsFull(self):
     client_id = self.CreateClientWithVolumes(available=1)
     self.Open("/")
-    self.Type("client_query", client_id.Basename())
+    self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
     # There should be a result row with the client id.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s')" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s')" % client_id)
 
     # With the disk icon.
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('%s') "
-        "img[src$='hdd-bang-icon.png']" % client_id.Basename())
+        "img[src$='hdd-bang-icon.png']" % client_id)
 
   def testDiskWarningIsNotDisplayed(self):
     client_id = self.CreateClientWithVolumes()

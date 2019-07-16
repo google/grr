@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import threading
 
-
 from future.utils import itervalues
 
 from grr_response_core.lib import utils

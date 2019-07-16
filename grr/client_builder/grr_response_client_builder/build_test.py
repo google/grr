@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 import os
 
-
 from absl import app
 from future.builtins import str
 import mock

@@ -5,28 +5,23 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowResults(db_test_lib.RelationalDBEnabledMixin,
-                      gui_test_lib.GRRSeleniumTest):
+class TestFlowResults(gui_test_lib.GRRSeleniumTest):
   """Test the flow results UI."""
 
   def setUp(self):
     super(TestFlowResults, self).setUp()
 
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testLaunchBinaryFlowResultsHaveReadableStdOutAndStdErr(self):
@@ -38,16 +33,10 @@ class TestFlowResults(db_test_lib.RelationalDBEnabledMixin,
     response = rdf_client_action.ExecuteResponse(
         stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
 
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.WriteFlowResults([
-          rdf_flow_objects.FlowResult(
-              client_id=self.client_id, flow_id=flow_id, payload=response)
-      ])
-    else:
-      with data_store.DB.GetMutationPool() as pool:
-        flow.GRRFlow.ResultCollectionForFID(
-            rdfvalue.RDFURN(self.client_id).Add("flows").Add(flow_id)).Add(
-                response, mutation_pool=pool)
+    data_store.REL_DB.WriteFlowResults([
+        rdf_flow_objects.FlowResult(
+            client_id=self.client_id, flow_id=flow_id, payload=response)
+    ])
 
     self.Open("/#/clients/%s/flows/%s/results" % (self.client_id, flow_id))
     # jQuery treats the backslash ('\') character as a special one, hence we

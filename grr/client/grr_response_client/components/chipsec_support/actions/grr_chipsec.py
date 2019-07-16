@@ -10,7 +10,6 @@ from logging import handlers
 import os
 import platform
 
-
 from future.builtins import bytes
 from future.builtins import range
 

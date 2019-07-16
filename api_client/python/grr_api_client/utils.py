@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import time
 
-
 from future.builtins import map
 
 from google.protobuf import wrappers_pb2

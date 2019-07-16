@@ -2,11 +2,15 @@
 """The client artifact collector."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import logging
 
 from future.builtins import str
 from future.utils import iteritems
+from typing import Iterable
+from typing import Sequence
 from typing import Text
 
 from grr_response_client import actions
@@ -183,11 +187,7 @@ class ArtifactCollector(actions.ActionPlugin):
     if not keys:
       return
 
-    interpolated_paths = artifact_utils.InterpolateListKbAttributes(
-        input_list=keys,
-        knowledge_base=self.knowledge_base,
-        ignore_errors=self.ignore_interpolation_errors)
-
+    interpolated_paths = self._InterpolateMany(keys)
     glob_expressions = map(rdf_paths.GlobExpression, interpolated_paths)
 
     patterns = []
@@ -208,9 +208,7 @@ class ArtifactCollector(actions.ActionPlugin):
   def _ProcessGrepSource(self, source):
     """Find files fulfilling regex conditions."""
     attributes = source.base_source.attributes
-    paths = artifact_utils.InterpolateListKbAttributes(
-        attributes["paths"], self.knowledge_base,
-        self.ignore_interpolation_errors)
+    paths = self._InterpolateMany(attributes["paths"])
     regex = utils.RegexListDisjunction(attributes["content_regex_list"])
     condition = rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
         regex=regex, mode="ALL_HITS")
@@ -257,9 +255,7 @@ class ArtifactCollector(actions.ActionPlugin):
     if source.path_type != rdf_paths.PathSpec.PathType.OS:
       raise ValueError("Only supported path type is OS.")
 
-    paths = artifact_utils.InterpolateListKbAttributes(
-        source.base_source.attributes["paths"], self.knowledge_base,
-        self.ignore_interpolation_errors)
+    paths = self._InterpolateMany(source.base_source.attributes["paths"])
 
     file_finder_action = rdf_file_finder.FileFinderAction.Stat()
     request = rdf_file_finder.FileFinderArgs(
@@ -273,14 +269,29 @@ class ArtifactCollector(actions.ActionPlugin):
     from grr_response_client.client_actions.windows import windows
     # pylint: enable=g-import-not-at-top
     action = windows.WmiQueryFromClient
-    query = source.base_source.attributes["query"]
-    queries = artifact_utils.InterpolateKbAttributes(
-        query, self.knowledge_base, self.ignore_interpolation_errors)
+
     base_object = source.base_source.attributes.get("base_object")
-    for query in queries:
+    for query in self._Interpolate(source.base_source.attributes["query"]):
       request = rdf_client_action.WMIRequest(
           query=query, base_object=base_object)
       yield action, request
+
+  def _Interpolate(self, pattern):
+    try:
+      return artifact_utils.InterpolateKbAttributes(pattern,
+                                                    self.knowledge_base)
+    except artifact_utils.KbInterpolationMissingAttributesError as error:
+      if self.ignore_interpolation_errors:
+        logging.error(str(error))
+        return []
+      else:
+        raise
+
+  def _InterpolateMany(self, patterns):
+    results = []
+    for pattern in patterns:
+      results.extend(self._Interpolate(pattern))
+    return results
 
   def _ProcessClientActionSource(self, source):
 
@@ -343,10 +354,7 @@ class ArtifactCollector(actions.ActionPlugin):
         path = "\\".join((kvdict["key"], kvdict["value"]))
       else:
         path = kvdict["key"]
-      expanded_paths = artifact_utils.InterpolateKbAttributes(
-          path,
-          self.knowledge_base,
-          ignore_errors=self.ignore_interpolation_errors)
+      expanded_paths = self._Interpolate(path)
       new_paths.update(expanded_paths)
     if has_glob:
       # TODO(user): If a path has a wildcard we need to glob the filesystem

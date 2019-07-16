@@ -9,7 +9,6 @@ import os
 import shutil
 import tempfile
 
-
 from absl import app
 
 from grr_response_client.client_actions import tempfiles

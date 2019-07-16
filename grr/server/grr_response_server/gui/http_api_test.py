@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 from future.moves.urllib import parse as urlparse
 import mock
@@ -16,9 +15,7 @@ from grr_response_core.lib.util.compat import json
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.databases import db
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_handler_base
@@ -439,24 +436,12 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def testGrrUserIsCreatedOnMethodCall(self):
     request = self._CreateRequest("HEAD", "/test_sample/some/path")
 
-    if data_store.AFF4Enabled():
-      self.assertFalse(
-          aff4.FACTORY.ExistsWithType(
-              "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
-
-    if data_store.RelationalDBEnabled():
-      with self.assertRaises(db.UnknownGRRUserError):
-        data_store.REL_DB.ReadGRRUser(request.user)
+    with self.assertRaises(db.UnknownGRRUserError):
+      data_store.REL_DB.ReadGRRUser(request.user)
 
     self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
 
-    if data_store.AFF4Enabled():
-      self.assertTrue(
-          aff4.FACTORY.ExistsWithType(
-              "aff4:/users/%s" % request.user, aff4_type=aff4_users.GRRUser))
-
-    if data_store.RelationalDBEnabled():
-      data_store.REL_DB.ReadGRRUser(request.user)
+    data_store.REL_DB.ReadGRRUser(request.user)
 
 
 def main(argv):

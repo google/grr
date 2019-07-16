@@ -78,11 +78,11 @@ class MySQLDBClientReportsMixin(object):
     return results
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadMostRecentClientGraphSeries(
-      self,
-      client_label,
-      report_type,
-      cursor=None):
+  def ReadMostRecentClientGraphSeries(self,
+                                      client_label,
+                                      report_type,
+                                      cursor=None
+                                     ):
     """Fetches the latest graph series for a client-label from the DB."""
     query = """
       SELECT graph_series

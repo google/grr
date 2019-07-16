@@ -13,7 +13,6 @@ from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import foreman_rules
 from grr_response_server import notification
-from grr_response_server.aff4_objects import users as aff4_users
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -77,17 +76,11 @@ class VariableHuntCanNotHaveClientRateError(Error):
         (hunt_id, client_rate))
 
 
-def IsLegacyHunt(hunt_id):
-  return hunt_id.startswith("H:")
-
-
 def HuntIDFromURN(hunt_urn):
   return hunt_urn.Basename().replace("H:", "")
 
 
 def HuntURNFromID(hunt_id):
-  if IsLegacyHunt(hunt_id):
-    raise ValueError("Hunt ID is of a legacy type.")
   return rdfvalue.RDFURN("aff4:/hunts/H:%s" % hunt_id)
 
 
@@ -341,7 +334,7 @@ def StopHunt(hunt_id, reason=None):
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
   if (reason is not None and
-      hunt_obj.creator not in aff4_users.GRRUser.SYSTEM_USERS):
+      hunt_obj.creator not in access_control.SYSTEM_USERS):
     notification.Notify(
         hunt_obj.creator, rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
         reason,

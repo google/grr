@@ -9,12 +9,10 @@ import logging
 import operator
 from typing import Iterable, Optional, TypeVar
 
-from grr_response_core.lib import queues
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_server import data_store
 from grr_response_server import server_stubs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
@@ -143,8 +141,6 @@ class Responses(Iterable[T]):
             "De-synchronized messages detected:\n %s",
             "\n".join([utils.SmartUnicode(x) for x in dropped_responses]))
 
-      res.LogFlowState(responses)
-
       raise ValueError("No valid Status message.")
 
     return res
@@ -160,19 +156,11 @@ class Responses(Iterable[T]):
   def __len__(self):
     return len(self.responses)
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.responses)
 
-  def LogFlowState(self, responses):
-    session_id = responses[0].session_id
-
-    logging.error(
-        "No valid Status message.\nState:\n%s\n%s\n%s",
-        data_store.DB.ResolvePrefix(session_id.Add("state"), "flow:"),
-        data_store.DB.ResolvePrefix(
-            session_id.Add("state/request:%08X" % responses[0].request_id),
-            "flow:"),
-        data_store.DB.ResolvePrefix(queues.FLOWS, "notify:%s" % session_id))
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
 
 class FakeResponses(Responses):

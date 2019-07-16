@@ -4,20 +4,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users as aff4_users
 
 
 class NotificationTestMixin(object):
   """Test mixin for tests dealing with user notifications."""
 
   def GetUserNotifications(self, username):
-    if data_store.RelationalDBEnabled():
-      return data_store.REL_DB.ReadUserNotifications(username)
-    else:
-      fd = aff4.FACTORY.Open(
-          "aff4:/users/%s" % username,
-          aff4_type=aff4_users.GRRUser,
-          token=self.token)
-      return fd.ShowNotifications(reset=False)
+    return data_store.REL_DB.ReadUserNotifications(username)

@@ -4,17 +4,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import config_test as api_config_test
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class TestSettingsView(db_test_lib.RelationalDBEnabledMixin,
-                       gui_test_lib.GRRSeleniumTest):
+class TestSettingsView(gui_test_lib.GRRSeleniumTest):
   """Test the settings GUI."""
 
   def testSettingsView(self):
@@ -34,8 +31,7 @@ class TestSettingsView(db_test_lib.RelationalDBEnabledMixin,
       self.WaitUntil(self.IsTextPresent, "127.0.0.1")
 
 
-class TestManageBinariesView(db_test_lib.RelationalDBEnabledMixin,
-                             gui_test_lib.GRRSeleniumTest,
+class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                              api_config_test.ApiGrrBinaryTestMixin):
   """Test the Binaries GUI."""
 

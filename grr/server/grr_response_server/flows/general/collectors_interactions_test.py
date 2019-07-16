@@ -11,19 +11,15 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 
 from grr_response_core import config
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
@@ -76,7 +72,6 @@ supported_os: [ "Linux" ]
 """
     test_registry = artifact_registry.ArtifactRegistry()
     test_registry.ClearRegistry()
-    test_registry.AddDatastoreSource(rdfvalue.RDFURN("aff4:/artifact_store"))
     test_registry._dirty = False
     with utils.Stubber(artifact_registry, "REGISTRY", test_registry):
       with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
@@ -86,12 +81,9 @@ supported_os: [ "Linux" ]
         artifact_registry.REGISTRY.GetArtifact("NotInDatastore")
 
       # Add artifact to datastore but not registry
-      artifact_coll = artifact_registry.ArtifactCollection(
-          rdfvalue.RDFURN("aff4:/artifact_store"))
-      with data_store.DB.GetMutationPool() as pool:
-        for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
-            cmd_artifact):
-          artifact_coll.Add(artifact_val, mutation_pool=pool)
+      for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
+          cmd_artifact):
+        data_store.REL_DB.WriteArtifact(artifact_val)
 
       # Add artifact to registry but not datastore
       for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
@@ -126,24 +118,22 @@ supported_os: [ "Linux" ]
     client_mock = action_mocks.FileFinderClientMock()
 
     # Get KB initialized
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
         client_mock,
         client_id=self.client_id,
         token=self.token)
 
-    col = flow.GRRFlow.ResultCollectionForFID(session_id)
-    with aff4.FACTORY.Open(
-        self.client_id, mode="rw", token=self.token) as client:
-      client.Set(client.Schema.KNOWLEDGE_BASE, list(col)[0])
+    kb = flow_test_lib.GetFlowResults(self.client_id, flow_id)[0]
 
     artifact_list = ["WindowsPersistenceMechanismFiles"]
-    with test_lib.Instrument(transfer.MultiGetFileMixin,
+    with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
       flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
+          knowledge_base=kb,
           token=self.token,
           client_id=self.client_id,
           split_output_by_artifact=True)
@@ -156,12 +146,13 @@ supported_os: [ "Linux" ]
                             [u"C:\\Windows\\TEMP\\A.exe"])
 
     artifact_list = ["BadPathspecArtifact"]
-    with test_lib.Instrument(transfer.MultiGetFileMixin,
+    with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
       flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
+          knowledge_base=kb,
           token=self.token,
           client_id=self.client_id,
           split_output_by_artifact=True)

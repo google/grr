@@ -5,7 +5,6 @@ from __future__ import unicode_literals
 
 import io
 
-
 from absl import app
 
 from grr_api_client import errors
@@ -14,13 +13,11 @@ from grr_response_proto.api import vfs_pb2
 from grr_response_proto.api.root import user_management_pb2
 from grr_response_server.bin import api_shell_raw_access_lib
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class RawConnectorTest(db_test_lib.RelationalDBEnabledMixin,
-                       test_lib.GRRBaseTest):
+class RawConnectorTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RawConnectorTest, self).setUp()
@@ -36,10 +33,10 @@ class RawConnectorTest(db_test_lib.RelationalDBEnabledMixin,
 
   def testCorrectlyCallsStreamingMethod(self):
     client_id = self.SetupClients(1)[0]
-    fixture_test_lib.ClientFixture(client_id, self.token)
+    fixture_test_lib.ClientFixture(client_id)
 
     args = vfs_pb2.ApiGetFileBlobArgs(
-        client_id=client_id.Basename(), file_path="fs/tsk/c/bin/rbash")
+        client_id=client_id, file_path="fs/tsk/c/bin/rbash")
     out = io.BytesIO()
     self.connector.SendStreamingRequest("GetFileBlob", args).WriteToStream(out)
     self.assertEqual(out.getvalue(), "Hello world")

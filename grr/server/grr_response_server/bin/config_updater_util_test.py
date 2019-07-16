@@ -18,18 +18,14 @@ from MySQLdb.constants import CR as mysql_conn_errors
 from grr_response_core import config as grr_config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import signed_binary_utils
-from grr_response_server.aff4_objects import users
 from grr_response_server.bin import config_updater_util
 from grr_response_server.rdfvalues import objects as rdf_objects
-from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 
 
-class ConfigUpdaterLibTest(db_test_lib.RelationalDBEnabledMixin,
-                           test_lib.GRRBaseTest):
+class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ConfigUpdaterLibTest, self).setUp()
@@ -155,7 +151,7 @@ class ConfigUpdaterLibTest(db_test_lib.RelationalDBEnabledMixin,
       python_hack_urn = rdfvalue.RDFURN(
           "aff4:/config/python_hacks/linux/test/hello_world.py")
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-          python_hack_urn, token=self.token)
+          python_hack_urn)
       uploaded_blobs = list(
           signed_binary_utils.StreamSignedBinaryContents(blob_iterator))
       uploaded_content = b"".join(uploaded_blobs)
@@ -175,7 +171,7 @@ class ConfigUpdaterLibTest(db_test_lib.RelationalDBEnabledMixin,
           "aff4:/config/executables/windows/anti-malware/registry-tools/"
           "foo.exe")
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-          executable_urn, token=self.token)
+          executable_urn)
       uploaded_blobs = list(
           signed_binary_utils.StreamSignedBinaryContents(blob_iterator))
       uploaded_content = b"".join(uploaded_blobs)
@@ -246,84 +242,11 @@ class ConfigUpdaterLibTest(db_test_lib.RelationalDBEnabledMixin,
       config_updater_util.GetUserSummary("foo_user")
 
   def _AssertStoredUserDetailsAre(self, username, password, is_admin):
-    if data_store.RelationalDBEnabled():
-      user = data_store.REL_DB.ReadGRRUser(username)
-      self.assertTrue(user.password.CheckPassword(password))
-      if is_admin:
-        self.assertEqual(user.user_type,
-                         rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
-    else:
-      user_urn = aff4.ROOT_URN.Add("users").Add(username)
-      aff4_user = aff4.FACTORY.Open(user_urn, aff4_type=users.GRRUser, mode="r")
-      user_auth = aff4_user.Get(aff4_user.Schema.PASSWORD)
-      self.assertTrue(user_auth.CheckPassword(password))
-      user_labels = [label_info.name for label_info in aff4_user.GetLabels()]
-      if is_admin:
-        self.assertListEqual(user_labels, ["admin"])
-      else:
-        self.assertListEqual(user_labels, [])
-
-  @db_test_lib.LegacyDataStoreOnly
-  def testSwitchToRelDBDoesNothingIfRelDBIsEnabled(self):
-    with test_lib.ConfigOverrider({"Database.enabled": True}):
-      config = grr_config.CONFIG.CopyConfig()
-      config_updater_util.SwitchToRelDB(config)
-
-    # If REL_DB is already enabled, SwitchToRelDB should immediately bail out.
-    self.input_mock.assert_not_called()
-
-  @db_test_lib.LegacyDataStoreOnly
-  def testSwitchToRelDBReusesExistingDatabaseNameAndCredentials(self):
-    with test_lib.ConfigOverrider({
-        "Mysql.database_username": "foo",
-        "Mysql.database_password": "bar",
-        "Mysql.database_name": "db",
-        "Blobstore.implementation": "Foo",
-    }):
-      self.input_mock.side_effect = [
-          "Y",  # Yes, continue.
-          "Y",  # Yes, use DbBlobStore.
-          "N",  # No, use the same DB name.
-          "Y",  # Yes, reuse database credentials.
-      ]
-
-      config = grr_config.CONFIG.CopyConfig()
-      config_updater_util.SwitchToRelDB(config)
-
-      self.assertTrue(config["Database.enabled"])
-      self.assertEqual(config["Database.implementation"], "MysqlDB")
-      self.assertEqual(config["Mysql.database"], "db")
-      self.assertEqual(config["Mysql.username"], "foo")
-      self.assertEqual(config["Mysql.password"], "bar")
-
-  @db_test_lib.LegacyDataStoreOnly
-  @mock.patch.object(getpass, "getpass")
-  def testSwitchToRelDBAllowsSettingCustomDbNameAndCredentials(
-      self, getpass_mock):
-    with test_lib.ConfigOverrider({
-        "Mysql.database_username": "foo",
-        "Mysql.database_password": "bar",
-        "Mysql.database_name": "db",
-        "Blobstore.implementation": "Foo",
-    }):
-      self.input_mock.side_effect = [
-          "Y",  # Yes, continue.
-          "N",  # No, keep current blobstore.
-          "Y",  # Yes, use custom db name.
-          "db2",  # DB name.
-          "N",  # No, use custom DB credentials.
-          "user",  # Username.
-      ]
-      getpass_mock.return_value = "pass"  # DB password for GRR.
-
-      config = grr_config.CONFIG.CopyConfig()
-      config_updater_util.SwitchToRelDB(config)
-
-      self.assertTrue(config["Database.enabled"])
-      self.assertEqual(config["Database.implementation"], "MysqlDB")
-      self.assertEqual(config["Mysql.database"], "db2")
-      self.assertEqual(config["Mysql.username"], "user")
-      self.assertEqual(config["Mysql.password"], "pass")
+    user = data_store.REL_DB.ReadGRRUser(username)
+    self.assertTrue(user.password.CheckPassword(password))
+    if is_admin:
+      self.assertEqual(user.user_type,
+                       rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
 
   def testArgparseBool_CaseInsensitive(self):
     parser = argparse.ArgumentParser()

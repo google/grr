@@ -8,45 +8,29 @@ import collections
 import math
 import re
 
-
 from future.builtins import range
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
+from grr_response_server import access_control
 from grr_response_server import data_store
-from grr_response_server.aff4_objects import users as aff4_users
-from grr_response_server.flows.general import audit
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
-from grr_response_server.gui.api_plugins.report_plugins import report_utils
 
 RepresentationType = rdf_report_plugins.ApiReportData.RepresentationType
 
 
-def _LoadAuditEvents(handlers,
-                     get_report_args,
-                     actions=None,
-                     token=None,
-                     transformers=None):
+def _LoadAuditEvents(handlers, get_report_args, transformers=None):
   """Returns AuditEvents for given handlers, actions, and timerange."""
   if transformers is None:
     transformers = {}
 
-  if data_store.RelationalDBEnabled():
-    entries = data_store.REL_DB.ReadAPIAuditEntries(
-        min_timestamp=get_report_args.start_time,
-        max_timestamp=get_report_args.start_time + get_report_args.duration,
-        router_method_names=list(handlers.keys()))
-    rows = [_EntryToEvent(entry, handlers, transformers) for entry in entries]
-  else:
-    entries = report_utils.GetAuditLogEntries(
-        offset=get_report_args.duration,
-        now=get_report_args.start_time + get_report_args.duration,
-        token=token)
-    if actions is None:
-      actions = set(handlers.values())
-    rows = [entry for entry in entries if entry.action in actions]
+  entries = data_store.REL_DB.ReadAPIAuditEntries(
+      min_timestamp=get_report_args.start_time,
+      max_timestamp=get_report_args.start_time + get_report_args.duration,
+      router_method_names=list(handlers.keys()))
+  rows = [_EntryToEvent(entry, handlers, transformers) for entry in entries]
   rows.sort(key=lambda row: row.timestamp, reverse=True)
   return rows
 
@@ -112,10 +96,7 @@ class ClientApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
             used_fields=self.USED_FIELDS))
 
     ret.audit_chart.rows = _LoadAuditEvents(
-        self.HANDLERS,
-        get_report_args,
-        transformers=[_ExtractClientIdFromPath],
-        token=token)
+        self.HANDLERS, get_report_args, transformers=[_ExtractClientIdFromPath])
     return ret
 
 
@@ -145,8 +126,7 @@ class CronApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
     ret.audit_chart.rows = _LoadAuditEvents(
         self.HANDLERS,
         get_report_args,
-        transformers=[_ExtractCronJobIdFromPath],
-        token=token)
+        transformers=[_ExtractCronJobIdFromPath])
     return ret
 
 
@@ -179,8 +159,7 @@ class HuntActionsReportPlugin(report_plugin_base.ReportPluginBase):
         audit_chart=rdf_report_plugins.ApiAuditChartReportData(
             used_fields=self.USED_FIELDS))
 
-    ret.audit_chart.rows = _LoadAuditEvents(
-        self.HANDLERS, get_report_args, actions=self.TYPES, token=token)
+    ret.audit_chart.rows = _LoadAuditEvents(self.HANDLERS, get_report_args)
     return ret
 
 
@@ -206,10 +185,7 @@ class HuntApprovalsReportPlugin(report_plugin_base.ReportPluginBase):
             used_fields=self.USED_FIELDS))
 
     ret.audit_chart.rows = _LoadAuditEvents(
-        self.HANDLERS,
-        get_report_args,
-        transformers=[_ExtractHuntIdFromPath],
-        token=token)
+        self.HANDLERS, get_report_args, transformers=[_ExtractHuntIdFromPath])
     return ret
 
 
@@ -222,20 +198,13 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
   REQUIRES_TIME_RANGE = True
 
   def _GetUserCounts(self, get_report_args, token=None):
-    if data_store.RelationalDBEnabled():
-      counter = collections.Counter()
-      entries = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
-          min_timestamp=get_report_args.start_time,
-          max_timestamp=get_report_args.start_time + get_report_args.duration)
-      for (username, _), count in iteritems(entries):
-        counter[username] += count
-      return counter
-    else:
-      events = report_utils.GetAuditLogEntries(
-          offset=get_report_args.duration,
-          now=get_report_args.start_time + get_report_args.duration,
-          token=token)
-      return collections.Counter(event.user for event in events)
+    counter = collections.Counter()
+    entries = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
+        min_timestamp=get_report_args.start_time,
+        max_timestamp=get_report_args.start_time + get_report_args.duration)
+    for (username, _), count in iteritems(entries):
+      counter[username] += count
+    return counter
 
   def GetReportData(self, get_report_args, token):
     """Filter the last week of user actions."""
@@ -243,7 +212,7 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
         representation_type=RepresentationType.PIE_CHART)
 
     counts = self._GetUserCounts(get_report_args, token)
-    for username in aff4_users.GRRUser.SYSTEM_USERS:
+    for username in access_control.SYSTEM_USERS:
       del counts[username]
 
     ret.pie_chart.data = [
@@ -263,24 +232,14 @@ class BaseUserFlowReportPlugin(report_plugin_base.ReportPluginBase):
   def _GetFlows(self, get_report_args, token):
     counts = collections.defaultdict(collections.Counter)
 
-    if data_store.RelationalDBEnabled():
-      flows = data_store.REL_DB.ReadAllFlowObjects(
-          min_create_time=get_report_args.start_time,
-          max_create_time=get_report_args.start_time + get_report_args.duration,
-          include_child_flows=False)
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        min_create_time=get_report_args.start_time,
+        max_create_time=get_report_args.start_time + get_report_args.duration,
+        include_child_flows=False)
 
-      for flow in flows:
-        if self.IncludeUser(flow.creator):
-          counts[flow.flow_class_name][flow.creator] += 1
-    else:
-      counts = collections.defaultdict(collections.Counter)
-      for event in report_utils.GetAuditLogEntries(
-          offset=get_report_args.duration,
-          now=get_report_args.start_time + get_report_args.duration,
-          token=token):
-        if (event.action == rdf_events.AuditEvent.Action.RUN_FLOW and
-            self.IncludeUser(event.user)):
-          counts[event.flow_name][event.user] += 1
+    for flow in flows:
+      if self.IncludeUser(flow.creator):
+        counts[flow.flow_class_name][flow.creator] += 1
 
     return counts
 
@@ -319,7 +278,7 @@ class UserFlowsReportPlugin(BaseUserFlowReportPlugin):
   REQUIRES_TIME_RANGE = True
 
   def IncludeUser(self, username):
-    return username not in aff4_users.GRRUser.SYSTEM_USERS
+    return username not in access_control.SYSTEM_USERS
 
 
 class SystemFlowsReportPlugin(BaseUserFlowReportPlugin):
@@ -332,7 +291,7 @@ class SystemFlowsReportPlugin(BaseUserFlowReportPlugin):
   REQUIRES_TIME_RANGE = True
 
   def IncludeUser(self, username):
-    return username in aff4_users.GRRUser.SYSTEM_USERS
+    return username in access_control.SYSTEM_USERS
 
 
 class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
@@ -344,18 +303,10 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
   REQUIRES_TIME_RANGE = True
 
   def _LoadUserActivity(self, start_time, end_time, token):
-    if data_store.RelationalDBEnabled():
-      counts = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
-          min_timestamp=start_time, max_timestamp=end_time)
-      for (username, day), count in iteritems(counts):
-        yield username, day, count
-    else:
-      for fd in audit.LegacyAuditLogsForTimespan(
-          start_time=start_time - audit.AUDIT_ROLLOVER_TIME,
-          end_time=end_time,
-          token=token):
-        for event in fd.GenerateItems():
-          yield event.user, event.timestamp, 1
+    counts = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
+        min_timestamp=start_time, max_timestamp=end_time)
+    for (username, day), count in iteritems(counts):
+      yield username, day, count
 
   def GetReportData(self, get_report_args, token):
     """Filter the last week of user actions."""
@@ -381,7 +332,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     user_activity = sorted(iteritems(user_activity))
     user_activity = [(user, data)
                      for user, data in user_activity
-                     if user not in aff4_users.GRRUser.SYSTEM_USERS]
+                     if user not in access_control.SYSTEM_USERS]
 
     ret.stack_chart.data = [
         rdf_report_plugins.ApiReportDataSeries2D(

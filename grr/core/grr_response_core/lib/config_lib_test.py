@@ -12,7 +12,6 @@ import platform
 import stat
 import unittest
 
-
 from absl import app
 from absl.testing import flagsaver
 from future.builtins import str

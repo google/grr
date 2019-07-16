@@ -10,19 +10,16 @@ import re
 from absl import app
 
 from grr_response_client.client_actions import searching
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.flows.general import find
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class TestFindFlow(db_test_lib.RelationalDBEnabledMixin,
-                   flow_test_lib.FlowTestsBaseclass):
+class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def setUp(self):
@@ -60,14 +57,13 @@ class TestFindFlow(db_test_lib.RelationalDBEnabledMixin,
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     # Should match ["bash" and "rbash"].
-    matches = set([x.AFF4Path(self.client_id).Basename() for x in results])
+    matches = set([x.pathspec.Basename() for x in results])
     self.assertCountEqual(matches, ["bash", "rbash"])
 
     self.assertLen(results, 4)
     for child in results:
-      path = utils.SmartStr(child.AFF4Path(self.client_id))
-      self.assertEndsWith(path, "bash")
-      self.assertEqual(child.__class__.__name__, "StatEntry")
+      self.assertEndsWith(child.pathspec.Basename(), "bash")
+      self.assertIsInstance(child, rdf_client_fs.StatEntry)
 
   def testFindFilesWithGlob(self):
     """Test that the Find flow works with glob."""
@@ -90,14 +86,13 @@ class TestFindFlow(db_test_lib.RelationalDBEnabledMixin,
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)
 
     # Make sure that bash is a file.
-    matches = set([x.AFF4Path(self.client_id).Basename() for x in results])
+    matches = set([x.pathspec.Basename() for x in results])
     self.assertEqual(matches, set(["bash"]))
 
     self.assertLen(results, 2)
     for child in results:
-      path = utils.SmartStr(child.AFF4Path(self.client_id))
-      self.assertEndsWith(path, "bash")
-      self.assertEqual(child.__class__.__name__, "StatEntry")
+      self.assertEndsWith(child.pathspec.Basename(), "bash")
+      self.assertIsInstance(child, rdf_client_fs.StatEntry)
 
   def testFindDirectories(self):
     """Test that the Find flow works with directories."""

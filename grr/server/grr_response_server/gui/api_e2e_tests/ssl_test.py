@@ -10,7 +10,6 @@ import os
 import socket
 import threading
 
-
 from absl import app
 from cryptography import x509
 from cryptography.hazmat import backends
@@ -29,13 +28,11 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
 from grr.test_lib import acl_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiSslServerTestBase(db_test_lib.RelationalDBEnabledMixin,
-                           test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
+class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def setUp(self):
     super(ApiSslServerTestBase, self).setUp()
@@ -89,9 +86,9 @@ class ApiSslE2ETestMixin(object):
 
   def testGetClientWorks(self):
     # By testing GetClient we test a simple GET method.
-    client_urn = self.SetupClient(0)
-    c = self.api.Client(client_id=client_urn.Basename()).Get()
-    self.assertEqual(c.client_id, client_urn.Basename())
+    client_id = self.SetupClient(0)
+    c = self.api.Client(client_id=client_id).Get()
+    self.assertEqual(c.client_id, client_id)
 
   def testSearchClientWorks(self):
     # By testing SearchClients we test an iterator-based API method.
@@ -99,21 +96,21 @@ class ApiSslE2ETestMixin(object):
     self.assertEqual(clients, [])
 
   def testPostMethodWorks(self):
-    client_urn = self.SetupClient(0)
+    client_id = self.SetupClient(0)
     args = processes.ListProcessesArgs(
         filename_regex="blah", fetch_binaries=True)
 
-    client_ref = self.api.Client(client_id=client_urn.Basename())
+    client_ref = self.api.Client(client_id=client_id)
     result_flow = client_ref.CreateFlow(
         name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
     self.assertTrue(result_flow.client_id)
 
   def testDownloadingFileWorks(self):
-    client_urn = self.SetupClient(0)
-    fixture_test_lib.ClientFixture(client_urn, self.token)
+    client_id = self.SetupClient(0)
+    fixture_test_lib.ClientFixture(client_id)
 
     out = io.BytesIO()
-    self.api.Client(client_id=client_urn.Basename()).File(
+    self.api.Client(client_id=client_id).File(
         "fs/tsk/c/bin/rbash").GetBlob().WriteToStream(out)
 
     self.assertTrue(out.getvalue())
@@ -122,21 +119,21 @@ class ApiSslE2ETestMixin(object):
 class ApiSslWithoutCABundleTest(ApiSslServerTestBase):
 
   def testConnectionFails(self):
-    client_urn = self.SetupClient(0)
+    client_id = self.SetupClient(0)
 
     api = grr_api.InitHttp(api_endpoint=self.endpoint)
     with self.assertRaises(requests.exceptions.SSLError):
-      api.Client(client_id=client_urn.Basename()).Get()
+      api.Client(client_id=client_id).Get()
 
 
 class ApiSslWithEnvVarWithoutMergingTest(ApiSslServerTestBase):
 
   def testConnectionFails(self):
-    client_urn = self.SetupClient(0)
+    client_id = self.SetupClient(0)
 
     api = grr_api.InitHttp(api_endpoint=self.endpoint, trust_env=False)
     with self.assertRaises(requests.exceptions.SSLError):
-      api.Client(client_id=client_urn.Basename()).Get()
+      api.Client(client_id=client_id).Get()
 
 
 class ApiSslWithConfigurationInEnvVarsE2ETest(ApiSslServerTestBase,
@@ -208,13 +205,13 @@ class ApiSslProxyTest(ApiSslServerTestBase):
     self.addCleanup(self.proxy_server.shutdown)
 
   def testProxyConnection(self):
-    client_urn = self.SetupClient(0)
+    client_id = self.SetupClient(0)
 
     api = grr_api.InitHttp(
         api_endpoint=self.endpoint,
         proxies={"https": "localhost:%d" % self.proxy_port})
     with self.assertRaises(requests.exceptions.ConnectionError):
-      api.Client(client_id=client_urn.Basename()).Get()
+      api.Client(client_id=client_id).Get()
 
     # CONNECT request should point to GRR SSL server.
     self.assertEqual(Proxy.requests,

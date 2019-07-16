@@ -4,24 +4,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-
 from absl import app
 
-from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import action_mocks
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class TestFlowExport(db_test_lib.RelationalDBEnabledMixin,
-                     gui_test_lib.GRRSeleniumTest):
+class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
     super(TestFlowExport, self).setUp()
 
-    self.client_id = self.SetupClient(0).Basename()
+    self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -31,8 +27,6 @@ class TestFlowExport(db_test_lib.RelationalDBEnabledMixin,
         client_mock=self.action_mock,
         client_id=self.client_id,
         token=self.token)
-    if not data_store.RelationalDBEnabled():
-      session_id = session_id.Basename()
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")

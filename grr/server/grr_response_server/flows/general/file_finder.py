@@ -11,17 +11,13 @@ from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import fingerprint
@@ -29,9 +25,8 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-@flow_base.DualDBFlow
-class FileFinderMixin(transfer.MultiGetFileLogic,
-                      fingerprint.FingerprintFileLogic, filesystem.GlobLogic):
+class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
+                 filesystem.GlobLogic, flow_base.FlowBase):
   """This flow looks for files matching given criteria and acts on them.
 
   FileFinder searches for files that match glob expressions.  The "action"
@@ -42,7 +37,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
   friendly_name = "File Finder"
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   # Will be used by FingerprintFileLogic.
   fingerprint_file_mixin_client_action = server_stubs.HashFile
@@ -80,7 +75,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     else:
       use_external_stores = False
 
-    super(FileFinderMixin, self).Start(use_external_stores=use_external_stores)
+    super(FileFinder, self).Start(use_external_stores=use_external_stores)
 
     self.state.files_found = 0
 
@@ -127,7 +122,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
-    super(FileFinderMixin, self).GlobReportMatch(response)
+    super(FileFinder, self).GlobReportMatch(response)
 
     self.ApplyCondition(
         rdf_file_finder.FileFinderResult(stat_entry=response),
@@ -163,7 +158,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
   def SizeCondition(self, response, condition_options, condition_index):
     """Applies size condition to responses."""
     if not (self.args.process_non_regular_files or
-            stat.S_ISREG(response.stat_entry.st_mode)):
+            stat.S_ISREG(int(response.stat_entry.st_mode))):
       return
 
     if (condition_options.size.min_file_size <= response.stat_entry.st_size <=
@@ -174,7 +169,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
                                   condition_index):
     """Applies contents regex condition to responses."""
     if not (self.args.process_non_regular_files or
-            stat.S_ISREG(response.stat_entry.st_mode)):
+            stat.S_ISREG(int(response.stat_entry.st_mode))):
       return
 
     options = condition_options.contents_regex_match
@@ -198,7 +193,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
                                     condition_index):
     """Applies literal match condition to responses."""
     if not (self.args.process_non_regular_files or
-            stat.S_ISREG(response.stat_entry.st_mode)):
+            stat.S_ISREG(int(response.stat_entry.st_mode))):
       return
 
     options = condition_options.contents_literal_match
@@ -256,7 +251,7 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
       self.state.files_found += 1
       self.SendReply(response)
     elif (self.args.process_non_regular_files or
-          stat.S_ISREG(response.stat_entry.st_mode)):
+          stat.S_ISREG(int(response.stat_entry.st_mode))):
       # Hashing and downloading are only safe for regular files. User has to
       # explicitly set args.process_non_regular_files to True to make
       # FileFinder look into non-regular files.
@@ -347,23 +342,22 @@ class FileFinderMixin(transfer.MultiGetFileLogic,
     self.SendReply(result)
 
   def End(self, responses):
-    super(FileFinderMixin, self).End(responses)
+    super(FileFinder, self).End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)
 
 
-@flow_base.DualDBFlow
-class ClientFileFinderMixin(object):
+class ClientFileFinder(flow_base.FlowBase):
   """A client side file finder flow."""
 
   friendly_name = "Client Side File Finder"
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
-  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
     """Issue the find request."""
-    super(ClientFileFinderMixin, self).Start()
+    super(ClientFileFinder, self).Start()
 
     if self.args.pathtype == rdf_paths.PathSpec.PathType.OS:
       stub = server_stubs.FileFinderOS
@@ -388,59 +382,25 @@ class ClientFileFinderMixin(object):
   def StoreResults(self, responses):
     """Stores the results returned by the client to the db."""
     if not responses.success:
-      raise flow.FlowError(responses.status)
+      raise flow_base.FlowError(responses.status)
 
     self.state.files_found = len(responses)
-    files_to_publish = []
-    with data_store.DB.GetMutationPool() as pool:
-      transferred_file_responses = []
-      stat_entries = []
-      for response in responses:
-        if response.HasField("transferred_file"):
-          transferred_file_responses.append(response)
-        elif response.HasField("stat_entry"):
-          stat_entries.append(response.stat_entry)
-
-      if data_store.AFF4Enabled():
-        self._WriteFilesContentAff4(
-            transferred_file_responses, mutation_pool=pool)
-      if data_store.RelationalDBEnabled():
-        self._WriteFilesContentRel(transferred_file_responses)
-
-      self._WriteStatEntries(stat_entries, mutation_pool=pool)
-
-      for response in responses:
-        self.SendReply(response)
-
-        if stat.S_ISREG(response.stat_entry.st_mode):
-          files_to_publish.append(
-              response.stat_entry.pathspec.AFF4Path(self.client_urn))
-
-  def _WriteFilesContentAff4(self, responses, mutation_pool=None):
-    """Writes contents of multiple files to the AFF4 datastore."""
+    transferred_file_responses = []
+    stat_entries = []
     for response in responses:
-      self._WriteFileContentAff4(response, mutation_pool=mutation_pool)
+      if response.HasField("transferred_file"):
+        transferred_file_responses.append(response)
+      elif response.HasField("stat_entry"):
+        stat_entries.append(response.stat_entry)
 
-  def _WriteFileContentAff4(self, response, mutation_pool=None):
-    """Writes file content to the AFF4 datastore."""
-    urn = response.stat_entry.pathspec.AFF4Path(self.client_urn)
+    self._WriteFilesContent(transferred_file_responses)
 
-    with aff4.FACTORY.Create(
-        urn,
-        aff4_grr.VFSBlobImage,
-        token=self.token,
-        mutation_pool=mutation_pool) as filedesc:
-      filedesc.SetChunksize(response.transferred_file.chunk_size)
-      filedesc.Set(filedesc.Schema.STAT, response.stat_entry)
+    self._WriteStatEntries(stat_entries)
 
-      chunks = sorted(response.transferred_file.chunks, key=lambda _: _.offset)
-      for chunk in chunks:
-        blob_id = rdf_objects.BlobID.FromBytes(chunk.digest)
-        filedesc.AddBlob(blob_id, chunk.length)
+    for response in responses:
+      self.SendReply(response)
 
-      filedesc.Set(filedesc.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
-
-  def _WriteFilesContentRel(self, responses):
+  def _WriteFilesContent(self, responses):
     """Writes file contents of multiple files to the relational database."""
     client_path_blob_refs = dict()
     client_path_path_info = dict()
@@ -463,7 +423,7 @@ class ClientFileFinderMixin(object):
       client_path_path_info[client_path] = path_info
       client_path_blob_refs[client_path] = blob_refs
 
-    if (data_store.RelationalDBEnabled() and client_path_blob_refs):
+    if client_path_blob_refs:
       use_external_stores = self.args.action.download.use_external_stores
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
           client_path_blob_refs, use_external_stores=use_external_stores)
@@ -474,14 +434,10 @@ class ClientFileFinderMixin(object):
     path_infos = list(itervalues(client_path_path_info))
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
 
-  def _WriteStatEntries(self, stat_entries, mutation_pool=None):
-    filesystem.WriteStatEntries(
-        stat_entries,
-        client_id=self.client_id,
-        token=self.token,
-        mutation_pool=mutation_pool)
+  def _WriteStatEntries(self, stat_entries):
+    filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)
 
   def End(self, responses):
-    super(ClientFileFinderMixin, self).End(responses)
+    super(ClientFileFinder, self).End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)

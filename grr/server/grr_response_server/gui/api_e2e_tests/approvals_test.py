@@ -7,20 +7,17 @@ from __future__ import unicode_literals
 import threading
 import time
 
-
 from absl import app
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_e2e_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiClientLibApprovalsTest(db_test_lib.RelationalDBEnabledMixin,
-                                api_e2e_test_lib.ApiE2ETest,
+class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
@@ -41,24 +38,24 @@ class ApiClientLibApprovalsTest(db_test_lib.RelationalDBEnabledMixin,
   def testCreateClientApproval(self):
     client_id = self.SetupClient(0)
 
-    approval = self.api.Client(client_id.Basename()).CreateApproval(
+    approval = self.api.Client(client_id).CreateApproval(
         reason="blah", notified_users=[u"foo"])
-    self.assertEqual(approval.client_id, client_id.Basename())
-    self.assertEqual(approval.data.subject.client_id, client_id.Basename())
+    self.assertEqual(approval.client_id, client_id)
+    self.assertEqual(approval.data.subject.client_id, client_id)
     self.assertEqual(approval.data.reason, "blah")
     self.assertFalse(approval.data.is_valid)
 
   def testWaitUntilClientApprovalValid(self):
     client_id = self.SetupClient(0)
 
-    approval = self.api.Client(client_id.Basename()).CreateApproval(
+    approval = self.api.Client(client_id).CreateApproval(
         reason="blah", notified_users=[u"foo"])
     self.assertFalse(approval.data.is_valid)
 
     def ProcessApproval():
       time.sleep(1)
       self.GrantClientApproval(
-          client_id.Basename(),
+          client_id,
           requestor=self.token.username,
           approval_id=approval.approval_id,
           approver=u"foo")
@@ -72,26 +69,26 @@ class ApiClientLibApprovalsTest(db_test_lib.RelationalDBEnabledMixin,
       thread.join()
 
   def testCreateHuntApproval(self):
-    h_urn = self.StartHunt()
+    h_id = self.StartHunt()
 
-    approval = self.api.Hunt(h_urn.Basename()).CreateApproval(
+    approval = self.api.Hunt(h_id).CreateApproval(
         reason="blah", notified_users=[u"foo"])
-    self.assertEqual(approval.hunt_id, h_urn.Basename())
-    self.assertEqual(approval.data.subject.hunt_id, h_urn.Basename())
+    self.assertEqual(approval.hunt_id, h_id)
+    self.assertEqual(approval.data.subject.hunt_id, h_id)
     self.assertEqual(approval.data.reason, "blah")
     self.assertFalse(approval.data.is_valid)
 
   def testWaitUntilHuntApprovalValid(self):
-    h_urn = self.StartHunt()
+    h_id = self.StartHunt()
 
-    approval = self.api.Hunt(h_urn.Basename()).CreateApproval(
+    approval = self.api.Hunt(h_id).CreateApproval(
         reason="blah", notified_users=[u"approver"])
     self.assertFalse(approval.data.is_valid)
 
     def ProcessApproval():
       time.sleep(1)
       self.GrantHuntApproval(
-          h_urn.Basename(),
+          h_id,
           requestor=self.token.username,
           approval_id=approval.approval_id,
           approver=u"approver")

@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-
 from future.builtins import map
 
 from grr_api_client import utils

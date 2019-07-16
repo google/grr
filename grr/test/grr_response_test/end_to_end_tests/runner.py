@@ -12,7 +12,6 @@ import os
 import time
 import unittest
 
-
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from future.utils import itervalues

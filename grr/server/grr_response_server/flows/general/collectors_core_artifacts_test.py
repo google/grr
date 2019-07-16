@@ -10,7 +10,6 @@ from __future__ import unicode_literals
 
 import os
 
-
 from absl import app
 
 from grr_response_client.client_actions import standard
@@ -27,15 +26,13 @@ from grr_response_server import client_fixture
 from grr_response_server.flows.general import collectors
 from grr.test_lib import action_mocks
 from grr.test_lib import artifact_test_lib
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class TestArtifactCollectorsRealArtifacts(db_test_lib.RelationalDBEnabledMixin,
-                                          flow_test_lib.FlowTestsBaseclass):
+class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
   """Test the collection of real artifacts."""
 
   def setUp(self):

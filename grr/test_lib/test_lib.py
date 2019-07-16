@@ -9,13 +9,13 @@ import datetime
 import doctest
 import email
 import functools
+import itertools
 import logging
 import os
 import shutil
 import threading
 import time
 import unittest
-
 
 from absl.testing import absltest
 from future.builtins import range
@@ -36,27 +36,19 @@ from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_test_utils
 from grr_response_server import access_control
-from grr_response_server import aff4
-from grr_response_server import artifact
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import prometheus_stats_collector
-from grr_response_server.aff4_objects import aff4_grr
-from grr_response_server.aff4_objects import users as aff4_users
-from grr_response_server.flows.general import audit
-from grr_response_server.hunts import results as hunts_results
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import testing_startup
 
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("8d")
-TEST_CLIENT_ID = rdf_client.ClientURN("C.1000000000000000")
+TEST_CLIENT_ID = "C.1000000000000000"
 
 
 class GRRBaseTest(absltest.TestCase):
   """This is the base class for all GRR tests."""
-
-  use_relational_reads = False
 
   def __init__(self, methodName=None):  # pylint: disable=g-bad-name
     """Hack around unittest's stupid constructor.
@@ -70,32 +62,31 @@ class GRRBaseTest(absltest.TestCase):
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
     self.base_path = config.CONFIG["Test.data_dir"]
-    test_user = u"test"
-    aff4_users.GRRUser.SYSTEM_USERS.add(test_user)
-    self.token = access_control.ACLToken(
-        username=test_user, reason="Running tests")
 
   def setUp(self):
     super(GRRBaseTest, self).setUp()
+
+    test_user = u"test"
+
+    system_users_patcher = mock.patch.object(
+        access_control, "SYSTEM_USERS",
+        frozenset(itertools.chain(access_control.SYSTEM_USERS, [test_user])))
+    system_users_patcher.start()
+    self.addCleanup(system_users_patcher.stop)
+
+    self.token = access_control.ACLToken(
+        username=test_user, reason="Running tests")
 
     self.temp_dir = temp.TempDirPath()
     config.CONFIG.SetWriteBack(os.path.join(self.temp_dir, "writeback.yaml"))
     self.addCleanup(lambda: shutil.rmtree(self.temp_dir, ignore_errors=True))
 
-    data_store.DB.ClearTestDB()
     # Each datastore is wrapped with DatabaseValidationWrapper, so we have
     # to access the delegate directly (assuming it's an InMemoryDB
     # implementation).
     data_store.REL_DB.delegate.ClearTestDB()
 
-    if aff4.FACTORY is not None:
-      aff4.FACTORY.Flush()
-
-    # Create a Foreman, it's used in many tests.
-    aff4_grr.GRRAFF4Init()
-    hunts_results.ResultQueueInit()
     email_alerts.InitializeEmailAlerterOnce()
-    audit.AuditEventListener._created_logs.clear()
 
     # Stub out the email function
     self.emails_sent = []
@@ -122,13 +113,6 @@ class GRRBaseTest(absltest.TestCase):
     self.config_set_disable.Start()
     self.addCleanup(self.config_set_disable.Stop)
 
-    if self.use_relational_reads:
-      self.relational_read_stubber = utils.Stubber(data_store,
-                                                   "RelationalDBEnabled",
-                                                   lambda: True)
-      self.relational_read_stubber.Start()
-      self.addCleanup(self.relational_read_stubber.Stop)
-
     self._SetupFakeStatsContext()
 
     # Turn off WithLimitedCallFrequency-based caching in tests. Tests that need
@@ -148,90 +132,11 @@ class GRRBaseTest(absltest.TestCase):
     fake_stats_context.start()
     self.addCleanup(fake_stats_context.stop)
 
-  def _SetupClientImpl(self,
-                       client_nr,
-                       index=None,
-                       arch="x86_64",
-                       fqdn=None,
-                       install_time=None,
-                       last_boot_time=None,
-                       kernel="4.0.0",
-                       os_version="buster/sid",
-                       ping=None,
-                       system="Linux",
-                       users=None,
-                       memory_size=None,
-                       add_cert=True,
-                       fleetspeak_enabled=False):
-    client_id_urn = rdf_client.ClientURN("C.1%015x" % client_nr)
-
-    with aff4.FACTORY.Create(
-        client_id_urn, aff4_grr.VFSGRRClient, mode="rw",
-        token=self.token) as fd:
-      if add_cert:
-        cert = self.ClientCertFromPrivateKey(
-            config.CONFIG["Client.private_key"])
-        fd.Set(fd.Schema.CERT, cert)
-
-      fd.Set(fd.Schema.CLIENT_INFO, self._TestClientInfo())
-      fd.Set(fd.Schema.PING, ping or rdfvalue.RDFDatetime.Now())
-      if fqdn is not None:
-        fd.Set(fd.Schema.HOSTNAME(fqdn.split(".", 1)[0]))
-        fd.Set(fd.Schema.FQDN(fqdn))
-      else:
-        fd.Set(fd.Schema.HOSTNAME("Host-%x" % client_nr))
-        fd.Set(fd.Schema.FQDN("Host-%x.example.com" % client_nr))
-      fd.Set(
-          fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" %
-                                (client_nr, client_nr)))
-      fd.Set(
-          fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" %
-                             (client_nr, client_nr)))
-
-      if system:
-        fd.Set(fd.Schema.SYSTEM(system))
-      if os_version:
-        fd.Set(fd.Schema.OS_VERSION(os_version))
-      if arch:
-        fd.Set(fd.Schema.ARCH(arch))
-      if kernel:
-        fd.Set(fd.Schema.KERNEL(kernel))
-      if memory_size:
-        fd.Set(fd.Schema.MEMORY_SIZE(memory_size))
-
-      if last_boot_time:
-        fd.Set(fd.Schema.LAST_BOOT_TIME(last_boot_time))
-      if install_time:
-        fd.Set(fd.Schema.INSTALL_DATE(install_time))
-      if fleetspeak_enabled:
-        fd.Set(fd.Schema.FLEETSPEAK_ENABLED, rdfvalue.RDFBool(True))
-
-      kb = rdf_client.KnowledgeBase()
-      kb.fqdn = fqdn or "Host-%x.example.com" % client_nr
-      kb.users = users or [
-          rdf_client.User(username="user1"),
-          rdf_client.User(username="user2"),
-      ]
-      artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
-      fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
-
-      fd.Set(fd.Schema.INTERFACES(self._TestInterfaces(client_nr)))
-
-      hardware_info = fd.Schema.HARDWARE_INFO()
-      hardware_info.system_manufacturer = ("System-Manufacturer-%x" % client_nr)
-      hardware_info.bios_version = ("Bios-Version-%x" % client_nr)
-      fd.Set(fd.Schema.HARDWARE_INFO, hardware_info)
-
-      fd.Flush()
-
-      index.AddClient(fd)
-
-    return client_id_urn
-
   def SetupClient(self,
                   client_nr,
                   arch="x86_64",
                   fqdn=None,
+                  labels=None,
                   last_boot_time=None,
                   install_time=None,
                   kernel="4.0.0",
@@ -249,6 +154,7 @@ class GRRBaseTest(absltest.TestCase):
         canonical representation.
       arch: string
       fqdn: string
+      labels: list of labels (strings)
       last_boot_time: RDFDatetime
       install_time: RDFDatetime
       kernel: string
@@ -261,14 +167,15 @@ class GRRBaseTest(absltest.TestCase):
       fleetspeak_enabled: boolean
 
     Returns:
-      rdf_client.ClientURN
+      the client_id: string
     """
-    client = self.SetupTestClientObject(
+    client = self._SetupTestClientObject(
         client_nr,
         add_cert=add_cert,
         arch=arch,
         fqdn=fqdn,
         install_time=install_time,
+        labels=labels,
         last_boot_time=last_boot_time,
         kernel=kernel,
         memory_size=memory_size,
@@ -277,28 +184,7 @@ class GRRBaseTest(absltest.TestCase):
         system=system,
         users=users,
         fleetspeak_enabled=fleetspeak_enabled)
-    # TODO(amoser): Make this function return unicode client ids only.
-    res = rdf_client.ClientURN(client.client_id)
-
-    if data_store.AFF4Enabled():
-      with client_index.CreateClientIndex(token=self.token) as index:
-        res = self._SetupClientImpl(
-            client_nr,
-            index=index,
-            arch=arch,
-            fqdn=fqdn,
-            install_time=install_time,
-            last_boot_time=last_boot_time,
-            kernel=kernel,
-            os_version=os_version,
-            ping=ping,
-            system=system,
-            users=users,
-            memory_size=memory_size,
-            add_cert=add_cert,
-            fleetspeak_enabled=fleetspeak_enabled)
-
-    return res
+    return client.client_id
 
   def SetupClients(self, nr_clients, *args, **kwargs):
     """Prepares nr_clients test client mocks to be used."""
@@ -334,8 +220,8 @@ class GRRBaseTest(absltest.TestCase):
         rdf_client_network.Interface(mac_address=mac2),
     ]
 
-  def SetupTestClientObjects(self,
-                             client_count,
+  def _SetupTestClientObject(self,
+                             client_nr,
                              add_cert=True,
                              arch="x86_64",
                              fqdn=None,
@@ -349,41 +235,6 @@ class GRRBaseTest(absltest.TestCase):
                              users=None,
                              labels=None,
                              fleetspeak_enabled=False):
-    res = {}
-    for client_nr in range(client_count):
-      client = self.SetupTestClientObject(
-          client_nr,
-          add_cert=add_cert,
-          arch=arch,
-          fqdn=fqdn,
-          install_time=install_time,
-          last_boot_time=last_boot_time,
-          kernel=kernel,
-          memory_size=memory_size,
-          os_version=os_version,
-          ping=ping,
-          system=system,
-          users=users,
-          labels=labels,
-          fleetspeak_enabled=fleetspeak_enabled)
-      res[client.client_id] = client
-    return res
-
-  def SetupTestClientObject(self,
-                            client_nr,
-                            add_cert=True,
-                            arch="x86_64",
-                            fqdn=None,
-                            install_time=None,
-                            last_boot_time=None,
-                            kernel="4.0.0",
-                            memory_size=None,
-                            os_version="buster/sid",
-                            ping=None,
-                            system="Linux",
-                            users=None,
-                            labels=None,
-                            fleetspeak_enabled=False):
     """Prepares a test client object."""
     client_id = u"C.1%015x" % client_nr
 
@@ -435,19 +286,8 @@ class GRRBaseTest(absltest.TestCase):
     return client
 
   def AddClientLabel(self, client_id, owner, name):
-    if data_store.RelationalDBEnabled():
-      if hasattr(client_id, "Basename"):
-        client_id = client_id.Basename()
-
-      data_store.REL_DB.AddClientLabels(client_id, owner, [name])
-      client_index.ClientIndex().AddClientLabels(client_id, [name])
-    else:
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_obj:
-        client_obj.AddLabel(name, owner=owner)
-
-        with client_index.CreateClientIndex(token=self.token) as index:
-          index.AddClient(client_obj)
+    data_store.REL_DB.AddClientLabels(client_id, owner, [name])
+    client_index.ClientIndex().AddClientLabels(client_id, [name])
 
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)

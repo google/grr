@@ -9,7 +9,6 @@ import argparse
 import logging
 import sys
 
-
 from future.builtins import str
 
 from grr_api_client import api

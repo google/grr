@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import gzip
 import os
 
-
 from absl import app
 from future.builtins import range
 from future.builtins import str
@@ -25,19 +24,18 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util.compat import json
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
-from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class BigQueryOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
-                               flow_test_lib.FlowTestsBaseclass):
+class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests BigQuery hunt output plugin."""
 
   def setUp(self):
     super(BigQueryOutputPluginTest, self).setUp()
     self.client_id = self.SetupClient(0)
-    self.source_id = self.client_id.Add("Results").RelativeName("aff4:/")
+    self.source_id = rdf_client.ClientURN(
+        self.client_id).Add("Results").RelativeName("aff4:/")
 
   def ProcessResponses(self,
                        plugin_args=None,
@@ -146,14 +144,16 @@ class BigQueryOutputPluginTest(db_test_lib.RelationalDBEnabledMixin,
       row = json.Parse(item.decode("utf-8"))
 
       if name == "ExportedFile":
-        self.assertEqual(row["metadata"]["client_urn"], self.client_id)
+        self.assertEqual(row["metadata"]["client_urn"],
+                         "aff4:/%s" % self.client_id)
         self.assertEqual(row["metadata"]["hostname"], "Host-0.example.com")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
         self.assertEqual(row["metadata"]["source_urn"], source_urn)
-        self.assertEqual(row["urn"], self.client_id.Add("/fs/os/中国新闻网新闻中"))
+        self.assertEqual(row["urn"], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id)
       else:
-        self.assertEqual(row["metadata"]["client_urn"], self.client_id)
+        self.assertEqual(row["metadata"]["client_urn"],
+                         "aff4:/%s" % self.client_id)
         self.assertEqual(row["metadata"]["hostname"], "Host-0.example.com")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")

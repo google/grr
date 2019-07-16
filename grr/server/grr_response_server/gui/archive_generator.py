@@ -8,7 +8,6 @@ import io
 import os
 import zipfile
 
-
 from future.utils import iteritems
 
 from grr_response_core.lib import utils
@@ -137,21 +136,18 @@ class CollectionArchiveGenerator(object):
     yield self.archive_generator.WriteFileChunk(summary)
     yield self.archive_generator.WriteFileFooter()
 
-  def Generate(self, items, token=None):
+  def Generate(self, items):
     """Generates archive from a given collection.
 
     Iterates the collection and generates an archive by yielding contents
-    of every referenced AFF4Stream.
+    of every referenced file.
 
     Args:
       items: Iterable of rdf_client_fs.StatEntry objects
-      token: User's ACLToken.
 
     Yields:
       Binary chunks comprising the generated archive.
     """
-
-    del token  # unused, to be removed with AFF4 code
 
     client_ids = set()
     for item_batch in collection.Batch(items, self.BATCH_SIZE):

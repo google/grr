@@ -31,25 +31,23 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import flow
+from grr_response_server import flow_base
 from grr_response_server import frontend_lib
 from grr_response_server import maintenance_utils
-from grr_response_server.aff4_objects import aff4_grr
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import ca_enroller
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import client_test_lib
-from grr.test_lib import db_test_lib
-from grr.test_lib import frontend_test_lib
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
 
-class SendingTestFlow(flow.GRRFlow):
+class SendingTestFlow(flow_base.FlowBase):
   """Tests that sent messages are correctly collected."""
 
   def Start(self):
@@ -76,8 +74,7 @@ def TestServer():
       message_expiry_time=MESSAGE_EXPIRY_TIME)
 
 
-class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
-                                frontend_test_lib.FrontEndServerTest):
+class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
   """Tests the GRRFEServer with relational flows enabled."""
 
   def _FlowSetup(self, client_id, flow_id):
@@ -149,23 +146,6 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertTrue(crash_details_rel)
     self.assertEqual(crash_details_rel.session_id, session_id)
 
-  def testOldStyleHuntIDsDontError(self):
-    """Tests receiving messages with old style hunt ids."""
-    client_id = "C.1234567890123456"
-    hunt_id = "aff4:/hunts/H:3479C8EA/C.917bf16e123bf731/H:5E69190A/H:A21A1AA2"
-    messages = [
-        rdf_flows.GrrMessage(
-            request_id=1,
-            response_id=1,
-            session_id=hunt_id,
-            auth_state="AUTHENTICATED",
-            payload=rdfvalue.RDFInteger(1))
-    ]
-
-    # This must not raise even though we don't generate session ids like the one
-    # above anymore.
-    ReceiveMessages(client_id, messages)
-
   def testDrainTaskSchedulerQueue(self):
     client_id = u"C.1234567890123456"
     flow_id = flow.RandomFlowId()
@@ -194,7 +174,7 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     data_store.REL_DB.WriteClientActionRequests(action_requests)
     server = TestServer()
 
-    res = server.DrainTaskSchedulerQueueForClient(rdfvalue.RDFURN(client_id))
+    res = server.DrainTaskSchedulerQueueForClient(client_id)
     msgs = [
         rdf_flow_objects.GRRMessageFromClientActionRequest(r)
         for r in action_requests
@@ -207,8 +187,7 @@ class GRRFEServerTestRelational(db_test_lib.RelationalDBEnabledMixin,
     self.assertItemsEqual(res, msgs)
 
 
-class FleetspeakFrontendTests(db_test_lib.RelationalDBEnabledMixin,
-                              frontend_test_lib.FrontEndServerTest):
+class FleetspeakFrontendTests(flow_test_lib.FlowTestsBaseclass):
 
   def testFleetspeakEnrolment(self):
     client_id = "C.0000000000000000"
@@ -235,8 +214,7 @@ def MakeResponse(code=500, data=""):
   return response
 
 
-class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
-                      test_lib.GRRBaseTest):
+class ClientCommsTest(test_lib.GRRBaseTest):
   """Test the communicator."""
 
   def setUp(self):
@@ -268,14 +246,6 @@ class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
     self.server_communicator = frontend_lib.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key)
-
-  def _LabelClient(self, client_id, label):
-    if data_store.AFF4Enabled():
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_object:
-        client_object.AddLabel(label)
-    else:
-      data_store.REL_DB.AddClientLabels(client_id, "Test", [label])
 
   def ClientServerCommunicate(self, timestamp=None):
     """Tests the end to end encrypted communicators."""
@@ -314,19 +284,10 @@ class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
 
   def _MakeClientRecord(self):
     """Make a client in the data store."""
-    if data_store.AFF4Enabled():
-      client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
-      self.client_id = client_cert.GetCN()
-      new_client = aff4.FACTORY.Create(
-          self.client_id, aff4_grr.VFSGRRClient, token=self.token)
-      new_client.Set(new_client.Schema.CERT, client_cert)
-      new_client.Close()
-      return new_client
-    else:
-      client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
-      self.client_id = client_cert.GetCN()[len("aff4:/"):]
-      data_store.REL_DB.WriteClientMetadata(
-          self.client_id, fleetspeak_enabled=False, certificate=client_cert)
+    client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
+    self.client_id = client_cert.GetCN()[len("aff4:/"):]
+    data_store.REL_DB.WriteClientMetadata(
+        self.client_id, fleetspeak_enabled=False, certificate=client_cert)
 
   def testKnownClient(self):
     """Test that messages from known clients are authenticated."""
@@ -340,33 +301,6 @@ class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
                        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
   def testClientPingAndClockIsUpdated(self):
-    if data_store.AFF4Enabled():
-      self._testClientPingAndClockIsUpdatedAFF4()
-    else:
-      self._testClientPingAndClockIsUpdatedRelational()
-
-  def _testClientPingAndClockIsUpdatedAFF4(self):
-    """Check PING and CLOCK are updated, simulate bad client clock."""
-    self._MakeClientRecord()
-    now = rdfvalue.RDFDatetime.Now()
-    client_now = now - 20
-    with test_lib.FakeTime(now):
-      self.ClientServerCommunicate(timestamp=client_now)
-
-      client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
-      self.assertEqual(now, client_obj.Get(client_obj.Schema.PING))
-      self.assertEqual(client_now, client_obj.Get(client_obj.Schema.CLOCK))
-
-    now += 60
-    client_now += 40
-    with test_lib.FakeTime(now):
-      self.ClientServerCommunicate(timestamp=client_now)
-
-      client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
-      self.assertEqual(now, client_obj.Get(client_obj.Schema.PING))
-      self.assertEqual(client_now, client_obj.Get(client_obj.Schema.CLOCK))
-
-  def _testClientPingAndClockIsUpdatedRelational(self):
     """Check PING and CLOCK are updated."""
     self._MakeClientRecord()
 
@@ -395,7 +329,7 @@ class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
     current_pings = stats_collector_instance.Get().GetMetricValue(
         "client_pings_by_label", fields=["testlabel"])
 
-    self._LabelClient(self.client_id, "testlabel")
+    data_store.REL_DB.AddClientLabels(self.client_id, "Test", ["testlabel"])
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
@@ -547,8 +481,7 @@ class ClientCommsTest(db_test_lib.RelationalDBEnabledMixin,
     self.assertLen(list(self.ClientServerCommunicate()), 10)
 
 
-class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
-                      test_lib.GRRBaseTest):
+class HTTPClientTests(test_lib.GRRBaseTest):
   """Test the http communicator."""
 
   def setUp(self):
@@ -588,37 +521,18 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
         session_id="aff4:/W:session", name="Echo", response_id=2)
 
   def _MakeClient(self):
-    if data_store.AFF4Enabled():
-      self.client_certificate = self.ClientCertFromPrivateKey(
-          config.CONFIG["Client.private_key"])
-      self.client_cn = self.client_certificate.GetCN()
+    self.client_certificate = self.ClientCertFromPrivateKey(
+        config.CONFIG["Client.private_key"])
+    self.client_cn = self.client_certificate.GetCN()
+    self.client_id = self.client_cn[len("aff4:/"):]
 
-      self.client = aff4.FACTORY.Create(
-          self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-      self.client.Set(self.client.Schema.CERT(self.client_certificate.AsPEM()))
-      self.client.Flush()
-    else:
-      self.client_certificate = self.ClientCertFromPrivateKey(
-          config.CONFIG["Client.private_key"])
-      self.client_cn = self.client_certificate.GetCN()
-      self.client_id = self.client_cn[len("aff4:/"):]
-
-      data_store.REL_DB.WriteClientMetadata(
-          self.client_id,
-          certificate=self.client_certificate,
-          fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(
+        self.client_id,
+        certificate=self.client_certificate,
+        fleetspeak_enabled=False)
 
   def _ClearClient(self):
-    if data_store.AFF4Enabled():
-      self.server_communicator.client_cache.Flush()
-
-      # Assume we do not know the client yet by clearing its certificate.
-      self.client = aff4.FACTORY.Create(
-          self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-      self.client.DeleteAttribute(self.client.Schema.CERT)
-      self.client.Flush()
-    else:
-      del data_store.REL_DB.delegate.metadatas[self.client_id]
+    del data_store.REL_DB.delegate.metadatas[self.client_id]
 
   def CreateNewServerCommunicator(self):
     self._MakeClient()
@@ -747,8 +661,8 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
 
       # Client should generate enrollment message by itself.
       self.assertLen(self.messages, 1)
-      self.assertEqual(self.messages[0].session_id,
-                       ca_enroller.Enroler.well_known_session_id)
+      self.assertEqual(self.messages[0].session_id.Basename(),
+                       "E:%s" % ca_enroller.EnrolmentHandler.handler_name)
 
   def testEnrollment(self):
     """Test the http response to unknown clients."""
@@ -771,8 +685,10 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
 
     self.assertLen(self.messages, 11)
     enrolment_messages = []
+
+    expected_id = "E:%s" % ca_enroller.EnrolmentHandler.handler_name
     for m in self.messages:
-      if m.session_id == ca_enroller.Enroler.well_known_session_id:
+      if m.session_id.Basename() == expected_id:
         enrolment_messages.append(m)
 
     self.assertLen(enrolment_messages, 1)
@@ -780,17 +696,10 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the
     # cert and add it to the data store.
-    if data_store.AFF4Enabled():
-      flow_obj = ca_enroller.Enroler(
-          ca_enroller.Enroler.well_known_session_id,
-          mode="rw",
-          token=self.token)
-      flow_obj.ProcessMessage(enrolment_messages[0])
-    else:
-      handler = ca_enroller.EnrolmentHandler()
-      req = rdf_objects.MessageHandlerRequest(
-          client_id=self.client_id, request=enrolment_messages[0].payload)
-      handler.ProcessMessages([req])
+    handler = ca_enroller.EnrolmentHandler()
+    req = rdf_objects.MessageHandlerRequest(
+        client_id=self.client_id, request=enrolment_messages[0].payload)
+    handler.ProcessMessages([req])
 
     # The next client communication should be enrolled now.
     status = self.client_communicator.RunOnce()
@@ -798,13 +707,8 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(status.code, 200)
 
     # There should be a cert for the client right now.
-    if data_store.AFF4Enabled():
-      client = aff4.FACTORY.Create(
-          self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
-      self.assertTrue(client.Get(client.Schema.CERT))
-    else:
-      md = data_store.REL_DB.ReadClientMetadata(self.client_id)
-      self.assertTrue(md.certificate)
+    md = data_store.REL_DB.ReadClientMetadata(self.client_id)
+    self.assertTrue(md.certificate)
 
     # Now communicate with the server once again.
     self.SendToServer()
@@ -824,8 +728,8 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
     self.assertEqual(status.code, 406)
 
     self.assertLen(self.messages, 1)
-    self.assertEqual(self.messages[0].session_id,
-                     ca_enroller.Enroler.well_known_session_id)
+    self.assertEqual(self.messages[0].session_id.Basename(),
+                     "E:%s" % ca_enroller.EnrolmentHandler.handler_name)
 
     request = rdf_objects.MessageHandlerRequest(
         client_id=self.messages[0].source.Basename(),
@@ -949,8 +853,7 @@ class HTTPClientTests(db_test_lib.RelationalDBEnabledMixin,
         status = self.client_communicator.RunOnce()
 
         self.assertEqual(status.code, 500)
-        self.assertTrue(
-            "HMAC verification failed" in str(self.last_urlmock_error))
+        self.assertIn("HMAC verification failed", str(self.last_urlmock_error))
 
       # Corruption of these fields will likely result in RSA errors, since we do
       # the RSA operations before the HMAC verification (in order to recover the

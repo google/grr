@@ -13,7 +13,6 @@ import platform
 import sys
 import zipfile
 
-
 from future.utils import iterkeys
 
 from grr_response_client_builder import build
@@ -138,7 +137,6 @@ class TemplateRepacker(object):
                      template_path,
                      output_dir,
                      upload=False,
-                     token=None,
                      sign=False,
                      context=None,
                      signed_template=False):
@@ -153,7 +151,6 @@ class TemplateRepacker(object):
       template_path: template path string
       output_dir: Output files will be put in this directory.
       upload: If specified we also upload the repacked binary into the
-      token: Token to use when uploading to the datastore.
       sign: If true, we want to digitally sign the installer.
       context: Array of context strings
       signed_template: If true, the libraries in the template are already
@@ -218,8 +215,7 @@ class TemplateRepacker(object):
           maintenance_utils.UploadSignedConfigBlob(
               open(result_path, "rb").read(100 * 1024 * 1024),
               binary_urn,
-              client_context=repack_context,
-              token=token)
+              client_context=repack_context)
       else:
         print("Failed to repack %s." % template_path)
     finally:
@@ -227,7 +223,7 @@ class TemplateRepacker(object):
 
     return result_path
 
-  def RepackAllTemplates(self, upload=False, token=None):
+  def RepackAllTemplates(self, upload=False):
     """Repack all the templates in ClientBuilder.template_dir."""
     for template in os.listdir(config.CONFIG["ClientBuilder.template_dir"]):
       template_path = os.path.join(config.CONFIG["ClientBuilder.template_dir"],
@@ -237,8 +233,7 @@ class TemplateRepacker(object):
           template_path,
           os.path.join(config.CONFIG["ClientBuilder.executables_dir"],
                        "installers"),
-          upload=upload,
-          token=token)
+          upload=upload)
       # If it's windows also repack a debug version.
       if template_path.endswith(".exe.zip"):
         print("Repacking as debug installer: %s." % template_path)
@@ -247,5 +242,4 @@ class TemplateRepacker(object):
             os.path.join(config.CONFIG["ClientBuilder.executables_dir"],
                          "installers"),
             upload=upload,
-            token=token,
             context=["DebugClientBuild Context"])

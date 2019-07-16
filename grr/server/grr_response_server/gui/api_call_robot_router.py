@@ -14,9 +14,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import api_call_router_pb2
 from grr_response_server import access_control
 
-from grr_response_server import aff4
 from grr_response_server import data_store
-from grr_response_server import flow
 from grr_response_server import throttle
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
@@ -113,26 +111,13 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     if not args.flow.name:
       raise RuntimeError("Flow name is not specified.")
 
-    if data_store.RelationalDBEnabled():
-      delegate = api_flow.ApiCreateFlowHandler()
-      # Note that runner_args are dropped. From all the arguments We use only
-      # the flow name and the arguments.
-      delegate_args = api_flow.ApiCreateFlowArgs(client_id=args.client_id)
-      delegate_args.flow.name = self.override_flow_name or args.flow.name
-      delegate_args.flow.args = self.override_flow_args or args.flow.args
-      return delegate.Handle(delegate_args, token=token)
-    else:
-      flow_id = flow.StartAFF4Flow(
-          client_id=args.client_id.ToClientURN(),
-          flow_name=self.override_flow_name or args.flow.name,
-          token=token,
-          args=self.override_flow_args or args.flow.args)
-
-      with aff4.FACTORY.Open(
-          flow_id, aff4_type=flow.GRRFlow, mode="rw", token=token) as fd:
-        fd.AddLabel(LABEL_NAME_PREFIX + self.robot_id)
-        return api_flow.ApiFlow().InitFromAff4Object(
-            fd, flow_id=flow_id.Basename())
+    delegate = api_flow.ApiCreateFlowHandler()
+    # Note that runner_args are dropped. From all the arguments We use only
+    # the flow name and the arguments.
+    delegate_args = api_flow.ApiCreateFlowArgs(client_id=args.client_id)
+    delegate_args.flow.name = self.override_flow_name or args.flow.name
+    delegate_args.flow.args = self.override_flow_args or args.flow.args
+    return delegate.Handle(delegate_args, token=token)
 
 
 class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
@@ -262,24 +247,12 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is
     # equal to the user making the request.
     # TODO(user): get rid of robot id logic as soon as AFF4 is gone.
-    if data_store.RelationalDBEnabled():
-      flow_obj = data_store.REL_DB.ReadFlowObject(str(client_id), str(flow_id))
-      if flow_obj.creator != token.username:
-        raise access_control.UnauthorizedAccess(
-            "Flow %s (client %s) has to be created "
-            "by the user making the request." % (flow_id, client_id))
-      return flow_obj.flow_class_name
-    else:
-      flow_urn = flow_id.ResolveClientFlowURN(client_id)
-      fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
-
-      needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id
-      if needed_label_name not in fd.GetLabelsNames():
-        raise access_control.UnauthorizedAccess(
-            "Flow %s (client %s) does not have a proper robot id label set." %
-            (flow_id, client_id))
-
-      return fd.Name()
+    flow_obj = data_store.REL_DB.ReadFlowObject(str(client_id), str(flow_id))
+    if flow_obj.creator != token.username:
+      raise access_control.UnauthorizedAccess(
+          "Flow %s (client %s) has to be created "
+          "by the user making the request." % (flow_id, client_id))
+    return flow_obj.flow_class_name
 
   def _FixFileFinderArgs(self, source_args):
     ffparams = self.params.file_finder_flow
@@ -321,12 +294,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name)
 
     try:
-      throttler.EnforceLimits(
-          args.client_id.ToClientURN(),
-          token.username,
-          args.flow.name,
-          args.flow.args,
-          token=token)
+      throttler.EnforceLimits(args.client_id.ToString(), token.username,
+                              args.flow.name, args.flow.args)
     except throttle.DuplicateFlowError as e:
       # If a similar flow did run recently, just return it.
       return ApiRobotReturnDuplicateFlowHandler(flow_id=e.flow_id)

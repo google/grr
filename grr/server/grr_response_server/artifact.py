@@ -6,7 +6,7 @@ from __future__ import unicode_literals
 
 import logging
 
-
+from future.builtins import str
 from future.utils import iteritems
 
 from grr_response_core import config
@@ -19,11 +19,9 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
-from grr_response_server import aff4
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
-from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 
@@ -133,8 +131,7 @@ class KnowledgeBaseInitializationArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.KnowledgeBaseInitializationArgs
 
 
-@flow_base.DualDBFlow
-class KnowledgeBaseInitializationFlowMixin(object):
+class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
   """Flow that atttempts to initialize the knowledge base.
 
   This flow processes all artifacts specified by the
@@ -154,7 +151,7 @@ class KnowledgeBaseInitializationFlowMixin(object):
   """
 
   category = "/Collectors/"
-  behaviours = flow.GRRFlow.behaviours + "ADVANCED"
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
   args_type = KnowledgeBaseInitializationArgs
 
   def Start(self):
@@ -250,11 +247,11 @@ class KnowledgeBaseInitializationFlowMixin(object):
             self.state.all_deps.difference(self.state["fulfilled_deps"]))
 
         if self.args.require_complete:
-          raise flow.FlowError(
+          raise flow_base.FlowError(
               "KnowledgeBase initialization failed as the "
               "following artifacts had dependencies that could"
               " not be fulfilled %s. Missing: %s" %
-              ([utils.SmartStr(a) for a in self.state.awaiting_deps_artifacts
+              ([str(a) for a in self.state.awaiting_deps_artifacts
                ], missing_deps))
         else:
           self.Log("Storing incomplete KnowledgeBase. The following artifacts "
@@ -366,39 +363,27 @@ class KnowledgeBaseInitializationFlowMixin(object):
 
   def InitializeKnowledgeBase(self):
     """Get the existing KB or create a new one if none exists."""
-    if data_store.AFF4Enabled():
-      self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    # Always create a new KB to override any old values but keep os and
+    # version so we know which artifacts we can run.
+    self.state.knowledge_base = rdf_client.KnowledgeBase()
+    snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
+    if not snapshot or not snapshot.knowledge_base:
+      return
 
-      # Always create a new KB to override any old values.
-      self.state.knowledge_base = rdf_client.KnowledgeBase()
-      SetCoreGRRKnowledgeBaseValues(self.state.knowledge_base, self.client)
+    kb = snapshot.knowledge_base
+    state_kb = self.state.knowledge_base
+    state_kb.os = kb.os
+    state_kb.os_major_version = kb.os_major_version
+    state_kb.os_minor_version = kb.os_minor_version
 
-      if not self.state.knowledge_base.os:
-        # If we don't know what OS this is, there is no way to proceed.
-        raise flow.FlowError("Client OS not set for: %s, cannot initialize"
-                             " KnowledgeBase" % self.client_id)
-    else:
-      # Always create a new KB to override any old values but keep os and
-      # version so we know which artifacts we can run.
-      self.state.knowledge_base = rdf_client.KnowledgeBase()
-      snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_id)
-      if not snapshot or not snapshot.knowledge_base:
-        return
-
-      kb = snapshot.knowledge_base
-      state_kb = self.state.knowledge_base
-      state_kb.os = kb.os
-      state_kb.os_major_version = kb.os_major_version
-      state_kb.os_minor_version = kb.os_minor_version
-
-      if not state_kb.os_major_version and snapshot.os_version:
-        version = snapshot.os_version.split(".")
-        try:
-          state_kb.os_major_version = int(version[0])
-          if len(version) >= 1:
-            state_kb.os_minor_version = int(version[1])
-        except ValueError:
-          pass
+    if not state_kb.os_major_version and snapshot.os_version:
+      version = snapshot.os_version.split(".")
+      try:
+        state_kb.os_major_version = int(version[0])
+        if len(version) >= 1:
+          state_kb.os_minor_version = int(version[1])
+      except ValueError:
+        pass
 
 
 def ApplyParsersToResponses(parser_factory, responses, flow_obj):
@@ -433,16 +418,13 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   if has_single_file_parsers or has_multi_file_parsers:
     precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
     pathspecs = [response.pathspec for response in responses]
-    if data_store.RelationalDBEnabled():
-      # TODO(amoser): This is not super efficient, AFF4 provided an api to open
-      # all pathspecs at the same time, investigate if optimizing this is worth
-      # it.
-      filedescs = []
-      for pathspec in pathspecs:
-        client_path = db.ClientPath.FromPathSpec(flow_obj.client_id, pathspec)
-        filedescs.append(file_store.OpenFile(client_path))
-    else:
-      filedescs = MultiOpenAff4File(flow_obj, pathspecs)
+    # TODO(amoser): This is not super efficient, AFF4 provided an api to open
+    # all pathspecs at the same time, investigate if optimizing this is worth
+    # it.
+    filedescs = []
+    for pathspec in pathspecs:
+      client_path = db.ClientPath.FromPathSpec(flow_obj.client_id, pathspec)
+      filedescs.append(file_store.OpenFile(client_path))
 
   if has_single_file_parsers:
     for response, filedesc in zip(responses, filedescs):
@@ -458,74 +440,41 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   return parsed_responses or responses
 
 
-ARTIFACT_STORE_ROOT_URN = aff4.ROOT_URN.Add("artifact_store")
-
-
 def UploadArtifactYamlFile(file_content,
                            overwrite=True,
                            overwrite_system_artifacts=False):
   """Upload a yaml or json file as an artifact to the datastore."""
   loaded_artifacts = []
   registry_obj = artifact_registry.REGISTRY
+
   # Make sure all artifacts are loaded so we don't accidentally overwrite one.
   registry_obj.GetArtifacts(reload_datastore_artifacts=True)
 
   new_artifacts = registry_obj.ArtifactsFromYaml(file_content)
-  new_artifact_names = set()
+
   # A quick syntax check before we upload anything.
   for artifact_value in new_artifacts:
     artifact_registry.ValidateSyntax(artifact_value)
-    new_artifact_names.add(artifact_value.name)
 
-  # Iterate through each artifact adding it to the collection.
-  artifact_coll = artifact_registry.ArtifactCollection(ARTIFACT_STORE_ROOT_URN)
-  current_artifacts = list(artifact_coll)
+  for artifact_value in new_artifacts:
+    registry_obj.RegisterArtifact(
+        artifact_value,
+        source="datastore",
+        overwrite_if_exists=overwrite,
+        overwrite_system_artifacts=overwrite_system_artifacts)
 
-  # We need to remove artifacts we are overwriting.
-  filtered_artifacts = [
-      art for art in current_artifacts if art.name not in new_artifact_names
-  ]
+    data_store.REL_DB.WriteArtifact(artifact_value)
 
-  artifact_coll.Delete()
-  with data_store.DB.GetMutationPool() as pool:
-    for artifact_value in filtered_artifacts:
-      artifact_coll.Add(artifact_value, mutation_pool=pool)
+    loaded_artifacts.append(artifact_value)
 
-    for artifact_value in new_artifacts:
-      registry_obj.RegisterArtifact(
-          artifact_value,
-          source="datastore:%s" % ARTIFACT_STORE_ROOT_URN,
-          overwrite_if_exists=overwrite,
-          overwrite_system_artifacts=overwrite_system_artifacts)
-
-      artifact_coll.Add(artifact_value, mutation_pool=pool)
-      if data_store.RelationalDBEnabled():
-        data_store.REL_DB.WriteArtifact(artifact_value)
-
-      loaded_artifacts.append(artifact_value)
-
-      name = artifact_value.name
-      logging.info("Uploaded artifact %s to %s", name, ARTIFACT_STORE_ROOT_URN)
+    name = artifact_value.name
+    logging.info("Uploaded artifact %s.", name)
 
   # Once all artifacts are loaded we can validate dependencies. Note that we do
   # not have to perform a syntax validation because it is already done after
   # YAML is parsed.
   for artifact_value in loaded_artifacts:
     artifact_registry.ValidateDependencies(artifact_value)
-
-
-# TODO(hanuszczak): This function is not very elegant and should probably be
-# placed in some other module. Or maybe it should be a method of the `Flow`
-# class...?
-def OpenAff4File(flow_obj, pathspec):
-  aff4_path = pathspec.AFF4Path(flow_obj.client_urn)
-  return aff4.FACTORY.Open(aff4_path, token=flow_obj.token)
-
-
-# TODO(hanuszczak): Same as above.
-def MultiOpenAff4File(flow_obj, pathspecs):
-  aff4_paths = [_.AFF4Path(flow_obj.client_urn) for _ in pathspecs]
-  return aff4.FACTORY.MultiOpenOrdered(aff4_paths, token=flow_obj.token)
 
 
 @utils.RunOnce

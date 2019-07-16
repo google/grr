@@ -8,7 +8,6 @@ import os
 import tempfile
 import time
 
-
 from absl import app
 from googleapiclient import errors
 import mock

@@ -7,8 +7,6 @@ from __future__ import unicode_literals
 import logging
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-from grr_response_server import aff4
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import hunt
@@ -24,13 +22,6 @@ class UnknownHuntTypeError(Error):
   pass
 
 
-def GetForeman(token=None):
-  if data_store.RelationalDBEnabled():
-    return Foreman()
-  else:
-    return aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=token)
-
-
 # TODO(amoser): Now that Foreman rules are directly stored in the db,
 # consider removing this class altogether once the AFF4 Foreman has
 # been removed.
@@ -39,23 +30,12 @@ class Foreman(object):
 
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
-    if data_store.RelationalDBEnabled():
-      flow_id = hunt_id
-      if hunt.IsLegacyHunt(hunt_id):
-        # Strip "H:" prefix.
-        flow_id = flow_id[2:]
-
-      try:
-        data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-        return True
-      except db.UnknownFlowError:
-        pass
-    else:
-      client_urn = rdfvalue.RDFURN(client_id)
-      for _ in aff4.FACTORY.Stat([
-          client_urn.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())
-      ]):
-        return True
+    flow_id = hunt_id
+    try:
+      data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+      return True
+    except db.UnknownFlowError:
+      pass
 
     return False
 
@@ -77,20 +57,14 @@ class Foreman(object):
             "Foreman: ignoring hunt %s on client %s: was started "
             "here before", client_id, rule.hunt_id)
       else:
-        # hunt_name is only used for legacy hunts.
-        if rule.hunt_name:
-          flow_cls = registry.AFF4FlowRegistry.FlowClassByName(rule.hunt_name)
-          hunt_urn = rdfvalue.RDFURN("aff4:/hunts/%s" % rule.hunt_id)
-          flow_cls.StartClients(hunt_urn, [client_id])
-        else:
-          try:
-            hunt.StartHuntFlowOnClient(client_id, rule.hunt_id)
-            logging.info("Foreman: Started hunt %s on client %s.", rule.hunt_id,
-                         client_id)
-          except flow.CanNotStartFlowWithExistingIdError:
-            logging.info(
-                "Foreman: ignoring hunt %s on client %s: was started "
-                "here before", client_id, rule.hunt_id)
+        try:
+          hunt.StartHuntFlowOnClient(client_id, rule.hunt_id)
+          logging.info("Foreman: Started hunt %s on client %s.", rule.hunt_id,
+                       client_id)
+        except flow.CanNotStartFlowWithExistingIdError:
+          logging.info(
+              "Foreman: ignoring hunt %s on client %s: was started "
+              "here before", client_id, rule.hunt_id)
 
         actions_count += 1
 
