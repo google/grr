@@ -126,9 +126,6 @@ def GetMetadata():
           "hunt_results_compaction_locking_errors"),
       stats_utils.CreateCounterMetadata("hunt_results_added"),
 
-      # Metric used to identify the master in a distributed server setup.
-      stats_utils.CreateGaugeMetadata("is_master", int),
-
       # GRR-API metrics.
       stats_utils.CreateEventMetadata(
           "api_method_latency",

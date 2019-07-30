@@ -302,7 +302,7 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     with test_lib.FakeTime(1000):
       # Init from an empty string should generate a DateTime object with a zero
       # time.
-      date = rdfvalue.RDFDatetime.FromSerializedString(b"")
+      date = rdfvalue.RDFDatetime.FromSerializedBytes(b"")
       self.assertEqual(int(date), 0)
 
       self.assertEqual(int(date.Now()), int(1000 * 1e6))
@@ -434,8 +434,8 @@ class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     hex_digest = ("ca978112ca1bbdcafac231b39a23dc4da786eff81"
                   "47c4e72b9807785afee48bb")
     self.assertEqual(str(sample), hex_digest)
-    self.assertEqual(sample.SerializeToString(), binary_digest)
-    self.assertNotEqual(sample.SerializeToString(), b"\xaa\xbb")
+    self.assertEqual(sample.SerializeToBytes(), binary_digest)
+    self.assertNotEqual(sample.SerializeToBytes(), b"\xaa\xbb")
     self.assertNotEqual(str(sample), "deadbeef")
 
 

@@ -94,13 +94,13 @@ class TestInstantOutputPluginWithExportConverstion(
   """Test plugin with export conversion."""
 
   def Start(self):
-    yield "Start\n"
+    yield "Start\n".encode("utf-8")
 
   def ProcessSingleTypeExportedValues(self, original_cls, exported_values):
-    yield "Original: %s\n" % original_cls.__name__
+    yield ("Original: %s\n" % original_cls.__name__).encode("utf-8")
 
     for item in exported_values:
-      yield "Exported value: %s\n" % item
+      yield ("Exported value: %s\n" % item).encode("utf-8")
 
   def Finish(self):
-    yield "Finish"
+    yield "Finish".encode("utf-8")

@@ -31,9 +31,12 @@ class FakeApi(object):
   def __init__(self, client_data=None, raise_conn_error=False):
     self._raise_conn_error = raise_conn_error
     self.client = mock.Mock(autospec=client.Client)
+    self.client.Get.return_value = self.client
+
     if client_data:
       self.client.data = client_data
       self.client.client_id = client_data.client_id
+
     self.request_count = 0
     self.types = types.Types(mock.Mock(spec=context.GrrApiContext))
 
@@ -148,22 +151,33 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     with self.assertRaises(requests.ConnectionError):
       e2e_runner.Initialize()
 
-  def testClientPlatformUnavailable(self):
+  def testStartsWithAnInterrogate(self):
     """Tests that an Interrogate flow is launched if the platform is unknown."""
-    api_client = self._CreateApiClient("")
+    unittest_runner = FakeUnittestRunner()
+    self.unittest_runner.return_value = unittest_runner
+
+    api_client = self._CreateApiClient("Linux")
     grr_api = FakeApi(client_data=api_client)
     self.api_init_http.return_value = grr_api
+
     e2e_runner = self._CreateE2ETestRunner(
         api_retry_period_secs=0.1, api_retry_deadline_secs=0.5)
     e2e_runner.Initialize()
-    # The retry deadline should expire after a few retries, throwing an
-    # exception.
-    with self.assertRaises(runner.E2ETestError):
-      e2e_runner.RunTestsAgainstClient(api_client.client_id)
-    self.assertGreater(grr_api.request_count, 1)
-    # Exactly one Interrogate flow should be launched.
+    e2e_runner.RunTestsAgainstClient(api_client.client_id)
     grr_api.client.CreateFlow.assert_called_once_with(
         name="Interrogate", runner_args=mock.ANY)
+
+  def testFailsIfNoApplicableTestsFound(self):
+    api_client = self._CreateApiClient("SomeUnknownPlatform")
+    grr_api = FakeApi(client_data=api_client)
+    self.api_init_http.return_value = grr_api
+
+    e2e_runner = self._CreateE2ETestRunner(
+        api_retry_period_secs=0.1, api_retry_deadline_secs=0.5)
+    e2e_runner.Initialize()
+    with self.assertRaisesRegexp(runner.E2ETestError,
+                                 "Can't find applicable tests"):
+      e2e_runner.RunTestsAgainstClient(api_client.client_id)
 
   @mock.patch.dict(
       test_base.REGISTRY, {tc.__name__: tc for tc in FAKE_E2E_TESTS},

@@ -63,7 +63,7 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     serialized = proto.SerializeToString()
 
-    rdf_from_serialized = rdf_client.User.FromSerializedString(serialized)
+    rdf_from_serialized = rdf_client.User.FromSerializedBytes(serialized)
 
     self.assertEqual(rdf_from_serialized.username, proto.username)
     self.assertEqual(rdf_from_serialized.desktop, proto.desktop)
@@ -85,7 +85,7 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Check that this is backwards compatible with the old protobuf library.
     proto = knowledge_base_pb2.User()
-    proto.ParseFromString(fast_proto.SerializeToString())
+    proto.ParseFromString(fast_proto.SerializeToBytes())
 
     # Old implementation should just see the last_logon field as an integer.
     self.assertIsInstance(proto.last_logon, int)
@@ -93,7 +93,7 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # fast protobufs interoperate with old serialized formats.
     serialized_data = proto.SerializeToString()
-    fast_proto = rdf_client.User.FromSerializedString(serialized_data)
+    fast_proto = rdf_client.User.FromSerializedBytes(serialized_data)
     self.assertIsInstance(fast_proto.last_logon, rdfvalue.RDFDatetime)
     self.assertEqual(fast_proto.last_logon, datetime.AsMicrosecondsSinceEpoch())
 
@@ -428,7 +428,8 @@ class ProcessTest(absltest.TestCase):
           getattr(res, field), "",
           "rdf_client.Process.{} is the empty string.".format(field))
 
-    self.assertEqual(res.status, "running")
+    # Prevent flaky tests by allowing "sleeping" as state of current process.
+    self.assertIn(res.status, ["running", "sleeping"])
 
 
 def main(argv):

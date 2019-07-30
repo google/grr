@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
+import stat
 import zlib
 
 from future.builtins import range
@@ -93,6 +95,9 @@ class GetFile(flow_base.FlowBase):
     """Fix up the pathspec of the file."""
     response = responses.First()
     if responses.success and response:
+      if stat.S_ISDIR(int(response.st_mode)):
+        raise ValueError("`GetFile` called on a directory")
+
       self.state.stat_entry = response
     else:
       if not self.args.ignore_stat_failure:
@@ -145,7 +150,9 @@ class GetFile(flow_base.FlowBase):
       # Response.data is the hash of the block (32 bytes) and
       # response.length is the length of the block.
       self.state.blobs.append((response.data, response.length))
-      self.Log("Received blob hash %s", response.data.encode("hex"))
+
+      hex_data = binascii.hexlify(response.data).decode("ascii")
+      self.Log("Received blob hash %s", hex_data)
 
       # Add one more chunk to the window.
       self.FetchWindow(1)
@@ -170,6 +177,7 @@ class GetFile(flow_base.FlowBase):
       hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
 
       path_info.hash_entry.sha256 = hash_id.AsBytes()
+      path_info.hash_entry.num_bytes = offset
 
       data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
@@ -702,6 +710,7 @@ class MultiGetFileLogic(object):
       path_info.hash_entry = hash_obj
     else:
       path_info.hash_entry.sha256 = hash_id.AsBytes()
+      path_info.hash_entry.num_bytes = offset
 
     data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 

@@ -54,8 +54,8 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def testEmbeddedDict(self):
     state = rdf_flow_runner.RequestState(data=rdf_protodict.Dict({"a": 1}))
-    serialized = state.SerializeToString()
-    deserialized = rdf_flow_runner.RequestState.FromSerializedString(serialized)
+    serialized = state.SerializeToBytes()
+    deserialized = rdf_flow_runner.RequestState.FromSerializedBytes(serialized)
     self.assertEqual(deserialized.data, state.data)
 
   def testIsMapping(self):
@@ -73,7 +73,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
     tested["b"] = rdfvalue.RDFURN("aff4:/users/")
     self.assertLen(tested, 2)
-    self.assertEqual(tested["b"].SerializeToString(), b"aff4:/users")
+    self.assertEqual(tested["b"].SerializeToBytes(), b"aff4:/users")
 
   def testSerialization(self):
     test_dict = dict(
@@ -94,10 +94,10 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.CheckTestDict(test_dict, sample)
 
     # Initialize through a serialized form.
-    serialized = sample.SerializeToString()
+    serialized = sample.SerializeToBytes()
     self.assertIsInstance(serialized, bytes)
 
-    sample = rdf_protodict.Dict.FromSerializedString(serialized)
+    sample = rdf_protodict.Dict.FromSerializedBytes(serialized)
     self.CheckTestDict(test_dict, sample)
 
     # Convert to a dict.

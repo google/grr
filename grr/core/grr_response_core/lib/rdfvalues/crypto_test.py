@@ -78,7 +78,7 @@ QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
                                                         """)
     serialized_blob = open(
         os.path.join(self.base_path, "m2crypto/signed_blob"), "rb").read()
-    blob = rdf_crypto.SignedBlob.FromSerializedString(serialized_blob)
+    blob = rdf_crypto.SignedBlob.FromSerializedBytes(serialized_blob)
 
     self.assertTrue(blob.Verify(old_driver_signing_public_key))
 
@@ -497,10 +497,10 @@ class PasswordTest(CryptoTestBase):
     sample = rdf_crypto.Password()
 
     sample.SetPassword(b"foo")
-    serialized = sample.SerializeToString()
+    serialized = sample.SerializeToBytes()
     self.assertNotIn(b"foo", serialized)
 
-    read_sample = rdf_crypto.Password.FromSerializedString(serialized)
+    read_sample = rdf_crypto.Password.FromSerializedBytes(serialized)
 
     self.assertFalse(sample.CheckPassword(b"bar"))
     self.assertFalse(read_sample.CheckPassword(b"bar"))

@@ -254,8 +254,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
     def SendCallback(fs_msg):
       pb_msg = jobs_pb2.GrrMessage()
       fs_msg.data.Unpack(pb_msg)
-      msg = rdf_flows.GrrMessage.FromSerializedString(
-          pb_msg.SerializeToString())
+      msg = rdf_flows.GrrMessage.FromSerializedBytes(pb_msg.SerializeToString())
       client_mock.mock_task_queue.append(msg)
 
     fake_conn = _FakeGRPCServiceClient(

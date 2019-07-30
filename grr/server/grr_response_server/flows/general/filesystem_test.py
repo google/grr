@@ -13,7 +13,6 @@ from absl import app
 from future.builtins import range
 import mock
 
-from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import windows_registry_parser as winreg_parser
 from grr_response_core.lib.parsers import wmi_parser
@@ -21,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import notification
@@ -146,6 +146,82 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     filename = children[0].components[-1]
 
     self.assertEqual(filename, "入乡随俗.txt")
+
+  def testRecursiveListDirectory(self):
+    """Test that RecursiveListDirectory lists files only up to max depth."""
+    client_mock = action_mocks.ListDirectoryClientMock()
+
+    dir_components = ["dir1", "dir2", "dir3", "dir4"]
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      os.makedirs(os.path.join(temp_dirpath, *dir_components))
+
+      pathspec = rdf_paths.PathSpec(
+          path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(filesystem.RecursiveListDirectory),
+          client_mock,
+          client_id=self.client_id,
+          pathspec=pathspec,
+          max_depth=2,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 2)
+
+    dirs = [_.pathspec.Basename() for _ in results]
+    self.assertCountEqual(dirs, ["dir1", "dir2"])
+
+  def testRecursiveListDirectoryTrivial(self):
+    """Test that RecursiveListDirectory lists files only up to max depth."""
+    client_mock = action_mocks.ListDirectoryClientMock()
+
+    dir_components = ["dir1", "dir2"]
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      os.makedirs(os.path.join(temp_dirpath, *dir_components))
+
+      pathspec = rdf_paths.PathSpec(
+          path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(filesystem.RecursiveListDirectory),
+          client_mock,
+          client_id=self.client_id,
+          pathspec=pathspec,
+          max_depth=1,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].pathspec.Basename(), "dir1")
+
+  def testRecursiveListDirectoryDeep(self):
+    """Test that RecursiveListDirectory lists files only up to max depth."""
+    client_mock = action_mocks.ListDirectoryClientMock()
+
+    dir_components = ["dir1", "dir2", "dir3", "dir4", "dir5"]
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      os.makedirs(os.path.join(temp_dirpath, *dir_components))
+
+      pathspec = rdf_paths.PathSpec(
+          path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS)
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          compatibility.GetName(filesystem.RecursiveListDirectory),
+          client_mock,
+          client_id=self.client_id,
+          pathspec=pathspec,
+          max_depth=3,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 3)
+
+    dirs = [_.pathspec.Basename() for _ in results]
+    self.assertCountEqual(dirs, ["dir1", "dir2", "dir3"])
 
   def testGlob(self):
     """Test that glob works properly."""
@@ -502,12 +578,14 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow - we expect an AttributeError error to be raised from the
     # flow since Weird_illegal_attribute is not a valid client attribute.
-    error_cls = artifact_utils.KbInterpolationUnknownAttributesError
-    with self.assertRaises(error_cls) as context:
-      flow_test_lib.StartFlow(
-          filesystem.Glob, paths=paths, client_id=self.client_id)
-
-    self.assertEqual(context.exception.attrs, ["weird_illegal_attribute"])
+    flow_id = flow_test_lib.StartFlow(
+        filesystem.Glob, paths=paths, client_id=self.client_id)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(
+        flow_obj.error_message,
+        "Some attributes are not part of the knowledgebase: "
+        "weird_illegal_attribute")
+    self.assertIn("KbInterpolationUnknownAttributesError", flow_obj.backtrace)
 
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""
@@ -610,7 +688,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     base = utils.JoinPath(self.temp_dir, directory)
     os.makedirs(base)
     with io.open(utils.JoinPath(base, "a.txt"), "wb") as fd:
-      fd.write("Hello World!\n")
+      fd.write(b"Hello World!\n")
     with io.open(utils.JoinPath(base, "b.txt"), "wb") as fd:
       pass
     with io.open(utils.JoinPath(base, "c.txt"), "wb") as fd:
@@ -621,7 +699,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     sub = utils.JoinPath(base, "sub1")
     os.makedirs(sub)
     with io.open(utils.JoinPath(sub, "a.txt"), "wb") as fd:
-      fd.write("Hello World!\n")
+      fd.write(b"Hello World!\n")
     with io.open(utils.JoinPath(sub, "b.txt"), "wb") as fd:
       pass
     with io.open(utils.JoinPath(sub, "c.txt"), "wb") as fd:
@@ -655,7 +733,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     self.assertCountEqual(filenames, expected_filenames)
     fd = file_store.OpenFile(
         db.ClientPath.FromPathInfo(self.client_id, children[0]))
-    self.assertEqual(fd.read(), "Hello World!\n")
+    self.assertEqual(fd.read(), b"Hello World!\n")
 
   def testDownloadDirectorySub(self):
     """Test a FileFinder flow with depth=5."""

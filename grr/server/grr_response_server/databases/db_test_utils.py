@@ -43,8 +43,8 @@ class QueryTestHelpersMixin(object):
 
     for i in range(len(all_objects)):
       for l in range(1, len(all_objects) + 1):
-        results = fetch_range_fn(i, l)
-        expected = all_objects[i:i + l]
+        results = list(fetch_range_fn(i, l))
+        expected = list(all_objects[i:i + l])
 
         self.assertListEqual(
             results, expected,

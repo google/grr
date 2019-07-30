@@ -208,7 +208,7 @@ class InMemoryDBPathMixin(object):
     return result
 
   @utils.Synchronized
-  def ListDescendentPathInfos(self,
+  def ListDescendantPathInfos(self,
                               client_id,
                               path_type,
                               components,

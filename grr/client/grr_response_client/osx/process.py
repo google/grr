@@ -13,6 +13,7 @@ import ctypes
 import ctypes.util
 
 from grr_response_client import process_error
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 
 libc = ctypes.CDLL(ctypes.util.find_library("c"))
 
@@ -156,7 +157,8 @@ class Process(object):
         continue
 
       p = sub_info.protection
-      if skip_executable_regions and p & VM_PROT_EXECUTE:
+      is_executable = p & VM_PROT_EXECUTE
+      if skip_executable_regions and is_executable:
         address.value += mapsize.value
         continue
 
@@ -179,7 +181,10 @@ class Process(object):
         depth += 1
         depth_end_addresses[depth] = address.value + mapsize.value
       else:
-        yield address.value, mapsize.value
+        yield rdf_memory.YaraProcessMemoryRegion(
+            start=address.value,
+            size=mapsize.value,
+            is_executable=is_executable)
         address.value += mapsize.value
 
   def ReadBytes(self, address, num_bytes):

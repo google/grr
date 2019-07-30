@@ -16,7 +16,6 @@ from typing import Type
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -311,7 +310,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
     artifact_dict = super(Artifact, self).ToPrimitiveDict()
 
     # ArtifactName is not JSON-serializable, so convert name to string.
-    artifact_dict["name"] = utils.SmartStr(self.name)
+    artifact_dict["name"] = str(self.name)
 
     # Convert proto enum to simple strings so they get rendered in the GUI
     # properly

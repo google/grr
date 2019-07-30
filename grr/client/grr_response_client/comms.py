@@ -648,7 +648,7 @@ class GRRClientWorker(threading.Thread):
     if rdf_value is not None:
       message.payload = rdf_value
 
-    serialized_message = message.SerializeToString()
+    serialized_message = message.SerializeToBytes()
 
     self.ChargeBytesToSession(session_id, len(serialized_message))
 
@@ -861,7 +861,7 @@ class SizeLimitedQueue(object):
         timeout is exceeded.
     """
     # We only queue already serialized objects so we know how large they are.
-    message = message.SerializeToString()
+    message = message.SerializeToBytes()
 
     if not block:
       if self.Full():
@@ -903,7 +903,7 @@ class SizeLimitedQueue(object):
       ret_size = 0
       for message in self._Generate():
         self._total_size -= len(message)
-        ret.job.append(rdf_flows.GrrMessage.FromSerializedString(message))
+        ret.job.append(rdf_flows.GrrMessage.FromSerializedBytes(message))
         ret_size += len(message)
         if soft_size_limit is not None and ret_size > soft_size_limit:
           break
@@ -925,7 +925,7 @@ class GRRHTTPClient(object):
 
   The HTTP client starts up by loading a communicator which will read the
   client's public key (or create a new random key). Since the client ID is based
-  on the key (its a hash of the public key), the communicator controls the
+  on the key (it's a hash of the public key), the communicator controls the
   client name.
 
   The client worker is then created - this will be the main thread for executing
@@ -1085,7 +1085,7 @@ class GRRHTTPClient(object):
           "grr_client_received_bytes", len(response.data))
       return response
 
-    # An unspecified error occured.
+    # An unspecified error occurred.
     return response
 
   def RunOnce(self):
@@ -1131,7 +1131,7 @@ class GRRHTTPClient(object):
       payload.queue_size = self.client_worker.InQueueSize()
 
     nonce = self.communicator.EncodeMessages(message_list, payload)
-    payload_data = payload.SerializeToString()
+    payload_data = payload.SerializeToBytes()
     response = self.MakeRequest(payload_data)
 
     # Unable to decode response or response not valid.
@@ -1358,8 +1358,7 @@ class ClientCommunicator(communicator.Communicator):
   def SavePrivateKey(self, private_key):
     """Store the new private key on disk."""
     self.private_key = private_key
-    config.CONFIG.Set("Client.private_key",
-                      self.private_key.SerializeToString())
+    config.CONFIG.Set("Client.private_key", self.private_key.SerializeToBytes())
     config.CONFIG.Write()
 
   def LoadServerCertificate(self, server_certificate=None, ca_certificate=None):

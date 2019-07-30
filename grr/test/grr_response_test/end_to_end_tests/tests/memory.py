@@ -90,7 +90,7 @@ rule test_rule {
         self.assertTrue(yara_match.string_matches)
 
         for string_match in yara_match.string_matches:
-          self.assertEqual(string_match.data, "1")
+          self.assertEqual(string_match.data, b"1")
 
         rules.add(yara_match.rule_name)
 
@@ -125,10 +125,10 @@ class TestProcessDump(test_base.AbstractFileTransferTest):
     paths_in_dump_response = set()
     for dump_info in process_dump_response.dumped_processes:
       self.assertEqual(dump_info.process.name, process_name)
-      paths_in_dump_response.update(
-          {f.path[f.path.find(process_name):] for f in dump_info.dump_files})
-      self.assertNotEmpty(dump_info.dump_files)
-      dump_file_count += len(dump_info.dump_files)
+      for area in dump_info.memory_regions:
+        paths_in_dump_response.add(area.file.path)
+      self.assertNotEmpty(dump_info.memory_regions)
+      dump_file_count += len(dump_info.memory_regions)
 
     # There should be as many StatEntry responses as the total number of
     # dump-file PathSpecs in the YaraProcessDumpResponse.
@@ -136,8 +136,7 @@ class TestProcessDump(test_base.AbstractFileTransferTest):
 
     paths_collected = set()
     for dump_file in results[1:]:
-      paths_collected.add(
-          dump_file.pathspec.path[dump_file.pathspec.path.find(process_name):])
+      paths_collected.add(dump_file.pathspec.path)
 
       size = dump_file.st_size
       self.assertGreater(size, 0)

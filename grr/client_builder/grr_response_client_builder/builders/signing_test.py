@@ -45,7 +45,7 @@ class WindowsOsslsigncodeCodeSignerTest(test_lib.GRRBaseTest):
     with mock.patch.object(
         pexpect, "spawn", side_effect=pexpect.ExceptionPexpect("blah")):
       with self.assertRaises(pexpect.ExceptionPexpect):
-        output = self.winsign.SignBuffer(b"asdflkjlaksjdf")
+        self.winsign.SignBuffer(b"asdflkjlaksjdf")
 
 
 def main(argv):

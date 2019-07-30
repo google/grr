@@ -1322,11 +1322,11 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Returns:
       A list of `rdf_objects.PathInfo` instances sorted by path components.
     """
-    return self.ListDescendentPathInfos(
+    return self.ListDescendantPathInfos(
         client_id, path_type, components, max_depth=1, timestamp=timestamp)
 
   @abc.abstractmethod
-  def ListDescendentPathInfos(self,
+  def ListDescendantPathInfos(self,
                               client_id,
                               path_type,
                               components,
@@ -1925,7 +1925,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       pending_termination: An rdf_flow_objects.PendingFlowTermination object.
         Indicates that this flow is scheduled for termination.
       processing_on: Worker this flow is currently processed on.
-      processing_since: Timstamp when the worker started processing this flow.
+      processing_since: Timestamp when the worker started processing this flow.
       processing_deadline: Time after which this flow will be considered stuck
         if processing hasn't finished.
     """
@@ -3131,7 +3131,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ListChildPathInfos(
         client_id, path_type, components, timestamp=timestamp)
 
-  def ListDescendentPathInfos(self,
+  def ListDescendantPathInfos(self,
                               client_id,
                               path_type,
                               components,
@@ -3143,7 +3143,7 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertOptionalType(timestamp, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_depth, int)
 
-    return self.delegate.ListDescendentPathInfos(
+    return self.delegate.ListDescendantPathInfos(
         client_id,
         path_type,
         components,

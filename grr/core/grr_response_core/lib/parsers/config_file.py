@@ -631,7 +631,6 @@ class MountCmdParser(parser.CommandParser):
     """Parse the mount command output."""
     _ = stderr, time_taken, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
-    result = rdf_protodict.AttributedDict()
     for entry in self._field_parser.ParseEntries(stdout):
       line_str = " ".join(entry)
       mount_rslt = self.mount_re.match(line_str)

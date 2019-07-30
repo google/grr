@@ -38,7 +38,6 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
   def testConfigureMySQLDatastore(self, getpass_mock, connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
-        "Y",  # Use REL_DB as the primary data store.
         "",  # MySQL hostname (the default is localhost).
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.
@@ -70,7 +69,6 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
   def testConfigureMySQLDatastoreWithSSL(self, getpass_mock, connect_mock):
     # Mock user-inputs for MySQL prompts.
     self.input_mock.side_effect = [
-        "Y",  # Use REL_DB as the primary data store.
         "",  # MySQL hostname (the default is localhost).
         "1234",  # MySQL port
         "grr-test-db",  # GRR db name.

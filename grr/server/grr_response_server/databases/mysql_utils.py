@@ -22,7 +22,7 @@ from grr_response_server.databases import db_utils
 
 
 def StringToRDFProto(proto_type, value):
-  return value if value is None else proto_type.FromSerializedString(value)
+  return value if value is None else proto_type.FromSerializedBytes(value)
 
 
 def Hash(value):

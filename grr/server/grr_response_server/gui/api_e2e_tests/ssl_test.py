@@ -25,6 +25,7 @@ from grr_api_client import api as grr_api
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
 from grr.test_lib import acl_test_lib
@@ -75,7 +76,8 @@ class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     thread.StartAndWaitUntilServing()
     self.addCleanup(thread.Stop)
 
-    api_auth_manager.InitializeApiAuthManager()
+    api_auth_manager.InitializeApiAuthManager(
+        api_call_router_without_checks.ApiCallRouterWithoutChecks)
     self.token.username = "api_test_robot_user"
     webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 

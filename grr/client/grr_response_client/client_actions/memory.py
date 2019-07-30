@@ -114,12 +114,12 @@ class YaraProcessScan(actions.ActionPlugin):
       matches = []
 
       try:
-        for start, length in client_utils.MemoryRegions(process, args):
-          chunks = streamer.StreamMemory(process, offset=start, amount=length)
+        for region in client_utils.MemoryRegions(process, args):
+          chunks = streamer.StreamMemory(
+              process, offset=region.start, amount=region.size)
           for m in self._ScanRegion(rules, chunks, deadline):
             matches.append(m)
-            if (args.max_results_per_process > 0 and
-                len(matches) >= args.max_results_per_process):
+            if 0 < args.max_results_per_process <= len(matches):
               return matches
       except yara.Error as e:
         # Yara internal error 30 is too many hits (obviously...). We
@@ -218,32 +218,38 @@ class YaraProcessDump(actions.ActionPlugin):
       streamer = streaming.Streamer(chunk_size=args.chunk_size)
 
       with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
-        for start, length in client_utils.MemoryRegions(process, args):
+        for region in client_utils.MemoryRegions(process, args):
 
-          if bytes_limit and self.bytes_written + length > bytes_limit:
+          if bytes_limit and self.bytes_written + region.size > bytes_limit:
             response.error = ("Byte limit exceeded. Wrote %d bytes, "
                               "next block is %d bytes, limit is %d." %
-                              (self.bytes_written, length, bytes_limit))
+                              (self.bytes_written, region.size, bytes_limit))
             return response
 
-          end = start + length
-          # TODO: The filename is parsed on the server side to
-          # extract the memory address again. This should be changed by
-          # saving the `start` and `end` in YaraProcessDumpInformation.
+          end = region.start + region.size
+
           filename = "%s_%d_%x_%x.tmp" % (psutil_process.name(),
-                                          psutil_process.pid, start, end)
+                                          psutil_process.pid, region.start, end)
           filepath = os.path.join(tmp_dir.path, filename)
 
-          chunks = streamer.StreamMemory(process, offset=start, amount=length)
+          chunks = streamer.StreamMemory(
+              process, offset=region.start, amount=region.size)
           bytes_written = self._SaveMemDumpToFilePath(filepath, chunks)
 
           if not bytes_written:
             continue
 
           self.bytes_written += bytes_written
-          response.dump_files.Append(
-              rdf_paths.PathSpec(
-                  path=filepath, pathtype=rdf_paths.PathSpec.PathType.TMPFILE))
+
+          # TODO: Remove workaround after client_utils are fixed.
+          canonical_path = client_utils.LocalPathToCanonicalPath(filepath)
+          if not canonical_path.startswith("/"):
+            canonical_path = "/" + canonical_path
+
+          region.file = rdf_paths.PathSpec(
+              path=canonical_path, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
+
+          response.memory_regions.Append(region)
 
     return response
 

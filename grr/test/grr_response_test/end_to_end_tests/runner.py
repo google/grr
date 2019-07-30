@@ -156,7 +156,11 @@ class E2ETestRunner(object):
     unittest_runner = unittest.TextTestRunner()
 
     results = collections.OrderedDict()
-    for test_name, test in iteritems(self._GetApplicableTests(client)):
+    applicable_tests = self._GetApplicableTests(client)
+    if not applicable_tests:
+      raise E2ETestError("Can't find applicable tests for the client.")
+
+    for test_name, test in iteritems(applicable_tests):
       result, millis_elapsed = self._RetryTest(test_name, test, unittest_runner)
       results[test_name] = result
       if not self._appveyor_tests_endpoint:
@@ -222,30 +226,29 @@ class E2ETestRunner(object):
     def DeadlineExceeded():
       return time.time() - start_time > self._api_retry_deadline_secs
 
-    interrogate_launched = False
     while True:
       try:
         client = self._grr_api.Client(client_id).Get()
-        if client.data.os_info.system and client.data.knowledge_base.os:
-          return client
-        if DeadlineExceeded():
-          raise E2ETestError("Timeout of %d seconds exceeded for %s." %
-                             (self._api_retry_deadline_secs, client.client_id))
-        logging.warning("Platform for %s is not yet known to GRR.",
-                        client.client_id)
-        if not interrogate_launched:
-          interrogate_flow = client.CreateFlow(
-              name="Interrogate",
-              runner_args=self._grr_api.types.CreateFlowRunnerArgs())
-          interrogate_launched = True
-          logging.info(
-              "Launched Interrogate flow (%s) to retrieve system info "
-              "from %s.", interrogate_flow.flow_id, client.client_id)
+
+        # Even though an interrogate will be launched when client enrolls,
+        # make sure that it's interrogated when running our tests.
+        interrogate_flow = client.CreateFlow(
+            name="Interrogate",
+            runner_args=self._grr_api.types.CreateFlowRunnerArgs())
+        logging.info(
+            "Launched Interrogate flow (%s) to retrieve system info "
+            "from %s.", interrogate_flow.flow_id, client.client_id)
+        interrogate_flow.WaitUntilDone(timeout=self._api_retry_deadline_secs)
+
+        # Return the client object with fresh information that should
+        # be up-to-date after the Interrogate is done.
+        return client.Get()
       except requests.ConnectionError as e:
         if DeadlineExceeded():
           raise
         logging.error("Encountered error trying to connect to GRR API: %s",
                       e.args)
+
       logging.info("Retrying in %d seconds...", self._api_retry_period_secs)
       time.sleep(self._api_retry_period_secs)
 

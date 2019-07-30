@@ -126,15 +126,14 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     # TODO(user):pytype: type checker can't infer that the initializer
     # is not None after the check below.
     if initializer.__class__ == self.__class__:
-      self.ParseFromString(
-          cast(self.__class__, initializer).SerializeToString())
+      self.ParseFromBytes(cast(self.__class__, initializer).SerializeToBytes())
 
     self._prev_hash = None
 
   def Copy(self):
     """Make a new copy of this RDFValue."""
     res = self.__class__()  # pytype: disable=not-instantiable
-    res.ParseFromString(self.SerializeToString())
+    res.ParseFromBytes(self.SerializeToBytes())
     return res
 
   def SetRaw(self, value, age=None):
@@ -158,7 +157,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     self._age = RDFDatetime(value, age=0)
 
   @abc.abstractmethod
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     """Given a string, parse ourselves from it."""
     pass
 
@@ -176,9 +175,9 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return res
 
   @classmethod
-  def FromSerializedString(cls, value, age=None):
+  def FromSerializedBytes(cls, value, age=None):
     res = cls()
-    res.ParseFromString(value)
+    res.ParseFromBytes(value)
     if age:
       res.age = age
     return res
@@ -186,11 +185,11 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   # TODO: Remove legacy SerializeToDataStore.
   def SerializeToDataStore(self):
     """Serialize to a datastore compatible form."""
-    return self.SerializeToString()
+    return self.SerializeToBytes()
 
   @abc.abstractmethod
-  def SerializeToString(self):
-    """Serialize into a string which can be parsed using ParseFromString."""
+  def SerializeToBytes(self):
+    """Serialize into a string which can be parsed using ParseFromBytes."""
 
   @classmethod
   def Fields(cls):
@@ -204,7 +203,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return not self.__eq__(other)
 
   def __hash__(self):
-    new_hash = hash(self.SerializeToString())
+    new_hash = hash(self.SerializeToBytes())
     if self._prev_hash is not None and new_hash != self._prev_hash:
       raise AssertionError(
           "Usage of {} violates Python data model: hash() has changed! Usage "
@@ -268,7 +267,7 @@ class RDFBytes(RDFPrimitive):
       message = "Unexpected initializer `{value}` of type {type}"
       raise TypeError(message.format(value=initializer, type=type(initializer)))
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     precondition.AssertType(string, bytes)
     self._value = string
 
@@ -283,11 +282,11 @@ class RDFBytes(RDFPrimitive):
   def AsBytes(self):
     return self._value
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return self._value
 
   def __str__(self):
-    return self._value.encode("hex")
+    return binascii.hexlify(self._value).decode("ascii")
 
   def __hash__(self):
     return hash(self._value)
@@ -321,7 +320,7 @@ class RDFZippedBytes(RDFBytes):
     if self:
       return zlib.decompress(self._value)
     else:
-      return ""
+      return b""
 
 
 @functools.total_ordering
@@ -340,7 +339,7 @@ class RDFString(RDFPrimitive):
     if isinstance(initializer, RDFString):
       self._value = initializer._value  # pylint: disable=protected-access
     elif isinstance(initializer, bytes):
-      self.ParseFromString(initializer)
+      self.ParseFromBytes(initializer)
     elif isinstance(initializer, Text):
       self._value = initializer
     elif initializer is not None:
@@ -396,7 +395,7 @@ class RDFString(RDFPrimitive):
 
     return NotImplemented
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     precondition.AssertType(string, bytes)
     self._value = string.decode("utf-8")
 
@@ -408,7 +407,7 @@ class RDFString(RDFPrimitive):
     precondition.AssertType(string, Text)
     self._value = string
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return self._value.encode("utf-8")
 
   def SerializeToDataStore(self):
@@ -466,10 +465,10 @@ class RDFInteger(RDFPrimitive):
       else:
         self._value = compatibility.builtins.int(initializer)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return str(self._value).encode("ascii")
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     precondition.AssertType(string, bytes)
     self._value = 0
     if string:
@@ -841,7 +840,7 @@ class Duration(RDFPrimitive):
     precondition.AssertType(value, int)
     self._value = abs(compatibility.builtins.int(value))
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     """See base class."""
     precondition.AssertType(string, bytes)
 
@@ -854,7 +853,7 @@ class Duration(RDFPrimitive):
     except ValueError as e:
       raise DecodeError(e)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     """See base class."""
     # Technically, equal to ascii encoding, since str(self._value) only contains
     # the digits 0-9.
@@ -994,7 +993,7 @@ class DurationSeconds(RDFInteger):
     elif isinstance(initializer, Text):
       self.ParseFromHumanReadable(initializer)
     elif isinstance(initializer, bytes):
-      self.ParseFromString(initializer)
+      self.ParseFromBytes(initializer)
     elif isinstance(initializer, int):
       self._value = initializer
     elif isinstance(initializer, RDFInteger):
@@ -1026,13 +1025,13 @@ class DurationSeconds(RDFInteger):
     return cls.FromSeconds(int(microseconds / 1e6))
 
   def Validate(self, value, **_):
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     precondition.AssertType(string, bytes)
     self.ParseFromHumanReadable(string.decode("utf-8"))
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return str(self).encode("utf-8")
 
   @property
@@ -1240,7 +1239,7 @@ class RDFURN(RDFPrimitive):
     super(RDFURN, self).__init__(initializer=initializer, age=age)
     if self._value is None and initializer is not None:
       if isinstance(initializer, bytes):
-        self.ParseFromString(initializer)
+        self.ParseFromBytes(initializer)
       elif isinstance(initializer, Text):
         self.ParseFromUnicode(initializer)
       else:
@@ -1248,7 +1247,7 @@ class RDFURN(RDFPrimitive):
         message %= (initializer, type(initializer))
         raise TypeError(message)
 
-  def ParseFromString(self, initializer):
+  def ParseFromBytes(self, initializer):
     """Create RDFRUN from string.
 
     Args:
@@ -1276,7 +1275,7 @@ class RDFURN(RDFPrimitive):
   def ParseFromHumanReadable(self, string):
     self.ParseFromUnicode(string)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return str(self).encode("utf-8")
 
   def SerializeToDataStore(self):
@@ -1320,7 +1319,7 @@ class RDFURN(RDFPrimitive):
        path: If the path for this URN should be updated.
     """
     if url:
-      self.ParseFromString(url)
+      self.ParseFromBytes(url)
     if path:
       self._string_urn = path
     self.dirty = True

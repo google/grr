@@ -260,8 +260,10 @@ class File(vfs_base.VFSHandler):
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:
-      result.symlink = utils.SmartUnicode(os.readlink(local_path))
-    except (OSError, AttributeError):
+      result.symlink = os.readlink(local_path)
+      # Note: unlike Python 2 (raising OSError), Python 3 raises a ValueError
+      # if the path in question doesn't point to a link.
+    except (OSError, AttributeError, ValueError):
       pass
 
     return result

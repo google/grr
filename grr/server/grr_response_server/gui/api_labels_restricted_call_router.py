@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 from future.builtins import str
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 from grr_response_proto import api_call_router_pb2
@@ -41,7 +40,7 @@ def CheckClientLabels(client_id,
       return
 
   raise access_control.UnauthorizedAccess(
-      "Client %s doesn't have necessary labels." % utils.SmartStr(client_id))
+      "Client %s doesn't have necessary labels." % client_id)
 
 
 class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):

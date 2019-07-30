@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import logging
 import socket
 
+from future.builtins import str
 from future.utils import with_metaclass
 import ipaddress
 
@@ -43,7 +44,7 @@ class IPResolver(IPResolverBase):
     if ip is None:
       return (IPInfo.UNKNOWN, "No ip information.")
 
-    ip_str = utils.SmartStr(ip)
+    ip_str = str(ip)
     try:
       return self.cache.Get(ip_str)
     except KeyError:

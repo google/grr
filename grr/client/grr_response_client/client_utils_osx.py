@@ -292,8 +292,7 @@ def OpenProcessForMemoryAccess(pid=None):
 
 
 def MemoryRegions(proc, options):
-  for start, length in proc.Regions(
+  return proc.Regions(
       skip_executable_regions=options.skip_executable_regions,
       skip_readonly_regions=options.skip_readonly_regions,
-      skip_shared_regions=options.skip_shared_regions):
-    yield start, length
+      skip_shared_regions=options.skip_shared_regions)

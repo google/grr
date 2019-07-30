@@ -28,7 +28,6 @@ from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import stats_collector_instance
@@ -182,7 +181,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
             "frontend_http_requests", fields=["upload", "http"])
 
         logging.error("Requested no longer supported file upload through HTTP.")
-        self.Send("File upload though HTTP is no longer supported", status=404)
+        self.Send(b"File upload though HTTP is no longer supported", status=404)
       else:
         stats_collector_instance.Get().IncrementCounter(
             "frontend_http_requests", fields=["control", "http"])
@@ -193,7 +192,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
         pdb.post_mortem()
 
       logging.exception("Had to respond with status 500.")
-      self.Send("Error: %s" % e, status=500)
+      self.Send(("Error: %s" % e).encode("utf-8"), status=500)
     finally:
       self._DecrementActiveCount()
 
@@ -209,13 +208,16 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       api_version = 3
 
     try:
-      content_length = self.headers.getheader("content-length")
+      if compatibility.PY2:
+        content_length = self.headers.getheader("content-length")
+      else:
+        content_length = self.headers.get("content-length")
       if not content_length:
         raise IOError("No content-length header provided.")
 
       length = int(content_length)
 
-      request_comms = rdf_flows.ClientCommunication.FromSerializedString(
+      request_comms = rdf_flows.ClientCommunication.FromSerializedBytes(
           self._GetPOSTData(length))
 
       # If the client did not supply the version in the protobuf we use the get
@@ -242,9 +244,9 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
         source_ip = source_ip.ipv4_mapped or source_ip
 
       request_comms.orig_request = rdf_flows.HttpRequest(
-          timestamp=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
-          raw_headers=utils.SmartStr(self.headers),
-          source_ip=utils.SmartStr(source_ip))
+          timestamp=rdfvalue.RDFDatetime.Now(),
+          raw_headers=str(self.headers),
+          source_ip=str(source_ip))
 
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
@@ -252,13 +254,13 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       server_logging.LOGGER.LogHttpFrontendAccess(
           request_comms.orig_request, source=source, message_count=nr_messages)
 
-      self.Send(responses_comms.SerializeToString())
+      self.Send(responses_comms.SerializeToBytes())
 
     except communicator.UnknownClientCertError:
       # "406 Not Acceptable: The server can only generate a response that is not
       # accepted by the client". This is because we can not encrypt for the
       # client appropriately.
-      self.Send("Enrollment required", status=406)
+      self.Send(b"Enrollment required", status=406)
 
 
 class GRRHTTPServer(socketserver.ThreadingMixIn, http_server.HTTPServer):

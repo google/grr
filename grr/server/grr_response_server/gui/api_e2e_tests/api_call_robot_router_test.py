@@ -12,9 +12,11 @@ from absl import app
 from future.builtins import range
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_robot_router
 from grr_response_server.gui import api_e2e_test_lib
 
 from grr.test_lib import action_mocks
@@ -22,10 +24,14 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+ROBOT_ROUTER_NAME = compatibility.GetName(
+    api_call_robot_router.ApiCallRobotRouter)
+
+
 class ApiCallRobotRouterE2ETest(api_e2e_test_lib.ApiE2ETest):
 
   FILE_FINDER_ROUTER_CONFIG = """
-router: "ApiCallRobotRouter"
+router: "{0}"
 router_params:
   file_finder_flow:
     enabled: True
@@ -40,11 +46,11 @@ router_params:
   robot_id: "TheRobot"
 users:
   - "%s"
-"""
+""".format(ROBOT_ROUTER_NAME)
 
   def InitRouterConfig(self, router_config):
     router_config_file = os.path.join(self.temp_dir, "api_acls.yaml")
-    with open(router_config_file, "wb") as fd:
+    with io.open(router_config_file, mode="w", encoding="utf-8") as fd:
       fd.write(router_config)
 
     config_overrider = test_lib.ConfigOverrider(
@@ -156,7 +162,7 @@ users:
       self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
   FILE_FINDER_THROTTLED_ROUTER_CONFIG = """
-router: "ApiCallRobotRouter"
+router: "{0}"
 router_params:
   file_finder_flow:
     enabled: True
@@ -165,7 +171,7 @@ router_params:
   robot_id: "TheRobot"
 users:
   - "%s"
-"""
+""".format(ROBOT_ROUTER_NAME)
 
   def testFileFinderThrottlingByFlowCountWorks(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
@@ -210,7 +216,7 @@ users:
     self.assertEqual(flow_obj.flow_id, flow_obj_2.flow_id)
 
   FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG = """
-router: "ApiCallRobotRouter"
+router: "{0}"
 router_params:
   file_finder_flow:
     enabled: True
@@ -218,7 +224,7 @@ router_params:
   robot_id: "TheRobot"
 users:
   - "%s"
-"""
+""".format(ROBOT_ROUTER_NAME)
 
   def testFileFinderMaxFileSizeOverrideWorks(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG %

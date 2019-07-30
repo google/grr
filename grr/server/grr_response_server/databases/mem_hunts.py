@@ -70,7 +70,7 @@ class InMemoryDBHuntMixin(object):
 
     serialized_states = self.hunt_output_plugins_states.get(hunt_id, [])
     return [
-        rdf_flow_runner.OutputPluginState.FromSerializedString(s)
+        rdf_flow_runner.OutputPluginState.FromSerializedBytes(s)
         for s in serialized_states
     ]
 
@@ -81,7 +81,7 @@ class InMemoryDBHuntMixin(object):
       raise db.UnknownHuntError(hunt_id)
 
     self.hunt_output_plugins_states[hunt_id] = [
-        s.SerializeToString() for s in states
+        s.SerializeToBytes() for s in states
     ]
 
   @utils.Synchronized
@@ -92,7 +92,7 @@ class InMemoryDBHuntMixin(object):
       raise db.UnknownHuntError(hunt_id)
 
     try:
-      state = rdf_flow_runner.OutputPluginState.FromSerializedString(
+      state = rdf_flow_runner.OutputPluginState.FromSerializedBytes(
           self.hunt_output_plugins_states[hunt_id][state_index])
     except KeyError:
       raise db.UnknownHuntOutputPluginError(hunt_id, state_index)
@@ -100,7 +100,7 @@ class InMemoryDBHuntMixin(object):
     state.plugin_state = update_fn(state.plugin_state)
 
     self.hunt_output_plugins_states[hunt_id][
-        state_index] = state.SerializeToString()
+        state_index] = state.SerializeToBytes()
 
     return state.plugin_state
 
@@ -333,8 +333,8 @@ class InMemoryDBHuntMixin(object):
 
     # TODO(user): remove this hack when compatibility with AFF4 is not
     # important.
-    return rdf_stats.ClientResourcesStats.FromSerializedString(
-        result.SerializeToString())
+    return rdf_stats.ClientResourcesStats.FromSerializedBytes(
+        result.SerializeToBytes())
 
   @utils.Synchronized
   def ReadHuntFlowsStatesAndTimestamps(self, hunt_id):

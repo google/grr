@@ -669,7 +669,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertEqual(res.stat_entry.st_size, expected_size)
 
   def testModificationTimeCondition(self):
-    with utils.Stubber(os, "lstat", MyStat):
+    with utils.Stubber(os, "stat", MyStat):
       test_dir = self._PrepareTimestampedFiles()
 
       # We have one "old" file, auth.log, and two "new" ones, dpkg*.
@@ -699,7 +699,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
           base_path=test_dir)
 
   def testAccessTimeCondition(self):
-    with utils.Stubber(os, "lstat", MyStat):
+    with utils.Stubber(os, "stat", MyStat):
       test_dir = self._PrepareTimestampedFiles()
 
       paths = [test_dir + "/{dpkg.log,dpkg_false.log,auth.log}"]
@@ -729,7 +729,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
           base_path=test_dir)
 
   def testInodeChangeTimeCondition(self):
-    with utils.Stubber(os, "lstat", MyStat):
+    with utils.Stubber(os, "stat", MyStat):
       test_dir = self._PrepareTimestampedFiles()
 
       # We have one "old" file, auth.log, and two "new" ones, dpkg*.

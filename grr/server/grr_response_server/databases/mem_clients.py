@@ -95,10 +95,10 @@ class InMemoryDBClientMixin(object):
 
     ts = rdfvalue.RDFDatetime.Now()
     history = self.clients.setdefault(client_id, {})
-    history[ts] = snapshot.SerializeToString()
+    history[ts] = snapshot.SerializeToBytes()
 
     history = self.startup_history.setdefault(client_id, {})
-    history[ts] = startup_info.SerializeToString()
+    history[ts] = startup_info.SerializeToBytes()
 
     snapshot.startup_info = startup_info
 
@@ -113,10 +113,10 @@ class InMemoryDBClientMixin(object):
         continue
       last_timestamp = max(history)
       last_serialized = history[last_timestamp]
-      client_obj = rdf_objects.ClientSnapshot.FromSerializedString(
+      client_obj = rdf_objects.ClientSnapshot.FromSerializedBytes(
           last_serialized)
       client_obj.timestamp = last_timestamp
-      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
+      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
           self.startup_history[client_id][last_timestamp])
       res[client_id] = client_obj
     return res
@@ -185,10 +185,10 @@ class InMemoryDBClientMixin(object):
       client.startup_info = None
 
       snapshots = self.clients.setdefault(client.client_id, {})
-      snapshots[client.timestamp] = client.SerializeToString()
+      snapshots[client.timestamp] = client.SerializeToBytes()
 
       startup_infos = self.startup_history.setdefault(client.client_id, {})
-      startup_infos[client.timestamp] = startup_info.SerializeToString()
+      startup_infos[client.timestamp] = startup_info.SerializeToBytes()
 
       client.startup_info = startup_info
 
@@ -205,9 +205,9 @@ class InMemoryDBClientMixin(object):
       if ts < from_time or ts > to_time:
         continue
 
-      client_obj = rdf_objects.ClientSnapshot.FromSerializedString(history[ts])
+      client_obj = rdf_objects.ClientSnapshot.FromSerializedBytes(history[ts])
       client_obj.timestamp = ts
-      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedString(
+      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
           self.startup_history[client_id][ts])
       res.append(client_obj)
     return res
@@ -289,7 +289,7 @@ class InMemoryDBClientMixin(object):
     ts = rdfvalue.RDFDatetime.Now()
     self.metadatas[client_id]["startup_info_timestamp"] = ts
     history = self.startup_history.setdefault(client_id, {})
-    history[ts] = startup_info.SerializeToString()
+    history[ts] = startup_info.SerializeToBytes()
 
   @utils.Synchronized
   def ReadClientStartupInfo(self, client_id):
@@ -299,7 +299,7 @@ class InMemoryDBClientMixin(object):
       return None
 
     ts = max(history)
-    res = rdf_client.StartupInfo.FromSerializedString(history[ts])
+    res = rdf_client.StartupInfo.FromSerializedBytes(history[ts])
     res.timestamp = ts
     return res
 
@@ -316,7 +316,7 @@ class InMemoryDBClientMixin(object):
       if ts < from_time or ts > to_time:
         continue
 
-      client_data = rdf_client.StartupInfo.FromSerializedString(history[ts])
+      client_data = rdf_client.StartupInfo.FromSerializedBytes(history[ts])
       client_data.timestamp = ts
       res.append(client_data)
     return res
@@ -330,7 +330,7 @@ class InMemoryDBClientMixin(object):
     ts = rdfvalue.RDFDatetime.Now()
     self.metadatas[client_id]["last_crash_timestamp"] = ts
     history = self.crash_history.setdefault(client_id, {})
-    history[ts] = crash_info.SerializeToString()
+    history[ts] = crash_info.SerializeToBytes()
 
   @utils.Synchronized
   def ReadClientCrashInfo(self, client_id):
@@ -340,7 +340,7 @@ class InMemoryDBClientMixin(object):
       return None
 
     ts = max(history)
-    res = rdf_client.ClientCrash.FromSerializedString(history[ts])
+    res = rdf_client.ClientCrash.FromSerializedBytes(history[ts])
     res.timestamp = ts
     return res
 
@@ -352,7 +352,7 @@ class InMemoryDBClientMixin(object):
       return []
     res = []
     for ts in sorted(history, reverse=True):
-      client_data = rdf_client.ClientCrash.FromSerializedString(history[ts])
+      client_data = rdf_client.ClientCrash.FromSerializedBytes(history[ts])
       client_data.timestamp = ts
       res.append(client_data)
     return res

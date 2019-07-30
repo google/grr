@@ -5,10 +5,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
+from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 
 from grr_response_server.rdfvalues import aff4 as rdf_aff4
@@ -100,7 +100,7 @@ class AFF4ObjectLabelsListTest(rdf_test_base.RDFValueTestMixin,
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="bar", owner="GRR"))
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="test"))
 
-    self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
+    self.assertEqual(str(labels_list), "bar,foo")
 
   def testStringifiedRepresentationIsSorted(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()
@@ -108,7 +108,7 @@ class AFF4ObjectLabelsListTest(rdf_test_base.RDFValueTestMixin,
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="GRR"))
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="bar", owner="test"))
 
-    self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
+    self.assertEqual(str(labels_list), "bar,foo")
 
   def testStringifiedValueDoesNotHaveDuplicates(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()
@@ -117,7 +117,7 @@ class AFF4ObjectLabelsListTest(rdf_test_base.RDFValueTestMixin,
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="bar", owner="GRR"))
     labels_list.AddLabel(rdf_aff4.AFF4ObjectLabel(name="foo", owner="test"))
 
-    self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
+    self.assertEqual(str(labels_list), "bar,foo")
 
   def testRegexForStringifiedValueMatchMatchesLabelsInList(self):
     labels_list = rdf_aff4.AFF4ObjectLabelsList()

@@ -186,7 +186,7 @@ def GetLogHandlers():
 
         if not os.path.isdir(os.path.dirname(path)):
           os.makedirs(os.path.dirname(path))
-        handler = logging.FileHandler(path, mode="ab")
+        handler = logging.FileHandler(path, mode="a", encoding="utf-8")
         handler.setFormatter(formatter)
         yield handler
 

@@ -9,11 +9,11 @@ import zipfile
 
 from future.builtins import str
 
-import yaml
-
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util.compat import csv
+from grr_response_core.lib.util.compat import yaml
 from grr_response_server import instant_output_plugin
 
 
@@ -31,7 +31,7 @@ class CSVInstantOutputPlugin(
   def _GetCSVHeader(self, value_class, prefix=u""):
     header = []
     for type_info in value_class.type_infos:
-      if type_info.__class__.__name__ == "ProtoEmbedded":
+      if isinstance(type_info, rdf_structs.ProtoEmbedded):
         header.extend(
             self._GetCSVHeader(
                 type_info.type, prefix=prefix + type_info.name + u"."))
@@ -43,7 +43,7 @@ class CSVInstantOutputPlugin(
   def _GetCSVRow(self, value):
     row = []
     for type_info in value.__class__.type_infos:
-      if type_info.__class__.__name__ == "ProtoEmbedded":
+      if isinstance(type_info, rdf_structs.ProtoEmbedded):
         row.extend(self._GetCSVRow(value.Get(type_info.name)))
       else:
         row.append(str(value.Get(type_info.name)))
@@ -101,8 +101,9 @@ class CSVInstantOutputPlugin(
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}
+    manifest_bytes = yaml.Dump(manifest).encode("utf-8")
 
     yield self.archive_generator.WriteFileHeader(self.path_prefix + "/MANIFEST")
-    yield self.archive_generator.WriteFileChunk(yaml.safe_dump(manifest))
+    yield self.archive_generator.WriteFileChunk(manifest_bytes)
     yield self.archive_generator.WriteFileFooter()
     yield self.archive_generator.Close()

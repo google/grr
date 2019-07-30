@@ -99,9 +99,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
         os_name="Windows", provides=["users.homedir", "domain"])
     for result in results:
       # provides contains at least one of the filter strings
-      self.assertTrue(
-          len(set(result.provides).union(set(["users.homedir", "domain"]))) >= 1
-      )
+      self.assertGreaterEqual(
+          len(set(result.provides).union(set(["users.homedir", "domain"]))), 1)
 
     results = registry.GetArtifacts(
         os_name="Windows", provides=["nothingprovidesthis"])
@@ -186,7 +185,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     try:
       source.attributes["names"] = ["TestAggregationArtifactDeps"]
       with self.assertRaises(RuntimeError) as e:
-        deps = ar.GetArtifactDependencies(art_obj, recursive=True)
+        ar.GetArtifactDependencies(art_obj, recursive=True)
       self.assertIn("artifact recursion depth", str(e.exception))
     finally:
       source.attributes["names"] = backup  # Restore old source.
@@ -540,7 +539,7 @@ class GetWindowsEnvironmentVariablesMapTest(test_lib.GRRBaseTest):
             "windir": "the_windir"
         })
 
-  def testKnowlegeBaseUsersAttributesExpandIntoLists(self):
+  def testKnowledgeBaseUsersAttributesExpandIntoLists(self):
     kb = rdf_client.KnowledgeBase()
     kb.users.append(
         rdf_client.User(

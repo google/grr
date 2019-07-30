@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import atexit
+import binascii
 import functools
 import logging
 import os
@@ -768,10 +769,10 @@ class FlowWithOneHashEntryResult(flow_base.FlowBase):
 
   def Start(self):
     hash_result = rdf_crypto.Hash(
-        sha256=("9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
-                "e4f06017acdb5").decode("hex"),
-        sha1="6dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
-        md5="8b0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"))
+        sha256=binascii.unhexlify(
+            "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5"),
+        sha1=binascii.unhexlify("6dd6bee591dfcb6d75eb705405302c3eab65e21a"),
+        md5=binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a"))
     self.SendReply(hash_result)
 
 

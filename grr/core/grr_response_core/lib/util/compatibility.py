@@ -96,7 +96,7 @@ def GetName(obj):
   Returns:
     Name of the specified class as unicode string.
   """
-  precondition.AssertType(obj, (type, types.FunctionType))
+  precondition.AssertType(obj, (type, types.FunctionType, types.MethodType))
 
   if PY2:
     return obj.__name__.decode("ascii")

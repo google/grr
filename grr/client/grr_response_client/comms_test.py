@@ -271,7 +271,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
       limited_queue.Put(msg_c)
 
     result = limited_queue.GetMessages(
-        soft_size_limit=len(msg_a.SerializeToString()) * 5 - 1)
+        soft_size_limit=len(msg_a.SerializeToBytes()) * 5 - 1)
 
     self.assertLen(list(result.job), 5)
 
@@ -301,7 +301,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
       in_queue.add(m)
 
       self.assertEqual(q.Size(),
-                       sum([len(m.SerializeToString()) for m in in_queue]))
+                       sum([len(m.SerializeToBytes()) for m in in_queue]))
 
     for _ in range(len(messages)):
       msg_list = q.GetMessages(1)
@@ -309,7 +309,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
       in_queue.remove(msg_list.job[0])
 
       self.assertEqual(q.Size(),
-                       sum([len(m.SerializeToString()) for m in in_queue]))
+                       sum([len(m.SerializeToBytes()) for m in in_queue]))
 
   def testSizeLimitedQueueOverflow(self):
 
@@ -319,7 +319,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     msg_d = rdf_flows.GrrMessage(name="D")
 
     limited_queue = comms.SizeLimitedQueue(
-        maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=lambda: None)
+        maxsize=3 * len(msg_a.SerializeToBytes()), heart_beat_cb=lambda: None)
 
     limited_queue.Put(msg_a, block=False)
     limited_queue.Put(msg_b, block=False)
@@ -337,7 +337,7 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     heartbeat = mock.Mock()
 
     limited_queue = comms.SizeLimitedQueue(
-        maxsize=3 * len(msg_a.SerializeToString()), heart_beat_cb=heartbeat)
+        maxsize=3 * len(msg_a.SerializeToBytes()), heart_beat_cb=heartbeat)
 
     limited_queue.Put(msg_a)
     limited_queue.Put(msg_b)

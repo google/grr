@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from future.utils import itervalues
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -22,7 +21,7 @@ def _GetAllTypes():
   all_types.pop(rdfvalue.RDFValue.__name__, None)
   all_types.pop(rdfvalue.RDFPrimitive.__name__, None)
 
-  for cls in [bool, int, float, long, str, Text, list, tuple]:
+  for cls in [bool, int, float, str]:
     all_types[cls.__name__] = cls
 
   return all_types
@@ -65,6 +64,39 @@ class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
     for cls_name in sorted(all_types):
       cls = all_types[cls_name]
       result.items.append(api_value_renderers.BuildTypeDescriptor(cls))
+
+    # TODO(user): remove this special case as soon as Python 3 migration
+    # is done. This is needed, since in Python 2 "bytes" is an alias
+    # to "str" and doesn't exist as a standalone type.
+    bytes_descriptor = api_value_renderers.ApiRDFValueDescriptor(
+        name="bytes",
+        parents=["bytes", "object"],
+        doc="",
+        kind=api_value_renderers.ApiRDFValueDescriptor.Kind.PRIMITIVE,
+    )
+    result.items.append(bytes_descriptor)
+
+    # TODO(user): remove this special case as soon as Python 3 migration
+    # is done. This is needed, since in Python 3 "unicode" is an alias to
+    # "str" and doesn't exist as a standalone type.
+    unicode_descriptor = api_value_renderers.ApiRDFValueDescriptor(
+        name="unicode",
+        parents=["unicode", "object"],
+        doc="",
+        kind=api_value_renderers.ApiRDFValueDescriptor.Kind.PRIMITIVE,
+    )
+    result.items.append(unicode_descriptor)
+
+    # TODO(user): remove this special case as soon as Python 3 migration
+    # is done. This is needed, since in Python 3 "long" is an alias to
+    # "int" and doesn't exist as a standalone type.
+    unicode_descriptor = api_value_renderers.ApiRDFValueDescriptor(
+        name="long",
+        parents=["long", "object"],
+        doc="",
+        kind=api_value_renderers.ApiRDFValueDescriptor.Kind.PRIMITIVE,
+    )
+    result.items.append(unicode_descriptor)
 
     return result
 

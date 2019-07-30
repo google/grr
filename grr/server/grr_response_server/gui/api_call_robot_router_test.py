@@ -491,8 +491,8 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         api_flow.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id, flow_id=flow_id),
         token=self.token)
-    self.assertTrue(handler.path_globs_blacklist is None)
-    self.assertTrue(handler.path_globs_whitelist is None)
+    self.assertIsNone(handler.path_globs_blacklist)
+    self.assertIsNone(handler.path_globs_whitelist)
 
   IMPLEMENTED_METHODS = [
       "SearchClients",

@@ -155,11 +155,13 @@ parser_initialize.add_argument(
     "--mysql_ca_cert_path",
     help="The path name of the Certificate Authority (CA) certificate file.")
 
+# Deprecated. There is no choice anymore, relational db is always enabled.
 parser_initialize.add_argument(
     "--use_rel_db",
-    default=False,
+    default=True,
     action="store_true",
-    help="Use the new-generation datastore (REL_DB).")
+    help="Use the new-generation datastore (REL_DB). Deprecated, REL_DB is now "
+    "the only available choice.")
 
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
@@ -286,7 +288,6 @@ def main(args):
           mysql_client_key_path=args.mysql_client_key_path,
           mysql_client_cert_path=args.mysql_client_cert_path,
           mysql_ca_cert_path=args.mysql_ca_cert_path,
-          use_rel_db=args.use_rel_db,
           redownload_templates=args.redownload_templates,
           repack_templates=not args.norepack_templates)
     else:

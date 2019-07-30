@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import fnmatch
+import os
 import re
 import stat
 
@@ -232,19 +233,15 @@ class RecursiveListDirectory(flow_base.FlowBase):
 
       self.StoreDirectory(responses)
 
-      # If the urn is too deep we quit to prevent recursion errors.
       if self.state.first_directory is None:
         self.state.first_directory = urn
 
-      else:
-        relative_name = urn.RelativeName(self.state.first_directory) or ""
-        # TODO: The split call from should be removed from
-        # the exit condition. Also one extra iteration is done with this
-        # exit condition.
-        if len(relative_name.split("/")) >= self.args.max_depth:
-          self.Log("Exceeded maximum path depth at %s.",
-                   urn.RelativeName(self.state.first_directory))
-          return
+      # If the urn is too deep we quit to prevent recursion errors.
+      relative_name = urn.RelativeName(self.state.first_directory) or ""
+      if _Depth(relative_name) >= self.args.max_depth - 1:
+        self.Log("Exceeded maximum path depth at %s.",
+                 urn.RelativeName(self.state.first_directory))
+        return
 
       for stat_response in responses:
         # Queue a list directory for each directory here, but do not follow
@@ -383,13 +380,13 @@ class GlobLogic(object):
       components = self.ConvertGlobIntoPathComponents(pattern)
       for i, curr_component in enumerate(components):
         is_last_component = i == len(components) - 1
-        next_node = curr_node.get(curr_component.SerializeToString(), {})
+        next_node = curr_node.get(curr_component.SerializeToBytes(), {})
         if is_last_component and next_node:
           # There is a conflicting directory already existing in the tree.
           # Replace the directory node with a node representing this file.
-          curr_node[curr_component.SerializeToString()] = {}
+          curr_node[curr_component.SerializeToBytes()] = {}
         else:
-          curr_node = curr_node.setdefault(curr_component.SerializeToString(),
+          curr_node = curr_node.setdefault(curr_component.SerializeToBytes(),
                                            {})
 
     root_path = next(iter(iterkeys(self.state.component_tree)))
@@ -455,15 +452,9 @@ class GlobLogic(object):
             pathtype=self.state.pathtype,
             path_options=rdf_paths.PathSpec.Options.REGEX)
       else:
-        pathtype = self.state.pathtype
-        # TODO(amoser): This is a backwards compatibility hack. Remove when
-        # all clients reach 3.0.0.2.
-        if (pathtype == rdf_paths.PathSpec.PathType.TSK and
-            re.match("^.:$", path_component)):
-          path_component = "%s\\" % path_component
         component = rdf_paths.PathSpec(
             path=path_component,
-            pathtype=pathtype,
+            pathtype=self.state.pathtype,
             path_options=rdf_paths.PathSpec.Options.CASE_INSENSITIVE)
 
       components.append(component)
@@ -535,7 +526,7 @@ class GlobLogic(object):
       for response in stat_responses:
         matching_components = []
         for next_node in base_node:
-          pathspec = rdf_paths.PathSpec.FromSerializedString(next_node)
+          pathspec = rdf_paths.PathSpec.FromSerializedBytes(next_node)
 
           if self._MatchPath(pathspec, response):
             matching_path = base_path + [next_node]
@@ -568,7 +559,7 @@ class GlobLogic(object):
 
       # There are further components in the tree - iterate over them.
       for component_str, next_node in iteritems(node):
-        component = rdf_paths.PathSpec.FromSerializedString(component_str)
+        component = rdf_paths.PathSpec.FromSerializedBytes(component_str)
         next_component = component_path + [component_str]
 
         # If we reach this point, we are instructed to go deeper into the
@@ -817,3 +808,10 @@ class DiskVolumeInfo(flow_base.FlowBase):
 
     for response in responses:
       self.SendReply(response)
+
+
+def _Depth(relative_path):
+  """Calculates the depth of a given path."""
+  if not relative_path:
+    return 0
+  return len(os.path.normpath(relative_path).split("/"))

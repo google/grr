@@ -58,7 +58,6 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
   def testResultsViewGetsAutoRefreshed(self):
     hunt_id, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])
-    hunt_id = hunt_id
 
     self.Open("/")
     # Ensure auto-refresh updates happen every second.

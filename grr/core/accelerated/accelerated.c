@@ -8,6 +8,10 @@
 
 #include <Python.h>
 
+#if PY_MAJOR_VERSION >= 3
+#define IS_PY3K
+#endif
+
 // Number of bits used to hold type info in a proto tag.
 #define TAG_TYPE_BITS 3
 #define TAG_TYPE_MASK ((1 << TAG_TYPE_BITS) - 1)  // 0x7
@@ -164,7 +168,7 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
     varint_decode(&tag, buffer, length, &decoded_length);
 
     // Prepare to pass the encoded tag into the result tuple.
-    encoded_tag = PyString_FromStringAndSize(buffer, decoded_length);
+    encoded_tag = PyBytes_FromStringAndSize(buffer, decoded_length);
     buffer += decoded_length;
     length -= decoded_length;
 
@@ -188,11 +192,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Empty string "".
         PyTuple_SET_ITEM(
             entry, 1,
-            PyString_FromStringAndSize(buffer, 0));
+            PyBytes_FromStringAndSize(buffer, 0));
 
         PyTuple_SET_ITEM(
             entry, 2,
-            PyString_FromStringAndSize(buffer, tag_length));
+            PyBytes_FromStringAndSize(buffer, tag_length));
 
         PyList_Append(result, entry);
         Py_DECREF(entry);
@@ -214,11 +218,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Empty string "".
         PyTuple_SET_ITEM(
             entry, 1,
-            PyString_FromStringAndSize(buffer, 0));
+            PyBytes_FromStringAndSize(buffer, 0));
 
         PyTuple_SET_ITEM(
             entry, 2,
-            PyString_FromStringAndSize(buffer, tag_length));
+            PyBytes_FromStringAndSize(buffer, tag_length));
 
         PyList_Append(result, entry);
         Py_DECREF(entry);
@@ -240,11 +244,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Empty string "".
         PyTuple_SET_ITEM(
             entry, 1,
-            PyString_FromStringAndSize(buffer, 0));
+            PyBytes_FromStringAndSize(buffer, 0));
 
         PyTuple_SET_ITEM(
             entry, 2,
-            PyString_FromStringAndSize(buffer, tag_length));
+            PyBytes_FromStringAndSize(buffer, tag_length));
 
         PyList_Append(result, entry);
         Py_DECREF(entry);
@@ -279,11 +283,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Empty string "".
         PyTuple_SET_ITEM(
             entry, 1,
-            PyString_FromStringAndSize(buffer, decoded_length));
+            PyBytes_FromStringAndSize(buffer, decoded_length));
 
         PyTuple_SET_ITEM(
             entry, 2,
-            PyString_FromStringAndSize(buffer + decoded_length, data_size));
+            PyBytes_FromStringAndSize(buffer + decoded_length, data_size));
 
         PyList_Append(result, entry);
         Py_DECREF(entry);
@@ -344,8 +348,23 @@ static PyMethodDef _semantic_methods[] = {
 };
 
 
+#ifdef IS_PY3K
+static struct PyModuleDef cSemanticMod =
+{
+    PyModuleDef_HEAD_INIT,
+    "_semantic", /* name of module */
+    "",          /* module documentation, may be NULL */
+    -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+    _semantic_methods
+};
+
+PyMODINIT_FUNC PyInit__semantic(void) {
+  return PyModule_Create(&cSemanticMod);
+}
+#else
 PyMODINIT_FUNC init_semantic(void) {
-  /* create module */
   Py_InitModule3("_semantic", _semantic_methods,
                  "Semantic Protobuf accelerator.");
 }
+#endif
+

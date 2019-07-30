@@ -192,8 +192,6 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     self.assertEqual(count_scheduled, cron_manager.max_threads * 2)
 
   def testNonExistingSystemCronJobDoesNotPreventOtherCronJobsFromRunning(self):
-    cron_manager = cronjobs.CronManager()
-
     # Have a fake non-existing cron job. We assume that cron jobs are going
     # to be processed in alphabetical order, according to their cron job ids.
     args = rdf_cronjobs.CronJobAction(

@@ -9,10 +9,12 @@ from future.utils import iteritems
 
 from grr_response_client import client_actions
 from grr_response_server import action_registry
+from grr.test_lib import client_action_test_lib
 from grr.test_lib import test_lib
 
 
-class ClientActionStubTest(test_lib.GRRBaseTest):
+class ClientActionStubTest(client_action_test_lib.WithAllClientActionsMixin,
+                           test_lib.GRRBaseTest):
 
   def testThereIsStubForEveryClientAction(self):
     # Check that some real ActionPlugin classes got imported.

@@ -239,8 +239,8 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertIsInstance(test_pb.dynamic, TestStruct)
 
     # Test serialization/deserialization.
-    serialized = test_pb.SerializeToString()
-    self.assertEqual(DynamicTypeTest.FromSerializedString(serialized), test_pb)
+    serialized = test_pb.SerializeToBytes()
+    self.assertEqual(DynamicTypeTest.FromSerializedBytes(serialized), test_pb)
 
     # TODO: In Python 2 unicode string representation has an extra
     # 'u' prefix and there is nothing we can do about that. Once support for
@@ -275,8 +275,8 @@ message DynamicTypeTest {{
         rdf_flows.GrrStatus(status="WORKER_STUCK", error_message="stuck")
     ]:
       test_pb.dynamic = value_to_assign
-      serialized = test_pb.SerializeToString()
-      deserialized = AnyValueWithoutTypeFunctionTest.FromSerializedString(
+      serialized = test_pb.SerializeToBytes()
+      deserialized = AnyValueWithoutTypeFunctionTest.FromSerializedBytes(
           serialized)
       self.assertEqual(deserialized, test_pb)
       self.assertEqual(type(deserialized.dynamic), type(value_to_assign))
@@ -291,9 +291,9 @@ message DynamicTypeTest {{
     self.assertIsInstance(test_pb.dynamic, TestStruct)
 
     # Test serialization/deserialization.
-    serialized = test_pb.SerializeToString()
+    serialized = test_pb.SerializeToBytes()
     self.assertEqual(
-        DynamicAnyValueTypeTest.FromSerializedString(serialized), test_pb)
+        DynamicAnyValueTypeTest.FromSerializedBytes(serialized), test_pb)
 
     # Test proto definition.
     self.assertEqual(
@@ -317,8 +317,8 @@ message DynamicTypeTest {{
     self.assertIsInstance(test_pb.dynamic, rdfvalue.RDFString)
 
     # Test serialization/deserialization.
-    serialized = test_pb.SerializeToString()
-    unserialized = DynamicAnyValueTypeTest.FromSerializedString(serialized)
+    serialized = test_pb.SerializeToBytes()
+    unserialized = DynamicAnyValueTypeTest.FromSerializedBytes(serialized)
     self.assertEqual(unserialized, test_pb)
     self.assertEqual(unserialized.dynamic, "Hello")
 
@@ -347,10 +347,10 @@ message DynamicTypeTest {{
     for i in range(10):
       tested.repeat_nested.Append(foobar="Nest%s" % i)
 
-    data = tested.SerializeToString()
+    data = tested.SerializeToBytes()
 
     # Parse it again.
-    new_tested = TestStruct.FromSerializedString(data)
+    new_tested = TestStruct.FromSerializedBytes(data)
 
     # Test the repeated field.
     self.assertLen(new_tested.repeat_nested, 10)
@@ -373,17 +373,17 @@ message DynamicTypeTest {{
     self.assertEqual(tested.foobar, "hello")
     self.assertEqual(tested.nested.foobar, "goodbye")
 
-    data = tested.SerializeToString()
+    data = tested.SerializeToBytes()
 
     # Now unpack using a protobuf with less fields defined.
-    reduced_tested = PartialTest1.FromSerializedString(data)
+    reduced_tested = PartialTest1.FromSerializedBytes(data)
 
     self.assertEqual(reduced_tested.int, 5)
     self.assertRaises(AttributeError, getattr, reduced_tested, "foobar")
 
     # Re-Serialize using the simple protobuf.
-    data2 = reduced_tested.SerializeToString()
-    decoded_tested = TestStruct.FromSerializedString(data2)
+    data2 = reduced_tested.SerializeToBytes()
+    decoded_tested = TestStruct.FromSerializedBytes(data2)
 
     # The foobar field should have been preserved, despite PartialTest1() not
     # understanding it.
@@ -414,7 +414,7 @@ message DynamicTypeTest {{
 
     # Not OK to assign a serialized string - even if it is for the right type -
     # since there is no type checking.
-    serialized = TestStruct(foobar="nested_foo").SerializeToString()
+    serialized = TestStruct(foobar="nested_foo").SerializeToBytes()
     self.assertRaises(ValueError, setattr, tested, "nested", serialized)
 
     # Nested accessors.
@@ -473,9 +473,9 @@ message DynamicTypeTest {{
     for x in "01234":
       path.last.Append(path=x, pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    serialized = path.SerializeToString()
+    serialized = path.SerializeToBytes()
 
-    path = rdf_paths.PathSpec.FromSerializedString(serialized)
+    path = rdf_paths.PathSpec.FromSerializedBytes(serialized)
 
     # At this point the wire format cache is fully populated (since the proto
     # had been parsed). We change a deeply nested member.
@@ -484,7 +484,7 @@ message DynamicTypeTest {{
     # When we serialize the modified proto we should get the new field
     # serialized. If the cache is not properly invalidated, we will return the
     # old result instead.
-    self.assertIn(b"booo", path.SerializeToString())
+    self.assertIn(b"booo", path.SerializeToBytes())
 
   def testLateBinding(self):
     # The LateBindingTest protobuf is not fully defined.
@@ -579,7 +579,7 @@ message DynamicTypeTest {{
     stat = rdf_client_fs.StatEntry.protobuf(st_mode=16877)
     data = stat.SerializeToString()
 
-    result = rdf_client_fs.StatEntry.FromSerializedString(data)
+    result = rdf_client_fs.StatEntry.FromSerializedBytes(data)
 
     self.assertIsInstance(result.st_mode, rdf_client_fs.StatMode)
 
@@ -705,14 +705,14 @@ message DynamicTypeTest {{
     sample = TestStructWithManyFields(**fields)
 
     parsed = TestStructWithManyFields()
-    parsed.ParseFromString(sample.SerializeToString())
+    parsed.ParseFromBytes(sample.SerializeToBytes())
 
     return sample, parsed
 
   def testSerializationIsStable(self):
     sample1, sample2 = self._GenerateSampleWithManyFields()
 
-    self.assertEqual(sample1.SerializeToString(), sample2.SerializeToString())
+    self.assertEqual(sample1.SerializeToBytes(), sample2.SerializeToBytes())
 
   def testHashingIsStable(self):
     sample1, sample2 = self._GenerateSampleWithManyFields()

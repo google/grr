@@ -2180,6 +2180,7 @@ message YaraMatch {
   }];
 }
 
+// Next field ID: 5
 message YaraProcessScanMatch {
   optional Process process = 1 [(sem_type) = {
     description: "The process that returned one or more matches.",
@@ -2190,6 +2191,7 @@ message YaraProcessScanMatch {
   optional uint64 scan_time_us = 3 [(sem_type) = {
     description: "Time in microseconds taken to perform the scan.",
   }];
+  reserved 4;
 }
 
 message YaraProcessScanMiss {
@@ -2296,12 +2298,25 @@ message YaraProcessDumpArgs {
   ];
 }
 
+message YaraProcessMemoryRegion {
+  optional uint64 start = 1 [(sem_type) = {
+    description: "Start address of the memory region.",
+  }];
+  optional uint64 size = 2 [(sem_type) = {
+    description: "Size of the memory region in bytes.",
+  }];
+  optional PathSpec file = 3 [(sem_type) = {
+    description: "The file that contains the dumped memory region.",
+  }];
+  optional bool is_executable = 4;
+}
+
 message YaraProcessDumpInformation {
   optional Process process = 1 [(sem_type) = {
     description: "The process that was dumped to disk.",
   }];
   repeated PathSpec dump_files = 2 [(sem_type) = {
-    description: "The files that contain the process image.",
+    description: "Deprecated. Replaced by memory_regions[*].file.",
   }];
   optional string error = 3 [(sem_type) = {
     description: "Errors while dumping will be reported here. Mostly used "
@@ -2309,6 +2324,9 @@ message YaraProcessDumpInformation {
   }];
   optional uint64 dump_time_us = 4 [(sem_type) = {
     description: "Time in microseconds taken to dump the process.",
+  }];
+  repeated YaraProcessMemoryRegion memory_regions = 5 [(sem_type) = {
+    description: "Memory regions that have been dumped.",
   }];
 }
 

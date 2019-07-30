@@ -30,7 +30,7 @@ class MySQLDBClientReportsMixin(object):
         "client_label": client_label,
         "report_type": graph_series.report_type.SerializeToDataStore(),
         "timestamp": mysql_utils.RDFDatetimeToTimestamp(timestamp),
-        "graph_series": graph_series.SerializeToString(),
+        "graph_series": graph_series.SerializeToBytes(),
     }
 
     query = """
@@ -73,7 +73,7 @@ class MySQLDBClientReportsMixin(object):
       timestamp = cast(rdfvalue.RDFDatetime,
                        mysql_utils.TimestampToRDFDatetime(timestamp))
 
-      series = rdf_stats.ClientGraphSeries.FromSerializedString(raw_series)
+      series = rdf_stats.ClientGraphSeries.FromSerializedBytes(raw_series)
       results[timestamp] = series
     return results
 
@@ -97,4 +97,4 @@ class MySQLDBClientReportsMixin(object):
     if result is None:
       return None
     else:
-      return rdf_stats.ClientGraphSeries.FromSerializedString(result[0])
+      return rdf_stats.ClientGraphSeries.FromSerializedBytes(result[0])

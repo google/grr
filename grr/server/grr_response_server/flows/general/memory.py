@@ -12,6 +12,7 @@ from typing import Union
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
@@ -91,6 +92,38 @@ class YaraProcessScan(flow_base.FlowBase):
       self.SendReply(response)
 
 
+def _CanonicalizeLegacyWindowsPathSpec(ps):
+  """Canonicalize simple PathSpecs that might be from Windows legacy clients."""
+  canonicalized = rdf_paths.PathSpec(ps)
+  # Detect a path like C:\\Windows\\System32\\GRR.
+  if ps.path[1:3] == ":\\" and "/" not in ps.path:
+    # Canonicalize the path to /C:/Windows/System32/GRR.
+    canonicalized.path = "/" + "/".join(ps.path.split("\\"))
+  return canonicalized
+
+
+def _MigrateLegacyDumpFilesToMemoryAreas(
+    response):
+  """Migrates a YPDR from dump_files to memory_regions inplace."""
+  for info in response.dumped_processes:
+    for dump_file in info.dump_files:
+      # filename = "%s_%d_%x_%x.tmp" % (process.name, pid, start, end)
+      # process.name can contain underscores. Split exactly 3 _ from the right.
+      path_without_ext, _ = dump_file.Basename().rsplit(".", 1)
+      _, _, start, end = path_without_ext.rsplit("_", 3)
+      start = int(start, 16)
+      end = int(end, 16)
+
+      info.memory_regions.Append(
+          rdf_memory.YaraProcessMemoryRegion(
+              file=_CanonicalizeLegacyWindowsPathSpec(dump_file),
+              start=start,
+              size=end - start,
+          ))
+    # Remove dump_files, since new clients do not set it anymore.
+    info.dump_files = None
+
+
 class DumpProcessMemory(flow_base.FlowBase):
   """Acquires memory for a given list of processes."""
 
@@ -122,6 +155,7 @@ class DumpProcessMemory(flow_base.FlowBase):
       raise flow_base.FlowError(responses.status)
 
     response = responses.First()
+    _MigrateLegacyDumpFilesToMemoryAreas(response)
 
     self.SendReply(response)
 
@@ -134,9 +168,9 @@ class DumpProcessMemory(flow_base.FlowBase):
     for dumped_process in response.dumped_processes:
       p = dumped_process.process
       self.Log("Getting %d dump files for process %s (pid %d)." %
-               (len(dumped_process.dump_files), p.name, p.pid))
-      for pathspec in dumped_process.dump_files:
-        dump_files_to_get.append(pathspec)
+               (len(dumped_process.memory_regions), p.name, p.pid))
+      for region in dumped_process.memory_regions:
+        dump_files_to_get.append(region.file)
 
     if not dump_files_to_get:
       self.Log("No memory dumped, exiting.")

@@ -77,7 +77,8 @@ class HashAction(Action):
                fd):
     result = StatAction(self._action)(stat_entry, fd)
 
-    if stat.S_ISDIR(stat_entry.st_mode):
+    # stat_entry.st_mode has StatMode type.
+    if stat.S_ISDIR(int(stat_entry.st_mode)):
       return result
 
     policy = self._opts.oversized_file_policy
@@ -110,7 +111,8 @@ class DownloadAction(Action):
                fd):
     result = StatAction(self._action)(stat_entry, fd)
 
-    if stat.S_ISDIR(stat_entry.st_mode):
+    # stat_entry.st_mode has StatMode type.
+    if stat.S_ISDIR(int(stat_entry.st_mode)):
       return result
 
     policy = self._opts.oversized_file_policy

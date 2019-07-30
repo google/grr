@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from future.builtins import str
+
 import jinja2
 
 from grr_response_core import config
@@ -83,7 +85,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
       additional_message = ""
 
     subject = self.__class__.subject_template.render(
-        source_urn=utils.SmartUnicode(self.source_urn))
+        source_urn=str(self.source_urn))
     body = self.__class__.template.render(
         client_id=client_id,
         client_fragment_id=client_fragment_id,
@@ -91,15 +93,11 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
         source_urn=self.source_urn,
         additional_message=additional_message,
         signature=config.CONFIG["Email.signature"],
-        hostname=utils.SmartUnicode(hostname),
-        creator=utils.SmartUnicode(self.token.username))
+        hostname=hostname,
+        creator=self.token.username)
 
     email_alerts.EMAIL_ALERTER.SendEmail(
-        self.args.email_address,
-        "grr-noreply",
-        utils.SmartStr(subject),
-        utils.SmartStr(body),
-        is_html=True)
+        self.args.email_address, "grr-noreply", subject, body, is_html=True)
 
   def ProcessResponses(self, state, responses):
     for response in responses:

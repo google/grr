@@ -296,7 +296,8 @@ class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
 
     self._SetupUser(user, password)
 
-    token = base64.b64encode(("%s:%s" % (user, password)).encode("utf-8"))
+    authorization = "{user}:{password}".format(user=user, password=password)
+    token = base64.b64encode(authorization.encode("utf-8")).decode("ascii")
     environ = werkzeug_test.EnvironBuilder(
         path="/foo", headers={
             "Authorization": "Basic %s" % token,
@@ -307,13 +308,13 @@ class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
       del args, kwargs  # Unused.
 
       self.assertEqual(request.user, user)
-      return werkzeug_wrappers.Response("foobar", status=200)
+      return werkzeug_wrappers.Response(b"foobar", status=200)
 
     manager = webauth.BasicWebAuthManager()
     response = manager.SecurityCheck(Handler, request)
 
     self.assertEqual(response.status_code, 200)
-    self.assertEqual(response.get_data(), "foobar")
+    self.assertEqual(response.get_data(), b"foobar")
 
 
 def main(argv):

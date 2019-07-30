@@ -78,7 +78,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
   def testServerPem(self):
     req = requests.get(self.base_url + "server.pem")
     self.assertEqual(req.status_code, 200)
-    self.assertIn("BEGIN CERTIFICATE", req.content)
+    self.assertIn(b"BEGIN CERTIFICATE", req.content)
 
   def _RunClientFileFinder(self,
                            paths,

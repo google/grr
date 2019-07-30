@@ -761,8 +761,8 @@ class ArtifactFilesDownloaderResult(rdf_structs.RDFProtoStruct):
       return rdfvalue.RDFValue.classes.get(self.original_result_type)
 
 
-class ArtifactFilesDownloaderFlow(flow_base.FlowBase,
-                                  transfer.MultiGetFileLogic):
+class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
+                                  flow_base.FlowBase):
   """Flow that downloads files referenced by collected artifacts."""
 
   category = "/Collectors/"

@@ -28,6 +28,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto import objects_pb2
 
@@ -70,9 +71,9 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     self.timestamp = None
 
   @classmethod
-  def FromSerializedString(cls, value, age=None):
+  def FromSerializedBytes(cls, value, age=None):
     res = cls()
-    res.ParseFromString(value)
+    res.ParseFromBytes(value)
     if age:
       res.age = age
     return res
@@ -232,9 +233,9 @@ class HashID(rdfvalue.RDFValue):
     if not self._value:
       if initializer is None:
         initializer = b"\x00" * self.__class__.hash_id_length
-      self.ParseFromString(initializer)
+      self.ParseFromBytes(initializer)
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     if not isinstance(string, (bytes, rdfvalue.RDFBytes)):
       raise TypeError("Expected bytes or RDFBytes but got `%s` instead" %
                       type(string))
@@ -243,15 +244,15 @@ class HashID(rdfvalue.RDFValue):
                        (self.__class__.hash_id_length, len(string)))
 
     if isinstance(string, rdfvalue.RDFBytes):
-      self._value = string.SerializeToString()
+      self._value = string.SerializeToBytes()
     else:
       self._value = string
 
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return self.AsBytes()
 
   @classmethod
@@ -266,13 +267,15 @@ class HashID(rdfvalue.RDFValue):
     return self._value
 
   def AsHexString(self):
-    return binascii.hexlify(self._value)
+    return binascii.hexlify(self._value).decode("ascii")
 
   def AsHashDigest(self):
     return rdfvalue.HashDigest(self._value)
 
   def __repr__(self):
-    return "%s(%s)" % (self.__class__.__name__, repr(self._value.encode("hex")))
+    cls_name = compatibility.GetName(self.__class__)
+    value = binascii.hexlify(self._value).decode("ascii")
+    return "{cls_name}('{value}')".format(cls_name=cls_name, value=value)
 
   def __str__(self):
     return self.__repr__()
@@ -482,8 +485,13 @@ class PathInfo(rdf_structs.RDFProtoStruct):
     if src.HasField("stat_entry"):
       self.stat_entry = src.stat_entry
 
-    self.last_stat_entry_timestamp = max(self.last_stat_entry_timestamp,
-                                         src.last_stat_entry_timestamp)
+    if src.last_stat_entry_timestamp is not None:
+      if self.last_stat_entry_timestamp is not None:
+        self.last_stat_entry_timestamp = max(self.last_stat_entry_timestamp,
+                                             src.last_stat_entry_timestamp)
+      else:
+        self.last_stat_entry_timestamp = src.last_stat_entry_timestamp
+
     self.directory = self.directory or src.directory
 
 

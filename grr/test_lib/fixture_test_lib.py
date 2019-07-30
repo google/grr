@@ -4,6 +4,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
+
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_server import client_fixture
 from grr_response_server import client_index
@@ -47,10 +50,15 @@ class ClientFixture(object):
     data_store.REL_DB.WriteClientMetadata(
         self.client_id, fleetspeak_enabled=False)
 
-    snapshot = rdf_objects.ClientSnapshot.FromSerializedString(
-        SERIALIZED_CLIENT.decode("hex"))
+    snapshot = rdf_objects.ClientSnapshot.FromSerializedBytes(
+        binascii.unhexlify(SERIALIZED_CLIENT))
     snapshot.client_id = self.client_id
     snapshot.knowledge_base.fqdn = "Host%s" % self.client_id
+    # Client version number may affect flows behavior so it's important
+    # to keep it current in order for flows tests to test the most
+    # recent logic.
+    snapshot.startup_info.client_info.client_version = config.CONFIG[
+        "Source.version_numeric"]
 
     data_store.REL_DB.WriteClientSnapshot(snapshot)
     client_index.ClientIndex().AddClient(snapshot)

@@ -62,7 +62,7 @@ class RDFValueTestMixin(object):
     gradually populating fields. The only time you can be sure the user has
     finished creating a proto is when it is serialized. This means strong
     validation that requires all fields populated can't be done in init, but
-    should be done in SerializeToString.
+    should be done in SerializeToBytes.
     """
     self.rdfvalue_class()
 
@@ -77,11 +77,11 @@ class RDFValueTestMixin(object):
       sample = self.GenerateSample()
 
     # Serializing to a string must produce a string.
-    serialized = sample.SerializeToString()
+    serialized = sample.SerializeToBytes()
     self.assertIsInstance(serialized, bytes)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class.FromSerializedString(serialized)
+    rdfvalue_object = self.rdfvalue_class.FromSerializedBytes(serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
     # Serializing to data store must produce something the data store can
@@ -113,8 +113,8 @@ class RDFProtoTestMixin(RDFValueTestMixin):
     sample = self.GenerateSample()
 
     # RDFProto can be initialized from a serialized protobuf.
-    serialized = sample.SerializeToString()
-    rdfvalue_sample = self.rdfvalue_class.FromSerializedString(serialized)
+    serialized = sample.SerializeToBytes()
+    rdfvalue_sample = self.rdfvalue_class.FromSerializedBytes(serialized)
     self.CheckRDFValue(rdfvalue_sample, sample)
 
     # RDFProto can be initialized from another RDFProto.

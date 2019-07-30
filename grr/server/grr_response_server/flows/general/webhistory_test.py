@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import os
 
 from absl import app
+from future.builtins import filter
 from future.builtins import str
 
 from grr_response_client import client_utils
@@ -78,7 +79,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
 
-    components = filter(bool, self.base_path.split(os.path.sep))
+    components = list(filter(bool, self.base_path.split(os.path.sep)))
     components.append("test_img.dd")
     components.extend(filter(bool, fs_path.split(os.path.sep)))
 
@@ -108,14 +109,14 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
 
-    components = filter(bool, self.base_path.split(os.path.sep))
+    components = list(filter(bool, self.base_path.split(os.path.sep)))
     components.append("test_img.dd")
     components.extend(filter(bool, fs_path.split(os.path.sep)))
 
     # Check if the History file is created.
     cp = db.ClientPath.TSK(self.client_id, tuple(components))
     rel_fd = file_store.OpenFile(cp)
-    self.assertEqual(rel_fd.read(15), "SQLite format 3")
+    self.assertEqual(rel_fd.read(15), b"SQLite format 3")
 
     # Check for analysis file.
     results = flow_test_lib.GetFlowResults(self.client_id, session_id)

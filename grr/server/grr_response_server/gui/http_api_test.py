@@ -289,7 +289,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     response = self._RenderResponse(
         self._CreateRequest("GET", "/test_sample/streaming"))
 
-    self.assertEqual(list(response.iter_encoded()), ["foo", "bar", "blah"])
+    self.assertEqual(list(response.iter_encoded()), [b"foo", b"bar", b"blah"])
     self.assertEqual(response.headers["Content-Length"], "1337")
 
   def testBinaryStreamReturnsContentLengthViaHeadMethod(self):

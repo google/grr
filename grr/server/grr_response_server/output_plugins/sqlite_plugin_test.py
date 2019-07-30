@@ -106,7 +106,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertEqual(
         column_types, {
             "string_field": "TEXT",
-            "bytes_field": "TEXT",
+            "bytes_field": "BLOB",
             "uint_field": "INTEGER",
             "int_field": "INTEGER",
             "float_field": "REAL",
@@ -179,7 +179,10 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   def testExportedTableStructureForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
-    sqlite_dump = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix)
+
+    sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
+    sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
+
     # Import the sql dump into an in-memory db.
     with self.db_connection:
       self.db_cursor.executescript(sqlite_dump)
@@ -203,7 +206,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   def testExportedRowsForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
-    sqlite_dump = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix)
+
+    sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
+    sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
 
     # Import the sql dump into an in-memory db.
     with self.db_connection:
@@ -279,10 +284,12 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         rdf_client.Process: [rdf_client.Process(pid=42)]
     })
     with self.db_connection:
-      stat_entry_script = zip_fd.read("%s/ExportedFile_from_StatEntry.sql" %
-                                      prefix)
-      process_script = zip_fd.read("%s/ExportedProcess_from_Process.sql" %
-                                   prefix)
+      stat_entry_script_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
+      stat_entry_script = zip_fd.read(stat_entry_script_path).decode("utf-8")
+
+      process_script_path = "%s/ExportedProcess_from_Process.sql" % prefix
+      process_script = zip_fd.read(process_script_path).decode("utf-8")
+
       self.db_cursor.executescript(stat_entry_script)
       self.db_cursor.executescript(process_script)
 
@@ -324,8 +331,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
          "%s/ExportedFile_from_StatEntry.sql" % prefix})
 
     with self.db_connection:
-      self.db_cursor.executescript(
-          zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix))
+      sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
+      sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
+      self.db_cursor.executescript(sqlite_dump)
 
     self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
     results = self.db_cursor.fetchall()
@@ -345,8 +353,9 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: responses})
     with self.db_connection:
-      self.db_cursor.executescript(
-          zip_fd.read("%s/ExportedFile_from_StatEntry.sql" % prefix))
+      sqlite_dump_path = "%s/ExportedFile_from_StatEntry.sql" % prefix
+      sqlite_dump = zip_fd.read(sqlite_dump_path).decode("utf-8")
+      self.db_cursor.executescript(sqlite_dump)
     self.db_cursor.execute("SELECT urn FROM \"ExportedFile.from_StatEntry\";")
     results = self.db_cursor.fetchall()
     self.assertLen(results, num_rows)

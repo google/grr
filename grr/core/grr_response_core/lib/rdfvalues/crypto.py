@@ -28,7 +28,6 @@ from cryptography.x509 import oid
 
 from future.builtins import str
 from future.utils import python_2_unicode_compatible
-from future.utils import string_types
 from typing import Text
 
 from grr_response_core.lib import config_lib
@@ -73,7 +72,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
       if isinstance(initializer, x509.Certificate):
         self._value = initializer
       elif isinstance(initializer, bytes):
-        self.ParseFromString(initializer)
+        self.ParseFromBytes(initializer)
       else:
         raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                        (self.__class__, initializer))
@@ -102,7 +101,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
   def GetIssuer(self):
     return self._value.issuer
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     try:
       self._value = x509.load_pem_x509_certificate(
           string, backend=openssl.backend)
@@ -113,22 +112,22 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
 
   def ParseFromHumanReadable(self, string):
     precondition.AssertType(string, Text)
-    self.ParseFromString(string.encode("ascii"))
+    self.ParseFromBytes(string.encode("ascii"))
 
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     if self._value is None:
       return b""
     return self._value.public_bytes(encoding=serialization.Encoding.PEM)
 
   def AsPEM(self):
-    return self.SerializeToString()
+    return self.SerializeToBytes()
 
   def __str__(self):
-    return self.SerializeToString().decode("ascii")
+    return self.SerializeToBytes().decode("ascii")
 
   def Verify(self, public_key):
     """Verifies the certificate using the given key.
@@ -206,7 +205,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
             backend=openssl.backend))
 
   def __reduce__(self):
-    return type(self), (self.SerializeToString(), self.age)
+    return type(self), (self.SerializeToBytes(), self.age)
 
 
 @python_2_unicode_compatible
@@ -223,8 +222,8 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
     if self._value is None:
       if isinstance(initializer, x509.CertificateSigningRequest):
         self._value = initializer
-      elif isinstance(initializer, string_types):
-        self.ParseFromString(initializer)
+      elif isinstance(initializer, bytes):
+        self.ParseFromBytes(initializer)
       elif common_name and private_key:
         self._value = x509.CertificateSigningRequestBuilder().subject_name(
             x509.Name(
@@ -237,23 +236,23 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
         raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                        (self.__class__, initializer))
 
-  def ParseFromString(self, csr_as_pem):
+  def ParseFromBytes(self, csr_as_pem):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
 
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     if self._value is None:
       return b""
     return self._value.public_bytes(serialization.Encoding.PEM)
 
   def AsPEM(self):
-    return self.SerializeToString()
+    return self.SerializeToBytes()
 
   def __str__(self):
-    return self.SerializeToString().decode("ascii")
+    return self.SerializeToBytes().decode("ascii")
 
   def GetCN(self):
     subject = self._value.subject
@@ -288,9 +287,9 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       if isinstance(initializer, rsa.RSAPublicKey):
         self._value = initializer
       elif isinstance(initializer, bytes):
-        self.ParseFromString(initializer)
+        self.ParseFromBytes(initializer)
       elif isinstance(initializer, Text):
-        self.ParseFromString(initializer.encode("ascii"))
+        self.ParseFromBytes(initializer.encode("ascii"))
       else:
         raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                        (self.__class__, initializer))
@@ -298,7 +297,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
   def GetRawPublicKey(self):
     return self._value
 
-  def ParseFromString(self, pem_string):
+  def ParseFromBytes(self, pem_string):
     precondition.AssertType(pem_string, bytes)
     try:
       self._value = serialization.load_pem_public_key(
@@ -308,13 +307,13 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
 
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
   def ParseFromHumanReadable(self, string):
     precondition.AssertType(string, Text)
-    self.ParseFromString(string.encode("ascii"))
+    self.ParseFromBytes(string.encode("ascii"))
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     if self._value is None:
       return b""
     return self._value.public_bytes(
@@ -325,10 +324,10 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return self._value.public_numbers().n
 
   def __str__(self):
-    return self.SerializeToString().decode("ascii")
+    return self.SerializeToBytes().decode("ascii")
 
   def AsPEM(self):
-    return self.SerializeToString()
+    return self.SerializeToBytes()
 
   def KeyLen(self):
     if self._value is None:
@@ -386,16 +385,16 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       if isinstance(initializer, rsa.RSAPrivateKey):
         self._value = initializer
       elif isinstance(initializer, bytes):
-        self.ParseFromString(initializer)
+        self.ParseFromBytes(initializer)
       elif isinstance(initializer, Text):
-        self.ParseFromString(initializer.encode("ascii"))
+        self.ParseFromBytes(initializer.encode("ascii"))
       else:
         raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                        (self.__class__, initializer))
 
   def ParseFromHumanReadable(self, string):
     precondition.AssertType(string, Text)
-    self.ParseFromString(string.encode("ascii"))
+    self.ParseFromBytes(string.encode("ascii"))
 
   def GetRawPrivateKey(self):
     return self._value
@@ -436,7 +435,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
         public_exponent=exponent, key_size=bits, backend=openssl.backend)
     return cls(key)
 
-  def ParseFromString(self, pem_string):
+  def ParseFromBytes(self, pem_string):
     precondition.AssertType(pem_string, bytes)
     try:
       self._value = serialization.load_pem_private_key(
@@ -447,18 +446,12 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       if "private key is encrypted" not in str(e):
         raise type_info.TypeValueError("Private key invalid: %s" % e)
 
-      # pylint: disable=g-explicit-bool-comparison, g-equals-none
-
       # The private key is passphrase protected, we need to see if we are
       # allowed to ask the user.
       #
-      # If allow_prompt is False, we are explicitly told that we are not.
-      if self.allow_prompt == False:
-        raise type_info.TypeValueError("Private key invalid: %s" % e)
-
-      # allow_prompt was not set, we use the context we are in to see if it
-      # makes sense to ask.
-      elif self.allow_prompt == None:
+      # In the case where allow_prompt was not set at all, we use the context
+      # we are in to see if it makes sense to ask.
+      if self.allow_prompt is None:
         # TODO(user): dependency loop with
         # core/grr_response_core/grr/config/client.py.
         # pylint: disable=protected-access
@@ -466,7 +459,10 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
           raise type_info.TypeValueError("Private key invalid: %s" % e)
         # pylint: enable=protected-access
 
-        # pylint: enable=g-explicit-bool-comparison, g-equals-none
+      # Otherwise, if allow_prompt is False, we are explicitly told that we are
+      # not supposed to ask the user.
+      elif not self.allow_prompt:
+        raise type_info.TypeValueError("Private key invalid: %s" % e)
 
     try:
       # The private key is encrypted and we can ask the user for the passphrase.
@@ -478,9 +474,9 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
 
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     if self._value is None:
       return b""
     return self._value.private_bytes(
@@ -500,7 +496,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     return "%s (%s)" % (compatibility.GetName(self.__class__), digest)
 
   def AsPEM(self):
-    return self.SerializeToString()
+    return self.SerializeToBytes()
 
   def AsPassphraseProtectedPEM(self, passphrase):
     if self._value is None:
@@ -616,11 +612,11 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
     if initializer is None:
       self._value = b""
     elif isinstance(initializer, bytes):
-      self.ParseFromString(initializer)
+      self.ParseFromBytes(initializer)
     elif isinstance(initializer, EncryptionKey):
       self._value = initializer.RawBytes()
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     precondition.AssertType(string, bytes)
 
     if len(string) % 8:
@@ -655,7 +651,7 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
     precondition.AssertType(hex_string, Text)
     return cls(binascii.unhexlify(hex_string))
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return self._value
 
   @classmethod
@@ -867,7 +863,7 @@ class Password(rdf_structs.RDFProtoStruct):
     self.iteration_count = 100000
 
     # prevent non-descriptive 'key_material must be bytes' error later
-    if isinstance(password, string_types):
+    if isinstance(password, Text):
       password = password.encode("utf-8")
 
     self.hashed_pwd = self._CalculateHash(password, self.salt,
@@ -875,7 +871,7 @@ class Password(rdf_structs.RDFProtoStruct):
 
   def CheckPassword(self, password):
     # prevent non-descriptive 'key_material must be bytes' error later
-    if isinstance(password, string_types):
+    if isinstance(password, Text):
       password = password.encode("utf-8")
 
     h = self._CalculateHash(password, self.salt, self.iteration_count)

@@ -53,7 +53,7 @@ class RDFBytesTest(absltest.TestCase):
     string = u"zażółć gęślą jaźń"
 
     result = rdfvalue.RDFBytes.FromHumanReadable(string)
-    expected = rdfvalue.RDFBytes.FromSerializedString(string.encode("utf-8"))
+    expected = rdfvalue.RDFBytes.FromSerializedBytes(string.encode("utf-8"))
     self.assertEqual(result, expected)
 
 
@@ -331,7 +331,7 @@ class DurationTest(absltest.TestCase):
     for i in [0, 1, 7, 60, 1337, 12345, 123456, 1234567, MAX_UINT64]:
       val = rdfvalue.Duration.From(i, rdfvalue.MICROSECONDS)
       self.assertEqual(
-          rdfvalue.Duration.FromSerializedString(val.SerializeToString()), val)
+          rdfvalue.Duration.FromSerializedBytes(val.SerializeToBytes()), val)
 
   def testHumanReadableStringSerialization(self):
     self.assertEqual("0 us", str(rdfvalue.Duration.From(0, rdfvalue.WEEKS)))
@@ -354,29 +354,29 @@ class DurationTest(absltest.TestCase):
     self.assertEqual("3 d", str(rdfvalue.Duration.From(3, rdfvalue.DAYS)))
     self.assertEqual("3 w", str(rdfvalue.Duration.From(21, rdfvalue.DAYS)))
 
-  def testSerializeToString(self):
+  def testSerializeToBytes(self):
     self.assertEqual(
         b"0",
-        rdfvalue.Duration.From(0, rdfvalue.WEEKS).SerializeToString())
+        rdfvalue.Duration.From(0, rdfvalue.WEEKS).SerializeToBytes())
     self.assertEqual(
         b"1",
-        rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS).SerializeToString())
+        rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS).SerializeToBytes())
     self.assertEqual(
         b"2",
-        rdfvalue.Duration.From(2, rdfvalue.MICROSECONDS).SerializeToString())
+        rdfvalue.Duration.From(2, rdfvalue.MICROSECONDS).SerializeToBytes())
     self.assertEqual(
         b"999",
-        rdfvalue.Duration.From(999, rdfvalue.MICROSECONDS).SerializeToString())
+        rdfvalue.Duration.From(999, rdfvalue.MICROSECONDS).SerializeToBytes())
     self.assertEqual(
         b"1000",
-        rdfvalue.Duration.From(1000, rdfvalue.MICROSECONDS).SerializeToString())
+        rdfvalue.Duration.From(1000, rdfvalue.MICROSECONDS).SerializeToBytes())
     self.assertEqual(
         str(MAX_UINT64).encode("utf-8"),
         rdfvalue.Duration.From(MAX_UINT64,
-                               rdfvalue.MICROSECONDS).SerializeToString())
+                               rdfvalue.MICROSECONDS).SerializeToBytes())
     self.assertEqual(
         b"3000000",
-        rdfvalue.Duration.From(3, rdfvalue.SECONDS).SerializeToString())
+        rdfvalue.Duration.From(3, rdfvalue.SECONDS).SerializeToBytes())
 
   def testAdditionOfDurationsIsEqualToIntegerAddition(self):
     for a in [0, 1, 7, 60, 1337, MAX_UINT64 // 2]:

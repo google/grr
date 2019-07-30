@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
+
 from absl import app
 
 from grr_response_core.lib import rdfvalue
@@ -56,7 +58,7 @@ class InstantOutputPluginWithExportConversionTest(
 
   def ProcessValuesToLines(self, values_by_cls):
     fd_name = self.ProcessValues(values_by_cls)
-    with open(fd_name, "r") as fd:
+    with io.open(fd_name, mode="r", encoding="utf-8") as fd:
       return fd.read().split("\n")
 
   def testWorksCorrectlyWithOneSourceValueAndOneExportedValue(self):

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import logging
 import os
 import time
@@ -47,8 +48,12 @@ def GetMountpoints(data=None):
 
   # Check all the mounted filesystems.
   if data is None:
-    data = "\n".join(
-        [open(x, "rb").read() for x in ["/proc/mounts", "/etc/mtab"]])
+    pieces = []
+    for p in ["/proc/mounts", "/etc/mtab"]:
+      with io.open(p, mode="r", encoding="utf-8") as fd:
+        pieces.append(fd.read())
+
+    data = "\n".join(pieces)
 
   for line in data.splitlines():
     try:
@@ -73,7 +78,6 @@ def GetRawDevice(path):
   """Resolve the raw device that contains the path."""
   device_map = GetMountpoints()
 
-  path = utils.SmartUnicode(path)
   mount_point = path = utils.NormalizePath(path, "/")
 
   result = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -110,9 +114,8 @@ def OpenProcessForMemoryAccess(pid=None):
 
 
 def MemoryRegions(proc, options):
-  for start, length in proc.Regions(
+  return proc.Regions(
       skip_executable_regions=options.skip_executable_regions,
       skip_mapped_files=options.skip_mapped_files,
       skip_readonly_regions=options.skip_readonly_regions,
-      skip_shared_regions=options.skip_shared_regions):
-    yield start, length
+      skip_shared_regions=options.skip_shared_regions)

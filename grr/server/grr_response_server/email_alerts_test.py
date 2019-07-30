@@ -67,7 +67,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
-        self.assertTrue("CC: testcc@%s" % testdomain in message)
+        self.assertIn("CC: testcc@%s" % testdomain, message)
 
         # Multiple unqualified to addresses as DomainEmailAddress, one cc
         to_address = [
@@ -84,7 +84,7 @@ class SendEmailTests(test_lib.GRRBaseTest):
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
-        self.assertTrue("CC: testcc@%s" % testdomain in message)
+        self.assertIn("CC: testcc@%s" % testdomain, message)
 
         # Multiple unqualified to addresses, two cc, message_id set
         to_address = "testto,abc,def"
@@ -104,8 +104,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
-        self.assertTrue(
-            "CC: testcc@%s,testcc2@%s" % (testdomain, testdomain) in message)
+        self.assertIn("CC: testcc@%s,testcc2@%s" % (testdomain, testdomain),
+                      message)
         self.assertTrue("Message-ID: %s" % email_msg_id)
 
       # Multiple address types, two cc
@@ -124,8 +124,8 @@ class SendEmailTests(test_lib.GRRBaseTest):
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]
         self.assertCountEqual(from_address, c_from)
         self.assertCountEqual(to_address_expected, c_to)
-        self.assertTrue(
-            "CC: testcc@%s,testcc2@%s" % (testdomain, testdomain) in message)
+        self.assertIn("CC: testcc@%s,testcc2@%s" % (testdomain, testdomain),
+                      message)
 
 
 def main(argv):

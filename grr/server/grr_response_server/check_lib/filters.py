@@ -8,12 +8,12 @@ import os
 import re
 import stat
 
+from future.builtins import str
 from future.utils import with_metaclass
 
 from grr_response_core.lib import objectfilter
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -209,7 +209,7 @@ class AttrFilter(Filter):
   def ParseObjs(self, objs, expression):
     for key in self._Attrs(expression):
       # Key needs to be a string for rdfvalue.KeyValue
-      key = utils.SmartStr(key)
+      key = str(key)
       for obj in objs:
         val = self._GetVal(obj, key)
         if val:
@@ -348,7 +348,7 @@ class StatFilter(Filter):
     return self.path_re.search(stat_entry.pathspec.path)
 
   def _MatchType(self, stat_entry):
-    return self.file_type(stat_entry.st_mode)
+    return self.file_type(int(stat_entry.st_mode))
 
   def _MatchUid(self, stat_entry):
     for matcher, value in self.uid_matchers:

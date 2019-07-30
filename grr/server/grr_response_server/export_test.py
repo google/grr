@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
 import os
 import socket
 
@@ -349,7 +350,7 @@ class ExportTest(ExportTestBase):
                         self.client_id))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
-    self.assertEqual(results[0].data, "")
+    self.assertEqual(results[0].data, b"")
     self.assertEqual(results[0].type, 0)
 
   def testProcessToExportedProcessConverter(self):
@@ -441,9 +442,12 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[1].ctime, 0)
 
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
+    mac_address_bytes = b"123456"
+    mac_address = binascii.hexlify(mac_address_bytes).decode("utf-8")
+
     client_summary = rdf_client.ClientSummary(interfaces=[
         rdf_client_network.Interface(
-            mac_address=b"123456",
+            mac_address=mac_address_bytes,
             ifname="eth0",
             addresses=[
                 rdf_client_network.NetworkAddress(
@@ -466,14 +470,17 @@ class ExportTest(ExportTestBase):
     results = list(
         converter.Convert(self.metadata, client_summary, token=self.token))
     self.assertLen(results, 1)
-    self.assertEqual(results[0].mac_address, "123456".encode("hex"))
+    self.assertEqual(results[0].mac_address, mac_address)
     self.assertEqual(results[0].ifname, "eth0")
     self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
     self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
 
   def testInterfaceToExportedNetworkInterfaceConverter(self):
+    mac_address_bytes = b"123456"
+    mac_address = binascii.hexlify(mac_address_bytes).decode("utf-8")
+
     interface = rdf_client_network.Interface(
-        mac_address=b"123456",
+        mac_address=mac_address_bytes,
         ifname="eth0",
         addresses=[
             rdf_client_network.NetworkAddress(
@@ -495,7 +502,7 @@ class ExportTest(ExportTestBase):
     results = list(
         converter.Convert(self.metadata, interface, token=self.token))
     self.assertLen(results, 1)
-    self.assertEqual(results[0].mac_address, "123456".encode("hex"))
+    self.assertEqual(results[0].mac_address, mac_address)
     self.assertEqual(results[0].ifname, "eth0")
     self.assertEqual(results[0].ip4_addresses, "127.0.0.1 10.0.0.1")
     self.assertEqual(results[0].ip6_addresses, "2001:720:1500:1::a100")
@@ -657,6 +664,13 @@ class ExportTest(ExportTestBase):
     pathspec2 = rdf_paths.PathSpec(
         path="/some/path2", pathtype=rdf_paths.PathSpec.PathType.OS)
 
+    sha256 = binascii.unhexlify(
+        "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
+    sha1 = binascii.unhexlify("7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    md5 = binascii.unhexlify("bb0a15eefe63fd41f8dc9dee01c5cf9a")
+    pecoff_md5 = binascii.unhexlify("7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    pecoff_sha1 = binascii.unhexlify("7dd6bee591dfcb6d75eb705405302c3eab65e21a")
+
     stat_entry = rdf_client_fs.StatEntry(
         pathspec=pathspec,
         st_mode=33184,
@@ -665,12 +679,18 @@ class ExportTest(ExportTestBase):
         st_mtime=1336129892,
         st_ctime=1336129892)
     hash_entry = rdf_crypto.Hash(
-        sha256=("0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
-                "e4f06017acdb5").decode("hex"),
-        sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
-        md5="bb0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"),
-        pecoff_md5="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
-        pecoff_sha1="7dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
+        sha256=sha256,
+        sha1=sha1,
+        md5=md5,
+        pecoff_md5=pecoff_md5,
+        pecoff_sha1=pecoff_sha1)
+
+    sha256 = binascii.unhexlify(
+        "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
+    sha1 = binascii.unhexlify("6dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    md5 = binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a")
+    pecoff_md5 = binascii.unhexlify("1dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    pecoff_sha1 = binascii.unhexlify("1dd6bee591dfcb6d75eb705405302c3eab65e21a")
 
     stat_entry2 = rdf_client_fs.StatEntry(
         pathspec=pathspec2,
@@ -680,12 +700,11 @@ class ExportTest(ExportTestBase):
         st_mtime=1336129892,
         st_ctime=1336129892)
     hash_entry2 = rdf_crypto.Hash(
-        sha256=("9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
-                "e4f06017acdb5").decode("hex"),
-        sha1="6dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
-        md5="8b0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"),
-        pecoff_md5="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
-        pecoff_sha1="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
+        sha256=sha256,
+        sha1=sha1,
+        md5=md5,
+        pecoff_md5=pecoff_md5,
+        pecoff_sha1=pecoff_sha1)
 
     file_finder_result = rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, hash_entry=hash_entry)
@@ -923,7 +942,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
 
     # Serialize/unserialize to make sure we deal with the object that is
     # similar to what we may get from the datastore.
-    source = rdf_protodict.Dict.FromSerializedString(source.SerializeToString())
+    source = rdf_protodict.Dict.FromSerializedBytes(source.SerializeToBytes())
 
     converted = list(
         self.converter.Convert(self.metadata, source, token=self.token))
@@ -947,8 +966,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
 
       # Serialize/unserialize to make sure we deal with the object that is
       # similar to what we may get from the datastore.
-      source = rdf_protodict.Dict.FromSerializedString(
-          source.SerializeToString())
+      source = rdf_protodict.Dict.FromSerializedBytes(source.SerializeToBytes())
 
       converted = list(
           self.converter.Convert(self.metadata, source, token=self.token))
@@ -970,7 +988,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
 
     # Serialize/unserialize to make sure we deal with the object that is
     # similar to what we may get from the datastore.
-    source = rdf_protodict.Dict.FromSerializedString(source.SerializeToString())
+    source = rdf_protodict.Dict.FromSerializedBytes(source.SerializeToBytes())
 
     converted = list(
         self.converter.Convert(self.metadata, source, token=self.token))
@@ -1000,7 +1018,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
 
     # Serialize/unserialize to make sure we deal with the object that is
     # similar to what we may get from the datastore.
-    source = rdf_protodict.Dict.FromSerializedString(source.SerializeToString())
+    source = rdf_protodict.Dict.FromSerializedBytes(source.SerializeToBytes())
 
     converted = list(
         self.converter.Convert(self.metadata, source, token=self.token))
@@ -1367,8 +1385,8 @@ class DataAgnosticExportConverterTest(ExportTestBase):
         datetime_value=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
     converted_value = self.ConvertOriginalValue(original_value)
 
-    serialized = converted_value.SerializeToString()
-    deserialized = converted_value.__class__.FromSerializedString(serialized)
+    serialized = converted_value.SerializeToBytes()
+    deserialized = converted_value.__class__.FromSerializedBytes(serialized)
 
     self.assertEqual(converted_value, deserialized)
 

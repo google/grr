@@ -147,7 +147,7 @@ class Timeseries(object):
       else:
         if g:
           for v in g:
-            if v < last_value:
+            if last_value is not None and v < last_value:
               raise RuntimeError("Next value must not be smaller.")
             last_value = v
         self.data.append([last_value, offset + start_time])

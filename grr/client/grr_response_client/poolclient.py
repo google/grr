@@ -170,7 +170,7 @@ def CreateClientPool(n):
       # We're base64-encoding ceritificates so that we can use new-lines
       # as separators.
       b64_certs = [
-          base64.b64encode(x.private_key.SerializeToString()) for x in clients
+          base64.b64encode(x.private_key.SerializeToBytes()) for x in clients
       ]
       fd.write("\n".join(b64_certs))
 

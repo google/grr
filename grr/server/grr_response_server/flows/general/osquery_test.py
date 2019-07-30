@@ -83,8 +83,12 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(list(table.Column("size")), ["3", "3"])
 
   def testHash(self):
-    md5 = lambda data: binascii.hexlify(hashlib.md5(data).digest())
-    sha256 = lambda data: binascii.hexlify(hashlib.sha256(data).digest())
+
+    def MD5(data):
+      return binascii.hexlify(hashlib.md5(data).digest()).decode("ascii")
+
+    def SHA256(data):
+      return binascii.hexlify(hashlib.sha256(data).digest()).decode("ascii")
 
     with temp.AutoTempFilePath() as filepath:
       content = b"FOOBARBAZ"
@@ -101,8 +105,8 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       table = results[0].table
       self.assertLen(table.rows, 1)
-      self.assertEqual(list(table.Column("md5")), [md5(content)])
-      self.assertEqual(list(table.Column("sha256")), [sha256(content)])
+      self.assertEqual(list(table.Column("md5")), [MD5(content)])
+      self.assertEqual(list(table.Column("sha256")), [SHA256(content)])
 
   def testMultipleResults(self):
     row_count = 100
@@ -120,7 +124,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       """.format(dirpath)
 
       # Size limit is set so that each chunk should contain 2 rows.
-      with test_lib.ConfigOverrider({"Osquery.max_chunk_size": 6}):
+      with test_lib.ConfigOverrider({"Osquery.max_chunk_size": 10}):
         results = self._RunQuery(query)
 
       # Since each chunk is expected to have 2 rows, number of chunks should be

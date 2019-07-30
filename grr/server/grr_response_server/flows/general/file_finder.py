@@ -404,6 +404,7 @@ class ClientFileFinder(flow_base.FlowBase):
     """Writes file contents of multiple files to the relational database."""
     client_path_blob_refs = dict()
     client_path_path_info = dict()
+    client_path_sizes = dict()
 
     for response in responses:
       path_info = rdf_objects.PathInfo.FromStatEntry(response.stat_entry)
@@ -413,15 +414,18 @@ class ClientFileFinder(flow_base.FlowBase):
 
       client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
       blob_refs = []
+      file_size = 0
       for c in chunks:
         blob_refs.append(
             rdf_objects.BlobReference(
                 offset=c.offset,
                 size=c.length,
                 blob_id=rdf_objects.BlobID.FromBytes(c.digest)))
+        file_size += c.length
 
       client_path_path_info[client_path] = path_info
       client_path_blob_refs[client_path] = blob_refs
+      client_path_sizes[client_path] = file_size
 
     if client_path_blob_refs:
       use_external_stores = self.args.action.download.use_external_stores
@@ -430,6 +434,7 @@ class ClientFileFinder(flow_base.FlowBase):
       for client_path, hash_id in iteritems(client_path_hash_id):
         path_info = client_path_path_info[client_path]
         path_info.hash_entry.sha256 = hash_id.AsBytes()
+        path_info.hash_entry.num_bytes = client_path_sizes[client_path]
 
     path_infos = list(itervalues(client_path_path_info))
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)

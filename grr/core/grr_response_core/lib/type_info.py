@@ -206,7 +206,7 @@ class RDFStructDictType(TypeInfoObject):
     return value
 
   def FromString(self, string):
-    return self.rdfclass.FromSerializedString(string)
+    return self.rdfclass.FromSerializedBytes(string)
 
 
 class TypeDescriptorSet(object):

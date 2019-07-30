@@ -15,6 +15,7 @@ from ctypes import wintypes
 import platform
 
 from grr_response_client import process_error
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 
 kernel32 = windll.kernel32
 
@@ -33,8 +34,10 @@ PROCESS_QUERY_INFORMATION = 0x400
 
 PAGE_READONLY = 2
 PAGE_READWRITE = 4
+PAGE_EXECUTE = 16
 PAGE_EXECUTE_READ = 32
 PAGE_EXECUTE_READWRITE = 64
+PAGE_EXECUTE_WRITECOPY = 128
 PAGE_GUARD = 256
 PAGE_NOCACHE = 512
 PAGE_WRITECOMBINE = 1024
@@ -169,7 +172,8 @@ class Process(object):
       raise process_error.ProcessError("Error VirtualQueryEx: 0x%08X" % address)
     return mbi
 
-  def Regions(self, skip_special_regions=False):
+  def Regions(self, skip_special_regions=False, skip_executable_regions=False):
+    """Returns an iterator over the readable regions for this process."""
     offset = self.min_addr
 
     while True:
@@ -180,17 +184,26 @@ class Process(object):
       chunk = mbi.RegionSize
       protect = mbi.Protect
       state = mbi.State
-      if state & MEM_FREE or state & MEM_RESERVE:
-        offset += chunk
-        continue
-      if (skip_special_regions and
-          (protect & PAGE_NOCACHE or protect & PAGE_WRITECOMBINE or
-           protect & PAGE_GUARD)):
-        offset += chunk
+
+      region = rdf_memory.YaraProcessMemoryRegion(
+          start=offset,
+          size=mbi.RegionSize,
+          is_executable=bool(protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ
+                                        | PAGE_EXECUTE_READWRITE
+                                        | PAGE_EXECUTE_WRITECOPY)))
+
+      is_special = (
+          protect & PAGE_NOCACHE or protect & PAGE_WRITECOMBINE or
+          protect & PAGE_GUARD)
+
+      offset += chunk
+
+      if (state & MEM_FREE or state & MEM_RESERVE or
+          (skip_special_regions and is_special) or
+          (skip_executable_regions and region.is_executable)):
         continue
 
-      yield offset, chunk
-      offset += chunk
+      yield region
 
   def ReadBytes(self, address, num_bytes):
     """Reads at most num_bytes starting from offset <address>."""
@@ -200,7 +213,7 @@ class Process(object):
     res = ReadProcessMemory(self.h_process, address, buf, num_bytes,
                             ctypes.byref(bytesread))
     if res == 0:
-      err = wintypes.GetLastError()
+      err = ctypes.GetLastError()
       if err == 299:
         # Only part of ReadProcessMemory has been done, let's return it.
         return buf.raw[:bytesread.value]

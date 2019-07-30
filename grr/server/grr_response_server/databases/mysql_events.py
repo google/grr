@@ -10,7 +10,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def _AuditEntryFromRow(details, timestamp):
-  entry = rdf_objects.APIAuditEntry.FromSerializedString(details)
+  entry = rdf_objects.APIAuditEntry.FromSerializedBytes(details)
   entry.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
   return entry
 
@@ -116,7 +116,7 @@ class MySQLDBEventMixin(object):
         "router_method_name":
             entry.router_method_name,
         "details":
-            entry.SerializeToString(),
+            entry.SerializeToBytes(),
         "timestamp":
             mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now()),
     }

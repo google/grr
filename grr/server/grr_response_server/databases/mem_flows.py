@@ -525,7 +525,7 @@ class InMemoryDBFlowMixin(object):
       # TODO(user): change mem-db implementation to do
       # serialization/deserialization everywhere in a generic way.
       responses = [
-          r.__class__.FromSerializedString(r.SerializeToString())
+          r.__class__.FromSerializedBytes(r.SerializeToBytes())
           for r in responses
       ]
       res[request_id] = (request, responses)
@@ -718,7 +718,7 @@ class InMemoryDBFlowMixin(object):
       cls_name = compatibility.GetName(r.payload.__class__)
       if cls_name not in rdfvalue.RDFValue.classes:
         r.payload = rdf_objects.SerializedValueOfUnrecognizedType(
-            type_name=cls_name, value=r.payload.SerializeToString())
+            type_name=cls_name, value=r.payload.SerializeToBytes())
 
     if with_tag is not None:
       results = [i for i in results if i.tag == with_tag]
@@ -733,7 +733,7 @@ class InMemoryDBFlowMixin(object):
       encoded_substring = with_substring.encode("utf8")
       results = [
           i for i in results
-          if encoded_substring in i.payload.SerializeToString()
+          if encoded_substring in i.payload.SerializeToBytes()
       ]
 
     return results[offset:offset + count]

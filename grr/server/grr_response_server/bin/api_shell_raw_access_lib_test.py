@@ -39,7 +39,7 @@ class RawConnectorTest(test_lib.GRRBaseTest):
         client_id=client_id, file_path="fs/tsk/c/bin/rbash")
     out = io.BytesIO()
     self.connector.SendStreamingRequest("GetFileBlob", args).WriteToStream(out)
-    self.assertEqual(out.getvalue(), "Hello world")
+    self.assertEqual(out.getvalue(), b"Hello world")
 
   def testCorrectlyCallsRootGeneralMethod(self):
     acl_test_lib.CreateUser(self.token.username)

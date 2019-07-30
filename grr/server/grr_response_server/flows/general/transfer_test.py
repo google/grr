@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
+import io
 import os
 import platform
 import unittest
@@ -19,6 +20,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
@@ -173,6 +175,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "TEST_IMG.dd"))
+    expected_size = os.path.getsize(os.path.join(self.base_path, "test_img.dd"))
 
     session_id = flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
@@ -200,8 +203,24 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id, cp.path_type,
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
+    self.assertEqual(history[-1].hash_entry.num_bytes, expected_size)
     self.assertIsNone(history[-1].hash_entry.sha1)
     self.assertIsNone(history[-1].hash_entry.md5)
+
+  def testGetFileIsDirectory(self):
+    """Tests that the flow raises when called on directory."""
+    client_mock = action_mocks.GetFileClientMock()
+    with temp.AutoTempDirPath() as temp_dir:
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.OS, path=temp_dir)
+
+      with self.assertRaises(RuntimeError):
+        flow_test_lib.TestFlowHelper(
+            transfer.GetFile.__name__,
+            client_mock,
+            token=self.token,
+            client_id=self.client_id,
+            pathspec=pathspec)
 
 
 class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
@@ -269,13 +288,14 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
     fd_rel_db = file_store.OpenFile(cp)
     self.assertEqual(fd_rel_db.size, len(data))
-    self.assertMultiLineEqual(fd_rel_db.read(), data)
+    self.assertEqual(fd_rel_db.read(), data)
 
     # Check that SHA256 hash of the file matches the contents
     # hash and that MD5 and SHA1 are set.
     history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id, cp.path_type,
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
+    self.assertEqual(history[-1].hash_entry.num_bytes, len(data))
     self.assertIsNotNone(history[-1].hash_entry.sha1)
     self.assertIsNotNone(history[-1].hash_entry.md5)
 
@@ -286,6 +306,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
+    expected_size = os.path.getsize(pathspec.path)
 
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
     with test_lib.Instrument(transfer.MultiGetFile,
@@ -315,6 +336,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id, cp.path_type,
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
+    self.assertEqual(history[-1].hash_entry.num_bytes, expected_size)
     self.assertIsNotNone(history[-1].hash_entry.sha1)
     self.assertIsNotNone(history[-1].hash_entry.md5)
 
@@ -326,8 +348,8 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     # Make 30 files to download.
     for i in range(30):
       path = os.path.join(self.temp_dir, "test_%s.txt" % i)
-      with open(path, "wb") as fd:
-        fd.write("Hello")
+      with io.open(path, "wb") as fd:
+        fd.write(b"Hello")
 
       pathspecs.append(
           rdf_paths.PathSpec(
@@ -346,7 +368,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     for pathspec in pathspecs:
       cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
       fd_rel_db = file_store.OpenFile(cp)
-      self.assertEqual("Hello", fd_rel_db.read())
+      self.assertEqual(b"Hello", fd_rel_db.read())
 
       # Check that SHA256 hash of the file matches the contents
       # hash and that MD5 and SHA1 are set.
@@ -355,6 +377,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                                                       cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
+      self.assertEqual(history[-1].hash_entry.num_bytes, 5)
       self.assertIsNotNone(history[-1].hash_entry.sha1)
       self.assertIsNotNone(history[-1].hash_entry.md5)
 
@@ -365,8 +388,8 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     # Make 10 files to download.
     for i in range(10):
       path = os.path.join(self.temp_dir, "test_%s.txt" % i)
-      with open(path, "wb") as fd:
-        fd.write("Hello")
+      with io.open(path, "wb") as fd:
+        fd.write(b"Hello")
 
       pathspecs.append(
           rdf_paths.PathSpec(
@@ -390,7 +413,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       # Check that each referenced file can be read.
       cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
       fd_rel_db = file_store.OpenFile(cp)
-      self.assertEqual("Hello", fd_rel_db.read())
+      self.assertEqual(b"Hello", fd_rel_db.read())
 
       # Check that SHA256 hash of the file matches the contents
       # hash and that MD5 and SHA1 are set.
@@ -399,6 +422,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                                                       cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
+      self.assertEqual(history[-1].hash_entry.num_bytes, 5)
       self.assertIsNotNone(history[-1].hash_entry.sha1)
       self.assertIsNotNone(history[-1].hash_entry.md5)
 
@@ -411,11 +435,11 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     # already have two.
     chunk_size = transfer.MultiGetFile.CHUNK_SIZE
     for data in [
-        "A" * chunk_size + "B" * chunk_size + "C" * 100,
-        "A" * chunk_size + "X" * chunk_size + "C" * 100
+        b"A" * chunk_size + b"B" * chunk_size + b"C" * 100,
+        b"A" * chunk_size + b"X" * chunk_size + b"C" * 100
     ]:
       path = os.path.join(self.temp_dir, "test.txt")
-      with open(path, "wb") as fd:
+      with io.open(path, "wb") as fd:
         fd.write(data)
 
       pathspec = rdf_paths.PathSpec(
@@ -441,6 +465,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
                                                       cp.components)
       self.assertEqual(history[-1].hash_entry.sha256,
                        fd_rel_db.hash_id.AsBytes())
+      self.assertEqual(history[-1].hash_entry.num_bytes, len(data))
       self.assertIsNotNone(history[-1].hash_entry.sha1)
       self.assertIsNotNone(history[-1].hash_entry.md5)
 
@@ -452,6 +477,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
+    expected_size = os.path.getsize(pathspec.path)
 
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
     flow_test_lib.TestFlowHelper(
@@ -462,7 +488,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         args=args)
 
     h = hashlib.sha256()
-    with open(os.path.join(self.base_path, "test_img.dd"), "rb") as model_fd:
+    with io.open(os.path.join(self.base_path, "test_img.dd"), "rb") as model_fd:
       h.update(model_fd.read())
 
     cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
@@ -474,6 +500,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id, cp.path_type,
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
+    self.assertEqual(history[-1].hash_entry.num_bytes, expected_size)
     self.assertIsNotNone(history[-1].hash_entry.sha1)
     self.assertIsNotNone(history[-1].hash_entry.md5)
 
@@ -513,6 +540,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     history = data_store.REL_DB.ReadPathInfoHistory(cp.client_id, cp.path_type,
                                                     cp.components)
     self.assertEqual(history[-1].hash_entry.sha256, fd_rel_db.hash_id.AsBytes())
+    self.assertEqual(history[-1].hash_entry.num_bytes, expected_size)
     self.assertIsNotNone(history[-1].hash_entry.sha1)
     self.assertIsNotNone(history[-1].hash_entry.md5)
 

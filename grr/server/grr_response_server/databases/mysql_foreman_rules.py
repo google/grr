@@ -22,7 +22,7 @@ class MySQLDBForemanRulesMixin(object):
              "  expiration_time=FROM_UNIXTIME(%s), rule=%s")
 
     exp_str = mysql_utils.RDFDatetimeToTimestamp(rule.expiration_time),
-    rule_str = rule.SerializeToString()
+    rule_str = rule.SerializeToBytes()
     cursor.execute(query, [rule.hunt_id, exp_str, rule_str, exp_str, rule_str])
 
   @mysql_utils.WithTransaction()
@@ -35,7 +35,7 @@ class MySQLDBForemanRulesMixin(object):
     cursor.execute("SELECT rule FROM foreman_rules")
     res = []
     for rule, in cursor.fetchall():
-      res.append(foreman_rules.ForemanCondition.FromSerializedString(rule))
+      res.append(foreman_rules.ForemanCondition.FromSerializedBytes(rule))
     return res
 
   @mysql_utils.WithTransaction()

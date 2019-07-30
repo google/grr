@@ -34,7 +34,6 @@ from werkzeug import wsgi as werkzeug_wsgi
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import server_logging
@@ -244,7 +243,7 @@ class AdminUIApp(object):
         "help_url":
             config.CONFIG["AdminUI.help_url"],
         "timestamp":
-            utils.SmartStr(create_time),
+            "%.2f" % create_time,
         "use_precompiled_js":
             config.CONFIG["AdminUI.use_precompiled_js"],
         # Used in conjunction with FirebaseWebAuthManager.

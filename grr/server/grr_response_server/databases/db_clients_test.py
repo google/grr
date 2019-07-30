@@ -1295,7 +1295,7 @@ class DatabaseTestClientsMixin(object):
 
     full_infos = d.MultiReadClientFullInfo(
         [present_client_id, missing_client_id])
-    self.assertEqual(full_infos.keys(), [present_client_id])
+    self.assertEqual(list(iterkeys(full_infos)), [present_client_id])
 
   def testMultiReadClientsFullInfoNoSnapshot(self):
     d = self.db
@@ -1380,14 +1380,12 @@ class DatabaseTestClientsMixin(object):
   def testReadClientStatsReturnsOrderedList(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    for _ in range(10):
-      self.db.WriteClientStats(client_id, rdf_client_stats.ClientStats())
+    sorted_stats = [rdf_client_stats.ClientStats(RSS_size=i) for i in range(10)]
 
-    stats = self.db.ReadClientStats(
-        client_id=client_id,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
-    stats_sorted = list(sorted(stats, key=lambda st: st.create_time))
-    self.assertEqual(stats, stats_sorted)
+    for stats in sorted_stats:
+      self.db.WriteClientStats(client_id, stats)
+
+    self.assertEqual(self.db.ReadClientStats(client_id=client_id), sorted_stats)
 
   def testReadClientStatsAfterRetention(self):
     now = self._SetupClientStats()

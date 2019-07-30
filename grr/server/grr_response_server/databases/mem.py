@@ -149,4 +149,4 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     """
     precondition.AssertType(obj, rdfvalue.RDFValue)
 
-    return obj.__class__.FromSerializedString(obj.SerializeToString())
+    return obj.__class__.FromSerializedBytes(obj.SerializeToBytes())

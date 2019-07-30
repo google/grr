@@ -136,7 +136,7 @@ class DownloadAction(Action):
       raise ValueError("Unknown oversized file policy: %s" % policy)
 
   def _UploadFilePath(self, filepath, truncate=False):
-    max_size = self.opts.max_size if truncate else None
+    max_size = self.opts.max_size
     chunk_size = self.opts.chunk_size
 
     uploader = uploading.TransferStoreUploader(self.flow, chunk_size=chunk_size)

@@ -158,7 +158,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
 
     self.assertEqual(results[0].matches[0].offset, 15)
     self.assertEqual(results[0].matches[0].data,
-                     "ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
+                     b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
     self.assertEqual(
         results[0].stat_entry.pathspec.CollapsePath(),

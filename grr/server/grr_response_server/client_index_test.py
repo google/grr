@@ -5,6 +5,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
+
 from absl import app
 from future.builtins import range
 from future.utils import iteritems
@@ -80,7 +82,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
       client.interfaces = [
           rdf_client_network.Interface(
               addresses=[ipv4_addr, ipv6_addr],
-              mac_address=("aabbccddee0%d" % i).decode("hex"))
+              mac_address=binascii.unhexlify("aabbccddee0%d" % i))
       ]
       res[client_id] = client
     return res
@@ -149,7 +151,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     self.assertEmpty(index.LookupClients([".", "start_date:XXX"]))
 
   def testRemoveLabels(self):
-    client_id = next(iterkeys(self._SetupClients(1)))
+    client_id = next(iter(iterkeys(self._SetupClients(1))))
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(client_id, "owner",
                                       ["testlabel_1", "testlabel_2"])

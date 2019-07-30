@@ -70,6 +70,7 @@ def main(argv):
   config.CONFIG.Set("Frontend.bind_address", "127.0.0.1")
   config.CONFIG.Set("Frontend.bind_port", frontend_port)
   config.CONFIG.Set("Server.initialized", True)
+  config.CONFIG.Set("Cron.active", False)
   config.CONFIG.Set("Client.poll_max", 1)
   config.CONFIG.Set("Client.server_urls",
                     ["http://localhost:%d/" % frontend_port])

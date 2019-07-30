@@ -7,6 +7,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import functools
+import operator
+
 from future.builtins import map
 from future.builtins import range
 from future.utils import iteritems
@@ -97,15 +100,8 @@ class ClientIndex(object):
         list(map(self._NormalizeKeyword, filtered_keywords)),
         start_time=start_time)
 
-    results = itervalues(keyword_map)
-    relevant_set = set(next(results))
-
-    for hits in results:
-      relevant_set &= set(hits)
-
-      if not relevant_set:
-        return []
-
+    relevant_set = functools.reduce(operator.and_,
+                                    map(set, itervalues(keyword_map)))
     return sorted(relevant_set)
 
   def ReadClientPostingLists(self, keywords):

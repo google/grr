@@ -168,7 +168,7 @@ class _ActiveCounter(object):
         self.categories[active_time][label][
             category] = self.categories[active_time][label].get(category, 0) + 1
 
-  def Save(self, token=None):
+  def Save(self):
     """Generate a histogram object and store in the specified attribute."""
     graph_series_by_label = {}
     for active_time in self.active_days:
@@ -182,7 +182,7 @@ class _ActiveCounter(object):
         graphs_for_label.graphs.Append(graph)
 
     for label, graph_series in iteritems(graph_series_by_label):
-      client_report_utils.WriteGraphSeries(graph_series, label, token=token)
+      client_report_utils.WriteGraphSeries(graph_series, label)
 
 
 _CLIENT_READ_BATCH_SIZE = 50000

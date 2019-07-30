@@ -9,16 +9,17 @@ import io
 import os
 import zipfile
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 import sqlite3
-import yaml
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util.compat import yaml
 from grr_response_server import instant_output_plugin
 
 
@@ -31,14 +32,20 @@ class Rdf2SqliteAdapter(object):
       self.sqlite_type = sqlite_type
       self.convert_fn = convert_fn
 
-  # PySQLite prefers dealing with unicode objects.
-  DEFAULT_CONVERTER = Converter("TEXT", utils.SmartUnicode)
+  BYTES_CONVERTER = Converter("BLOB", bytes)
+  STR_CONVERTER = Converter("TEXT", str)
+
+  DEFAULT_CONVERTER = STR_CONVERTER
 
   INT_CONVERTER = Converter("INTEGER", int)
 
   # Converters for fields that have a semantic type annotation in their
   # protobuf definition.
   SEMANTIC_CONVERTERS = {
+      rdfvalue.RDFString:
+          STR_CONVERTER,
+      rdfvalue.RDFBytes:
+          BYTES_CONVERTER,
       rdfvalue.RDFInteger:
           INT_CONVERTER,
       rdfvalue.RDFBool:
@@ -54,6 +61,9 @@ class Rdf2SqliteAdapter(object):
   # Converters for fields that do not have a semantic type annotation in their
   # protobuf definition.
   NON_SEMANTIC_CONVERTERS = {
+      rdf_structs.ProtoBinary: BYTES_CONVERTER,
+      rdf_structs.ProtoString: STR_CONVERTER,
+      rdf_structs.ProtoEnum: STR_CONVERTER,
       rdf_structs.ProtoUnsignedInteger: INT_CONVERTER,
       rdf_structs.ProtoSignedInteger: INT_CONVERTER,
       rdf_structs.ProtoFixed32: INT_CONVERTER,
@@ -165,7 +175,7 @@ class SqliteInstantOutputPlugin(
             self._GetSqliteSchema(
                 type_info.type, prefix="%s%s." % (prefix, type_info.name)))
       else:
-        field_name = utils.SmartStr(prefix + type_info.name)
+        field_name = prefix + type_info.name
         schema[field_name] = Rdf2SqliteAdapter.GetConverter(type_info)
     return schema
 
@@ -206,9 +216,10 @@ class SqliteInstantOutputPlugin(
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}
+    manifest_bytes = yaml.Dump(manifest).encode("utf-8")
 
     header = self.path_prefix + "/MANIFEST"
-    yield self.archive_generator.WriteFileHeader(header.encode("utf-8"))
-    yield self.archive_generator.WriteFileChunk(yaml.safe_dump(manifest))
+    yield self.archive_generator.WriteFileHeader(header)
+    yield self.archive_generator.WriteFileChunk(manifest_bytes)
     yield self.archive_generator.WriteFileFooter()
     yield self.archive_generator.Close()

@@ -8,6 +8,7 @@ import ctypes
 import logging
 import os
 import re
+import sys
 import time
 
 from future.builtins import range
@@ -312,7 +313,10 @@ class Kernel32(object):
       #
       # [1]: https://bugs.python.org/issue29082
       # [2]: https://bugs.python.org/issue29294
-      Kernel32._kernel32 = ctypes.windll.LoadLibrary(b"Kernel32.dll")
+      if sys.version_info[0:3] == (2, 7, 13):
+        Kernel32._kernel32 = ctypes.windll.LoadLibrary(b"Kernel32.dll")
+      else:
+        Kernel32._kernel32 = ctypes.windll.LoadLibrary("Kernel32.dll")
 
   @property
   def kernel32(self):
@@ -331,7 +335,7 @@ class TransactionLog(object):
     Args:
       grr_message: A GrrMessage instance.
     """
-    grr_message = grr_message.SerializeToString()
+    grr_message = grr_message.SerializeToBytes()
     try:
       winreg.SetValueEx(_GetServiceKey(), "Transaction", 0, winreg.REG_BINARY,
                         grr_message)
@@ -363,7 +367,7 @@ class TransactionLog(object):
       return
 
     try:
-      return rdf_flows.GrrMessage.FromSerializedString(value)
+      return rdf_flows.GrrMessage.FromSerializedBytes(value)
     except message.Error:
       return
 
@@ -460,6 +464,6 @@ def OpenProcessForMemoryAccess(pid=None):
 
 
 def MemoryRegions(proc, options):
-  for start, length in proc.Regions(
-      skip_special_regions=options.skip_special_regions):
-    yield start, length
+  return proc.Regions(
+      skip_special_regions=options.skip_special_regions,
+      skip_executable_regions=options.skip_executable_regions)

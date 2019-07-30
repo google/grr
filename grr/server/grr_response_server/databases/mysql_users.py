@@ -68,7 +68,7 @@ class MySQLDBUsersMixin(object):
     values = {"username": username, "username_hash": mysql_utils.Hash(username)}
 
     if password is not None:
-      values["password"] = password.SerializeToString()
+      values["password"] = password.SerializeToBytes()
     if ui_mode is not None:
       values["ui_mode"] = int(ui_mode)
     if canary_mode is not None:
@@ -98,7 +98,7 @@ class MySQLDBUsersMixin(object):
         user_type=user_type)
 
     if password:
-      result.password.ParseFromString(password)
+      result.password.ParseFromBytes(password)
 
     return result
 
@@ -161,7 +161,7 @@ class MySQLDBUsersMixin(object):
         "subject_id": approval_request.subject_id,
         "approval_id": approval_id_int,
         "expiration_time": mysql_utils.RDFDatetimeToTimestamp(expiry_time),
-        "approval_request": approval_request.SerializeToString()
+        "approval_request": approval_request.SerializeToBytes()
     }
     query = """
     INSERT INTO approval_request (username_hash, approval_type,
@@ -293,12 +293,9 @@ class MySQLDBUsersMixin(object):
     """Writes a notification for a given user."""
     # Copy the notification to ensure we don't modify the source object.
     args = {
-        "username_hash":
-            mysql_utils.Hash(notification.username),
-        "notification_state":
-            int(notification.state),
-        "notification":
-            notification.SerializeToString(),
+        "username_hash": mysql_utils.Hash(notification.username),
+        "notification_state": int(notification.state),
+        "notification": notification.SerializeToBytes(),
     }
     query = "INSERT INTO user_notification {columns} VALUES {values}".format(
         columns=mysql_utils.Columns(args),
@@ -343,7 +340,7 @@ class MySQLDBUsersMixin(object):
     cursor.execute(query, args)
 
     for timestamp, state, notification_ser in cursor.fetchall():
-      n = rdf_objects.UserNotification.FromSerializedString(notification_ser)
+      n = rdf_objects.UserNotification.FromSerializedBytes(notification_ser)
       n.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       n.state = state
       ret.append(n)

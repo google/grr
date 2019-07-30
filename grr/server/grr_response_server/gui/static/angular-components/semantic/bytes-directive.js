@@ -112,4 +112,4 @@ exports.BytesDirective.directive_name = 'grrBytes';
  * @const
  * @export
  */
-exports.BytesDirective.semantic_types = ['RDFBytes', 'str'];
+exports.BytesDirective.semantic_types = ['RDFBytes', 'bytes'];

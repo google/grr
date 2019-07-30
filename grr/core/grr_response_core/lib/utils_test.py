@@ -5,7 +5,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import threading
+import zipfile
 
 from absl import app
 from absl.testing import absltest
@@ -363,6 +365,82 @@ class RunOnceTest(absltest.TestCase):
     mock_fn.__name__ = compatibility.NativeStr("MockFunction")
     fn = utils.RunOnce(mock_fn)
     self.assertEqual(fn.__name__, compatibility.NativeStr("MockFunction"))
+
+
+class StreamingZipGeneratorTest(absltest.TestCase):
+
+  def testSingleFile(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    output.write(archiver.WriteFileHeader("foo"))
+    output.write(archiver.WriteFileChunk(b"bar"))
+    output.write(archiver.WriteFileChunk(b"baz"))
+    output.write(archiver.WriteFileFooter())
+
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), b"barbaz")
+
+  def testMultipleFiles(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    output.write(archiver.WriteFileHeader("foo"))
+    output.write(archiver.WriteFileChunk(b"quux"))
+    output.write(archiver.WriteFileFooter())
+
+    output.write(archiver.WriteFileHeader("bar"))
+    output.write(archiver.WriteFileChunk(b"norf"))
+    output.write(archiver.WriteFileFooter())
+
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), b"quux")
+      self.assertEqual(zipdesc.read("bar"), b"norf")
+
+  def testHierarchy(self):
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    output.write(archiver.WriteFileHeader("foo/bar/baz"))
+    output.write(archiver.WriteFileChunk(b"quux"))
+    output.write(archiver.WriteFileFooter())
+
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo/bar/baz"), b"quux")
+
+  def testCompression(self):
+    archiver = utils.StreamingZipGenerator(zipfile.ZIP_DEFLATED)
+    output = io.BytesIO()
+
+    output.write(archiver.WriteFileHeader("foo"))
+    output.write(archiver.WriteFileChunk(b"quux"))
+    output.write(archiver.WriteFileChunk(b"norf"))
+    output.write(archiver.WriteFileFooter())
+
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("foo"), b"quuxnorf")
+
+  def testWriteFromFD(self):
+    filedesc = io.BytesIO(b"foobarbaz" * 1024 * 1024)
+
+    archiver = utils.StreamingZipGenerator()
+    output = io.BytesIO()
+
+    for chunk in archiver.WriteFromFD(filedesc, "quux"):
+      output.write(chunk)
+
+    output.write(archiver.Close())
+
+    with zipfile.ZipFile(output, mode="r") as zipdesc:
+      self.assertEqual(zipdesc.read("quux"), filedesc.getvalue())
 
 
 def main(argv):

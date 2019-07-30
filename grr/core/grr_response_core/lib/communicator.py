@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import logging
 import struct
 import time
 import zlib
@@ -29,6 +30,7 @@ def GetMetricMetadata():
       stats_utils.CreateCounterMetadata("grr_client_unknown"),
       stats_utils.CreateCounterMetadata("grr_decoding_error"),
       stats_utils.CreateCounterMetadata("grr_decryption_error"),
+      stats_utils.CreateCounterMetadata("grr_legacy_client_decryption_error"),
       stats_utils.CreateCounterMetadata("grr_authenticated_messages"),
       stats_utils.CreateCounterMetadata("grr_unauthenticated_messages"),
       stats_utils.CreateCounterMetadata("grr_rsa_operations"),
@@ -50,6 +52,11 @@ class DecodingError(Error):
 class DecryptionError(DecodingError):
   """Raised when the message can not be decrypted properly."""
   counter = "grr_decryption_error"
+
+
+class LegacyClientDecryptionError(DecryptionError):
+  """Raised when old clients' messages cannot be decrypted."""
+  counter = "grr_legacy_client_decryption_error"
 
 
 class UnknownClientCertError(DecodingError):
@@ -83,7 +90,7 @@ class Cipher(object):
         hmac_key=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
         hmac_type="FULL_HMAC")
 
-    serialized_cipher = self.cipher.SerializeToString()
+    serialized_cipher = self.cipher.SerializeToBytes()
 
     self.cipher_metadata = rdf_flows.CipherMetadata(source=source)
 
@@ -96,7 +103,7 @@ class Cipher(object):
 
     # Encrypt the metadata block symmetrically.
     _, self.encrypted_cipher_metadata = self.Encrypt(
-        self.cipher_metadata.SerializeToString(), self.cipher.metadata_iv)
+        self.cipher_metadata.SerializeToBytes(), self.cipher.metadata_iv)
 
   def Encrypt(self, data, iv=None):
     """Symmetrically encrypt the data using the optional iv."""
@@ -142,7 +149,7 @@ class ReceivedCipher(Cipher):
           response_comms.encrypted_cipher)
 
       # If we get here we have the session keys.
-      self.cipher = rdf_flows.CipherProperties.FromSerializedString(
+      self.cipher = rdf_flows.CipherProperties.FromSerializedBytes(
           self.serialized_cipher)
 
       # Check the key lengths.
@@ -159,11 +166,21 @@ class ReceivedCipher(Cipher):
       # encrypted payload.
       serialized_metadata = self.Decrypt(
           response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv)
-      self.cipher_metadata = rdf_flows.CipherMetadata.FromSerializedString(
+      self.cipher_metadata = rdf_flows.CipherMetadata.FromSerializedBytes(
           serialized_metadata)
 
     except (rdf_crypto.InvalidSignature, rdf_crypto.CipherError) as e:
-      raise DecryptionError(e)
+      if "Ciphertext length must be equal to key size" in str(e):
+        logging.warning(e)  # Print original stack trace for investigation.
+        logging.warning("Error for HTTP request %s",
+                        response_comms.orig_request)
+        # Also log ClientCommunication object, but strip out huge payload.
+        comms_info = rdf_flows.ClientCommunication(response_comms)
+        comms_info.encrypted = None
+        logging.warning("Error for ClientCommunication %s", comms_info)
+        raise LegacyClientDecryptionError(e)
+      else:
+        raise DecryptionError(e)
 
   def GetSource(self):
     return self.cipher_metadata.source
@@ -224,7 +241,7 @@ class ReceivedCipher(Cipher):
       msg = b"".join([
           comms.encrypted, comms.encrypted_cipher,
           comms.encrypted_cipher_metadata,
-          comms.packet_iv.SerializeToString(),
+          comms.packet_iv.SerializeToBytes(),
           struct.pack("<I", comms.api_version)
       ])
       digest = comms.full_hmac
@@ -289,7 +306,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
   def EncodeMessageList(cls, message_list, packed_message_list):
     """Encode the MessageList into the packed_message_list rdfvalue."""
     # By default uncompress
-    uncompressed_data = message_list.SerializeToString()
+    uncompressed_data = message_list.SerializeToBytes()
     packed_message_list.message_list = uncompressed_data
 
     compressed_data = zlib.compress(uncompressed_data)
@@ -352,7 +369,6 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     # server. This should be different methods, not a single one that
     # gets passed a destination (server side) or not (client side).
     if destination is None:
-      destination = self.server_name
       # For the client it makes sense to cache the server cipher since
       # it's the only cipher it ever uses.
       cipher = self._GetServerCipher()
@@ -372,7 +388,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     # Include the encrypted cipher.
     result.encrypted_cipher = cipher.encrypted_cipher
 
-    serialized_message_list = packed_message_list.SerializeToString()
+    serialized_message_list = packed_message_list.SerializeToBytes()
 
     # Encrypt the message symmetrically.
     # New scheme cipher is signed plus hmac over message list.
@@ -386,7 +402,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     # do not change between all packets in this session.
     result.full_hmac = cipher.HMAC(result.encrypted, result.encrypted_cipher,
                                    result.encrypted_cipher_metadata,
-                                   result.packet_iv.SerializeToString(),
+                                   result.packet_iv.SerializeToBytes(),
                                    struct.pack("<I", api_version))
 
     result.api_version = api_version
@@ -407,7 +423,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
        a Packed_Message_List rdfvalue
     """
     try:
-      response_comms = rdf_flows.ClientCommunication.FromSerializedString(
+      response_comms = rdf_flows.ClientCommunication.FromSerializedBytes(
           encrypted_response)
       return self.DecodeMessages(response_comms)
     except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError,
@@ -441,7 +457,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
       raise DecodingError("Compression scheme not supported")
 
     try:
-      result = rdf_flows.MessageList.FromSerializedString(data)
+      result = rdf_flows.MessageList.FromSerializedBytes(data)
     except rdfvalue.DecodeError:
       raise DecodingError("RDFValue parsing failed.")
 
@@ -496,7 +512,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     # Decrypt the message with the per packet IV.
     plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
     try:
-      packed_message_list = rdf_flows.PackedMessageList.FromSerializedString(
+      packed_message_list = rdf_flows.PackedMessageList.FromSerializedBytes(
           plain)
     except rdfvalue.DecodeError as e:
       raise DecryptionError(e)

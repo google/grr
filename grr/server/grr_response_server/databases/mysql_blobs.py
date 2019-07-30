@@ -137,7 +137,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     """Writes blob references for a given set of hashes."""
     values = []
     for hash_id, blob_refs in iteritems(references_by_hash):
-      refs = rdf_objects.BlobReferences(items=blob_refs).SerializeToString()
+      refs = rdf_objects.BlobReferences(items=blob_refs).SerializeToBytes()
       values.append({
           "hash_id": hash_id.AsBytes(),
           "blob_references": refs,
@@ -153,6 +153,6 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     results = {hash_id: None for hash_id in hashes}
     for hash_id, blob_references in cursor.fetchall():
       sha_hash_id = rdf_objects.SHA256HashID.FromBytes(hash_id)
-      refs = rdf_objects.BlobReferences.FromSerializedString(blob_references)
+      refs = rdf_objects.BlobReferences.FromSerializedBytes(blob_references)
       results[sha_hash_id] = list(refs.items)
     return results

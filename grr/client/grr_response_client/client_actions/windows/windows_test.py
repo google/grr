@@ -121,7 +121,7 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     nest = result["NestingTest"]
 
     self.assertEqual(nest["one"]["two"], [3, 4])
-    self.assertTrue("Unsupported type" in nest["one"]["broken"])
+    self.assertIn("Unsupported type", nest["one"]["broken"])
     self.assertIsInstance(nest["one"]["three"], rdf_protodict.Dict)
 
     self.assertEqual(nest["four"], [])

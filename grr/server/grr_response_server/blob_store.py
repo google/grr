@@ -152,7 +152,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
         results[blob_id] = blob
         remaining_ids.remove(blob_id)
         stats_collector_instance.Get().RecordEvent(
-            "blob_store_poll_hit_latency", elapsed_us / rdfvalue.MICROSECONDS)
+            "blob_store_poll_hit_latency", elapsed_us / rdfvalue.SECONDS)
         stats_collector_instance.Get().RecordEvent(
             "blob_store_poll_hit_iteration", poll_num)
 

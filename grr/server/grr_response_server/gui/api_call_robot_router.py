@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -157,7 +156,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
     if not params.robot_id:
       raise ValueError("robot_id has to be specified in ApiCallRobotRouter "
                        "parameters.")
-    self.params = params = params or self.__class__.params_type()
+    self.params = params or self.__class__.params_type()
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
@@ -207,14 +206,14 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     if not ffparams.globs_allowed:
       for path in flow_args.paths:
-        str_path = utils.SmartStr(path)
+        str_path = str(path)
         if "*" in str_path:
           raise access_control.UnauthorizedAccess(
               "Globs are not allowed by the configuration.")
 
     if not ffparams.interpolations_allowed:
       for path in flow_args.paths:
-        str_path = utils.SmartStr(path)
+        str_path = str(path)
         if "%%" in str_path:
           raise access_control.UnauthorizedAccess(
               "Interpolations are not allowed by the configuration.")

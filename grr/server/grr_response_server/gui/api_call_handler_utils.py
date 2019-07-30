@@ -85,8 +85,9 @@ def FilterList(l, offset, count=0, filter_value=None):
   index = 0
   items = []
   for item in l:
-    serialized_item = item.SerializeToString()
-    if re.search(re.escape(filter_value), serialized_item, re.I):
+    serialized_item = item.SerializeToBytes()
+    regex = re.escape(filter_value).encode("utf-8")
+    if re.search(regex, serialized_item, re.I):
       if index >= offset:
         items.append(item)
       index += 1

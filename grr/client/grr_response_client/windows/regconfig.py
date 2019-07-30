@@ -14,13 +14,13 @@ from __future__ import unicode_literals
 import collections
 import logging
 
+from future.builtins import str
 from future.moves import winreg
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from typing import Text
 
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 
 
@@ -95,8 +95,18 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
     # Ensure intermediate directories exist.
     try:
       for key, value in iteritems(raw_data):
+        # TODO(user): refactor regconfig. At the moment it has no idea
+        # what kind of data it's serializing and simply stringifies, them
+        # assuming that bytes are simply ascii-encoded strings. Note that
+        # lists (Client.tempdir_roots) also get stringified and can't
+        # really be deserialized, since RegistryConfigParser doesn't
+        # support deserializing anything but strings.
+        if isinstance(value, bytes):
+          str_value = value.decode("ascii")
+        else:
+          str_value = str(value)
         winreg.SetValueEx(self._AccessRootKey(), key, 0, winreg.REG_SZ,
-                          utils.SmartStr(value))
+                          str_value)
 
     finally:
       # Make sure changes hit the disk.

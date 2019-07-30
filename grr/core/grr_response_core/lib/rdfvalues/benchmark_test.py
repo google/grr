@@ -82,18 +82,18 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def RDFStructCreateAndSerialize():
       s = rdf_client.User(**self.USER_ACCOUNT)
-      s.SerializeToString()
+      s.SerializeToBytes()
 
     def RDFStructCreateAndSerializeSetValue():
       s = rdf_client.User()
       for k, v in iteritems(self.USER_ACCOUNT):
         setattr(s, k, v)
 
-      s.SerializeToString()
+      s.SerializeToBytes()
 
     def RDFStructCreateAndSerializeFromProto():
-      s = rdf_client.User.FromSerializedString(test_proto)
-      s.SerializeToString()
+      s = rdf_client.User.FromSerializedBytes(test_proto)
+      s.SerializeToBytes()
 
     def ProtoCreateAndSerialize():
       s = knowledge_base_pb2.User(**self.USER_ACCOUNT)
@@ -140,7 +140,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       s = StructGrrMessage(
           name=u"foo", request_id=1, response_id=1, session_id=u"session")
 
-      return len(s.SerializeToString())
+      return len(s.SerializeToBytes())
 
     self.TimeIt(ProtoCreateAndSerialize, "Protobuf from keywords")
 
@@ -163,7 +163,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       self.assertEqual(s.job[100].request_id, 100)
 
     def SProtoDecode():
-      s = FastGrrMessageList.FromSerializedString(test_data)
+      s = FastGrrMessageList.FromSerializedBytes(test_data)
       self.assertEqual(s.job[100].request_id, 100)
 
     self.TimeIt(SProtoDecode, "SProto Repeated Decode", repetitions=repeats)
@@ -188,7 +188,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       for i in range(self.REPEATS):
         s.job.Append(session_id="test", name="foobar", request_id=i)
 
-      return len(s.SerializeToString())
+      return len(s.SerializeToBytes())
 
     self.TimeIt(
         RDFStructCreateAndSerialize,
@@ -207,7 +207,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       s.job.add(session_id="test", name="foobar", request_id=i)
 
     serialized = s.SerializeToString()
-    unserialized = FastGrrMessageList.FromSerializedString(serialized)
+    unserialized = FastGrrMessageList.FromSerializedBytes(serialized)
     self.assertLen(unserialized.job, len(s.job))
 
     self.assertEqual(unserialized.job[134].session_id, "test")
@@ -229,7 +229,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def RDFStructDecode():
       new_s = StructGrrMessage()
-      new_s.ParseFromString(data)
+      new_s.ParseFromBytes(data)
 
       self.assertEqual(new_s.session_id, "session")
       self.assertIsInstance(new_s.session_id, Text)
@@ -257,7 +257,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def RDFStructDecode():
       new_s = rdf_client.User()
-      new_s.ParseFromString(data)
+      new_s.ParseFromBytes(data)
 
       self.assertEqual(new_s.username, "user")
       self.assertIsInstance(new_s.username, Text)
@@ -282,7 +282,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       s2 = StructGrrMessage(
           name=u"foo", request_id=1, response_id=1, session_id=u"session")
 
-      test = s2.SerializeToString()
+      test = s2.SerializeToBytes()
       self.assertLen(serialized, len(test))
 
     self.TimeIt(RDFStructEncode)
@@ -314,9 +314,9 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
     def RDFStructEncodeDecode():
       s = StructGrrMessage(
           name=u"foo", request_id=1, response_id=1, session_id=u"session")
-      data = s.SerializeToString()
+      data = s.SerializeToBytes()
 
-      new_s = StructGrrMessage.FromSerializedString(data)
+      new_s = StructGrrMessage.FromSerializedBytes(data)
 
       return s, new_s
 
@@ -340,8 +340,8 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       new_s.SerializeToString()
 
     def RDFStructDecodeEncode():
-      new_s = StructGrrMessage.FromSerializedString(data)
-      new_s.SerializeToString()
+      new_s = StructGrrMessage.FromSerializedBytes(data)
+      new_s.SerializeToBytes()
 
     self.TimeIt(RDFStructDecodeEncode)
     self.TimeIt(ProtoDecodeEncode)

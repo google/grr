@@ -384,7 +384,7 @@ def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
     approval_checks.CheckApprovalRequest(db_obj)
     api_approval.is_valid = True
   except access_control.UnauthorizedAccess as e:
-    api_approval.is_valid_message = utils.SmartStr(e)
+    api_approval.is_valid_message = str(e)
     api_approval.is_valid = False
 
   return api_approval
@@ -416,13 +416,12 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
   def review_url_path(self):
     return "/".join([
         "users", self.requestor, "approvals", "client",
-        utils.SmartStr(self.subject.client_id),
-        utils.SmartStr(self.id)
+        str(self.subject.client_id), self.id
     ])
 
   @property
   def subject_url_path(self):
-    return "/clients/%s" % utils.SmartStr(self.subject.client_id)
+    return "/clients/%s" % str(self.subject.client_id)
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
@@ -430,8 +429,8 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
         reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
         approval_request=rdf_objects.ApprovalRequestReference(
             approval_type=at,
-            approval_id=utils.SmartStr(self.id),
-            subject_id=utils.SmartStr(self.subject.client_id),
+            approval_id=self.id,
+            subject_id=str(self.subject.client_id),
             requestor_username=self.requestor))
 
 
@@ -483,13 +482,12 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   def review_url_path(self):
     return "/".join([
         "users", self.requestor, "approvals", "hunt",
-        utils.SmartStr(self.subject.hunt_id),
-        utils.SmartStr(self.id)
+        str(self.subject.hunt_id), self.id
     ])
 
   @property
   def subject_url_path(self):
-    return "/hunts/%s" % utils.SmartStr(self.subject.hunt_id)
+    return "/hunts/%s" % str(self.subject.hunt_id)
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
@@ -497,8 +495,8 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
         reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
         approval_request=rdf_objects.ApprovalRequestReference(
             approval_type=at,
-            approval_id=utils.SmartStr(self.id),
-            subject_id=utils.SmartStr(self.subject.hunt_id),
+            approval_id=self.id,
+            subject_id=str(self.subject.hunt_id),
             requestor_username=self.requestor))
 
 
@@ -529,13 +527,12 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
   def review_url_path(self):
     return "/".join([
         "users", self.requestor, "approvals", "cron-job",
-        utils.SmartStr(self.subject.cron_job_id),
-        utils.SmartStr(self.id)
+        str(self.subject.cron_job_id), self.id
     ])
 
   @property
   def subject_url_path(self):
-    return "/crons/%s" % utils.SmartStr(self.subject.cron_job_id)
+    return "/crons/%s" % str(self.subject.cron_job_id)
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
@@ -543,8 +540,8 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
         reference_type=rdf_objects.ObjectReference.Type.APPROVAL_REQUEST,
         approval_request=rdf_objects.ApprovalRequestReference(
             approval_type=at,
-            approval_id=utils.SmartStr(self.id),
-            subject_id=utils.SmartStr(self.subject.cron_job_id),
+            approval_id=self.id,
+            subject_id=str(self.subject.cron_job_id),
             requestor_username=self.requestor))
 
 
@@ -596,9 +593,9 @@ here
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         ",".join(approval.notified_users),
-        utils.SmartStr(approval.requestor),
-        utils.SmartStr(subject),
-        utils.SmartStr(body),
+        approval.requestor,
+        subject,
+        body,
         is_html=True,
         cc_addresses=",".join(approval.email_cc_addresses),
         message_id=approval.email_message_id)
@@ -740,10 +737,10 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
         "References": approval.email_message_id
     }
     email_alerts.EMAIL_ALERTER.SendEmail(
-        utils.SmartStr(approval.requestor),
-        utils.SmartStr(token.username),
-        utils.SmartStr(subject),
-        utils.SmartStr(body),
+        approval.requestor,
+        token.username,
+        subject,
+        body,
         is_html=True,
         cc_addresses=",".join(approval.email_cc_addresses),
         headers=headers)
@@ -784,7 +781,7 @@ class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
   __abstract = True  # pylint: disable=g-bad-name
 
   def BuildSubjectId(self):
-    return utils.SmartStr(self.client_id)
+    return str(self.client_id)
 
 
 class ApiCreateClientApprovalArgs(ApiClientApprovalArgsBase):
@@ -944,7 +941,7 @@ class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
   __abstract = True  # pylint: disable=g-bad-name
 
   def BuildSubjectId(self):
-    return utils.SmartStr(self.hunt_id)
+    return str(self.hunt_id)
 
 
 class ApiCreateHuntApprovalArgs(ApiHuntApprovalArgsBase):
@@ -1046,7 +1043,7 @@ class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
   __abstract = True  # pylint: disable=g-bad-name
 
   def BuildSubjectId(self):
-    return utils.SmartStr(self.cron_job_id)
+    return str(self.cron_job_id)
 
 
 class ApiCreateCronJobApprovalArgs(ApiCronJobApprovalArgsBase):

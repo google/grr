@@ -51,7 +51,7 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     raw_uri = "http://gógiel.pl:1337/znajdź?frazę=🦋#nagłówek"
 
     uri = rdf_standard.URI()
-    uri.ParseFromString(raw_uri.encode("utf-8"))
+    uri.ParseFromBytes(raw_uri.encode("utf-8"))
 
     self.assertEqual(uri.transport, "http")
     self.assertEqual(uri.host, "gógiel.pl:1337")
@@ -59,7 +59,7 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(uri.query, "frazę=🦋")
     self.assertEqual(uri.fragment, "nagłówek")
 
-    self.assertEqual(uri.FromSerializedString(uri.SerializeToString()), uri)
+    self.assertEqual(uri.FromSerializedBytes(uri.SerializeToBytes()), uri)
 
 
 def main(argv):

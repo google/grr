@@ -157,6 +157,12 @@ class CallClientChildFlow(flow_base.FlowBase):
     self.CallClient(server_stubs.GetClientStats, next_state="End")
 
 
+class FlowWithBrokenStart(flow_base.FlowBase):
+
+  def Start(self):
+    raise ValueError("boo")
+
+
 class FlowCreationTest(BasicFlowTest):
   """Test flow creation."""
 
@@ -218,6 +224,15 @@ class FlowCreationTest(BasicFlowTest):
 
     self.assertEqual(flow_obj.flow_state, "ERROR")
     self.assertEqual(client_flow_obj.flow_state, "ERROR")
+
+  def testExceptionInStart(self):
+    flow_id = flow.StartFlow(
+        flow_cls=FlowWithBrokenStart, client_id=self.client_id)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+
+    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.ERROR)
+    self.assertEqual(flow_obj.error_message, "boo")
+    self.assertIsNotNone(flow_obj.backtrace)
 
 
 class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
@@ -340,6 +355,19 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     self.assertIn("FlowWithMultipleResultTypes completed with 6 results",
                   notifications[0].message)
+
+  def testNestedFlowsHaveTheirResultsSaved(self):
+    # Run the flow in the simulated way
+    parent_flow_id = flow_test_lib.StartAndRunFlow(
+        ParentFlow, client_mock=ClientMock(), client_id=self.client_id)
+
+    child_flows = data_store.REL_DB.ReadChildFlowObjects(
+        self.client_id, parent_flow_id)
+    self.assertLen(child_flows, 1)
+
+    child_flow_results = flow_test_lib.GetFlowResults(self.client_id,
+                                                      child_flows[0].flow_id)
+    self.assertNotEmpty(child_flow_results)
 
 
 class NoRequestChildFlow(flow_base.FlowBase):

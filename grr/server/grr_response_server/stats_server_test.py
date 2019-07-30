@@ -8,8 +8,10 @@ import io
 
 from absl import app
 import mock
+import portpicker
 import prometheus_client
 import prometheus_client.parser as prometheus_parser
+import requests
 
 from grr_response_core.stats import stats_utils
 from grr_response_server import base_stats_server_test
@@ -32,17 +34,17 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
         metadatas, registry=registry)
     collector.IncrementCounter("foobars", 42)
 
-    handler = stats_server.StatsServerHandler(
-        mock.MagicMock(), mock.MagicMock(), mock.MagicMock())
-    handler.registry = registry
-    handler.path = "/metrics"
-    handler.headers = {}
-    handler.wfile = io.BytesIO()
+    port = portpicker.pick_unused_port()
 
-    handler.do_GET()
-    handler.wfile.seek(0)
+    with mock.patch.object(stats_server.StatsServerHandler, "registry",
+                           registry):
+      server = stats_server.StatsServer(port)
+      server.Start()
+      self.addCleanup(server.Stop)
+      res = requests.get("http://localhost:{}/metrics".format(port))
 
-    families = prometheus_parser.text_fd_to_metric_families(handler.wfile)
+    text_fd = io.StringIO(res.text)
+    families = prometheus_parser.text_fd_to_metric_families(text_fd)
     families = {family.name: family for family in families}
 
     self.assertIn("foobars", families)

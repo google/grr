@@ -31,6 +31,8 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import compatibility
+
 
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
@@ -44,6 +46,9 @@ def UnicodeFromCodePage(string):
   """Attempt to coerce string into a unicode object."""
   # get the current code page
   codepage = ctypes.windll.kernel32.GetOEMCP()
+  if not compatibility.PY2:
+    return codepage
+
   try:
     return string.decode("cp%s" % codepage)
   except UnicodeError:

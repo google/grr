@@ -90,8 +90,7 @@ class ApiHuntId(rdfvalue.RDFString):
       try:
         rdfvalue.SessionID.ValidateID(self._value)
       except ValueError as e:
-        raise ValueError("Invalid hunt id: %s (%s)" %
-                         (utils.SmartStr(self._value), e))
+        raise ValueError("Invalid hunt id: %s (%s)" % (self._value, e))
 
   def ToString(self):
     if not self._value:
@@ -294,7 +293,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
   def ObjectReference(self):
     return rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.HUNT,
-        hunt=rdf_objects.HuntReference(hunt_id=utils.SmartStr(self.hunt_id)))
+        hunt=rdf_objects.HuntReference(hunt_id=str(self.hunt_id)))
 
 
 class ApiHuntResult(rdf_structs.RDFProtoStruct):
@@ -1027,8 +1026,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       notification.Notify(
           token.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
-          "Archive generation failed for hunt %s: %s" %
-          (args.hunt_id, utils.SmartStr(e)), None)
+          "Archive generation failed for hunt %s: %s" % (args.hunt_id, e), None)
 
       raise
 
@@ -1147,8 +1145,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
     raise HuntFileNotFoundError(
         "File %s with timestamp %s and client %s "
         "wasn't found among the results of hunt %s" %
-        (utils.SmartStr(args.vfs_path), utils.SmartStr(args.timestamp),
-         utils.SmartStr(args.client_id), utils.SmartStr(args.hunt_id)))
+        (args.vfs_path, args.timestamp, args.client_id, args.hunt_id))
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):

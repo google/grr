@@ -44,9 +44,12 @@ def make_ui_files():
   """Builds necessary assets from sources."""
 
   # Install node_modules, but keep package(-lock).json frozen.
-  subprocess.check_call(["npm", "ci"], cwd="grr_response_server/gui/static")
-  subprocess.check_call(["npm", "run", "gulp", "compile"],
-                        cwd="grr_response_server/gui/static")
+  # Using shell=True, otherwise npm is not found in a nodeenv-built
+  # virtualenv on Windows.
+  subprocess.check_call(
+      "npm ci", shell=True, cwd="grr_response_server/gui/static")
+  subprocess.check_call(
+      "npm run gulp compile", shell=True, cwd="grr_response_server/gui/static")
 
 
 def get_config():
@@ -184,6 +187,15 @@ setup_args = dict(
         # Python library otherwise. Thus, this version has to be equal to the
         # python-mysqldb version of the system we support. This is currently
         # Ubuntu Xenial, see https://packages.ubuntu.com/xenial/python-mysqldb
+        #
+        # NOTE: the Xenial-provided 1.3.7 version is not properly Python 3
+        # compatible. Versions 1.3.13 or later are API-compatible with 1.3.7
+        # when running on Python 2 and work correctly on Python 3. However,
+        # they don't have Python 2 wheels released, which makes GRR packaging
+        # for Python 2 much harder if one of these versions is used.
+        #
+        # TODO(user): Find a way to use the latest mysqlclient version
+        # in GRR server DEB.
         "mysqldatastore": ["mysqlclient==1.3.7"],
     },
     data_files=data_files)

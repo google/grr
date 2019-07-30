@@ -31,7 +31,7 @@ class MySQLDBCronJobMixin(object):
         cronjob.created_at or rdfvalue.RDFDatetime.Now())
     cursor.execute(query, [
         cronjob.cron_job_id,
-        cronjob.SerializeToString(), create_time_str, cronjob.enabled
+        cronjob.SerializeToBytes(), create_time_str, cronjob.enabled
     ])
 
   def _CronJobFromRow(self, row):
@@ -39,14 +39,14 @@ class MySQLDBCronJobMixin(object):
     (job, create_time, enabled, forced_run_requested, last_run_status,
      last_run_time, current_run_id, state, leased_until, leased_by) = row
 
-    job = rdf_cronjobs.CronJob.FromSerializedString(job)
+    job = rdf_cronjobs.CronJob.FromSerializedBytes(job)
     job.current_run_id = db_utils.IntToCronJobRunID(current_run_id)
     job.enabled = enabled
     job.forced_run_requested = forced_run_requested
     job.last_run_status = last_run_status
     job.last_run_time = mysql_utils.TimestampToRDFDatetime(last_run_time)
     if state:
-      job.state = rdf_protodict.AttributedDict.FromSerializedString(state)
+      job.state = rdf_protodict.AttributedDict.FromSerializedBytes(state)
     job.created_at = mysql_utils.TimestampToRDFDatetime(create_time)
     job.leased_until = mysql_utils.TimestampToRDFDatetime(leased_until)
     job.leased_by = leased_by
@@ -120,7 +120,7 @@ class MySQLDBCronJobMixin(object):
       args.append(db_utils.CronJobRunIDToInt(current_run_id))
     if state != db.Database.unchanged:
       updates.append("state=%s")
-      args.append(state.SerializeToString())
+      args.append(state.SerializeToBytes())
     if forced_run_requested != db.Database.unchanged:
       updates.append("forced_run_requested=%s")
       args.append(forced_run_requested)
@@ -218,7 +218,7 @@ class MySQLDBCronJobMixin(object):
           run_object.cron_job_id,
           db_utils.CronJobRunIDToInt(run_object.run_id),
           write_time_str,
-          run_object.SerializeToString(),
+          run_object.SerializeToBytes(),
       ])
     except MySQLdb.IntegrityError as e:
       raise db.UnknownCronJobError(
@@ -226,7 +226,7 @@ class MySQLDBCronJobMixin(object):
 
   def _CronJobRunFromRow(self, row):
     serialized_run, timestamp = row
-    res = rdf_cronjobs.CronJobRun.FromSerializedString(serialized_run)
+    res = rdf_cronjobs.CronJobRun.FromSerializedBytes(serialized_run)
     res.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
     return res
 

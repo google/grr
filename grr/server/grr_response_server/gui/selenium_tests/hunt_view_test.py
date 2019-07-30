@@ -47,7 +47,6 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testPageTitleReflectsSelectedHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=True)
-    hunt_id = hunt_id
 
     self.Open("/#/hunts")
     self.WaitUntilEqual("GRR | Hunts", self.GetPageTitle)

@@ -1044,11 +1044,11 @@ class ProtoDynamicEmbedded(ProtoType):
 
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is simply a string."""
-    return self._type(container).FromSerializedString(value[2])
+    return self._type(container).FromSerializedBytes(value[2])
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    data = value.SerializeToString()
+    data = value.SerializeToBytes()
     return (self.encoded_tag, VarintEncode(len(data)), data)
 
   def Validate(self, value, container=None):
@@ -1119,7 +1119,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
       # TODO(user): Type stored in type_url is currently ignored when value
       # is decoded. We should use it to deserialize the value and then check
       # that value type and dynamic type are compatible.
-      return converted_value.FromSerializedString(result.value)
+      return converted_value.FromSerializedBytes(result.value)
 
   def _TypeFromAnyValue(self, anyvalue):
     type_str = anyvalue.type_url.split("/")[-1].split(".")[-1]
@@ -1141,7 +1141,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
                      value.__class__.protobuf.__name__)
       else:
         type_name = value.__class__.__name__
-      data = value.SerializeToString()
+      data = value.SerializeToBytes()
     # Is it a primitive value?
     elif hasattr(value.__class__, "data_store_type"):
       wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
@@ -1821,16 +1821,16 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     self._data = data
     self.dirty = True
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return _SerializeEntries(_GetOrderedEntries(self._data))
 
-  def ParseFromString(self, string):
+  def ParseFromBytes(self, string):
     ReadIntoObject(string, 0, self)
     self.dirty = True
 
   def ParseFromDatastore(self, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromString(value)
+    self.ParseFromBytes(value)
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
   # TODO: ProtoStruct indicating hashability is flawed, because
@@ -2050,7 +2050,7 @@ class RDFProtoStruct(RDFStruct):
     """Return an old style protocol buffer object."""
     if self.protobuf:
       result = self.protobuf()
-      result.ParseFromString(self.SerializeToString())
+      result.ParseFromString(self.SerializeToBytes())
       return result
 
   def AsDict(self):
@@ -2085,7 +2085,7 @@ class RDFProtoStruct(RDFStruct):
       elif isinstance(field_type_info, ProtoDynamicEmbedded):
         dynamic_fields.append(field_type_info)
       elif field_type_info.proto_type_name == "bytes":
-        self.Set(key, base64.decodestring(value or ""))
+        self.Set(key, base64.decodestring((value or "").encode("ascii")))
       else:
         self.Set(key, value)
 
@@ -2127,7 +2127,7 @@ class RDFProtoStruct(RDFStruct):
     elif isinstance(value, (EnumNamedValue)):
       return str(value)
     elif isinstance(value, rdfvalue.RDFBytes):
-      return base64.encodestring(value.SerializeToString())
+      return base64.encodestring(value.SerializeToBytes())
     else:
       if stringify_leaf_fields:
         return str(value)
@@ -2170,7 +2170,7 @@ class RDFProtoStruct(RDFStruct):
     tmp = cls.protobuf()  # pylint: disable=not-callable
     text_format.Merge(text, tmp)
 
-    return cls.FromSerializedString(tmp.SerializeToString())
+    return cls.FromSerializedBytes(tmp.SerializeToString())
 
   @classmethod
   def AddDescriptor(cls, field_desc):

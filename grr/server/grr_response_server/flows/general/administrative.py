@@ -453,8 +453,7 @@ class OnlineNotification(flow_base.FlowBase):
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
     if not responses.success:
-      flow_base.FlowError("Error while pinging client.")
-      return
+      raise flow_base.FlowError("Error while pinging client.")
 
     client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
     hostname = client.knowledge_base.fqdn

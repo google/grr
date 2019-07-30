@@ -157,7 +157,7 @@ class ArtifactRegistry(object):
         except rdf_artifacts.ArtifactDefinitionError as e:
           logging.error("Artifact %s did not validate: %s", artifact_obj.name,
                         e)
-          artifact_obj.error_message = utils.SmartStr(e)
+          artifact_obj.error_message = str(e)
           loaded_artifacts.remove(artifact_obj)
           revalidate = True
 
@@ -452,7 +452,6 @@ class ArtifactRegistry(object):
     if sort_by_os:
       # Sort so its easier to split these if necessary.
       yaml_list = []
-      done_set = set()
       for os_name in rdf_artifacts.Artifact.SUPPORTED_OS_LIST:
         done_set = set(a for a in artifact_list if a.supported_os == [os_name])
         # Separate into knowledge_base and non-kb for easier sorting.
@@ -472,8 +471,8 @@ REGISTRY = ArtifactRegistry()
 
 def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
   """Deletes a list of artifacts from the data store."""
-  artifacts_list = sorted(
-      REGISTRY.GetArtifacts(reload_datastore_artifacts=reload_artifacts))
+  artifacts_list = REGISTRY.GetArtifacts(
+      reload_datastore_artifacts=reload_artifacts)
 
   to_delete = set(artifact_names)
   deps = set()

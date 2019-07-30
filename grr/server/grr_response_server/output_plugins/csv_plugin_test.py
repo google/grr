@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import csv
+import io
 import os
 import zipfile
 
@@ -68,9 +69,10 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
                          }
                      }})
 
-    parsed_output = list(
-        csv.DictReader(
-            zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
+    with zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix) as filedesc:
+      content = filedesc.read().decode("utf-8")
+
+    parsed_output = list(csv.DictReader(io.StringIO(content)))
     self.assertLen(parsed_output, 10)
     for i in range(10):
       # Make sure metadata is filled in.
@@ -130,9 +132,10 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             }
         })
 
-    parsed_output = list(
-        csv.DictReader(
-            zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
+    with zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix) as filedesc:
+      content = filedesc.read().decode("utf-8")
+
+    parsed_output = list(csv.DictReader(io.StringIO(content)))
     self.assertLen(parsed_output, 1)
 
     # Make sure metadata is filled in.
@@ -146,9 +149,11 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertEqual(parsed_output[0]["urn"],
                      "aff4:/%s/fs/os/foo/bar" % self.client_id)
 
-    parsed_output = list(
-        csv.DictReader(
-            zip_fd.open("%s/ExportedProcess/from_Process.csv" % prefix)))
+    filepath = "%s/ExportedProcess/from_Process.csv" % prefix
+    with zip_fd.open(filepath) as filedesc:
+      content = filedesc.read().decode("utf-8")
+
+    parsed_output = list(csv.DictReader(io.StringIO(content)))
     self.assertLen(parsed_output, 1)
 
     self.assertEqual(parsed_output[0]["metadata.client_urn"],
@@ -194,9 +199,11 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: responses})
-    parsed_output = list(
-        csv.DictReader(
-            zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)))
+
+    with zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix) as filedesc:
+      content = filedesc.read().decode("utf-8")
+
+    parsed_output = list(csv.DictReader(io.StringIO(content)))
     self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):
       self.assertEqual(parsed_output[i]["urn"],

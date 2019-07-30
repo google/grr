@@ -215,11 +215,9 @@ class EndToEndTest(with_metaclass(EndToEndTestMetaclass, absltest.TestCase)):
     return flow
 
   def WaitForFileCollection(self, file_path):
-    # TODO(user): we should compare last_collected instead of the age.
-    # But last_collected doesn't get updated when the file gets re-collected.
-    # Switch to comparing last_collected when the issue is resolved.
     return WaitForNewFileContextManager(
-        self.client, file_path, WaitForNewFileContextManager.CHECK_TYPE_AGE)
+        self.client, file_path,
+        WaitForNewFileContextManager.CHECK_TYPE_LAST_COLLECTED)
 
   def WaitForFileRefresh(self, file_path):
     return WaitForNewFileContextManager(
@@ -251,8 +249,8 @@ class AbstractFileTransferTest(EndToEndTest):
 
   def CheckELFMagic(self, path):
     data = self.ReadFromFile(path, 10)
-    self.assertEqual(data[1:4], "ELF")
+    self.assertEqual(data[1:4], b"ELF")
 
   def CheckPEMagic(self, path):
     data = self.ReadFromFile(path, 10)
-    self.assertEqual(data[:2], "MZ")
+    self.assertEqual(data[:2], b"MZ")

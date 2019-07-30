@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from grr_response_client import client_logging
 from grr_response_client import client_metrics
+from grr_response_client.client_actions import registry_init
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import communicator
@@ -17,6 +18,8 @@ from grr_response_core.stats import stats_collector_instance
 
 def ClientInit():
   """Run all startup routines for the client."""
+  registry_init.RegisterClientActions()
+
   metric_metadata = client_metrics.GetMetadata()
   metric_metadata.extend(communicator.GetMetricMetadata())
   stats_collector_instance.Set(

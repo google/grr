@@ -37,5 +37,5 @@ exports.PrimitiveDirective.directive_name = 'grrPrimitive';
  */
 exports.PrimitiveDirective.semantic_types = [
   'RDFBool', 'bool', 'RDFInteger', 'int', 'long', 'float', 'RDFString',
-  'basestring'
+  'basestring', 'str', 'unicode'
 ];

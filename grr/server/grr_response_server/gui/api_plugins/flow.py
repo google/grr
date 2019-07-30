@@ -67,8 +67,7 @@ class ApiFlowId(rdfvalue.RDFString):
         try:
           rdfvalue.SessionID.ValidateID(component)
         except ValueError as e:
-          raise ValueError("Invalid flow id: %s (%s)" %
-                           (utils.SmartStr(self._value), e))
+          raise ValueError("Invalid flow id: %s (%s)" % (self._value, e))
 
   def Split(self):
     if not self._value:
@@ -583,9 +582,8 @@ class ApiGetFlowResultsExportCommandHandler(api_call_handler_base.ApiCallHandler
   result_type = ApiGetFlowResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    output_fname = re.sub(
-        "[^0-9a-zA-Z]+", "_", "%s_%s" %
-        (utils.SmartStr(args.client_id), utils.SmartStr(args.flow_id)))
+    output_fname = re.sub("[^0-9a-zA-Z]+", "_",
+                          "%s_%s" % (args.client_id, args.flow_id))
     code_to_execute = ("""grrapi.Client("%s").Flow("%s").GetFilesArchive()."""
                        """WriteToFile("./flow_results_%s.zip")""") % (
                            args.client_id, args.flow_id, output_fname)
@@ -659,7 +657,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
           token.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s" %
-          (args.flow_id, args.client_id, utils.SmartStr(e)), None)
+          (args.flow_id, args.client_id, e), None)
 
       raise
 
@@ -722,7 +720,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         prefix=target_file_prefix,
         description=description,
         archive_format=archive_format,
-        predicate=self._BuildPredicate(unicode(args.client_id), token=token),
+        predicate=self._BuildPredicate(str(args.client_id), token=token),
         client_id=args.client_id.ToString())
     content_generator = self._WrapContentGenerator(
         generator, flow_results, args, token=token)
@@ -1002,8 +1000,8 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
 
     if args.original_flow:
       runner_args.original_flow = rdf_objects.FlowReference(
-          flow_id=utils.SmartStr(args.original_flow.flow_id),
-          client_id=utils.SmartStr(args.original_flow.client_id))
+          flow_id=str(args.original_flow.flow_id),
+          client_id=str(args.original_flow.client_id))
 
     flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
     cpu_limit = None

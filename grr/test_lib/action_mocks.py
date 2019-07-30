@@ -154,9 +154,9 @@ class CPULimitClientMock(ActionMock):
 
   def GenerateStatusMessage(self, message, response_id=1):
     cpu_time_used = rdf_client_stats.CpuSeconds(
-        user_cpu_time=self.user_cpu_usage.next(),
-        system_cpu_time=self.system_cpu_usage.next())
-    network_bytes_sent = self.network_usage.next()
+        user_cpu_time=next(self.user_cpu_usage),
+        system_cpu_time=next(self.system_cpu_usage))
+    network_bytes_sent = next(self.network_usage)
 
     return rdf_flows.GrrMessage(
         session_id=message.session_id,

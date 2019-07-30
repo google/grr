@@ -11,6 +11,7 @@ import os
 import stat
 from future.builtins import filter
 from future.builtins import range
+from future.builtins import str
 
 from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils
@@ -395,7 +396,14 @@ class RegistryFile(vfs_base.VFSHandler):
       response.st_mode = stat.S_IFREG
     if mtime:
       response.st_mtime = mtime
-    response.st_size = len(utils.SmartStr(value))
+
+    if value is None:
+      response.st_size = 0
+    elif isinstance(value, bytes):
+      response.st_size = len(value)
+    else:
+      response.st_size = len(str(value).encode("utf-8"))
+
     if value_type is not None:
       response.registry_type = self.registry_map.get(value_type, 0)
       response.registry_data = rdf_protodict.DataBlob().SetValue(value)

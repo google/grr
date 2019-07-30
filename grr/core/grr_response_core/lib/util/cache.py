@@ -84,14 +84,9 @@ def WithLimitedCallFrequency(min_time_between_calls):
         try:
           # We eliminated all the old entries, so if the key is present
           # in the cache, it means that the data is fresh enough to be used.
-          prev_time = prev_times[key]
           return prev_results[key]
         except KeyError:
           prev_time = None
-          should_call = True
-
-        if not should_call:
-          return prev_results[key]
 
         try:
           result_lock = result_locks[key]

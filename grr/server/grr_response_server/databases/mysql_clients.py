@@ -52,7 +52,7 @@ class MySQLDBClientMixin(object):
 
     if certificate:
       placeholders.append("%(certificate)s")
-      values["certificate"] = certificate.SerializeToString()
+      values["certificate"] = certificate.SerializeToBytes()
     if fleetspeak_enabled is not None:
       placeholders.append("%(fleetspeak_enabled)s")
       values["fleetspeak_enabled"] = fleetspeak_enabled
@@ -67,7 +67,7 @@ class MySQLDBClientMixin(object):
       values["last_clock"] = mysql_utils.RDFDatetimeToTimestamp(last_clock)
     if last_ip:
       placeholders.append("%(last_ip)s")
-      values["last_ip"] = last_ip.SerializeToString()
+      values["last_ip"] = last_ip.SerializeToBytes()
     if last_foreman:
       placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
       values["last_foreman"] = mysql_utils.RDFDatetimeToTimestamp(last_foreman)
@@ -159,10 +159,10 @@ class MySQLDBClientMixin(object):
     try:
       cursor.execute(
           insert_history_query,
-          (int_client_id, current_timestamp, snapshot.SerializeToString()))
+          (int_client_id, current_timestamp, snapshot.SerializeToBytes()))
       cursor.execute(
           insert_startup_query,
-          (int_client_id, current_timestamp, startup_info.SerializeToString()))
+          (int_client_id, current_timestamp, startup_info.SerializeToBytes()))
       cursor.execute(update_query, client_info)
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(snapshot.client_id, cause=e)
@@ -231,8 +231,8 @@ class MySQLDBClientMixin(object):
     ret = []
     cursor.execute(query, args)
     for snapshot, startup_info, timestamp in cursor.fetchall():
-      client = rdf_objects.ClientSnapshot.FromSerializedString(snapshot)
-      client.startup_info = rdf_client.StartupInfo.FromSerializedString(
+      client = rdf_objects.ClientSnapshot.FromSerializedBytes(snapshot)
+      client.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
           startup_info)
       client.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
 
@@ -258,8 +258,8 @@ class MySQLDBClientMixin(object):
         params = base_params.copy()
         params.update({
             "timestamp": mysql_utils.RDFDatetimeToTimestamp(client.timestamp),
-            "client_snapshot": client.SerializeToString(),
-            "startup_info": startup_info.SerializeToString(),
+            "client_snapshot": client.SerializeToBytes(),
+            "startup_info": startup_info.SerializeToBytes(),
         })
 
         cursor.execute(
@@ -307,7 +307,7 @@ class MySQLDBClientMixin(object):
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
-        "startup_info": startup_info.SerializeToString(),
+        "startup_info": startup_info.SerializeToBytes(),
     }
 
     try:
@@ -343,7 +343,7 @@ class MySQLDBClientMixin(object):
       return None
 
     startup_info, timestamp = row
-    res = rdf_client.StartupInfo.FromSerializedString(startup_info)
+    res = rdf_client.StartupInfo.FromSerializedBytes(startup_info)
     res.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
     return res
 
@@ -378,7 +378,7 @@ class MySQLDBClientMixin(object):
     cursor.execute(query, args)
 
     for startup_info, timestamp in cursor.fetchall():
-      si = rdf_client.StartupInfo.FromSerializedString(startup_info)
+      si = rdf_client.StartupInfo.FromSerializedBytes(startup_info)
       si.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       ret.append(si)
     return ret
@@ -411,11 +411,11 @@ class MySQLDBClientMixin(object):
                 last_crash_ts))
 
         if client_obj is not None:
-          l_snapshot = rdf_objects.ClientSnapshot.FromSerializedString(
+          l_snapshot = rdf_objects.ClientSnapshot.FromSerializedBytes(
               client_obj)
           l_snapshot.timestamp = mysql_utils.TimestampToRDFDatetime(
               last_client_ts)
-          l_snapshot.startup_info = rdf_client.StartupInfo.FromSerializedString(
+          l_snapshot.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
               client_startup_obj)
           l_snapshot.startup_info.timestamp = l_snapshot.timestamp
         else:
@@ -423,7 +423,7 @@ class MySQLDBClientMixin(object):
               client_id=db_utils.IntToClientID(cid))
 
         if last_startup_obj is not None:
-          startup_info = rdf_client.StartupInfo.FromSerializedString(
+          startup_info = rdf_client.StartupInfo.FromSerializedBytes(
               last_startup_obj)
           startup_info.timestamp = mysql_utils.TimestampToRDFDatetime(
               last_startup_ts)
@@ -669,7 +669,7 @@ class MySQLDBClientMixin(object):
 
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
-        "crash_info": crash_info.SerializeToString(),
+        "crash_info": crash_info.SerializeToBytes(),
     }
 
     try:
@@ -703,7 +703,7 @@ class MySQLDBClientMixin(object):
       return None
 
     timestamp, crash_info = row
-    res = rdf_client.ClientCrash.FromSerializedString(crash_info)
+    res = rdf_client.ClientCrash.FromSerializedBytes(crash_info)
     res.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
     return res
 
@@ -717,7 +717,7 @@ class MySQLDBClientMixin(object):
         "ORDER BY timestamp DESC", [db_utils.ClientIDToInt(client_id)])
     ret = []
     for timestamp, crash_info in cursor.fetchall():
-      ci = rdf_client.ClientCrash.FromSerializedString(crash_info)
+      ci = rdf_client.ClientCrash.FromSerializedBytes(crash_info)
       ci.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       ret.append(ci)
     return ret
@@ -737,7 +737,7 @@ class MySQLDBClientMixin(object):
           ON DUPLICATE KEY UPDATE payload=VALUES(payload)
           """, [
               db_utils.ClientIDToInt(client_id),
-              stats.SerializeToString(),
+              stats.SerializeToBytes(),
               mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
           ])
     except MySQLdb.IntegrityError as e:
@@ -766,7 +766,7 @@ class MySQLDBClientMixin(object):
             mysql_utils.RDFDatetimeToTimestamp(max_timestamp)
         ])
     return [
-        rdf_client_stats.ClientStats.FromSerializedString(stats_bytes)
+        rdf_client_stats.ClientStats.FromSerializedBytes(stats_bytes)
         for stats_bytes, in cursor.fetchall()
     ]
 

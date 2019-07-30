@@ -87,7 +87,7 @@ def WriteSignedBinary(binary_urn,
     blob_rdf = rdf_crypto.SignedBlob()
     blob_rdf.Sign(chunk, private_key, verify_key=public_key)
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(
-        blob_rdf.SerializeToString())
+        blob_rdf.SerializeToBytes())
     blob_references.items.Append(
         rdf_objects.BlobReference(
             offset=chunk_offset, size=len(chunk), blob_id=blob_id))
@@ -109,8 +109,7 @@ def WriteSignedBinaryBlobs(binary_urn,
   blob_references = rdf_objects.BlobReferences()
   current_offset = 0
   for blob in blobs:
-    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(
-        blob.SerializeToString())
+    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob.SerializeToBytes())
     blob_references.items.Append(
         rdf_objects.BlobReference(
             offset=current_offset, size=len(blob.data), blob_id=blob_id))
@@ -169,7 +168,7 @@ def FetchBlobsForSignedBinary(
   blob_ids = [r.blob_id for r in references.items]
   raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
   blobs = (
-      rdf_crypto.SignedBlob.FromSerializedString(raw_blob)
+      rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
       for raw_blob in raw_blobs)
   return blobs, timestamp
 

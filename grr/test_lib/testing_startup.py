@@ -23,11 +23,9 @@ from grr_response_server import ip_resolver
 from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
 from grr_response_server import server_metrics
-from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.check_lib import checks
-from grr_response_server.gui import gui_plugins  # pylint: disable=unused-import
 from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
 from grr.test_lib import blob_store_test_lib

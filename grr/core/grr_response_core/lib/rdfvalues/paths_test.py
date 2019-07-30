@@ -61,7 +61,7 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     pathspec_pb.nested_path.path = "foo"
     pathspec_pb.nested_path.pathtype = 2
 
-    reference_pathspec = rdf_paths.PathSpec.FromSerializedString(
+    reference_pathspec = rdf_paths.PathSpec.FromSerializedBytes(
         pathspec_pb.SerializeToString())
 
     # Create a new RDFPathspec from scratch.

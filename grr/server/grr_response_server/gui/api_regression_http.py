@@ -19,6 +19,7 @@ from google.protobuf import json_format
 
 from grr_api_client.connectors import http_connector
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import json
 from grr_response_server import gui
@@ -88,7 +89,7 @@ class HttpApiRegressionTestMixinBase(object):
       body_proto = args.__class__().AsPrimitiveProto()
       json_format.Parse(request.data, body_proto)
       body_args = args.__class__()
-      body_args.ParseFromString(body_proto.SerializeToString())
+      body_args.ParseFromBytes(body_proto.SerializeToString())
       request.data = json.Dump(
           api_value_renderers.StripTypeInfo(
               api_value_renderers.RenderValue(body_args)),
@@ -134,7 +135,10 @@ class HttpApiRegressionTestMixinBase(object):
     }
 
     if request.data:
-      data = request.data.decode("utf-8")
+      if compatibility.PY2:
+        data = request.data.decode("utf-8")
+      else:
+        data = request.data
       request_payload = self._ParseJSON(replace(data))
       if request_payload:
         check_result["request_payload"] = request_payload

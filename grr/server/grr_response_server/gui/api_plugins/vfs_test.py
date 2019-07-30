@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
 import io
 import zipfile
 
@@ -106,6 +107,12 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
+      self.handler.Handle(args, token=self.token)
+
+  def testRaisesOnNonexistentPath(self):
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id, file_path="/fs/os/foo/bar")
+    with self.assertRaises(vfs_plugin.FileNotFoundError):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerReturnsNewestVersionByDefault(self):
@@ -342,7 +349,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
-    self.assertEqual(next(result.GenerateContent()), "Goodbye World")
+    self.assertEqual(next(result.GenerateContent()), b"Goodbye World")
 
   def testOffsetAndLengthRestrictResult(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
@@ -350,7 +357,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
-    self.assertEqual(next(result.GenerateContent()), "odb")
+    self.assertEqual(next(result.GenerateContent()), b"odb")
 
   def testReturnsOlderVersionIfTimestampIsSupplied(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
@@ -360,7 +367,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
-    self.assertEqual(next(result.GenerateContent()), "Hello World")
+    self.assertEqual(next(result.GenerateContent()), b"Hello World")
 
   def testLargeFileIsReturnedInMultipleChunks(self):
     chars = [b"a", b"b", b"x"]
@@ -670,9 +677,9 @@ class VfsTimelineTestMixin(object):
         stat_entry.pathspec.path = self.file_path[len(self.category_path):]
         stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-        hash_entry = rdf_crypto.Hash(
-            sha256=("0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
-                    "e4f06017acdb5").decode("hex"))
+        sha256 = (
+            "0e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5")
+        hash_entry = rdf_crypto.Hash(sha256=binascii.unhexlify(sha256))
 
         self.SetupFileMetadata(
             client_id,
@@ -857,7 +864,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     for path in [archive_path1, archive_path2]:
       contents = zip_fd.read(path)
-      self.assertEqual(contents, "Goodbye World")
+      self.assertEqual(contents, b"Goodbye World")
 
   def testFiltersArchivedFilesByPath(self):
     archive_path = ("vfs_C_1000000000000000_fs_os_c_Downloads/"
@@ -876,7 +883,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(zip_fd.namelist(), [archive_path])
 
     contents = zip_fd.read(archive_path)
-    self.assertEqual(contents, "Goodbye World")
+    self.assertEqual(contents, b"Goodbye World")
 
   def testNonExistentPathGeneratesEmptyArchive(self):
     result = self.handler.Handle(
@@ -912,8 +919,8 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     zip_fd = zipfile.ZipFile(out_fd, "r")
 
     self.assertCountEqual(zip_fd.namelist(), [archive_path1, archive_path2])
-    self.assertEqual(zip_fd.read(archive_path1), "Goodbye World")
-    self.assertEqual(zip_fd.read(archive_path2), "Goodbye World")
+    self.assertEqual(zip_fd.read(archive_path1), b"Goodbye World")
+    self.assertEqual(zip_fd.read(archive_path2), b"Goodbye World")
 
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
@@ -925,8 +932,8 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     zip_fd = zipfile.ZipFile(out_fd, "r")
 
     self.assertCountEqual(zip_fd.namelist(), [archive_path1, archive_path2])
-    self.assertEqual(zip_fd.read(archive_path1), "Hello World")
-    self.assertEqual(zip_fd.read(archive_path2), "Hello World")
+    self.assertEqual(zip_fd.read(archive_path1), b"Hello World")
+    self.assertEqual(zip_fd.read(archive_path2), b"Hello World")
 
 
 class DecodersTestMixin(object):

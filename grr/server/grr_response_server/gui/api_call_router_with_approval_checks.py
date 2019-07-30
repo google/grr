@@ -64,7 +64,7 @@ class AccessChecker(object):
           "No approval found.", subject=subject)
     else:
       raise access_control.UnauthorizedAccess(
-          " ".join(utils.SmartStr(e) for e in errors), subject=subject)
+          " ".join(str(e) for e in errors), subject=subject)
 
   def CheckClientAccess(self, username, client_id):
     """Checks whether a given user can access given client."""

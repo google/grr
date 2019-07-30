@@ -304,8 +304,8 @@ supported_os: [Linux]
     self.assertEqual(arglist, ["-L", "-v", "-n"])
 
     # Check serialize/deserialize doesn't change order.
-    serialized = artifact_obj.SerializeToString()
-    artifact_obj = rdf_artifacts.Artifact.FromSerializedString(serialized)
+    serialized = artifact_obj.SerializeToBytes()
+    artifact_obj = rdf_artifacts.Artifact.FromSerializedBytes(serialized)
     arglist = artifact_obj.sources[0].attributes.get("args")
     self.assertEqual(arglist, ["-L", "-v", "-n"])
 

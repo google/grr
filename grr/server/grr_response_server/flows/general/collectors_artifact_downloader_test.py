@@ -43,11 +43,15 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     def StartFileFetch(this, pathspec, request_data=None):
       self.start_file_fetch_args.append(pathspec)
 
+      # We had a bug where the Start method of the MultiGetFileLogic wasn't
+      # called correctly so we now check that the state is set up properly.
+      self.assertIn("indexed_pathspecs", this.state)
+
       for r in self.received_files:
         this.ReceiveFetchedFile(r, None, request_data=request_data)
 
       for r in self.failed_files:
-        this.FileFetchFailed(pathspec, request_data=request_data)
+        this.FileFetchFailed(r, request_data=request_data)
 
     sff_stubber = utils.Stubber(transfer.MultiGetFileLogic, "StartFileFetch",
                                 StartFileFetch)

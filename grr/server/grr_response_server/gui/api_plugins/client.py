@@ -16,7 +16,6 @@ import ipaddress
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -84,7 +83,7 @@ class ApiClientId(rdfvalue.RDFString):
     if self._value:
       re_match = self.CLIENT_ID_RE.match(self._value)
       if not re_match:
-        raise ValueError("Invalid client id: %s" % utils.SmartStr(self._value))
+        raise ValueError("Invalid client id: %s" % str(self._value))
 
   def ToString(self):
     if not self._value:
@@ -112,71 +111,6 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       rdf_client.User,
       rdf_client_fs.Volume,
   ]
-
-  def InitFromAff4Object(self, client_obj, include_metadata=True):
-    # TODO(amoser): Deprecate all urns.
-    self.urn = client_obj.urn
-
-    self.client_id = client_obj.urn.Basename()
-
-    self.agent_info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
-    self.hardware_info = client_obj.Get(client_obj.Schema.HARDWARE_INFO)
-    self.os_info = rdf_client.Uname(
-        system=client_obj.Get(client_obj.Schema.SYSTEM),
-        release=client_obj.Get(client_obj.Schema.OS_RELEASE),
-        # TODO(user): Check if ProtoString.Validate should be fixed
-        # to do an isinstance() check on a value. Is simple type
-        # equality check used there for performance reasons?
-        version=utils.SmartStr(
-            client_obj.Get(client_obj.Schema.OS_VERSION, "")),
-        kernel=client_obj.Get(client_obj.Schema.KERNEL),
-        machine=client_obj.Get(client_obj.Schema.ARCH),
-        fqdn=(client_obj.Get(client_obj.Schema.FQDN) or
-              client_obj.Get(client_obj.Schema.HOSTNAME)),
-        install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE))
-    self.knowledge_base = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
-    self.memory_size = client_obj.Get(client_obj.Schema.MEMORY_SIZE)
-
-    self.first_seen_at = client_obj.Get(client_obj.Schema.FIRST_SEEN)
-
-    if include_metadata:
-      ping = client_obj.Get(client_obj.Schema.PING)
-      if ping:
-        self.last_seen_at = ping
-
-      booted = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
-      if booted:
-        self.last_booted_at = booted
-
-      clock = client_obj.Get(client_obj.Schema.CLOCK)
-      if clock:
-        self.last_clock = clock
-
-      last_crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
-      if last_crash is not None:
-        self.last_crash_at = last_crash.timestamp
-
-      self.fleetspeak_enabled = bool(
-          client_obj.Get(client_obj.Schema.FLEETSPEAK_ENABLED))
-
-    self.labels = [
-        rdf_objects.ClientLabel(name=l.name, owner=l.owner)
-        for l in client_obj.GetLabels()
-    ]
-    self.interfaces = client_obj.Get(client_obj.Schema.INTERFACES)
-    kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
-    if kb and kb.users:
-      self.users = sorted(kb.users, key=lambda user: user.username)
-    self.volumes = client_obj.Get(client_obj.Schema.VOLUMES)
-
-    type_obj = client_obj.Get(client_obj.Schema.TYPE)
-    if type_obj:
-      # Without self.Set self.age would reference "age" attribute instead of a
-      # protobuf field.
-      self.Set("age", type_obj.age)
-
-    self.cloud_instance = client_obj.Get(client_obj.Schema.CLOUD_INSTANCE)
-    return self
 
   def InitFromClientObject(self, client_obj):
 
@@ -265,8 +199,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
   def ObjectReference(self):
     return rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.CLIENT,
-        client=rdf_objects.ClientReference(
-            client_id=utils.SmartStr(self.client_id)))
+        client=rdf_objects.ClientReference(client_id=str(self.client_id)))
 
 
 class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
@@ -677,7 +610,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     for api_client_id in args.client_ids:
-      cid = unicode(api_client_id)
+      cid = str(api_client_id)
       data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
       idx = client_index.ClientIndex()
       idx.AddClientLabels(cid, args.labels)
@@ -708,7 +641,7 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     for client_id in args.client_ids:
-      cid = unicode(client_id)
+      cid = str(client_id)
       data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
       labels_to_remove = set(args.labels)
       existing_labels = data_store.REL_DB.ReadClientLabels(cid)

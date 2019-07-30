@@ -61,7 +61,7 @@ class RootApiUserManagementTest(api_e2e_test_lib.RootApiE2ETest):
     password = self._GetPassword("user_foo")
     self.assertTrue(password.CheckPassword("blah"))
 
-    user = user.Modify(password="ohno")
+    user.Modify(password="ohno")
 
     password = self._GetPassword("user_foo")
     self.assertTrue(password.CheckPassword("ohno"))

@@ -46,7 +46,7 @@ def Init(service_client=None):
   label_map = {}
   for entry in config.CONFIG["Server.fleetspeak_label_map"]:
     key, value = entry.split(":")
-    label_map[key] = value
+    label_map[key.strip()] = value.strip()
 
   CONN = service_client
   logging.info("Fleetspeak connector initialized.")

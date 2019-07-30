@@ -66,8 +66,8 @@ class EmailAddress(rdfvalue.RDFString):
 
   _EMAIL_REGEX = re.compile(r"[^@]+@([^@]+)$")
 
-  def ParseFromString(self, value):
-    super(EmailAddress, self).ParseFromString(value)
+  def ParseFromBytes(self, value):
+    super(EmailAddress, self).ParseFromBytes(value)
 
     self._match = self._EMAIL_REGEX.match(self._value)
     if not self._match:
@@ -77,8 +77,8 @@ class EmailAddress(rdfvalue.RDFString):
 class DomainEmailAddress(EmailAddress):
   """A more restricted email address may only address the domain."""
 
-  def ParseFromString(self, value):
-    super(DomainEmailAddress, self).ParseFromString(value)
+  def ParseFromBytes(self, value):
+    super(DomainEmailAddress, self).ParseFromBytes(value)
 
     # TODO(user): dependency loop with
     # core/grr_response_core/grr/config/client.py.
@@ -106,7 +106,7 @@ class URI(rdf_structs.RDFProtoStruct):
   """Represets a URI with its individual components seperated."""
   protobuf = sysinfo_pb2.URI
 
-  def ParseFromString(self, value):
+  def ParseFromBytes(self, value):
     precondition.AssertType(value, bytes)
     self.ParseFromHumanReadable(value.decode("utf-8"))
 
@@ -125,7 +125,7 @@ class URI(rdf_structs.RDFProtoStruct):
     if url.fragment:
       self.fragment = url.fragment
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return self.SerializeToHumanReadable().encode("utf-8")
 
   def SerializeToHumanReadable(self):

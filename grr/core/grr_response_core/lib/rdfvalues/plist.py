@@ -23,8 +23,8 @@ class FilterString(rdfvalue.RDFString):
   # A subclass of lexer.Searchparser able to parse textual queries.
   query_parser_cls = lexer.SearchParser
 
-  def ParseFromString(self, value):
-    super(FilterString, self).ParseFromString(value)
+  def ParseFromBytes(self, value):
+    super(FilterString, self).ParseFromBytes(value)
     try:
       self.query_parser_cls(self._value).Parse()
     except lexer.ParseError as e:

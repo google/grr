@@ -241,13 +241,15 @@ class Interrogate(flow_base.FlowBase):
     response = responses.First()
 
     if fleetspeak_utils.IsFleetspeakEnabledClient(self.client_id):
-      label = fleetspeak_utils.GetLabelFromFleetspeak(self.client_id)
-      # A FS enabled GRR shouldn't provide a label, but if it does prefer
-      # it to an unrecognized FS label.
-      #
-      # TODO(user): Remove condition once we are confident in FS labeling.
-      if label != fleetspeak_connector.unknown_label or not response.labels:
-        response.labels = [label]
+      # Fetch labels for the client from Fleetspeak. If Fleetspeak doesn't
+      # have any labels for the GRR client, fall back to labels reported by
+      # the client.
+      fleetspeak_labels = fleetspeak_utils.GetLabelsFromFleetspeak(
+          self.client_id)
+      if fleetspeak_labels:
+        response.labels = fleetspeak_labels
+      elif not response.labels:
+        response.labels = [fleetspeak_connector.unknown_label]
 
     sanitized_labels = []
     for label in response.labels:

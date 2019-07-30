@@ -478,7 +478,7 @@ class ObjectFilterTest(absltest.TestCase):
   )
 )
 """
-    parser = objectfilter.Parser(query).Parse()
+    objectfilter.Parser(query).Parse()
     # Mix context and binary operators
     query = """
 @imported_dlls
@@ -489,32 +489,7 @@ class ObjectFilterTest(absltest.TestCase):
   ) AND num_functions == 2
 )
 """
-    parser = objectfilter.Parser(query).Parse()
-    # Also on the right
-    query = """
-@imported_dlls
-(
-  num_functions == 2 AND
-  @imported_function
-  (
-    name is 'OpenFileA'
-  )
-)
-"""
-
-  # Altogether
-  # There's an imported dll that imports OpenFileA AND
-  # an imported DLL matching advapi32.dll that imports RegQueryValueExA AND
-  # and it exports a symbol called 'inject'
-  query = """
-@imported_dlls( @imported_function ( name is 'OpenFileA' ) )
-AND
-@imported_dlls (
-  name regexp '(?i)advapi32.dll'
-  AND @imported_function ( name is 'RegQueryValueEx' )
-)
-AND @exported_symbols(name is 'inject')
-"""
+    objectfilter.Parser(query).Parse()
 
   def testInset(self):
     obj = DummyObject("clone", 2)

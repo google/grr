@@ -7,13 +7,14 @@ from __future__ import unicode_literals
 import itertools
 import os
 import re
-import stat
 import zipfile
 
 from future.builtins import filter
+from future.builtins import int
 from future.builtins import range
 from future.builtins import str
 from future.utils import iterkeys
+from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -47,13 +48,11 @@ def ValidateVfsPath(path):
 
   components = (path or "").lstrip("/").split("/")
   if not components:
-    raise ValueError("Empty path is not a valid path: %s." %
-                     utils.SmartStr(path))
+    raise ValueError("Empty path is not a valid path: %s." % path)
 
   if components[0] not in ROOT_FILES_WHITELIST:
-    raise ValueError(
-        "First path component was '%s', but has to be one of %s" %
-        (utils.SmartStr(components[0]), ", ".join(ROOT_FILES_WHITELIST)))
+    raise ValueError("First path component was '%s', but has to be one of %s" %
+                     (components[0], ", ".join(ROOT_FILES_WHITELIST)))
 
   return True
 
@@ -272,45 +271,45 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
-    # TODO(hanuszczak): The tests passed even without support for timestamp
-    # filtering. The test suite should be probably improved in that regard.
     client_id = str(args.client_id)
-    path_infos = data_store.REL_DB.ReadPathInfoHistory(client_id, path_type,
-                                                       components)
-    path_infos.reverse()
-    if args.timestamp:
-      path_infos = [pi for pi in path_infos if pi.timestamp <= args.timestamp]
 
-    if not path_infos:
-      # TODO(user): As soon as we get rid of AFF4 - raise here. At the
-      # moment we just return a directory-like stub instead to mimic the
-      # AFF4Volume behavior.
-      #
-      # raise FileNotFoundError("No file matching the path %s at timestamp %s" %
-      #                         (args.file_path, args.timestamp))
-      pi = rdf_objects.PathInfo(
-          path_type=path_type, components=components, directory=True)
-      api_file = ApiFile(
-          name=components[-1],
-          path=args.file_path,
-          is_directory=True,
-          details=_GenerateApiFileDetails([pi]))
-      return ApiGetFileDetailsResult(file=api_file)
-
-    last_path_info = path_infos[0]
+    try:
+      path_info = data_store.REL_DB.ReadPathInfo(
+          client_id=client_id,
+          path_type=path_type,
+          components=components,
+          timestamp=args.timestamp)
+    except db.UnknownPathError:
+      # TODO(hanuszczak): This exception class should be extended to provide
+      #  some information about the path that caused it to be raised.
+      raise FileNotFoundError()
 
     last_collection_pi = file_store.GetLastCollectionPathInfo(
-        db.ClientPath.FromPathInfo(client_id, last_path_info),
+        db.ClientPath.FromPathInfo(client_id, path_info),
         max_timestamp=args.timestamp)
+
+    history = data_store.REL_DB.ReadPathInfoHistory(
+        client_id=client_id, path_type=path_type, components=components)
+    history.reverse()
+
+    # It might be the case that we do not have any history about the file, but
+    # we have some information because it is an implicit path.
+    if not history:
+      history = [path_info]
+
+    # TODO(hanuszczak): Add support for timestamp-based filtering of the path
+    #  history in the database API.
+    if args.timestamp is not None:
+      history = [_ for _ in history if _.timestamp <= args.timestamp]
 
     file_obj = ApiFile(
         name=components[-1],
         path=rdf_objects.ToCategorizedPath(path_type, components),
-        stat=last_path_info.stat_entry,
-        hash=last_path_info.hash_entry,
-        details=_GenerateApiFileDetails(path_infos),
-        is_directory=stat.S_ISDIR(last_path_info.stat_entry.st_mode),
-        age=last_path_info.timestamp,
+        stat=path_info.stat_entry,
+        hash=path_info.hash_entry,
+        details=_GenerateApiFileDetails(history),
+        is_directory=path_info.directory,
+        age=path_info.timestamp,
     )
 
     if last_collection_pi:
@@ -786,7 +785,7 @@ def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
   path_infos = []
   for path_info in itertools.chain(
       [root_path_info],
-      data_store.REL_DB.ListDescendentPathInfos(client_id, path_type,
+      data_store.REL_DB.ListDescendantPathInfos(client_id, path_type,
                                                 components),
   ):
     # TODO(user): this is to keep the compatibility with current
@@ -804,7 +803,7 @@ def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
   if with_history:
     hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
         client_id, path_type, [tuple(pi.components) for pi in path_infos])
-    for path_info in itertools.chain(*hist_path_infos.itervalues()):
+    for path_info in itertools.chain.from_iterable(itervalues(hist_path_infos)):
       categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
                                                        path_info.components)
       yield categorized_path, path_info.stat_entry, path_info.hash_entry
@@ -1071,7 +1070,7 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     client_paths = []
     for start_path in start_paths:
       path_type, components = rdf_objects.ParseCategorizedPath(start_path)
-      for pi in data_store.REL_DB.ListDescendentPathInfos(
+      for pi in data_store.REL_DB.ListDescendantPathInfos(
           client_id, path_type, components):
         if pi.directory:
           continue

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_api_client import artifact
 from grr_api_client import client
 from grr_api_client import config
 from grr_api_client import context
@@ -47,6 +48,9 @@ class GrrApi(object):
 
   def ListGrrBinaries(self):
     return config.ListGrrBinaries(context=self._context)
+
+  def ListArtifacts(self):
+    return artifact.ListArtifacts(context=self._context)
 
   def GrrBinary(self, binary_type, path):
     return config.GrrBinaryRef(

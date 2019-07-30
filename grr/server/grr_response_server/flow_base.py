@@ -395,6 +395,12 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     if not isinstance(response, rdfvalue.RDFValue):
       raise ValueError("SendReply can only send RDFValues")
 
+    reply = rdf_flow_objects.FlowResult(
+        client_id=self.rdf_flow.client_id,
+        flow_id=self.rdf_flow.flow_id,
+        hunt_id=self.rdf_flow.parent_hunt_id,
+        payload=response,
+        tag=tag)
     if self.rdf_flow.parent_flow_id:
       response = rdf_flow_objects.FlowResponse(
           client_id=self.rdf_flow.client_id,
@@ -405,13 +411,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           tag=tag)
 
       self.flow_responses.append(response)
+      # For nested flows we want the replies to be written,
+      # but not to be processed by output plugins.
+      self.replies_to_write.append(reply)
     else:
-      reply = rdf_flow_objects.FlowResult(
-          client_id=self.rdf_flow.client_id,
-          flow_id=self.rdf_flow.flow_id,
-          hunt_id=self.rdf_flow.parent_hunt_id,
-          payload=response,
-          tag=tag)
       self.replies_to_write.append(reply)
       self.replies_to_process.append(reply)
 
@@ -738,10 +741,11 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     if self.replies_to_write:
       # For top-level hunt-induced flows, write results to the hunt collection.
-      if self.rdf_flow.parent_hunt_id and not self.rdf_flow.parent_flow_id:
+      if self.rdf_flow.parent_hunt_id:
         data_store.REL_DB.WriteFlowResults(self.replies_to_write)
         hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
       else:
+        # Write flow results to REL_DB, even if the flow is a nested flow.
         data_store.REL_DB.WriteFlowResults(self.replies_to_write)
       self.replies_to_write = []
 

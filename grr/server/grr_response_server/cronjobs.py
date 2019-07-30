@@ -12,6 +12,7 @@ import time
 import traceback
 
 from future.utils import iterkeys
+from future.utils import with_metaclass
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -51,10 +52,8 @@ class LifetimeExceededError(Error):
   """Exception raised when a cronjob exceeds its max allowed runtime."""
 
 
-class CronJobBase(object):
+class CronJobBase(with_metaclass(registry.CronJobRegistry, object)):
   """The base class for all cron jobs."""
-
-  __metaclass__ = registry.CronJobRegistry
 
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -134,10 +133,9 @@ class CronJobBase(object):
           last_run_status=self.run_state.status)
 
 
-class SystemCronJobBase(CronJobBase):
+class SystemCronJobBase(
+    with_metaclass(registry.SystemCronJobRegistry, CronJobBase)):
   """The base class for all system cron jobs."""
-
-  __metaclass__ = registry.SystemCronJobRegistry
 
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -491,7 +489,7 @@ def ScheduleSystemCronJobs(names=None):
   disabled_classes = config.CONFIG["Cron.disabled_cron_jobs"]
   for name in disabled_classes:
     try:
-      cls = registry.SystemCronJobRegistry.CronJobClassByName(name)
+      registry.SystemCronJobRegistry.CronJobClassByName(name)
     except ValueError:
       errors.append("Cron job not found: %s." % name)
       continue
@@ -500,7 +498,6 @@ def ScheduleSystemCronJobs(names=None):
     names = iterkeys(registry.SystemCronJobRegistry.SYSTEM_CRON_REGISTRY)
 
   for name in names:
-
     cls = registry.SystemCronJobRegistry.CronJobClassByName(name)
 
     enabled = cls.enabled and name not in disabled_classes

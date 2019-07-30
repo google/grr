@@ -18,8 +18,9 @@ config_lib.DEFINE_string("Blobstore.implementation", "DbBlobStore",
 config_lib.DEFINE_string("Database.implementation", "",
                          "Relational database system to use.")
 
+# Deprecated. There is no choice anymore, relational db is always enabled.
 config_lib.DEFINE_bool(
-    "Database.enabled", False,
+    "Database.enabled", True,
     "Use relational database for reading as well as for writing.")
 
 config_lib.DEFINE_bool("Database.aff4_enabled", False, "Deprecated.")

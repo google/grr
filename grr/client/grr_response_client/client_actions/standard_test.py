@@ -284,8 +284,7 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
     self.assertIn("Network limit exceeded", str(client_alert))
 
     status = responses[1].payload
-    self.assertTrue(
-        "Action exceeded network send limit" in str(status.backtrace))
+    self.assertIn("Action exceeded network send limit", str(status.backtrace))
     self.assertEqual(status.status,
                      rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED)
 

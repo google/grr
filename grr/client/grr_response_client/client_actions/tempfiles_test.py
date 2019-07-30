@@ -198,8 +198,8 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
     self.assertTrue(os.path.exists(self.not_tempfile))
     self.assertFalse(os.path.exists(self.temp_fd.name))
     self.assertFalse(os.path.exists(self.temp_fd2.name))
-    self.assertTrue(self.temp_fd.name in result.data)
-    self.assertTrue(self.temp_fd2.name in result.data)
+    self.assertIn(self.temp_fd.name, result.data)
+    self.assertIn(self.temp_fd2.name, result.data)
 
   def testDeleteGRRTempFilesSpecificPath(self):
     self.pathspec = rdf_paths.PathSpec(

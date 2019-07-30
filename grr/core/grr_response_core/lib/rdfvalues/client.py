@@ -219,7 +219,7 @@ class User(rdf_structs.RDFProtoStruct):
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
       super(User, self).__init__(initializer=None, age=age, **kwargs)
-      self.ParseFromString(initializer.SerializeToString())
+      self.ParseFromBytes(initializer.SerializeToBytes())
     else:
       super(User, self).__init__(initializer=initializer, age=age, **kwargs)
 

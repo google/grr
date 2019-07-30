@@ -8,7 +8,6 @@ from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import cron_pb2
 from grr_response_server import cronjobs
@@ -126,7 +125,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
     return rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
         cron_job=rdf_objects.CronJobReference(
-            cron_job_id=utils.SmartStr(self.cron_job_id)))
+            cron_job_id=str(self.cron_job_id)))
 
 
 class ApiCronJobRun(rdf_structs.RDFProtoStruct):

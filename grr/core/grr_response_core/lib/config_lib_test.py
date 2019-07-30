@@ -764,7 +764,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     # A string can be coerced to an int if it makes sense:
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
 
-    errors = conf.Validate("Section1")
+    conf.Validate("Section1")
     self.assertEqual(type(conf.Get("Section1.int")), long)
 
     self.assertEqual(type(conf.Get("Section1.list")), list)

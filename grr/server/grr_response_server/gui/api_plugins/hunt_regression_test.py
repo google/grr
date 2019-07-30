@@ -314,7 +314,7 @@ class ApiListHuntCrashesHandlerRegressionTest(
     replace = {
         hunt_id:
             "H:123456",
-        unicode(crash.session_id):
+        str(crash.session_id):
             "aff4:/hunts/H:123456/C.1000000000000000/H:11223344"
     }
 
@@ -522,7 +522,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
     replace = {hunt_id: "H:123456"}
     stats = data_store.REL_DB.ReadHuntClientResourcesStats(hunt_id)
     for performance in stats.worst_performers:
-      session_id = unicode(performance.session_id)
+      session_id = str(performance.session_id)
       replace[session_id] = "<replaced session value>"
 
     self.Check(

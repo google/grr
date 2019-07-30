@@ -531,5 +531,6 @@ def CreateDirectory(client_path):
   path_info.path_type = client_path.path_type
   path_info.components = client_path.components
   path_info.stat_entry = stat_entry
+  path_info.directory = True
 
   data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])

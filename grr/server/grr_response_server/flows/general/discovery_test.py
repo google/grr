@@ -107,16 +107,16 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(summary.system_info.kernel, kernel)
 
     self.assertLen(summary.interfaces, 1)
-    self.assertEqual(summary.interfaces[0].mac_address, "123456")
+    self.assertEqual(summary.interfaces[0].mac_address, b"123456")
 
     # Check that the client summary was published to the event listener.
     self.assertEqual(DiscoveryTestEventListener.event.client_id, client_id)
     self.assertEqual(DiscoveryTestEventListener.event.interfaces[0].mac_address,
-                     "123456")
+                     b"123456")
     self.assertTrue(DiscoveryTestEventListener.event.timestamp)
 
   def _CheckNetworkInfo(self, client):
-    self.assertEqual(client.interfaces[0].mac_address, "123456")
+    self.assertEqual(client.interfaces[0].mac_address, b"123456")
     self.assertEqual(client.interfaces[0].addresses[0].human_readable_address,
                      "100.100.100.1")
     self.assertEqual(

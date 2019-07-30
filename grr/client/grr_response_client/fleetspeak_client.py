@@ -35,7 +35,6 @@ from grr_response_proto import jobs_pb2
 
 START_STRING = "Starting client."
 
-# //depot/grr/tools/benchmark.py,
 # //depot/grr_response_client/comms.py)
 # pyformat: enable
 
@@ -158,7 +157,7 @@ class GRRFleetspeakClient(object):
       msgs.append(msg)
 
     count = 1
-    size = len(msg.SerializeToString())
+    size = len(msg.SerializeToBytes())
 
     while count < 100 and size < 1024 * 1024:
       try:
@@ -168,7 +167,7 @@ class GRRFleetspeakClient(object):
         else:
           msgs.append(msg)
         count += 1
-        size += len(msg.SerializeToString())
+        size += len(msg.SerializeToBytes())
       except queue.Empty:
         break
 
@@ -194,7 +193,7 @@ class GRRFleetspeakClient(object):
     stats_collector_instance.Get().IncrementCounter("grr_client_received_bytes",
                                                     received_bytes)
 
-    grr_msg = rdf_flows.GrrMessage.FromSerializedString(fs_msg.data.value)
+    grr_msg = rdf_flows.GrrMessage.FromSerializedBytes(fs_msg.data.value)
     # Authentication is ensured by Fleetspeak.
     grr_msg.auth_state = jobs_pb2.GrrMessage.AUTHENTICATED
 

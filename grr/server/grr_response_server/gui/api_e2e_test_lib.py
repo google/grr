@@ -18,6 +18,7 @@ from grr_api_client import api as grr_api
 from grr_api_client import utils as grr_api_utils
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
+from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import webauth

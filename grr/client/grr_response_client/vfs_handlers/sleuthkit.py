@@ -156,7 +156,7 @@ class TSKFile(vfs_base.VFSHandler):
     # correct.
     self.pathspec.last.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL
 
-    fd_hash = self.tsk_raw_device.pathspec.SerializeToString()
+    fd_hash = self.tsk_raw_device.pathspec.SerializeToBytes()
 
     # Cache the filesystem using the path of the raw device
     try:

@@ -5,8 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
+from future.builtins import str
 
-from grr_response_core.lib import utils
 from grr_response_server.flows.general import registry as flow_registry
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -85,7 +85,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 2)
     for result in results:
       st = result.stat_entry
-      path = utils.SmartStr(st.pathspec.path)
+      path = str(st.pathspec.path)
       if "Value1" in path:
         self.assertEqual(st.st_mtime, 110)
       elif "Value2" in path:

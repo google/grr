@@ -14,7 +14,7 @@ from grr_response_server.databases import mysql_utils
 
 
 def _RowToArtifact(row):
-  return rdf_artifacts.Artifact.FromSerializedString(row[0])
+  return rdf_artifacts.Artifact.FromSerializedBytes(row[0])
 
 
 class MySQLDBArtifactsMixin(object):
@@ -27,7 +27,7 @@ class MySQLDBArtifactsMixin(object):
 
     try:
       cursor.execute("INSERT INTO artifacts (name, definition) VALUES (%s, %s)",
-                     [name, artifact.SerializeToString()])
+                     [name, artifact.SerializeToBytes()])
     except MySQLdb.IntegrityError as error:
       if error.args[0] == mysql_error_constants.DUP_ENTRY:
         raise db.DuplicatedArtifactError(name, cause=error)

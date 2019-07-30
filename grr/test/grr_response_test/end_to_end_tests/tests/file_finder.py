@@ -156,6 +156,33 @@ class TestFileFinderOSLinux(test_base.AbstractFileTransferTest):
   def testCFFProcFile(self):
     self._testProcFile("ClientFileFinder")
 
+  def _testRandomDevice(self, flow):
+    # Reading from /dev/random is an interesting test,
+    # since the hash can't be precalculated and GRR will
+    # be forced to use server-side generated hash. It triggers
+    # branches in the code that are not triggered when collecting
+    # ordinary files.
+    len_to_read = 1024
+    args = self.grr_api.types.CreateFlowArgs(flow)
+
+    args.paths.append("/dev/random")
+    args.action.action_type = args.action.DOWNLOAD
+    args.action.download.max_size = len_to_read
+    args.process_non_regular_files = True
+
+    with self.WaitForFileCollection("fs/os/dev/random"):
+      self.RunFlowAndWait(flow, args=args)
+
+    f = self.client.File("fs/os/dev/random").Get()
+    self.assertEqual(f.data.last_collected_size, len_to_read)
+    self.assertEqual(f.data.hash.num_bytes, len_to_read)
+
+  def testRandomDevice(self):
+    self._testRandomDevice("FileFinder")
+
+  def testCFFRandomDevice(self):
+    self._testRandomDevice("ClientFileFinder")
+
 
 class TestFileFinderOSHomedir(test_base.AbstractFileTransferTest):
   """List files in homedir with FileFinder."""
@@ -186,8 +213,8 @@ class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
 
   def _testLiteralMatching(self, flow):
     keywords = {
-        test_base.EndToEndTest.Platform.LINUX: "ELF",
-        test_base.EndToEndTest.Platform.DARWIN: "Apple",
+        test_base.EndToEndTest.Platform.LINUX: b"ELF",
+        test_base.EndToEndTest.Platform.DARWIN: b"Apple",
     }
 
     keyword = keywords[self.platform]
@@ -196,7 +223,7 @@ class TestFileFinderLiteralMatching(test_base.AbstractFileTransferTest):
     args.paths.append("/bin/ls")
     condition = args.conditions.add()
     condition.condition_type = condition.CONTENTS_LITERAL_MATCH
-    condition.contents_literal_match.literal = keyword.encode("utf-8")
+    condition.contents_literal_match.literal = keyword
     args.action.action_type = args.action.STAT
 
     f = self.RunFlowAndWait(flow, args=args)

@@ -9,6 +9,7 @@ import binascii
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -36,7 +37,7 @@ def SendGrrMessageThroughFleetspeak(grr_id, msg):
 
 
 def FleetspeakIDToGRRID(fs_id):
-  return "C." + binascii.hexlify(fs_id)
+  return "C." + binascii.hexlify(fs_id).decode("ascii")
 
 
 def GRRIDToFleetspeakID(grr_id):
@@ -49,17 +50,32 @@ def TSToRDFDatetime(ts):
   return rdfvalue.RDFDatetime(ts.seconds * 1000000 + ts.nanos // 1000)
 
 
-def GetLabelFromFleetspeak(client_id):
-  """Returns the primary GRR label to use for a fleetspeak client."""
+def GetLabelsFromFleetspeak(client_id):
+  """Returns labels for a Fleetspeak-enabled client.
+
+  Fleetspeak-enabled clients delegate labeling to Fleetspeak, as opposed to
+  using labels in the GRR config.
+
+  Args:
+    client_id: Id of the client to fetch Fleetspeak labels for.
+
+  Returns:
+    A list of client labels.
+  """
   res = fleetspeak_connector.CONN.outgoing.ListClients(
       admin_pb2.ListClientsRequest(client_ids=[GRRIDToFleetspeakID(client_id)]))
   if not res.clients or not res.clients[0].labels:
-    return fleetspeak_connector.unknown_label
+    return []
 
-  for label in res.clients[0].labels:
-    if label.service_name != "client":
+  grr_labels = []
+  label_prefix = config.CONFIG["Server.fleetspeak_label_prefix"]
+  for fs_label in res.clients[0].labels:
+    if (fs_label.service_name != "client" or
+        (label_prefix and not fs_label.label.startswith(label_prefix))):
       continue
-    if label.label in fleetspeak_connector.label_map:
-      return fleetspeak_connector.label_map[label.label]
+    try:
+      grr_labels.append(fleetspeak_connector.label_map[fs_label.label])
+    except KeyError:
+      grr_labels.append(fs_label.label)
 
-  return fleetspeak_connector.unknown_label
+  return grr_labels

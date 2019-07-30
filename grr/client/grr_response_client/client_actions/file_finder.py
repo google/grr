@@ -106,7 +106,7 @@ class FileFinderOS(actions.ActionPlugin):
   def _Validate(self, args,
                 filepath):
     matches = []
-    stat = self._GetStat(filepath, follow_symlink=False)
+    stat = self._GetStat(filepath, follow_symlink=bool(args.follow_links))
     self._ValidateRegularity(stat, args, filepath)
     self._ValidateMetadata(stat, filepath)
     self._ValidateContent(stat, filepath, matches)

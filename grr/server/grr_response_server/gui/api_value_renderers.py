@@ -9,16 +9,15 @@ import inspect
 import logging
 import numbers
 
+from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
-from past.builtins import long
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -139,7 +138,7 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
 
   def RenderValue(self, value):
     """Renders given value into plain old python objects."""
-    return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
+    return self._IncludeTypeInfo(str(value), value)
 
   def BuildDefaultValue(self, value_cls):
     """Renders default value of a given class.
@@ -190,12 +189,10 @@ class ApiNumberRenderer(ApiValueRenderer):
   value_class = numbers.Number
 
   def RenderValue(self, value):
-    # Always render ints as longs - so that there's no ambiguity in the UI
-    # renderers when type depends on the value.
-    if isinstance(value, int):
-      value = long(value)
-
-    return self._IncludeTypeInfo(value, value)
+    if isinstance(value, numbers.Integral):
+      return dict(type="long", value=value)
+    else:
+      return dict(type="float", value=value)
 
 
 class ApiStringRenderer(ApiValueRenderer):
@@ -224,7 +221,7 @@ class ApiDictRenderer(ApiValueRenderer):
   def RenderValue(self, value):
     result = {}
     for k, v in iteritems(value):
-      result[utils.SmartUnicode(k)] = self._PassThrough(v)
+      result[str(k)] = self._PassThrough(v)
 
     return self._IncludeTypeInfo(result, value)
 
@@ -238,13 +235,13 @@ class ApiRDFDictRenderer(ApiDictRenderer):
 class FetchMoreLink(rdfvalue.RDFValue):
   """Stub used to display 'More data available...' link."""
 
-  def ParseFromString(self, unused_string):
+  def ParseFromBytes(self, unused_string):
     pass
 
   def ParseFromDatastore(self, value):
     del value  # Unused.
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     return ""
 
 
@@ -301,7 +298,7 @@ class ApiRDFBoolRenderer(ApiValueRenderer):
 
 
 class ApiBytesRenderer(ApiValueRenderer):
-  """Renderer for RDFBytes."""
+  """Renderer for bytes."""
 
   # ApiStringRenderer renders unicode objects. We assume that
   # non-unicode strings are effectively bytes and render them
@@ -309,8 +306,8 @@ class ApiBytesRenderer(ApiValueRenderer):
   value_class = bytes
 
   def RenderValue(self, value):
-    result = base64.b64encode(value)
-    return self._IncludeTypeInfo(result, value)
+    result = base64.b64encode(value).decode("ascii")
+    return dict(type="bytes", value=result)
 
 
 class ApiRDFBytesRenderer(ApiValueRenderer):
@@ -319,7 +316,7 @@ class ApiRDFBytesRenderer(ApiValueRenderer):
   value_class = rdfvalue.RDFBytes
 
   def RenderValue(self, value):
-    result = base64.b64encode(value.SerializeToString())
+    result = base64.b64encode(value.SerializeToBytes()).decode("ascii")
     return self._IncludeTypeInfo(result, value)
 
 
@@ -329,7 +326,7 @@ class ApiRDFZippedBytesRenderer(ApiValueRenderer):
   value_class = rdfvalue.RDFZippedBytes
 
   def RenderValue(self, value):
-    result = base64.b64encode(value.Uncompress())
+    result = str(base64.b64encode(value.Uncompress()))
     return self._IncludeTypeInfo(result, value)
 
 
@@ -339,7 +336,7 @@ class ApiRDFStringRenderer(ApiValueRenderer):
   value_class = rdfvalue.RDFString
 
   def RenderValue(self, value):
-    result = utils.SmartUnicode(value)
+    result = str(value)
     return self._IncludeTypeInfo(result, value)
 
 

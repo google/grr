@@ -234,6 +234,18 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         action=rdf_file_finder.FileFinderAction.Action.STAT,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
+  def testCollectingSingleFileCreatesNecessaryPathInfos(self):
+    path = os.path.join(self.fixture_path, "auth.log")
+    self.RunFlowAndCheckResults(
+        action=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
+        paths=[path],
+        expected_files=[os.path.basename(path)])
+
+    # If the call below doesn't raise, then we have a correct entry in the DB.
+    data_store.REL_DB.ReadPathInfo(
+        self.client_id, rdf_objects.PathInfo.PathType.OS,
+        tuple(path.strip(os.path.sep).split(os.path.sep)))
+
   def testFileFinderStat(self):
     files_to_check = [
         # Some files.

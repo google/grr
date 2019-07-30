@@ -90,13 +90,12 @@ class MySQLDBPathMixin(object):
     # pyformat: enable
 
     if stat_entry_bytes is not None:
-      stat_entry = rdf_client_fs.StatEntry.FromSerializedString(
-          stat_entry_bytes)
+      stat_entry = rdf_client_fs.StatEntry.FromSerializedBytes(stat_entry_bytes)
     else:
       stat_entry = None
 
     if hash_entry_bytes is not None:
-      hash_entry = rdf_crypto.Hash.FromSerializedString(hash_entry_bytes)
+      hash_entry = rdf_crypto.Hash.FromSerializedBytes(hash_entry_bytes)
     else:
       hash_entry = None
 
@@ -157,13 +156,13 @@ class MySQLDBPathMixin(object):
       components = mysql_utils.PathToComponents(path)
 
       if stat_entry_bytes is not None:
-        stat_entry = rdf_client_fs.StatEntry.FromSerializedString(
+        stat_entry = rdf_client_fs.StatEntry.FromSerializedBytes(
             stat_entry_bytes)
       else:
         stat_entry = None
 
       if hash_entry_bytes is not None:
-        hash_entry = rdf_crypto.Hash.FromSerializedString(hash_entry_bytes)
+        hash_entry = rdf_crypto.Hash.FromSerializedBytes(hash_entry_bytes)
       else:
         hash_entry = None
 
@@ -229,13 +228,13 @@ class MySQLDBPathMixin(object):
           stat_entry_keys.extend(key)
           stat_entry_values.append(key +
                                    (mysql_utils.RDFDatetimeToTimestamp(now),
-                                    path_info.stat_entry.SerializeToString()))
+                                    path_info.stat_entry.SerializeToBytes()))
 
         if path_info.HasField("hash_entry"):
           hash_entry_keys.extend(key)
           hash_entry_values.append(key +
                                    (mysql_utils.RDFDatetimeToTimestamp(now),
-                                    path_info.hash_entry.SerializeToString(),
+                                    path_info.hash_entry.SerializeToBytes(),
                                     path_info.hash_entry.sha256.AsBytes()))
 
         # TODO(hanuszczak): Implement a trie in order to avoid inserting
@@ -314,7 +313,7 @@ class MySQLDBPathMixin(object):
       cursor.execute(query, params)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ListDescendentPathInfos(self,
+  def ListDescendantPathInfos(self,
                               client_id,
                               path_type,
                               components,
@@ -411,13 +410,13 @@ class MySQLDBPathMixin(object):
       components = mysql_utils.PathToComponents(path)
 
       if stat_entry_bytes is not None:
-        stat_entry = rdf_client_fs.StatEntry.FromSerializedString(
+        stat_entry = rdf_client_fs.StatEntry.FromSerializedBytes(
             stat_entry_bytes)
       else:
         stat_entry = None
 
       if hash_entry_bytes is not None:
-        hash_entry = rdf_crypto.Hash.FromSerializedString(hash_entry_bytes)
+        hash_entry = rdf_crypto.Hash.FromSerializedBytes(hash_entry_bytes)
       else:
         hash_entry = None
 
@@ -525,13 +524,13 @@ class MySQLDBPathMixin(object):
       timestamp = stat_entry_timestamp or hash_entry_timestamp
 
       if stat_entry_bytes is not None:
-        stat_entry = rdf_client_fs.StatEntry.FromSerializedString(
+        stat_entry = rdf_client_fs.StatEntry.FromSerializedBytes(
             stat_entry_bytes)
       else:
         stat_entry = None
 
       if hash_entry_bytes is not None:
-        hash_entry = rdf_crypto.Hash.FromSerializedString(hash_entry_bytes)
+        hash_entry = rdf_crypto.Hash.FromSerializedBytes(hash_entry_bytes)
       else:
         hash_entry = None
 
@@ -610,12 +609,12 @@ class MySQLDBPathMixin(object):
       components = path_id_components[path_id]
 
       if stat_entry_bytes is not None:
-        stat_entry = rdf_client_fs.StatEntry.FromSerializedString(
+        stat_entry = rdf_client_fs.StatEntry.FromSerializedBytes(
             stat_entry_bytes)
       else:
         stat_entry = None
 
-      hash_entry = rdf_crypto.Hash.FromSerializedString(hash_entry_bytes)
+      hash_entry = rdf_crypto.Hash.FromSerializedBytes(hash_entry_bytes)
 
       client_path = db.ClientPath(
           client_id=db_utils.IntToClientID(client_id),

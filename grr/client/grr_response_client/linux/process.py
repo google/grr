@@ -15,6 +15,7 @@ import os
 import re
 
 from grr_response_client import process_error
+from grr_response_core.lib.rdfvalues import memory as rdf_memory
 
 libc = ctypes.CDLL("libc.so.6", use_errno=True)
 
@@ -108,16 +109,20 @@ class Process(object):
         region_protec = m.group(3)
         inode = int(m.group(6))
 
+        is_executable = "x" in region_protec
+
         if "r" in region_protec:
           if skip_mapped_files and inode != 0:
             continue
           if skip_shared_regions and "s" in region_protec:
             continue
-          if skip_executable_regions and "x" in region_protec:
+          if skip_executable_regions and is_executable:
             continue
           if skip_readonly_regions and "w" not in region_protec:
             continue
-          yield start, end - start
+
+          yield rdf_memory.YaraProcessMemoryRegion(
+              start=start, size=end - start, is_executable=is_executable)
 
   def ReadBytes(self, address, num_bytes):
     lseek64(self.mem_file, address, os.SEEK_SET)

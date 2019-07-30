@@ -26,7 +26,7 @@ class MySQLDBSignedBinariesMixin(object):
         "binary_type": binary_id.binary_type.SerializeToDataStore(),
         "binary_path": binary_id.path,
         "binary_path_hash": mysql_utils.Hash(binary_id.path),
-        "blob_references": references.SerializeToString()
+        "blob_references": references.SerializeToBytes()
     }
     query = """
       INSERT INTO signed_binary_references {cols}
@@ -63,7 +63,7 @@ class MySQLDBSignedBinariesMixin(object):
     datetime = cast(rdfvalue.RDFDatetime,
                     mysql_utils.TimestampToRDFDatetime(timestamp))
 
-    references = rdf_objects.BlobReferences.FromSerializedString(raw_references)
+    references = rdf_objects.BlobReferences.FromSerializedBytes(raw_references)
     return references, datetime
 
   @mysql_utils.WithTransaction(readonly=True)

@@ -172,7 +172,8 @@ class NannyThread(threading.Thread):
 
   def WriteNannyStatus(self, status):
     try:
-      with open(config.CONFIG["Nanny.statusfile"], "wb") as fd:
+      with io.open(
+          config.CONFIG["Nanny.statusfile"], mode="w", encoding="utf-8") as fd:
         fd.write(status)
     except (IOError, OSError):
       pass
@@ -232,7 +233,7 @@ class TransactionLog(object):
 
   def Write(self, grr_message):
     """Write the message into the transaction log."""
-    grr_message = grr_message.SerializeToString()
+    grr_message = grr_message.SerializeToBytes()
 
     try:
       with io.open(self.logfile, "wb") as fd:
@@ -270,6 +271,6 @@ class TransactionLog(object):
 
     try:
       if data:
-        return rdf_flows.GrrMessage.FromSerializedString(data)
+        return rdf_flows.GrrMessage.FromSerializedBytes(data)
     except (message.Error, rdfvalue.Error):
       return

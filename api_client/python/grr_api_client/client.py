@@ -239,16 +239,16 @@ class ClientBase(object):
   def RemoveLabel(self, label):
     return self.RemoveLabels([label])
 
-
-class ClientRef(ClientBase):
-  """Ref to the client."""
-
   def Get(self):
     """Fetch client's data and return a proper Client object."""
 
     args = client_pb2.ApiGetClientArgs(client_id=self.client_id)
     result = self._context.SendRequest("GetClient", args)
     return Client(data=result, context=self._context)
+
+
+class ClientRef(ClientBase):
+  """Ref to the client."""
 
 
 class Client(ClientBase):

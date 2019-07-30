@@ -67,8 +67,8 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     msg = self.email_messages[0]
     self.assertEqual(msg["address"], self.email_address)
     self.assertIn("got a new result in %s" % self.results_urn, msg["title"])
-    self.assertIn(utils.SmartStr(self.client_id), msg["message"])
-    self.assertIn(utils.SmartStr(self.hostname), msg["message"])
+    self.assertIn(self.client_id, msg["message"])
+    self.assertIn(self.hostname, msg["message"])
 
   def testEmailPluginStopsSendingEmailsAfterLimitIsReached(self):
     responses = [rdf_client.Process(pid=i) for i in range(11)]
@@ -83,8 +83,8 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     for msg in self.email_messages:
       self.assertEqual(msg["address"], self.email_address)
       self.assertIn("got a new result in %s" % self.results_urn, msg["title"])
-      self.assertIn(utils.SmartStr(self.client_id), msg["message"])
-      self.assertIn(utils.SmartStr(self.hostname), msg["message"])
+      self.assertIn(self.client_id, msg["message"])
+      self.assertIn(self.hostname, msg["message"])
 
     for msg in self.email_messages[:10]:
       self.assertNotIn("sending of emails will be disabled now", msg)

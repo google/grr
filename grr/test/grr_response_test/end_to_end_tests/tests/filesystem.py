@@ -74,7 +74,7 @@ class TestRecursiveListDirectoryLinuxDarwin(test_base.EndToEndTest):
     args = self.grr_api.types.CreateFlowArgs("RecursiveListDirectory")
     args.pathspec.path = "/usr"
     args.pathspec.pathtype = args.pathspec.OS
-    args.max_depth = 1
+    args.max_depth = 2
 
     with self.WaitForFileRefresh("fs/os/usr/bin/less"):
       self.RunFlowAndWait("RecursiveListDirectory", args=args)
@@ -166,7 +166,7 @@ class TestRecursiveListDirectoryOSWindows(test_base.EndToEndTest):
     args = self.grr_api.types.CreateFlowArgs("RecursiveListDirectory")
     args.pathspec.path = "C:\\"
     args.pathspec.pathtype = args.pathspec.OS
-    args.max_depth = 1
+    args.max_depth = 2
 
     with self.WaitForFileRefresh("fs/os/C:/Windows/regedit.exe"):
       self.RunFlowAndWait("RecursiveListDirectory", args=args)

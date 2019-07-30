@@ -23,7 +23,6 @@ from typing import Type
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -333,7 +332,7 @@ class DataAgnosticExportConverter(ExportConverter):
   classes_cache = {}
 
   def ExportedClassNameForValue(self, value):
-    return utils.SmartStr("AutoExported" + value.__class__.__name__)
+    return "AutoExported" + compatibility.GetName(value.__class__)
 
   def MakeFlatRDFClass(self, value):
     """Generates flattened RDFValue class definition for the given value."""
@@ -378,7 +377,7 @@ class DataAgnosticExportConverter(ExportConverter):
 
     # Create the class as late as possible. This will modify a
     # metaclass registry, we need to make sure there are no problems.
-    output_class = type(
+    output_class = compatibility.MakeType(
         self.ExportedClassNameForValue(value), (AutoExportedProtoStruct,),
         dict(Flatten=Flatten))
 
@@ -771,10 +770,10 @@ class ClientSummaryToExportedNetworkInterfaceConverter(
 
   def Convert(self, metadata, client_summary, token=None):
     """Converts ClientSummary to ExportedNetworkInterfaces."""
+    sup = super(ClientSummaryToExportedNetworkInterfaceConverter, self)
+
     for interface in client_summary.interfaces:
-      yield super(ClientSummaryToExportedNetworkInterfaceConverter,
-                  self).Convert(
-                      metadata, interface, token=token).next()
+      yield next(sup.Convert(metadata, interface, token=token))
 
 
 class ClientSummaryToExportedClientConverter(ExportConverter):
@@ -924,7 +923,7 @@ class RDFBytesToExportedBytesConverter(ExportConverter):
 
   def Convert(self, metadata, data, token=None):
     result = ExportedBytes(
-        metadata=metadata, data=data.SerializeToString(), length=len(data))
+        metadata=metadata, data=data.SerializeToBytes(), length=len(data))
     return [result]
 
 
@@ -933,7 +932,7 @@ class RDFStringToExportedStringConverter(ExportConverter):
   input_rdf_type = rdfvalue.RDFString
 
   def Convert(self, metadata, data, token=None):
-    return [ExportedString(metadata=metadata, data=data.SerializeToString())]
+    return [ExportedString(metadata=metadata, data=data.SerializeToBytes())]
 
 
 class DictToExportedDictItemsConverter(ExportConverter):
@@ -954,7 +953,7 @@ class DictToExportedDictItemsConverter(ExportConverter):
           yield v
     elif isinstance(d, (dict, rdf_protodict.Dict)):
       for k in sorted(d):
-        k = utils.SmartStr(k)
+        k = str(k)
 
         v = d[k]
         if not key:
@@ -971,8 +970,7 @@ class DictToExportedDictItemsConverter(ExportConverter):
     result = []
     d = data.ToDict()
     for k, v in self._IterateDict(d):
-      result.append(
-          ExportedDictItem(metadata=metadata, key=k, value=utils.SmartStr(v)))
+      result.append(ExportedDictItem(metadata=metadata, key=k, value=str(v)))
 
     return result
 

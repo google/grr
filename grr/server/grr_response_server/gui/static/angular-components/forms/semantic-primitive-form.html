@@ -11,6 +11,8 @@
 
   <input ng-if="controller.valueType == 'RDFString' ||
                 controller.valueType == 'basestring' ||
+                controller.valueType == 'str' ||
+                controller.valueType == 'unicode' ||
                 controller.valueType == 'RDFURN'" class="form-control"
          type="text" ng-model="value.value" />
 

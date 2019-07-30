@@ -39,7 +39,7 @@ class MySQLDBFlowMixin(object):
     value_templates = []
     args = []
     for r in requests:
-      args.extend([r.handler_name, r.request_id, r.SerializeToString()])
+      args.extend([r.handler_name, r.request_id, r.SerializeToBytes()])
       value_templates.append("(%s, %s, %s)")
 
     query += ",".join(value_templates)
@@ -58,7 +58,7 @@ class MySQLDBFlowMixin(object):
 
     res = []
     for timestamp, request, leased_until, leased_by in cursor.fetchall():
-      req = rdf_objects.MessageHandlerRequest.FromSerializedString(request)
+      req = rdf_objects.MessageHandlerRequest.FromSerializedBytes(request)
       req.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       req.leased_by = leased_by
       req.leased_until = mysql_utils.TimestampToRDFDatetime(leased_until)
@@ -138,7 +138,7 @@ class MySQLDBFlowMixin(object):
         (id_str, expiry_str, updated))
     res = []
     for timestamp, request in cursor.fetchall():
-      req = rdf_objects.MessageHandlerRequest.FromSerializedString(request)
+      req = rdf_objects.MessageHandlerRequest.FromSerializedBytes(request)
       req.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       req.leased_until = expiry
       req.leased_by = id_str
@@ -159,7 +159,7 @@ class MySQLDBFlowMixin(object):
 
     ret = []
     for req, leased_until, leased_by, leased_count in cursor.fetchall():
-      request = rdf_flows.ClientActionRequest.FromSerializedString(req)
+      request = rdf_flows.ClientActionRequest.FromSerializedBytes(req)
       if leased_until is not None:
         request.leased_by = leased_by
         request.leased_until = mysql_utils.TimestampToRDFDatetime(leased_until)
@@ -222,7 +222,7 @@ class MySQLDBFlowMixin(object):
     ret = []
     expired = []
     for req, leased_count in cursor.fetchall():
-      request = rdf_flows.ClientActionRequest.FromSerializedString(req)
+      request = rdf_flows.ClientActionRequest.FromSerializedBytes(req)
       request.leased_by = proc_id_str
       request.leased_until = expiry
       request.ttl = db.Database.CLIENT_MESSAGES_TTL - leased_count
@@ -253,7 +253,7 @@ class MySQLDBFlowMixin(object):
       args.extend([
           db_utils.ClientIDToInt(r.client_id),
           db_utils.FlowIDToInt(r.flow_id), r.request_id, now,
-          r.SerializeToString()
+          r.SerializeToBytes()
       ])
       value_templates.append("(%s, %s, %s, FROM_UNIXTIME(%s), %s)")
 
@@ -296,7 +296,7 @@ class MySQLDBFlowMixin(object):
         "client_id": db_utils.ClientIDToInt(flow_obj.client_id),
         "flow_id": db_utils.FlowIDToInt(flow_obj.flow_id),
         "long_flow_id": flow_obj.long_flow_id,
-        "flow": flow_obj.SerializeToString(),
+        "flow": flow_obj.SerializeToBytes(),
         "flow_state": int(flow_obj.flow_state),
         "next_request_to_process": flow_obj.next_request_to_process,
         "timestamp": mysql_utils.RDFDatetimeToTimestamp(flow_obj.create_time),
@@ -317,7 +317,7 @@ class MySQLDBFlowMixin(object):
       args["parent_hunt_id"] = None
 
     if flow_obj.HasField("pending_termination"):
-      serialized_termination = flow_obj.pending_termination.SerializeToString()
+      serialized_termination = flow_obj.pending_termination.SerializeToBytes()
       args["pending_termination"] = serialized_termination
     else:
       args["pending_termination"] = None
@@ -332,15 +332,15 @@ class MySQLDBFlowMixin(object):
 
     flow, fs, cci, pt, nr, pd, po, ps, uct, sct, nbs, nrs, ts, lut = row
 
-    flow_obj = rdf_flow_objects.Flow.FromSerializedString(flow)
+    flow_obj = rdf_flow_objects.Flow.FromSerializedBytes(flow)
     if fs not in [None, rdf_flow_objects.Flow.FlowState.UNSET]:
       flow_obj.flow_state = fs
     if cci is not None:
       cc_cls = rdf_client.ClientCrash
-      flow_obj.client_crash_info = cc_cls.FromSerializedString(cci)
+      flow_obj.client_crash_info = cc_cls.FromSerializedBytes(cci)
     if pt is not None:
       pt_cls = rdf_flow_objects.PendingFlowTermination
-      flow_obj.pending_termination = pt_cls.FromSerializedString(pt)
+      flow_obj.pending_termination = pt_cls.FromSerializedBytes(pt)
     if nr:
       flow_obj.next_request_to_process = nr
     if pd is not None:
@@ -511,7 +511,7 @@ class MySQLDBFlowMixin(object):
     args = []
     if flow_obj != db.Database.unchanged:
       updates.append("flow=%s")
-      args.append(flow_obj.SerializeToString())
+      args.append(flow_obj.SerializeToBytes())
       updates.append("flow_state=%s")
       args.append(int(flow_obj.flow_state))
       updates.append("user_cpu_time_used_micros=%s")
@@ -530,10 +530,10 @@ class MySQLDBFlowMixin(object):
       args.append(int(flow_state))
     if client_crash_info != db.Database.unchanged:
       updates.append("client_crash_info=%s")
-      args.append(client_crash_info.SerializeToString())
+      args.append(client_crash_info.SerializeToBytes())
     if pending_termination != db.Database.unchanged:
       updates.append("pending_termination=%s")
-      args.append(pending_termination.SerializeToString())
+      args.append(pending_termination.SerializeToBytes())
     if processing_on != db.Database.unchanged:
       updates.append("processing_on=%s")
       args.append(processing_on)
@@ -567,7 +567,7 @@ class MySQLDBFlowMixin(object):
     if pending_termination == db.Database.unchanged:
       return
 
-    serialized_termination = pending_termination.SerializeToString()
+    serialized_termination = pending_termination.SerializeToBytes()
     query = "UPDATE flows SET pending_termination=%s WHERE "
     args = [serialized_termination]
     for index, (client_id, flow_id) in enumerate(client_id_flow_id_pairs):
@@ -585,7 +585,7 @@ class MySQLDBFlowMixin(object):
       templates.append("(%s, %s, %s, FROM_UNIXTIME(%s))")
       args.append(db_utils.ClientIDToInt(req.client_id))
       args.append(db_utils.FlowIDToInt(req.flow_id))
-      args.append(req.SerializeToString())
+      args.append(req.SerializeToBytes())
       if req.delivery_time:
         args.append(mysql_utils.RDFDatetimeToTimestamp(req.delivery_time))
       else:
@@ -613,7 +613,7 @@ class MySQLDBFlowMixin(object):
       args.extend([
           db_utils.ClientIDToInt(r.client_id),
           db_utils.FlowIDToInt(r.flow_id), r.request_id, r.needs_processing,
-          r.SerializeToString()
+          r.SerializeToBytes()
       ])
 
     if needs_processing:
@@ -675,17 +675,17 @@ class MySQLDBFlowMixin(object):
       args.append(r.request_id)
       args.append(r.response_id)
       if isinstance(r, rdf_flow_objects.FlowResponse):
-        args.append(r.SerializeToString())
+        args.append(r.SerializeToBytes())
         args.append("")
         args.append("")
       elif isinstance(r, rdf_flow_objects.FlowStatus):
         args.append("")
-        args.append(r.SerializeToString())
+        args.append(r.SerializeToBytes())
         args.append("")
       elif isinstance(r, rdf_flow_objects.FlowIterator):
         args.append("")
         args.append("")
-        args.append(r.SerializeToString())
+        args.append(r.SerializeToBytes())
       else:
         # This can't really happen due to db api type checking.
         raise ValueError("Got unexpected response type: %s %s" % (type(r), r))
@@ -847,7 +847,7 @@ class MySQLDBFlowMixin(object):
     for client_id_int, flow_id_int, request_id, request in cursor.fetchall():
       request_key = (db_utils.IntToClientID(client_id_int),
                      db_utils.IntToFlowID(flow_id_int), request_id)
-      r = rdf_flow_objects.FlowRequest.FromSerializedString(request)
+      r = rdf_flow_objects.FlowRequest.FromSerializedBytes(request)
       completed_requests[request_key] = r
 
     query = """
@@ -946,7 +946,7 @@ class MySQLDBFlowMixin(object):
 
     requests = []
     for req, needs_processing, resp_expected, ts in cursor.fetchall():
-      request = rdf_flow_objects.FlowRequest.FromSerializedString(req)
+      request = rdf_flow_objects.FlowRequest.FromSerializedBytes(req)
       request.needs_processing = needs_processing
       request.nr_responses_expected = resp_expected
       request.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
@@ -959,11 +959,11 @@ class MySQLDBFlowMixin(object):
     responses = {}
     for res, status, iterator, ts in cursor.fetchall():
       if status:
-        response = rdf_flow_objects.FlowStatus.FromSerializedString(status)
+        response = rdf_flow_objects.FlowStatus.FromSerializedBytes(status)
       elif iterator:
-        response = rdf_flow_objects.FlowIterator.FromSerializedString(iterator)
+        response = rdf_flow_objects.FlowIterator.FromSerializedBytes(iterator)
       else:
-        response = rdf_flow_objects.FlowResponse.FromSerializedString(res)
+        response = rdf_flow_objects.FlowResponse.FromSerializedBytes(res)
       response.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
       responses.setdefault(response.request_id,
                            {})[response.response_id] = response
@@ -1001,7 +1001,7 @@ class MySQLDBFlowMixin(object):
       if not needs_processing:
         continue
 
-      request = rdf_flow_objects.FlowRequest.FromSerializedString(req)
+      request = rdf_flow_objects.FlowRequest.FromSerializedBytes(req)
       request.needs_processing = needs_processing
       request.nr_responses_expected = responses_expected
       request.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
@@ -1015,11 +1015,11 @@ class MySQLDBFlowMixin(object):
     responses = {}
     for res, status, iterator, ts in cursor.fetchall():
       if status:
-        response = rdf_flow_objects.FlowStatus.FromSerializedString(status)
+        response = rdf_flow_objects.FlowStatus.FromSerializedBytes(status)
       elif iterator:
-        response = rdf_flow_objects.FlowIterator.FromSerializedString(iterator)
+        response = rdf_flow_objects.FlowIterator.FromSerializedBytes(iterator)
       else:
-        response = rdf_flow_objects.FlowResponse.FromSerializedString(res)
+        response = rdf_flow_objects.FlowResponse.FromSerializedBytes(res)
       response.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
       responses.setdefault(response.request_id, []).append(response)
 
@@ -1078,7 +1078,7 @@ class MySQLDBFlowMixin(object):
         "client_id":
             db_utils.ClientIDToInt(flow_obj.client_id),
         "flow":
-            clone.SerializeToString(),
+            clone.SerializeToBytes(),
         "flow_id":
             db_utils.FlowIDToInt(flow_obj.flow_id),
         "flow_state":
@@ -1111,7 +1111,7 @@ class MySQLDBFlowMixin(object):
 
     res = []
     for serialized_request, ts in cursor.fetchall():
-      req = rdf_flows.FlowProcessingRequest.FromSerializedString(
+      req = rdf_flows.FlowProcessingRequest.FromSerializedBytes(
           serialized_request)
       req.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
       res.append(req)
@@ -1190,7 +1190,7 @@ class MySQLDBFlowMixin(object):
 
     res = []
     for timestamp, request in cursor.fetchall():
-      req = rdf_flows.FlowProcessingRequest.FromSerializedString(request)
+      req = rdf_flows.FlowProcessingRequest.FromSerializedBytes(request)
       req.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
       req.leased_until = expiry
       req.leased_by = id_str
@@ -1257,7 +1257,7 @@ class MySQLDBFlowMixin(object):
         args.append(0)
       args.append(
           mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now()))
-      args.append(r.payload.SerializeToString())
+      args.append(r.payload.SerializeToBytes())
       args.append(compatibility.GetName(r.payload.__class__))
       args.append(r.tag)
 
@@ -1309,7 +1309,7 @@ class MySQLDBFlowMixin(object):
     for serialized_payload, payload_type, ts, tag in cursor.fetchall():
       if payload_type in rdfvalue.RDFValue.classes:
         payload = rdfvalue.RDFValue.classes[payload_type]()
-        payload.ParseFromString(serialized_payload)
+        payload.ParseFromBytes(serialized_payload)
       else:
         payload = rdf_objects.SerializedValueOfUnrecognizedType(
             type_name=payload_type, value=serialized_payload)

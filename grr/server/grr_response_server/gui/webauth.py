@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import base64
 import logging
 
 from future.utils import with_metaclass
@@ -106,7 +107,7 @@ class BasicWebAuthManager(BaseWebAuthManager):
                                                      " ").split(" ", 1)
 
       if auth_type == "Basic":
-        authorization_string = authorization.decode("base64").decode("utf-8")
+        authorization_string = base64.b64decode(authorization).decode("utf-8")
         user, password = authorization_string.split(":", 1)
 
         try:

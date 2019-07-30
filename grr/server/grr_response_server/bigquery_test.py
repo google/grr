@@ -4,8 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
-import tempfile
 import time
 
 from absl import app
@@ -14,6 +14,7 @@ import mock
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import temp
 from grr_response_core.lib.util.compat import json
 from grr_response_server import bigquery
 from grr.test_lib import test_lib
@@ -62,8 +63,10 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
         **{"execute.side_effect": errors.HttpError(resp, b"nocontent")})
     job_id = "hunts_HFFE1D044_Results_1446056474"
 
-    with tempfile.NamedTemporaryFile() as fd:
-      fd.write("{data}")
+    with temp.AutoTempFilePath() as filepath:
+      with io.open(filepath, "w", encoding="utf-8") as filedesc:
+        filedesc.write("{data}")
+
       with mock.patch.object(time, "sleep") as mock_sleep:
         with self.assertRaises(bigquery.BigQueryJobUploadError):
           bq_client.RetryUpload(job, job_id, error)

@@ -284,8 +284,6 @@ class VFSTest(test_lib.GRRBaseTest):
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
-    # This fixes Windows paths.
-    path = path.replace("\\", "/")
     listing = []
     pathspecs = []
 
@@ -489,7 +487,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
       if path == test_file:
         found = True
-        # Make sure its a regular file with the right size
+        # Make sure it's a regular file with the right size
         self.assertTrue(stat.S_ISREG(int(f.st_mode)))
         self.assertEqual(f.st_size, 3893)
 

@@ -67,7 +67,7 @@ class MySQLDBHuntMixin(object):
         "hunt_state": int(rdf_hunt_objects.Hunt.HuntState.PAUSED),
         "client_rate": hunt_obj.client_rate,
         "client_limit": hunt_obj.client_limit,
-        "hunt": hunt_obj.SerializeToString(),
+        "hunt": hunt_obj.SerializeToBytes(),
     }
 
     try:
@@ -166,7 +166,7 @@ class MySQLDBHuntMixin(object):
         description,
         body,
     ) = row
-    hunt_obj = rdf_hunt_objects.Hunt.FromSerializedString(body)
+    hunt_obj = rdf_hunt_objects.Hunt.FromSerializedBytes(body)
     hunt_obj.duration = rdfvalue.DurationSeconds.FromMicroseconds(
         duration_micros)
     hunt_obj.create_time = mysql_utils.TimestampToRDFDatetime(create_time)
@@ -341,10 +341,10 @@ class MySQLDBHuntMixin(object):
       # still want to get plugin's definition and state back and not fail hard,
       # so that all other plugins can be read.
       if plugin_args_cls is not None:
-        plugin_descriptor.plugin_args = plugin_args_cls.FromSerializedString(
+        plugin_descriptor.plugin_args = plugin_args_cls.FromSerializedBytes(
             plugin_args_bytes)
 
-    plugin_state = rdf_protodict.AttributedDict.FromSerializedString(
+    plugin_state = rdf_protodict.AttributedDict.FromSerializedBytes(
         plugin_state_bytes)
     return rdf_flow_runner.OutputPluginState(
         plugin_descriptor=plugin_descriptor, plugin_state=plugin_state)
@@ -390,9 +390,9 @@ class MySQLDBHuntMixin(object):
       if state.plugin_descriptor.plugin_args is None:
         args.append(None)
       else:
-        args.append(state.plugin_descriptor.plugin_args.SerializeToString())
+        args.append(state.plugin_descriptor.plugin_args.SerializeToBytes())
 
-      args.append(state.plugin_state.SerializeToString())
+      args.append(state.plugin_state.SerializeToBytes())
 
       try:
         cursor.execute(query, args)
@@ -427,7 +427,7 @@ class MySQLDBHuntMixin(object):
     query = ("UPDATE hunt_output_plugins_states "
              "SET plugin_state = %s "
              "WHERE hunt_id = %s AND plugin_id = %s")
-    args = [modified_plugin_state.SerializeToString(), hunt_id_int, state_index]
+    args = [modified_plugin_state.SerializeToBytes(), hunt_id_int, state_index]
     cursor.execute(query, args)
     return state
 
@@ -537,7 +537,7 @@ class MySQLDBHuntMixin(object):
     ) in cursor.fetchall():
       if payload_type in rdfvalue.RDFValue.classes:
         payload = rdfvalue.RDFValue.classes[payload_type]()
-        payload.ParseFromString(serialized_payload)
+        payload.ParseFromBytes(serialized_payload)
       else:
         payload = rdf_objects.SerializedValueOfUnrecognizedType(
             type_name=payload_type, value=serialized_payload)

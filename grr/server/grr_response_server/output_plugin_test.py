@@ -30,10 +30,10 @@ class OutputPluginTest(test_lib.GRRBaseTest):
         plugin_name="TestOutputPluginWithArgs",
         plugin_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=transfer.GetFile.__name__))
-    serialized = descriptor.SerializeToString()
+    serialized = descriptor.SerializeToBytes()
 
     deserialized = rdf_output_plugin.OutputPluginDescriptor()
-    deserialized.ParseFromString(serialized)
+    deserialized.ParseFromBytes(serialized)
     self.assertEqual(deserialized, descriptor)
     self.assertEqual(deserialized.GetPluginClass(), TestOutputPluginWithArgs)
 
@@ -42,13 +42,13 @@ class OutputPluginTest(test_lib.GRRBaseTest):
       del opr.PLUGIN_REGISTRY["TestOutputPluginWithArgs"]
 
       deserialized = rdf_output_plugin.OutputPluginDescriptor()
-      deserialized.ParseFromString(serialized)
+      deserialized.ParseFromBytes(serialized)
 
       self.assertEqual(deserialized.GetPluginClass(),
                        output_plugin.UnknownOutputPlugin)
       # UnknownOutputPlugin should just return serialized arguments as bytes.
       self.assertEqual(deserialized.plugin_args,
-                       descriptor.plugin_args.SerializeToString())
+                       descriptor.plugin_args.SerializeToBytes())
 
 
 def main(argv):

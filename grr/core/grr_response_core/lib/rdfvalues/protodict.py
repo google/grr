@@ -46,7 +46,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
     try:
       rdf_cls = self.classes.get(self.name)
       if rdf_cls:
-        value = rdf_cls.FromSerializedString(self.data)
+        value = rdf_cls.FromSerializedBytes(self.data)
         value.age = self.embedded_age
 
         return value
@@ -57,7 +57,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   def payload(self, payload):
     self.name = payload.__class__.__name__
     self.embedded_age = payload.age
-    self.data = payload.SerializeToString()
+    self.data = payload.SerializeToBytes()
 
   def __reduce__(self):
     return type(self), (None, self.payload)
@@ -93,7 +93,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       self.none = "None"
 
     elif isinstance(value, rdfvalue.RDFValue):
-      self.rdf_value.data = value.SerializeToString()
+      self.rdf_value.data = value.SerializeToBytes()
       self.rdf_value.age = int(value.age)
       self.rdf_value.name = value.__class__.__name__
 
@@ -147,7 +147,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     if self.HasField("rdf_value"):
       try:
         rdf_class = rdfvalue.RDFValue.classes[self.rdf_value.name]
-        return rdf_class.FromSerializedString(
+        return rdf_class.FromSerializedBytes(
             self.rdf_value.data, age=self.rdf_value.age)
       except (ValueError, KeyError) as e:
         if ignore_error:
@@ -340,12 +340,12 @@ class Dict(rdf_structs.RDFProtoStruct):
     for d in self.dat:
       self._values[d.k.GetValue()] = d
 
-  def SerializeToString(self):
+  def SerializeToBytes(self):
     self.dat = itervalues(self._values)
-    return super(Dict, self).SerializeToString()
+    return super(Dict, self).SerializeToBytes()
 
-  def ParseFromString(self, value):
-    super(Dict, self).ParseFromString(value)
+  def ParseFromBytes(self, value):
+    super(Dict, self).ParseFromBytes(value)
     self._values = {}
     for d in self.dat:
       self._values[d.k.GetValue()] = d
@@ -410,7 +410,7 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
 
     # Initialize from a serialized protobuf.
     elif isinstance(initializer, str):
-      self.ParseFromString(initializer)
+      self.ParseFromBytes(initializer)
 
     else:
       try:

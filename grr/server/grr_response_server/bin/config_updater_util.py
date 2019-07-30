@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Utililies for modifying the GRR server configuration."""
+"""Utilities for modifying the GRR server configuration."""
 from __future__ import absolute_import
 from __future__ import division
 
@@ -255,19 +255,12 @@ def ConfigureMySQLDatastore(config):
   """Prompts the user for configuration details for a MySQL datastore."""
   db_options = {}
 
-  use_rel_db = RetryBoolQuestion(
-      "Do you want to use REL_DB - the new optimized datastore "
-      "implementation?\n"
-      "(if not, a legacy datastore will be used)", True)
-  if use_rel_db:
-    db_options["Database.enabled"] = True
-    db_options["Database.implementation"] = "MysqlDB"
-    db_options["Blobstore.implementation"] = "DbBlobStore"
+  db_options["Database.implementation"] = "MysqlDB"
+  db_options["Blobstore.implementation"] = "DbBlobStore"
 
   print("GRR will use MySQL as its database backend. Enter connection details:")
   datastore_init_complete = False
   while not datastore_init_complete:
-    db_options["Datastore.implementation"] = "MySQLAdvancedDataStore"
     db_options["Mysql.host"] = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
                                              config["Mysql.host"])
     db_options["Mysql.port"] = int(
@@ -323,17 +316,13 @@ def ConfigureDatastore(config):
         "For GRR to work each GRR server has to be able to communicate with\n"
         "the datastore. To do this we need to configure a datastore.\n")
 
-  use_rel_db = grr_config.CONFIG.Get("Database.enabled")
   existing_datastore = grr_config.CONFIG.Get("Datastore.implementation")
 
   if not existing_datastore or existing_datastore == "FakeDataStore":
     ConfigureMySQLDatastore(config)
     return
 
-  if use_rel_db:
-    print("Found existing settings:\n  REL_DB MySQL database")
-  else:
-    print("Found existing settings:\n  Datastore: %s" % existing_datastore)
+  print("Found existing settings:\n  REL_DB MySQL database")
   if existing_datastore == "SqliteDataStore":
     set_up_mysql = RetryBoolQuestion(
         "The SQLite datastore is no longer supported. Would you like to\n"
@@ -345,23 +334,17 @@ def ConfigureDatastore(config):
       ConfigureMySQLDatastore(config)
     else:
       raise ConfigInitError()
-  elif use_rel_db or existing_datastore == "MySQLAdvancedDataStore":
-    print("  MySQL Host: %s\n  MySQL Port: %s\n  MySQL Database: %s\n"
-          "  MySQL Username: %s\n" %
-          (grr_config.CONFIG.Get("Mysql.host"),
-           grr_config.CONFIG.Get("Mysql.port"),
-           grr_config.CONFIG.Get("Mysql.database_name"),
-           grr_config.CONFIG.Get("Mysql.database_username")))
-    if grr_config.CONFIG.Get("Mysql.client_key_path"):
-      print("  MySQL client key file: %s\n"
-            "  MySQL client cert file: %s\n"
-            "  MySQL ca cert file: %s\n" %
-            (grr_config.CONFIG.Get("Mysql.client_key_path"),
-             grr_config.CONFIG.Get("Mysql.client_cert_path"),
-             grr_config.CONFIG.Get("Mysql.ca_cert_path")))
-
-    if not RetryBoolQuestion("Do you want to keep this configuration?", True):
+  elif existing_datastore == "MySQLAdvancedDataStore":
+    set_up_mysql = RetryBoolQuestion(
+        "The MySQLAdvancedDataStore is no longer supported. Would you like to\n"
+        "set up a new MySQL datastore? Answering 'no' will abort config "
+        "initialization.", True)
+    if set_up_mysql:
+      print("\nPlease note that no data will be migrated from the old data "
+            "store.\n")
       ConfigureMySQLDatastore(config)
+    else:
+      raise ConfigInitError()
 
 
 def ConfigureUrls(config, external_hostname = None):
@@ -555,7 +538,6 @@ def Initialize(config=None,
 def InitializeNoPrompt(config=None,
                        external_hostname = None,
                        admin_password = None,
-                       use_rel_db = True,
                        mysql_hostname = None,
                        mysql_port = None,
                        mysql_username = None,
@@ -572,7 +554,6 @@ def InitializeNoPrompt(config=None,
     config: config object
     external_hostname: A hostname.
     admin_password: A password used for the admin user.
-    use_rel_db: If True, initialize REL_DB instead of AFF4.
     mysql_hostname: A hostname used for establishing connection to MySQL.
     mysql_port: A port used for establishing connection to MySQL.
     mysql_username: A username used for establishing connection to MySQL.
@@ -610,12 +591,9 @@ def InitializeNoPrompt(config=None,
     raise IOError("Config not writeable (need sudo?)")
 
   config_dict = {}
-  if use_rel_db:
-    config_dict["Database.enabled"] = True
-    config_dict["Database.implementation"] = "MysqlDB"
-    config_dict["Blobstore.implementation"] = "DbBlobStore"
+  config_dict["Database.implementation"] = "MysqlDB"
+  config_dict["Blobstore.implementation"] = "DbBlobStore"
 
-  config_dict["Datastore.implementation"] = "MySQLAdvancedDataStore"
   config_dict["Mysql.host"] = mysql_hostname or config["Mysql.host"]
   config_dict["Mysql.port"] = mysql_port or config["Mysql.port"]
   config_dict["Mysql.database_name"] = config_dict[
@@ -790,28 +768,19 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
 
 def SwitchToRelDB(config):
   """Switches a given config from using AFF4 to using REL_DB."""
-  if config["Database.enabled"]:
-    print(
-        "New generation datastore (REL_DB) is already enabled in the config.\n"
-        "Nothing to do.")
-    return
-
   print("***************************************************************\n"
-        "Make sure to back up the existing configuration writeback file,\n"
-        "you will need it if you decide to switch to the old datastore.\n"
+        "Make sure to back up the existing configuration writeback file.\n"
         "Writeback file path:\n%s\n"
         "***************************************************************\n" %
         config["Config.writeback"])
   RetryBoolQuestion("Continue?", True)
 
-  config.Set("Database.enabled", True)
   config.Set("Database.implementation", "MysqlDB")
 
-  if (config["Blobstore.implementation"] == "MemoryStreamBlobStore" or
-      RetryBoolQuestion(
-          "You have a custom 'Blobstore.implementation' setting. Do you want to\n"
-          "switch to DbBlobStore (default option for REL_DB, meaning that blobs\n"
-          "will be stored inside the MySQL database)?", True)):
+  if (config["Blobstore.implementation"] != "DbBlobStore" or RetryBoolQuestion(
+      "You have a custom 'Blobstore.implementation' setting. Do you want\n"
+      "to switch to DbBlobStore (default option for REL_DB, meaning that\n"
+      "blobs will be stored inside the MySQL database)?", True)):
     config.Set("Blobstore.implementation", "DbBlobStore")
 
   if (RetryBoolQuestion(

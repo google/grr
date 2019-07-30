@@ -133,12 +133,13 @@ class APIAuthorizationManager(object):
 API_AUTH_MGR = None
 
 
-def InitializeApiAuthManager():
+def InitializeApiAuthManager(default_router_cls=None):
   """Init hook that initializes API auth manager."""
   global API_AUTH_MGR
 
-  default_router_name = config.CONFIG["API.DefaultRouter"]
-  default_router_cls = _GetRouterClass(default_router_name)
+  if not default_router_cls:
+    default_router_name = config.CONFIG["API.DefaultRouter"]
+    default_router_cls = _GetRouterClass(default_router_name)
 
   filepath = config.CONFIG["API.RouterACLConfigFile"]
   if filepath:

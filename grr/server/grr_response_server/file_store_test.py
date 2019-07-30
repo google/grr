@@ -22,7 +22,7 @@ KEYWORD_ARGS = 1
 
 
 def _GenerateBlobRefs(blob_size, chars):
-  blob_data = [c * blob_size for c in chars]
+  blob_data = [(c * blob_size).encode("ascii") for c in chars]
   blob_refs = []
   offset = 0
   for data in blob_data:
@@ -42,7 +42,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
 
     self.blob_size = 10
     self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size,
-                                                       b"abcde12345")
+                                                       "abcde12345")
     blob_ids = [ref.blob_id for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
@@ -97,7 +97,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     super(AddFileWithUnknownHashTest, self).setUp()
 
     self.blob_size = 10
-    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, b"ab")
+    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, "ab")
     blob_ids = [ref.blob_id for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
@@ -111,7 +111,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
 
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=0, blob_id=rdf_objects.BlobID.FromBlobData(""))
+        offset=0, size=0, blob_id=rdf_objects.BlobID.FromBlobData(b""))
     with self.assertRaises(file_store.BlobNotFoundError):
       file_store.AddFileWithUnknownHash(self.client_path,
                                         [self.blob_refs[0], blob_ref])
@@ -124,9 +124,9 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
         rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
 
   def testOptimizationForSmallFiles(self):
-    _, long_blob_refs = _GenerateBlobRefs(self.blob_size, b"ab")
-    _, short_blob_refs1 = _GenerateBlobRefs(self.blob_size, b"a")
-    _, short_blob_refs2 = _GenerateBlobRefs(self.blob_size, b"b")
+    _, long_blob_refs = _GenerateBlobRefs(self.blob_size, "ab")
+    _, short_blob_refs1 = _GenerateBlobRefs(self.blob_size, "a")
+    _, short_blob_refs2 = _GenerateBlobRefs(self.blob_size, "b")
 
     path1 = db.ClientPath.OS(self.client_id, ["foo"])
     path2 = db.ClientPath.OS(self.client_id, ["bar"])
@@ -320,16 +320,16 @@ class OpenFileTest(test_lib.GRRBaseTest):
     self.client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
     blob_size = 10
-    blob_data, blob_refs = _GenerateBlobRefs(blob_size, b"abcdef")
+    blob_data, blob_refs = _GenerateBlobRefs(blob_size, "abcdef")
     blob_ids = [ref.blob_id for ref in blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blob_data)))
 
-    blob_data, blob_refs = _GenerateBlobRefs(blob_size, b"def")
+    blob_data, blob_refs = _GenerateBlobRefs(blob_size, "def")
     self.hash_id = file_store.AddFileWithUnknownHash(self.client_path,
                                                      blob_refs)
     self.data = b"".join(blob_data)
 
-    _, blob_refs = _GenerateBlobRefs(blob_size, b"abc")
+    _, blob_refs = _GenerateBlobRefs(blob_size, "abc")
     self.other_hash_id = file_store.AddFileWithUnknownHash(
         self.client_path, blob_refs)
 
@@ -414,8 +414,8 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     path_info = rdf_objects.PathInfo.OS(components=client_path.components)
 
     if blobs_range:
-      _, blob_refs = _GenerateBlobRefs(
-          self.blob_size, b"abcdef" [blobs_range[0]:blobs_range[1]])
+      _, blob_refs = _GenerateBlobRefs(self.blob_size,
+                                       "abcdef"[blobs_range[0]:blobs_range[1]])
 
       hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
       path_info.hash_entry.sha256 = hash_id.AsBytes()
@@ -428,8 +428,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self.client_id_other = self.SetupClient(1)
 
     self.blob_size = 10
-    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size,
-                                                       b"abcdef")
+    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, "abcdef")
     blob_ids = [ref.blob_id for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 

@@ -795,10 +795,13 @@ class ArchiveAlreadyClosedError(Error):
   pass
 
 
+# TODO: These `StreamingZipGenerator` classes exist because in PY2,
+# there was no support for streaming. Once we support for PY2 is dropped, we can
+# switch back to the native implementation that does not rely on dirty hacks.
 # TODO(user):pytype: we use a lot of zipfile internals that type checker is
 # not aware of.
 # pytype: disable=attribute-error,wrong-arg-types
-class StreamingZipGenerator(object):
+class StreamingZipGeneratorPy2(object):
   """A streaming zip generator that can archive file-like objects."""
 
   FILE_CHUNK_SIZE = 1024 * 1024 * 4
@@ -874,41 +877,6 @@ class StreamingZipGenerator(object):
         0,  # user ID
         0)  # group ID
     return zinfo
-
-  def WriteSymlink(self, src_arcname, dst_arcname):
-    """Writes a symlink into the archive."""
-    # Inspired by:
-    # http://www.mail-archive.com/python-list@python.org/msg34223.html
-
-    if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a ZIP archive that was already closed.")
-
-    src_arcname = SmartStr(src_arcname)
-    dst_arcname = SmartStr(dst_arcname)
-
-    zinfo = zipfile.ZipInfo(dst_arcname)
-    # This marks a symlink.
-    zinfo.external_attr = (0o644 | 0o120000) << 16
-    # This marks create_system as UNIX.
-    zinfo.create_system = 3
-
-    # This fills the ASi UNIX extra field, see:
-    # http://www.opensource.apple.com/source/zip/zip-6/unzip/unzip/proginfo/extra.fld
-    zinfo.extra = struct.pack(
-        "<HHIHIHHs",
-        0x756e,
-        len(src_arcname) + 14,
-        0,  # CRC-32 of the remaining data
-        0o120000,  # file permissions
-        0,  # target file size
-        0,  # user ID
-        0,  # group ID
-        src_arcname)
-
-    self._zip_fd.writestr(zinfo, src_arcname)
-
-    return self._stream.GetValueAndReset()
 
   def WriteFileHeader(self, arcname=None, compress_type=None, st=None):
     """Writes a file header."""
@@ -1060,6 +1028,107 @@ class StreamingZipGenerator(object):
 # pytype: enable=attribute-error,wrong-arg-types
 
 
+# TODO(hanuszczak): Typings for `ZipFile` are ill-typed.
+# pytype: disable=attribute-error,wrong-arg-types
+class StreamingZipGeneratorPy3(object):
+  """A streaming zip generator that can archive file-like objects."""
+
+  def __init__(self, compression=zipfile.ZIP_STORED):
+    self._compression = compression
+    self._stream = RollingMemoryStream()
+    self._zipfile = zipfile.ZipFile(
+        self._stream, mode="w", compression=compression, allowZip64=True)
+
+    self._zipopen = None
+
+  def __enter__(self):
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback):
+    del exc_type, exc_value, traceback  # Unused.
+    return self.Close()
+
+  def __del__(self):
+    if self._zipopen is not None:
+      self._zipopen.__exit__(None, None, None)
+      self._zipopen = None
+
+  # TODO(hanuszczak): Because we have to use `ZipFile::open`, there is no way to
+  # specify per-file compression and write custom stat entry (but it should be
+  # relevant only for dates). Once we remove this class and switch back to the
+  # native implementation, it should be possible to fill this information again.
+  def WriteFileHeader(self, arcname=None, compress_type=None, st=None):
+    del compress_type, st  # Unused.
+
+    if not self._stream:
+      raise ArchiveAlreadyClosedError()
+
+    self._zipopen = self._zipfile.open(arcname, mode="w")
+    self._zipopen.__enter__()
+
+    return self._stream.GetValueAndReset()
+
+  def WriteFileChunk(self, chunk):
+    precondition.AssertType(chunk, bytes)
+
+    if not self._stream:
+      raise ArchiveAlreadyClosedError()
+
+    self._zipopen.write(chunk)
+
+    return self._stream.GetValueAndReset()
+
+  def WriteFileFooter(self):
+    if not self._stream:
+      raise ArchiveAlreadyClosedError()
+
+    self._zipopen.__exit__(None, None, None)
+    self._zipopen = None
+
+    return self._stream.GetValueAndReset()
+
+  def Close(self):
+    if self._zipopen is not None:
+      self._zipopen.__exit__(None, None, None)
+      self._zipopen = None
+
+    self._zipfile.close()
+
+    value = self._stream.GetValueAndReset()
+    self._stream.close()
+    return value
+
+  def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
+    """A convenience method for adding an entire file to the ZIP archive."""
+    yield self.WriteFileHeader(
+        arcname=arcname, compress_type=compress_type, st=st)
+
+    while True:
+      buf = src_fd.read(1024 * 1024)
+      if not buf:
+        break
+
+      yield self.WriteFileChunk(buf)
+
+    yield self.WriteFileFooter()
+
+  @property
+  def is_file_write_in_progress(self):
+    return bool(self._zipopen)
+
+  @property
+  def output_size(self):
+    return self._stream.tell()
+
+
+# pytype: enable=attribute-error,wrong-arg-types
+
+if compatibility.PY2:
+  StreamingZipGenerator = StreamingZipGeneratorPy2
+else:
+  StreamingZipGenerator = StreamingZipGeneratorPy3
+
+
 class StreamingTarGenerator(object):
   """A streaming tar generator that can archive file-like objects."""
 
@@ -1095,32 +1164,24 @@ class StreamingTarGenerator(object):
 
     return value
 
-  def WriteSymlink(self, src_arcname, dst_arcname):
-    """Writes a symlink into the archive."""
-
-    info = self._tar_fd.tarinfo()
-    info.tarfile = self._tar_fd
-    info.name = SmartStr(dst_arcname)
-    info.size = 0
-    info.mtime = time.time()
-    info.type = tarfile.SYMTYPE
-    info.linkname = SmartStr(src_arcname)
-
-    self._tar_fd.addfile(info)
-    return self._stream.GetValueAndReset()
-
   def WriteFileHeader(self, arcname=None, st=None):
     """Writes file header."""
+    precondition.AssertType(arcname, Text)
 
     if st is None:
       raise ValueError("Stat object can't be None.")
+
+    # TODO: In Python 2, name of the file has to be a bytestring.
+    # Once support for Python 2 is dropped, this line can be removed.
+    if compatibility.PY2:
+      arcname = arcname.encode("utf-8")
 
     self.cur_file_size = 0
 
     self.cur_info = self._tar_fd.tarinfo()
     self.cur_info.tarfile = self._tar_fd
     self.cur_info.type = tarfile.REGTYPE
-    self.cur_info.name = SmartStr(arcname)
+    self.cur_info.name = arcname
     self.cur_info.size = st.st_size
     self.cur_info.mode = st.st_mode
     self.cur_info.mtime = st.st_mtime or time.time()

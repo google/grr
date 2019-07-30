@@ -281,10 +281,17 @@ config_lib.DEFINE_string(
     "Server.fleetspeak_server", "",
     "The Fleetspeak server address, formatted like localhost:6062.")
 
+config_lib.DEFINE_string(
+    "Server.fleetspeak_label_prefix", None,
+    "Prefix used to identify Fleetspeak labels that should be written to "
+    "GRR's DB during Interrogation. If not given, all labels are written.")
+
 config_lib.DEFINE_list(
     "Server.fleetspeak_label_map", [],
-    "Used to map fleetspeak labels to GRR labels. "
-    "A list of entries of the form '<fleetspeak-label>:<grr-primary-label>.")
+    "Used to override fleetspeak labels with custom labels. Entries in the "
+    "list are expected to be of the form '<fleetspeak-label>:<override>'. If "
+    "a Fleetspeak label is not in the map, it will be written as is to GRR's "
+    "DB as part of the Interrogate flow.")
 
 config_lib.DEFINE_string(
     "Server.fleetspeak_unknown_label", "fleetspeak-unknown",

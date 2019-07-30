@@ -71,7 +71,7 @@ def MakeClient():
     """, base_pb)
   # pylint: enable=line-too-long
 
-  client.ParseFromString(base_pb.SerializeToString())
+  client.ParseFromBytes(base_pb.SerializeToString())
   return client
 
 
@@ -80,8 +80,8 @@ class ObjectTest(absltest.TestCase):
   def testDeserializeClientSnapshot(self):
     snapshot = rdf_objects.ClientSnapshot(client_id="C.1234567890123456")
     client_info = rdf_objects.ClientFullInfo(last_snapshot=snapshot)
-    deserialized = rdf_objects.ClientFullInfo.FromSerializedString(
-        client_info.SerializeToString())
+    deserialized = rdf_objects.ClientFullInfo.FromSerializedBytes(
+        client_info.SerializeToBytes())
     self.assertEqual(deserialized.last_snapshot, snapshot)
 
   def testClientBasics(self):
@@ -540,7 +540,7 @@ class BlobIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_objects.BlobID
 
   def GenerateSample(self, number=0):
-    return rdf_objects.BlobID.FromBlobData("a" * number)
+    return rdf_objects.BlobID.FromBlobData(b"a" * number)
 
   def testFromBytes(self):
     foo = rdf_objects.BlobID(b"12345678" * 4)

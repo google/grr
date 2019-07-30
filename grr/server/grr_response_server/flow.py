@@ -24,10 +24,12 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
+import traceback
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import random
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
@@ -238,18 +240,28 @@ def StartFlow(client_id=None,
     # writing logs / errors / results which might happen in Start().
     data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow)
 
-    # Just run the first state inline. NOTE: Running synchronously means
-    # that this runs on the thread that starts the flow. The advantage is
-    # that that Start method can raise any errors immediately.
-    flow_obj.Start()
+    try:
+      # Just run the first state inline. NOTE: Running synchronously means
+      # that this runs on the thread that starts the flow. The advantage is
+      # that that Start method can raise any errors immediately.
+      flow_obj.Start()
 
-    # The flow does not need to actually remain running.
-    if not flow_obj.outstanding_requests:
-      flow_obj.RunStateMethod("End")
-      # Additional check for the correct state in case the End method raised and
-      # terminated the flow.
-      if flow_obj.IsRunning():
-        flow_obj.MarkDone()
+      # The flow does not need to actually remain running.
+      if not flow_obj.outstanding_requests:
+        flow_obj.RunStateMethod("End")
+        # Additional check for the correct state in case the End method raised
+        # and terminated the flow.
+        if flow_obj.IsRunning():
+          flow_obj.MarkDone()
+    except Exception as e:  # pylint: disable=broad-except
+      # We catch all exceptions that happen in Start() and mark the flow as
+      # failed.
+      msg = compatibility.NativeStr(e)
+      if compatibility.PY2:
+        msg = msg.decode("utf-8", "replace")
+
+      flow_obj.Error(error_message=msg, backtrace=traceback.format_exc())
+
   else:
     flow_obj.CallState("Start", start_time=start_at)
 

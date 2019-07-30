@@ -9,6 +9,7 @@ import logging
 import os
 import tempfile
 
+from future.builtins import str
 from future.utils import itervalues
 
 from grr_response_core import config
@@ -117,11 +118,18 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     """Turn Exported* protos with embedded metadata into a nested dict."""
     row = {}
     for type_info in value.__class__.type_infos:
+      # We are not interested in serializing binary data. JSON files have to be
+      # UTF-8 encoded and dumping arbitrary binary strings is not possible. One
+      # viable solution would be to use e.g. base64 but it is unclear whether
+      # such data would be useful for anyone.
+      if isinstance(type_info, rdf_structs.ProtoBinary):
+        continue
+
       # We only expect the metadata proto to be included as ProtoEmbedded.
-      if type_info.__class__.__name__ == "ProtoEmbedded":
+      if isinstance(type_info, rdf_structs.ProtoEmbedded):
         row[type_info.name] = self._GetNestedDict(value.Get(type_info.name))
       else:
-        row[type_info.name] = utils.SmartStr(value.Get(type_info.name))
+        row[type_info.name] = str(value.Get(type_info.name))
 
     return row
 
@@ -176,7 +184,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     for tracker in itervalues(self.temp_output_trackers):
       # Close out the gzip handle and pass the original file handle to the
       # bigquery client so it sees the gzip'd content.
-      tracker.gzip_filehandle.write("\n")
+      tracker.gzip_filehandle.write(b"\n")
       tracker.gzip_filehandle.close()
       tracker.gzip_filehandle_parent.seek(0)
 
@@ -216,7 +224,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     fields_array = []
     for type_info in value.__class__.type_infos:
       # Nested structures are indicated by setting type "RECORD"
-      if type_info.__class__.__name__ == "ProtoEmbedded":
+      if isinstance(type_info, rdf_structs.ProtoEmbedded):
         fields_array.append({
             "name": type_info.name,
             "type": "RECORD",

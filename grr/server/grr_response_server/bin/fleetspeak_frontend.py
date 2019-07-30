@@ -51,11 +51,11 @@ class GRRFSServer(object):
     """Processes a single fleetspeak message."""
     try:
       if fs_msg.message_type == "GrrMessage":
-        grr_message = rdf_flows.GrrMessage.FromSerializedString(
+        grr_message = rdf_flows.GrrMessage.FromSerializedBytes(
             fs_msg.data.value)
         self._ProcessGRRMessages(fs_msg.source.client_id, [grr_message])
       elif fs_msg.message_type == "MessageList":
-        packed_messages = rdf_flows.PackedMessageList.FromSerializedString(
+        packed_messages = rdf_flows.PackedMessageList.FromSerializedBytes(
             fs_msg.data.value)
         message_list = communicator.Communicator.DecompressMessageList(
             packed_messages)

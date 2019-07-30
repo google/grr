@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import itertools
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -41,8 +40,6 @@ class ForemanOsClientRule(ForemanClientRuleBase):
 
     if not value:
       return False
-
-    value = utils.SmartStr(value)
 
     return ((self.os_windows and value.startswith("Windows")) or
             (self.os_linux and value.startswith("Linux")) or
@@ -93,35 +90,39 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       raise ValueError(
           "Received regex rule without a valid field specification.")
     elif field == fsf.USERNAMES:
-      res = " ".join(user.username for user in snapshot.knowledge_base.users)
+      return " ".join(user.username for user in snapshot.knowledge_base.users)
     elif field == fsf.UNAME:
-      res = snapshot.Uname()
+      return snapshot.Uname()
     elif field == fsf.FQDN:
-      res = snapshot.knowledge_base.fqdn
+      return snapshot.knowledge_base.fqdn
     elif field == fsf.HOST_IPS:
-      res = " ".join(snapshot.GetIPAddresses())
+      return " ".join(snapshot.GetIPAddresses())
     elif field == fsf.CLIENT_NAME:
-      res = startup_info and startup_info.client_info.client_name
+      if startup_info:
+        return startup_info.client_info.client_name
+      else:
+        return ""
     elif field == fsf.CLIENT_DESCRIPTION:
-      res = startup_info and startup_info.client_info.client_description
+      if startup_info:
+        return startup_info.client_info.client_description
+      else:
+        return ""
     elif field == fsf.SYSTEM:
-      res = snapshot.knowledge_base.os
+      return snapshot.knowledge_base.os
     elif field == fsf.MAC_ADDRESSES:
-      res = " ".join(snapshot.GetMacAddresses())
+      return " ".join(snapshot.GetMacAddresses())
     elif field == fsf.KERNEL_VERSION:
-      res = snapshot.kernel
+      return snapshot.kernel
     elif field == fsf.OS_VERSION:
-      res = snapshot.os_version
+      return snapshot.os_version
     elif field == fsf.OS_RELEASE:
-      res = snapshot.os_release
+      return snapshot.os_release
     elif field == fsf.CLIENT_LABELS:
       system_labels = snapshot.startup_info.client_info.labels
       user_labels = [l.name for l in client_info.labels]
-      res = " ".join(itertools.chain(system_labels, user_labels))
-
-    if res is None:
-      return ""
-    return utils.SmartStr(res)
+      return " ".join(itertools.chain(system_labels, user_labels))
+    else:
+      raise ValueError("Unexpected foreman field: %s." % field)
 
   def Evaluate(self, client_info):
     value = self._ResolveField(self.field, client_info)
@@ -143,21 +144,24 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       raise ValueError(
           "Received integer rule without a valid field specification.")
 
+    def SecondsOrNone(v):
+      if v is None:
+        return v
+      return v.AsSecondsSinceEpoch()
+
     startup_info = client_info.last_startup_info
     md = client_info.metadata
     client_info = client_info.last_snapshot
     if field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_VERSION:
       return startup_info.client_info.client_version
     elif field == ForemanIntegerClientRule.ForemanIntegerField.INSTALL_TIME:
-      res = client_info.install_time
+      return SecondsOrNone(client_info.install_time)
     elif field == ForemanIntegerClientRule.ForemanIntegerField.LAST_BOOT_TIME:
-      res = client_info.startup_info.boot_time
+      return SecondsOrNone(client_info.startup_info.boot_time)
     elif field == ForemanIntegerClientRule.ForemanIntegerField.CLIENT_CLOCK:
-      res = md.clock
-
-    if res is None:
-      return
-    return res.AsSecondsSinceEpoch()
+      return SecondsOrNone(md.clock)
+    else:
+      raise ValueError("Unexpected foreman integer field: %s." % field)
 
   def Evaluate(self, client_info):
     value = self._ResolveField(self.field, client_info)

@@ -46,8 +46,9 @@ class FileOperation(object):
     """Wait until the operation is done.
 
     Args:
-      timeout: timeout in seconds. None means default timeout (1 hour).
-               0 means no timeout (wait forever).
+      timeout: timeout in seconds. None means default timeout (1 hour). 0 means
+        no timeout (wait forever).
+
     Returns:
       Operation object with refreshed target_file.
     Raises:
@@ -108,6 +109,13 @@ class FileBase(object):
   def GetBlob(self, timestamp=None):
     args = vfs_pb2.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path=self.path)
+    if timestamp:
+      args.timestamp = timestamp
+    return self._context.SendStreamingRequest("GetFileBlob", args)
+
+  def GetBlobWithOffset(self, offset, timestamp=None):
+    args = vfs_pb2.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=self.path, offset=offset)
     if timestamp:
       args.timestamp = timestamp
     return self._context.SendStreamingRequest("GetFileBlob", args)

@@ -11,8 +11,10 @@ import time
 
 from absl import app
 from absl import flags
+from future.builtins import bytes
 from future.builtins import chr
 from future.builtins import range
+from future.builtins import str
 from future.builtins import zip
 import mock
 import requests
@@ -41,6 +43,7 @@ from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import ca_enroller
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import client_action_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -214,7 +217,8 @@ def MakeResponse(code=500, data=""):
   return response
 
 
-class ClientCommsTest(test_lib.GRRBaseTest):
+class ClientCommsTest(client_action_test_lib.WithAllClientActionsMixin,
+                      test_lib.GRRBaseTest):
   """Test the communicator."""
 
   def setUp(self):
@@ -228,7 +232,6 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     self.client_private_key = config.CONFIG["Client.private_key"]
 
-    self.server_serial_number = 0
     self.server_certificate = config.CONFIG["Frontend.certificate"]
     self.server_private_key = config.CONFIG["PrivateKeys.server_key"]
     self.client_communicator = comms.ClientCommunicator(
@@ -259,7 +262,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     result = rdf_flows.ClientCommunication()
     timestamp = self.client_communicator.EncodeMessages(
         message_list, result, timestamp=timestamp)
-    self.cipher_text = result.SerializeToString()
+    self.cipher_text = result.SerializeToBytes()
 
     (decoded_messages, source, client_timestamp) = (
         self.server_communicator.DecryptMessage(self.cipher_text))
@@ -400,7 +403,11 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
     result = rdf_flows.ClientCommunication()
     self.client_communicator.EncodeMessages(message_list, result)
-    cipher_text = result.SerializeToString()
+
+    # TODO: We use `bytes` from the `future` package here to have
+    # Python 3 iteration behaviour. This call should be a noop in Python 3 and
+    # should be safe to remove on support for Python 2 is dropped.
+    cipher_text = bytes(result.SerializeToBytes())
 
     # Depending on this modification several things may happen:
     # 1) The padding may not match which will cause a decryption exception.
@@ -410,8 +417,13 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     # 4) The modification may have no effect on the data at all.
     for x in range(0, len(cipher_text), 50):
       # Futz with the cipher text (Make sure it's really changed)
-      mod = chr((ord(cipher_text[x]) % 250) + 1).encode("latin-1")
+      mod = chr((cipher_text[x] % 250) + 1).encode("latin-1")
       mod_cipher_text = cipher_text[:x] + mod + cipher_text[x + 1:]
+
+      # TODO: Now we revert back to native `bytes` object because
+      # proto deserialization assumes native indexing behaviour.
+      if compatibility.PY2:
+        mod_cipher_text = mod_cipher_text.__native__()
 
       try:
         decoded, client_id, _ = self.server_communicator.DecryptMessage(
@@ -481,7 +493,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertLen(list(self.ClientServerCommunicate()), 10)
 
 
-class HTTPClientTests(test_lib.GRRBaseTest):
+class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
+                      test_lib.GRRBaseTest):
   """Test the http communicator."""
 
   def setUp(self):
@@ -492,8 +505,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     config_stubber = test_lib.PreserveConfig()
     config_stubber.Start()
     self.addCleanup(config_stubber.Stop)
-
-    self.server_serial_number = 0
 
     self.server_private_key = config.CONFIG["PrivateKeys.server_key"]
     self.server_certificate = config.CONFIG["Frontend.certificate"]
@@ -561,13 +572,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def UrlMock(self, num_messages=10, url=None, data=None, **kwargs):
     """A mock for url handler processing from the server's POV."""
     if "server.pem" in url:
-      return MakeResponse(200,
-                          utils.SmartStr(config.CONFIG["Frontend.certificate"]))
+      cert = str(config.CONFIG["Frontend.certificate"]).encode("ascii")
+      return MakeResponse(200, cert)
 
     _ = kwargs
     try:
       comms_cls = rdf_flows.ClientCommunication
-      self.client_communication = comms_cls.FromSerializedString(data)
+      self.client_communication = comms_cls.FromSerializedBytes(data)
 
       # Decrypt incoming messages
       self.messages, source, ts = self.server_communicator.DecodeMessages(
@@ -596,7 +607,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           timestamp=ts,
           api_version=self.client_communication.api_version)
 
-      return MakeResponse(200, response_comms.SerializeToString())
+      return MakeResponse(200, response_comms.SerializeToBytes())
     except communicator.UnknownClientCertError:
       raise MakeHTTPException(406)
     except Exception as e:
@@ -657,7 +668,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.assertEqual(status.code, 406)
 
       # The client should now send an enrollment request.
-      status = self.client_communicator.RunOnce()
+      self.client_communicator.RunOnce()
 
       # Client should generate enrollment message by itself.
       self.assertLen(self.messages, 1)
@@ -681,7 +692,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
                      rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED)
 
     # The next request should be an enrolling request.
-    status = self.client_communicator.RunOnce()
+    self.client_communicator.RunOnce()
 
     self.assertLen(self.messages, 11)
     enrolment_messages = []
@@ -805,39 +816,45 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       """Futz with some of the fields."""
       comm_cls = rdf_flows.ClientCommunication
       if data is not None:
-        self.client_communication = comm_cls.FromSerializedString(data)
+        self.client_communication = comm_cls.FromSerializedBytes(data)
       else:
         self.client_communication = comm_cls(None)
 
       if self.corruptor_field and "server.pem" not in url:
-        orig_str_repr = self.client_communication.SerializeToString()
+        orig_str_repr = self.client_communication.SerializeToBytes()
         field_data = getattr(self.client_communication, self.corruptor_field)
-        if hasattr(field_data, "SerializeToString"):
+        if hasattr(field_data, "SerializeToBytes"):
           # This converts encryption keys to a string so we can corrupt them.
-          field_data = field_data.SerializeToString()
+          field_data = field_data.SerializeToBytes()
+
+        # TODO: We use `bytes` from the `future` package here to
+        # have Python 3 iteration behaviour. This call should be a noop in
+        # Python 3 and should be safe to remove on support for Python 2 is
+        # dropped.
+        field_data = bytes(field_data)
 
         # TODO: On Python 2.7.6 and lower `array.array` accepts
         # only byte strings as argument so the call below is necessary. Once
         # support for old Python versions is dropped, this call should be
         # removed.
-        modified_data = array.array(str("c"), field_data)
+        modified_data = array.array(compatibility.NativeStr("B"), field_data)
         offset = len(field_data) // 2
         char = field_data[offset]
-        modified_data[offset] = chr((ord(char) % 250) + 1).encode("latin-1")
+        modified_data[offset] = char % 250 + 1
         setattr(self.client_communication, self.corruptor_field,
                 modified_data.tostring())
 
         # Make sure we actually changed the data.
         self.assertNotEqual(field_data, modified_data)
 
-        mod_str_repr = self.client_communication.SerializeToString()
+        mod_str_repr = self.client_communication.SerializeToBytes()
         self.assertLen(orig_str_repr, len(mod_str_repr))
         differences = [
             True for x, y in zip(orig_str_repr, mod_str_repr) if x != y
         ]
         self.assertLen(differences, 1)
 
-      data = self.client_communication.SerializeToString()
+      data = self.client_communication.SerializeToBytes()
       return self.UrlMock(url=url, data=data, **kwargs)
 
     with utils.Stubber(requests, "request", Corruptor):

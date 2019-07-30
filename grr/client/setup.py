@@ -101,7 +101,7 @@ setup_args = dict(
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
             "WMI==1.4.9",
-            "pypiwin32==219",
+            "pywin32==224",
         ],
     },
 )

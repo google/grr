@@ -2,13 +2,16 @@
 """AFF4-related RDFValues implementations."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import re
 
+from future.utils import python_2_unicode_compatible
+from typing import Text
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
@@ -41,6 +44,7 @@ class AFF4ObjectLabel(rdf_structs.RDFProtoStruct):
                                      "a-zA-Z0-9_./:- but got: '%s'" % self.name)
 
 
+@python_2_unicode_compatible
 class AFF4ObjectLabelsList(rdf_structs.RDFProtoStruct):
   """List of AFF4ObjectLabels."""
 
@@ -54,7 +58,7 @@ class AFF4ObjectLabelsList(rdf_structs.RDFProtoStruct):
     return "(.+,|\\A)%s(,.+|\\Z)" % re.escape(label_name)
 
   def __str__(self):
-    return utils.SmartStr(",".join(self.names))
+    return ",".join(self.names)
 
   def __getitem__(self, item):
     return self.labels[item]
@@ -66,8 +70,11 @@ class AFF4ObjectLabelsList(rdf_structs.RDFProtoStruct):
     for label in self.labels:
       yield label
 
-  def __nonzero__(self):
+  def __bool__(self):
     return bool(self.labels)
+
+  # TODO: Remove after support for Python 2 is dropped.
+  __nonzero__ = __bool__
 
   @property
   def names(self):

@@ -30,7 +30,6 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
   def _GenResults(self):
     parser = linux_file_parser.LinuxSystemPasswdParser()
     if self.results is None:
-      host_data = self.SetKnowledgeBase()
       login = {
           "/etc/passwd":
               """

@@ -120,7 +120,7 @@ class HuntTest(notification_test_lib.NotificationTestMixin,
 
     # Running a second time should not change the rules any more.
     with self.assertRaises(hunt.OnlyPausedHuntCanBeStartedError):
-      hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
+      hunt.StartHunt(hunt_obj.hunt_id)
     rules = data_store.REL_DB.ReadAllForemanRules()
     self.assertLen(rules, 1)
 
@@ -147,7 +147,7 @@ class HuntTest(notification_test_lib.NotificationTestMixin,
     rules = data_store.REL_DB.ReadAllForemanRules()
     self.assertLen(rules, 1)
 
-    hunt_obj = hunt.StopHunt(hunt_obj.hunt_id)
+    hunt.StopHunt(hunt_obj.hunt_id)
     rules = data_store.REL_DB.ReadAllForemanRules()
     self.assertEmpty(rules)
 
@@ -178,7 +178,7 @@ class HuntTest(notification_test_lib.NotificationTestMixin,
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
-    hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
+    hunt.StartHunt(hunt_obj.hunt_id)
 
     # Check matching client.
     client_id = self.SetupClient(0, system="Windows")
