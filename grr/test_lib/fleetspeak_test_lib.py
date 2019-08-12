@@ -2,33 +2,51 @@
 """Fleetspeak-related helpers for use in tests."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
-from grr_response_server import fleetspeak_connector
+import collections
+import threading
+from typing import Optional, Text
+
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_proto import jobs_pb2
+from grr_response_server import fleetspeak_utils
+from fleetspeak.src.common.proto.fleetspeak import common_pb2
+
+_message_lock = threading.Lock()
+_messages_by_client_id = {}
 
 
-class ConnectionOverrider(object):
-  """Context manager used to override the active Fleetspeak connector."""
+def StoreMessage(fs_msg):
+  """Emulates sending of a message to Fleetspeak by storing it in-memory."""
+  if not fs_msg.destination.client_id:
+    raise ValueError("No destination set for Fleetspeak message:\n%s" % fs_msg)
 
-  def __init__(self, conn):
-    self._previous_conn = None
-    self._previous_label_map = None
-    self._previous_unknown_label = None
-    self._conn = conn
+  grr_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_msg.destination.client_id)
+  raw_grr_msg = jobs_pb2.GrrMessage()
+  fs_msg.data.Unpack(raw_grr_msg)
+  grr_msg = rdf_flows.GrrMessage.FromSerializedBytes(
+      raw_grr_msg.SerializeToString())
+  with _message_lock:
+    try:
+      _messages_by_client_id[grr_id].append(grr_msg)
+    except KeyError:
+      _messages_by_client_id[grr_id] = collections.deque([grr_msg])
 
-  def __enter__(self):
-    self.Start()
 
-  def Start(self):
-    self._previous_conn = fleetspeak_connector.CONN
-    self._previous_label_map = fleetspeak_connector.label_map
-    self._previous_unknown_label = fleetspeak_connector.unknown_label
-    fleetspeak_connector.Init(self._conn)
+def PopMessage(client_id):
+  """Returns a message sent to the given Fleetspeak client.
 
-  def __exit__(self, *args):
-    self.Stop()
+  The returned message is removed from the in-memory store. Messages for
+  any given client are returned in the order in which they are inserted. If
+  a client has no pending messages, None is returned.
 
-  def Stop(self):
-    fleetspeak_connector.CONN = self._previous_conn
-    fleetspeak_connector.label_map = self._previous_label_map
-    fleetspeak_connector.unknown_label = self._previous_unknown_label
+  Args:
+    client_id: GRR id of the Fleetspeak client to return a message for.
+  """
+  try:
+    with _message_lock:
+      return _messages_by_client_id[client_id].popleft()
+  except (KeyError, IndexError):
+    return None

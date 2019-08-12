@@ -103,7 +103,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.stats import stats_collector_instance
 
 
 class HTTPObject(object):
@@ -1066,8 +1065,7 @@ class GRRHTTPClient(object):
 
   def MakeRequest(self, data):
     """Make a HTTP Post request to the server 'control' endpoint."""
-    stats_collector_instance.Get().IncrementCounter("grr_client_sent_bytes",
-                                                    len(data))
+    communicator.GRR_CLIENT_SENT_BYTES.Increment(len(data))
 
     # Verify the response is as it should be from the control endpoint.
     response = self.http_manager.OpenServerEndpoint(
@@ -1081,8 +1079,7 @@ class GRRHTTPClient(object):
       return response
 
     if response.code == 200:
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_client_received_bytes", len(response.data))
+      communicator.GRR_CLIENT_RECEIVED_BYTES.Increment(len(response.data))
       return response
 
     # An unspecified error occurred.

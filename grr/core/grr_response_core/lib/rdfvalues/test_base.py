@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 from past.builtins import long
 from typing import Text
 
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+
 # pylint:mode=test
 
 
@@ -50,6 +52,9 @@ class RDFValueTestMixin(object):
   def testHashability(self):
     """RDFValue instances need to act as keys in a dict."""
     sample1 = self.GenerateSample(1)
+
+    if isinstance(sample1, rdf_structs.RDFStruct):
+      self.skipTest("Hashing is unsupported.")
 
     # Different instances with the same value need to hash to the same.
     self.assertEqual(hash(sample1), hash(self.GenerateSample(1)))

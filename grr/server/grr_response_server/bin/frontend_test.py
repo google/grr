@@ -134,7 +134,7 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     # TODO(hanuszczak): Instead of catching arbitrary runtime errors, we should
     # catch specific instance that was thrown. Unfortunately, all errors are
     # intercepted in the `MockWorker` class and converted to runtime errors.
-    with self.assertRaisesRegexp(RuntimeError, "exceeded network send limit"):
+    with self.assertRaisesRegex(RuntimeError, "exceeded network send limit"):
       with test_lib.SuppressLogs():
         self._RunClientFileFinder(paths, action, network_bytes_limit=1500)
 

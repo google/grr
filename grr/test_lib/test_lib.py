@@ -23,7 +23,6 @@ from future.utils import itervalues
 import mock
 import pkg_resources
 
-from grr_response_client import comms
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -34,7 +33,6 @@ from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
-from grr_response_core.stats import stats_test_utils
 from grr_response_server import access_control
 from grr_response_server import client_index
 from grr_response_server import data_store
@@ -128,7 +126,9 @@ class GRRBaseTest(absltest.TestCase):
         itervalues(stats_collector_instance.Get().GetAllMetricsMetadata()))
     fake_stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
         metrics_metadata)
-    fake_stats_context = stats_test_utils.FakeStatsContext(fake_stats_collector)
+    fake_stats_context = mock.patch.object(stats_collector_instance,
+                                           "_stats_singleton",
+                                           fake_stats_collector)
     fake_stats_context.start()
     self.addCleanup(fake_stats_context.stop)
 
@@ -290,8 +290,9 @@ class GRRBaseTest(absltest.TestCase):
     client_index.ClientIndex().AddClientLabels(client_id, [name])
 
   def ClientCertFromPrivateKey(self, private_key):
-    communicator = comms.ClientCommunicator(private_key=private_key)
-    csr = communicator.GetCSR()
+    common_name = rdf_client.ClientURN.FromPrivateKey(private_key)
+    csr = rdf_crypto.CertificateSigningRequest(
+        common_name=common_name, private_key=private_key)
     return rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
   def GenerateToken(self, username, reason):

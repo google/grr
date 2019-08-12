@@ -28,7 +28,6 @@ from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.stats import stats_collector_instance
 from grr_response_proto import jobs_pb2
 
 # pyformat: disable
@@ -143,8 +142,7 @@ class GRRFleetspeakClient(object):
       logging.critical("Broken local Fleetspeak connection (write end).")
       raise
 
-    stats_collector_instance.Get().IncrementCounter("grr_client_sent_bytes",
-                                                    sent_bytes)
+    communicator.GRR_CLIENT_SENT_BYTES.Increment(sent_bytes)
 
   def _SendOp(self):
     """Sends messages through Fleetspeak."""
@@ -190,8 +188,7 @@ class GRRFleetspeakClient(object):
           "Unexpected proto type received through Fleetspeak: %r; expected "
           "grr.GrrMessage." % received_type)
 
-    stats_collector_instance.Get().IncrementCounter("grr_client_received_bytes",
-                                                    received_bytes)
+    communicator.GRR_CLIENT_RECEIVED_BYTES.Increment(received_bytes)
 
     grr_msg = rdf_flows.GrrMessage.FromSerializedBytes(fs_msg.data.value)
     # Authentication is ensured by Fleetspeak.

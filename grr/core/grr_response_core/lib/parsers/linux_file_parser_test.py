@@ -14,7 +14,7 @@ from absl import app
 from future.builtins import zip
 from future.utils import iteritems
 
-from grr_response_core.lib import parser as lib_parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -165,8 +165,8 @@ user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
-    self.assertRaises(lib_parser.ParseError, list,
-                      parser.ParseFile(None, None, io.BytesIO(dat)))
+    with self.assertRaises(parsers.ParseError):
+      list(parser.ParseFile(None, None, io.BytesIO(dat)))
 
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
@@ -240,8 +240,8 @@ group2 user4 (-user2,)
 super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
-    self.assertRaises(lib_parser.ParseError, list,
-                      parser.ParseFile(None, None, io.BytesIO(dat)))
+    with self.assertRaises(parsers.ParseError):
+      list(parser.ParseFile(None, None, io.BytesIO(dat)))
 
   def testWtmpParser(self):
     """Test parsing of wtmp file."""

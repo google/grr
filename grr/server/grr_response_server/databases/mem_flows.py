@@ -395,7 +395,7 @@ class InMemoryDBFlowMixin(object):
   @utils.Synchronized
   def WriteFlowResponses(self, responses):
     """Writes FlowMessages and updates corresponding requests."""
-    status_available = set()
+    status_available = {}
     requests_updated = set()
     task_ids_by_request = {}
 
@@ -420,7 +420,8 @@ class InMemoryDBFlowMixin(object):
                                {})[response.response_id] = clone
 
       if isinstance(response, rdf_flow_objects.FlowStatus):
-        status_available.add(response)
+        status_available[(response.client_id, response.flow_id,
+                          response.request_id, response.response_id)] = response
 
       request_key = (response.client_id, response.flow_id, response.request_id)
       requests_updated.add(request_key)
@@ -430,7 +431,7 @@ class InMemoryDBFlowMixin(object):
         pass
 
     # Every time we get a status we store how many responses are expected.
-    for status in status_available:
+    for status in status_available.values():
       request_dict = self.flow_requests[(status.client_id, status.flow_id)]
       request = request_dict[status.request_id]
       request.nr_responses_expected = status.response_id

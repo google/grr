@@ -79,6 +79,16 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
       callback(target=cls, **kwargs)
 
 
+class HashUnsupportedError(Exception):
+  """Raised in __hash__ of a class that will soon be unhashable."""
+
+  def __init__(self, cls):
+    precondition.AssertType(cls, type)
+    super(HashUnsupportedError,
+          self).__init__("Hashing {} is unsupported!".format(
+              compatibility.GetName(cls)))
+
+
 @python_2_unicode_compatible
 class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   """Baseclass for values.

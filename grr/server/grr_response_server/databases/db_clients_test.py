@@ -676,11 +676,11 @@ class DatabaseTestClientsMixin(object):
     client.os_version = "16.04"
     client.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-04-10")
 
-    with self.assertRaisesRegexp(TypeError, "Expected"):
+    with self.assertRaisesRegex(TypeError, "Expected"):
       self.db.WriteClientSnapshotHistory([client])
 
   def testWriteClientSnapshotHistoryRaiseValueErrorOnEmpty(self):
-    with self.assertRaisesRegexp(ValueError, "empty"):
+    with self.assertRaisesRegex(ValueError, "empty"):
       self.db.WriteClientSnapshotHistory([])
 
   def testWriteClientSnapshotHistoryRaiseValueErrorOnNonUniformIds(self):
@@ -693,7 +693,7 @@ class DatabaseTestClientsMixin(object):
     client_b = rdf_objects.ClientSnapshot(client_id=client_id_b)
     client_b.timestamp = rdfvalue.RDFDatetime.FromHumanReadable("2010-06-12")
 
-    with self.assertRaisesRegexp(ValueError, "client id"):
+    with self.assertRaisesRegex(ValueError, "client id"):
       self.db.WriteClientSnapshotHistory([client_a, client_b])
 
   def testWriteClientSnapshotHistoryRaiseAttributeError(self):
@@ -703,7 +703,7 @@ class DatabaseTestClientsMixin(object):
     client.kernel = "1.2.3"
     client.startup_info.client_info.client_version = 42
 
-    with self.assertRaisesRegexp(AttributeError, "timestamp"):
+    with self.assertRaisesRegex(AttributeError, "timestamp"):
       self.db.WriteClientSnapshotHistory([client])
 
   def testWriteClientSnapshotHistoryRaiseOnNonExistingClient(self):

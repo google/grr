@@ -19,6 +19,9 @@ from setuptools import setup
 from setuptools.command.develop import develop
 from setuptools.command.sdist import sdist
 
+GRR_NO_MAKE_UI_FILES_VAR = "GRR_NO_MAKE_UI_FILES"
+
+
 # TODO: Fix this import once support for Python 2 is dropped.
 # pylint: disable=g-import-not-at-top
 if sys.version_info.major == 2:
@@ -78,9 +81,26 @@ VERSION = get_config()
 
 
 class Develop(develop):
+  """Build developer version (pip install -e)."""
+
+  user_options = develop.user_options + [
+      # TODO: This has to be `bytes` on Python 2. Remove this `str`
+      # call once support for Python 2 is dropped.
+      (str("no-make-ui-files"), None, "Don't build UI JS/CSS bundles."),
+  ]
+
+  def initialize_options(self):
+    self.no_make_ui_files = None
+    develop.initialize_options(self)
 
   def run(self):
-    make_ui_files()
+    # pip install -e . --install-option="--no-make-ui-files" passes the
+    # --no-make-ui-files flag to all GRR dependencies, which doesn't make
+    # much sense. Checking an environment variable to have an easy way
+    # to set the flag for grr-response-server package only.
+    if (not self.no_make_ui_files and
+        not os.environ.get(GRR_NO_MAKE_UI_FILES_VAR)):
+      make_ui_files()
 
     develop.run(self)
 
@@ -91,8 +111,7 @@ class Sdist(sdist):
   user_options = sdist.user_options + [
       # TODO: This has to be `bytes` on Python 2. Remove this `str`
       # call once support for Python 2 is dropped.
-      (str("no-make-ui-files"), None, "Don't build UI JS/CSS bundles (AdminUI "
-       "won't work without them)."),
+      (str("no-make-ui-files"), None, "Don't build UI JS/CSS bundles."),
   ]
 
   def initialize_options(self):
@@ -100,7 +119,10 @@ class Sdist(sdist):
     sdist.initialize_options(self)
 
   def run(self):
-    if not self.no_make_ui_files:
+    # For consistency, respsecting GRR_NO_MAKE_UI_FILES variable just like
+    # Develop command does.
+    if (not self.no_make_ui_files and
+        not os.environ.get(GRR_NO_MAKE_UI_FILES_VAR)):
       make_ui_files()
 
     sdist.run(self)

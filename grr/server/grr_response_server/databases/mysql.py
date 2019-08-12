@@ -43,7 +43,7 @@ from grr_response_server.databases import mysql_signed_binaries
 from grr_response_server.databases import mysql_users
 
 # Maximum size of one SQL statement, including blob and protobuf data.
-MAX_PACKET_SIZE = 20 << 20
+MAX_PACKET_SIZE = 20 << 21
 
 # Maximum retry count:
 _MAX_RETRY_COUNT = 5

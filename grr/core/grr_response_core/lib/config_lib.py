@@ -177,7 +177,7 @@ class Filename(ConfigFilter):
     precondition.AssertType(data, Text)
     try:
       with io.open(data, "r") as fd:
-        return fd.read()
+        return fd.read()  # pytype: disable=bad-return-type
     except IOError as e:
       raise FilterError("%s: %s" % (data, e))
 
@@ -189,7 +189,7 @@ class OptionalFile(ConfigFilter):
     precondition.AssertType(data, Text)
     try:
       with io.open(data, "r") as fd:
-        return fd.read()
+        return fd.read()  # pytype: disable=bad-return-type
     except IOError:
       return ""
 
@@ -207,18 +207,6 @@ class FixPathSeparator(ConfigFilter):
       return data.replace("\\", "\\\\")
     else:
       return data.replace("\\", "/")
-
-
-class Base64(ConfigFilter):
-  name = "base64"
-
-  def Filter(self, data):
-    precondition.AssertType(data, Text)
-    # TODO: `decode` on unicode object won't work in Python 3.
-    # Also, this method is supposed to return unicode object whereas "base64"
-    # encoding is used for binary data. Finally, this does not seem to be used
-    # anywhere so maybe it can be removed?
-    return data.decode("base64")
 
 
 class Env(ConfigFilter):

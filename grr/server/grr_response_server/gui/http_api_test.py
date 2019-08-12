@@ -347,22 +347,22 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def testStatsAreCorrectlyUpdatedOnHeadRequests(self):
     # pylint: disable=g-backslash-continuation
     with self.assertStatsCounterDelta(
-        1, "api_access_probe_latency",
+        1, http_api.API_ACCESS_PROBE_LATENCY,
         fields=["SampleGet", "http", "SUCCESS"]), \
     self.assertStatsCounterDelta(
-        0, "api_access_probe_latency",
+        0, http_api.API_ACCESS_PROBE_LATENCY,
         fields=["SampleGet", "http", "FORBIDDEN"]), \
     self.assertStatsCounterDelta(
-        0, "api_access_probe_latency",
+        0, http_api.API_ACCESS_PROBE_LATENCY,
         fields=["SampleGet", "http", "NOT_FOUND"]), \
     self.assertStatsCounterDelta(
-        0, "api_access_probe_latency",
+        0, http_api.API_ACCESS_PROBE_LATENCY,
         fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
+        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "INVALID_ARGUMENT"]), \
     self.assertStatsCounterDelta(
-        0, "api_access_probe_latency",
+        0, http_api.API_ACCESS_PROBE_LATENCY,
         fields=["SampleGet", "http", "SERVER_ERROR"]):
       # pylint: enable=g-backslash-continuation
 
@@ -372,22 +372,22 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
   def testStatsAreCorrectlyUpdatedOnGetRequests(self):
     # pylint: disable=g-backslash-continuation
     with self.assertStatsCounterDelta(
-        1, "api_method_latency",
+        1, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "SUCCESS"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
+        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "FORBIDDEN"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
+        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "NOT_FOUND"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
+        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
+        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "INVALID_ARGUMENT"]), \
     self.assertStatsCounterDelta(
-        0, "api_method_latency",
+        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "SERVER_ERROR"]):
       # pylint: enable=g-backslash-continuation
 
@@ -399,27 +399,27 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
       # pylint: disable=g-backslash-continuation
       with self.assertStatsCounterDelta(
           status == "SUCCESS" and 1 or 0,
-          "api_method_latency",
+          http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "SUCCESS"]), \
       self.assertStatsCounterDelta(
           status == "FORBIDDEN" and 1 or 0,
-          "api_method_latency",
+          http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "FORBIDDEN"]), \
       self.assertStatsCounterDelta(
           status == "NOT_FOUND" and 1 or 0,
-          "api_method_latency",
+          http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "NOT_FOUND"]), \
       self.assertStatsCounterDelta(
           status == "NOT_IMPLEMENTED" and 1 or 0,
-          "api_method_latency",
+          http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "NOT_IMPLEMENTED"]), \
       self.assertStatsCounterDelta(
           status == "INVALID_ARGUMENT" and 1 or 0,
-          "api_method_latency",
+          http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "INVALID_ARGUMENT"]), \
       self.assertStatsCounterDelta(
           status == "SERVER_ERROR" and 1 or 0,
-          "api_method_latency",
+          http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "SERVER_ERROR"]):
         # pylint: enable=g-backslash-continuation
 

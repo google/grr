@@ -94,10 +94,17 @@ def GeneratePattern(seed, length):
 
 class FakeRegion(object):
 
-  def __init__(self, start=0, data=b"", is_executable=False):
+  def __init__(self,
+               start=0,
+               data=b"",
+               is_executable=False,
+               is_writable=False,
+               is_readable=True):
     self.start = start
     self.data = data
     self.is_executable = is_executable
+    self.is_writable = is_writable
+    self.is_readable = is_readable
 
   @property
   def size(self):
@@ -129,7 +136,7 @@ class FakeMemoryProcess(object):
           FakeRegion(400, b"C" * 50 + b"1234")
       ],
       108: [
-          FakeRegion(0, b"A" * 100, True),
+          FakeRegion(0, b"A" * 100, is_executable=True, is_writable=True),
           FakeRegion(1000, b"X" * 50 + b"1234" + b"X" * 50)
       ],
   }
@@ -163,10 +170,12 @@ class FakeMemoryProcess(object):
     del skip_readonly_regions
 
     for region in self.regions:
-      yield rdf_memory.YaraProcessMemoryRegion(
+      yield rdf_memory.ProcessMemoryRegion(
           start=region.start,
           size=region.size,
-          is_executable=region.is_executable)
+          is_executable=region.is_executable,
+          is_writable=region.is_writable,
+          is_readable=region.is_readable)
 
 
 class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
@@ -174,8 +183,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
 
   NO_MATCH_PIDS = (101, 103, 105, 106)
   MATCH_PID_1_REGION = 102
-  MATCH_PID_2_REGIONS = 104
-  MATCH_PID_EXECUTABLE = 108
+  MATCH_PID_2_REGIONS = 108
 
   def process(self, processes, pid=None):
     if not pid:
@@ -643,10 +651,12 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     self.assertEqual(regions[0].start, 0)
     self.assertEqual(regions[0].size, 100)
     self.assertEqual(regions[0].is_executable, True)
+    self.assertEqual(regions[0].is_writable, True)
     self.assertIsNotNone(regions[0].file)
     self.assertEqual(regions[1].start, 1000)
     self.assertEqual(regions[1].size, 104)
     self.assertEqual(regions[1].is_executable, False)
+    self.assertEqual(regions[1].is_writable, False)
     self.assertIsNotNone(regions[1].file)
 
   def testLegacyDataMigration(self):
@@ -666,14 +676,14 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         res,
         rdf_memory.YaraProcessDumpResponse(dumped_processes=[
             rdf_memory.YaraProcessDumpInformation(memory_regions=[
-                rdf_memory.YaraProcessMemoryRegion(
+                rdf_memory.ProcessMemoryRegion(
                     start=111,
                     size=111,
                     file=rdf_paths.PathSpec(
                         path="/C:/Foo/Bar/%s_%d_%x_%x.tmp" %
                         ("my_proc", 123, 111, 222),
                         pathtype="TMPFILE")),
-                rdf_memory.YaraProcessMemoryRegion(
+                rdf_memory.ProcessMemoryRegion(
                     start=456,
                     size=333,
                     file=rdf_paths.PathSpec(

@@ -240,7 +240,7 @@ class MySQLDBCronJobMixin(object):
     """
     cursor.execute(query, [job_id])
     runs = [self._CronJobRunFromRow(row) for row in cursor.fetchall()]
-    return sorted(runs, key=lambda run: run.started_at, reverse=True)
+    return sorted(runs, key=lambda run: run.started_at or 0, reverse=True)
 
   @mysql_utils.WithTransaction()
   def ReadCronJobRun(self, job_id, run_id, cursor=None):

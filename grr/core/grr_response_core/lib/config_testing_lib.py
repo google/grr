@@ -9,10 +9,12 @@ import copy
 import logging
 
 from future.utils import iteritems
+import mock
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
+from grr_response_core.stats import metrics
 from grr.test_lib import test_lib
 
 
@@ -45,7 +47,10 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
     with utils.MultiStubber((config, "CONFIG", conf_obj),
                             (config_lib, "_CONFIG", conf_obj)):
       all_sections = conf_obj.GetSections()
-      errors = conf_obj.Validate(sections=all_sections)
+      # TODO: Validate causes imports, which then register metrics,
+      # which fails because StatsCollector has been initialized.
+      with mock.patch.multiple(metrics, _metadata=[], _finalized=False):
+        errors = conf_obj.Validate(sections=all_sections)
 
     return errors
 

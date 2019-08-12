@@ -39,21 +39,24 @@ class OSXUsersParser(parser.ArtifactFilesMultiParser):
           yield rdf_client.User(username=username, homedir=homedir)
 
 
+# TODO(hanuszczak): Why is a command parser in a file called `osx_file_parsers`?
 class OSXSPHardwareDataTypeParser(parser.CommandParser):
   """Parser for the Hardware Data from System Profiler."""
   output_types = [rdf_client.HardwareInfo]
   supported_artifacts = ["OSXSPHardwareDataType"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the system profiler output. We get it in the form of a plist."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused
+    _ = stderr, args, knowledge_base  # Unused
     self.CheckReturn(cmd, return_val)
 
-    plist = biplist.readPlist(io.BytesIO(stdout))
+    try:
+      plist = biplist.readPlist(io.BytesIO(stdout))
+    except biplist.InvalidPlistException as error:
+      raise parsers.ParseError("Failed to parse a plist file", cause=error)
 
     if len(plist) > 1:
-      raise parser.ParseError("SPHardwareDataType plist has too many items.")
+      raise parsers.ParseError("SPHardwareDataType plist has too many items.")
 
     hardware_list = plist[0]["_items"][0]
     serial_number = hardware_list.get("serial_number", None)
@@ -198,22 +201,24 @@ class OSXInstallHistoryPlistParser(parsers.SingleFileParser):
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 
-    plist = biplist.readPlist(filedesc)
+    try:
+      plist = biplist.readPlist(filedesc)
+    except biplist.InvalidPlistException as error:
+      raise parsers.ParseError("Failed to parse a plist file", cause=error)
 
     if not isinstance(plist, list):
-      raise parser.ParseError(
+      raise parsers.ParseError(
           "InstallHistory plist is a '%s', expecting a list" % type(plist))
 
     packages = []
     for sw in plist:
       packages.append(
-          rdf_client.SoftwarePackage(
+          rdf_client.SoftwarePackage.Installed(
               name=sw.get("displayName"),
               version=sw.get("displayVersion"),
               description=",".join(sw.get("packageIdentifiers")),
               # TODO(hanuszczak): make installed_on an RDFDatetime
-              installed_on=_DateToEpoch(sw.get("date")),
-              install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED))
+              installed_on=_DateToEpoch(sw.get("date"))))
 
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)

@@ -35,13 +35,6 @@ echo Installing Microsoft Visual C++ Compiler for Python 2.7
 powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://download.microsoft.com/download/7/9/6/796EF2E4-801B-4FC4-AB28-B59FBF6D907B/VCForPython27.msi', 'C:\grr_deps\VCForPython27.msi')"
 start /wait msiexec.exe /i C:\grr_deps\VCForPython27.msi /passive
 
-:: Install protobuf compiler - needed for building sdist
-:: GitHub is not happy with older versions of TLS, so we're explicitly specifying TLS v1.2 as the protocol version.
-echo Installing protobuf compiler
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; (new-object System.Net.WebClient).DownloadFile('https://github.com/google/protobuf/releases/download/v3.8.0/protoc-3.8.0-win32.zip', 'C:\grr_deps\protoc-3.8.0-win32.zip')"
-C:\Python27-x64\python.exe -m "zipfile" -e C:\grr_deps\protoc-3.8.0-win32.zip C:\grr_deps\protoc
-C:\grr_deps\protoc\bin\protoc.exe --version || echo "proto compiler install failed" && exit /b 1
-
 :: Install Google Cloud SDK
 echo Installing Google Cloud SDK
 powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-163.0.0-windows-x86_64.zip', 'C:\grr_deps\google-cloud-sdk-163.0.0-windows-x86_64.zip')"

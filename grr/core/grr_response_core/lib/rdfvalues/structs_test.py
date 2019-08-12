@@ -6,11 +6,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
 import random
 
 from absl import app
 from future.builtins import range
 from future.builtins import str
+
+import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -714,35 +717,6 @@ message DynamicTypeTest {{
 
     self.assertEqual(sample1.SerializeToBytes(), sample2.SerializeToBytes())
 
-  def testHashingIsStable(self):
-    sample1, sample2 = self._GenerateSampleWithManyFields()
-
-    self.assertEqual(hash(sample1), hash(sample2))
-
-  def testMutationAfterHashRaises(self):
-    t = TestStruct(foobar="foo")
-    hash(t)
-    with self.assertRaises(AssertionError):
-      t.foobar = "bar"
-
-  def testHashWorksForNonMutatingAssignment(self):
-    t = TestStruct(foobar="foo")
-    hash(t)
-    t.foobar = "foo"
-    hash(t)
-
-  def testUnsetMutationAfterHashRaises(self):
-    t = TestStruct(foobar="foo")
-    hash(t)
-    with self.assertRaises(AssertionError):
-      t.foobar = None
-
-  def testDefaultSetterDoesNotChangeHash(self):
-    t = TestStruct()
-    hash(t)
-    t.repeated  #  pylint: disable=pointless-statement
-    self.assertEqual(hash(t), hash(TestStruct()))
-
   def testRepeatedFieldHelperComparesToNone(self):
     self.assertNotEqual(TestStruct().repeated, None)
 
@@ -765,6 +739,12 @@ message DynamicTypeTest {{
   def testUnsetFieldsHaveSymmetricEqualityWithDefaultValues(self):
     self.assertEqual(TestStruct(repeated=[]), TestStruct())
     self.assertEqual(TestStruct(), TestStruct(repeated=[]))
+
+  def testHashingLogsError(self):
+    sample = TestStruct()
+    with mock.patch.object(logging, "error") as error_fn:
+      sample.__hash__()
+    self.assertEqual(error_fn.call_count, 1)
 
 
 class GenericRDFProtoTest(test_lib.GRRBaseTest):

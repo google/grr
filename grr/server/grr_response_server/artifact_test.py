@@ -13,11 +13,14 @@ import subprocess
 from absl import app
 from future.builtins import str
 
+import mock
+
 from grr_response_client import actions
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_file_parser
@@ -93,25 +96,21 @@ class CmdProcessor(parser.CommandParser):
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestCmdArtifact"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
-    _ = cmd, args, stdout, stderr, return_val, time_taken, knowledge_base
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
+    _ = cmd, args, stdout, stderr, return_val, knowledge_base
     packages = []
-    installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
     packages.append(
-        rdf_client.SoftwarePackage(
+        rdf_client.SoftwarePackage.Installed(
             name="Package1",
             description="Desc1",
             version="1",
-            architecture="amd64",
-            install_state=installed))
+            architecture="amd64"))
     packages.append(
-        rdf_client.SoftwarePackage(
+        rdf_client.SoftwarePackage.Installed(
             name="Package2",
             description="Desc2",
             version="1",
-            architecture="i386",
-            install_state=installed))
+            architecture="i386"))
 
     yield rdf_client.SoftwarePackages(packages=packages)
 
@@ -135,6 +134,16 @@ class MultiProvideParser(parser.RegistryValueParser):
         "environ_path": rdfvalue.RDFString("pathvalue")
     }
     yield rdf_protodict.Dict(test_dict)
+
+
+class RaisingParser(parsers.SingleResponseParser):
+
+  output_types = [None]
+  supported_artifacts = ["RaisingArtifact"]
+
+  def ParseResponse(self, knowledge_base, response, path_type):
+    del knowledge_base, response, path_type  # Unused.
+    raise parsers.ParseError("It was bound to happen.")
 
 
 # TODO: These should be defined next to the test they are used in
@@ -470,6 +479,55 @@ class ArtifactFlowLinuxTest(ArtifactTest):
                                          error_on_no_results=True)
       if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
+
+  @parser_test_lib.WithParser("Raising", RaisingParser)
+  def testFailuresAreLogged(self):
+    client_id = "C.4815162342abcdef"
+
+    now = rdfvalue.RDFDatetime.Now()
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id, last_ping=now)
+
+    snapshot = rdf_objects.ClientSnapshot(client_id=client_id)
+    snapshot.knowledge_base.os = "fakeos"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    raising_artifact_source = rdf_artifacts.ArtifactSource(
+        type=rdf_artifacts.ArtifactSource.SourceType.COMMAND,
+        attributes={
+            "cmd": "/bin/echo",
+            "args": ["1"],
+        })
+
+    raising_artifact = rdf_artifacts.Artifact(
+        name="RaisingArtifact",
+        doc="Lorem ipsum.",
+        sources=[raising_artifact_source])
+
+    registry = artifact_registry.ArtifactRegistry()
+    with mock.patch.object(artifact_registry, "REGISTRY", registry):
+      registry.RegisterArtifact(raising_artifact)
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          collectors.ArtifactCollectorFlow.__name__,
+          client_mock=action_mocks.ActionMock(standard.ExecuteCommand),
+          client_id=client_id,
+          artifact_list=["RaisingArtifact"],
+          apply_parsers=True,
+          check_flow_errors=True,
+          token=self.token)
+
+    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].stdout, "1\n".encode("utf-8"))
+
+    logs = data_store.REL_DB.ReadFlowLogEntries(
+        client_id=client_id, flow_id=flow_id, offset=0, count=1024)
+
+    # Log should contain two entries. First one about successful execution of
+    # the command (not interesting), the other one containing the error about
+    # unsuccessful parsing.
+    self.assertLen(logs, 2)
+    self.assertIn("It was bound to happen.", logs[1].message)
 
 
 class ArtifactFlowWindowsTest(ArtifactTest):

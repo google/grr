@@ -2282,23 +2282,21 @@ message YaraProcessDumpArgs {
   ];
   optional bool skip_executable_regions = 10 [
     (sem_type) = {
-      description: "Set this flag to avoid dumping executable regions. Applies "
-                   "to Linux and macOS.",
+      description: "Set this flag to avoid dumping executable regions.",
       label: ADVANCED,
     },
     default = false
   ];
   optional bool skip_readonly_regions = 11 [
     (sem_type) = {
-      description: "Set this flag to avoid dumping readonly regions. Applies "
-                   "to Linux and macOS.",
+      description: "Set this flag to avoid dumping readonly regions.",
       label: ADVANCED,
     },
     default = false
   ];
 }
 
-message YaraProcessMemoryRegion {
+message ProcessMemoryRegion {
   optional uint64 start = 1 [(sem_type) = {
     description: "Start address of the memory region.",
   }];
@@ -2308,7 +2306,17 @@ message YaraProcessMemoryRegion {
   optional PathSpec file = 3 [(sem_type) = {
     description: "The file that contains the dumped memory region.",
   }];
-  optional bool is_executable = 4;
+  optional bool is_executable = 4 [(sem_type) = {
+    description: "True, if the memory region is marked as executable.",
+  }];
+  optional bool is_writable = 5 [(sem_type) = {
+    description: "True, if the memory region is marked as writable.",
+  }];
+  optional bool is_readable = 6 [(sem_type) = {
+    description: "True, if the memory region is marked as readable. "
+                 "Currently, GRR only collects readable memory regions, so "
+                 "this flag is either unset or true.",
+  }];
 }
 
 message YaraProcessDumpInformation {
@@ -2325,7 +2333,7 @@ message YaraProcessDumpInformation {
   optional uint64 dump_time_us = 4 [(sem_type) = {
     description: "Time in microseconds taken to dump the process.",
   }];
-  repeated YaraProcessMemoryRegion memory_regions = 5 [(sem_type) = {
+  repeated ProcessMemoryRegion memory_regions = 5 [(sem_type) = {
     description: "Memory regions that have been dumped.",
   }];
 }

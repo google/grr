@@ -13,14 +13,16 @@ import prometheus_client
 import prometheus_client.parser as prometheus_parser
 import requests
 
-from grr_response_core.stats import stats_utils
+from grr_response_core.stats import metrics
 from grr_response_server import base_stats_server_test
 from grr_response_server import prometheus_stats_collector
 from grr_response_server import stats_server
+from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
 class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
+                      stats_test_lib.StatsCollectorTestMixin,
                       test_lib.GRRBaseTest):
 
   def setUpStatsServer(self, port):
@@ -29,10 +31,13 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
   def testPrometheusIntegration(self):
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
 
-    metadatas = [stats_utils.CreateCounterMetadata("foobars")]
-    collector = prometheus_stats_collector.PrometheusStatsCollector(
-        metadatas, registry=registry)
-    collector.IncrementCounter("foobars", 42)
+    def MakeCollector(metadatas):
+      return prometheus_stats_collector.PrometheusStatsCollector(
+          metadatas, registry)
+
+    with self.SetUpStatsCollector(MakeCollector):
+      counter = metrics.Counter("foobars")
+    counter.Increment(42)
 
     port = portpicker.pick_unused_port()
 

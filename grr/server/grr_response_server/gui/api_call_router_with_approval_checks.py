@@ -10,7 +10,7 @@ from typing import Text
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
@@ -21,6 +21,10 @@ from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+APPROVAL_SEARCHES = metrics.Counter(
+    "approval_searches", fields=[("reason_presence", str), ("source", str)])
 
 
 class AccessChecker(object):
@@ -39,12 +43,10 @@ class AccessChecker(object):
     cache_key = (username, subject_id, approval_type)
     try:
       self.acl_cache.Get(cache_key)
-      stats_collector_instance.Get().IncrementCounter(
-          "approval_searches", fields=["-", "cache"])
+      APPROVAL_SEARCHES.Increment(fields=["-", "cache"])
       return True
     except KeyError:
-      stats_collector_instance.Get().IncrementCounter(
-          "approval_searches", fields=["-", "reldb"])
+      APPROVAL_SEARCHES.Increment(fields=["-", "reldb"])
 
     approvals = data_store.REL_DB.ReadApprovalRequests(
         username, approval_type, subject_id=subject_id, include_expired=False)

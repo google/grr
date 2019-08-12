@@ -24,24 +24,17 @@ from grr.test_lib import test_lib
 class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
   """Tests the GRR Worker."""
 
-  def _TestWorker(self):
-    worker = worker_lib.GRRWorker()
-    self.addCleanup(worker.Shutdown)
-    return worker
-
   def testMessageHandlers(self):
-    worker_obj = self._TestWorker()
-
     client_id = self.SetupClient(100)
 
     done = threading.Event()
 
     def handle(l):
-      worker_obj._ProcessMessageHandlerRequests(l)
+      worker_lib.ProcessMessageHandlerRequests(l)
       done.set()
 
     data_store.REL_DB.RegisterMessageHandler(
-        handle, worker_obj.message_handler_lease_time, limit=1000)
+        handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000)
 
     data_store.REL_DB.WriteMessageHandlerRequests([
         rdf_objects.MessageHandlerRequest(
@@ -85,21 +78,8 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(client_mock.storage["cpulimit"], [1000, 980, 960])
     self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
 
-  def _Process(self, client_mocks, worker_obj):
-    while True:
-      client_msgs_processed = 0
-      for client_mock in client_mocks:
-        client_msgs_processed += client_mock.Next()
-      with test_lib.SuppressLogs():
-        worker_msgs_processed = worker_obj.RunOnce()
-        worker_obj.thread_pool.Join()
-      if not client_msgs_processed and not worker_msgs_processed:
-        break
-
   def testForemanMessageHandler(self):
     with mock.patch.object(foreman.Foreman, "AssignTasksToClient") as instr:
-      worker_obj = self._TestWorker()
-
       # Send a message to the Foreman.
       client_id = "C.1100110011001100"
 
@@ -114,11 +94,11 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
       done = threading.Event()
 
       def handle(l):
-        worker_obj._ProcessMessageHandlerRequests(l)
+        worker_lib.ProcessMessageHandlerRequests(l)
         done.set()
 
       data_store.REL_DB.RegisterMessageHandler(
-          handle, worker_obj.message_handler_lease_time, limit=1000)
+          handle, worker_lib.GRRWorker.message_handler_lease_time, limit=1000)
       try:
         self.assertTrue(done.wait(10))
 

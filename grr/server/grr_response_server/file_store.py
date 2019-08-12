@@ -53,6 +53,14 @@ class OversizedReadError(Error):
   """Raises when trying to read large files without specifying read length."""
 
 
+class InvalidBlobSizeError(Error):
+  """Raised when actual blob size differs from an expected one."""
+
+
+class InvalidBlobOffsetError(Error):
+  """Raised when actual blob offset differs from an expected one."""
+
+
 FileMetadata = NamedTuple("FileMetadata", [
     ("client_path", db.ClientPath),
     ("blob_refs", Iterable[rdf_objects.BlobReference]),
@@ -151,10 +159,11 @@ class BlobStream(object):
     if length is None:
       length = self._length - self._offset
 
-    if length > self._max_unbound_read:
-      raise OversizedReadError("Attempted to read %d bytes when "
-                               "Server.max_unbound_read_size is %d" %
-                               (length, self._max_unbound_read))
+      # Only enforce limit when length is not specified manually.
+      if length > self._max_unbound_read:
+        raise OversizedReadError("Attempted to read %d bytes when "
+                                 "Server.max_unbound_read_size is %d" %
+                                 (length, self._max_unbound_read))
 
     result = io.BytesIO()
     while result.tell() < length:
@@ -208,6 +217,8 @@ class BlobStream(object):
 
 _BLOBS_READ_BATCH_SIZE = 200
 
+BLOBS_READ_TIMEOUT = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+
 
 def AddFilesWithUnknownHashes(
     client_path_blob_refs,
@@ -226,6 +237,10 @@ def AddFilesWithUnknownHashes(
 
   Raises:
     BlobNotFoundError: If one of the referenced blobs cannot be found.
+    InvalidBlobSizeError: if reference's blob size is different from an
+        actual blob size.
+    InvalidBlobOffsetError: if reference's blob offset is different from an
+        actual blob offset.
   """
   hash_id_blob_refs = dict()
   client_path_hash_id = dict()
@@ -233,24 +248,15 @@ def AddFilesWithUnknownHashes(
 
   all_client_path_blob_refs = list()
   for client_path, blob_refs in iteritems(client_path_blob_refs):
-    # In the special case where there is only one blob, we don't need to go to
-    # the data store to read said blob and rehash it, we have all that
-    # information already available. For empty files without blobs, we can just
-    # hash the empty string instead.
-    if len(blob_refs) <= 1:
-      if blob_refs:
-        hash_id = rdf_objects.SHA256HashID.FromBytes(
-            blob_refs[0].blob_id.AsBytes())
-      else:
-        hash_id = rdf_objects.SHA256HashID.FromData(b"")
-
-      client_path_hash_id[client_path] = hash_id
-      hash_id_blob_refs[hash_id] = blob_refs
-      metadatas[hash_id] = FileMetadata(
-          client_path=client_path, blob_refs=blob_refs)
-    else:
+    if blob_refs:
       for blob_ref in blob_refs:
         all_client_path_blob_refs.append((client_path, blob_ref))
+    else:
+      # Make sure empty files (without blobs) are correctly handled.
+      hash_id = rdf_objects.SHA256HashID.FromData(b"")
+      client_path_hash_id[client_path] = hash_id
+      hash_id_blob_refs[hash_id] = []
+      metadatas[hash_id] = FileMetadata(client_path=client_path, blob_refs=[])
 
   client_path_offset = collections.defaultdict(lambda: 0)
   client_path_sha256 = collections.defaultdict(hashlib.sha256)
@@ -263,7 +269,7 @@ def AddFilesWithUnknownHashes(
     blob_id_batch = set(
         blob_ref.blob_id for _, blob_ref in client_path_blob_ref_batch)
     blobs = data_store.BLOBS.ReadAndWaitForBlobs(
-        blob_id_batch, timeout=rdfvalue.DurationSeconds.FromSeconds(30))
+        blob_id_batch, timeout=BLOBS_READ_TIMEOUT)
 
     for client_path, blob_ref in client_path_blob_ref_batch:
       blob = blobs[blob_ref.blob_id]
@@ -274,11 +280,11 @@ def AddFilesWithUnknownHashes(
 
       offset = client_path_offset[client_path]
       if blob_ref.size != len(blob):
-        raise ValueError(
+        raise InvalidBlobSizeError(
             "Got conflicting size information for blob %s: %d vs %d." %
             (blob_ref.blob_id, blob_ref.size, len(blob)))
       if blob_ref.offset != offset:
-        raise ValueError(
+        raise InvalidBlobOffsetError(
             "Got conflicting offset information for blob %s: %d vs %d." %
             (blob_ref.blob_id, blob_ref.offset, offset))
 

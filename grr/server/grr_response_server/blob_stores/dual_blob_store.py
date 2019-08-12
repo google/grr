@@ -9,20 +9,36 @@ import logging
 import threading
 import time
 
+from future.builtins import str
 from future.moves import queue
-from typing import Dict, Iterable, Optional, Text
+from typing import Callable, Dict, Iterable, Optional, Text, TypeVar
 
 from grr_response_core import config
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import blob_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Maximum queue length, where each queue entry can consist of multiple blobs.
 # Thus the number of enqueued blobs can be considerably bigger. This only
 # serves as a basic measure to prevent unbounded memory growth.
-_SECONDARY_WRITE_QUEUE_MAX_LENGTH = 10
+_SECONDARY_WRITE_QUEUE_MAX_LENGTH = 30
+
+
+DUAL_BLOB_STORE_LATENCY = metrics.Event(
+    "dual_blob_store_latency",
+    fields=[("backend_class", str), ("method", str)],
+    bins=[0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50])
+DUAL_BLOB_STORE_SUCCESS_COUNT = metrics.Counter(
+    "dual_blob_store_success_count",
+    fields=[("backend_class", str), ("method", str)])
+DUAL_BLOB_STORE_ERROR_COUNT = metrics.Counter(
+    "dual_blob_store_error_count",
+    fields=[("backend_class", str), ("method", str)])
+DUAL_BLOB_STORE_DISCARD_COUNT = metrics.Counter(
+    "dual_blob_store_discard_count",
+    fields=[("backend_class", str), ("method", str)])
 
 
 def _InstantiateBlobStore(name):
@@ -33,29 +49,36 @@ def _InstantiateBlobStore(name):
   return cls()
 
 
-def _WriteBlobs(bs,
-                blobs, name):
-  """Writes blobs into blob_store and tracks latency and error metrics."""
+I = TypeVar("I")
+O = TypeVar("O")
+
+
+def _MeasureFn(bs, fn, arg):
+  """Runs fn(arg) and tracks latency and error metrics."""
   start_time = time.time()
   cls_name = compatibility.GetName(type(bs))
+  fn_name = compatibility.GetName(fn)
 
   try:
-    bs.WriteBlobs(blobs)
+    result = fn(arg)
   except Exception:  # pylint: disable=broad-except
-    stats_collector_instance.Get().IncrementCounter(
-        "dual_blob_store_error_count",
-        delta=len(blobs),
-        fields=[name, cls_name])
+    DUAL_BLOB_STORE_ERROR_COUNT.Increment(fields=[cls_name, fn_name])
     raise
 
-  stats_collector_instance.Get().RecordEvent(
-      "dual_blob_store_write_latency",
-      time.time() - start_time,
-      fields=[name, cls_name])
-  stats_collector_instance.Get().IncrementCounter(
-      "dual_blob_store_success_count",
-      delta=len(blobs),
-      fields=[name, cls_name])
+  DUAL_BLOB_STORE_LATENCY.RecordEvent(
+      time.time() - start_time, fields=[cls_name, fn_name])
+  DUAL_BLOB_STORE_SUCCESS_COUNT.Increment(fields=[cls_name, fn_name])
+
+  return result
+
+
+def _Enqueue(item_queue, bs, fn, arg):
+  try:
+    item_queue.put_nowait((bs, fn, arg))
+  except queue.Full:
+    DUAL_BLOB_STORE_DISCARD_COUNT.Increment(
+        fields=[compatibility.GetName(type(bs)),
+                compatibility.GetName(fn)])
 
 
 class DualBlobStore(blob_store.BlobStore):
@@ -92,55 +115,63 @@ class DualBlobStore(blob_store.BlobStore):
 
     self._primary = _InstantiateBlobStore(primary)
     self._secondary = _InstantiateBlobStore(secondary)
-    self._queue = queue.Queue(_SECONDARY_WRITE_QUEUE_MAX_LENGTH)
+
+    self._write_queue = queue.Queue(_SECONDARY_WRITE_QUEUE_MAX_LENGTH)
+    self._read_queue = queue.Queue()
 
     # Signal that can be set to False from tests to stop the background
-    # processing thread.
+    # processing threads.
     self._thread_running = True
-    self._thread = threading.Thread(target=self._WriteBlobsIntoSecondary)
-    self._thread.daemon = True
-    self._thread.start()
+    self._threads = []
+
+    self._StartBackgroundThread("DualBlobStore_WriteThread", self._write_queue)
+    self._StartBackgroundThread("DualBlobStore_ReadThread", self._read_queue)
 
   def WriteBlobs(self,
                  blob_id_data_map):
     """Creates or overwrites blobs."""
-    try:
-      self._queue.put_nowait(dict(blob_id_data_map))
-    except queue.Full:
-      stats_collector_instance.Get().IncrementCounter(
-          "dual_blob_store_discard_count",
-          delta=len(blob_id_data_map),
-          fields=["secondary",
-                  compatibility.GetName(type(self._secondary))])
-
-    _WriteBlobs(self._primary, blob_id_data_map, "primary")
+    _Enqueue(self._write_queue, self._secondary, self._secondary.WriteBlobs,
+             dict(blob_id_data_map))
+    _MeasureFn(self._primary, self._primary.WriteBlobs, blob_id_data_map)
 
   def ReadBlobs(self, blob_ids
                ):
     """Reads all blobs, specified by blob_ids, returning their contents."""
-    return self._primary.ReadBlobs(blob_ids)
+    _Enqueue(self._read_queue, self._secondary, self._secondary.ReadBlobs,
+             list(blob_ids))
+    return _MeasureFn(self._primary, self._primary.ReadBlobs, blob_ids)
 
   def ReadBlob(self, blob_id):
     """Reads the blob contents, identified by the given BlobID."""
-    return self._primary.ReadBlob(blob_id)
+    _Enqueue(self._read_queue, self._secondary, self._secondary.ReadBlob,
+             blob_id)
+    return _MeasureFn(self._primary, self._primary.ReadBlob, blob_id)
 
   def CheckBlobExists(self, blob_id):
     """Checks if a blob with a given BlobID exists."""
-    return self._primary.CheckBlobExists(blob_id)
+    _Enqueue(self._read_queue, self._secondary, self._secondary.CheckBlobExists,
+             blob_id)
+    return _MeasureFn(self._primary, self._primary.CheckBlobExists, blob_id)
 
   def CheckBlobsExist(self, blob_ids
                      ):
     """Checks if blobs for the given identifiers already exist."""
-    return self._primary.CheckBlobsExist(blob_ids)
+    _Enqueue(self._read_queue, self._secondary, self._secondary.CheckBlobsExist,
+             list(blob_ids))
+    return _MeasureFn(self._primary, self._primary.CheckBlobsExist, blob_ids)
 
-  def _WriteBlobsIntoSecondary(self):
-    """Loops endlessly, writing queued blobs to the secondary."""
-    while self._thread_running:
-      blobs = self._queue.get()
-      try:
-        _WriteBlobs(self._secondary, blobs, "secondary")
-      except Exception as e:  # pylint: disable=broad-except
-        # Failed writes to secondary are not critical, because primary is read
-        # from.
-        logging.warn(e)
-      self._queue.task_done()
+  def _StartBackgroundThread(self, thread_name, item_queue):
+
+    def _ThreadLoop():
+      while self._thread_running:
+        bs, fn, arg = item_queue.get()
+        try:
+          _MeasureFn(bs, fn, arg)
+        except Exception as e:  # pylint: disable=broad-except
+          logging.exception(e)
+        item_queue.task_done()
+
+    thread = threading.Thread(target=_ThreadLoop, name=thread_name)
+    thread.daemon = True
+    thread.start()
+    self._threads.append(thread)

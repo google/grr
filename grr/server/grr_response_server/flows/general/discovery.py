@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import logging
+
 from future.builtins import str
 from future.utils import iteritems
 
@@ -15,12 +17,12 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_server import artifact
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
-from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -30,6 +32,9 @@ from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.rdfvalues import aff4 as rdf_aff4
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 
 
 class InterrogateArgs(rdf_structs.RDFProtoStruct):
@@ -248,8 +253,10 @@ class Interrogate(flow_base.FlowBase):
           self.client_id)
       if fleetspeak_labels:
         response.labels = fleetspeak_labels
-      elif not response.labels:
-        response.labels = [fleetspeak_connector.unknown_label]
+      else:
+        FLEETSPEAK_UNLABELED_CLIENTS.Increment()
+        logging.warning("Failed to get labels for Fleetspeak client %s.",
+                        self.client_id)
 
     sanitized_labels = []
     for label in response.labels:

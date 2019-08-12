@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import itertools
+
 from absl import app
 from future.builtins import range
 from future.builtins import str
@@ -68,14 +70,13 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     self.assertEqual(self.blob_stream.read(), b"".join(self.blob_data))
 
   def testRaisesWhenTryingToReadTooMuchDataAtOnce(self):
-    with test_lib.ConfigOverrider(
-        {"Server.max_unbound_read_size": self.blob_size}):
+    with test_lib.ConfigOverrider({"Server.max_unbound_read_size": 4}):
       # Recreate to make sure the new config option value is applied.
       self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
 
-      self.blob_stream.read(self.blob_size)
+      self.blob_stream.read(4)
       with self.assertRaises(file_store.OversizedReadError):
-        self.blob_stream.read(self.blob_size + 1)
+        self.blob_stream.read()  # This would implicitly read 6 bytes.
 
   def testWhenReadingWholeFileAndWholeFileSizeIsTooBig(self):
     self.blob_stream.read()
@@ -89,6 +90,12 @@ class BlobStreamTest(test_lib.GRRBaseTest):
       with self.assertRaises(file_store.OversizedReadError):
         self.blob_stream.read()
 
+  def testAllowsReadingAboveLimitWhenSpecifiedManually(self):
+    with test_lib.ConfigOverrider({"Server.max_unbound_read_size": 1}):
+      # Recreate to make sure the new config option value is applied.
+      self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
+      self.blob_stream.read(self.blob_size)
+
 
 class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
   """Tests for AddFileWithUnknownHash."""
@@ -97,7 +104,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     super(AddFileWithUnknownHashTest, self).setUp()
 
     self.blob_size = 10
-    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, "ab")
+    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, "abcd")
     blob_ids = [ref.blob_id for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
@@ -109,6 +116,16 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
                                                 self.blob_refs[:1])
     self.assertEqual(hash_id.AsBytes(), self.blob_refs[0].blob_id.AsBytes())
 
+  @mock.patch.object(file_store, "BLOBS_READ_TIMEOUT",
+                     rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
+  def testRaisesIfOneSingleBlobIsNotFound(self):
+    blob_ref = rdf_objects.BlobReference(
+        offset=0, size=0, blob_id=rdf_objects.BlobID.FromBlobData(b""))
+    with self.assertRaises(file_store.BlobNotFoundError):
+      file_store.AddFileWithUnknownHash(self.client_path, [blob_ref])
+
+  @mock.patch.object(file_store, "BLOBS_READ_TIMEOUT",
+                     rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS))
   def testRaisesIfOneOfTwoBlobsIsNotFound(self):
     blob_ref = rdf_objects.BlobReference(
         offset=0, size=0, blob_id=rdf_objects.BlobID.FromBlobData(b""))
@@ -123,8 +140,8 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
         hash_id.AsBytes(),
         rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
 
-  def testOptimizationForSmallFiles(self):
-    _, long_blob_refs = _GenerateBlobRefs(self.blob_size, "ab")
+  def testFilesWithOneBlobAreStillReadToEnsureBlobExists(self):
+    _, long_blob_refs = _GenerateBlobRefs(self.blob_size, "cd")
     _, short_blob_refs1 = _GenerateBlobRefs(self.blob_size, "a")
     _, short_blob_refs2 = _GenerateBlobRefs(self.blob_size, "b")
 
@@ -132,11 +149,11 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     path2 = db.ClientPath.OS(self.client_id, ["bar"])
     path3 = db.ClientPath.OS(self.client_id, ["baz"])
 
-    # One small file, no need to read blobs.
+    # One small file, blob is still read.
     with mock.patch.object(
         data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs) as p:
       file_store.AddFileWithUnknownHash(path1, short_blob_refs1)
-      p.assert_not_called()
+      p.assert_called_once()
 
     # Same for multiple small files.
     with mock.patch.object(
@@ -145,10 +162,10 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
           path1: short_blob_refs1,
           path2: short_blob_refs2
       })
-      p.assert_not_called()
+      p.assert_called_once()
 
-    # One large file and two small ones result in a single read for the two
-    # blobs of the large file only.
+    # One large file and two small ones result in a single read for the
+    # all three blobs.
     with mock.patch.object(
         data_store.BLOBS, "ReadBlobs", wraps=data_store.BLOBS.ReadBlobs) as p:
       file_store.AddFilesWithUnknownHashes({
@@ -159,8 +176,10 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
       p.assert_called_once()
       self.assertLen(p.call_args[POSITIONAL_ARGS], 1)
       self.assertEmpty(p.call_args[KEYWORD_ARGS])
-      self.assertCountEqual(p.call_args[0][0],
-                            [r.blob_id for r in long_blob_refs])
+      self.assertCountEqual(p.call_args[0][0], [
+          r.blob_id for r in itertools.chain(short_blob_refs1, short_blob_refs2,
+                                             long_blob_refs)
+      ])
 
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testAddsFileToExternalFileStore(self, add_file_mock):

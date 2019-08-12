@@ -21,7 +21,7 @@ from future.utils import with_metaclass
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 
 SYSTEM_USERS = frozenset([
@@ -32,6 +32,8 @@ SYSTEM_USERS = frozenset([
 
 _SYSTEM_USERS_LOWERCASE = frozenset(
     username.lower() for username in SYSTEM_USERS)
+
+GRR_EXPIRED_TOKENS = metrics.Counter("grr_expired_tokens")
 
 
 class Error(Exception):
@@ -172,7 +174,7 @@ class ACLToken(rdf_structs.RDFProtoStruct):
 
   def CheckExpiry(self):
     if self.expiry and time.time() > self.expiry:
-      stats_collector_instance.Get().IncrementCounter("grr_expired_tokens")
+      GRR_EXPIRED_TOKENS.Increment()
       raise ExpiryError("Token expired.")
 
   def __str__(self):

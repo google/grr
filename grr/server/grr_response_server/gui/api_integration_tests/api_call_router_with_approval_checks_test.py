@@ -12,7 +12,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -20,7 +20,8 @@ from grr.test_lib import test_lib
 
 
 class ApiCallRouterWithApprovalChecksE2ETest(
-    hunt_test_lib.StandardHuntTestMixin, api_e2e_test_lib.ApiE2ETest):
+    hunt_test_lib.StandardHuntTestMixin,
+    api_integration_test_lib.ApiIntegrationTest):
 
   def setUp(self):
     super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
@@ -118,9 +119,9 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     self.CreateHuntApproval(hunt_id, self.token, admin=False)
 
-    self.assertRaisesRegexp(grr_api_errors.AccessForbiddenError,
-                            "Need at least 1 admin approver for access",
-                            self.api.Hunt(hunt_id).Start)
+    self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
+                           "Need at least 1 admin approver for access",
+                           self.api.Hunt(hunt_id).Start)
 
     self.CreateHuntApproval(hunt_id, self.token, admin=True)
     self.api.Hunt(hunt_id).Start()

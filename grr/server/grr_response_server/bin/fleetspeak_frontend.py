@@ -20,7 +20,6 @@ from grr_response_core import config
 from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.stats import stats_utils
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
@@ -45,8 +44,8 @@ class GRRFSServer(object):
         max_retransmission_time=config
         .CONFIG["Frontend.max_retransmission_time"])
 
-  @stats_utils.Counted("frontend_request_count", fields=["fleetspeak"])
-  @stats_utils.Timed("frontend_request_latency", fields=["fleetspeak"])
+  @frontend_lib.FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak"])
+  @frontend_lib.FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak"])
   def Process(self, fs_msg, context):
     """Processes a single fleetspeak message."""
     try:

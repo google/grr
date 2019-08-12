@@ -770,11 +770,28 @@ class DatabaseTestPathsMixin(object):
 
     self.assertEmpty(results)
 
+  def testListDescendantPathInfosNonexistentDirectory(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    with self.assertRaises(db.UnknownPathError):
+      self.db.ListDescendantPathInfos(
+          client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+
+  def testListDescendantPathInfosNotDirectory(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    path_info = rdf_objects.PathInfo.OS(components=("foo",), directory=False)
+    self.db.WritePathInfos(client_id, [path_info])
+
+    with self.assertRaises(db.NotDirectoryPathError):
+      self.db.ListDescendantPathInfos(
+          client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
+
   def testListDescendantPathInfosEmptyResult(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    self.db.WritePathInfos(client_id,
-                           [rdf_objects.PathInfo.OS(components=["foo"])])
+    path_info = rdf_objects.PathInfo.OS(components=("foo",), directory=True)
+    self.db.WritePathInfos(client_id, [path_info])
 
     results = self.db.ListDescendantPathInfos(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
@@ -1540,6 +1557,36 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(pi[1].components, ("foo",))
     self.assertEqual(pi[1].stat_entry.st_mode, 1338)
     self.assertBetween(pi[1].timestamp, timestamp_2, timestamp_3)
+
+  def testReadPathInfoHistoryTimestamp(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    path_info = rdf_objects.PathInfo.OS(components=["foo"])
+
+    path_info.stat_entry.st_size = 0
+    self.db.WritePathInfos(client_id, [path_info])
+
+    path_info.stat_entry.st_size = 1
+    self.db.WritePathInfos(client_id, [path_info])
+
+    path_info.stat_entry.st_size = 2
+    self.db.WritePathInfos(client_id, [path_info])
+
+    cutoff = rdfvalue.RDFDatetime.Now()
+
+    path_info.stat_entry.st_size = 1337
+    self.db.WritePathInfos(client_id, [path_info])
+
+    path_infos = self.db.ReadPathInfoHistory(
+        client_id=client_id,
+        path_type=rdf_objects.PathInfo.PathType.OS,
+        components=("foo",),
+        cutoff=cutoff)
+
+    self.assertLen(path_infos, 3)
+    self.assertEqual(path_infos[0].stat_entry.st_size, 0)
+    self.assertEqual(path_infos[1].stat_entry.st_size, 1)
+    self.assertEqual(path_infos[2].stat_entry.st_size, 2)
 
   def _WriteBlobReferences(self):
     blob_ref_1 = rdf_objects.BlobReference(

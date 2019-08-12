@@ -10,12 +10,21 @@ import functools
 import logging
 import time
 
+from future.builtins import str
 from typing import Text
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server.databases import db
+
+
+DB_REQUEST_LATENCY = metrics.Event(
+    "db_request_latency",
+    fields=[("call", str)],
+    bins=[0.05 * 1.2**x for x in range(30)])  # 50ms to ~10 secs
+DB_REQUEST_ERRORS = metrics.Counter(
+    "db_request_errors", fields=[("call", str), ("type", str)])
 
 
 class Error(Exception):
@@ -44,20 +53,17 @@ def CallLoggedAndAccounted(f):
       result = f(*args, **kwargs)
       latency = time.time() - start_time
 
-      stats_collector_instance.Get().RecordEvent(
-          "db_request_latency", latency, fields=[f.__name__])
+      DB_REQUEST_LATENCY.RecordEvent(latency, fields=[f.__name__])
       logging.debug("DB request %s SUCCESS (%.3fs)", f.__name__, latency)
 
       return result
     except db.Error as e:
-      stats_collector_instance.Get().IncrementCounter(
-          "db_request_errors", fields=[f.__name__, "grr"])
+      DB_REQUEST_ERRORS.Increment(fields=[f.__name__, "grr"])
       logging.debug("DB request %s GRR ERROR: %s", f.__name__,
                     utils.SmartUnicode(e))
       raise
     except Exception as e:
-      stats_collector_instance.Get().IncrementCounter(
-          "db_request_errors", fields=[f.__name__, "db"])
+      DB_REQUEST_ERRORS.Increment(fields=[f.__name__, "db"])
       logging.debug("DB request %s INTERNAL DB ERROR : %s", f.__name__,
                     utils.SmartUnicode(e))
       raise

@@ -418,7 +418,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       ])
 
   def testHashAction(self):
-    paths = [os.path.join(self.base_path, "hello.exe")]
+    paths = [os.path.join(self.base_path, "win_hello.exe")]
 
     hash_action = rdf_file_finder.FileFinderAction.Hash()
     results = self._RunFileFinder(paths, hash_action)
@@ -480,7 +480,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     action = rdf_file_finder.FileFinderAction.Download()
     args = rdf_file_finder.FileFinderArgs(
         action=action,
-        paths=[os.path.join(self.base_path, "hello.exe")],
+        paths=[os.path.join(self.base_path, "win_hello.exe")],
         process_non_regular_files=True)
 
     transfer_store = MockTransferStore()
@@ -489,7 +489,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     results = executor.Execute(client_file_finder.FileFinderOS, args)
 
     self.assertLen(results, 1)
-    with open(os.path.join(self.base_path, "hello.exe"), "rb") as filedesc:
+    with open(os.path.join(self.base_path, "win_hello.exe"), "rb") as filedesc:
       actual = transfer_store.Retrieve(results[0].transferred_file)
       expected = filedesc.read()
       self.assertEqual(actual, expected)
@@ -499,7 +499,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         max_size=0, oversized_file_policy="SKIP")
     args = rdf_file_finder.FileFinderArgs(
         action=action,
-        paths=[os.path.join(self.base_path, "hello.exe")],
+        paths=[os.path.join(self.base_path, "win_hello.exe")],
         process_non_regular_files=True)
 
     transfer_store = MockTransferStore()
@@ -517,7 +517,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         max_size=42, oversized_file_policy="DOWNLOAD_TRUNCATED")
     args = rdf_file_finder.FileFinderArgs(
         action=action,
-        paths=[os.path.join(self.base_path, "hello.exe")],
+        paths=[os.path.join(self.base_path, "win_hello.exe")],
         process_non_regular_files=True)
 
     transfer_store = MockTransferStore()
@@ -526,7 +526,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     results = executor.Execute(client_file_finder.FileFinderOS, args)
 
     self.assertLen(results, 1)
-    with open(os.path.join(self.base_path, "hello.exe"), "rb") as filedesc:
+    with open(os.path.join(self.base_path, "win_hello.exe"), "rb") as filedesc:
       actual = transfer_store.Retrieve(results[0].transferred_file)
       expected = filedesc.read(42)
       self.assertEqual(actual, expected)
@@ -536,7 +536,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
         max_size=42, oversized_file_policy="HASH_TRUNCATED")
     args = rdf_file_finder.FileFinderArgs(
         action=action,
-        paths=[os.path.join(self.base_path, "hello.exe")],
+        paths=[os.path.join(self.base_path, "win_hello.exe")],
         process_non_regular_files=True)
 
     transfer_store = MockTransferStore()
@@ -659,8 +659,8 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     paths = [lnk]
     link_size = os.lstat(lnk).st_size
     target_size = os.stat(lnk).st_size
-    for expected_size, resolve_links in [(link_size, False), (target_size,
-                                                              True)]:
+    for expected_size, resolve_links in [(link_size, False),
+                                         (target_size, True)]:
       stat_action = rdf_file_finder.FileFinderAction.Stat(
           resolve_links=resolve_links)
       results = self._RunFileFinder(paths, stat_action)

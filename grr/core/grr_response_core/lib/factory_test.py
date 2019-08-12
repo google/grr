@@ -33,13 +33,13 @@ class FactoryTest(absltest.TestCase):
     obj_factory.Register("foo", object)
     obj_factory.Register("bar", object)
 
-    with self.assertRaisesRegexp(ValueError, "foo"):
+    with self.assertRaisesRegex(ValueError, "foo"):
       obj_factory.Register("foo", object)
 
   def testUnregisterThrowsForUnknown(self):
     obj_factory = factory.Factory(object)
 
-    with self.assertRaisesRegexp(ValueError, "foo"):
+    with self.assertRaisesRegex(ValueError, "foo"):
       obj_factory.Unregister("foo")
 
   def testCreateString(self):
@@ -70,7 +70,7 @@ class FactoryTest(absltest.TestCase):
   def testCreateUnregisteredThrows(self):
     int_factory = factory.Factory(int)
 
-    with self.assertRaisesRegexp(ValueError, "foo"):
+    with self.assertRaisesRegex(ValueError, "foo"):
       int_factory.Create("foo")
 
   def testCreateWrongTypeThrows(self):

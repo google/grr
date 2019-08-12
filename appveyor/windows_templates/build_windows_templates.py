@@ -58,11 +58,6 @@ parser.add_argument(
     help="Path to the 64 bit Python installation.")
 
 parser.add_argument(
-    "--protoc",
-    default=r"C:\grr_deps\protoc\bin\protoc.exe",
-    help="Path to the protoc.exe binary.")
-
-parser.add_argument(
     "--expect_service_running",
     dest="expect_service_running",
     action="store_true",
@@ -169,7 +164,6 @@ class WindowsTemplateBuilder(object):
     if args.build_32:
       subprocess.check_call([self.virtualenv_python32] + cmd +
                             ["--upgrade", "pip>=8.1.1"])
-    os.environ["PROTOC"] = args.protoc
 
   def GitCheckoutGRR(self):
     os.chdir(args.build_dir)

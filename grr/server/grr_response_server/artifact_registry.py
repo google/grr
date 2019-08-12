@@ -335,10 +335,10 @@ class ArtifactRegistry(object):
         for new artifacts.
 
     Returns:
-      set of artifacts matching filter criteria
+      list of artifacts matching filter criteria
     """
     self._CheckDirty(reload_datastore_artifacts=reload_datastore_artifacts)
-    results = set()
+    results = {}
     for artifact in itervalues(self._artifacts):
 
       # artifact.supported_os = [] matches all OSes
@@ -355,15 +355,15 @@ class ArtifactRegistry(object):
         continue
 
       if not provides:
-        results.add(artifact)
+        results[artifact.name] = artifact
       else:
         # This needs to remain the last test, if it matches the result is added
         for provide_string in artifact.provides:
           if provide_string in provides:
-            results.add(artifact)
+            results[artifact.name] = artifact
             break
 
-    return results
+    return list(results.values())
 
   @utils.Synchronized
   def GetRegisteredArtifactNames(self):
@@ -453,12 +453,12 @@ class ArtifactRegistry(object):
       # Sort so its easier to split these if necessary.
       yaml_list = []
       for os_name in rdf_artifacts.Artifact.SUPPORTED_OS_LIST:
-        done_set = set(a for a in artifact_list if a.supported_os == [os_name])
+        done = {a.name: a for a in artifact_list if a.supported_os == [os_name]}
         # Separate into knowledge_base and non-kb for easier sorting.
-        done_set = sorted(done_set, key=lambda x: x.name)
-        yaml_list.extend(x.ToYaml() for x in done_set if x.provides)
-        yaml_list.extend(x.ToYaml() for x in done_set if not x.provides)
-        artifact_list = artifact_list.difference(done_set)
+        done_sorted = list(sorted(done.values(), key=lambda x: x.name))
+        yaml_list.extend(x.ToYaml() for x in done_sorted if x.provides)
+        yaml_list.extend(x.ToYaml() for x in done_sorted if not x.provides)
+        artifact_list = [a for a in artifact_list if a.name not in done]
       yaml_list.extend(x.ToYaml() for x in artifact_list)  # The rest.
     else:
       yaml_list = [x.ToYaml() for x in artifact_list]
@@ -488,12 +488,10 @@ def DeleteArtifactsFromDatastore(artifact_names, reload_artifacts=True):
         "Artifact(s) %s depend(s) on one of the artifacts to delete." %
         (",".join(deps)))
 
-  filtered_artifacts, found_artifact_names = set(), set()
+  found_artifact_names = set()
   for artifact_value in artifacts_list:
     if artifact_value.name in to_delete:
       found_artifact_names.add(artifact_value.name)
-    else:
-      filtered_artifacts.add(artifact_value)
 
   if len(found_artifact_names) != len(to_delete):
     not_found = to_delete - found_artifact_names
@@ -648,18 +646,18 @@ def GetArtifactDependencies(rdf_artifact, recursive=False, depth=1):
 def GetArtifactsDependenciesClosure(name_list, os_name=None):
   """For all the artifacts in the list returns them and their dependencies."""
 
-  artifacts = set(REGISTRY.GetArtifacts(os_name=os_name, name_list=name_list))
+  artifacts = {
+      a.name: a
+      for a in REGISTRY.GetArtifacts(os_name=os_name, name_list=name_list)
+  }
 
-  dependencies = set()
-  for art in artifacts:
-    dependencies.update(GetArtifactDependencies(art, recursive=True))
-  if dependencies:
-    artifacts.update(
-        set(
-            REGISTRY.GetArtifacts(
-                os_name=os_name, name_list=list(dependencies))))
-
-  return artifacts
+  dep_names = set()
+  for art in artifacts.values():
+    dep_names.update(GetArtifactDependencies(art, recursive=True))
+  if dep_names:
+    for dep in REGISTRY.GetArtifacts(os_name=os_name, name_list=dep_names):
+      artifacts[dep.name] = dep
+  return list(artifacts.values())
 
 
 def GetArtifactPathDependencies(rdf_artifact):

@@ -137,7 +137,7 @@ class FakeTimelineTest(absltest.TestCase):
           "7 seconds have passed",
       ])
 
-      with self.assertRaisesRegexp(Exception, "bar"):
+      with self.assertRaisesRegex(Exception, "bar"):
         quux_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
 
   def testNoRuns(self):
@@ -170,7 +170,7 @@ class FakeTimelineTest(absltest.TestCase):
     weez_timeline = test_lib.FakeTimeline(
         threading.Thread(name="weez-thread", target=lambda: None))
 
-    with self.assertRaisesRegexp(AssertionError, "called without context"):
+    with self.assertRaisesRegex(AssertionError, "called without context"):
       weez_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
 
   def testReuse(self):
@@ -186,7 +186,7 @@ class FakeTimelineTest(absltest.TestCase):
 
     self.assertEqual(log, ["blargh"])
 
-    with self.assertRaisesRegexp(AssertionError, "cannot be reused"):
+    with self.assertRaisesRegex(AssertionError, "cannot be reused"):
       with blargh_timeline:
         blargh_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
 

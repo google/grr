@@ -144,7 +144,7 @@ def thread_leak_check(request):
 
       # All these threads are constructed in setUpClass and destroyed in
       # tearDownClass so they are not real leaks.
-      "api_e2e_server",
+      "api_integration_server",
       "GRRHTTPServerTestThread",
       "SharedMemDBTestThread",
 

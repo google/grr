@@ -552,26 +552,28 @@ class StatEntryToExportedFileConverter(ExportConverter):
     for fp_batch in collection.Batch(filtered_pairs, self._BATCH_SIZE):
 
       if self.options.export_files_contents:
-        pathspec_by_client_path = {}
+        client_paths = set()
+
         for metadata, stat_entry in fp_batch:
           # TODO(user): Deprecate client_urn in ExportedMetadata in favor of
           # client_id (to be added).
-          client_path = db.ClientPath.FromPathSpec(
-              metadata.client_urn.Basename(), stat_entry.pathspec)
-          pathspec_by_client_path[client_path] = stat_entry.pathspec
+          client_paths.add(
+              db.ClientPath.FromPathSpec(metadata.client_urn.Basename(),
+                                         stat_entry.pathspec))
 
-        data_by_pathspec = {}
+        data_by_path = {}
         for chunk in file_store.StreamFilesChunks(
-            pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE):
-          pathspec = pathspec_by_client_path[chunk.client_path]
-          data_by_pathspec.setdefault(pathspec, []).append(chunk.data)
+            client_paths, max_size=self.MAX_CONTENT_SIZE):
+          data_by_path.setdefault(chunk.client_path, []).append(chunk.data)
 
       for metadata, stat_entry in fp_batch:
         result = self._CreateExportedFile(metadata, stat_entry)
+        clientpath = db.ClientPath.FromPathSpec(metadata.client_urn.Basename(),
+                                                stat_entry.pathspec)
 
         if self.options.export_files_contents:
           try:
-            data = data_by_pathspec[stat_entry.pathspec]
+            data = data_by_path[clientpath]
             result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
             result.content_sha256 = hashlib.sha256(result.content).hexdigest()
           except KeyError:
@@ -866,7 +868,8 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
         for chunk in file_store.StreamFilesChunks(
             pathspec_by_client_path, max_size=self.MAX_CONTENT_SIZE):
           pathspec = pathspec_by_client_path[chunk.client_path]
-          data_by_pathspec.setdefault(pathspec, []).append(chunk.data)
+          data_by_pathspec.setdefault(pathspec.CollapsePath(),
+                                      []).append(chunk.data)
 
       for metadata, ff_result in fp_batch:
         result = self._CreateExportedFile(metadata, ff_result.stat_entry)
@@ -878,7 +881,8 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
         if self.options.export_files_contents:
           try:
-            data = data_by_pathspec[ff_result.stat_entry.pathspec]
+            data = data_by_pathspec[
+                ff_result.stat_entry.pathspec.CollapsePath()]
             result.content = b"".join(data)[:self.MAX_CONTENT_SIZE]
             result.content_sha256 = hashlib.sha256(result.content).hexdigest()
           except KeyError:

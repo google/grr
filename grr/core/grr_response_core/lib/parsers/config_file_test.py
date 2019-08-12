@@ -211,7 +211,7 @@ class MountCmdTests(test_lib.GRRBaseTest):
     /dev/sr0 on /media/USB Drive type vfat (ro,nosuid,nodev)
     """
     parser = config_file.MountCmdParser()
-    results = list(parser.Parse("/bin/mount", [], test_data, "", 0, 5, None))
+    results = list(parser.Parse("/bin/mount", [], test_data, "", 0, None))
     self.assertEqual("rootfs", results[0].device)
     self.assertEqual("/", results[0].mount_point)
     self.assertEqual("rootfs", results[0].type)

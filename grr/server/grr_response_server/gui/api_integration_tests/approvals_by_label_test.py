@@ -14,13 +14,13 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui import webauth
 from grr.test_lib import test_lib
 
 
-class ApprovalByLabelE2ETest(api_e2e_test_lib.ApiE2ETest):
+class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
 
   def TouchFile(self, client_id, path):
     gui_test_lib.CreateFileVersion(client_id=client_id, path=path)

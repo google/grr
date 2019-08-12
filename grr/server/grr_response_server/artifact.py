@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import contextlib
 import logging
 
 from future.builtins import str
@@ -11,6 +12,7 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -400,17 +402,26 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   # We have some processors to run.
   knowledge_base = flow_obj.state.knowledge_base
 
+  @contextlib.contextmanager
+  def ParseErrorHandler():
+    try:
+      yield
+    except parsers.ParseError as error:
+      flow_obj.Log("Error encountered when parsing responses: %s", error)
+
   parsed_responses = []
 
   if parser_factory.HasSingleResponseParsers():
     for response in responses:
       for parser in parser_factory.SingleResponseParsers():
-        parsed_responses.extend(
-            parser.ParseResponse(knowledge_base, response,
-                                 flow_obj.args.path_type))
+        with ParseErrorHandler():
+          parsed_responses.extend(
+              parser.ParseResponse(knowledge_base, response,
+                                   flow_obj.args.path_type))
 
   for parser in parser_factory.MultiResponseParsers():
-    parsed_responses.extend(parser.ParseResponses(knowledge_base, responses))
+    with ParseErrorHandler():
+      parsed_responses.extend(parser.ParseResponses(knowledge_base, responses))
 
   has_single_file_parsers = parser_factory.HasSingleFileParsers()
   has_multi_file_parsers = parser_factory.HasMultiFileParsers()
@@ -429,13 +440,15 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   if has_single_file_parsers:
     for response, filedesc in zip(responses, filedescs):
       for parser in parser_factory.SingleFileParsers():
-        parsed_responses.extend(
-            parser.ParseFile(knowledge_base, response.pathspec, filedesc))
+        with ParseErrorHandler():
+          parsed_responses.extend(
+              parser.ParseFile(knowledge_base, response.pathspec, filedesc))
 
   if has_multi_file_parsers:
     for parser in parser_factory.MultiFileParsers():
-      parsed_responses.extend(
-          parser.ParseFiles(knowledge_base, pathspecs, filedescs))
+      with ParseErrorHandler():
+        parsed_responses.extend(
+            parser.ParseFiles(knowledge_base, pathspecs, filedescs))
 
   return parsed_responses or responses
 

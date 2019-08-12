@@ -172,8 +172,8 @@ class Process(object):
         address.value += mapsize.value
         continue
 
-      writable = p & VM_PROT_WRITE
-      if skip_readonly_regions and not writable:
+      is_writable = p & VM_PROT_WRITE
+      if skip_readonly_regions and not is_writable:
         address.value += mapsize.value
         continue
 
@@ -181,10 +181,12 @@ class Process(object):
         depth += 1
         depth_end_addresses[depth] = address.value + mapsize.value
       else:
-        yield rdf_memory.YaraProcessMemoryRegion(
+        yield rdf_memory.ProcessMemoryRegion(
             start=address.value,
             size=mapsize.value,
-            is_executable=is_executable)
+            is_readable=True,
+            is_executable=is_executable,
+            is_writable=is_writable)
         address.value += mapsize.value
 
   def ReadBytes(self, address, num_bytes):

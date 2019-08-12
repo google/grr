@@ -60,13 +60,13 @@ class RunningStatsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     stats.RegisterValue(10.0)
     stats.RegisterValue(11.0)
 
-    self.assertAlmostEquals(stats.histogram.bins[0].range_max_value, 2.0)
+    self.assertAlmostEqual(stats.histogram.bins[0].range_max_value, 2.0)
     self.assertEqual(stats.histogram.bins[0].num, 2)
 
-    self.assertAlmostEquals(stats.histogram.bins[1].range_max_value, 4.0)
+    self.assertAlmostEqual(stats.histogram.bins[1].range_max_value, 4.0)
     self.assertEqual(stats.histogram.bins[1].num, 3)
 
-    self.assertAlmostEquals(stats.histogram.bins[2].range_max_value, 10.0)
+    self.assertAlmostEqual(stats.histogram.bins[2].range_max_value, 10.0)
     self.assertEqual(stats.histogram.bins[2].num, 4)
 
 

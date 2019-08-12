@@ -35,6 +35,7 @@ from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
 from grr_api_client import errors as api_errors
+from grr_api_client import root as api_root
 from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.lib.util import compatibility
@@ -42,7 +43,6 @@ from grr_response_server import access_control
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
 from grr_response_server.bin import config_updater_keys_util
-from grr_response_server.gui.api_plugins import user as api_user
 
 try:
   # Importing readline enables the raw_input calls to have history etc.
@@ -730,9 +730,8 @@ def GetAllUserSummaries():
 
 def _Summarize(user_info):
   """Returns a string with summary info for a user."""
-  return "Username: %s\nIs Admin: %s" % (
-      user_info.username,
-      user_info.user_type == api_user.ApiGrrUser.UserType.USER_TYPE_ADMIN)
+  return "Username: %s\nIs Admin: %s" % (user_info.username, user_info.user_type
+                                         == api_root.GrrUser.USER_TYPE_ADMIN)
 
 
 def DeleteUser(username):
@@ -754,9 +753,9 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
     is_admin: Indicates whether the user should have admin privileges.
   """
   if is_admin:
-    user_type = api_user.ApiGrrUser.UserType.USER_TYPE_ADMIN
+    user_type = api_root.GrrUser.USER_TYPE_ADMIN
   else:
-    user_type = api_user.ApiGrrUser.UserType.USER_TYPE_STANDARD
+    user_type = api_root.GrrUser.USER_TYPE_STANDARD
   if password is None:
     # TODO
     # pytype: disable=wrong-arg-types

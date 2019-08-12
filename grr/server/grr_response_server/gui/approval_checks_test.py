@@ -53,7 +53,7 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
   def testRaisesWhenNoGrants(self):
     approval_request = self._CreateRequest(grants=[])
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         access_control.UnauthorizedAccess,
         "Need at least 2 additional approvers for access"):
       approval_checks.CheckApprovalRequest(approval_request)
@@ -62,7 +62,7 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
     approval_request = self._CreateRequest(
         grants=[rdf_objects.ApprovalGrant(grantor_username=u"grantor")])
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         access_control.UnauthorizedAccess,
         "Need at least 1 additional approver for access"):
       approval_checks.CheckApprovalRequest(approval_request)
@@ -76,8 +76,8 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
             rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
         ])
 
-    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
-                                 "Approval request is expired"):
+    with self.assertRaisesRegex(access_control.UnauthorizedAccess,
+                                "Approval request is expired"):
       approval_checks.CheckApprovalRequest(approval_request)
 
   def testReturnsIfApprovalIsNotExpiredAndHasTwoGrants(self):
@@ -141,8 +141,8 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
     error = access_control.UnauthorizedAccess("some error")
     mock_mgr.CheckApproversForLabel.side_effect = error
 
-    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
-                                 "some error"):
+    with self.assertRaisesRegex(access_control.UnauthorizedAccess,
+                                "some error"):
       approval_checks.CheckApprovalRequest(approval_request)
 
 
@@ -168,7 +168,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
   def testRaisesWhenNoGrants(self):
     approval_request = self._CreateRequest(grants=[])
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         access_control.UnauthorizedAccess,
         "Need at least 2 additional approvers for access"):
       approval_checks.CheckApprovalRequest(approval_request)
@@ -177,7 +177,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
     approval_request = self._CreateRequest(
         grants=[rdf_objects.ApprovalGrant(grantor_username=u"grantor1")])
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         access_control.UnauthorizedAccess,
         "Need at least 1 additional approver for access"):
       approval_checks.CheckApprovalRequest(approval_request)
@@ -188,8 +188,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
         rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
     ])
 
-    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
-                                 "Need at least 1 admin approver for access"):
+    with self.assertRaisesRegex(access_control.UnauthorizedAccess,
+                                "Need at least 1 admin approver for access"):
       approval_checks.CheckApprovalRequest(approval_request)
 
   def testRaisesIfApprovalExpired(self):
@@ -204,8 +204,8 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
             rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
         ])
 
-    with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
-                                 "Approval request is expired"):
+    with self.assertRaisesRegex(access_control.UnauthorizedAccess,
+                                "Approval request is expired"):
       approval_checks.CheckApprovalRequest(approval_request)
 
   def testReturnsIfApprovalIsNotExpiredAndHasTwoGrantsIncludingAdmin(self):

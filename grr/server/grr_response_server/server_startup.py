@@ -12,11 +12,11 @@ import prometheus_client
 
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import communicator
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 from grr_response_core.lib.local import plugins  # pylint: disable=unused-import
 from grr_response_core.lib.parsers import all as all_parsers
+from grr_response_core.stats import metrics
 from grr_response_core.stats import stats_collector_instance
 
 from grr_response_server import artifact
@@ -26,7 +26,6 @@ from grr_response_server import email_alerts
 from grr_response_server import ip_resolver
 from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
-from grr_response_server import server_metrics
 from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
@@ -76,8 +75,7 @@ def Init():
     syslog_logger.exception("Died during config initialization")
     raise
 
-  metric_metadata = server_metrics.GetMetadata()
-  metric_metadata.extend(communicator.GetMetricMetadata())
+  metric_metadata = metrics.FinalizeMetricRegistration()
 
   stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
       metric_metadata, registry=prometheus_client.REGISTRY)

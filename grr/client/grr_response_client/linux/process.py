@@ -109,6 +109,7 @@ class Process(object):
         region_protec = m.group(3)
         inode = int(m.group(6))
 
+        is_writable = "w" in region_protec
         is_executable = "x" in region_protec
 
         if "r" in region_protec:
@@ -118,11 +119,15 @@ class Process(object):
             continue
           if skip_executable_regions and is_executable:
             continue
-          if skip_readonly_regions and "w" not in region_protec:
+          if skip_readonly_regions and not is_writable:
             continue
 
-          yield rdf_memory.YaraProcessMemoryRegion(
-              start=start, size=end - start, is_executable=is_executable)
+          yield rdf_memory.ProcessMemoryRegion(
+              start=start,
+              size=end - start,
+              is_readable=True,
+              is_writable=is_writable,
+              is_executable=is_executable)
 
   def ReadBytes(self, address, num_bytes):
     lseek64(self.mem_file, address, os.SEEK_SET)

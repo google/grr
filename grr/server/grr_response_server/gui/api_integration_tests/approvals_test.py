@@ -12,12 +12,12 @@ from absl import app
 from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiClientLibApprovalsTest(api_e2e_test_lib.ApiE2ETest,
+class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):

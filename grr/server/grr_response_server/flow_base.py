@@ -15,7 +15,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -27,6 +27,16 @@ from grr_response_server import hunt
 from grr_response_server import notification as notification_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+FLOW_STARTS = metrics.Counter("flow_starts", fields=[("flow", str)])
+FLOW_ERRORS = metrics.Counter("flow_errors", fields=[("flow", str)])
+FLOW_COMPLETIONS = metrics.Counter("flow_completions", fields=[("flow", str)])
+GRR_WORKER_STATES_RUN = metrics.Counter("grr_worker_states_run")
+HUNT_OUTPUT_PLUGIN_ERRORS = metrics.Counter(
+    "hunt_output_plugin_errors", fields=[("plugin", str)])
+HUNT_RESULTS_RAN_THROUGH_PLUGIN = metrics.Counter(
+    "hunt_results_ran_through_plugin", fields=[("plugin", str)])
 
 
 class Error(Exception):
@@ -445,16 +455,25 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           "Network bytes limit exceeded {} {}.".format(
               self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
-  def Error(self, error_message=None, backtrace=None, status=None):
+  def Error(self,
+            error_message=None,
+            backtrace=None,
+            status=None,
+            exception_context=False):
     """Terminates this flow with an error."""
-    stats_collector_instance.Get().IncrementCounter(
-        "flow_errors", fields=[compatibility.GetName(self.__class__)])
+    FLOW_ERRORS.Increment(fields=[compatibility.GetName(self.__class__)])
 
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
 
-    logging.error("Error in flow %s on %s: %s, %s", flow_id, client_id,
-                  error_message, backtrace)
+    if exception_context:
+      # Have the log library fetch the backtrace from callers if we are
+      # handling an exception.
+      logging.exception("Error in flow %s on %s: %s:", flow_id, client_id,
+                        error_message)
+    else:
+      logging.error("Error in flow %s on %s: %s, %s", flow_id, client_id,
+                    error_message, backtrace)
 
     if self.rdf_flow.parent_flow_id or self.rdf_flow.parent_hunt_id:
       status_msg = rdf_flow_objects.FlowStatus(
@@ -529,8 +548,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   def MarkDone(self, status=None):
     """Marks this flow as done."""
-    stats_collector_instance.Get().IncrementCounter(
-        "flow_completions", fields=[compatibility.GetName(self.__class__)])
+    FLOW_COMPLETIONS.Increment(fields=[compatibility.GetName(self.__class__)])
 
     # Notify our parent flow or hunt that we are done (if there's a parent flow
     # or hunt).
@@ -613,11 +631,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       if responses.status is not None:
         self.SaveResourceUsage(responses.status)
 
-      stats_collector_instance.Get().IncrementCounter("grr_worker_states_run")
+      GRR_WORKER_STATES_RUN.Increment()
 
       if method_name == "Start":
-        stats_collector_instance.Get().IncrementCounter(
-            "flow_starts", fields=[self.rdf_flow.flow_class_name])
+        FLOW_STARTS.Increment(fields=[self.rdf_flow.flow_class_name])
         method()
       else:
         method(responses)
@@ -631,8 +648,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         self.replies_to_process = []
 
     except flow.FlowResourcesExceededError as e:
-      stats_collector_instance.Get().IncrementCounter(
-          "flow_errors", fields=[self.rdf_flow.flow_class_name])
+      FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
       logging.info("Flow %s on %s exceeded resource limits: %s.",
                    self.rdf_flow.flow_id, client_id, str(e))
       self.Error(error_message=str(e), backtrace=traceback.format_exc())
@@ -646,12 +662,12 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       if compatibility.PY2:
         msg = msg.decode("utf-8", "replace")
 
-      stats_collector_instance.Get().IncrementCounter(
-          "flow_errors", fields=[self.rdf_flow.flow_class_name])
-      logging.exception("Flow %s on %s raised %s.", self.rdf_flow.flow_id,
-                        client_id, msg)
+      FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
 
-      self.Error(error_message=msg, backtrace=traceback.format_exc())
+      self.Error(
+          error_message=msg,
+          backtrace=traceback.format_exc(),
+          exception_context=True)
 
   def ProcessAllReadyRequests(self):
     """Processes all requests that are due to run.
@@ -778,13 +794,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     for plugin_def, created_plugin in zip(hunt_obj.output_plugins,
                                           created_plugins):
       if created_plugin is not None:
-        stats_collector_instance.Get().IncrementCounter(
-            "hunt_results_ran_through_plugin",
-            delta=len(replies),
-            fields=[plugin_def.plugin_name])
+        HUNT_RESULTS_RAN_THROUGH_PLUGIN.Increment(
+            len(replies), fields=[plugin_def.plugin_name])
       else:
-        stats_collector_instance.Get().IncrementCounter(
-            "hunt_output_plugin_errors", fields=[plugin_def.plugin_name])
+        HUNT_OUTPUT_PLUGIN_ERRORS.Increment(fields=[plugin_def.plugin_name])
 
   def _ProcessRepliesWithFlowOutputPlugins(self, replies):
     """Processes replies with output plugins."""

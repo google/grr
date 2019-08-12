@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import logging
 import struct
 import time
 import zlib
@@ -18,50 +17,59 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.stats import stats_collector_instance
-from grr_response_core.stats import stats_utils
+from grr_response_core.stats import metrics
 
 
 # Although these metrics are never queried on the client, removing them from the
 # client code seems not worth the effort.
-def GetMetricMetadata():
-  """Returns a list of MetricMetadata for communicator-related metrics."""
-  return [
-      stats_utils.CreateCounterMetadata("grr_client_unknown"),
-      stats_utils.CreateCounterMetadata("grr_decoding_error"),
-      stats_utils.CreateCounterMetadata("grr_decryption_error"),
-      stats_utils.CreateCounterMetadata("grr_legacy_client_decryption_error"),
-      stats_utils.CreateCounterMetadata("grr_authenticated_messages"),
-      stats_utils.CreateCounterMetadata("grr_unauthenticated_messages"),
-      stats_utils.CreateCounterMetadata("grr_rsa_operations"),
-      stats_utils.CreateCounterMetadata(
-          "grr_encrypted_cipher_cache", fields=[("type", str)]),
-  ]
+GRR_CLIENT_UNKNOWN = metrics.Counter("grr_client_unknown")
+GRR_CLIENT_RECEIVED_BYTES = metrics.Counter("grr_client_received_bytes")
+GRR_CLIENT_SENT_BYTES = metrics.Counter("grr_client_sent_bytes")
+GRR_DECODING_ERROR = metrics.Counter("grr_decoding_error")
+GRR_DECRYPTION_ERROR = metrics.Counter("grr_decryption_error")
+GRR_LEGACY_CLIENT_DECRYPTION_ERROR = metrics.Counter(
+    "grr_legacy_client_decryption_error")
+GRR_AUTHENTICATED_MESSAGES = metrics.Counter("grr_authenticated_messages")
+GRR_UNAUTHENTICATED_MESSAGES = metrics.Counter("grr_unauthenticated_messages")
+GRR_RSA_OPERATIONS = metrics.Counter("grr_rsa_operations")
+GRR_ENCRYPTED_CIPHER_CACHE = metrics.Counter(
+    "grr_encrypted_cipher_cache", fields=[("type", str)])
 
 
-class Error(stats_utils.CountingExceptionMixin, Exception):
+class Error(Exception):
   """Base class for all exceptions in this module."""
-  pass
 
 
 class DecodingError(Error):
   """Raised when the message failed to decrypt or decompress."""
-  counter = "grr_decoding_error"
+
+  @GRR_DECODING_ERROR.Counted()
+  def __init__(self, message):
+    super(DecodingError, self).__init__(message)
 
 
 class DecryptionError(DecodingError):
   """Raised when the message can not be decrypted properly."""
-  counter = "grr_decryption_error"
+
+  @GRR_DECRYPTION_ERROR.Counted()
+  def __init__(self, message):
+    super(DecryptionError, self).__init__(message)
 
 
 class LegacyClientDecryptionError(DecryptionError):
   """Raised when old clients' messages cannot be decrypted."""
-  counter = "grr_legacy_client_decryption_error"
+
+  @GRR_LEGACY_CLIENT_DECRYPTION_ERROR.Counted()
+  def __init__(self, message):
+    super(LegacyClientDecryptionError, self).__init__(message)
 
 
 class UnknownClientCertError(DecodingError):
   """Raised when the client key is not retrieved."""
-  counter = "grr_client_unknown"
+
+  @GRR_CLIENT_UNKNOWN.Counted()
+  def __init__(self, message):
+    super(UnknownClientCertError, self).__init__(message)
 
 
 class Cipher(object):
@@ -98,7 +106,7 @@ class Cipher(object):
     self.cipher_metadata.signature = self.private_key.Sign(serialized_cipher)
 
     # Now encrypt the cipher.
-    stats_collector_instance.Get().IncrementCounter("grr_rsa_operations")
+    GRR_RSA_OPERATIONS.Increment()
     self.encrypted_cipher = remote_public_key.Encrypt(serialized_cipher)
 
     # Encrypt the metadata block symmetrically.
@@ -171,13 +179,6 @@ class ReceivedCipher(Cipher):
 
     except (rdf_crypto.InvalidSignature, rdf_crypto.CipherError) as e:
       if "Ciphertext length must be equal to key size" in str(e):
-        logging.warning(e)  # Print original stack trace for investigation.
-        logging.warning("Error for HTTP request %s",
-                        response_comms.orig_request)
-        # Also log ClientCommunication object, but strip out huge payload.
-        comms_info = rdf_flows.ClientCommunication(response_comms)
-        comms_info.encrypted = None
-        logging.warning("Error for ClientCommunication %s", comms_info)
         raise LegacyClientDecryptionError(e)
       else:
         raise DecryptionError(e)
@@ -272,8 +273,7 @@ class ReceivedCipher(Cipher):
 
     """
     if self.cipher_metadata.signature and remote_public_key:
-
-      stats_collector_instance.Get().IncrementCounter("grr_rsa_operations")
+      GRR_RSA_OPERATIONS.Increment()
       remote_public_key.Verify(self.serialized_cipher,
                                self.cipher_metadata.signature)
       return True
@@ -479,8 +479,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     cipher_verified = False
     try:
       cipher = self.encrypted_cipher_cache.Get(response_comms.encrypted_cipher)
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_encrypted_cipher_cache", fields=["hits"])
+      GRR_ENCRYPTED_CIPHER_CACHE.Increment(fields=["hits"])
 
       # Even though we have seen this encrypted cipher already, we should still
       # make sure that all the other fields are sane and verify the HMAC.
@@ -492,8 +491,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
       source = cipher.GetSource()
       remote_public_key = self._GetRemotePublicKey(source)
     except KeyError:
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_encrypted_cipher_cache", fields=["misses"])
+      GRR_ENCRYPTED_CIPHER_CACHE.Increment(fields=["misses"])
       cipher = ReceivedCipher(response_comms, self.private_key)
 
       source = cipher.GetSource()
@@ -567,8 +565,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     if cipher_verified or cipher.VerifyCipherSignature(remote_public_key):
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_authenticated_messages")
+      GRR_AUTHENTICATED_MESSAGES.Increment()
       result = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Check for replay attacks. We expect the server to return the same

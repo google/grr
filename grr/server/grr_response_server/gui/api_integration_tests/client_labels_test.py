@@ -8,11 +8,11 @@ from absl import app
 
 from grr_response_proto import objects_pb2
 from grr_response_server import data_store
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiClientLibLabelsTest(api_e2e_test_lib.ApiE2ETest):
+class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
   """Tests VFS operations part of GRR Python API client library."""
 
   def setUp(self):

@@ -2,11 +2,17 @@
 """The in memory database methods for path handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 from future.builtins import filter
 from future.utils import iteritems
 from future.utils import iterkeys
+from typing import Dict
+from typing import Iterable
+from typing import Optional
+from typing import Sequence
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -140,7 +146,9 @@ class _PathRecord(object):
       result = self._path_infos[path_info_timestamp].Copy()
     except KeyError:
       result = rdf_objects.PathInfo(
-          path_type=self._path_type, components=self._components)
+          path_type=self._path_type,
+          components=self._components,
+          directory=True)
 
     stat_entry_timestamp = self._LastEntryTimestamp(self._stat_entries,
                                                     timestamp)
@@ -216,11 +224,18 @@ class InMemoryDBPathMixin(object):
                               max_depth=None):
     """Lists path info records that correspond to children of given path."""
     result = []
+    root_dir_exists = False
 
     for path_idx, path_record in iteritems(self.path_records):
       other_client_id, other_path_type, other_components = path_idx
+      path_info = path_record.GetPathInfo(timestamp=timestamp)
+
       if client_id != other_client_id or path_type != other_path_type:
         continue
+      if other_components == tuple(components):
+        root_dir_exists = True
+        if not path_info.directory:
+          raise db.NotDirectoryPathError(client_id, path_type, components)
       if len(other_components) == len(components):
         continue
       if not collection.StartsWith(other_components, components):
@@ -229,7 +244,10 @@ class InMemoryDBPathMixin(object):
           len(other_components) - len(components) > max_depth):
         continue
 
-      result.append(path_record.GetPathInfo(timestamp=timestamp))
+      result.append(path_info)
+
+    if not root_dir_exists and components:
+      raise db.UnknownPathError(client_id, path_type, components)
 
     if timestamp is None:
       return sorted(result, key=lambda _: tuple(_.components))
@@ -312,7 +330,13 @@ class InMemoryDBPathMixin(object):
         self._WritePathInfo(client_id, ancestor_path_info)
 
   @utils.Synchronized
-  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+  def ReadPathInfosHistories(
+      self,
+      client_id,
+      path_type,
+      components_list,
+      cutoff = None
+  ):
     """Reads a collection of hash and stat entries for given paths."""
     results = {}
 
@@ -342,9 +366,12 @@ class InMemoryDBPathMixin(object):
 
         pi.hash_entry = hash_entry
 
-      results[components] = [
-          entries_by_ts[k] for k in sorted(iterkeys(entries_by_ts))
-      ]
+      results[components] = []
+      for timestamp in sorted(iterkeys(entries_by_ts)):
+        if cutoff is not None and timestamp > cutoff:
+          continue
+
+        results[components].append(entries_by_ts[timestamp])
 
     return results
 

@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
+from flaky import flaky
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility
@@ -45,6 +46,9 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
         client_mock=action_mocks.MultiGetFileClientMock(),
         check_flow_errors=False)
 
+  # NOTE: sometimes with headless Chrome the dropdown version selection
+  # doesn't get updated.
+  @flaky
   def testRefreshFileStartsFlow(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
 
@@ -135,6 +139,9 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
         "css=#main_bottomPane table > tbody td.proto_key:contains(\"Path\") "
         "~ td.proto_value")
 
+  # NOTE: sometimes with headless Chrome the button doesn't get
+  # reenabled.
+  @flaky
   def testRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
@@ -149,20 +156,6 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     #
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[id=refresh-dir][disabled]")
-
-  def testRefreshButtonGetsReenabledWhenUpdateEnds(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
-
-    self.Click("css=button[id=refresh-dir]:not([disabled])")
-    # Check that the button got disabled.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[id=refresh-dir][disabled]")
-
-    self._RunUpdateFlow(self.client_id)
-
-    # Check that the button got re-enabled.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[id=refresh-dir]:not([disabled])")
 
   def testSwitchingFoldersWhileRefreshingEnablesRefreshButton(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")

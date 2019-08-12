@@ -52,7 +52,7 @@ class SysctlCmdParserTest(test_lib.GRRBaseTest):
       net.ipv4.ip_forward = 0
     """
     parser = linux_sysctl_parser.SysctlCmdParser()
-    results = parser.Parse("/sbin/sysctl", ["-a"], content, "", 0, 5, None)
+    results = parser.Parse("/sbin/sysctl", ["-a"], content, "", 0, None)
     self.assertLen(results, 1)
     self.assertIsInstance(results[0], rdf_protodict.AttributedDict)
     self.assertEqual("0", results[0].net_ipv4_ip_forward)

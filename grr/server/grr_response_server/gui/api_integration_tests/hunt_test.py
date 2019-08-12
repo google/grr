@@ -12,7 +12,7 @@ from absl import app
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.flows.general import processes as flows_processes
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
@@ -22,7 +22,7 @@ from grr.test_lib import test_lib
 
 class ApiClientLibHuntTest(
     hunt_test_lib.StandardHuntTestMixin,
-    api_e2e_test_lib.ApiE2ETest,
+    api_integration_test_lib.ApiIntegrationTest,
 ):
   """Tests flows-related part of GRR Python API client library."""
 

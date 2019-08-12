@@ -1,0 +1,2 @@
+ALTER TABLE flows
+    MODIFY COLUMN flow LONGBLOB;

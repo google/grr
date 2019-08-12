@@ -28,13 +28,21 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import json
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_value_renderers
+
+
+API_METHOD_LATENCY = metrics.Event(
+    "api_method_latency",
+    fields=[("method_name", str), ("protocol", str), ("status", str)])
+API_ACCESS_PROBE_LATENCY = metrics.Event(
+    "api_access_probe_latency",
+    fields=[("method_name", str), ("protocol", str), ("status", str)])
 
 
 class Error(Exception):
@@ -609,13 +617,11 @@ def RenderHttpResponse(request):
   else:
     status = "SERVER_ERROR"
 
+  fields = (method_name, "http", status)
   if request.method == "HEAD":
-    metric_name = "api_access_probe_latency"
+    API_ACCESS_PROBE_LATENCY.RecordEvent(total_time, fields=fields)
   else:
-    metric_name = "api_method_latency"
-
-  stats_collector_instance.Get().RecordEvent(
-      metric_name, total_time, fields=(method_name, "http", status))
+    API_METHOD_LATENCY.RecordEvent(total_time, fields=fields)
 
   return response
 

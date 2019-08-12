@@ -54,6 +54,8 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
   def CreatePluginAndDefaultState(cls, source_urn=None, args=None, token=None):
     state = rdf_protodict.AttributedDict()
     state["source_urn"] = source_urn
+    if args is not None:
+      args.Validate()
     state["args"] = args
     state["token"] = token
     plugin = cls(source_urn=source_urn, args=args, token=token)

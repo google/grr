@@ -80,14 +80,14 @@ class YaraProcessDumpArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = [rdfvalue.ByteSize]
 
 
-class YaraProcessMemoryRegion(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.YaraProcessMemoryRegion
+class ProcessMemoryRegion(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.ProcessMemoryRegion
   rdf_deps = [rdf_paths.PathSpec]
 
 
 class YaraProcessDumpInformation(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessDumpInformation
-  rdf_deps = [rdf_client.Process, rdf_paths.PathSpec, YaraProcessMemoryRegion]
+  rdf_deps = [rdf_client.Process, rdf_paths.PathSpec, ProcessMemoryRegion]
 
 
 class YaraProcessDumpResponse(rdf_structs.RDFProtoStruct):

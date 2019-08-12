@@ -7,8 +7,8 @@ from __future__ import unicode_literals
 from absl import app
 import mock
 
+from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
-from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import test_lib
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
@@ -41,7 +41,8 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     with test_lib.ConfigOverrider({
         "Server.fleetspeak_label_map": ["foo-5:baz-5"],
     }):
-      with fleetspeak_test_lib.ConnectionOverrider(conn):
+      with mock.patch.object(fleetspeak_connector, "CONN", conn):
+        fleetspeak_connector.Init(conn)
         self.assertListEqual(
             fleetspeak_utils.GetLabelsFromFleetspeak(_TEST_CLIENT_ID),
             ["foo-1", "bar-2", "baz-5"])
@@ -59,21 +60,24 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
         "Server.fleetspeak_label_prefix": "foo",
         "Server.fleetspeak_label_map": ["foo-5: baz-5"],
     }):
-      with fleetspeak_test_lib.ConnectionOverrider(conn):
+      with mock.patch.object(fleetspeak_connector, "CONN", conn):
+        fleetspeak_connector.Init(conn)
         self.assertListEqual(
             fleetspeak_utils.GetLabelsFromFleetspeak(_TEST_CLIENT_ID),
             ["foo-1", "baz-5"])
 
   def testGetLabelsFromFleetspeak_NoLabels(self):
     conn = _MockConnReturningClient(_TEST_CLIENT_ID, [("service-1", "foo-3")])
-    with fleetspeak_test_lib.ConnectionOverrider(conn):
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      fleetspeak_connector.Init(conn)
       self.assertEmpty(
           fleetspeak_utils.GetLabelsFromFleetspeak(_TEST_CLIENT_ID))
 
   def testGetLabelsFromFleetspeak_UnknownClient(self):
     conn = mock.MagicMock()
     conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse()
-    with fleetspeak_test_lib.ConnectionOverrider(conn):
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      fleetspeak_connector.Init(conn)
       self.assertEmpty(
           fleetspeak_utils.GetLabelsFromFleetspeak(_TEST_CLIENT_ID))
 

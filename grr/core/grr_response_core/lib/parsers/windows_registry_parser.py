@@ -15,6 +15,7 @@ from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -38,8 +39,8 @@ class CurrentControlSetKBParser(parser.RegistryValueParser):
     value = stat.registry_data.GetValue()
 
     if not str(value).isdigit() or int(value) > 999 or int(value) < 0:
-      raise parser.ParseError(
-          "Invalid value for CurrentControlSet key %s" % value)
+      raise parsers.ParseError("Invalid value for CurrentControlSet key %s" %
+                               value)
     yield rdfvalue.RDFString(
         "HKEY_LOCAL_MACHINE\\SYSTEM\\ControlSet%03d" % int(value))
 
@@ -61,7 +62,7 @@ class WinEnvironmentParser(parser.RegistryValueParser):
     """Expand any variables in the value."""
     value = stat.registry_data.GetValue()
     if not value:
-      raise parser.ParseError("Invalid value for key %s" % stat.pathspec.path)
+      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
     value = artifact_utils.ExpandWindowsEnvironmentVariables(
         value, knowledge_base)
     if value:
@@ -81,14 +82,14 @@ class WinSystemDriveParser(parser.RegistryValueParser):
     elif isinstance(stat, rdfvalue.RDFString):
       value = stat
     if not value:
-      raise parser.ParseError("Invalid value for key %s" % stat.pathspec.path)
+      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
 
     systemdrive = value[0:2]
     if re.match(r"^[A-Za-z]:$", systemdrive):
       yield rdfvalue.RDFString(systemdrive)
     else:
-      raise parser.ParseError(
-          "Bad drive letter for key %s" % stat.pathspec.path)
+      raise parsers.ParseError("Bad drive letter for key %s" %
+                               stat.pathspec.path)
 
 
 class WinSystemRootParser(parser.RegistryValueParser):
@@ -102,7 +103,7 @@ class WinSystemRootParser(parser.RegistryValueParser):
     if value:
       yield rdfvalue.RDFString(value)
     else:
-      raise parser.ParseError("Invalid value for key %s" % stat.pathspec.path)
+      raise parsers.ParseError("Invalid value for key %s" % stat.pathspec.path)
 
 
 class CodepageParser(parser.RegistryValueParser):

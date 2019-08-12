@@ -22,7 +22,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import email_alerts
@@ -35,6 +35,9 @@ from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+
+
+GRR_CLIENT_CRASHES = metrics.Counter("grr_client_crashes")
 
 
 def WriteAllCrashDetails(client_id, crash_details, flow_session_id=None):
@@ -91,7 +94,7 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
       logging.info("Client crash reported, client %s.", client_urn)
 
       # Export.
-      stats_collector_instance.Get().IncrementCounter("grr_client_crashes")
+      GRR_CLIENT_CRASHES.Increment()
 
       # Write crash data.
       client = data_store.REL_DB.ReadClientSnapshot(client_id)

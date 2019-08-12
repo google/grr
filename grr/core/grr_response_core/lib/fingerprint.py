@@ -32,6 +32,8 @@ import hashlib
 import os
 import struct
 
+from future.builtins import str
+
 # pylint: disable=g-bad-name
 # Two classes given named tupes for ranges and relative ranges.
 Range = collections.namedtuple('Range', 'start end')
@@ -228,7 +230,7 @@ class Fingerprinter(object):
           raise RuntimeError('Non-empty range remains.')
       res.update(finger.metadata)
       for hasher in finger.hashers:
-        res[hasher.name] = hasher.digest()
+        res[str(hasher.name)] = hasher.digest()
       results.append(res)
 
     # Clean out things for a fresh start (on the same file object).

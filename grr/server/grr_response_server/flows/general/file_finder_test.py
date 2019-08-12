@@ -379,12 +379,12 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         .CONTENTS_LITERAL_MATCH,
         contents_literal_match=match)
 
-    paths = [os.path.join(os.path.dirname(self.fixture_path), "hello.exe")]
+    paths = [os.path.join(os.path.dirname(self.fixture_path), "win_hello.exe")]
 
     results = self.RunFlow(paths=paths, conditions=[literal_condition])
 
     # Check that the results' matches fields are correctly filled. Expecting a
-    # match from hello.exe
+    # match from win_hello.exe
     self.assertLen(results, 1)
     self.assertLen(results[0].matches, 1)
     self.assertEqual(results[0].matches[0].offset, 0)

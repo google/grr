@@ -203,7 +203,7 @@ class _CursorProxy(object):
       # MySQL error code 1452: Cannot add or update a child row:
       # a foreign key constraint fails
       if e.args[0] == 1452:
-        raise MySQLdb.IntegrityError(e.message)
+        raise MySQLdb.IntegrityError(str(e))
 
       # TODO: check if newer versions of mysqlclient report the
       # unknown table warning (that's thrown even if DROP TABLE IF EXISTS
@@ -219,7 +219,7 @@ class _CursorProxy(object):
       # integrity error.
       if (isinstance(e.args[0], string_types) and "CONSTRAINT" in e.args[0] and
           "FOREIGN KEY" in e.args[0]):
-        raise MySQLdb.IntegrityError(e.message)
+        raise MySQLdb.IntegrityError(str(e))
 
       raise
 

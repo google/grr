@@ -1176,12 +1176,11 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
 class SoftwarePackageConverterTest(ExportTestBase):
 
   def testConvertsCorrectly(self):
-    result = rdf_client.SoftwarePackage(
+    result = rdf_client.SoftwarePackage.Pending(
         name="foo",
         version="ver1",
         architecture="i386",
         publisher="somebody",
-        install_state=rdf_client.SoftwarePackage.InstallState.PENDING,
         description="desc",
         installed_on=42,
         installed_by="user")
@@ -1210,12 +1209,11 @@ class SoftwarePackagesConverterTest(ExportTestBase):
     result = rdf_client.SoftwarePackages()
     for i in range(10):
       result.packages.append(
-          rdf_client.SoftwarePackage(
+          rdf_client.SoftwarePackage.Pending(
               name="foo_%d" % i,
               version="ver_%d" % i,
               architecture="i386_%d" % i,
               publisher="somebody_%d" % i,
-              install_state=rdf_client.SoftwarePackage.InstallState.PENDING,
               description="desc_%d" % i,
               installed_on=42 + i,
               installed_by="user_%d" % i))

@@ -16,7 +16,7 @@ class TestOffsetAndCountTest(db_test_utils.QueryTestHelpersMixin,
 
   def testDoesNotRaiseWhenWorksAsExpected(self):
     items = range(10)
-    self.TestOffsetAndCount(
+    self.DoOffsetAndCountTest(
         lambda: items,
         lambda offset, count: items[offset:offset + count],
         error_desc="foo")
@@ -36,7 +36,7 @@ class TestOffsetAndCountTest(db_test_utils.QueryTestHelpersMixin,
         re.escape(
             "Results differ from expected (offset 6, count 1, foo): [] vs [6]")
     ):
-      self.TestOffsetAndCount(lambda: items, FetchRangeFn, error_desc="foo")
+      self.DoOffsetAndCountTest(lambda: items, FetchRangeFn, error_desc="foo")
 
 
 class TestFilterCombinations(db_test_utils.QueryTestHelpersMixin,
@@ -60,7 +60,7 @@ class TestFilterCombinations(db_test_utils.QueryTestHelpersMixin,
 
       return result
 
-    self.TestFilterCombinations(
+    self.DoFilterCombinationsTest(
         FetchFn,
         dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
         error_desc="foo")
@@ -93,7 +93,7 @@ class TestFilterCombinations(db_test_utils.QueryTestHelpersMixin,
             "Results differ from expected "
             "({'bigger_than_3_only': True, 'less_than_7_only': True}, foo): "
             "[5, 6] vs [4, 5, 6]")):
-      self.TestFilterCombinations(
+      self.DoFilterCombinationsTest(
           FetchFn,
           dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
           error_desc="foo")
@@ -124,7 +124,7 @@ class TestFilterCombinationsAndOffsetCountTest(
 
       return result[offset:offset + count]
 
-    self.TestFilterCombinationsAndOffsetCount(
+    self.DoFilterCombinationsAndOffsetCountTest(
         FetchFn,
         dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
         error_desc="foo")
@@ -160,7 +160,7 @@ class TestFilterCombinationsAndOffsetCountTest(
         re.escape("Results differ from expected "
                   "(offset 1, count 1, {'bigger_than_3_only': True}, foo): "
                   "[4] vs [5]")):
-      self.TestFilterCombinationsAndOffsetCount(
+      self.DoFilterCombinationsAndOffsetCountTest(
           FetchFn,
           dict(bigger_than_3_only=True, less_than_7_only=True, even_only=True),
           error_desc="foo")

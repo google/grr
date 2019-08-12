@@ -34,6 +34,7 @@ PROCESS_QUERY_INFORMATION = 0x400
 
 PAGE_READONLY = 2
 PAGE_READWRITE = 4
+PAGE_WRITECOPY = 8
 PAGE_EXECUTE = 16
 PAGE_EXECUTE_READ = 32
 PAGE_EXECUTE_READWRITE = 64
@@ -172,7 +173,10 @@ class Process(object):
       raise process_error.ProcessError("Error VirtualQueryEx: 0x%08X" % address)
     return mbi
 
-  def Regions(self, skip_special_regions=False, skip_executable_regions=False):
+  def Regions(self,
+              skip_special_regions=False,
+              skip_executable_regions=False,
+              skip_readonly_regions=False):
     """Returns an iterator over the readable regions for this process."""
     offset = self.min_addr
 
@@ -185,13 +189,16 @@ class Process(object):
       protect = mbi.Protect
       state = mbi.State
 
-      region = rdf_memory.YaraProcessMemoryRegion(
+      region = rdf_memory.ProcessMemoryRegion(
           start=offset,
           size=mbi.RegionSize,
+          is_readable=True,
+          is_writable=bool(protect
+                           & (PAGE_EXECUTE_READWRITE | PAGE_READWRITE
+                              | PAGE_EXECUTE_WRITECOPY | PAGE_WRITECOPY)),
           is_executable=bool(protect & (PAGE_EXECUTE | PAGE_EXECUTE_READ
                                         | PAGE_EXECUTE_READWRITE
                                         | PAGE_EXECUTE_WRITECOPY)))
-
       is_special = (
           protect & PAGE_NOCACHE or protect & PAGE_WRITECOMBINE or
           protect & PAGE_GUARD)
@@ -200,7 +207,8 @@ class Process(object):
 
       if (state & MEM_FREE or state & MEM_RESERVE or
           (skip_special_regions and is_special) or
-          (skip_executable_regions and region.is_executable)):
+          (skip_executable_regions and region.is_executable) or
+          (skip_readonly_regions and not region.is_writable)):
         continue
 
       yield region

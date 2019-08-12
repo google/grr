@@ -85,13 +85,16 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   """MySQLDB mixin for blobs related functions."""
 
   @mysql_utils.WithTransaction()
-  def WriteBlobs(self, blob_id_data_map, cursor=None):
+  def _WriteBlobsBatch(self, values, cursor=None):
+    _Insert(cursor, "blobs", values)
+
+  def WriteBlobs(self, blob_id_data_map):
     """Writes given blobs."""
     chunks = []
     for blob_id, blob in iteritems(blob_id_data_map):
       chunks.extend(_BlobToChunks(blob_id.AsBytes(), blob))
     for values in _PartitionChunks(chunks):
-      _Insert(cursor, "blobs", values)
+      self._WriteBlobsBatch(values)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadBlobs(self, blob_ids, cursor=None):

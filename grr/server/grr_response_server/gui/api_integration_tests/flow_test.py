@@ -19,13 +19,13 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.flows.general import processes
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-class ApiClientLibFlowTest(api_e2e_test_lib.ApiE2ETest):
+class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
   """Tests flows-related part of GRR Python API client library."""
 
   def testSearchWithNoClients(self):

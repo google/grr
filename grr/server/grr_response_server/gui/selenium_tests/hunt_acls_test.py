@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_server import output_plugin
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -15,6 +16,14 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+
+
+class TestOutputPluginWithArgs(output_plugin.OutputPlugin):
+
+  args_type = rdf_flow_runner.FlowRunnerArgs
+
+  def ProcessResponses(self, state, responses):
+    pass
 
 
 class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
@@ -390,7 +399,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     flow_args.paths = ["b/*", "c/*"]
     client_rule_set.rules[0].regex.field = "FQDN"
     output_plugins = [
-        rdf_output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="TestOutputPluginWithArgs")
     ]
     new_h = self.StartHunt(
         flow_args=flow_args,
@@ -424,7 +434,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
 
     self.WaitUntil(
         self.IsElementPresent, "css=tr.diff-added:contains('Output Plugins'):"
-        "contains('TestOutputPlugin')")
+        "contains('TestOutputPluginWithArgs')")
 
     self.WaitUntil(
         self.IsElementPresent,

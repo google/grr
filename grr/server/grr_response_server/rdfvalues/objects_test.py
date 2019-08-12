@@ -170,15 +170,15 @@ class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 class PathInfoTest(absltest.TestCase):
 
   def testValidateEmptyComponent(self):
-    with self.assertRaisesRegexp(ValueError, "Empty"):
+    with self.assertRaisesRegex(ValueError, "Empty"):
       rdf_objects.PathInfo(components=["foo", "", "bar"])
 
   def testValidateDotComponent(self):
-    with self.assertRaisesRegexp(ValueError, "Incorrect"):
+    with self.assertRaisesRegex(ValueError, "Incorrect"):
       rdf_objects.PathInfo(components=["foo", "bar", ".", "quux"])
 
   def testValidateDoubleDotComponent(self):
-    with self.assertRaisesRegexp(ValueError, "Incorrect"):
+    with self.assertRaisesRegex(ValueError, "Incorrect"):
       rdf_objects.PathInfo(components=["..", "foo", "bar"])
 
   def testFromStatEntrySimple(self):
@@ -261,7 +261,7 @@ class PathInfoTest(absltest.TestCase):
     stat_entry.pathspec.path = "foo/bar"
     stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    stat_obj = os.stat(tempfile.tempdir)
+    stat_obj = os.stat(tempfile.gettempdir())
     stat_entry.st_mode = stat_obj.st_mode
     stat_entry.st_ino = stat_obj.st_ino
     stat_entry.st_dev = stat_obj.st_dev
@@ -461,10 +461,10 @@ class CategorizedPathTest(absltest.TestCase):
     self.assertEqual(components, ("foo", "bar"))
 
   def testParseIncorrect(self):
-    with self.assertRaisesRegexp(ValueError, "path"):
+    with self.assertRaisesRegex(ValueError, "path"):
       rdf_objects.ParseCategorizedPath("foo/bar")
 
-    with self.assertRaisesRegexp(ValueError, "path"):
+    with self.assertRaisesRegex(ValueError, "path"):
       rdf_objects.ParseCategorizedPath("fs")
 
   def testSerializeOs(self):
@@ -493,7 +493,7 @@ class CategorizedPathTest(absltest.TestCase):
     self.assertEqual(path, "fs/os")
 
   def testSerializeIncorrectType(self):
-    with self.assertRaisesRegexp(ValueError, "type"):
+    with self.assertRaisesRegex(ValueError, "type"):
       rdf_objects.ToCategorizedPath("MEMORY", ("foo", "bar"))
 
 

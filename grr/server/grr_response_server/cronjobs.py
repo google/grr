@@ -11,24 +11,34 @@ import threading
 import time
 import traceback
 
-from future.utils import iterkeys
-from future.utils import with_metaclass
+from future import utils as future_utils
+# Shadow builtin `str` to enforce consistent behavior during Py3 migration.
+from future.builtins import str
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import random
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server import threadpool
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 
+
 # The maximum number of log-messages to store in the DB for a given cron-job
 # run.
 _MAX_LOG_MESSAGES = 20
+
+
+CRON_JOB_FAILURE = metrics.Counter(
+    "cron_job_failure", fields=[("cron_job_id", str)])
+CRON_JOB_TIMEOUT = metrics.Counter(
+    "cron_job_timeout", fields=[("cron_job_id", str)])
+CRON_JOB_LATENCY = metrics.Event(
+    "cron_job_latency", fields=[("cron_job_id", str)])
 
 
 class Error(Exception):
@@ -52,7 +62,8 @@ class LifetimeExceededError(Error):
   """Exception raised when a cronjob exceeds its max allowed runtime."""
 
 
-class CronJobBase(with_metaclass(registry.CronJobRegistry, object)):
+class CronJobBase(
+    future_utils.with_metaclass(registry.CronJobRegistry, object)):
   """The base class for all cron jobs."""
 
   __abstract = True  # pylint: disable=g-bad-name
@@ -100,27 +111,24 @@ class CronJobBase(with_metaclass(registry.CronJobRegistry, object)):
       self.run_state.status = "FINISHED"
     except LifetimeExceededError:
       self.run_state.status = "LIFETIME_EXCEEDED"
-      stats_collector_instance.Get().IncrementCounter(
-          "cron_job_failure", fields=[self.job.cron_job_id])
+      CRON_JOB_FAILURE.Increment(fields=[self.job.cron_job_id])
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Cronjob %s failed with an error: %s",
                         self.job.cron_job_id, e)
-      stats_collector_instance.Get().IncrementCounter(
-          "cron_job_failure", fields=[self.job.cron_job_id])
+      CRON_JOB_FAILURE.Increment(fields=[self.job.cron_job_id])
       self.run_state.status = "ERROR"
       self.run_state.backtrace = "{}\n\n{}".format(e, traceback.format_exc())
 
     finally:
       self.run_state.finished_at = rdfvalue.RDFDatetime.Now()
       elapsed = self.run_state.finished_at - self.run_state.started_at
-      stats_collector_instance.Get().RecordEvent(
-          "cron_job_latency", elapsed.seconds, fields=[self.job.cron_job_id])
+      CRON_JOB_LATENCY.RecordEvent(
+          elapsed.seconds, fields=[self.job.cron_job_id])
       if self.job.lifetime:
         expiration_time = self.run_state.started_at + self.job.lifetime
         if self.run_state.finished_at > expiration_time:
           self.run_state.status = "LIFETIME_EXCEEDED"
-          stats_collector_instance.Get().IncrementCounter(
-              "cron_job_timeout", fields=[self.job.cron_job_id])
+          CRON_JOB_TIMEOUT.Increment(fields=[self.job.cron_job_id])
       data_store.REL_DB.WriteCronJobRun(self.run_state)
 
     current_job = data_store.REL_DB.ReadCronJob(self.job.cron_job_id)
@@ -134,7 +142,7 @@ class CronJobBase(with_metaclass(registry.CronJobRegistry, object)):
 
 
 class SystemCronJobBase(
-    with_metaclass(registry.SystemCronJobRegistry, CronJobBase)):
+    future_utils.with_metaclass(registry.SystemCronJobRegistry, CronJobBase)):
   """The base class for all system cron jobs."""
 
   __abstract = True  # pylint: disable=g-bad-name
@@ -359,11 +367,9 @@ class CronManager(object):
         data_store.REL_DB.WriteCronJobRun(run)
         data_store.REL_DB.UpdateCronJob(
             job.cron_job_id, current_run_id=None, last_run_status=run.status)
-        stats_collector_instance.Get().RecordEvent(
-            "cron_job_latency", (now - job.last_run_time).seconds,
-            fields=[job.cron_job_id])
-        stats_collector_instance.Get().IncrementCounter(
-            "cron_job_timeout", fields=[job.cron_job_id])
+        CRON_JOB_LATENCY.RecordEvent(
+            (now - job.last_run_time).seconds, fields=[job.cron_job_id])
+        CRON_JOB_TIMEOUT.Increment(fields=[job.cron_job_id])
 
         return True
 
@@ -495,7 +501,8 @@ def ScheduleSystemCronJobs(names=None):
       continue
 
   if names is None:
-    names = iterkeys(registry.SystemCronJobRegistry.SYSTEM_CRON_REGISTRY)
+    names = future_utils.iterkeys(
+        registry.SystemCronJobRegistry.SYSTEM_CRON_REGISTRY)
 
   for name in names:
     cls = registry.SystemCronJobRegistry.CronJobClassByName(name)

@@ -512,9 +512,8 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token)
 
-    children = self._ListTestChildPathInfos(
-        ["test_img.dd", "glob_test", "a", "b"])
-    self.assertEmpty(children)
+    with self.assertRaises(db.UnknownPathError):
+      self._ListTestChildPathInfos(["test_img.dd", "glob_test", "a", "b"])
 
   def testGlobDirectory(self):
     """Test that glob expands directories."""
@@ -568,7 +567,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         "apache_false_log",
         "apache_log",
         "syslog",
-        "hello.exe",
+        "win_hello.exe",
     ])
 
   def testIllegalGlob(self):

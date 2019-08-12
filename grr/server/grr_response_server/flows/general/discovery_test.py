@@ -18,12 +18,14 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
+from grr_response_server import fleetspeak_utils
 from grr_response_server.flows.general import discovery
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import parser_test_lib
+from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
@@ -42,7 +44,8 @@ class DiscoveryTestEventListener(events.EventListener):
 
 class TestClientInterrogate(acl_test_lib.AclTestMixin,
                             notification_test_lib.NotificationTestMixin,
-                            flow_test_lib.FlowTestsBaseclass):
+                            flow_test_lib.FlowTestsBaseclass,
+                            stats_test_lib.StatsTestMixin):
   """Test the interrogate flow."""
 
   def _OpenClient(self, client_id):
@@ -324,6 +327,69 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckClientKwIndex(["Windows"], 1)
     self._CheckClientKwIndex(["Label2"], 1)
     self._CheckMemory(client)
+
+  @parser_test_lib.WithAllParsers
+  @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
+  def testFleetspeakClient(self, mock_labels_fn):
+    mock_labels_fn.return_value = ["foo", "bar"]
+    client_id = "C.0000000000000001"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    client_mock = action_mocks.InterrogatedClient()
+    client_mock.InitializeClient(
+        fqdn="fleetspeak.test.com",
+        system="Linux",
+        release="Ubuntu",
+        version="14.4")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
+      flow_test_lib.TestFlowHelper(
+          discovery.Interrogate.__name__,
+          client_mock,
+          token=self.token,
+          client_id=client_id)
+
+    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    self.assertEqual(snapshot.knowledge_base.fqdn, "fleetspeak.test.com")
+    self.assertEqual(snapshot.knowledge_base.os, "Linux")
+    self._CheckClientInfo(snapshot)
+    self._CheckGRRConfig(snapshot)
+    self._CheckNotificationsCreated(self.token.username, client_id)
+    self._CheckRelease(snapshot, "Ubuntu", "14.4")
+    self._CheckNetworkInfo(snapshot)
+    labels = data_store.REL_DB.ReadClientLabels(client_id)
+    self.assertCountEqual([l.name for l in labels], ["foo", "bar"])
+
+  @parser_test_lib.WithAllParsers
+  @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")
+  def testFleetspeakClient_OnlyGRRLabels(self, mock_labels_fn):
+    mock_labels_fn.return_value = []
+    client_id = "C.0000000000000001"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    client_mock = action_mocks.InterrogatedClient()
+    client_mock.InitializeClient(
+        fqdn="fleetspeak.test.com",
+        system="Linux",
+        release="Ubuntu",
+        version="14.4")
+
+    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                   vfs_test_lib.FakeTestDataVFSHandler):
+      with self.assertStatsCounterDelta(1,
+                                        discovery.FLEETSPEAK_UNLABELED_CLIENTS):
+
+        flow_test_lib.TestFlowHelper(
+            discovery.Interrogate.__name__,
+            client_mock,
+            token=self.token,
+            client_id=client_id)
+
+    rdf_labels = data_store.REL_DB.ReadClientLabels(client_id)
+    expected_labels = [
+        action_mocks.InterrogatedClient.LABEL1,
+        action_mocks.InterrogatedClient.LABEL2,
+    ]
+    self.assertCountEqual([l.name for l in rdf_labels], expected_labels)
 
 
 def main(argv):

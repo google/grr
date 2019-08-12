@@ -48,10 +48,10 @@ class E2ETestRunner(object):
   LOGFILE_FAILURE_RESULT = "[ FAIL ]"
   APPVEYOR_SUCCESS_RESULT = "Passed"
   APPVEYOR_FAILURE_RESULT = "Failed"
-  LINUX_TEST_BINARY_NAME = "hello"
-  LINUX_TEST_BINARY_PATH = "linux/test/hello"
-  WINDOWS_TEST_BINARY_NAME = "hello.exe"
-  WINDOWS_TEST_BINARY_PATH = "windows/test/hello.exe"
+  LINUX_TEST_BINARY_NAME = "linux_hello"
+  LINUX_TEST_BINARY_PATH = "linux/test/linux_hello"
+  WINDOWS_TEST_BINARY_NAME = "win_hello.exe"
+  WINDOWS_TEST_BINARY_PATH = "windows/test/win_hello.exe"
 
   def __init__(self,
                api_endpoint="",
@@ -63,7 +63,7 @@ class E2ETestRunner(object):
                upload_test_binaries=True,
                api_retry_period_secs=30.0,
                api_retry_deadline_secs=500.0,
-               max_test_attempts=3):
+               max_test_attempts=1):
     # TODO(hanuszczak): Use the `precondition` module for validation here.
     if not api_endpoint:
       raise ValueError("GRR api_endpoint is required.")
@@ -74,8 +74,8 @@ class E2ETestRunner(object):
     if isinstance(manual_tests, string_types):
       raise ValueError("manual_tests should be a list.")
     if max_test_attempts < 1:
-      raise ValueError(
-          "max_test_attempts (%d) must be at least 1." % max_test_attempts)
+      raise ValueError("max_test_attempts (%d) must be at least 1." %
+                       max_test_attempts)
     self._api_endpoint = api_endpoint
     self._api_user = api_user
     self._api_password = api_password
@@ -330,7 +330,7 @@ class E2ETestRunner(object):
         pretty_result = self.LOGFILE_FAILURE_RESULT
       # Print a summary line for the test, using left-alignment for the test
       # name and right alignment for the result.
-      report_lines.append(
-          "\t%s %s" % ((test_name + ":").ljust(max_test_name_len + 1),
-                       pretty_result.rjust(10)))
+      report_lines.append("\t%s %s" %
+                          ((test_name + ":").ljust(max_test_name_len + 1),
+                           pretty_result.rjust(10)))
     return report_lines

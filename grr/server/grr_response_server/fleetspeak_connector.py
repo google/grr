@@ -12,7 +12,8 @@ from grr_response_core import config
 CONN = None
 
 # Singleton information mapping Fleetspeak labels to GRR labels.
-label_map = None
+label_map = {}
+
 unknown_label = None
 
 
@@ -20,7 +21,6 @@ def Init(service_client=None):
   """Initializes the Fleetspeak connector."""
   global CONN
   global label_map
-  global unknown_label
 
   if service_client is None:
     service_client_cls = fs_client.InsecureGRPCServiceClient
@@ -42,7 +42,6 @@ def Init(service_client=None):
         fleetspeak_server=fleetspeak_server,
         threadpool_size=50)
 
-  unknown_label = config.CONFIG["Server.fleetspeak_unknown_label"]
   label_map = {}
   for entry in config.CONFIG["Server.fleetspeak_label_map"]:
     key, value = entry.split(":")

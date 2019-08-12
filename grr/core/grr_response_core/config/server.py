@@ -41,10 +41,7 @@ config_lib.DEFINE_integer(
     "Worker.queue_shards", 5, "Queue notifications will be sharded across "
     "this number of datastore subjects.")
 
-config_lib.DEFINE_list(
-    "Frontend.well_known_flows", ["TransferStore"],
-    "Allow these well known flows to run directly on the "
-    "frontend. Other flows are scheduled as normal.")
+config_lib.DEFINE_list("Frontend.well_known_flows", [], "Unused, Deprecated.")
 
 # Smtp settings.
 config_lib.DEFINE_string("Worker.smtp_server", "localhost",
@@ -192,8 +189,7 @@ config_lib.DEFINE_bool(
 config_lib.DEFINE_integer(
     "Server.max_unbound_read_size",
     10000000,
-    help="The number of bytes allowed for unbounded "
-    "reads from a file object")
+    help="The number of bytes allowed for unbounded reads from a file object")
 
 # Data retention policies.
 config_lib.DEFINE_semantic_value(
@@ -292,11 +288,6 @@ config_lib.DEFINE_list(
     "list are expected to be of the form '<fleetspeak-label>:<override>'. If "
     "a Fleetspeak label is not in the map, it will be written as is to GRR's "
     "DB as part of the Interrogate flow.")
-
-config_lib.DEFINE_string(
-    "Server.fleetspeak_unknown_label", "fleetspeak-unknown",
-    "The primary GRR label to use for FS clients which do not match any entry "
-    "of fleetspeak_label_map.")
 
 config_lib.DEFINE_semantic_value(
     rdfvalue.DurationSeconds,

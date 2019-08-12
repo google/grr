@@ -31,12 +31,15 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import random
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+
+
+GRR_FLOW_INVALID_FLOW_COUNT = metrics.Counter("grr_flow_invalid_flow_count")
 
 
 class Error(Exception):
@@ -158,8 +161,7 @@ def StartFlow(client_id=None,
   try:
     registry.FlowRegistry.FlowClassByName(flow_cls.__name__)
   except ValueError:
-    stats_collector_instance.Get().IncrementCounter(
-        "grr_flow_invalid_flow_count")
+    GRR_FLOW_INVALID_FLOW_COUNT.Increment()
     raise ValueError("Unable to locate flow %s" % flow_cls.__name__)
 
   if not client_id:

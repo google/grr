@@ -41,6 +41,8 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 
+_MAX_DEBUG_RESPONSES_STRING_LENGTH = 100000
+
 
 def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False):
   client = data_store.REL_DB.ReadClientSnapshot(client_id)
@@ -825,10 +827,11 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
             original_result=response)
         results_without_pathspecs.append(result)
 
-    grouped_results = collection.Group(results_with_pathspecs,
-                                       lambda x: x.found_pathspec)
-    for pathspec, group in iteritems(grouped_results):
-      self.StartFileFetch(pathspec, request_data=dict(results=group))
+    grouped_results = collection.Group(
+        results_with_pathspecs, lambda x: x.found_pathspec.CollapsePath())
+    for _, group in iteritems(grouped_results):
+      self.StartFileFetch(
+          group[0].found_pathspec, request_data=dict(results=group))
 
     for result in results_without_pathspecs:
       self.SendReply(result)

@@ -215,8 +215,10 @@ class BlobStoreTestMixin(
     blobs = {a_id: b"aa", b_id: b"bb"}
 
     with mock.patch.object(self.blob_store, "ReadBlobs", return_value=blobs):
-      with self.assertStatsCounterDelta(2, "blob_store_poll_hit_latency"):
-        with self.assertStatsCounterDelta(2, "blob_store_poll_hit_iteration"):
+      with self.assertStatsCounterDelta(2,
+                                        blob_store.BLOB_STORE_POLL_HIT_LATENCY):
+        with self.assertStatsCounterDelta(
+            2, blob_store.BLOB_STORE_POLL_HIT_ITERATION):
           self.blob_store.ReadAndWaitForBlobs([a_id, b_id],
                                               timeout=rdfvalue.Duration.From(
                                                   10, rdfvalue.SECONDS))

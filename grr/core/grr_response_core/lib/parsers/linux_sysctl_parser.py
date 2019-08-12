@@ -47,10 +47,9 @@ class SysctlCmdParser(parser.CommandParser):
     super(SysctlCmdParser, self).__init__(*args, **kwargs)
     self.lexer = config_file.KeyValueParser()
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the sysctl output."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     result = rdf_protodict.AttributedDict()
     # The KeyValueParser generates an ordered dict by default. The sysctl vals

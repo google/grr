@@ -272,13 +272,13 @@ class InMemoryDBClientMixin(object):
   @utils.Synchronized
   def ReadAllClientLabels(self):
     """Lists all client labels known to the system."""
-    result = set()
+    results = {}
     for labels_dict in itervalues(self.labels):
       for owner, names in iteritems(labels_dict):
         for name in names:
-          result.add(rdf_objects.ClientLabel(owner=owner, name=name))
-
-    return list(result)
+          results[(owner, name)] = rdf_objects.ClientLabel(
+              owner=owner, name=name)
+    return list(results.values())
 
   @utils.Synchronized
   def WriteClientStartupInfo(self, client_id, startup_info):

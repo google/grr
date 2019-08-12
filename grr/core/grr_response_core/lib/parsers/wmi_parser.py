@@ -166,15 +166,13 @@ class WMIInstalledSoftwareParser(parser.WMIQueryParser):
 
   def ParseMultiple(self, result_dicts):
     """Parse the WMI packages output."""
-    status = rdf_client.SoftwarePackage.InstallState.INSTALLED
     packages = []
     for result_dict in result_dicts:
       packages.append(
-          rdf_client.SoftwarePackage(
+          rdf_client.SoftwarePackage.Installed(
               name=result_dict["Name"],
               description=result_dict["Description"],
-              version=result_dict["Version"],
-              install_state=status))
+              version=result_dict["Version"]))
 
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)
@@ -196,8 +194,6 @@ class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
 
   def ParseMultiple(self, result_dicts):
     """Parse the WMI packages output."""
-    status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-
     packages = []
     for result_dict in result_dicts:
       result = result_dict.ToDict()
@@ -205,11 +201,10 @@ class WMIHotfixesSoftwareParser(parser.WMIQueryParser):
       # InstalledOn comes back in a godawful format such as '7/10/2013'.
       installed_on = self.AmericanDateToEpoch(result.get("InstalledOn", ""))
       packages.append(
-          rdf_client.SoftwarePackage(
+          rdf_client.SoftwarePackage.Installed(
               name=result.get("HotFixID"),
               description=result.get("Caption"),
               installed_by=result.get("InstalledBy"),
-              install_state=status,
               installed_on=installed_on))
 
     if packages:

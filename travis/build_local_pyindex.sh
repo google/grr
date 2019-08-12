@@ -18,15 +18,6 @@ function fatal() {
   exit 1
 }
 
-# Sets a default value for PROTOC if necessary.
-function maybe_set_protoc() {
-  default_protoc_path="${HOME}/protobuf/bin/protoc"
-  if [[ -z "${PROTOC}" && "${PATH}" != *'protoc'* && -f "${default_protoc_path}" ]]; then
-    echo "PROTOC is not set. Will set it to ${default_protoc_path}."
-    export PROTOC="${default_protoc_path}"
-  fi
-}
-
 function build_sdists() {
   if [[ -d sdists ]]; then
     echo "Removing existing sdists directory."
@@ -95,7 +86,6 @@ function verify_packages() {
 }
 
 source "${HOME}/INSTALL/bin/activate"
-maybe_set_protoc
 build_sdists
 download_packages
 verify_packages

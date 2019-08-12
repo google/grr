@@ -66,6 +66,11 @@ PyObject *py_varint_encode(PyObject *self, PyObject *args) {
   unsigned char buffer[100];
   Py_ssize_t index = sizeof(buffer);
   unsigned PY_LONG_LONG value;
+#ifdef IS_PY3K
+  const char *fmt = "y#";
+#else
+  const char *fmt = "s#";
+#endif
 
   if (!PyArg_ParseTuple(args, "K", &value))
     return NULL;
@@ -77,7 +82,8 @@ PyObject *py_varint_encode(PyObject *self, PyObject *args) {
     return NULL;
   }
 
-  return Py_BuildValue("s#", buffer, index);
+
+  return Py_BuildValue(fmt, buffer, index);
 }
 
 
@@ -114,8 +120,13 @@ PyObject *py_varint_decode(PyObject *self, PyObject *args) {
   Py_ssize_t pos = 0;
   Py_ssize_t length = 0;
   unsigned PY_LONG_LONG result = 0;
+#ifdef IS_PY3K
+  const char *fmt = "y#n";
+#else
+  const char *fmt = "s#n";
+#endif
 
-  if (!PyArg_ParseTuple(args, "s#n", &buffer, &length, &pos))
+  if (!PyArg_ParseTuple(args, fmt, &buffer, &length, &pos))
     return NULL;
 
   if (varint_decode(&result, buffer+pos, length, &length)) {
@@ -367,4 +378,3 @@ PyMODINIT_FUNC init_semantic(void) {
                  "Semantic Protobuf accelerator.");
 }
 #endif
-

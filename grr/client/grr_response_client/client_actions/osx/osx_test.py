@@ -297,7 +297,7 @@ class ParseIfaddrsTest(OSXClientTests):
         ])
 
     results = list(self.osx.ParseIfaddrs(ctypes.pointer(ifaddr)))
-    self.assertSameElements(results, [expected_foo_iface, expected_bar_iface])
+    self.assertCountEqual(results, [expected_foo_iface, expected_bar_iface])
 
   def testNoAddr(self):
     ifaddr = self.osx.Ifaddrs()

@@ -182,7 +182,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
   def testGetArtifact(self):
     """Test we can get a basic artifact."""
     # Dynamically add an ArtifactSource specifying the base path.
-    file_path = os.path.join(self.base_path, "hello.exe")
+    file_path = os.path.join(self.base_path, "win_hello.exe")
     coll1 = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
         attributes={"paths": [file_path]})
@@ -191,7 +191,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     self._GetArtifact("FakeArtifact")
 
   def testArtifactUpload(self):
-    file_path = os.path.join(self.base_path, "hello.exe")
+    file_path = os.path.join(self.base_path, "win_hello.exe")
 
     artifact_source = """
   name: ArtifactFromSource
@@ -224,7 +224,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
   def _GetArtifact(self, artifact_name):
     client_mock = action_mocks.FileFinderClientMock()
     client_id = self.SetupClient(0, system="Linux")
-    file_path = os.path.join(self.base_path, "hello.exe")
+    file_path = os.path.join(self.base_path, "win_hello.exe")
 
     artifact_list = [artifact_name]
     flow_test_lib.TestFlowHelper(
@@ -820,17 +820,14 @@ class TestCmdParser(parser.CommandParser):
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestEchoArtifact"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
-    del cmd, args, stderr, return_val, time_taken, knowledge_base  # Unused
-    installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
+    del cmd, args, stderr, return_val, knowledge_base  # Unused
     yield rdf_client.SoftwarePackages(packages=[
-        rdf_client.SoftwarePackage(
+        rdf_client.SoftwarePackage.Installed(
             name="Package",
             description=stdout,
             version="1",
-            architecture="amd64",
-            install_state=installed)
+            architecture="amd64"),
     ])
 
 

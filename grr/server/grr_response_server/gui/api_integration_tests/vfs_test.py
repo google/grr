@@ -22,7 +22,7 @@ from grr_response_server import artifact_registry
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -30,7 +30,7 @@ from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
 
-class ApiClientLibVfsTest(api_e2e_test_lib.ApiE2ETest):
+class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
   """Tests VFS operations part of GRR Python API client library."""
 
   def setUp(self):

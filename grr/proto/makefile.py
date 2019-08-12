@@ -62,24 +62,11 @@ def MakeProto():
         protos_to_compile.append(full_filename)
 
   if protos_to_compile:
-    # Find the protoc compiler.
-    protoc = os.environ.get("PROTOC", "protoc")
-    try:
-      output = subprocess.check_output([protoc, "--version"])
-    except (IOError, OSError):
-      raise RuntimeError("Unable to launch %s protoc compiler. Please "
-                         "set the PROTOC environment variable.", protoc)
-
-
-    expected_version = b"3.8.0"
-
-    if expected_version not in output:
-      raise RuntimeError("Incompatible protoc compiler detected. "
-                         "We need %s not %s" % (expected_version, output))
-
     for proto in protos_to_compile:
       command = [
-          protoc,
+          "python",
+          "-m",
+          "grpc_tools.protoc",
           # Write the python files next to the .proto files.
           "--python_out",
           ROOT,

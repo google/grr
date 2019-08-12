@@ -10,11 +10,12 @@ from future.builtins import range
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import root as grr_api_root
 from grr_response_server import data_store
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr.test_lib import test_lib
 
 
-class RootApiUserManagementTest(api_e2e_test_lib.RootApiE2ETest):
+class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
+                               ):
   """E2E test for root API user management calls."""
 
   def _GetPassword(self, username):

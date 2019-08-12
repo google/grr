@@ -17,7 +17,7 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_robot_router
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -28,7 +28,7 @@ ROBOT_ROUTER_NAME = compatibility.GetName(
     api_call_robot_router.ApiCallRobotRouter)
 
 
-class ApiCallRobotRouterE2ETest(api_e2e_test_lib.ApiE2ETest):
+class ApiCallRobotRouterE2ETest(api_integration_test_lib.ApiIntegrationTest):
 
   FILE_FINDER_ROUTER_CONFIG = """
 router: "{0}"
@@ -194,7 +194,7 @@ users:
         name=file_finder.FileFinder.__name__, args=args[1])
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
-    with self.assertRaisesRegexp(RuntimeError, "2 flows run since"):
+    with self.assertRaisesRegex(RuntimeError, "2 flows run since"):
       client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args[2])
 
   def testFileFinderThrottlingByDuplicateIntervalWorks(self):

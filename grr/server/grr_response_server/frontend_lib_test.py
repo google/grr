@@ -8,6 +8,7 @@ import array
 import logging
 import pdb
 import time
+import zlib
 
 from absl import app
 from absl import flags
@@ -32,7 +33,6 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import flow
@@ -46,6 +46,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import client_action_test_lib
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
+from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
@@ -119,6 +120,34 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(received, 1)
     self.assertEqual(received[0][0], req)
     self.assertLen(received[0][1], 9)
+
+  def testBlobHandlerMessagesAreHandledOnTheFrontend(self):
+    client_id = "C.1234567890123456"
+    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    # Check that the worker queue is empty.
+    self.assertEmpty(data_store.REL_DB.ReadMessageHandlerRequests())
+
+    data = b"foo"
+    data_blob = rdf_protodict.DataBlob(
+        data=zlib.compress(data),
+        compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION)
+    messages = [
+        rdf_flows.GrrMessage(
+            source=client_id,
+            session_id=str(rdfvalue.SessionID(flow_name="TransferStore")),
+            payload=data_blob,
+            auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
+        )
+    ]
+    ReceiveMessages(client_id, messages)
+
+    # Check that the worker queue is still empty.
+    self.assertEmpty(data_store.REL_DB.ReadMessageHandlerRequests())
+
+    # Check that the blob was written to the blob store.
+    self.assertTrue(
+        data_store.BLOBS.CheckBlobExists(rdf_objects.BlobID.FromBlobData(data)))
 
   def testCrashReport(self):
     client_id = "C.1234567890123456"
@@ -217,7 +246,8 @@ def MakeResponse(code=500, data=""):
   return response
 
 
-class ClientCommsTest(client_action_test_lib.WithAllClientActionsMixin,
+class ClientCommsTest(stats_test_lib.StatsTestMixin,
+                      client_action_test_lib.WithAllClientActionsMixin,
                       test_lib.GRRBaseTest):
   """Test the communicator."""
 
@@ -329,18 +359,14 @@ class ClientCommsTest(client_action_test_lib.WithAllClientActionsMixin,
   def testClientPingStatsUpdated(self):
     """Check client ping stats are updated."""
     self._MakeClientRecord()
-    current_pings = stats_collector_instance.Get().GetMetricValue(
-        "client_pings_by_label", fields=["testlabel"])
 
-    data_store.REL_DB.AddClientLabels(self.client_id, "Test", ["testlabel"])
+    with self.assertStatsCounterDelta(
+        1, frontend_lib.CLIENT_PINGS_BY_LABEL, fields=["testlabel"]):
+      data_store.REL_DB.AddClientLabels(self.client_id, "Test", ["testlabel"])
 
-    now = rdfvalue.RDFDatetime.Now()
-    with test_lib.FakeTime(now):
-      self.ClientServerCommunicate(timestamp=now)
-
-    new_pings = stats_collector_instance.Get().GetMetricValue(
-        "client_pings_by_label", fields=["testlabel"])
-    self.assertEqual(new_pings, current_pings + 1)
+      now = rdfvalue.RDFDatetime.Now()
+      with test_lib.FakeTime(now):
+        self.ClientServerCommunicate(timestamp=now)
 
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""

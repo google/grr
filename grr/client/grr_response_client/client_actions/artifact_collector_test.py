@@ -528,17 +528,14 @@ class TestEchoCmdParser(parser.CommandParser):
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestEchoCmdArtifact"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
-    del cmd, args, stderr, return_val, time_taken, knowledge_base  # Unused
-    installed = rdf_client.SoftwarePackage.InstallState.INSTALLED
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
+    del cmd, args, stderr, return_val, knowledge_base  # Unused
     yield rdf_client.SoftwarePackages(packages=[
-        rdf_client.SoftwarePackage(
+        rdf_client.SoftwarePackage.Installed(
             name="Package",
             description=stdout,
             version="1",
-            architecture="amd64",
-            install_state=installed)
+            architecture="amd64"),
     ])
 
 

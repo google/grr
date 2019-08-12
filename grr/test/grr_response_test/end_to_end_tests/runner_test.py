@@ -175,8 +175,8 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     e2e_runner = self._CreateE2ETestRunner(
         api_retry_period_secs=0.1, api_retry_deadline_secs=0.5)
     e2e_runner.Initialize()
-    with self.assertRaisesRegexp(runner.E2ETestError,
-                                 "Can't find applicable tests"):
+    with self.assertRaisesRegex(runner.E2ETestError,
+                                "Can't find applicable tests"):
       e2e_runner.RunTestsAgainstClient(api_client.client_id)
 
   @mock.patch.dict(

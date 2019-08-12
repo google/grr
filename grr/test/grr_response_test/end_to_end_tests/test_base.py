@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import binascii
 import io
 import logging
 import time
@@ -243,8 +244,8 @@ class AbstractFileTransferTest(EndToEndTest):
   def CheckMacMagic(self, path):
     data = self.ReadFromFile(path, 10)
 
-    magic_values = ["cafebabe", "cefaedfe", "cffaedfe"]
-    magic_values = [x.decode("hex") for x in magic_values]
+    magic_values = [b"cafebabe", b"cefaedfe", b"cffaedfe"]
+    magic_values = [binascii.unhexlify(x) for x in magic_values]
     self.assertIn(data[:4], magic_values)
 
   def CheckELFMagic(self, path):

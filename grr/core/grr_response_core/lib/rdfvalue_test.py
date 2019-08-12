@@ -167,10 +167,10 @@ class RDFDateTimeTest(absltest.TestCase):
   def testLerpRaisesTypeErrorIfTimesAreNotRDFDatetime(self):
     now = rdfvalue.RDFDatetime.Now()
 
-    with self.assertRaisesRegexp(TypeError, "non-datetime"):
+    with self.assertRaisesRegex(TypeError, "non-datetime"):
       rdfvalue.RDFDatetime.Lerp(0.0, start_time=10, end_time=now)
 
-    with self.assertRaisesRegexp(TypeError, "non-datetime"):
+    with self.assertRaisesRegex(TypeError, "non-datetime"):
       rdfvalue.RDFDatetime.Lerp(
           0.0, start_time=now, end_time=rdfvalue.DurationSeconds("1d"))
 

@@ -5,7 +5,6 @@ branches:
 image: ubuntu
 
 environment:
-  PROTOC: "${HOME}/protobuf/bin/protoc"
   GRR_VENV: "${HOME}/INSTALL"
   CHROME_DEB: google-chrome-stable_current_amd64.deb
 
@@ -27,7 +26,6 @@ install:
   if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
   wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
   fi
-- travis/install_protobuf.sh linux
 - virtualenv "${GRR_VENV}"
 - ${GRR_VENV}/bin/pip install pytest-xdist
 - travis/install.sh

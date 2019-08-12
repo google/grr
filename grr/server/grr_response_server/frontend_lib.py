@@ -8,6 +8,7 @@ import logging
 import operator
 import time
 
+from future import builtins as future_builtins
 from future.utils import iteritems
 
 from grr_response_core.lib import communicator
@@ -19,15 +20,42 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
-from grr_response_core.stats import stats_collector_instance
-from grr_response_core.stats import stats_utils
+from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import message_handlers
+from grr_response_server import worker_lib
 from grr_response_server.databases import db
+from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+CLIENT_PINGS_BY_LABEL = metrics.Counter(
+    "client_pings_by_label", fields=[("label", future_builtins.str)])
+FRONTEND_ACTIVE_COUNT = metrics.Gauge(
+    "frontend_active_count", int, fields=[("source", future_builtins.str)])
+FRONTEND_MAX_ACTIVE_COUNT = metrics.Gauge("frontend_max_active_count", int)
+FRONTEND_HTTP_REQUESTS = metrics.Counter(
+    "frontend_http_requests",
+    fields=[("action", future_builtins.str), ("protocol", future_builtins.str)])
+FRONTEND_IN_BYTES = metrics.Counter(
+    "frontend_in_bytes", fields=[("source", future_builtins.str)])
+FRONTEND_OUT_BYTES = metrics.Counter(
+    "frontend_out_bytes", fields=[("source", future_builtins.str)])
+FRONTEND_REQUEST_COUNT = metrics.Counter(
+    "frontend_request_count", fields=[("source", future_builtins.str)])
+FRONTEND_INACTIVE_REQUEST_COUNT = metrics.Counter(
+    "frontend_inactive_request_count", fields=[("source", future_builtins.str)])
+FRONTEND_REQUEST_LATENCY = metrics.Event(
+    "frontend_request_latency", fields=[("source", future_builtins.str)])
+GRR_FRONTENDSERVER_HANDLE_TIME = metrics.Event("grr_frontendserver_handle_time")
+GRR_FRONTENDSERVER_HANDLE_NUM = metrics.Counter("grr_frontendserver_handle_num")
+GRR_MESSAGES_SENT = metrics.Counter("grr_messages_sent")
+GRR_PUB_KEY_CACHE = metrics.Counter(
+    "grr_pub_key_cache", fields=[("type", future_builtins.str)])
+GRR_UNIQUE_CLIENTS = metrics.Counter("grr_unique_clients")
 
 
 class ServerCommunicator(communicator.Communicator):
@@ -44,17 +72,15 @@ class ServerCommunicator(communicator.Communicator):
     try:
       # See if we have this client already cached.
       remote_key = self.pub_key_cache.Get(remote_client_id)
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_pub_key_cache", fields=["hits"])
+      GRR_PUB_KEY_CACHE.Increment(fields=["hits"])
       return remote_key
     except KeyError:
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_pub_key_cache", fields=["misses"])
+      GRR_PUB_KEY_CACHE.Increment(fields=["misses"])
 
     try:
       md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
     except db.UnknownClientError:
-      stats_collector_instance.Get().IncrementCounter("grr_unique_clients")
+      GRR_UNIQUE_CLIENTS.Increment()
       raise communicator.UnknownClientCertError("Cert not found")
 
     cert = md.certificate
@@ -90,8 +116,7 @@ class ServerCommunicator(communicator.Communicator):
     """
     if (not cipher_verified and
         not cipher.VerifyCipherSignature(remote_public_key)):
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_unauthenticated_messages")
+      communicator.GRR_UNAUTHENTICATED_MESSAGES.Increment()
       return rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
     try:
@@ -125,12 +150,10 @@ class ServerCommunicator(communicator.Communicator):
                           stored_client_time, client_time)
           update_metadata = False
 
-      stats_collector_instance.Get().IncrementCounter(
-          "grr_authenticated_messages")
+      communicator.GRR_AUTHENTICATED_MESSAGES.Increment()
 
       for label in data_store.REL_DB.ReadClientLabels(client_id):
-        stats_collector_instance.Get().IncrementCounter(
-            "client_pings_by_label", fields=[label.name])
+        CLIENT_PINGS_BY_LABEL.Increment(fields=[label.name])
 
       if not update_metadata:
         return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
@@ -192,8 +215,8 @@ class FrontEndServer(object):
     self.unauth_allowed_session_id = rdfvalue.SessionID(
         queue=queues.ENROLLMENT, flow_name="Enrol")
 
-  @stats_utils.Counted("grr_frontendserver_handle_num")
-  @stats_utils.Timed("grr_frontendserver_handle_time")
+  @GRR_FRONTENDSERVER_HANDLE_NUM.Counted()
+  @GRR_FRONTENDSERVER_HANDLE_TIME.Timed()
   def HandleMessageBundles(self, request_comms, response_comms):
     """Processes a queue of messages as passed from the client.
 
@@ -271,8 +294,7 @@ class FrontEndServer(object):
         for r in action_requests
     ]
 
-    stats_collector_instance.Get().IncrementCounter("grr_messages_sent",
-                                                    len(result))
+    GRR_MESSAGES_SENT.Increment(len(result))
     if result:
       logging.debug("Drained %d messages for %s in %s seconds.", len(result),
                     client,
@@ -313,6 +335,13 @@ class FrontEndServer(object):
       str(rdfvalue.SessionID(flow_name="Stats", queue=rdfvalue.RDFURN("W")))
   ])
 
+  # Message handler requests addressed to these handlers will be processed
+  # directly on the frontend and not written to the worker queue.
+  # Currently we only do this for BlobHandler, since it's important
+  # to write blobs to the datastore as fast as possible. GetFile/MultiGetFile
+  # logic depends on blobs being in the blob store to do file hashing.
+  _SHORTCUT_HANDLERS = frozenset([transfer.BlobHandler.handler_name])
+
   def ReceiveMessages(self, client_id, messages):
     """Receives and processes the messages.
 
@@ -326,7 +355,8 @@ class FrontEndServer(object):
     """
     now = time.time()
     unprocessed_msgs = []
-    message_handler_requests = []
+    worker_message_handler_requests = []
+    frontend_message_handler_requests = []
     dropped_count = 0
     for session_id, msgs in iteritems(
         collection.Group(messages, operator.attrgetter("session_id"))):
@@ -339,12 +369,15 @@ class FrontEndServer(object):
 
         session_id_str = str(session_id)
         if session_id_str in message_handlers.session_id_map:
-          message_handler_requests.append(
-              rdf_objects.MessageHandlerRequest(
-                  client_id=msg.source.Basename(),
-                  handler_name=message_handlers.session_id_map[session_id],
-                  request_id=msg.response_id or random.UInt32(),
-                  request=msg.payload))
+          request = rdf_objects.MessageHandlerRequest(
+              client_id=msg.source.Basename(),
+              handler_name=message_handlers.session_id_map[session_id],
+              request_id=msg.response_id or random.UInt32(),
+              request=msg.payload)
+          if request.handler_name in self._SHORTCUT_HANDLERS:
+            frontend_message_handler_requests.append(request)
+          else:
+            worker_message_handler_requests.append(request)
         elif session_id_str in self.legacy_well_known_session_ids:
           logging.debug("Dropping message for legacy well known session id %s",
                         session_id)
@@ -378,8 +411,13 @@ class FrontEndServer(object):
             events.Events.PublishEvent(
                 "ClientCrash", crash_details, token=self.token)
 
-    if message_handler_requests:
-      data_store.REL_DB.WriteMessageHandlerRequests(message_handler_requests)
+    if worker_message_handler_requests:
+      data_store.REL_DB.WriteMessageHandlerRequests(
+          worker_message_handler_requests)
+
+    if frontend_message_handler_requests:
+      worker_lib.ProcessMessageHandlerRequests(
+          frontend_message_handler_requests)
 
     logging.debug("Received %s messages from %s in %s sec", len(messages),
                   client_id,

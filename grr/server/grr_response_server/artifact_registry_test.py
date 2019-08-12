@@ -124,8 +124,8 @@ class ArtifactTest(absltest.TestCase):
     artifact = rdf_artifacts.Artifact(
         name="Baz", provides=["os"], supported_os=["Linux"])
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSyntaxError,
-                                 "missing doc"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
+                                "missing doc"):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxInvalidSupportedOs(self):
@@ -136,8 +136,7 @@ class ArtifactTest(absltest.TestCase):
         labels=["Cloud", "Logs"],
         supported_os=["Solaris"])
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSyntaxError,
-                                 "'Solaris'"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'Solaris'"):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxInvalidLabel(self):
@@ -148,7 +147,7 @@ class ArtifactTest(absltest.TestCase):
         labels=["Mail", "Browser", "Reddit"],
         supported_os=["Darwin"])
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSyntaxError, "'Reddit'"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'Reddit'"):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBrokenProvides(self):
@@ -158,8 +157,7 @@ class ArtifactTest(absltest.TestCase):
         provides=["fqdn", "garbage"],
         labels=["Network"])
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSyntaxError,
-                                 "'garbage'"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'garbage'"):
       ar.ValidateSyntax(artifact)
 
   def testValidateSyntaxBadSource(self):
@@ -175,8 +173,8 @@ class ArtifactTest(absltest.TestCase):
         labels=["Logs", "Memory"],
         sources=[source])
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSyntaxError,
-                                 "required attributes"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
+                                "required attributes"):
       ar.ValidateSyntax(artifact)
 
 
@@ -218,8 +216,8 @@ class ArtifactSourceTest(absltest.TestCase):
             "args": ["-foo -bar"],
         })
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSourceSyntaxError,
-                                 "'-foo -bar'"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
+                                "'-foo -bar'"):
       source.Validate()
 
   def testValidatePathsIsAList(self):
@@ -229,8 +227,8 @@ class ArtifactSourceTest(absltest.TestCase):
             "paths": "/bin",
         })
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSourceSyntaxError,
-                                 "not a list"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
+                                "not a list"):
       source.Validate()
 
   def testValidatePathIsAString(self):
@@ -241,8 +239,8 @@ class ArtifactSourceTest(absltest.TestCase):
             "path": ["/tmp", "/var"],
         })
 
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSourceSyntaxError,
-                                 "not a string"):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
+                                "not a string"):
       source.Validate()
 
   def testValidateMissingRequiredAttributes(self):
@@ -253,8 +251,8 @@ class ArtifactSourceTest(absltest.TestCase):
         })
 
     expected = "missing required attributes: 'content_regex_list'"
-    with self.assertRaisesRegexp(rdf_artifacts.ArtifactSourceSyntaxError,
-                                 expected):
+    with self.assertRaisesRegex(rdf_artifacts.ArtifactSourceSyntaxError,
+                                expected):
       source.Validate()
 
 

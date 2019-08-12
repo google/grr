@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+# -*- encoding: utf-8 -*-
 """Tests for grr.parsers.osx_file_parser."""
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -9,9 +9,12 @@ import io
 import os
 
 from absl import app
+import biplist
 
+from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import osx_file_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
@@ -44,13 +47,29 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     self.assertCountEqual([x.homedir for x in out],
                           ["/Users/user1", "/Users/user2"])
 
+  def testOSXSPHardwareDataTypeParserInvalidInput(self):
+    parser = osx_file_parser.OSXSPHardwareDataTypeParser()
+
+    response = rdf_client_action.ExecuteResponse()
+    response.request.cmd = "/usr/sbin/system_profiler"
+    response.request.args = ["-xml", "SPHardwareDataType"]
+    response.stdout = "chrząszcz brzmi w trzcinie".encode("utf-8")
+    response.stdout = b""
+    response.exit_status = 0
+
+    with self.assertRaises(parsers.ParseError) as context:
+      list(parser.ParseResponse(None, response, rdf_paths.PathSpec.PathType.OS))
+
+    exception = context.exception
+    self.assertIsInstance(exception.cause, biplist.InvalidPlistException)
+
   def testOSXSPHardwareDataTypeParser(self):
     parser = osx_file_parser.OSXSPHardwareDataTypeParser()
     content = open(os.path.join(self.base_path, "system_profiler.xml"),
                    "rb").read()
     result = list(
         parser.Parse("/usr/sbin/system_profiler", ["SPHardwareDataType -xml"],
-                     content, "", 0, 5, None))
+                     content, "", 0, None))
     self.assertEqual(result[0].serial_number, "C02JQ0F5F6L9")
     self.assertEqual(result[0].bios_version, "MBP101.00EE.B02")
     self.assertEqual(result[0].system_product_name, "MacBookPro10,1")
@@ -71,6 +90,18 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
           "/usr/lib/grr/grr_3.0.0.5_amd64/grr",
           "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"
       ])
+
+  def testOSXInstallHistoryPlistParserInvalidInput(self):
+    parser = osx_file_parser.OSXInstallHistoryPlistParser()
+
+    pathspec = rdf_paths.PathSpec.OS(path=os.path.join("foo", "bar", "baz"))
+    contents = io.BytesIO("zażółć gęślą jaźń".encode("utf-8"))
+
+    with self.assertRaises(parsers.ParseError) as context:
+      list(parser.ParseFile(None, pathspec, contents))
+
+    exception = context.exception
+    self.assertIsInstance(exception.cause, biplist.InvalidPlistException)
 
   def testOSXInstallHistoryPlistParser(self):
     parser = osx_file_parser.OSXInstallHistoryPlistParser()

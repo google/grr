@@ -1,19 +1,182 @@
 #!/usr/bin/env python
 """Unit test for the linux cmd parser."""
-
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import os
 
 from absl import app
 from absl.testing import absltest
+from typing import Sequence
+from typing import Text
 
 from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr.test_lib import test_lib
+
+
+class YumListCmdParserTest(absltest.TestCase):
+
+  def testSimpleOutput(self):
+    output = """\
+Installed Packages
+foo.i386  3.14 @foo
+bar.z80   2.71 @bar
+baz.armv8 1.41 @baz
+    """
+
+    packages = self._Parse(output)
+    self.assertSequenceEqual(packages, [
+        rdf_client.SoftwarePackage.Installed(
+            name="foo", architecture="i386", publisher="@foo", version="3.14"),
+        rdf_client.SoftwarePackage.Installed(
+            name="bar", architecture="z80", publisher="@bar", version="2.71"),
+        rdf_client.SoftwarePackage.Installed(
+            name="baz", architecture="armv8", publisher="@baz", version="1.41"),
+    ])
+
+  def testWrappedOutput(self):
+    output = """\
+Installed Packages
+foo.i386  3.14
+               @foo
+bar.z80   2.71 @bar
+baz.armv8
+          1.41 @baz
+    """
+
+    packages = self._Parse(output)
+    self.assertSequenceEqual(packages, [
+        rdf_client.SoftwarePackage.Installed(
+            name="foo", architecture="i386", publisher="@foo", version="3.14"),
+        rdf_client.SoftwarePackage.Installed(
+            name="bar", architecture="z80", publisher="@bar", version="2.71"),
+        rdf_client.SoftwarePackage.Installed(
+            name="baz", architecture="armv8", publisher="@baz", version="1.41"),
+    ])
+
+  def testRealOutput(self):
+    output = """\
+Installed Packages
+NetworkManager.x86_64      1:1.8.0-12.el7_4    @rhui-rhel-7-server-e4s-rhui-rpms
+NetworkManager-config-server.noarch
+                           1:1.8.0-12.el7_4    @rhui-rhel-7-server-e4s-rhui-rpms
+NetworkManager-libnm.x86_64
+                           1:1.8.0-12.el7_4    @rhui-rhel-7-server-e4s-rhui-rpms
+NetworkManager-team.x86_64 1:1.8.0-12.el7_4    @rhui-rhel-7-server-e4s-rhui-rpms
+NetworkManager-tui.x86_64  1:1.8.0-12.el7_4    @rhui-rhel-7-server-e4s-rhui-rpms
+Red_Hat_Enterprise_Linux-Release_Notes-7-en-US.noarch
+                           7-2.el7             @anaconda
+cronie-anacron.x86_64      1.4.11-17.el7       @anaconda
+crontabs.noarch            1.11-6.20121102git.el7
+                                               @anaconda
+device-mapper.x86_64       7:1.02.140-8.el7    @anaconda
+device-mapper-event.x86_64 7:1.02.140-8.el7    @rhui-rhel-7-server-e4s-rhui-rpms
+device-mapper-event-libs.x86_64
+                           7:1.02.140-8.el7    @rhui-rhel-7-server-e4s-rhui-rpms
+device-mapper-libs.x86_64  7:1.02.140-8.el7    @anaconda
+device-mapper-persistent-data.x86_64
+                           0.7.0-0.1.rc6.el7_4.1
+                                               @rhui-rhel-7-server-e4s-rhui-rpms
+dhclient.x86_64            12:4.2.5-58.el7_4.4 @rhui-rhel-7-server-e4s-rhui-rpms
+dhcp-common.x86_64         12:4.2.5-58.el7_4.4 @rhui-rhel-7-server-e4s-rhui-rpms
+    """
+
+    packages = self._Parse(output)
+    self.assertSequenceEqual(packages, [
+        rdf_client.SoftwarePackage.Installed(
+            name="NetworkManager",
+            architecture="x86_64",
+            version="1:1.8.0-12.el7_4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="NetworkManager-config-server",
+            architecture="noarch",
+            version="1:1.8.0-12.el7_4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="NetworkManager-libnm",
+            architecture="x86_64",
+            version="1:1.8.0-12.el7_4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="NetworkManager-team",
+            architecture="x86_64",
+            version="1:1.8.0-12.el7_4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="NetworkManager-tui",
+            architecture="x86_64",
+            version="1:1.8.0-12.el7_4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="Red_Hat_Enterprise_Linux-Release_Notes-7-en-US",
+            architecture="noarch",
+            version="7-2.el7",
+            publisher="@anaconda"),
+        rdf_client.SoftwarePackage.Installed(
+            name="cronie-anacron",
+            architecture="x86_64",
+            version="1.4.11-17.el7",
+            publisher="@anaconda"),
+        rdf_client.SoftwarePackage.Installed(
+            name="crontabs",
+            architecture="noarch",
+            version="1.11-6.20121102git.el7",
+            publisher="@anaconda"),
+        rdf_client.SoftwarePackage.Installed(
+            name="device-mapper",
+            architecture="x86_64",
+            version="7:1.02.140-8.el7",
+            publisher="@anaconda"),
+        rdf_client.SoftwarePackage.Installed(
+            name="device-mapper-event",
+            architecture="x86_64",
+            version="7:1.02.140-8.el7",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="device-mapper-event-libs",
+            architecture="x86_64",
+            version="7:1.02.140-8.el7",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="device-mapper-libs",
+            architecture="x86_64",
+            version="7:1.02.140-8.el7",
+            publisher="@anaconda"),
+        rdf_client.SoftwarePackage.Installed(
+            name="device-mapper-persistent-data",
+            architecture="x86_64",
+            version="0.7.0-0.1.rc6.el7_4.1",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="dhclient",
+            architecture="x86_64",
+            version="12:4.2.5-58.el7_4.4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+        rdf_client.SoftwarePackage.Installed(
+            name="dhcp-common",
+            architecture="x86_64",
+            version="12:4.2.5-58.el7_4.4",
+            publisher="@rhui-rhel-7-server-e4s-rhui-rpms"),
+    ])
+
+  @staticmethod
+  def _Parse(output):
+    parser = linux_cmd_parser.YumListCmdParser()
+    parsed = list(
+        parser.Parse(
+            cmd="yum",
+            args=["list installed"],
+            stdout=output.encode("utf-8"),
+            stderr=b"",
+            return_val=0,
+            knowledge_base=None))
+
+    return parsed[0].packages
 
 
 class LinuxCmdParserTest(test_lib.GRRBaseTest):
@@ -24,7 +187,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_cmd_parser.YumListCmdParser()
     content = open(os.path.join(self.base_path, "yum.out"), "rb").read()
     out = list(
-        parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0, 5,
+        parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0,
                      None))
     self.assertLen(out, 1)
     self.assertLen(out[0].packages, 2)
@@ -40,7 +203,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     content = open(os.path.join(self.base_path, "repolist.out"), "rb").read()
     repolist = list(
         parser.Parse("/usr/bin/yum", ["repolist", "-v", "-q"], content, "", 0,
-                     5, None))
+                     None))
     self.assertIsInstance(repolist[0], rdf_client.PackageRepository)
 
     self.assertEqual(repolist[0].id, "rhel")
@@ -68,7 +231,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
       -not-valid.123.el5
     """
     stderr = "error: rpmdbNextIterator: skipping h#"
-    out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
+    out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, None))
     # A package list and an Anomaly.
     self.assertLen(out, 2)
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
@@ -101,8 +264,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_cmd_parser.DpkgCmdParser()
     content = open(os.path.join(self.base_path, "checks/data/dpkg.out"),
                    "rb").read()
-    out = list(
-        parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
+    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, None))
     self.assertLen(out, 1)
     package_list = out[0]
     self.assertLen(package_list.packages, 181)
@@ -114,8 +276,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     content = open(
         os.path.join(self.base_path, "checks/data/dpkg.precise.out"),
         "rb").read()
-    out = list(
-        parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
+    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, None))
     self.assertLen(out, 1)
     package_list = out[0]
     self.assertLen(package_list.packages, 30)
@@ -126,7 +287,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_cmd_parser.DmidecodeCmdParser()
     content = open(os.path.join(self.base_path, "dmidecode.out"), "rb").read()
     parse_result = list(
-        parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, 5, None))
+        parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, None))
     self.assertLen(parse_result, 1)
     hardware = parse_result[0]
 
@@ -160,7 +321,7 @@ foobar    69081  69080  1 Oct02 ?        02:08:49 cinnamon --replace
 """
 
     parser = linux_cmd_parser.PsCmdParser()
-    processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, 0, None))
+    processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, None))
 
     self.assertLen(processes, 5)
 
@@ -211,7 +372,7 @@ foo       4      2  0 Sep05 ?        00:00:00 /foo/bar/baz --quux=1337
 """
 
     parser = linux_cmd_parser.PsCmdParser()
-    processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, 0, None))
+    processes = list(parser.Parse("/bin/ps", "-ef", stdout, "", 0, None))
 
     self.assertLen(processes, 4)
 

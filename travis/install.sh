@@ -14,13 +14,6 @@ nodeenv -p --prebuilt --node=10.12.0
 # Pull in changes to activate made by nodeenv
 source "${HOME}/INSTALL/bin/activate"
 
-# Set default value for PROTOC if necessary.
-default_protoc_path="${HOME}/protobuf/bin/protoc"
-if [[ -z "${PROTOC}" && "${PATH}" != *'protoc'* && -f "${default_protoc_path}" ]]; then
-  echo "PROTOC is not set. Will set it to ${default_protoc_path}."
-  export PROTOC="${default_protoc_path}"
-fi
-
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS
 

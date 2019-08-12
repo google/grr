@@ -9,6 +9,7 @@ import sys
 
 from future.builtins import range
 from future.utils import iteritems
+import mock
 from typing import Text
 
 from grr_response_client.client_actions import standard
@@ -22,6 +23,8 @@ from grr_response_core.lib.util import precondition
 from grr_response_proto import tests_pb2
 from grr_response_server import data_store
 from grr_response_server import events
+from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import handler_registry
@@ -32,6 +35,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
+from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import test_lib
 
 
@@ -194,6 +198,16 @@ class DummyLogFlowChild(flow_base.FlowBase):
 class FlowTestsBaseclass(test_lib.GRRBaseTest):
   """The base class for all flow tests."""
 
+  def setUp(self):
+    super(FlowTestsBaseclass, self).setUp()
+
+    # Set up emulation for an in-memory Fleetspeak service.
+    conn_patcher = mock.patch.object(fleetspeak_connector, "CONN")
+    mock_conn = conn_patcher.start()
+    self.addCleanup(conn_patcher.stop)
+    mock_conn.outgoing.InsertMessage.side_effect = (
+        fleetspeak_test_lib.StoreMessage)
+
 
 class CrashClientMock(action_mocks.ActionMock):
   """Client mock that simulates a client crash."""
@@ -232,10 +246,11 @@ class MockClient(object):
     else:
       precondition.AssertType(client_mock, action_mocks.ActionMock)
 
-    self._mock_task_queue = getattr(client_mock, "mock_task_queue", [])
     self.client_id = client_id
     self.client_mock = client_mock
     self.token = token
+    self._is_fleetspeak_client = fleetspeak_utils.IsFleetspeakEnabledClient(
+        client_id)
 
   def _PushHandlerMessage(self, message):
     """Pushes a message that goes to a message handler."""
@@ -285,35 +300,40 @@ class MockClient(object):
         [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
 
   def Next(self):
-    """Grab tasks for us from the server's queue."""
-    request_tasks = data_store.REL_DB.LeaseClientActionRequests(
-        self.client_id, lease_time=rdfvalue.DurationSeconds("10000s"), limit=1)
-    request_tasks = [
-        rdf_flow_objects.GRRMessageFromClientActionRequest(r)
-        for r in request_tasks
-    ]
+    """Emulates execution of a single ClientActionRequest.
 
-    request_tasks.extend(self._mock_task_queue)
-    self._mock_task_queue[:] = []  # Clear the referenced list.
-
-    for message in request_tasks:
+    Returns:
+       True iff a ClientActionRequest was found for the client.
+    """
+    if self._is_fleetspeak_client:
+      next_task = fleetspeak_test_lib.PopMessage(self.client_id)
+      if next_task is None:
+        return False
+    else:
+      request = data_store.REL_DB.LeaseClientActionRequests(
+          self.client_id,
+          lease_time=rdfvalue.DurationSeconds("10000s"),
+          limit=1)
       try:
-        responses = self.client_mock.HandleMessage(message)
-        logging.info("Called client action %s generating %s responses",
-                     message.name,
-                     len(responses) + 1)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error %s occurred in client", e)
-        responses = [
-            self.client_mock.GenerateStatusMessage(
-                message, 1, status="GENERIC_ERROR")
-        ]
+        next_task = rdf_flow_objects.GRRMessageFromClientActionRequest(
+            request[0])
+      except IndexError:
+        return False
 
-      # Now insert those on the flow state queue
-      for response in responses:
-        self.PushToStateQueue(response)
+    try:
+      responses = self.client_mock.HandleMessage(next_task)
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception("Error %s occurred in client", e)
+      responses = [
+          self.client_mock.GenerateStatusMessage(
+              next_task, 1, status="GENERIC_ERROR")
+      ]
 
-    return len(request_tasks)
+    # Now insert those on the flow state queue
+    for response in responses:
+      self.PushToStateQueue(response)
+
+    return True
 
 
 def TestFlowHelper(flow_urn_or_cls_name,
@@ -437,11 +457,9 @@ def RunFlow(client_id,
             worker=None,
             check_flow_errors=True):
   """Runs the flow given until no further progress can be made."""
-
   all_processed_flows = set()
 
-  if client_id or client_mock:
-    client_mock = MockClient(client_id, client_mock)
+  client_mock = MockClient(client_id, client_mock)
 
   try:
     if worker is None:

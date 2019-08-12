@@ -71,6 +71,7 @@ setup_args = dict(
     url="https://github.com/google/grr",
     install_requires=[
         "absl-py==0.6.1",
+        "flaky==3.6.1",
         "mock==2.0.0",
         "mox==0.5.3",
         "pytest==4.6.2",

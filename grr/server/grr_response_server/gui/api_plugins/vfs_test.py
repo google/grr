@@ -885,18 +885,16 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     contents = zip_fd.read(archive_path)
     self.assertEqual(contents, b"Goodbye World")
 
-  def testNonExistentPathGeneratesEmptyArchive(self):
+  def testNonExistentPathRaises(self):
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, file_path="fs/os/blah/blah"),
         token=self.token)
 
-    out_fd = io.BytesIO()
-    for chunk in result.GenerateContent():
-      out_fd.write(chunk)
-
-    zip_fd = zipfile.ZipFile(out_fd, "r")
-    self.assertEqual(zip_fd.namelist(), [])
+    with self.assertRaises(db.UnknownPathError):
+      out_fd = io.BytesIO()
+      for chunk in result.GenerateContent():
+        out_fd.write(chunk)
 
   def testInvalidPathTriggersException(self):
     with self.assertRaises(ValueError):
@@ -1097,7 +1095,7 @@ class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
     args.file_path = "fs/os/baz"
     args.decoder_name = "Baz"
 
-    with self.assertRaisesRegexp(ValueError, "'Baz'"):
+    with self.assertRaisesRegex(ValueError, "'Baz'"):
       self._Result(args)
 
 

@@ -41,8 +41,7 @@ def GetDPKGData():
   parser = linux_cmd_parser.DpkgCmdParser()
   test_data = os.path.join(CHECKS_DIR, "data/dpkg.out")
   with open(test_data, "rb") as f:
-    DPKG_SW.extend(
-        parser.Parse("/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
+    DPKG_SW.extend(parser.Parse("/usr/bin/dpkg", ["-l"], f.read(), "", 0, None))
   return DPKG_SW
 
 

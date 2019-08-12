@@ -42,9 +42,9 @@ class TestLaunchBinaries(test_base.EndToEndTest):
   def runTest(self):
     binary_names = {
         test_base.EndToEndTest.Platform.WINDOWS:
-            "aff4:/config/executables/windows/test/hello.exe",
+            "aff4:/config/executables/windows/test/win_hello.exe",
         test_base.EndToEndTest.Platform.LINUX:
-            "aff4:/config/executables/linux/test/hello"
+            "aff4:/config/executables/linux/test/linux_hello"
     }
 
     args = self.grr_api.types.CreateFlowArgs(flow_name="LaunchBinary")

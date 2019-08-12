@@ -293,12 +293,12 @@ class SizeLimitedQueueTest(test_lib.GRRBaseTest):
     msg_d = rdf_flows.GrrMessage(name="D")
     messages = [msg_a, msg_b, msg_c, msg_d]
 
-    in_queue = set()
+    in_queue = []
     self.assertEqual(q.Size(), 0)
 
     for m in messages:
       q.Put(m, block=False)
-      in_queue.add(m)
+      in_queue.append(m)
 
       self.assertEqual(q.Size(),
                        sum([len(m.SerializeToBytes()) for m in in_queue]))

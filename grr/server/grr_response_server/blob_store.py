@@ -14,7 +14,7 @@ from typing import Dict, Iterable, List, Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Global blob stores registry.
@@ -23,12 +23,18 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 # registry approach by hanuszczak@ (currently in the works).
 REGISTRY = {}
 
+BLOB_STORE_POLL_HIT_LATENCY = metrics.Event(
+    "blob_store_poll_hit_latency",
+    bins=[0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50])
+BLOB_STORE_POLL_HIT_ITERATION = metrics.Event(
+    "blob_store_poll_hit_iteration", bins=[1, 2, 5, 10, 20, 50])
+
 
 class BlobStore(with_metaclass(abc.ABCMeta, object)):
   """The blob store base class."""
 
-  def WriteBlobsWithUnknownHashes(self, blobs_data
-                                 ):
+  def WriteBlobsWithUnknownHashes(
+      self, blobs_data):
     """Writes the contents of the given blobs, using their hash as BlobID.
 
     Args:
@@ -77,8 +83,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     return self.CheckBlobsExist([blob_id])[blob_id]
 
   @abc.abstractmethod
-  def WriteBlobs(self,
-                 blob_id_data_map):
+  def WriteBlobs(self, blob_id_data_map):
     """Creates or overwrites blobs.
 
     Args:
@@ -88,8 +93,9 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadBlobs(self, blob_ids
-               ):
+  def ReadBlobs(
+      self, blob_ids
+  ):
     """Reads all blobs, specified by blob_ids, returning their contents.
 
     Args:
@@ -102,8 +108,9 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def CheckBlobsExist(self, blob_ids
-                     ):
+  def CheckBlobsExist(
+      self,
+      blob_ids):
     """Checks if blobs for the given identifiers already exist.
 
     Args:
@@ -114,9 +121,10 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
       False if it doesn't).
     """
 
-  def ReadAndWaitForBlobs(self, blob_ids,
-                          timeout
-                         ):
+  def ReadAndWaitForBlobs(
+      self, blob_ids,
+      timeout
+  ):
     """Reads specified blobs, waiting and retrying if blobs do not exist yet.
 
     Args:
@@ -151,10 +159,8 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
           continue
         results[blob_id] = blob
         remaining_ids.remove(blob_id)
-        stats_collector_instance.Get().RecordEvent(
-            "blob_store_poll_hit_latency", elapsed_us / rdfvalue.SECONDS)
-        stats_collector_instance.Get().RecordEvent(
-            "blob_store_poll_hit_iteration", poll_num)
+        BLOB_STORE_POLL_HIT_LATENCY.RecordEvent(elapsed_us / rdfvalue.SECONDS)
+        BLOB_STORE_POLL_HIT_ITERATION.RecordEvent(poll_num)
 
       if (not remaining_ids or
           elapsed_us + sleep_dur.microseconds >= timeout.microseconds):
@@ -172,8 +178,8 @@ class BlobStoreValidationWrapper(BlobStore):
     super(BlobStoreValidationWrapper, self).__init__()
     self.delegate = delegate
 
-  def WriteBlobsWithUnknownHashes(self, blobs_data
-                                 ):
+  def WriteBlobsWithUnknownHashes(
+      self, blobs_data):
     precondition.AssertIterableType(blobs_data, bytes)
     return self.delegate.WriteBlobsWithUnknownHashes(blobs_data)
 
@@ -189,17 +195,18 @@ class BlobStoreValidationWrapper(BlobStore):
     precondition.AssertType(blob_id, rdf_objects.BlobID)
     return self.delegate.CheckBlobExists(blob_id)
 
-  def WriteBlobs(self,
-                 blob_id_data_map):
+  def WriteBlobs(self, blob_id_data_map):
     precondition.AssertDictType(blob_id_data_map, rdf_objects.BlobID, bytes)
     return self.delegate.WriteBlobs(blob_id_data_map)
 
-  def ReadBlobs(self, blob_ids
-               ):
+  def ReadBlobs(
+      self, blob_ids
+  ):
     precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
     return self.delegate.ReadBlobs(blob_ids)
 
-  def CheckBlobsExist(self, blob_ids
-                     ):
+  def CheckBlobsExist(
+      self,
+      blob_ids):
     precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
     return self.delegate.CheckBlobsExist(blob_ids)

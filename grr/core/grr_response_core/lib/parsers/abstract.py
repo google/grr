@@ -2,11 +2,38 @@
 """Registry for parsers and abstract classes for basic parser functionality."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
 
 from future.utils import with_metaclass
+from typing import Optional
+from typing import Text
+
+
+class ParseError(Exception):
+  """A class for errors raised when parsers encounter problems when parsing.
+
+  Attributes:
+    cause: An optional exception that caused this exception to be raised.
+  """
+
+  def __init__(self, message, cause = None):
+    """Initializes the error.
+
+    Args:
+      message: A message string explaining why the exception was raised.
+      cause: An optional exception that caused this exception to be raised.
+
+    Returns:
+      Nothing.
+    """
+    if cause is not None:
+      message = "{message}: {cause}".format(message=message, cause=cause)
+
+    super(ParseError, self).__init__(message)
+    self.cause = cause
 
 
 class Parser(with_metaclass(abc.ABCMeta)):
@@ -53,6 +80,9 @@ class SingleResponseParser(Parser):
       knowledge_base: A knowledgebase for the client that provided the response.
       response: An RDF value representing the result of artifact collection.
       path_type: A path type information used by the `ArtifactFilesParser`.
+
+    Raises:
+      ParseError: If parser is not able to parse the response.
     """
 
 
@@ -72,6 +102,9 @@ class SingleFileParser(Parser):
 
     Yields:
       RDF values with parsed data.
+
+    Raises:
+      ParseError: If parser is not able to parse the file.
     """
 
 
@@ -85,6 +118,9 @@ class MultiResponseParser(Parser):
     Args:
       knowledge_base: A knowledgebase for the client that provided responses.
       responses: A list of RDF values with results of artifact collection.
+
+    Raises:
+      ParseError: If parser is not able to parse the responses.
     """
 
 
@@ -108,4 +144,7 @@ class MultiFileParser(Parser):
 
     Yields:
       RDF values with parsed data.
+
+    Raises:
+      ParseError: If parser is not able to parse the files.
     """

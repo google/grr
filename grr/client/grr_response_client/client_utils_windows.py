@@ -407,19 +407,16 @@ class RtlOSVersionInfoExw(ctypes.Structure):
   See: https://msdn.microsoft.com/en-us/library/
   windows/hardware/ff563620(v=vs.85).aspx .
   """
-  _fields_ = [("dwOSVersionInfoSize", ctypes.c_ulong), ("dwMajorVersion",
-                                                        ctypes.c_ulong),
-              ("dwMinorVersion",
-               ctypes.c_ulong), ("dwBuildNumber",
-                                 ctypes.c_ulong), ("dwPlatformId",
-                                                   ctypes.c_ulong),
-              ("szCSDVersion",
-               ctypes.c_wchar * 128), ("wServicePackMajor",
-                                       ctypes.c_ushort), ("wServicePackMinor",
-                                                          ctypes.c_ushort),
-              ("wSuiteMask", ctypes.c_ushort), ("wProductType",
-                                                ctypes.c_byte), ("wReserved",
-                                                                 ctypes.c_byte)]
+  _fields_ = [("dwOSVersionInfoSize", ctypes.c_ulong),
+              ("dwMajorVersion", ctypes.c_ulong),
+              ("dwMinorVersion", ctypes.c_ulong),
+              ("dwBuildNumber", ctypes.c_ulong),
+              ("dwPlatformId", ctypes.c_ulong),
+              ("szCSDVersion", ctypes.c_wchar * 128),
+              ("wServicePackMajor", ctypes.c_ushort),
+              ("wServicePackMinor", ctypes.c_ushort),
+              ("wSuiteMask", ctypes.c_ushort), ("wProductType", ctypes.c_byte),
+              ("wReserved", ctypes.c_byte)]
 
   def __init__(self, **kwargs):
     kwargs["dwOSVersionInfoSize"] = ctypes.sizeof(self)
@@ -466,4 +463,5 @@ def OpenProcessForMemoryAccess(pid=None):
 def MemoryRegions(proc, options):
   return proc.Regions(
       skip_special_regions=options.skip_special_regions,
-      skip_executable_regions=options.skip_executable_regions)
+      skip_executable_regions=options.skip_executable_regions,
+      skip_readonly_regions=options.skip_readonly_regions)

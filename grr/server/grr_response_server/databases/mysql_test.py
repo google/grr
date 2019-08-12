@@ -21,6 +21,7 @@ import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 from MySQLdb.constants import CR as mysql_conn_errors
 
 from grr_response_server.databases import db_test_mixin
+from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql
 from grr_response_server.databases import mysql_utils
 from grr.test_lib import stats_test_lib
@@ -112,7 +113,8 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     cursor = connection.cursor()
     cursor.execute(
         "INSERT INTO grr_users (username, username_hash, password) "
-        "VALUES (%s, %s, %s)", (user, mysql_utils.Hash(user), bytes(password)))
+        "VALUES (%s, %s, %s)",
+        (user, mysql_utils.Hash(user), password.encode("utf-8")))
     cursor.close()
 
   def ListUsers(self, connection):
@@ -130,7 +132,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     self.db.delegate._RunInTransaction(AddUserFn)
 
     users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
-    self.assertEqual(users, ((u"AzureDiamond", "hunter2"),))
+    self.assertEqual(users, (("AzureDiamond", b"hunter2"),))
 
   @mock.patch.object(mysql, "_SleepWithBackoff")
   def testRunInTransactionDeadlock(self, sleep_with_backoff_fn):
@@ -190,7 +192,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     # Both transaction should have succeeded
     users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
     self.assertEqual(users,
-                     ((u"user1", "pw1-updated"), (u"user2", "pw2-updated")))
+                     (("user1", b"pw1-updated"), ("user2", b"pw2-updated")))
 
     # At least one should have been retried.
     self.assertGreater(sum(counts), 2)
@@ -198,7 +200,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
   def testSuccessfulCallsAreCorrectlyAccounted(self):
     with self.assertStatsCounterDelta(
-        1, "db_request_latency", fields=["ReadGRRUsers"]):
+        1, db_utils.DB_REQUEST_LATENCY, fields=["ReadGRRUsers"]):
       self.db.ReadGRRUsers()
 
   def testMaxAllowedPacketSettingIsOverriddenWhenTooLow(self):

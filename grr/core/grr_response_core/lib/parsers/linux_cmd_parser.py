@@ -10,8 +10,10 @@ import re
 from future.utils import iteritems
 
 from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.util import collection
 
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.
@@ -28,25 +30,32 @@ class YumListCmdParser(parser.CommandParser):
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["RedhatYumPackagesList"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the yum output."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
+
+    # `yum list installed` output is divided into lines. First line should be
+    # always equal to "Installed Packages". The following lines are triplets,
+    # but if one of the triplet columns does not fit, the rest of the row is
+    # carried over to the next line. Thus, instead of processing the output line
+    # by line, we split it into individual items (they cannot contain any space)
+    # and chunk them to triplets.
+
+    items = stdout.decode("utf-8").split()
+    if not (items[0] == "Installed" and items[1] == "Packages"):
+      message = ("`yum list installed` output does not start with \"Installed "
+                 "Packages\"")
+      raise AssertionError(message)
+    items = items[2:]
+
     packages = []
-    for line in stdout.decode("utf-8").splitlines()[1:]:  # Ignore first line
-      cols = line.split()
-      name_arch, version, source = cols
+    for name_arch, version, source in collection.Batch(items, 3):
       name, arch = name_arch.split(".")
 
-      status = rdf_client.SoftwarePackage.InstallState.INSTALLED
       packages.append(
-          rdf_client.SoftwarePackage(
-              name=name,
-              publisher=source,
-              version=version,
-              architecture=arch,
-              install_state=status))
+          rdf_client.SoftwarePackage.Installed(
+              name=name, publisher=source, version=version, architecture=arch))
 
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)
@@ -66,10 +75,9 @@ class YumRepolistCmdParser(parser.CommandParser):
   def _re_compile(self, search_str):
     return re.compile(r"%s\s*: ([0-9a-zA-Z-\s./#_=:\(\)]*)" % (search_str))
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the yum repolist output."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     output = iter(stdout.decode("utf-8").splitlines())
 
@@ -106,10 +114,9 @@ class RpmCmdParser(parser.CommandParser):
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["RedhatPackagesList"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the rpm -qa output."""
-    _ = time_taken, args, knowledge_base  # Unused.
+    _ = args, knowledge_base  # Unused.
     rpm_re = re.compile(r"^(\w[-\w\+]+?)-(\d.*)$")
     self.CheckReturn(cmd, return_val)
     packages = []
@@ -117,10 +124,8 @@ class RpmCmdParser(parser.CommandParser):
       pkg_match = rpm_re.match(line.strip())
       if pkg_match:
         name, version = pkg_match.groups()
-        status = rdf_client.SoftwarePackage.InstallState.INSTALLED
         packages.append(
-            rdf_client.SoftwarePackage(
-                name=name, version=version, install_state=status))
+            rdf_client.SoftwarePackage.Installed(name=name, version=version))
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)
 
@@ -137,10 +142,9 @@ class DpkgCmdParser(parser.CommandParser):
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["DebianPackagesList"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the dpkg output."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     column_lengths = []
     i = 0
@@ -149,8 +153,8 @@ class DpkgCmdParser(parser.CommandParser):
         # This is a special header line that determines column size.
         for col in line.split("-")[1:]:
           if not re.match("=*", col):
-            raise parser.ParseError("Invalid header parsing for %s at line "
-                                    "%s" % (cmd, i))
+            raise parsers.ParseError("Invalid header parsing for %s at line "
+                                     "%s" % (cmd, i))
           column_lengths.append(len(col))
         break
 
@@ -202,10 +206,9 @@ class DmidecodeCmdParser(parser.CommandParser):
   def _re_compile(self, search_str):
     return re.compile(r"\s*%s: ([0-9a-zA-Z-\s./#_=]*)" % (search_str))
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the dmidecode output. All data is parsed into a dictionary."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     output = iter(stdout.decode("utf-8").splitlines())
 
@@ -263,8 +266,7 @@ class PsCmdParser(parser.CommandParser):
   output_types = [rdf_client.Process]
   supported_artifacts = ["ListProcessesPsCommand"]
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the ps output.
 
     Note that cmdline consumes every field up to the end of line
@@ -280,14 +282,13 @@ class PsCmdParser(parser.CommandParser):
       stdout: A string containing the stdout of the command run.
       stderr: A string containing the stderr of the command run. (Unused)
       return_val: The return code following command execution.
-      time_taken: The time taken to run the process. (Unused)
       knowledge_base: An RDF KnowledgeBase. (Unused)
 
     Yields:
       RDF Process objects.
     """
 
-    _ = stderr, time_taken, knowledge_base  # Unused.
+    _ = stderr, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
 
     lines = stdout.splitlines()[1:]  # First line is just a header.

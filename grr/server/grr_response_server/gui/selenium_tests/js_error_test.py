@@ -21,8 +21,8 @@ class JavascriptErrorTest(gui_test_lib.GRRSeleniumTest):
     # Things are guaranteed to stop working correctly after this.
     self.GetJavaScriptValue("window.angular = undefined;")
 
-    with self.assertRaisesRegexp(self.failureException,
-                                 "Javascript error encountered"):
+    with self.assertRaisesRegex(self.failureException,
+                                "Javascript error encountered"):
       # Note that self.Click(), can, on rare occasions, trigger a
       # Javascript error, because of tickers that are running on the page.
       self.Click("client_query_submit")

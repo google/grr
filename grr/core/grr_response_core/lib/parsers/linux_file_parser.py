@@ -117,8 +117,8 @@ class PasswdParser(parsers.SingleFileParser):
       return user
 
     except (IndexError, KeyError):
-      raise parser.ParseError(
-          "Invalid passwd file at line %d. %s" % ((index + 1), line))
+      raise parsers.ParseError("Invalid passwd file at line %d. %s" %
+                               ((index + 1), line))
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
     del knowledge_base  # Unused.
@@ -257,8 +257,8 @@ class NetgroupParser(parsers.SingleFileParser):
                 users.add(user)
                 yield rdf_client.User(username=utils.SmartUnicode(user))
           except ValueError:
-            raise parser.ParseError(
-                "Invalid netgroup file at line %d: %s" % (index + 1, line))
+            raise parsers.ParseError("Invalid netgroup file at line %d: %s" %
+                                     (index + 1, line))
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
     """Parse the netgroup file and return User objects.
@@ -381,7 +381,7 @@ class LinuxBaseShadowParser(parsers.MultiFileParser):
         if line:
           line_parser(line)
     except (IndexError, KeyError) as e:
-      raise parser.ParseError("Invalid file at line %d: %s" % (index + 1, e))
+      raise parsers.ParseError("Invalid file at line %d: %s" % (index + 1, e))
 
   def ReconcileShadow(self, store_type):
     """Verify that entries that claim to use shadow files have a shadow entry.

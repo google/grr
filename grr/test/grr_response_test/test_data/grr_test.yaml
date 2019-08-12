@@ -245,9 +245,6 @@ Test Context:
 
   Client.tempdir_roots: ["/tmp/"]
 
-  # Disable write back
-  Config.writeback: ""
-
   Platform:Linux:
     Logging.engines: stderr
 

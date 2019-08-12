@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import itertools
 import random
 import time
 
@@ -1861,22 +1860,26 @@ class DatabaseTestFlowMixin(object):
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
-    tags = {"tag_1": set([sample_results[1]])}
+    tags = {None: list(sample_results), "tag_1": [sample_results[1]]}
+
     substrings = {
-        "manufacturer": set(sample_results),
-        "manufacturer_1": set([sample_results[1]])
+        None: list(sample_results),
+        "manufacturer": list(sample_results),
+        "manufacturer_1": [sample_results[1]]
     }
+
     types = {
-        compatibility.GetName(rdf_client.ClientSummary): set(sample_results)
+        None: list(sample_results),
+        compatibility.GetName(rdf_client.ClientSummary): list(sample_results),
     }
 
-    no_tag = [(None, set(sample_results))]
-
-    for tag_value, tag_expected in itertools.chain(tags.items(), no_tag):
-      for substring_value, substring_expected in itertools.chain(
-          substrings.items(), no_tag):
-        for type_value, type_expected in itertools.chain(types.items(), no_tag):
-          expected = tag_expected & substring_expected & type_expected
+    for tag_value, tag_expected in tags.items():
+      for substring_value, substring_expected in substrings.items():
+        for type_value, type_expected in types.items():
+          expected = [
+              r for r in tag_expected
+              if r in substring_expected and r in type_expected
+          ]
           results = self.db.ReadFlowResults(
               client_id,
               flow_id,

@@ -18,8 +18,8 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import data_store
+from grr_response_server import flow_base
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt
@@ -34,10 +34,12 @@ from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
+from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
-class HuntTest(notification_test_lib.NotificationTestMixin,
+class HuntTest(stats_test_lib.StatsTestMixin,
+               notification_test_lib.NotificationTestMixin,
                test_lib.GRRBaseTest):
   """Tests for the relational hunts implementation."""
 
@@ -286,7 +288,7 @@ class HuntTest(notification_test_lib.NotificationTestMixin,
       self.assertLess(time_diff, rdfvalue.DurationSeconds("5s"))
 
   def testResultsAreCorrectlyCounted(self):
-    path = os.path.join(self.base_path, "hello*")
+    path = os.path.join(self.base_path, "*hello*")
     num_files = len(glob.glob(path))
     self.assertGreater(num_files, 1)
 
@@ -499,55 +501,43 @@ class HuntTest(notification_test_lib.NotificationTestMixin,
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
 
-    prev_success_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_results_ran_through_plugin", fields=["DummyHuntOutputPlugin"])
-    prev_errors_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
-
-    self._CreateAndRunHunt(
-        num_clients=5,
-        client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.GetFileHuntArgs(),
-        output_plugins=[plugin_descriptor])
-
-    success_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_results_ran_through_plugin", fields=["DummyHuntOutputPlugin"])
-    errors_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
-
     # 1 result for each client makes it 5 results.
-    self.assertEqual(success_count - prev_success_count, 5)
-    self.assertEqual(errors_count - prev_errors_count, 0)
+    with self.assertStatsCounterDelta(
+        5,
+        flow_base.HUNT_RESULTS_RAN_THROUGH_PLUGIN,
+        fields=["DummyHuntOutputPlugin"]):
+      with self.assertStatsCounterDelta(
+          0,
+          flow_base.HUNT_OUTPUT_PLUGIN_ERRORS,
+          fields=["DummyHuntOutputPlugin"]):
+        self._CreateAndRunHunt(
+            num_clients=5,
+            client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
+            client_rule_set=foreman_rules.ForemanClientRuleSet(),
+            client_rate=0,
+            args=self.GetFileHuntArgs(),
+            output_plugins=[plugin_descriptor])
 
   def testUpdatesStatsCounterOnOutputPluginFailure(self):
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyHuntOutputPlugin")
 
-    prev_success_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_results_ran_through_plugin",
-        fields=["FailingDummyHuntOutputPlugin"])
-    prev_errors_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
-
-    self._CreateAndRunHunt(
-        num_clients=5,
-        client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
-        client_rule_set=foreman_rules.ForemanClientRuleSet(),
-        client_rate=0,
-        args=self.GetFileHuntArgs(),
-        output_plugins=[plugin_descriptor])
-
-    success_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_results_ran_through_plugin",
-        fields=["FailingDummyHuntOutputPlugin"])
-    errors_count = stats_collector_instance.Get().GetMetricValue(
-        "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
-
     # 1 error for each client makes it 5 errors, 0 results.
-    self.assertEqual(success_count - prev_success_count, 0)
-    self.assertEqual(errors_count - prev_errors_count, 5)
+    with self.assertStatsCounterDelta(
+        0,
+        flow_base.HUNT_RESULTS_RAN_THROUGH_PLUGIN,
+        fields=["FailingDummyHuntOutputPlugin"]):
+      with self.assertStatsCounterDelta(
+          5,
+          flow_base.HUNT_OUTPUT_PLUGIN_ERRORS,
+          fields=["FailingDummyHuntOutputPlugin"]):
+        self._CreateAndRunHunt(
+            num_clients=5,
+            client_mock=hunt_test_lib.SampleHuntMock(failrate=-1),
+            client_rule_set=foreman_rules.ForemanClientRuleSet(),
+            client_rate=0,
+            args=self.GetFileHuntArgs(),
+            output_plugins=[plugin_descriptor])
 
   def _CheckHuntStoppedNotification(self, str_match):
     pending = self.GetUserNotifications(self.token.username)

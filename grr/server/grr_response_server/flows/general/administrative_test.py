@@ -565,7 +565,7 @@ sys.test_code_ran_here = True
     self._CheckNannyEmail(client_id, nanny_message, email_dict)
 
   def testNannyMessageHandlerForUnknownClient(self):
-    client_id = "C.1000000000000000"
+    client_id = self.SetupClient(0)
     nanny_message = "Oh no!"
     email_dict = {}
 

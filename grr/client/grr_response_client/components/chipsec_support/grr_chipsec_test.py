@@ -125,7 +125,7 @@ class TestChipsecDumpFlashImage(GRRChipsecTest):
     self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = rdf_chipsec_types.DumpFlashImageRequest(log_level=1)
     self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
-    self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
+    self.assertNotEqual(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertNotEmpty(self.results)
     self.assertNotEmpty(self.results[0].logs)
     self.assertEqual(self.results[0].path.path, "")
@@ -218,14 +218,14 @@ class TestDumpACPITable(GRRChipsecTest):
     self.assertEqual(result.acpi_tables[0].table_address, 0x1122334455667788)
     self.assertEqual(result.acpi_tables[0].table_blob,
                      b"\xAB" * 0xFF + b"\xCD" * 0xFF)
-    self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
+    self.assertNotEqual(self.chipsec_mock.logger.logger.call_count, 0)
 
   def testDumpInvalidACPITable(self):
     """Tests dumping invalid ACPI table."""
     args = rdf_chipsec_types.DumpACPITableRequest(
         table_signature="INVALID_TABLE")
     result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
-    self.assertNotEquals(len(result.logs), 0)
+    self.assertNotEqual(len(result.logs), 0)
 
   def testDumpACPITableUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
@@ -243,7 +243,7 @@ class TestDumpACPITable(GRRChipsecTest):
     args = rdf_chipsec_types.DumpACPITableRequest(
         table_signature="FACP", logging=True)
     self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
-    self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
+    self.assertNotEqual(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertNotEmpty(self.results)
     self.assertNotEmpty(self.results[0].logs)
 

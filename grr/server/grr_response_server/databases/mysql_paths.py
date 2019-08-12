@@ -2,12 +2,19 @@
 """The MySQL database methods for path handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 from future.utils import iteritems
 from future.utils import iterkeys
 
 import MySQLdb
+
+from typing import Dict
+from typing import Iterable
+from typing import Optional
+from typing import Sequence
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -330,7 +337,8 @@ class MySQLDBPathMixin(object):
     values = {
         "client_id": db_utils.ClientIDToInt(client_id),
         "path_type": int(path_type),
-        "path": escaped_path,
+        "escaped_path": escaped_path,
+        "path": path,
     }
 
     query += """
@@ -390,7 +398,7 @@ class MySQLDBPathMixin(object):
     query += """
     WHERE p.client_id = %(client_id)s
       AND p.path_type = %(path_type)s
-      AND path LIKE CONCAT(%(path)s, '/%%')
+      AND (path LIKE CONCAT(%(escaped_path)s, '/%%') OR path = %(path)s)
     """
 
     if max_depth is not None:
@@ -407,7 +415,7 @@ class MySQLDBPathMixin(object):
        hash_entry_bytes, last_hash_entry_timestamp) = row
       # pyformat: enable
 
-      components = mysql_utils.PathToComponents(path)
+      path_components = mysql_utils.PathToComponents(path)
 
       if stat_entry_bytes is not None:
         stat_entry = rdf_client_fs.StatEntry.FromSerializedBytes(
@@ -423,7 +431,7 @@ class MySQLDBPathMixin(object):
       datetime = mysql_utils.TimestampToRDFDatetime
       path_info = rdf_objects.PathInfo(
           path_type=path_type,
-          components=components,
+          components=path_components,
           timestamp=datetime(timestamp),
           last_stat_entry_timestamp=datetime(last_stat_entry_timestamp),
           last_hash_entry_timestamp=datetime(last_hash_entry_timestamp),
@@ -434,6 +442,16 @@ class MySQLDBPathMixin(object):
       path_infos.append(path_info)
 
     path_infos.sort(key=lambda _: tuple(_.components))
+
+    # The first entry should be always the base directory itself unless it is a
+    # root directory that was never collected.
+    if not path_infos and components:
+      raise db.UnknownPathError(client_id, path_type, components)
+
+    if path_infos and not path_infos[0].directory:
+      raise db.NotDirectoryPathError(client_id, path_type, components)
+
+    path_infos = path_infos[1:]
 
     # For specific timestamp, we return information only about explicit paths
     # (paths that have associated stat or hash entry or have an ancestor that is
@@ -447,24 +465,27 @@ class MySQLDBPathMixin(object):
     # This list is sorted according to the keys component, so by traversing it
     # in the reverse order we make sure that we process deeper paths first.
     for path_info in reversed(path_infos):
-      components = tuple(path_info.components)
+      path_components = tuple(path_info.components)
 
       if (path_info.HasField("stat_entry") or
           path_info.HasField("hash_entry") or
-          components in has_explicit_ancestor):
+          path_components in has_explicit_ancestor):
         explicit_path_infos.append(path_info)
-        has_explicit_ancestor.add(components[:-1])
+        has_explicit_ancestor.add(path_components[:-1])
 
     # Since we collected explicit paths in reverse order, we need to reverse it
     # again to conform to the interface.
     return list(reversed(explicit_path_infos))
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadPathInfosHistories(self,
-                             client_id,
-                             path_type,
-                             components_list,
-                             cursor=None):
+  def ReadPathInfosHistories(
+      self,
+      client_id,
+      path_type,
+      components_list,
+      cutoff = None,
+      cursor = None
+  ):
     """Reads a collection of hash and stat entries for given paths."""
     # MySQL does not handle well empty `IN` clauses so we guard against that.
     if not components_list:
@@ -476,6 +497,24 @@ class MySQLDBPathMixin(object):
     for components in components_list:
       path_id = rdf_objects.PathID.FromComponents(components)
       path_id_components[path_id] = components
+
+    params = {
+        "client_id": db_utils.ClientIDToInt(client_id),
+        "path_type": int(path_type),
+        "path_ids": [path_id.AsBytes() for path_id in path_id_components]
+    }
+
+    if cutoff is not None:
+      stat_entry_timestamp_condition = """
+      AND s.timestamp <= FROM_UNIXTIME(%(cutoff)s)
+      """
+      hash_entry_timestamp_condition = """
+      AND h.timestamp <= FROM_UNIXTIME(%(cutoff)s)
+      """
+      params["cutoff"] = mysql_utils.RDFDatetimeToTimestamp(cutoff)
+    else:
+      stat_entry_timestamp_condition = ""
+      hash_entry_timestamp_condition = ""
 
     # MySQL does not support full outer joins, so we emulate them with a union.
     query = """
@@ -490,6 +529,7 @@ class MySQLDBPathMixin(object):
      WHERE s.client_id = %(client_id)s
        AND s.path_type = %(path_type)s
        AND s.path_id IN %(path_ids)s
+       {stat_entry_timestamp_condition}
      UNION
     SELECT s.path_id, s.stat_entry, UNIX_TIMESTAMP(s.timestamp),
            h.path_id, h.hash_entry, UNIX_TIMESTAMP(h.timestamp)
@@ -502,13 +542,10 @@ class MySQLDBPathMixin(object):
      WHERE h.client_id = %(client_id)s
        AND h.path_type = %(path_type)s
        AND h.path_id IN %(path_ids)s
-    """
-
-    params = {
-        "client_id": db_utils.ClientIDToInt(client_id),
-        "path_type": int(path_type),
-        "path_ids": [path_id.AsBytes() for path_id in path_id_components]
-    }
+       {hash_entry_timestamp_condition}
+    """.format(
+        stat_entry_timestamp_condition=stat_entry_timestamp_condition,
+        hash_entry_timestamp_condition=hash_entry_timestamp_condition)
 
     cursor.execute(query, params)
     for row in cursor.fetchall():

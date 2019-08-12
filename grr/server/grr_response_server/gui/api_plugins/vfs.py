@@ -58,7 +58,25 @@ def ValidateVfsPath(path):
 
 
 class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):
-  """Raised when a certain file is not found."""
+  """Raised when a certain file is not found.
+
+  Attributes:
+    client_id: An id of the client for which the file was not found.
+    path_type: A type of the path for which the file was not found.
+    components: Components of the path for which the file was not found.
+  """
+
+  def __init__(self, client_id, path_type, components):
+    self.client_id = client_id
+    self.path_type = path_type
+    self.components = components
+
+    path = "/" + "/".join(components)
+
+    message = "{path_type} path '{path}' for client '{client_id}' not found"
+    message = message.format(
+        client_id=client_id, path_type=path_type, path=path)
+    super(FileNotFoundError, self).__init__(message)
 
 
 class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -280,27 +298,24 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
           components=components,
           timestamp=args.timestamp)
     except db.UnknownPathError:
-      # TODO(hanuszczak): This exception class should be extended to provide
-      #  some information about the path that caused it to be raised.
-      raise FileNotFoundError()
+      raise FileNotFoundError(
+          client_id=client_id, path_type=path_type, components=components)
 
     last_collection_pi = file_store.GetLastCollectionPathInfo(
         db.ClientPath.FromPathInfo(client_id, path_info),
         max_timestamp=args.timestamp)
 
     history = data_store.REL_DB.ReadPathInfoHistory(
-        client_id=client_id, path_type=path_type, components=components)
+        client_id=client_id,
+        path_type=path_type,
+        components=components,
+        cutoff=args.timestamp)
     history.reverse()
 
     # It might be the case that we do not have any history about the file, but
     # we have some information because it is an implicit path.
     if not history:
       history = [path_info]
-
-    # TODO(hanuszczak): Add support for timestamp-based filtering of the path
-    #  history in the database API.
-    if args.timestamp is not None:
-      history = [_ for _ in history if _.timestamp <= args.timestamp]
 
     file_obj = ApiFile(
         name=components[-1],
@@ -998,7 +1013,10 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     if (not path_info or not path_info.stat_entry or
         not path_info.stat_entry.pathspec):
-      raise FileNotFoundError("Unable to download file %s." % args.file_path)
+      raise FileNotFoundError(
+          client_id=str(args.client_id),
+          path_type=path_type,
+          components=components)
 
     flow_args = transfer.MultiGetFileArgs(
         pathspecs=[path_info.stat_entry.pathspec])

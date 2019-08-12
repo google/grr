@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import itertools
 import random
 
 from future.utils import text_type
@@ -213,7 +212,7 @@ class DatabaseTestHuntMixin(object):
 
   def testReadHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
     expected = self._CreateMultipleHunts()
-    self.TestFilterCombinationsAndOffsetCount(
+    self.DoFilterCombinationsAndOffsetCountTest(
         self.db.ReadHuntObjects,
         conditions=dict(
             with_creator="user-a",
@@ -284,7 +283,7 @@ class DatabaseTestHuntMixin(object):
 
   def testListHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
     expected = self._CreateMultipleHunts()
-    self.TestFilterCombinationsAndOffsetCount(
+    self.DoFilterCombinationsAndOffsetCountTest(
         self.db.ListHuntObjects,
         conditions=dict(
             with_creator="user-a",
@@ -828,29 +827,38 @@ class DatabaseTestHuntMixin(object):
       sample_results.extend(results)
       self._WriteHuntResults(results)
 
-    tags = {"tag_1": set(s for s in sample_results if s.tag == "tag_1")}
+    tags = {
+        None: list(sample_results),
+        "tag_1": [s for s in sample_results if s.tag == "tag_1"]
+    }
     substrings = {
-        "manufacturer":
-            set(s for s in sample_results if "manufacturer" in getattr(
-                s.payload, "system_manufacturer", "")),
-        "manufacturer_1":
-            set(s for s in sample_results if "manufacturer_1" in getattr(
-                s.payload, "system_manufacturer", ""))
+        None:
+            list(sample_results),
+        "manufacturer": [
+            s for s in sample_results
+            if "manufacturer" in getattr(s.payload, "system_manufacturer", "")
+        ],
+        "manufacturer_1": [
+            s for s in sample_results
+            if "manufacturer_1" in getattr(s.payload, "system_manufacturer", "")
+        ]
     }
     types = {
-        compatibility.GetName(rdf_client.ClientSummary):
-            set(
-                s for s in sample_results
-                if isinstance(s.payload, rdf_client.ClientSummary))
+        None:
+            list(sample_results),
+        compatibility.GetName(rdf_client.ClientSummary): [
+            s for s in sample_results
+            if isinstance(s.payload, rdf_client.ClientSummary)
+        ]
     }
 
-    no_tag = [(None, set(sample_results))]
-
-    for tag_value, tag_expected in itertools.chain(tags.items(), no_tag):
-      for substring_value, substring_expected in itertools.chain(
-          substrings.items(), no_tag):
-        for type_value, type_expected in itertools.chain(types.items(), no_tag):
-          expected = tag_expected & substring_expected & type_expected
+    for tag_value, tag_expected in tags.items():
+      for substring_value, substring_expected in substrings.items():
+        for type_value, type_expected in types.items():
+          expected = [
+              e for e in tag_expected
+              if e in substring_expected and e in type_expected
+          ]
           results = self.db.ReadHuntResults(
               hunt_obj.hunt_id,
               0,

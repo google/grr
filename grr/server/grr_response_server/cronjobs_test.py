@@ -13,7 +13,6 @@ import mock
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server.flows.general import transfer
@@ -428,10 +427,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-      prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_timeout", fields=[job_id])
-      prev_latency_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_latency", fields=[job_id])
+      prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue(fields=[job_id])
+      prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
       cron_manager.RunOnce(token=self.token)
 
@@ -457,13 +454,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       self.assertEqual(run.status, "FINISHED")
 
       # Check that timeout counter got updated.
-      current_timeout_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_timeout", fields=[job_id])
+      current_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
       self.assertEqual(current_timeout_value, prev_timeout_value)
 
       # Check that latency stat got updated.
-      current_latency_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_latency", fields=[job_id])
+      current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
       self.assertEqual(current_latency_value.count - prev_latency_value.count,
                        1)
 
@@ -495,10 +490,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         self.assertEqual(run.status, "RUNNING")
 
       try:
-        prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
-            "cron_job_timeout", fields=[job_id])
-        prev_latency_value = stats_collector_instance.Get().GetMetricValue(
-            "cron_job_latency", fields=[job_id])
+        prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
+        prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
         fake_time += rdfvalue.DurationSeconds("2h")
         with test_lib.FakeTime(fake_time):
@@ -533,13 +526,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           self.assertEqual(cron_job.last_run_status, "LIFETIME_EXCEEDED")
 
           # Check that timeout counter got updated.
-          current_timeout_value = stats_collector_instance.Get().GetMetricValue(
-              "cron_job_timeout", fields=[job_id])
+          current_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
           self.assertEqual(current_timeout_value - prev_timeout_value, 1)
 
           # Check that latency stat got updated.
-          current_latency_value = stats_collector_instance.Get().GetMetricValue(
-              "cron_job_latency", fields=[job_id])
+          current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
           self.assertEqual(
               current_latency_value.count - prev_latency_value.count, 1)
           self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
@@ -580,10 +571,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         self.assertEqual(cron_job.current_run_id, run.run_id)
         self.assertEqual(run.status, "RUNNING")
 
-      prev_timeout_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_timeout", fields=[job_id])
-      prev_latency_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_latency", fields=[job_id])
+      prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
+      prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
       fake_time += rdfvalue.DurationSeconds("2h")
       with test_lib.FakeTime(fake_time):
@@ -599,13 +588,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         self.assertEqual(run.status, "LIFETIME_EXCEEDED")
 
         # Check that timeout counter got updated.
-        current_timeout_value = stats_collector_instance.Get().GetMetricValue(
-            "cron_job_timeout", fields=[job_id])
+        current_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
         self.assertEqual(current_timeout_value - prev_timeout_value, 1)
 
         # Check that latency stat got updated.
-        current_latency_value = stats_collector_instance.Get().GetMetricValue(
-            "cron_job_latency", fields=[job_id])
+        current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
         self.assertEqual(current_latency_value.count - prev_latency_value.count,
                          1)
         self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
@@ -621,10 +608,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-      prev_failure_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_failure", fields=[job_id])
-      prev_latency_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_latency", fields=[job_id])
+      prev_failure_value = cronjobs.CRON_JOB_FAILURE.GetValue([job_id])
+      prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
       cron_manager.RunOnce(token=self.token)
       cron_manager._GetThreadPool().Join()
@@ -640,10 +625,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       self.assertTrue(run.backtrace)
       self.assertIn("cron job error", run.backtrace)
 
-      current_failure_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_failure", fields=[job_id])
-      current_latency_value = stats_collector_instance.Get().GetMetricValue(
-          "cron_job_latency", fields=[job_id])
+      current_failure_value = cronjobs.CRON_JOB_FAILURE.GetValue([job_id])
+      current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
       self.assertEqual(current_failure_value, prev_failure_value + 1)
       self.assertEqual(current_latency_value.count,

@@ -30,8 +30,6 @@ from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
-from grr_response_core.stats import stats_utils
 from grr_response_server import frontend_lib
 from grr_response_server import server_logging
 from grr_response_server import server_startup
@@ -60,14 +58,14 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
   def _IncrementActiveCount(self):
     with GRRHTTPServerHandler.active_counter_lock:
       GRRHTTPServerHandler.active_counter += 1
-      stats_collector_instance.Get().SetGaugeValue(
-          "frontend_active_count", self.active_counter, fields=["http"])
+      frontend_lib.FRONTEND_ACTIVE_COUNT.SetValue(
+          self.active_counter, fields=["http"])
 
   def _DecrementActiveCount(self):
     with GRRHTTPServerHandler.active_counter_lock:
       GRRHTTPServerHandler.active_counter -= 1
-      stats_collector_instance.Get().SetGaugeValue(
-          "frontend_active_count", self.active_counter, fields=["http"])
+      frontend_lib.FRONTEND_ACTIVE_COUNT.SetValue(
+          self.active_counter, fields=["http"])
 
   def Send(self,
            data,
@@ -103,12 +101,10 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     self._IncrementActiveCount()
     try:
       if self.path.startswith("/server.pem"):
-        stats_collector_instance.Get().IncrementCounter(
-            "frontend_http_requests", fields=["cert", "http"])
+        frontend_lib.FRONTEND_HTTP_REQUESTS.Increment(fields=["cert", "http"])
         self.ServerPem()
       elif self.path.startswith(self.static_content_path):
-        stats_collector_instance.Get().IncrementCounter(
-            "frontend_http_requests", fields=["static", "http"])
+        frontend_lib.FRONTEND_HTTP_REQUESTS.Increment(fields=["static", "http"])
         self.ServeStatic(self.path[len(self.static_content_path):])
     finally:
       self._DecrementActiveCount()
@@ -177,14 +173,13 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     self._IncrementActiveCount()
     try:
       if self.path.startswith("/upload"):
-        stats_collector_instance.Get().IncrementCounter(
-            "frontend_http_requests", fields=["upload", "http"])
+        frontend_lib.FRONTEND_HTTP_REQUESTS.Increment(fields=["upload", "http"])
 
         logging.error("Requested no longer supported file upload through HTTP.")
         self.Send(b"File upload though HTTP is no longer supported", status=404)
       else:
-        stats_collector_instance.Get().IncrementCounter(
-            "frontend_http_requests", fields=["control", "http"])
+        frontend_lib.FRONTEND_HTTP_REQUESTS.Increment(
+            fields=["control", "http"])
         self.Control()
 
     except Exception as e:  # pylint: disable=broad-except
@@ -196,8 +191,8 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     finally:
       self._DecrementActiveCount()
 
-  @stats_utils.Counted("frontend_request_count", fields=["http"])
-  @stats_utils.Timed("frontend_request_latency", fields=["http"])
+  @frontend_lib.FRONTEND_REQUEST_COUNT.Counted(fields=["http"])
+  @frontend_lib.FRONTEND_REQUEST_LATENCY.Timed(fields=["http"])
   def Control(self):
     """Handle POSTS."""
     # Get the api version
@@ -272,8 +267,7 @@ class GRRHTTPServer(socketserver.ThreadingMixIn, http_server.HTTPServer):
   address_family = socket.AF_INET6
 
   def __init__(self, server_address, handler, frontend=None, **kwargs):
-    stats_collector_instance.Get().SetGaugeValue("frontend_max_active_count",
-                                                 self.request_queue_size)
+    frontend_lib.FRONTEND_MAX_ACTIVE_COUNT.SetValue(self.request_queue_size)
 
     if frontend:
       self.frontend = frontend

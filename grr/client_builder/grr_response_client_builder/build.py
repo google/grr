@@ -581,7 +581,7 @@ class WindowsClientRepacker(ClientRepacker):
 
     output_zip.writestr(
         config_file_name,
-        client_config_content.encode("utf-8"),
+        client_config_content.encode("utf-8"),  # pytype: disable=attribute-error
         compress_type=zipfile.ZIP_STORED)
 
     # The zip file comment is used by the self extractor to run the installation

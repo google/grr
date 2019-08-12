@@ -76,6 +76,7 @@ def main(argv):
                     ["http://localhost:%d/" % frontend_port])
   if flags.FLAGS.config_logging_path is not None:
     config.CONFIG.Set("Logging.path", flags.FLAGS.config_logging_path)
+  config.CONFIG.Set("Logging.verbose", True)
 
   config_updater_keys_util.GenerateKeys(config.CONFIG)
   config.CONFIG.Write()

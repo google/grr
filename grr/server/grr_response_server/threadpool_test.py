@@ -13,12 +13,12 @@ from future.builtins import range
 import queue
 
 from grr_response_core.lib import utils
-from grr_response_core.stats import stats_collector_instance
 from grr_response_server import threadpool
+from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
 
-class ThreadPoolTest(test_lib.GRRBaseTest):
+class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
   """Tests for the ThreadPool class."""
   NUMBER_OF_THREADS = 1
   MAXIMUM_THREADS = 20
@@ -147,19 +147,16 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     def MockException(*args):
       self.exception_args = args
 
-    with utils.Stubber(logging, "exception", MockException):
-      self.test_pool.AddTask(IRaise, (None,), "Raising")
-      self.test_pool.AddTask(IRaise, (None,), "Raising")
-      self.test_pool.Join()
+    with self.assertStatsCounterDelta(
+        2, threadpool.THREADPOOL_TASK_EXCEPTIONS, fields=[self.test_pool.name]):
+      with utils.Stubber(logging, "exception", MockException):
+        self.test_pool.AddTask(IRaise, (None,), "Raising")
+        self.test_pool.AddTask(IRaise, (None,), "Raising")
+        self.test_pool.Join()
 
     # Check that an exception is raised.
     self.assertIn("exception in worker thread", self.exception_args[0])
     self.assertEqual(self.exception_args[1], "Raising")
-
-    # Make sure that both exceptions have been counted.
-    exception_count = stats_collector_instance.Get().GetMetricValue(
-        threadpool._TASK_EXCEPTIONS_METRIC, fields=[self.test_pool.name])
-    self.assertEqual(exception_count, 2)
 
   def testFailToCreateThread(self):
     """Test that we handle thread creation problems ok."""
@@ -312,17 +309,12 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
         pool.AddTask(RunFn, ())
         signal_event.wait(10)
 
-        outstanding_tasks = stats_collector_instance.Get().GetMetricValue(
-            threadpool._OUTSTANDING_TASKS_METRIC, fields=[pool_name])
-        self.assertEqual(outstanding_tasks, 0)
-
       # Next 5 tasks should sit in the queue.
-      for i in range(5):
-        pool.AddTask(RunFn, ())
+      for _ in range(5):
+        with self.assertStatsCounterDelta(
+            1, threadpool.THREADPOOL_OUTSTANDING_TASKS, fields=[pool_name]):
+          pool.AddTask(RunFn, ())
 
-        outstanding_tasks = stats_collector_instance.Get().GetMetricValue(
-            threadpool._OUTSTANDING_TASKS_METRIC, fields=[pool_name])
-        self.assertEqual(outstanding_tasks, i + 1)
     finally:
       wait_event.set()
       pool.Stop()

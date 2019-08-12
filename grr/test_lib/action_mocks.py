@@ -322,6 +322,10 @@ class UpdateAgentClientMock(ActionMock):
 class InterrogatedClient(ActionMock):
   """A mock of client state."""
 
+  LABEL1 = "GRRLabel1"
+  LABEL2 = "Label2"
+  LABEL3 = "[broken]"
+
   def __init__(self, *args, **kwargs):
     super(InterrogatedClient,
           self).__init__(admin.GetLibraryVersions,
@@ -390,7 +394,7 @@ class InterrogatedClient(ActionMock):
             client_name=config.CONFIG["Client.name"],
             client_version=int(config.CONFIG["Source.version_numeric"]),
             build_time=config.CONFIG["Client.build_time"],
-            labels=["GRRLabel1", "Label2", "[broken]"],
+            labels=[self.LABEL1, self.LABEL2, self.LABEL3],
         )
     ]
 

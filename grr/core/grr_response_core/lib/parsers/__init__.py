@@ -14,6 +14,8 @@ from grr_response_core.lib.parsers import abstract
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
 
+ParseError = abstract.ParseError
+
 Parser = abstract.Parser
 SingleResponseParser = abstract.SingleResponseParser
 SingleFileParser = abstract.SingleFileParser

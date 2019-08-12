@@ -8,13 +8,13 @@ import os
 
 from absl import flags
 
-from grr_response_client import client_metrics
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_core.lib import communicator
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import temp
+from grr_response_core.stats import metrics
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import artifact
 from grr_response_server import data_store
@@ -22,7 +22,6 @@ from grr_response_server import email_alerts
 from grr_response_server import ip_resolver
 from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
-from grr_response_server import server_metrics
 from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.check_lib import checks
@@ -42,9 +41,7 @@ def TestInit():
   """Only used in tests and will rerun all the hooks to create a clean state."""
   global INIT_RAN
 
-  metric_metadata = server_metrics.GetMetadata()
-  metric_metadata.extend(client_metrics.GetMetadata())
-  metric_metadata.extend(communicator.GetMetricMetadata())
+  metric_metadata = metrics.FinalizeMetricRegistration()
   stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
       metric_metadata)
   stats_collector_instance.Set(stats_collector)
@@ -73,6 +70,11 @@ def TestInit():
   # We are running a test so let the config system know that.
   config.CONFIG.AddContext(contexts.TEST_CONTEXT,
                            "Context applied when we run tests.")
+
+  # Prevent using the default writeback location since it may clash with local
+  # setup.
+  writeback_filepath = temp.TempFilePath(prefix="grr_writeback", suffix=".yaml")
+  config.CONFIG.Set("Config.writeback", writeback_filepath)
 
   if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()

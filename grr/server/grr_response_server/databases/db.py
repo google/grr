@@ -21,7 +21,15 @@ from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import with_metaclass
-from typing import Generator, List, Optional, Set, Text, Tuple, Iterable, Dict
+from typing import Dict
+from typing import Generator
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Set
+from typing import Text
+from typing import Tuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import time_utils
@@ -193,6 +201,22 @@ class AtLeastOneUnknownPathError(NotFoundError):
 
     self.message = "At least one of client path ids does not exist: "
     self.message += ", ".join(str(cpid) for cpid in self.client_path_ids)
+
+
+class NotDirectoryPathError(NotFoundError):
+  """An exception class raised when a path corresponds to a non-directory."""
+
+  def __init__(self, client_id, path_type, components, cause=None):
+    super(NotDirectoryPathError, self).__init__(
+        client_id, path_type, components, cause=cause)
+
+    self.client_id = client_id
+    self.path_type = path_type
+    self.components = components
+
+    self.message = ("Listing descendants of path '%s' of type '%s' on client "
+                    "'%s' that is not a directory")
+    self.message %= ("/".join(self.components), self.path_type, self.client_id)
 
 
 class UnknownRuleError(NotFoundError):
@@ -1369,7 +1393,13 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+  def ReadPathInfosHistories(
+      self,
+      client_id,
+      path_type,
+      components_list,
+      cutoff = None
+  ):
     """Reads a collection of hash and stat entries for given paths.
 
     Args:
@@ -1377,13 +1407,21 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       path_type: A type of a path to retrieve path history information for.
       components_list: An iterable of tuples of path components corresponding to
         paths to retrieve path information for.
+      cutoff: An optional timestamp cutoff up to which the history entries are
+        collected.
 
     Returns:
       A dictionary mapping path components to lists of `rdf_objects.PathInfo`
       ordered by timestamp in ascending order.
     """
 
-  def ReadPathInfoHistory(self, client_id, path_type, components):
+  def ReadPathInfoHistory(
+      self,
+      client_id,
+      path_type,
+      components,
+      cutoff = None
+  ):
     """Reads a collection of hash and stat entry for given path.
 
     Args:
@@ -1391,11 +1429,18 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       path_type: A type of a path to retrieve path history for.
       components: A tuple of path components corresponding to path to retrieve
         information for.
+      cutoff: An optional timestamp cutoff up to which the history entries are
+        collected.
 
     Returns:
       A list of `rdf_objects.PathInfo` ordered by timestamp in ascending order.
     """
-    histories = self.ReadPathInfosHistories(client_id, path_type, [components])
+    histories = self.ReadPathInfosHistories(
+        client_id=client_id,
+        path_type=path_type,
+        components_list=[components],
+        cutoff=cutoff)
+
     return histories[components]
 
   @abc.abstractmethod
@@ -3240,15 +3285,25 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadUserNotifications(
         username, state=state, timerange=timerange)
 
-  def ReadPathInfosHistories(self, client_id, path_type, components_list):
+  def ReadPathInfosHistories(
+      self,
+      client_id,
+      path_type,
+      components_list,
+      cutoff = None
+  ):
     precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     precondition.AssertType(components_list, list)
     for components in components_list:
       _ValidatePathComponents(components)
+    precondition.AssertOptionalType(cutoff, rdfvalue.RDFDatetime)
 
-    return self.delegate.ReadPathInfosHistories(client_id, path_type,
-                                                components_list)
+    return self.delegate.ReadPathInfosHistories(
+        client_id=client_id,
+        path_type=path_type,
+        components_list=components_list,
+        cutoff=cutoff)
 
   def ReadLatestPathInfosWithHashBlobReferences(self,
                                                 client_paths,

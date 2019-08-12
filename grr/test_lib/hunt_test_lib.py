@@ -172,7 +172,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
       client_processed = 0
 
       for client_mock in client_mocks:
-        client_processed += client_mock.Next()
+        client_processed += int(client_mock.Next())
 
       num_iterations += 1
 

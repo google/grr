@@ -491,7 +491,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     # bytes object in Python 2. Once support for Python 2 is dropped, this can
     # be safely removed.
     if compatibility.PY2:
-      digest = digest.decode("ascii")
+      digest = digest.decode("ascii")  # pytype: disable=attribute-error
 
     return "%s (%s)" % (compatibility.GetName(self.__class__), digest)
 
@@ -529,6 +529,8 @@ class Hash(rdf_structs.RDFProtoStruct):
       rdf_standard.AuthenticodeSignedData,
       rdfvalue.HashDigest,
   ]
+
+  __hash__ = rdfvalue.RDFValue.__hash__
 
 
 class SignedBlob(rdf_structs.RDFProtoStruct):

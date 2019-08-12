@@ -10,13 +10,13 @@ import requests
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util.compat import json
-from grr_response_server.gui import api_e2e_test_lib
+from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
 from grr.test_lib import test_lib
 
 
-class CSRFProtectionTest(api_e2e_test_lib.ApiE2ETest):
+class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
   """Tests GRR's CSRF protection logic for the HTTP API."""
 
   def setUp(self):

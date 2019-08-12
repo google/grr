@@ -573,8 +573,7 @@ class SshdConfigCmdParser(parser.CommandParser):
     super(SshdConfigCmdParser, self).__init__(*args, **kwargs)
     self._field_parser = SshdFieldParser()
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     # Clean out any residual state.
     self._field_parser.Flush()
     lines = [l.strip() for l in stdout.splitlines()]
@@ -626,10 +625,9 @@ class MountCmdParser(parser.CommandParser):
     super(MountCmdParser, self).__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Parse the mount command output."""
-    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
     for entry in self._field_parser.ParseEntries(stdout):
       line_str = " ".join(entry)

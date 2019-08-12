@@ -499,6 +499,21 @@ class SoftwarePackage(rdf_structs.RDFProtoStruct):
   """Represent an installed package on the client."""
   protobuf = sysinfo_pb2.SoftwarePackage
 
+  @classmethod
+  def Installed(cls, **kwargs):
+    return SoftwarePackage(
+        install_state=SoftwarePackage.InstallState.INSTALLED, **kwargs)
+
+  @classmethod
+  def Pending(cls, **kwargs):
+    return SoftwarePackage(
+        install_state=SoftwarePackage.InstallState.PENDING, **kwargs)
+
+  @classmethod
+  def Uninstalled(cls, **kwargs):
+    return SoftwarePackage(
+        install_state=SoftwarePackage.InstallState.UNINSTALLED, **kwargs)
+
 
 class SoftwarePackages(rdf_structs.RDFProtoStruct):
   """A list of installed packages on the system."""

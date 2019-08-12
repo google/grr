@@ -7,12 +7,13 @@ from __future__ import unicode_literals
 import logging
 import time
 
+from future.builtins import str
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.util import collection
-from grr_response_core.stats import stats_collector_instance
+from grr_response_core.stats import metrics
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import handler_registry
@@ -22,8 +23,38 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 
 
+WELL_KNOWN_FLOW_REQUESTS = metrics.Counter(
+    "well_known_flow_requests", fields=[("flow", str)])
+
+
 class Error(Exception):
   """Base error class."""
+
+
+def ProcessMessageHandlerRequests(requests):
+  """Processes message handler requests."""
+  logging.debug("Leased message handler request ids: %s",
+                ",".join(str(r.request_id) for r in requests))
+  grouped_requests = collection.Group(requests, lambda r: r.handler_name)
+  for handler_name, requests_for_handler in iteritems(grouped_requests):
+    handler_cls = handler_registry.handler_name_map.get(handler_name)
+    if not handler_cls:
+      logging.error("Unknown message handler: %s", handler_name)
+      continue
+
+    WELL_KNOWN_FLOW_REQUESTS.Increment(fields=[handler_name])
+
+    try:
+      logging.debug("Running %d messages for handler %s",
+                    len(requests_for_handler), handler_name)
+      handler_cls().ProcessMessages(requests_for_handler)
+    except Exception as e:  # pylint: disable=broad-except
+      logging.exception("Exception while processing message handler %s: %s",
+                        handler_name, e)
+
+  logging.debug("Deleting message handler request ids: %s",
+                ",".join(str(r.request_id) for r in requests))
+  data_store.REL_DB.DeleteMessageHandlerRequests(requests)
 
 
 class GRRWorker(object):
@@ -42,7 +73,7 @@ class GRRWorker(object):
   def Run(self):
     """Event loop."""
     data_store.REL_DB.RegisterMessageHandler(
-        self._ProcessMessageHandlerRequests,
+        ProcessMessageHandlerRequests,
         self.message_handler_lease_time,
         limit=100)
     data_store.REL_DB.RegisterFlowProcessingHandler(self.ProcessFlow)
@@ -55,32 +86,6 @@ class GRRWorker(object):
     except KeyboardInterrupt:
       logging.info("Caught interrupt, exiting.")
       self.Shutdown()
-
-  def _ProcessMessageHandlerRequests(self, requests):
-    """Processes message handler requests."""
-    logging.debug("Leased message handler request ids: %s",
-                  ",".join(str(r.request_id) for r in requests))
-    grouped_requests = collection.Group(requests, lambda r: r.handler_name)
-    for handler_name, requests_for_handler in iteritems(grouped_requests):
-      handler_cls = handler_registry.handler_name_map.get(handler_name)
-      if not handler_cls:
-        logging.error("Unknown message handler: %s", handler_name)
-        continue
-
-      stats_collector_instance.Get().IncrementCounter(
-          "well_known_flow_requests", fields=[handler_name])
-
-      try:
-        logging.debug("Running %d messages for handler %s",
-                      len(requests_for_handler), handler_name)
-        handler_cls().ProcessMessages(requests_for_handler)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Exception while processing message handler %s: %s",
-                          handler_name, e)
-
-    logging.debug("Deleting message handler request ids: %s",
-                  ",".join(str(r.request_id) for r in requests))
-    data_store.REL_DB.DeleteMessageHandlerRequests(requests)
 
   def _ReleaseProcessedFlow(self, flow_obj):
     rdf_flow = flow_obj.rdf_flow

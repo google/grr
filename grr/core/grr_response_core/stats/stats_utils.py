@@ -13,14 +13,13 @@ from typing import Text
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
-from grr_response_core.stats import stats_collector_instance
 
 
 class Timed(object):
   """A decorator that records timing metrics for function calls."""
 
-  def __init__(self, metric_name, fields=None):
-    self._metric_name = metric_name
+  def __init__(self, event_metric, fields=None):
+    self._event_metric = event_metric
     self._fields = fields or []
 
   def __call__(self, func):
@@ -33,8 +32,7 @@ class Timed(object):
         return func(*args, **kwargs)
       finally:
         total_time = time.time() - start_time
-        stats_collector_instance.Get().RecordEvent(
-            self._metric_name, total_time, fields=self._fields)
+        self._event_metric.RecordEvent(total_time, fields=self._fields)
 
     return Decorated
 
@@ -42,8 +40,8 @@ class Timed(object):
 class Counted(object):
   """A decorator that counts function calls."""
 
-  def __init__(self, metric_name, fields=None):
-    self._metric_name = metric_name
+  def __init__(self, counter_metric, fields=None):
+    self._counter_metric = counter_metric
     self._fields = fields or []
 
   def __call__(self, func):
@@ -54,8 +52,7 @@ class Counted(object):
       try:
         return func(*args, **kwargs)
       finally:
-        stats_collector_instance.Get().IncrementCounter(
-            self._metric_name, fields=self._fields)
+        self._counter_metric.Increment(fields=self._fields)
 
     return Decorated
 
@@ -63,8 +60,8 @@ class Counted(object):
 class SuccessesCounted(object):
   """A decorator that counts function calls that don't raise an exception."""
 
-  def __init__(self, metric_name, fields=None):
-    self._metric_name = metric_name
+  def __init__(self, counter_metric, fields=None):
+    self._counter_metric = counter_metric
     self._fields = fields or []
 
   def __call__(self, func):
@@ -73,8 +70,7 @@ class SuccessesCounted(object):
     def Decorated(*args, **kwargs):
       """Calls a decorated function then increments a counter."""
       result = func(*args, **kwargs)
-      stats_collector_instance.Get().IncrementCounter(
-          self._metric_name, fields=self._fields)
+      self._counter_metric.Increment(fields=self._fields)
       return result
 
     return Decorated
@@ -83,8 +79,8 @@ class SuccessesCounted(object):
 class ErrorsCounted(object):
   """A decorator that counts function calls that raise an exception."""
 
-  def __init__(self, metric_name, fields=None):
-    self._metric_name = metric_name
+  def __init__(self, counter_metric, fields=None):
+    self._counter_metric = counter_metric
     self._fields = fields or []
 
   def __call__(self, func):
@@ -95,26 +91,10 @@ class ErrorsCounted(object):
       try:
         return func(*args, **kwargs)
       except Exception:  # pylint: disable=broad-except
-        stats_collector_instance.Get().IncrementCounter(
-            self._metric_name, fields=self._fields)
+        self._counter_metric.Increment(fields=self._fields)
         raise
 
     return Decorated
-
-
-class CountingExceptionMixin(object):
-  """An exception that increments a counter every time it is raised."""
-
-  # Override with the name of the counter
-  counter = None
-  # Override with fields set for this counter
-  fields = []
-
-  def __init__(self, *args, **kwargs):
-    if self.counter:
-      stats_collector_instance.Get().IncrementCounter(
-          self.counter, fields=self.fields)
-    super(CountingExceptionMixin, self).__init__(*args, **kwargs)
 
 
 def FieldDefinitionProtosFromTuples(field_def_tuples):
@@ -168,45 +148,3 @@ def PythonTypeFromMetricValueType(value_type):
     return float
   else:
     raise ValueError("Unknown value type: %s" % value_type)
-
-
-def CreateCounterMetadata(metric_name, fields=None, docstring=None, units=None):
-  """Helper function for creating MetricMetadata for counter metrics."""
-  return rdf_stats.MetricMetadata(
-      varname=metric_name,
-      metric_type=rdf_stats.MetricMetadata.MetricType.COUNTER,
-      value_type=rdf_stats.MetricMetadata.ValueType.INT,
-      fields_defs=FieldDefinitionProtosFromTuples(fields or []),
-      docstring=docstring,
-      units=units)
-
-
-def CreateEventMetadata(metric_name,
-                        bins=None,
-                        fields=None,
-                        docstring=None,
-                        units=None):
-  """Helper function for creating MetricMetadata for event metrics."""
-  return rdf_stats.MetricMetadata(
-      varname=metric_name,
-      bins=bins or [],
-      metric_type=rdf_stats.MetricMetadata.MetricType.EVENT,
-      value_type=rdf_stats.MetricMetadata.ValueType.DISTRIBUTION,
-      fields_defs=FieldDefinitionProtosFromTuples(fields or []),
-      docstring=docstring,
-      units=units)
-
-
-def CreateGaugeMetadata(metric_name,
-                        value_type,
-                        fields=None,
-                        docstring=None,
-                        units=None):
-  """Helper function for creating MetricMetadata for gauge metrics."""
-  return rdf_stats.MetricMetadata(
-      varname=metric_name,
-      metric_type=rdf_stats.MetricMetadata.MetricType.GAUGE,
-      value_type=MetricValueTypeFromPythonType(value_type),
-      fields_defs=FieldDefinitionProtosFromTuples(fields or []),
-      docstring=docstring,
-      units=units)

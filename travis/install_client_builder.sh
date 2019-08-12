@@ -8,13 +8,6 @@ set -e
 source "${HOME}/INSTALL/bin/activate"
 pip install --upgrade pip wheel six setuptools
 
-# Set default value for PROTOC if necessary.
-default_protoc_path="${HOME}/protobuf/bin/protoc"
-if [[ -z "${PROTOC}" && "${PATH}" != *'protoc'* && -f "${default_protoc_path}" ]]; then
-  echo "PROTOC is not set. Will set it to ${default_protoc_path}."
-  export PROTOC="${default_protoc_path}"
-fi
-
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS
 

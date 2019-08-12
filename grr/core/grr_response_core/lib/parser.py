@@ -13,22 +13,6 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import precondition
 
 
-class Error(Exception):
-  """Base error class."""
-
-
-class ParserDefinitionError(Exception):
-  """A parser was defined badly."""
-
-
-class CommandFailedError(Error):
-  """An error that gets raised due to the command failing."""
-
-
-class ParseError(Error):
-  """An error that gets raised due to the parsing of the output failing."""
-
-
 class CommandParser(abstract.SingleResponseParser):
   """Abstract parser for processing command output.
 
@@ -37,8 +21,7 @@ class CommandParser(abstract.SingleResponseParser):
   """
 
   # TODO(hanuszczak): This should probably be abstract or private.
-  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
-            knowledge_base):
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Take the output of the command run, and yield RDFValues."""
 
   def ParseResponse(self, knowledge_base, response, path_type):
@@ -51,14 +34,14 @@ class CommandParser(abstract.SingleResponseParser):
         stdout=response.stdout,
         stderr=response.stderr,
         return_val=response.exit_status,
-        time_taken=response.time_used,
         knowledge_base=knowledge_base)
 
   def CheckReturn(self, cmd, return_val):
     """Raise if return value is bad."""
     if return_val != 0:
-      raise CommandFailedError("Parsing output of Command %s failed, as "
-                               "command had %s return code" % (cmd, return_val))
+      message = ("Parsing output of command '{command}' failed, as command had "
+                 "{code} return code")
+      raise abstract.ParseError(message.format(command=cmd, code=return_val))
 
 
 # TODO(hanuszczak): This class should be removed - subclasses should implement

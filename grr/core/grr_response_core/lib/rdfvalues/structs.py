@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import base64
 import collections
 import copy
+import logging
 import struct
 
 from future.builtins import chr
@@ -1512,7 +1513,7 @@ class ProtoRDFValue(ProtoType):
         self._GetPrimitiveEncoder()
 
     # Or it can be an subclass of RDFValue.
-    elif issubclass(rdf_type, rdfvalue.RDFValue):
+    elif issubclass(rdf_type, rdfvalue.RDFValue):  # pytype: disable=wrong-arg-types
       self.type = rdf_type
       self.original_proto_type_name = self.proto_type_name = rdf_type.__name__
       self._GetPrimitiveEncoder()
@@ -1837,7 +1838,9 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   # instances are mutable.
   # TODO: For increased fun, __hash__ can change during read access
   # of fields.
-  __hash__ = rdfvalue.RDFValue.__hash__
+  def __hash__(self):
+    logging.error(rdfvalue.HashUnsupportedError(type(self)))
+    return super(RDFStruct, self).__hash__()
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):

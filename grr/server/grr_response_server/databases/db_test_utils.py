@@ -17,10 +17,10 @@ from grr_response_server.databases import db
 class QueryTestHelpersMixin(object):
   """Mixin containing helper methods for list/query methods tests."""
 
-  def TestOffsetAndCount(self,
-                         fetch_all_fn,
-                         fetch_range_fn,
-                         error_desc = None):
+  def DoOffsetAndCountTest(self,
+                           fetch_all_fn,
+                           fetch_range_fn,
+                           error_desc = None):
     """Tests a DB API method with different offset/count combinations.
 
     This helper method works by first fetching all available objects with
@@ -52,10 +52,10 @@ class QueryTestHelpersMixin(object):
             (i, l,
              (", " + error_desc) if error_desc else "", results, expected))
 
-  def TestFilterCombinations(self,
-                             fetch_fn,
-                             conditions,
-                             error_desc = None):
+  def DoFilterCombinationsTest(self,
+                               fetch_fn,
+                               conditions,
+                               error_desc = None):
     """Tests a DB API method with different keyword arguments combinations.
 
     This test method works by fetching sets of objects for each individual
@@ -103,11 +103,10 @@ class QueryTestHelpersMixin(object):
           (kw_args_str,
            (", " + error_desc) if error_desc else "", got, expected))
 
-  def TestFilterCombinationsAndOffsetCount(
-      self,
-      fetch_fn,
-      conditions,
-      error_desc = None):
+  def DoFilterCombinationsAndOffsetCountTest(self,
+                                             fetch_fn,
+                                             conditions,
+                                             error_desc = None):
     """Tests a DB API methods with combinations of offset/count args and kwargs.
 
     This test methods works in 2 steps:
@@ -127,7 +126,7 @@ class QueryTestHelpersMixin(object):
       error_desc: Optional string to be used in error messages. May be useful to
         identify errors from a particular test.
     """
-    self.TestFilterCombinations(
+    self.DoFilterCombinationsTest(
         lambda **kw_args: fetch_fn(0, db.MAX_COUNT, **kw_args),
         conditions,
         error_desc=error_desc)
@@ -148,7 +147,7 @@ class QueryTestHelpersMixin(object):
       # Make sure that the order of keys->values is stable in the error message.
       kw_args_str = ", ".join(
           "%r: %r" % (k, kw_args[k]) for k in sorted(kw_args))
-      self.TestOffsetAndCount(
+      self.DoOffsetAndCountTest(
           lambda: fetch_fn(0, db.MAX_COUNT, **kw_args),  # pylint: disable=cell-var-from-loop
           lambda offset, count: fetch_fn(offset, count, **kw_args),  # pylint: disable=cell-var-from-loop
           error_desc="{%s}%s" %

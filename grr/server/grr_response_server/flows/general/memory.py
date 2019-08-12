@@ -115,7 +115,7 @@ def _MigrateLegacyDumpFilesToMemoryAreas(
       end = int(end, 16)
 
       info.memory_regions.Append(
-          rdf_memory.YaraProcessMemoryRegion(
+          rdf_memory.ProcessMemoryRegion(
               file=_CanonicalizeLegacyWindowsPathSpec(dump_file),
               start=start,
               size=end - start,

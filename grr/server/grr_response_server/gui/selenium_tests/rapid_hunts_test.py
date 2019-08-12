@@ -243,7 +243,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-wizard-form:contains('is not eligible for rapid hunting')")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form td:contains('ListProcesses')")
-    self.assertNotEquals(
+    self.assertNotEqual(
         self.GetText("css=td:contains('Client rate') + td"), "0")
 
   def testRapidHuntClientRateCanBeManuallyOverridden(self):
