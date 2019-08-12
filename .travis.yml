@@ -55,7 +55,7 @@ matrix:
         - source terryfy/travis_tools.sh
         - get_python_environment macpython 3.7.3 "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install pyopenssl google-cloud-storage absl-py
-        - get_python_environment macpython 2.7.14 "${HOME}/INSTALL"
+        - get_python_environment homebrew 2 "${HOME}/INSTALL"
       install:
         - travis/install_client_builder.sh
       script:
