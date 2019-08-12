@@ -13,6 +13,7 @@ from distutils.command.build_py import build_py
 
 from setuptools import find_packages
 from setuptools import setup
+from setuptools.command.develop import develop
 from setuptools.command.sdist import sdist
 
 # TODO: Fix this import once support for Python 2 is dropped.
@@ -27,6 +28,7 @@ else:
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 GRPCIO_TOOLS = "grpcio-tools==1.17.1"
+PROTOBUF = "protobuf==3.8.0"
 
 
 def get_config():
@@ -58,8 +60,12 @@ def compile_protos():
   # setup mechanism is used: pip install, pip install -e,
   # python setup.py install, etc.
   if p.returncode != 0:
+    # Specifying protobuf dependency right away pins it to the correct
+    # version. Otherwise latest protobuf library will be installed with
+    # grpcio-tools and then uninstalled when grr-response-proto's setup.py runs
+    # and reinstalled to the version required by grr-response-proto.
     subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", GRPCIO_TOOLS])
+        [sys.executable, "-m", "pip", "install", GRPCIO_TOOLS, PROTOBUF])
 
   # If there's no makefile, we're likely installing from an sdist,
   # so there's no need to compile the protos (they should be already
@@ -75,15 +81,23 @@ def compile_protos():
 class Build(build_py):
 
   def find_all_modules(self):
-    compile_protos()
     self.packages = find_packages()
     return build_py.find_all_modules(self)
+
+
+class Develope(develop):
+
+  def run(self):
+    compile_protos()
+    develop.run(self)
 
 
 class Sdist(sdist):
   """Build sdist."""
 
   def make_release_tree(self, base_dir, files):
+    compile_protos()
+
     sdist.make_release_tree(self, base_dir, files)
 
     sdist_version_ini = os.path.join(base_dir, "version.ini")
@@ -109,7 +123,7 @@ setup_args = dict(
     },
     packages=find_packages(),
     install_requires=[
-        "protobuf==3.8.0",
+        PROTOBUF,
     ],
     setup_requires=[
         GRPCIO_TOOLS,
