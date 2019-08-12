@@ -30,7 +30,7 @@ matrix:
         - GCS_TAG=ubuntu_64bit
       before_install:
         - virtualenv "${HOME}/GCS_VENV" --python=python3
-        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
+        - ${HOME}/GCS_VENV/bin/pip install pyopenssl google-cloud-storage absl-py
         - pip install --upgrade virtualenv
         - virtualenv "${HOME}/INSTALL"
       install:
