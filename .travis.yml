@@ -30,7 +30,7 @@ matrix:
         - GCS_TAG=ubuntu_64bit
       before_install:
         - virtualenv "${HOME}/GCS_VENV" --python=python3
-        - ${HOME}/GCS_VENV/bin/pip install pyopenssl google-cloud-storage absl-py
+        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - pip install --upgrade virtualenv
         - virtualenv "${HOME}/INSTALL"
       install:
@@ -53,7 +53,7 @@ matrix:
         - git clone https://github.com/MacPython/terryfy
         - source terryfy/travis_tools.sh
         - get_python_environment macpython 3.7.3 "${HOME}/GCS_VENV"
-        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
+        - ${HOME}/GCS_VENV/bin/pip install pyopenssl google-cloud-storage absl-py
         - get_python_environment macpython 2.7.14 "${HOME}/INSTALL"
       install:
         - travis/install_client_builder.sh
