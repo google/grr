@@ -7,8 +7,8 @@ image: ubuntu
 environment:
   CHROME_DEB: google-chrome-stable_current_amd64.deb
 
-cache:
- - ${HOME}/.cache/pip
+#cache:
+# - ${HOME}/.cache/pip
 
 install:
 - lsb_release -a
