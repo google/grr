@@ -96,8 +96,6 @@ class Sdist(sdist):
   """Build sdist."""
 
   def make_release_tree(self, base_dir, files):
-    compile_protos()
-
     sdist.make_release_tree(self, base_dir, files)
 
     sdist_version_ini = os.path.join(base_dir, "version.ini")
@@ -106,6 +104,10 @@ class Sdist(sdist):
     shutil.copy(
         os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
+  def run(self):
+    compile_protos()
+    sdist.run(self)
+    
 
 VERSION = get_config()
 
