@@ -5,7 +5,6 @@ branches:
 image: ubuntu
 
 environment:
-  GRR_VENV: "${HOME}/INSTALL"
   CHROME_DEB: google-chrome-stable_current_amd64.deb
 
 cache:
@@ -26,10 +25,8 @@ install:
   if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
   wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
   fi
-- virtualenv "${GRR_VENV}"
-- ${GRR_VENV}/bin/pip install pytest-xdist
-- echo "${HOME}"
-- bash -c 'echo $HOME'
+- virtualenv "${HOME}/INSTALL"
+- ${HOME}/INSTALL/bin/pip install pytest-xdist
 - travis/install.sh
 
 # Appveyor will try to build any Visual Studio projects it finds
@@ -37,7 +34,7 @@ install:
 build: off
 
 test_script:
-- source "${GRR_VENV}/bin/activate"
+- source "${HOME}/INSTALL/bin/activate"
 # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
 # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
 # which happen when tests stall.
