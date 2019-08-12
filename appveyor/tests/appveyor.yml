@@ -28,6 +28,8 @@ install:
   fi
 - virtualenv "${GRR_VENV}"
 - ${GRR_VENV}/bin/pip install pytest-xdist
+- echo "${HOME}"
+- bash -c 'echo $HOME'
 - travis/install.sh
 
 # Appveyor will try to build any Visual Studio projects it finds
