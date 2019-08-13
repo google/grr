@@ -26,6 +26,7 @@ else:
 
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
+os.chdir(THIS_DIRECTORY)
 
 GRPCIO_TOOLS = "grpcio-tools==1.17.1"
 PROTOBUF = "protobuf==3.8.0"

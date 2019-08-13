@@ -86,8 +86,6 @@ function verify_packages() {
 }
 
 source "${HOME}/INSTALL/bin/activate"
-pip install --upgrade pip
-
 build_sdists
 download_packages
 verify_packages
