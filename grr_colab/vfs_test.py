@@ -13,11 +13,13 @@ from absl.testing import flagsaver
 import requests
 
 import grr_colab
+from grr_api_client import errors as api_errors
 from grr_colab import _api
 from grr_colab import errors
 from grr_colab import testing
 from grr_colab import vfs
 from grr_response_core.lib.util import temp
+from grr_response_proto import jobs_pb2
 from grr_response_server import data_store
 
 
@@ -30,12 +32,39 @@ class VfsTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(
         client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
 
-    vfs_obj = vfs.VFS(self._get_fake_api_client())
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with self.assertRaises(errors.ApprovalMissingError) as context:
       vfs_obj.open('/foo/bar')
 
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
+
+  def testOpen_DoesNotExist(self):
+    data_store.REL_DB.WriteClientMetadata(
+        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
+
+    with self.assertRaises(api_errors.ResourceNotFoundError):
+      vfs_obj.open('/foo/bar')
+
+  def testOpen_NotCollected(self):
+    data_store.REL_DB.WriteClientMetadata(
+        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+
+    content = b'foo bar'
+    api_client = self._get_fake_api_client()
+    client = grr_colab.Client(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
+
+    with temp.AutoTempFilePath() as temp_filepath:
+      with io.open(temp_filepath, 'wb') as filedesc:
+        filedesc.write(content)
+
+      client.ls(os.path.dirname(temp_filepath))
+
+    with self.assertRaises(api_errors.ResourceNotFoundError):
+      vfs_obj.open(temp_filepath)
 
   def testOpen_ReadAll(self):
     data_store.REL_DB.WriteClientMetadata(
@@ -44,7 +73,7 @@ class VfsTest(testing.ColabE2ETest):
     content = b'foo bar'
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -63,7 +92,7 @@ class VfsTest(testing.ColabE2ETest):
     content = b'foo bar'
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -82,7 +111,7 @@ class VfsTest(testing.ColabE2ETest):
     content = b'foo bar'
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -101,7 +130,7 @@ class VfsTest(testing.ColabE2ETest):
     size = 1024 * 1024
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -122,7 +151,7 @@ class VfsTest(testing.ColabE2ETest):
     size = 1024 * 1024
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -141,7 +170,7 @@ class VfsTest(testing.ColabE2ETest):
     content = b'foo bar'
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -162,7 +191,7 @@ class VfsTest(testing.ColabE2ETest):
     size = 1024 * 512
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, 'wb') as filedesc:
@@ -181,13 +210,19 @@ class VfsTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(
         client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
 
-    vfs_obj = vfs.VFS(self._get_fake_api_client())
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
     with self.assertRaises(errors.ApprovalMissingError) as context:
       vfs_obj.ls('/foo/bar')
 
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
 
-  # TODO: Add test for directories that does not persist in VFS.
+  def testLs_DoesNotExist(self):
+    data_store.REL_DB.WriteClientMetadata(
+        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
+    with self.assertRaises(api_errors.ResourceNotFoundError):
+      vfs_obj.ls('/foo/bar')
 
   def testLs_ContainsFiles(self):
     data_store.REL_DB.WriteClientMetadata(
@@ -201,7 +236,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       for filename, file_content in dir_nodes:
@@ -229,7 +264,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       client.ls(temp_dirpath)
@@ -243,7 +278,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempFilePath() as temp_file:
       client.glob(temp_file)
@@ -264,7 +299,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.mkdir(os.path.join(temp_dirpath, 'dir1'))
@@ -294,7 +329,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.makedirs(os.path.join(temp_dirpath, *dir_components))
@@ -315,12 +350,20 @@ class VfsTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(
         client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
 
-    vfs_obj = vfs.VFS(self._get_fake_api_client())
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with self.assertRaises(errors.ApprovalMissingError) as context:
       vfs_obj.refresh('/foo/bar')
 
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
+
+  def testRefresh_DoesNotExist(self):
+    data_store.REL_DB.WriteClientMetadata(
+        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
+    with self.assertRaises(api_errors.ResourceNotFoundError):
+      vfs_obj.refresh('/foo/bar')
 
   def testRefresh_Plain(self):
     data_store.REL_DB.WriteClientMetadata(
@@ -328,7 +371,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.mkdir(os.path.join(temp_dirpath, 'dir1'))
@@ -358,7 +401,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.makedirs(os.path.join(temp_dirpath, dir_components[0]))
@@ -381,7 +424,7 @@ class VfsTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(
         client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
 
-    vfs_obj = vfs.VFS(self._get_fake_api_client())
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=self.endpoint):
       with self.assertRaises(errors.ApprovalMissingError) as context:
@@ -395,7 +438,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=''):
       with temp.AutoTempFilePath() as temp_file:
@@ -412,7 +455,7 @@ class VfsTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(
         client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
 
-    vfs_obj = vfs.VFS(self._get_fake_api_client())
+    vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=self.endpoint):
       with self.assertRaises(Exception):
@@ -424,7 +467,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=self.endpoint):
       with temp.AutoTempDirPath() as temp_dir:
@@ -439,7 +482,7 @@ class VfsTest(testing.ColabE2ETest):
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
-    vfs_obj = vfs.VFS(api_client)
+    vfs_obj = vfs.VFS(api_client, jobs_pb2.PathSpec.OS)
 
     content = b'foo bar'
     with flagsaver.flagsaver(grr_admin_ui_url=self.endpoint):

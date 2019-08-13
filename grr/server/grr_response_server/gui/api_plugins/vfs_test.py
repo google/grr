@@ -326,6 +326,18 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.file_path = "fs/os/c/Downloads/a.txt"
     self.CreateFileVersions(self.client_id, self.file_path)
 
+  def testRaisesOnNonExistentPath(self):
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path="fs/os/foo/bar")
+    with self.assertRaises(vfs_plugin.FileContentNotFoundError) as context:
+      self.handler.Handle(args, token=self.token)
+
+    exception = context.exception
+    self.assertEqual(exception.client_id, self.client_id)
+    self.assertEqual(exception.path_type, rdf_objects.PathInfo.PathType.OS)
+    self.assertItemsEqual(exception.components, ["foo", "bar"])
+    self.assertIsNone(exception.timestamp)
+
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
@@ -455,6 +467,17 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     self.client_id = self.SetupClient(0)
     # Choose some directory with pathspec in the ClientFixture.
     self.file_path = "fs/os/Users/Shared"
+
+  def testRaisesOnNonExistentPath(self):
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path="fs/os/foo/bar")
+    with self.assertRaises(vfs_plugin.FileNotFoundError) as context:
+      self.handler.Handle(args, token=self.token)
+
+    exception = context.exception
+    self.assertEqual(exception.client_id, self.client_id)
+    self.assertEqual(exception.path_type, rdf_objects.PathInfo.PathType.OS)
+    self.assertItemsEqual(exception.components, ["foo", "bar"])
 
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(

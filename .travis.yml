@@ -47,7 +47,6 @@ matrix:
 
     # OSX builds
     - os: osx
-      osx_image: xcode10.1
       env:
         - GCS_TAG=osx
       before_install:

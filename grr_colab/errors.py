@@ -10,6 +10,7 @@ from __future__ import unicode_literals
 from typing import Text, List, Optional
 
 from grr_colab import flags
+from grr_response_proto import jobs_pb2
 
 FLAGS = flags.FLAGS
 
@@ -88,3 +89,11 @@ class NotDirectoryError(Exception):
     self.path = path
     msg = 'Path `{}` for client {} is not a directory'.format(client_id, path)
     super(NotDirectoryError, self).__init__(msg)
+
+
+class UnsupportedPathTypeError(Exception):
+
+  def __init__(self, path_type):
+    self.path_type = path_type
+    msg = 'Unsupported path type {}'.format(path_type)
+    super(UnsupportedPathTypeError, self).__init__(msg)

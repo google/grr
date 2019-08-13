@@ -78,13 +78,7 @@ setup_args = dict(
         "absl-py==0.6.1",
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        # TODO: 3.4 has a bug that prevents it from being installed
-        # on macOS and CentOS [1]. On the other hand, 3.2.1 does not work with
-        # Python 3. The issue is already resolved but there has been no release
-        # since then.
-        #
-        # [1]: https://github.com/pyinstaller/pyinstaller/issues/3597
-        "pyinstaller==%s" % ("3.2.1" if sys.version_info < (3, 0) else "3.4"),
+        "pyinstaller==3.5",
     ],
 
     # Data files used by GRR. Access these via the config_lib "resource" filter.

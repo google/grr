@@ -40,7 +40,7 @@ class FileSystem(object):
 
   @property
   def cached(self):
-    return vfs.VFS(self._client)
+    return vfs.VFS(self._client, self._path_type)
 
   def ls(self, path, max_depth = 1):
     """Lists contents of a given directory.

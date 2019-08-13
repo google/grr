@@ -85,7 +85,7 @@ class Build(build_py):
     return build_py.find_all_modules(self)
 
 
-class Develope(develop):
+class Develop(develop):
 
   def run(self):
     compile_protos()
@@ -107,7 +107,7 @@ class Sdist(sdist):
   def run(self):
     compile_protos()
     sdist.run(self)
-    
+
 
 VERSION = get_config()
 
@@ -121,6 +121,7 @@ setup_args = dict(
     url="https://github.com/google/grr/tree/master/proto",
     cmdclass={
         "build_py": Build,
+        "develop": Develop,
         "sdist": Sdist,
     },
     packages=find_packages(),

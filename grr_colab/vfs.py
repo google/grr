@@ -163,8 +163,10 @@ class VFS(object):
   Offers easy to use interface to perform operations on GRR VFS from Colab.
   """
 
-  def __init__(self, client_):
+  def __init__(self, client_,
+               path_type):
     self._client = client_
+    self._path_type = path_type
 
   def ls(self, path, max_depth = 1):
     """Lists contents of a given VFS directory.
@@ -266,11 +268,13 @@ class VFS(object):
 
     link = '{}/api/clients/{}/vfs-blob/{}'
     return link.format(FLAGS.grr_admin_ui_url, self._client.client_id,
-                       get_vfs_path(path))
+                       get_vfs_path(path, self._path_type))
 
   def _get_file(self, path):
-    return self._client.File(get_vfs_path(path))
+    return self._client.File(get_vfs_path(path, self._path_type))
 
 
-def get_vfs_path(path):
-  return 'fs/os{}'.format(path)
+def get_vfs_path(path, path_type):
+  if path_type == jobs_pb2.PathSpec.OS:
+    return 'fs/os{}'.format(path)
+  raise errors.UnsupportedPathTypeError(path_type)

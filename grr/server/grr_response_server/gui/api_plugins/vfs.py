@@ -80,7 +80,32 @@ class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):
 
 
 class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
-  """Raised when the content for a specific file could not be found."""
+  """Raised when the content for a specific file could not be found.
+
+  Attributes:
+    client_id: An id of the client for which the file content was not found.
+    path_type: A type of the path for which the file content was not found.
+    components: Components of the path for which the file content was not found.
+    timestamp: A timestamp of the file which content was not found.
+  """
+
+  def __init__(self, client_id, path_type, components, timestamp=None):
+    self.client_id = client_id
+    self.path_type = path_type
+    self.components = components
+    self.timestamp = timestamp
+
+    path = "/" + "/".join(components)
+
+    if timestamp is None:
+      message = "Content for {} file with path '{}' for client '{}' not found"
+      message = message.format(path_type, path, client_id)
+    else:
+      message = ("Content for {} file with path '{}' and timestamp '{}' for "
+                 "client '{}' not found")
+      message = message.format(path_type, path, timestamp, client_id)
+
+    super(FileContentNotFoundError, self).__init__(message)
 
 
 class VfsRefreshOperationNotFoundError(
@@ -511,9 +536,8 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler):
     try:
       fd = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
     except file_store.FileHasNoContentError:
-      raise FileContentNotFoundError(
-          "File %s with timestamp %s wasn't found on client %s" %
-          (args.file_path, args.timestamp, args.client_id))
+      raise FileContentNotFoundError(args.client_id, path_type, components,
+                                     args.timestamp)
 
     fd.seek(args.offset)
     # No need to protect against args.length == 0 case and large files:
@@ -555,7 +579,14 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
     client_path = db.ClientPath(str(args.client_id), path_type, components)
 
-    file_obj = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
+    # TODO: Raise FileNotFoundError if the file does not exist in
+    #  VFS.
+    try:
+      file_obj = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
+    except file_store.FileHasNoContentError:
+      raise FileContentNotFoundError(args.client_id, path_type, components,
+                                     args.timestamp)
+
     size = max(0, file_obj.size - args.offset)
     if args.length and args.length < size:
       size = args.length
@@ -694,6 +725,8 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
 
     for k in sorted(res, key=len, reverse=True):
       path_info = res[k]
+      if path_info is None:
+        raise FileNotFoundError(args.client_id, path_type, components)
       if path_info.stat_entry and path_info.stat_entry.pathspec:
         ps = path_info.stat_entry.pathspec
 
