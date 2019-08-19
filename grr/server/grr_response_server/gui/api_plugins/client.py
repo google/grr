@@ -72,11 +72,11 @@ class ApiClientId(rdfvalue.RDFString):
 
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 
-  def __init__(self, initializer=None, age=None):
+  def __init__(self, initializer=None):
     if isinstance(initializer, rdf_client.ClientURN):
       initializer = initializer.Basename()
 
-    super(ApiClientId, self).__init__(initializer=initializer, age=age)
+    super(ApiClientId, self).__init__(initializer=initializer)
 
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
@@ -155,10 +155,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     if client_obj.cloud_instance:
       self.cloud_instance = client_obj.cloud_instance
 
-    # TODO(amoser): This should be removed in favor of a timestamp field.
-    # Without self.Set self.age would reference "age" attribute instead of a
-    # protobuf field.
-    self.Set("age", client_obj.timestamp)
+    self.age = client_obj.timestamp
 
     if client_obj.memory_size:
       self.memory_size = client_obj.memory_size
@@ -739,9 +736,6 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
           res = []
           for resp_id in sorted(responses):
             m = responses[resp_id].AsLegacyGrrMessage()
-            # TODO(amoser): Once AFF4 is gone, leaving this as 0 is ok.
-            if m.args_age == 0:
-              m.args_age = None
             res.append(m)
 
           request.responses = res
@@ -818,15 +812,15 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
         points.extend(
             (s.write_count, s.timestamp) for s in stat_value.io_samples)
       elif args.metric == args.Metric.NETWORK_BYTES_RECEIVED:
-        points.append((stat_value.bytes_received, stat_value.age))
+        points.append((stat_value.bytes_received, stat_value.timestamp))
       elif args.metric == args.Metric.NETWORK_BYTES_SENT:
-        points.append((stat_value.bytes_sent, stat_value.age))
+        points.append((stat_value.bytes_sent, stat_value.timestamp))
       elif args.metric == args.Metric.MEMORY_PERCENT:
-        points.append((stat_value.memory_percent, stat_value.age))
+        points.append((stat_value.memory_percent, stat_value.timestamp))
       elif args.metric == args.Metric.MEMORY_RSS_SIZE:
-        points.append((stat_value.RSS_size, stat_value.age))
+        points.append((stat_value.RSS_size, stat_value.timestamp))
       elif args.metric == args.Metric.MEMORY_VMS_SIZE:
-        points.append((stat_value.VMS_size, stat_value.age))
+        points.append((stat_value.VMS_size, stat_value.timestamp))
       else:
         raise ValueError("Unknown metric.")
 

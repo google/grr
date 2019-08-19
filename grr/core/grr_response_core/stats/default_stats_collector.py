@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import threading
 
 from future.utils import with_metaclass
 
@@ -153,14 +152,12 @@ class _GaugeMetric(_Metric):
 class DefaultStatsCollector(stats_collector.StatsCollector):
   """Default implementation for a stats-collector."""
 
-  def __init__(self, metadata_list):
+  def __init__(self):
     self._counter_metrics = {}
     self._gauge_metrics = {}
     self._event_metrics = {}
-    # Lock field required by the utils.Synchronized decorator.
-    self.lock = threading.RLock()
 
-    super(DefaultStatsCollector, self).__init__(metadata_list)
+    super(DefaultStatsCollector, self).__init__()
 
   def _InitializeMetric(self, metadata):
     """See base class."""

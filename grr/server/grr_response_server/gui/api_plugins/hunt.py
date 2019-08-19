@@ -81,8 +81,8 @@ class HuntNotDeletableError(Error):
 class ApiHuntId(rdfvalue.RDFString):
   """Class encapsulating hunt ids."""
 
-  def __init__(self, initializer=None, age=None):
-    super(ApiHuntId, self).__init__(initializer=initializer, age=age)
+  def __init__(self, initializer=None):
+    super(ApiHuntId, self).__init__(initializer=initializer)
 
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
@@ -308,17 +308,6 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
   def GetPayloadClass(self):
     return rdfvalue.RDFValue.classes[self.payload_type]
 
-  def InitFromGrrMessage(self, message):
-    """Init from GrrMessage rdfvalue."""
-
-    if message.source:
-      self.client_id = message.source.Basename()
-    self.payload_type = compatibility.GetName(message.payload.__class__)
-    self.payload = message.payload
-    self.timestamp = message.age
-
-    return self
-
   def InitFromFlowResult(self, flow_result):
     """Init from rdf_flow_objects.FlowResult."""
 
@@ -379,18 +368,6 @@ class ApiHuntError(rdf_structs.RDFProtoStruct):
       api_client.ApiClientId,
       rdfvalue.RDFDatetime,
   ]
-
-  def InitFromHuntError(self, he):
-    if he.HasField("client_id"):
-      self.client_id = he.client_id.Basename()
-
-    if he.HasField("backtrace"):
-      self.backtrace = he.backtrace
-
-    self.log_message = he.log_message
-    self.timestamp = he.age
-
-    return self
 
   def InitFromFlowObject(self, fo):
     """Initialize from rdf_flow_objects.Flow corresponding to a failed flow."""
@@ -909,10 +886,10 @@ class ApiGetHuntClientCompletionStatsHandler(
     # _Resample code between legacy and relational implementations.
     # Get rid of RDFURNs as soon as AFF4 is gone.
     for i, sat in enumerate(states_and_timestamps):
-      started_clients.append(rdfvalue.RDFURN(str(i), age=sat.create_time))
+      started_clients.append((rdfvalue.RDFURN(str(i)), sat.create_time))
       if sat.flow_state != rdf_flow_objects.Flow.FlowState.RUNNING:
         completed_clients.append(
-            rdfvalue.RDFURN(str(i), age=sat.last_update_time))
+            (rdfvalue.RDFURN(str(i)), sat.last_update_time))
 
     (start_stats, complete_stats) = self._SampleClients(started_clients,
                                                         completed_clients)
@@ -931,12 +908,12 @@ class ApiGetHuntClientCompletionStatsHandler(
       return ([], [])
 
     cdict = {}
-    for client in started_clients:
-      cdict.setdefault(client, []).append(client.age)
+    for client, timestamp in started_clients:
+      cdict.setdefault(client, []).append(timestamp)
 
     fdict = {}
-    for client in completed_clients:
-      fdict.setdefault(client, []).append(client.age)
+    for client, timestamp in completed_clients:
+      fdict.setdefault(client, []).append(timestamp)
 
     cl_age = [min(x).AsSecondsSinceEpoch() for x in itervalues(cdict)]
     fi_age = [min(x).AsSecondsSinceEpoch() for x in itervalues(fdict)]
@@ -1139,7 +1116,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
             "%s_%s" % (args.client_id, os.path.basename(file_obj.Path())),
             content_generator=self._GenerateFile(file_obj),
             content_length=file_obj.size)
-      except file_store.FileHasNoContentError:
+      except (file_store.FileHasNoContentError, file_store.FileNotFoundError):
         break
 
     raise HuntFileNotFoundError(

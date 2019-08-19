@@ -24,13 +24,13 @@ class Target(rdf_structs.RDFProtoStruct):
   """Definitions of hosts to target."""
   protobuf = checks_pb2.Target
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, dict):
       conf = initializer
       initializer = None
     else:
       conf = kwargs
-    super(Target, self).__init__(initializer=initializer, age=age, **conf)
+    super(Target, self).__init__(initializer=initializer, **conf)
 
   def __bool__(self):
     return any([self.cpe, self.os, self.label])

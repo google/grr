@@ -51,7 +51,8 @@ class YumListCmdParser(parser.CommandParser):
 
     packages = []
     for name_arch, version, source in collection.Batch(items, 3):
-      name, arch = name_arch.split(".")
+      # The package name can actually contain dots, e.g. java-1.8.0.
+      name, arch = name_arch.rsplit(".", 1)
 
       packages.append(
           rdf_client.SoftwarePackage.Installed(
@@ -146,38 +147,44 @@ class DpkgCmdParser(parser.CommandParser):
     """Parse the dpkg output."""
     _ = stderr, args, knowledge_base  # Unused.
     self.CheckReturn(cmd, return_val)
-    column_lengths = []
+    lines = stdout.decode("utf-8").splitlines()
+    num_columns = 0
     i = 0
-    for i, line in enumerate(stdout.decode("utf-8").splitlines()):
+    packages = []
+
+    for i, line in enumerate(lines):
       if line.startswith("+++-"):
         # This is a special header line that determines column size.
-        for col in line.split("-")[1:]:
+        columns = line.split("-")
+        num_columns = len(columns)
+        for col in columns[1:]:
           if not re.match("=*", col):
             raise parsers.ParseError("Invalid header parsing for %s at line "
                                      "%s" % (cmd, i))
-          column_lengths.append(len(col))
         break
 
-    if not column_lengths:
+    if num_columns == 0:
       return
+    elif num_columns not in [4, 5]:
+      raise ValueError(
+          "Bad number of columns ({}) in dpkg --list output:\n{}\n...".format(
+              num_columns, "\n".join(lines[:10])))
 
-    packages = []
+    for line in lines[i + 1:]:
+      # Split the line at whitespace into at most `num_columns` columns.
+      columns = line.split(None, num_columns - 1)
 
-    remaining_lines = stdout.splitlines()[i + 1:]
-    for i, line in enumerate(remaining_lines):
-      cols = line.split(None, len(column_lengths))
+      # If the last column (description) is empty, pad it with None.
+      if len(columns) == num_columns - 1:
+        columns.append(None)
 
-      # The status column is ignored in column_lengths.
-      if len(column_lengths) == 4:
+      if num_columns == 5:
         # Installed, Name, Version, Architecture, Description
-        status, name, version, arch, desc = cols
-      elif len(column_lengths) == 3:
+        status, name, version, arch, desc = columns
+      else:  # num_columns is 4
         # Older versions of dpkg don't print Architecture
-        status, name, version, desc = cols
+        status, name, version, desc = columns
         arch = None
-      else:
-        raise ValueError("Bad number of columns in dpkg --list output: %s" %
-                         len(column_lengths))
 
       # Status is potentially 3 columns, but always at least two, desired and
       # actual state. We only care about actual state.
@@ -185,6 +192,7 @@ class DpkgCmdParser(parser.CommandParser):
         status = rdf_client.SoftwarePackage.InstallState.INSTALLED
       else:
         status = rdf_client.SoftwarePackage.InstallState.UNKNOWN
+
       packages.append(
           rdf_client.SoftwarePackage(
               name=name,

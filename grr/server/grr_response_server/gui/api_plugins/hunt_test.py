@@ -371,7 +371,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=results[0].age + rdfvalue.DurationSeconds("1s"))
+        timestamp=results[0].timestamp + rdfvalue.DurationSeconds("1s"))
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
 

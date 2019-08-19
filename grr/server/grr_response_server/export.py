@@ -80,9 +80,8 @@ class ExportedMetadata(rdf_structs.RDFProtoStruct):
       rdfvalue.SessionID,
   ]
 
-  def __init__(self, initializer=None, age=None, payload=None, **kwarg):
-    super(ExportedMetadata, self).__init__(
-        initializer=initializer, age=age, **kwarg)
+  def __init__(self, initializer=None, payload=None, **kwarg):
+    super(ExportedMetadata, self).__init__(initializer=initializer, **kwarg)
 
     if not self.timestamp:
       self.timestamp = rdfvalue.RDFDatetime.Now()
@@ -1063,11 +1062,10 @@ class GrrMessageConverter(ExportConverter):
       try:
         for original_metadata, message in msg_dict[metadata.client_urn]:
           # Get source_urn and annotations from the original metadata
-          # provided and original_timestamp from the payload age.
+          # provided.
           new_metadata = ExportedMetadata(metadata)
           new_metadata.source_urn = original_metadata.source_urn
           new_metadata.annotations = original_metadata.annotations
-          new_metadata.original_timestamp = message.payload.age
           cls_name = message.payload.__class__.__name__
 
           # Create a dict of values for conversion keyed by type, so we can

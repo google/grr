@@ -11,6 +11,7 @@ import platform
 import unittest
 
 from absl.testing import absltest
+import distro
 import mock
 
 from grr_response_client_builder import builders
@@ -24,8 +25,9 @@ class ClientBuildTest(absltest.TestCase):
                        "Just test linux to avoid lots of patching")
   def testBuildingContext(self):
     with mock.patch.object(builders, "LinuxClientBuilder") as mock_builder:
-      client_build.TemplateBuilder().BuildTemplate()
-      self.assertEqual(mock_builder.call_count, 1)
+      with mock.patch.object(distro, "id", lambda: "debian"):
+        client_build.TemplateBuilder().BuildTemplate()
+        self.assertEqual(mock_builder.call_count, 1)
 
 
 class MultiRepackTest(absltest.TestCase):

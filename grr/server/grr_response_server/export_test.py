@@ -825,8 +825,7 @@ class ExportTest(ExportTestBase):
         self.assertEqual(converted.data, str(data))
 
   def testGrrMessageConverter(self):
-    payload = DummyRDFValue4(
-        "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    payload = DummyRDFValue4("some")
     msg = rdf_flows.GrrMessage(payload=payload)
     msg.source = self.client_id
     fixture_test_lib.ClientFixture(self.client_id)
@@ -840,8 +839,6 @@ class ExportTest(ExportTestBase):
       results = list(converter.Convert(metadata, msg, token=self.token))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].original_timestamp,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
     self.assertEqual(results[0].source_urn,
@@ -851,14 +848,12 @@ class ExportTest(ExportTestBase):
     client_id_1 = "C.0000000000000000"
     client_id_2 = "C.0000000000000001"
 
-    payload1 = DummyRDFValue4(
-        "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    payload1 = DummyRDFValue4("some")
     msg1 = rdf_flows.GrrMessage(payload=payload1)
     msg1.source = client_id_1
     fixture_test_lib.ClientFixture(client_id_1)
 
-    payload2 = DummyRDFValue4(
-        "some2", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    payload2 = DummyRDFValue4("some2")
     msg2 = rdf_flows.GrrMessage(payload=payload2)
     msg2.source = client_id_2
 
@@ -876,23 +871,19 @@ class ExportTest(ExportTestBase):
                                  token=self.token))
 
     self.assertLen(results, 1)
-    self.assertEqual(results[0].original_timestamp,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(results[0].timestamp,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
     self.assertEqual(results[0].source_urn,
                      "aff4:/hunts/" + str(queues.HUNTS) + ":000000/Results")
 
   def testGrrMessageConverterMultipleTypes(self):
-    payload1 = DummyRDFValue3(
-        "some", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    payload1 = DummyRDFValue3("some")
     client_id = "C.0000000000000000"
     msg1 = rdf_flows.GrrMessage(payload=payload1)
     msg1.source = client_id
     fixture_test_lib.ClientFixture(client_id)
 
-    payload2 = DummyRDFValue5(
-        "some2", age=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    payload2 = DummyRDFValue5("some2")
     msg2 = rdf_flows.GrrMessage(payload=payload2)
     msg2.source = client_id
 
@@ -1240,7 +1231,7 @@ class SoftwarePackagesConverterTest(ExportTestBase):
 class YaraProcessScanResponseConverterTest(ExportTestBase):
   """Tests for YaraProcessScanResponseConverter."""
 
-  def GenerateSample(self, match):
+  def GenerateSample(self, match, **kwargs):
     process = rdf_client.Process(
         pid=2,
         ppid=1,
@@ -1248,7 +1239,7 @@ class YaraProcessScanResponseConverterTest(ExportTestBase):
         exe="c:\\windows\\cmd.exe",
         ctime=1333718907167083)
     return rdf_memory.YaraProcessScanMatch(
-        process=process, match=match, scan_time_us=42)
+        process=process, match=match, scan_time_us=42, **kwargs)
 
   def testExportsSingleMatchCorrectly(self):
     sample = self.GenerateSample([rdf_memory.YaraMatch(rule_name="foo")])

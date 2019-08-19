@@ -71,7 +71,6 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     # pylint: disable=protected-access
     self.SetRawData(other._CopyRawData())
     # pylint: enable=protected-access
-    self.age = other.age
 
   def __len__(self):
     """Return the total number of path components."""

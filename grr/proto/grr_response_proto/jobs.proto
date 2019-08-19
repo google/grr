@@ -91,6 +91,7 @@ message GrrMessage {
 
   // DEPRECATED
   // optional Priority priority = 9;
+  reserved 9;
 
   optional uint32 ttl = 10 [
     default = 10,
@@ -115,10 +116,9 @@ message GrrMessage {
     }
   ];
 
-  optional uint64 args_age = 13 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The age of the args rdfvalue.",
-  }];
+  // DEPRECATED
+  // optional uint64 args_age = 13;
+  reserved 13;
 
   // The rdfvalue class of the args.
   optional string args_rdf_name = 14;
@@ -567,9 +567,15 @@ message ClientStats {
   repeated IOSample io_samples = 7;
   optional uint64 create_time = 8 [(sem_type) = {
     type: "RDFDatetime",
+    description: "The time of the process creation of the GRR process."
   }];
   optional uint64 boot_time = 9 [(sem_type) = {
     type: "RDFDatetime",
+    description: "The time of the system boot."
+  }];
+  optional uint64 timestamp = 10 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The time when this ClientStats sample was stored."
   }];
 }
 
@@ -946,11 +952,7 @@ message NetworkAddress {
   }
   optional Family address_type = 1;
   optional string DEPRECATED_human_readable = 2;
-  optional bytes packed_bytes = 3 [(sem_type) = { type: "RDFBytes" }];
-  // TODO(user): The whole code should be refactored so that bytes are
-  // automatically created as an RDFBytes, without explicit sem_type mapping or,
-  // alternatively, strings are automatically created as unicode and then "str"
-  // objects can be treated as raw bytes, not strings.
+  optional bytes packed_bytes = 3;
 }
 
 message Interface {

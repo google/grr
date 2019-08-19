@@ -280,24 +280,6 @@ class EmbeddedRDFValueTest(rdf_test_base.RDFProtoTestMixin,
   def GenerateSample(self, number=0):
     return rdf_protodict.EmbeddedRDFValue(rdf_protodict.RDFValueArray([number]))
 
-  def testAgePreserved(self):
-    data = rdf_protodict.RDFValueArray([1, 2, 3])
-    data.age = rdfvalue.RDFDatetime.Now()
-    original_age = data.age
-
-    now = rdfvalue.RDFDatetime.Now()
-
-    self.assertLess((now - data.age), rdfvalue.DurationSeconds("5s"))
-
-    embedded = rdf_protodict.EmbeddedRDFValue(payload=data)
-    self.assertEqual(embedded.payload.age, original_age)
-
-    new_log = rdf_protodict.EmbeddedRDFValue(embedded).payload
-    self.assertEqual(
-        new_log.age, original_age, "Age not preserved: %s != %s" %
-        (new_log.age.AsMicrosecondsSinceEpoch(),
-         original_age.AsMicrosecondsSinceEpoch()))
-
 
 def main(argv):
   # Run the full test suite

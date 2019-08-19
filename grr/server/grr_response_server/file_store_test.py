@@ -18,22 +18,10 @@ from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 POSITIONAL_ARGS = 0
 KEYWORD_ARGS = 1
-
-
-def _GenerateBlobRefs(blob_size, chars):
-  blob_data = [(c * blob_size).encode("ascii") for c in chars]
-  blob_refs = []
-  offset = 0
-  for data in blob_data:
-    blob_id = rdf_objects.BlobID.FromBlobData(data)
-    blob_refs.append(
-        rdf_objects.BlobReference(
-            offset=offset, size=len(data), blob_id=blob_id))
-    offset += len(data)
-  return blob_data, blob_refs
 
 
 class BlobStreamTest(test_lib.GRRBaseTest):
@@ -43,12 +31,18 @@ class BlobStreamTest(test_lib.GRRBaseTest):
     super(BlobStreamTest, self).setUp()
 
     self.blob_size = 10
-    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size,
-                                                       "abcde12345")
+    self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
+        self.blob_size, "abcde12345")
     blob_ids = [ref.blob_id for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
     self.blob_stream = file_store.BlobStream(None, self.blob_refs, None)
+
+  def testRaisesIfBlobIsMissing(self):
+    _, missing_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "0")
+    blob_stream = file_store.BlobStream(None, missing_blob_refs, None)
+    with self.assertRaises(file_store.BlobNotFoundError):
+      blob_stream.read(1)
 
   def testReadsFirstByte(self):
     self.assertEqual(self.blob_stream.read(1), b"a")
@@ -104,7 +98,8 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
     super(AddFileWithUnknownHashTest, self).setUp()
 
     self.blob_size = 10
-    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, "abcd")
+    self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
+        self.blob_size, "abcd")
     blob_ids = [ref.blob_id for ref in self.blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
@@ -141,9 +136,9 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
         rdf_objects.SHA256HashID.FromData(b"".join(self.blob_data)))
 
   def testFilesWithOneBlobAreStillReadToEnsureBlobExists(self):
-    _, long_blob_refs = _GenerateBlobRefs(self.blob_size, "cd")
-    _, short_blob_refs1 = _GenerateBlobRefs(self.blob_size, "a")
-    _, short_blob_refs2 = _GenerateBlobRefs(self.blob_size, "b")
+    _, long_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "cd")
+    _, short_blob_refs1 = vfs_test_lib.GenerateBlobRefs(self.blob_size, "a")
+    _, short_blob_refs2 = vfs_test_lib.GenerateBlobRefs(self.blob_size, "b")
 
     path1 = db.ClientPath.OS(self.client_id, ["foo"])
     path2 = db.ClientPath.OS(self.client_id, ["bar"])
@@ -339,16 +334,16 @@ class OpenFileTest(test_lib.GRRBaseTest):
     self.client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
     blob_size = 10
-    blob_data, blob_refs = _GenerateBlobRefs(blob_size, "abcdef")
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "abcdef")
     blob_ids = [ref.blob_id for ref in blob_refs]
     data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, blob_data)))
 
-    blob_data, blob_refs = _GenerateBlobRefs(blob_size, "def")
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "def")
     self.hash_id = file_store.AddFileWithUnknownHash(self.client_path,
                                                      blob_refs)
     self.data = b"".join(blob_data)
 
-    _, blob_refs = _GenerateBlobRefs(blob_size, "abc")
+    _, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "abc")
     self.other_hash_id = file_store.AddFileWithUnknownHash(
         self.client_path, blob_refs)
 
@@ -365,6 +360,10 @@ class OpenFileTest(test_lib.GRRBaseTest):
                                      [self._PathInfo(self.hash_id)])
     fd = file_store.OpenFile(self.client_path)
     self.assertEqual(fd.read(), self.data)
+
+  def testRaisesForNonExistentFile(self):
+    with self.assertRaises(file_store.FileNotFoundError):
+      file_store.OpenFile(self.client_path)
 
   def testRaisesForFileWithSinglePathInfoWithoutHash(self):
     data_store.REL_DB.WritePathInfos(self.client_id, [self._PathInfo()])
@@ -430,16 +429,13 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
   """Tests for StreamFilesChunks."""
 
   def _WriteFile(self, client_path, blobs_range=None):
-    path_info = rdf_objects.PathInfo.OS(components=client_path.components)
+    r_from, r_to = blobs_range or (0, 0)
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(
+        self.blob_size, "abcdef"[r_from:r_to])
+    vfs_test_lib.CreateFileWithBlobRefsAndData(client_path, blob_refs,
+                                               blob_data)
 
-    if blobs_range:
-      _, blob_refs = _GenerateBlobRefs(self.blob_size,
-                                       "abcdef"[blobs_range[0]:blobs_range[1]])
-
-      hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
-      path_info.hash_entry.sha256 = hash_id.AsBytes()
-
-    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+    return blob_data, blob_refs
 
   def setUp(self):
     super(StreamFilesChunksTest, self).setUp()
@@ -447,39 +443,54 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self.client_id_other = self.SetupClient(1)
 
     self.blob_size = 10
-    self.blob_data, self.blob_refs = _GenerateBlobRefs(self.blob_size, "abcdef")
-    blob_ids = [ref.blob_id for ref in self.blob_refs]
-    data_store.BLOBS.WriteBlobs(dict(zip(blob_ids, self.blob_data)))
 
   def testStreamsSingleFileWithSingleChunk(self):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
-    self._WriteFile(client_path, (0, 1))
+    blob_data, _ = self._WriteFile(client_path, (0, 1))
 
     chunks = list(file_store.StreamFilesChunks([client_path]))
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
-    self.assertEqual(chunks[0].data, self.blob_data[0])
+    self.assertEqual(chunks[0].data, blob_data[0])
     self.assertEqual(chunks[0].chunk_index, 0)
     self.assertEqual(chunks[0].total_chunks, 1)
     self.assertEqual(chunks[0].offset, 0)
     self.assertEqual(chunks[0].total_size, self.blob_size)
 
+  def testRaisesIfSingleFileChunkIsMissing(self):
+    _, missing_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "0")
+
+    hash_id = rdf_objects.SHA256HashID.FromBytes(
+        missing_blob_refs[0].blob_id.AsBytes())
+    data_store.REL_DB.WriteHashBlobReferences({hash_id: missing_blob_refs})
+
+    client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
+    path_info = rdf_objects.PathInfo.OS(components=client_path.components)
+    path_info.hash_entry.sha256 = hash_id.AsBytes()
+    data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+
+    # Just getting the generator doesn't raise.
+    chunks = file_store.StreamFilesChunks([client_path])
+    # Iterating through the generator does actually raise.
+    with self.assertRaises(file_store.BlobNotFoundError):
+      list(chunks)
+
   def testStreamsSingleFileWithTwoChunks(self):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
-    self._WriteFile(client_path, (0, 2))
+    blob_data, _ = self._WriteFile(client_path, (0, 2))
 
     chunks = list(file_store.StreamFilesChunks([client_path]))
     self.assertLen(chunks, 2)
 
     self.assertEqual(chunks[0].client_path, client_path)
-    self.assertEqual(chunks[0].data, self.blob_data[0])
+    self.assertEqual(chunks[0].data, blob_data[0])
     self.assertEqual(chunks[0].chunk_index, 0)
     self.assertEqual(chunks[0].total_chunks, 2)
     self.assertEqual(chunks[0].offset, 0)
     self.assertEqual(chunks[0].total_size, self.blob_size * 2)
 
     self.assertEqual(chunks[1].client_path, client_path)
-    self.assertEqual(chunks[1].data, self.blob_data[1])
+    self.assertEqual(chunks[1].data, blob_data[1])
     self.assertEqual(chunks[1].chunk_index, 1)
     self.assertEqual(chunks[1].total_chunks, 2)
     self.assertEqual(chunks[1].offset, self.blob_size)
@@ -487,37 +498,37 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
 
   def testStreamsTwoFilesWithTwoChunksInEach(self):
     client_path_1 = db.ClientPath.OS(self.client_id, ("foo", "bar"))
-    self._WriteFile(client_path_1, (0, 2))
+    blob_data_1, _ = self._WriteFile(client_path_1, (0, 2))
 
     client_path_2 = db.ClientPath.OS(self.client_id_other, ("foo", "bar"))
-    self._WriteFile(client_path_2, (2, 4))
+    blob_data_2, _ = self._WriteFile(client_path_2, (2, 4))
 
     chunks = list(file_store.StreamFilesChunks([client_path_1, client_path_2]))
     self.assertLen(chunks, 4)
 
     self.assertEqual(chunks[0].client_path, client_path_1)
-    self.assertEqual(chunks[0].data, self.blob_data[0])
+    self.assertEqual(chunks[0].data, blob_data_1[0])
     self.assertEqual(chunks[0].chunk_index, 0)
     self.assertEqual(chunks[0].total_chunks, 2)
     self.assertEqual(chunks[0].offset, 0)
     self.assertEqual(chunks[0].total_size, self.blob_size * 2)
 
     self.assertEqual(chunks[1].client_path, client_path_1)
-    self.assertEqual(chunks[1].data, self.blob_data[1])
+    self.assertEqual(chunks[1].data, blob_data_1[1])
     self.assertEqual(chunks[1].chunk_index, 1)
     self.assertEqual(chunks[1].total_chunks, 2)
     self.assertEqual(chunks[1].offset, self.blob_size)
     self.assertEqual(chunks[1].total_size, self.blob_size * 2)
 
     self.assertEqual(chunks[2].client_path, client_path_2)
-    self.assertEqual(chunks[2].data, self.blob_data[2])
+    self.assertEqual(chunks[2].data, blob_data_2[0])
     self.assertEqual(chunks[2].chunk_index, 0)
     self.assertEqual(chunks[2].total_chunks, 2)
     self.assertEqual(chunks[2].offset, 0)
     self.assertEqual(chunks[2].total_size, self.blob_size * 2)
 
     self.assertEqual(chunks[3].client_path, client_path_2)
-    self.assertEqual(chunks[3].data, self.blob_data[3])
+    self.assertEqual(chunks[3].data, blob_data_2[1])
     self.assertEqual(chunks[3].chunk_index, 1)
     self.assertEqual(chunks[3].total_chunks, 2)
     self.assertEqual(chunks[3].offset, self.blob_size)
@@ -528,20 +539,20 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     self._WriteFile(client_path_1, None)
 
     client_path_2 = db.ClientPath.OS(self.client_id_other, ("foo", "bar"))
-    self._WriteFile(client_path_2, (2, 4))
+    blob_data_2, _ = self._WriteFile(client_path_2, (2, 4))
 
     chunks = list(file_store.StreamFilesChunks([client_path_1, client_path_2]))
     self.assertLen(chunks, 2)
 
     self.assertEqual(chunks[0].client_path, client_path_2)
-    self.assertEqual(chunks[0].data, self.blob_data[2])
+    self.assertEqual(chunks[0].data, blob_data_2[0])
     self.assertEqual(chunks[0].chunk_index, 0)
     self.assertEqual(chunks[0].total_chunks, 2)
     self.assertEqual(chunks[0].offset, 0)
     self.assertEqual(chunks[0].total_size, self.blob_size * 2)
 
     self.assertEqual(chunks[1].client_path, client_path_2)
-    self.assertEqual(chunks[1].data, self.blob_data[3])
+    self.assertEqual(chunks[1].data, blob_data_2[1])
     self.assertEqual(chunks[1].chunk_index, 1)
     self.assertEqual(chunks[1].total_chunks, 2)
     self.assertEqual(chunks[1].offset, self.blob_size)
@@ -569,53 +580,56 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
   def testReadsLatestVersionWhenStreamingWithoutSpecifiedTimestamp(self):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
-    self._WriteFile(client_path, (0, 1))
-    self._WriteFile(client_path, (1, 2))
+    blob_data_1, _ = self._WriteFile(client_path, (0, 1))
+    blob_data_2, _ = self._WriteFile(client_path, (1, 2))
 
     chunks = list(file_store.StreamFilesChunks([client_path]))
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
-    self.assertEqual(chunks[0].data, self.blob_data[1])
+    self.assertNotEqual(chunks[0].data, blob_data_1[0])
+    self.assertEqual(chunks[0].data, blob_data_2[0])
 
   def testRespectsMaxTimestampWhenStreamingSingleFile(self):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
-    self._WriteFile(client_path, (0, 1))
+    blob_data_1, _ = self._WriteFile(client_path, (0, 1))
     timestamp_1 = rdfvalue.RDFDatetime.Now()
-    self._WriteFile(client_path, (1, 2))
+    blob_data_2, _ = self._WriteFile(client_path, (1, 2))
     timestamp_2 = rdfvalue.RDFDatetime.Now()
 
     chunks = list(
         file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_2))
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
-    self.assertEqual(chunks[0].data, self.blob_data[1])
+    self.assertNotEqual(chunks[0].data, blob_data_1[0])
+    self.assertEqual(chunks[0].data, blob_data_2[0])
 
     chunks = list(
         file_store.StreamFilesChunks([client_path], max_timestamp=timestamp_1))
     self.assertLen(chunks, 1)
     self.assertEqual(chunks[0].client_path, client_path)
-    self.assertEqual(chunks[0].data, self.blob_data[0])
+    self.assertEqual(chunks[0].data, blob_data_1[0])
+    self.assertNotEqual(chunks[0].data, blob_data_2[0])
 
   def testRespectsMaxSizeEqualToOneChunkWhenStreamingSingleFile(self):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
-    self._WriteFile(client_path, (0, 2))
+    blob_data, _ = self._WriteFile(client_path, (0, 2))
 
     chunks = list(
         file_store.StreamFilesChunks([client_path], max_size=self.blob_size))
     self.assertLen(chunks, 1)
-    self.assertEqual(chunks[0].data, self.blob_data[0])
+    self.assertEqual(chunks[0].data, blob_data[0])
 
   def testRespectsMaxSizeGreaterThanOneChunkWhenStreamingSingleFile(self):
     client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
-    self._WriteFile(client_path, (0, 2))
+    blob_data, _ = self._WriteFile(client_path, (0, 2))
 
     chunks = list(
         file_store.StreamFilesChunks([client_path],
                                      max_size=self.blob_size + 1))
     self.assertLen(chunks, 2)
-    self.assertEqual(chunks[0].data, self.blob_data[0])
-    self.assertEqual(chunks[1].data, self.blob_data[1])
+    self.assertEqual(chunks[0].data, blob_data[0])
+    self.assertEqual(chunks[1].data, blob_data[1])
 
 
 def main(argv):

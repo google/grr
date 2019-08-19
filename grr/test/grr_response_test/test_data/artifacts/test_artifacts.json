@@ -256,6 +256,19 @@
     "supported_os": [ "Darwin", "Linux" ]
   },
 
+  { "name": "TestUntypedEchoArtifact",
+    "sources": [
+      { "type": "COMMAND",
+        "attributes": { "cmd": "/bin/echo",
+          "args": ["1"]
+        }
+      }
+    ],
+    "doc": "Test echo command artifact that doesn't specify a return type.",
+    "labels": [ "Software" ],
+    "supported_os": [ "Darwin", "Linux" ]
+  },
+
   { "name": "TestFileArtifact",
     "doc": "Test file artifact.",
     "supported_os": [ "Linux" ]

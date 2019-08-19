@@ -23,9 +23,9 @@ class YumListCmdParserTest(absltest.TestCase):
   def testSimpleOutput(self):
     output = """\
 Installed Packages
-foo.i386  3.14 @foo
-bar.z80   2.71 @bar
-baz.armv8 1.41 @baz
+foo.i386         3.14 @foo
+bar.z80          2.71 @bar
+java-1.8.0.armv8 1.41 @baz
     """
 
     packages = self._Parse(output)
@@ -35,7 +35,10 @@ baz.armv8 1.41 @baz
         rdf_client.SoftwarePackage.Installed(
             name="bar", architecture="z80", publisher="@bar", version="2.71"),
         rdf_client.SoftwarePackage.Installed(
-            name="baz", architecture="armv8", publisher="@baz", version="1.41"),
+            name="java-1.8.0",
+            architecture="armv8",
+            publisher="@baz",
+            version="1.41"),
     ])
 
   def testWrappedOutput(self):
@@ -268,7 +271,22 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertLen(out, 1)
     package_list = out[0]
     self.assertLen(package_list.packages, 181)
-    self.assertEqual(package_list.packages[0].name, "acpi-support-base")
+    self.assertEqual(
+        package_list.packages[0],
+        rdf_client.SoftwarePackage(
+            name="acpi-support-base",
+            description="scripts for handling base ACPI events such as the power button",
+            version="0.140-5",
+            architecture="all",
+            install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED))
+    self.assertEqual(
+        package_list.packages[22],
+        rdf_client.SoftwarePackage(
+            name="diffutils",
+            description=None,  # Test package with empty description.
+            version="1:3.2-6",
+            architecture="amd64",
+            install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED))
 
   def testDpkgCmdParserPrecise(self):
     """Ensure we can extract packages from dpkg output on ubuntu precise."""
@@ -280,7 +298,22 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertLen(out, 1)
     package_list = out[0]
     self.assertLen(package_list.packages, 30)
-    self.assertEqual(package_list.packages[0].name, "adduser")
+    self.assertEqual(
+        package_list.packages[0],
+        rdf_client.SoftwarePackage(
+            name="adduser",
+            description="add and remove users and groups",
+            version="3.113ubuntu2",
+            architecture=None,
+            install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED))
+    self.assertEqual(
+        package_list.packages[12],
+        rdf_client.SoftwarePackage(
+            name="diffutils",
+            description=None,  # Test package with empty description.
+            version="1:3.2-1ubuntu1",
+            architecture=None,
+            install_state=rdf_client.SoftwarePackage.InstallState.INSTALLED))
 
   def testDmidecodeParser(self):
     """Test to see if we can get data from dmidecode output."""

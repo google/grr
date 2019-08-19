@@ -30,12 +30,10 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
 
   def testPrometheusIntegration(self):
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
+    collector = prometheus_stats_collector.PrometheusStatsCollector(
+        registry=registry)
 
-    def MakeCollector(metadatas):
-      return prometheus_stats_collector.PrometheusStatsCollector(
-          metadatas, registry)
-
-    with self.SetUpStatsCollector(MakeCollector):
+    with self.SetUpStatsCollector(collector):
       counter = metrics.Counter("foobars")
     counter.Increment(42)
 

@@ -56,8 +56,8 @@ class OutputPluginNotFoundError(api_call_handler_base.ResourceNotFoundError):
 class ApiFlowId(rdfvalue.RDFString):
   """Class encapsulating flows ids."""
 
-  def __init__(self, initializer=None, age=None):
-    super(ApiFlowId, self).__init__(initializer=initializer, age=age)
+  def __init__(self, initializer=None):
+    super(ApiFlowId, self).__init__(initializer=initializer)
 
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
@@ -379,13 +379,6 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
   def GetPayloadClass(self):
     return rdfvalue.RDFValue.classes[self.payload_type]
 
-  def InitFromRdfValue(self, value):
-    self.payload_type = compatibility.GetName(value.__class__)
-    self.payload = value
-    self.timestamp = value.age
-
-    return self
-
   def InitFromFlowResult(self, result):
     p = result.payload
     self.payload_type = compatibility.GetName(p.__class__)
@@ -398,13 +391,6 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
 class ApiFlowLog(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowLog
   rdf_deps = [ApiFlowId, rdfvalue.RDFDatetime]
-
-  def InitFromFlowLog(self, fl):
-    self.log_message = fl.log_message
-    self.flow_id = fl.urn.RelativeName(fl.client_id.Add("flows"))
-    self.timestamp = fl.age
-
-    return self
 
   def InitFromFlowLogEntry(self, fl, flow_id):
     self.log_message = fl.message
@@ -640,6 +626,10 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     self.path_globs_whitelist = path_globs_whitelist
 
   def _WrapContentGenerator(self, generator, flow_results, args, token=None):
+    flow_ref = rdf_objects.FlowReference(
+        client_id=args.client_id, flow_id=args.flow_id)
+    object_reference = rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.FLOW, flow=flow_ref)
     try:
       for item in generator.Generate(flow_results):
         yield item
@@ -650,14 +640,14 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
           "Downloaded archive of flow %s from client %s (archived %d "
           "out of %d items, archive size is %d)" %
           (args.flow_id, args.client_id, len(generator.archived_files),
-           generator.total_files, generator.output_size), None)
+           generator.total_files, generator.output_size), object_reference)
 
     except Exception as e:
       notification.Notify(
           token.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s" %
-          (args.flow_id, args.client_id, e), None)
+          (args.flow_id, args.client_id, e), object_reference)
 
       raise
 

@@ -15,6 +15,8 @@ from absl import app
 
 import mock
 
+from grr_api_client import errors
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_proto.api import vfs_pb2
@@ -23,6 +25,7 @@ from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_integration_test_lib
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -61,8 +64,10 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
 
     self.assertEqual(
         sorted(f.data.name for f in files_list),
-        sorted(
-            [u"a.txt", u"b.txt", u"c.txt", u"d.txt", u"sub1", u"中国新闻网新闻中.txt"]))
+        sorted([
+            "a.txt", "b.txt", "c.txt", "d.txt", "sub1",
+            "中国新闻网新闻中.txt"
+        ]))
 
   def testGetBlob(self):
     out = io.BytesIO()
@@ -78,9 +83,22 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
 
     out = io.BytesIO()
     self.api.Client(client_id=self.client_id).File(
-        u"fs/tsk/c/bin/中国新闻网新闻中").GetBlob().WriteToStream(out)
+        "fs/tsk/c/bin/中国新闻网新闻中").GetBlob().WriteToStream(out)
 
     self.assertEqual(out.getvalue(), b"Hello world")
+
+  def testGetBlobFailsWhenFileIsCorrupt(self):
+    _, blob_refs = vfs_test_lib.GenerateBlobRefs(10, "0")
+    # We write just the references, without actual data, simulating a case
+    # when blobs were not written to the blob store for some reason.
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS("C.1000000000000000", ["c", "bin", "test"]), blob_refs,
+        [])
+
+    out = io.BytesIO()
+    with self.assertRaises(errors.UnknownError):
+      self.api.Client(client_id=self.client_id).File(
+          "fs/os/c/bin/test").GetBlob().WriteToStream(out)
 
   def testGetBlobWithOffset(self):
     tsk = db.ClientPath.TSK("C.1000000000000000", ["c", "bin", "foobar"])
@@ -105,6 +123,7 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(out.getvalue(), b"world")
 
   def testGetFilesArchive(self):
+    timestamp = rdfvalue.RDFDatetime.Now()
     zip_stream = io.BytesIO()
     self.api.Client(client_id=self.client_id).File(
         "fs/tsk/c/bin").GetFilesArchive().WriteToStream(zip_stream)
@@ -117,6 +136,84 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
             "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/rbash",
             "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/bash"
         ]))
+
+    for info in zip_fd.infolist():
+      self.assertGreater(info.compress_size, 0)
+
+    # Check that notification was pushed indicating the failure to the user.
+    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
+        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    self.assertLen(pending_notifications, 1)
+    self.assertEqual(
+        pending_notifications[0].data.notification_type,
+        int(rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED))
+    self.assertEqual(pending_notifications[0].data.reference.type,
+                     pending_notifications[0].data.reference.VFS)
+    self.assertEqual(pending_notifications[0].data.reference.vfs.client_id,
+                     self.client_id)
+    self.assertEqual(pending_notifications[0].data.reference.vfs.vfs_path,
+                     "fs/tsk/c/bin")
+
+  def testGetFilesArchiveFailsWhenFirstFileBlobIsMissing(self):
+    _, blob_refs = vfs_test_lib.GenerateBlobRefs(10, "0")
+    # We write just the references, without actual data, simulating a case
+    # when blobs were not written to the blob store for some reason.
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.TSK("C.1000000000000000", ["c", "universe", "42"]),
+        blob_refs, [])
+
+    zip_stream = io.BytesIO()
+    timestamp = rdfvalue.RDFDatetime.Now()
+    with self.assertRaises(errors.UnknownError):
+      self.api.Client(client_id=self.client_id).File(
+          "fs/tsk/c/universe").GetFilesArchive().WriteToStream(zip_stream)
+
+    # Check that notification was pushed indicating the failure to the user.
+    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
+        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    self.assertLen(pending_notifications, 1)
+    self.assertEqual(
+        pending_notifications[0].data.notification_type,
+        int(rdf_objects.UserNotification.Type
+            .TYPE_FILE_ARCHIVE_GENERATION_FAILED))
+    self.assertEqual(pending_notifications[0].data.reference.type,
+                     pending_notifications[0].data.reference.VFS)
+    self.assertEqual(pending_notifications[0].data.reference.vfs.client_id,
+                     self.client_id)
+    self.assertEqual(pending_notifications[0].data.reference.vfs.vfs_path,
+                     "fs/tsk/c/universe")
+
+  def testGetFilesArchiveDropsStreamingResponsesWhenSecondFileBlobIsMissing(
+      self):
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(1024 * 1024 * 10, "01")
+    # We write just the references, without actual data, simulating a case
+    # when blobs were not written to the blob store for some reason.
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.TSK("C.1000000000000000", ["c", "universe", "42"]),
+        blob_refs, blob_data[:1])
+
+    zip_stream = io.BytesIO()
+    timestamp = rdfvalue.RDFDatetime.Now()
+    self.api.Client(client_id=self.client_id).File(
+        "fs/tsk/c/universe").GetFilesArchive().WriteToStream(zip_stream)
+
+    with self.assertRaises(zipfile.BadZipfile):
+      zipfile.ZipFile(zip_stream)
+
+    # Check that notification was pushed indicating the failure to the user.
+    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
+        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    self.assertLen(pending_notifications, 1)
+    self.assertEqual(
+        pending_notifications[0].data.notification_type,
+        int(rdf_objects.UserNotification.Type
+            .TYPE_FILE_ARCHIVE_GENERATION_FAILED))
+    self.assertEqual(pending_notifications[0].data.reference.type,
+                     pending_notifications[0].data.reference.VFS)
+    self.assertEqual(pending_notifications[0].data.reference.vfs.client_id,
+                     self.client_id)
+    self.assertEqual(pending_notifications[0].data.reference.vfs.vfs_path,
+                     "fs/tsk/c/universe")
 
   def testGetVersionTimes(self):
     vtimes = self.api.Client(client_id=self.client_id).File(

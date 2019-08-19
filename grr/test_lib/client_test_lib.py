@@ -45,9 +45,16 @@ class EmptyActionTest(test_lib.GRRBaseTest):
 
     return self.results
 
-  def ExecuteAction(self, action_cls, arg=None, grr_worker=None):
+  def ExecuteAction(self,
+                    action_cls,
+                    arg=None,
+                    grr_worker=None,
+                    session_id=None):
     message = rdf_flows.GrrMessage(
-        name=action_cls.__name__, payload=arg, auth_state="AUTHENTICATED")
+        name=action_cls.__name__,
+        payload=arg,
+        auth_state="AUTHENTICATED",
+        session_id=session_id)
 
     self.results = []
     action = self._GetActionInstance(action_cls, grr_worker=grr_worker)

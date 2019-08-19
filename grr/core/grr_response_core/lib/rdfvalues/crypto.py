@@ -66,8 +66,8 @@ class Certificate(rdf_structs.RDFProtoStruct):
 class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
-  def __init__(self, initializer=None, age=None):
-    super(RDFX509Cert, self).__init__(initializer=initializer, age=age)
+  def __init__(self, initializer=None):
+    super(RDFX509Cert, self).__init__(initializer=initializer)
     if self._value is None and initializer is not None:
       if isinstance(initializer, x509.Certificate):
         self._value = initializer
@@ -204,21 +204,13 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
             algorithm=hashes.SHA256(),
             backend=openssl.backend))
 
-  def __reduce__(self):
-    return type(self), (self.SerializeToBytes(), self.age)
-
 
 @python_2_unicode_compatible
 class CertificateSigningRequest(rdfvalue.RDFValue):
   """A CSR Rdfvalue."""
 
-  def __init__(self,
-               initializer=None,
-               common_name=None,
-               private_key=None,
-               age=None):
-    super(CertificateSigningRequest, self).__init__(
-        initializer=initializer, age=age)
+  def __init__(self, initializer=None, common_name=None, private_key=None):
+    super(CertificateSigningRequest, self).__init__(initializer=initializer)
     if self._value is None:
       if isinstance(initializer, x509.CertificateSigningRequest):
         self._value = initializer
@@ -281,8 +273,8 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
 class RSAPublicKey(rdfvalue.RDFPrimitive):
   """An RSA public key."""
 
-  def __init__(self, initializer=None, age=None):
-    super(RSAPublicKey, self).__init__(initializer=initializer, age=age)
+  def __init__(self, initializer=None):
+    super(RSAPublicKey, self).__init__(initializer=initializer)
     if self._value is None and initializer is not None:
       if isinstance(initializer, rsa.RSAPublicKey):
         self._value = initializer
@@ -378,9 +370,9 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
 class RSAPrivateKey(rdfvalue.RDFPrimitive):
   """An RSA private key."""
 
-  def __init__(self, initializer=None, age=None, allow_prompt=None):
+  def __init__(self, initializer=None, allow_prompt=None):
     self.allow_prompt = allow_prompt
-    super(RSAPrivateKey, self).__init__(initializer=initializer, age=age)
+    super(RSAPrivateKey, self).__init__(initializer=initializer)
     if self._value is None and initializer is not None:
       if isinstance(initializer, rsa.RSAPrivateKey):
         self._value = initializer
@@ -609,8 +601,8 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
   # Size of the key in bits.
   length = 0
 
-  def __init__(self, initializer=None, age=None):
-    super(EncryptionKey, self).__init__(age=age)
+  def __init__(self, initializer=None):
+    super(EncryptionKey, self).__init__()
     if initializer is None:
       self._value = b""
     elif isinstance(initializer, bytes):

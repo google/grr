@@ -25,9 +25,8 @@ class AFF4ObjectLabel(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def __init__(self, initializer=None, age=None, **kwargs):
-    super(AFF4ObjectLabel, self).__init__(
-        initializer=initializer, age=age, **kwargs)
+  def __init__(self, initializer=None, **kwargs):
+    super(AFF4ObjectLabel, self).__init__(initializer=initializer, **kwargs)
 
     if initializer is None and "name" in kwargs:
       self.Validate()

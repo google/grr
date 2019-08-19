@@ -14,8 +14,8 @@ from grr.test_lib import test_lib
 
 class DefaultStatsCollectorTest(stats_test_utils.StatsCollectorTest):
 
-  def _CreateStatsCollector(self, metadata_list):
-    return default_stats_collector.DefaultStatsCollector(metadata_list)
+  def _CreateStatsCollector(self):
+    return default_stats_collector.DefaultStatsCollector()
 
 
 def main(argv):

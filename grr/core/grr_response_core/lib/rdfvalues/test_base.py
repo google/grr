@@ -125,6 +125,3 @@ class RDFProtoTestMixin(RDFValueTestMixin):
     # RDFProto can be initialized from another RDFProto.
     new_rdfvalue_sample = self.rdfvalue_class(rdfvalue_sample)
     self.CheckRDFValue(new_rdfvalue_sample, rdfvalue_sample)
-
-    # In this case the ages should be identical
-    self.assertEqual(int(new_rdfvalue_sample.age), int(rdfvalue_sample.age))

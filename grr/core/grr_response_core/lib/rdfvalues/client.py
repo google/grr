@@ -18,6 +18,7 @@ import socket
 import struct
 import sys
 
+import distro
 from future.builtins import str
 from future.utils import iteritems
 from future.utils import string_types
@@ -69,11 +70,11 @@ class ClientURN(rdfvalue.RDFURN):
   # Valid client urns must match this expression.
   CLIENT_ID_RE = re.compile(r"^(aff4:)?/?(?P<clientid>(c|C)\.[0-9a-fA-F]{16})$")
 
-  def __init__(self, initializer=None, age=None):
+  def __init__(self, initializer=None):
     if isinstance(initializer, rdfvalue.RDFURN):
       if not self.Validate(initializer.Path()):
         raise type_info.TypeValueError("Client urn malformed: %s" % initializer)
-    super(ClientURN, self).__init__(initializer=initializer, age=age)
+    super(ClientURN, self).__init__(initializer=initializer)
 
   def ParseFromUnicode(self, value):
     """Parse a string into a client URN.
@@ -124,7 +125,7 @@ class ClientURN(rdfvalue.RDFURN):
     digest = binascii.hexlify(hashlib.sha256(mpi_format).digest()[:8])
     return cls("C.{}".format(digest.decode("ascii")))
 
-  def Add(self, path, age=None):
+  def Add(self, path):
     """Add a relative stem to the current value and return a new RDFURN.
 
     Note that this returns an RDFURN, not a ClientURN since the resulting object
@@ -132,7 +133,6 @@ class ClientURN(rdfvalue.RDFURN):
 
     Args:
       path: A string containing a relative path.
-      age: The age of the object. If None set to current time.
 
     Returns:
        A new RDFURN that can be chained.
@@ -143,7 +143,7 @@ class ClientURN(rdfvalue.RDFURN):
     if not isinstance(path, string_types):
       raise ValueError("Only strings should be added to a URN.")
 
-    result = rdfvalue.RDFURN(self.Copy(age))
+    result = rdfvalue.RDFURN(self.Copy())
     result.Update(path=utils.JoinPath(self._string_urn, path))
 
     return result
@@ -212,16 +212,16 @@ class User(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, KnowledgeBaseUser):
       # KnowledgeBaseUser was renamed to User, the protos are identical. This
       # allows for backwards compatibility with clients returning KBUser
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
-      super(User, self).__init__(initializer=None, age=age, **kwargs)
+      super(User, self).__init__(initializer=None, **kwargs)
       self.ParseFromBytes(initializer.SerializeToBytes())
     else:
-      super(User, self).__init__(initializer=initializer, age=age, **kwargs)
+      super(User, self).__init__(initializer=initializer, **kwargs)
 
 
 class KnowledgeBaseUser(User):
@@ -581,8 +581,8 @@ class Uname(rdf_structs.RDFProtoStruct):
       version = platform.mac_ver()[0]  # 10.8.2
     elif system == "Linux":
       kernel = uname[2]  # 3.2.5
-      release = platform.linux_distribution()[0]  # Ubuntu
-      version = platform.linux_distribution()[1]  # 12.04
+      release = distro.name()
+      version = distro.version()
 
     # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
     if pep425tags:

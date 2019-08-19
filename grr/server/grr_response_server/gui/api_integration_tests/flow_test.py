@@ -5,24 +5,33 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import threading
 import time
+import zipfile
 
 from absl import app
 from future.builtins import range
 
 from grr_api_client import errors as grr_api_errors
 from grr_api_client import utils as grr_api_utils
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import flow_base
+from grr_response_server.databases import db
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_integration_test_lib
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
@@ -186,6 +195,105 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     with self.assertRaises(grr_api_errors.PollTimeoutError):
       with utils.Stubber(grr_api_utils, "DEFAULT_POLL_TIMEOUT", 1):
         result_flow.WaitUntilDone()
+
+  def _SetupFlowWithStatEntryResults(self):
+    client_id = self.SetupClient(0)
+    # Start a flow. The exact type of the flow doesn't matter:
+    # we'll add results manually.
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_id)
+
+    data_store.REL_DB.WriteFlowResults([
+        rdf_flow_objects.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(
+                    path="/foo/bar1",
+                    pathtype=rdf_paths.PathSpec.PathType.OS))),
+        rdf_flow_objects.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client_fs.StatEntry(
+                pathspec=rdf_paths.PathSpec(
+                    path="/foo/bar2",
+                    pathtype=rdf_paths.PathSpec.PathType.OS))),
+    ])
+
+    return client_id, flow_id
+
+  def testGetFilesArchiveGeneratesCorrectArchive(self):
+    client_id, flow_id = self._SetupFlowWithStatEntryResults()
+
+    blob_size = 1024 * 1024 * 4
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "ab")
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data)
+
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(blob_size, "cd")
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS(client_id, ["foo", "bar2"]), blob_refs, blob_data)
+
+    zip_stream = io.BytesIO()
+    self.api.Client(client_id).Flow(flow_id).GetFilesArchive().WriteToStream(
+        zip_stream)
+    zip_fd = zipfile.ZipFile(zip_stream)
+
+    prefix = "%s_flow_ListProcesses_%s" % (client_id, flow_id)
+    namelist = zip_fd.namelist()
+    self.assertCountEqual(namelist, [
+        "%s/MANIFEST" % prefix,
+        "%s/%s/client_info.yaml" % (prefix, client_id),
+        "%s/%s/fs/os/foo/bar1" % (prefix, client_id),
+        "%s/%s/fs/os/foo/bar2" % (prefix, client_id),
+    ])
+
+    for info in zip_fd.infolist():
+      self.assertGreater(info.compress_size, 0)
+
+  def testGetFilesArchiveFailsWhenFirstFileBlobIsMissing(self):
+    client_id, flow_id = self._SetupFlowWithStatEntryResults()
+
+    _, blob_refs = vfs_test_lib.GenerateBlobRefs(10, "0")
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, [])
+
+    zip_stream = io.BytesIO()
+    with self.assertRaisesRegex(grr_api_errors.UnknownError,
+                                "Could not find one of referenced blobs"):
+      self.api.Client(client_id).Flow(flow_id).GetFilesArchive().WriteToStream(
+          zip_stream)
+
+  def testGetFilesArchiveDropsStreamingResponsesWhenSecondFileBlobIsMissing(
+      self):
+    client_id, flow_id = self._SetupFlowWithStatEntryResults()
+
+    blob_data, blob_refs = vfs_test_lib.GenerateBlobRefs(1024 * 1024 * 4, "abc")
+    vfs_test_lib.CreateFileWithBlobRefsAndData(
+        db.ClientPath.OS(client_id, ["foo", "bar1"]), blob_refs, blob_data[0:2])
+
+    zip_stream = io.BytesIO()
+    timestamp = rdfvalue.RDFDatetime.Now()
+    self.api.Client(client_id).Flow(flow_id).GetFilesArchive().WriteToStream(
+        zip_stream)
+
+    with self.assertRaises(zipfile.BadZipfile):
+      zipfile.ZipFile(zip_stream)
+
+    # Check that notification was pushed indicating the failure to the user.
+    pending_notifications = list(self.api.GrrUser().ListPendingNotifications(
+        timestamp=timestamp.AsMicrosecondsSinceEpoch()))
+    self.assertLen(pending_notifications, 1)
+    self.assertEqual(
+        pending_notifications[0].data.notification_type,
+        int(rdf_objects.UserNotification.Type
+            .TYPE_FILE_ARCHIVE_GENERATION_FAILED))
+    self.assertEqual(pending_notifications[0].data.reference.type,
+                     pending_notifications[0].data.reference.FLOW)
+    self.assertEqual(pending_notifications[0].data.reference.flow.client_id,
+                     client_id)
+    self.assertEqual(pending_notifications[0].data.reference.flow.flow_id,
+                     flow_id)
 
 
 def main(argv):

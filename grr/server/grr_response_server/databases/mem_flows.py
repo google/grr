@@ -280,7 +280,7 @@ class InMemoryDBFlowMixin(object):
     now = rdfvalue.RDFDatetime.Now()
     if rdf_flow.processing_on and rdf_flow.processing_deadline > now:
       raise ValueError("Flow %s on client %s is already being processed." %
-                       (client_id, flow_id))
+                       (flow_id, client_id))
     processing_deadline = now + processing_time
     process_id_string = utils.ProcessIdString()
     self.UpdateFlow(

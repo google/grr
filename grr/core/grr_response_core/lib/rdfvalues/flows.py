@@ -35,11 +35,10 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
 
   def __init__(self,
                initializer=None,
-               age=None,
                payload=None,
                generate_task_id=False,
                **kwarg):
-    super(GrrMessage, self).__init__(initializer=initializer, age=age, **kwarg)
+    super(GrrMessage, self).__init__(initializer=initializer, **kwarg)
 
     if payload is not None:
       self.payload = payload
@@ -101,7 +100,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       # Now try to create the correct RDFValue.
       result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
 
-      return result_cls.FromSerializedBytes(self.Get("args"), age=self.args_age)
+      return result_cls.FromSerializedBytes(self.Get("args"))
 
   @payload.setter
   def payload(self, value):
@@ -110,18 +109,11 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       raise RuntimeError("Payload must be an RDFValue.")
 
     self.Set("args", value.SerializeToBytes())
-
-    # pylint: disable=protected-access
-    if value._age is not None:
-      self.args_age = value._age
-    # pylint: enable=protected-access
-
     self.args_rdf_name = value.__class__.__name__
 
   def ClearPayload(self):
     self.args_rdf_name = None
     self.Set("args", None)
-    self.args_age = None
 
 
 class GrrStatus(rdf_structs.RDFProtoStruct):

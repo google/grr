@@ -136,5 +136,8 @@ message ApiCallRobotRouterParams {
   optional RobotRouterListFlowLogsParams list_flow_logs = 8;
   optional RobotRouterGetFlowFilesArchiveParams get_flow_files_archive = 6;
 
+  // DEPRECATED, don't use.
+  // Note: this field wasn't renamed to DEPRECATED_robot_id, since router params
+  // are read from YAML files and therefore field-name-sensitive.
   optional string robot_id = 7;
 }

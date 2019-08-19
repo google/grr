@@ -729,6 +729,9 @@ class MySQLDBClientMixin(object):
                        cursor=None):
     """Stores a ClientStats instance."""
 
+    if stats.timestamp is None:
+      stats.timestamp = rdfvalue.RDFDatetime.Now()
+
     try:
       cursor.execute(
           """
@@ -738,7 +741,7 @@ class MySQLDBClientMixin(object):
           """, [
               db_utils.ClientIDToInt(client_id),
               stats.SerializeToBytes(),
-              mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
+              mysql_utils.RDFDatetimeToTimestamp(stats.timestamp)
           ])
     except MySQLdb.IntegrityError as e:
       if e.args[0] == mysql_error_constants.NO_REFERENCED_ROW_2:

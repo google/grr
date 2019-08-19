@@ -36,6 +36,19 @@ class Error(Exception):
 class BlobNotFoundError(Error):
   """Raised when a blob was expected to exist, but couldn't be found."""
 
+  def __init__(self, blob_id):
+    super(BlobNotFoundError, self).__init__(
+        "Could not find one of referenced blobs: {}. "
+        "This is a sign of datastore inconsistency".format(blob_id))
+
+
+class FileNotFoundError(Error):
+  """Raised when a given file path is not present in the datastore."""
+
+  def __init__(self, client_path):
+    super(FileNotFoundError,
+          self).__init__("File not found: {}.".format(client_path))
+
 
 class FileHasNoContentError(Error):
   """Raised when trying to read a file that was never downloaded."""
@@ -149,6 +162,8 @@ class BlobStream(object):
       self._current_ref = found_ref
 
       data = data_store.BLOBS.ReadBlobs([found_ref.blob_id])
+      if data[found_ref.blob_id] is None:
+        raise BlobNotFoundError(found_ref.blob_id)
       self._current_chunk = data[found_ref.blob_id]
 
     return self._current_chunk, self._current_ref
@@ -274,9 +289,7 @@ def AddFilesWithUnknownHashes(
     for client_path, blob_ref in client_path_blob_ref_batch:
       blob = blobs[blob_ref.blob_id]
       if blob is None:
-        message = "Could not find one of referenced blobs: {}".format(
-            blob_ref.blob_id)
-        raise BlobNotFoundError(message)
+        raise BlobNotFoundError(blob_ref.blob_id)
 
       offset = client_path_offset[client_path]
       if blob_ref.size != len(blob):
@@ -395,6 +408,19 @@ def OpenFile(client_path, max_timestamp=None):
       [client_path], max_timestamp=max_timestamp)[client_path]
 
   if path_info is None:
+    # If path_info returned by ReadLatestPathInfosWithHashBlobReferences
+    # is None, do one more ReadPathInfo call to check if this path info
+    # was ever present in the database.
+    try:
+      data_store.REL_DB.ReadPathInfo(client_path.client_id,
+                                     client_path.path_type,
+                                     client_path.components)
+    except db.UnknownPathError:
+      raise FileNotFoundError(client_path)
+
+    # If the given path info is present in the database, but there are
+    # no suitable hash blob references associated with it, raise
+    # FileHasNoContentError instead of FileNotFoundError.
     raise FileHasNoContentError(client_path)
 
   hash_id = rdf_objects.SHA256HashID.FromBytes(
@@ -452,6 +478,9 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
     StreamedFileChunk objects for every file read. Chunks will be returned
     sequentially, their order will correspond to the client_paths order.
     Files having no content will simply be ignored.
+
+  Raises:
+    BlobNotFoundError: if one of the blobs wasn't found while streaming.
   """
 
   path_infos_by_cp = (
@@ -496,5 +525,8 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
     blobs = data_store.BLOBS.ReadBlobs(
         [blob_id for cp, blob_id, i, num_blobs, offset, total_size in batch])
     for cp, blob_id, i, num_blobs, offset, total_size in batch:
-      yield StreamedFileChunk(cp, blobs[blob_id], i, num_blobs, offset,
-                              total_size)
+      blob_data = blobs[blob_id]
+      if blob_data is None:
+        raise BlobNotFoundError(blob_id)
+
+      yield StreamedFileChunk(cp, blob_data, i, num_blobs, offset, total_size)

@@ -13,22 +13,25 @@ from grr_response_core.stats import stats_collector
 
 _stats_singleton = None
 _init_lock = threading.Lock()
+_metadatas = []
 
 
-class StatsNotInitialized(Exception):
+class StatsNotInitializedError(Exception):
 
   def __init__(self):
-    super(StatsNotInitialized,
-          self).__init__("No stats-collector has been initialized yet.")
+    super(StatsNotInitializedError,
+          self).__init__("No StatsCollector has been initialized yet.")
 
 
 def Set(collector):
-  """Initializes the stats-collector singleton."""
+  """Initializes the StatsCollector singleton and registers metrics with it."""
   global _stats_singleton
 
   with _init_lock:
     if _stats_singleton is None:
       _stats_singleton = collector
+      for metadata in _metadatas:
+        _stats_singleton.RegisterMetric(metadata)
     else:
       # TODO(user): Throw an exception instead, once it is confirmed that it
       # is ok to do so.
@@ -39,8 +42,16 @@ def Get():
   """Returns an initialized stats-collector.
 
   Raises:
-    StatsNotInitialized: If no stats-collector has been initialized yet.
+    StatsNotInitializedError: If no stats-collector has been initialized yet.
   """
   if _stats_singleton is None:
-    raise StatsNotInitialized()
+    raise StatsNotInitializedError()
   return _stats_singleton
+
+
+def RegisterMetric(metadata):
+  """Registers a Metric with the StatsCollector."""
+  with _init_lock:
+    _metadatas.append(metadata)
+    if _stats_singleton is not None:
+      _stats_singleton.RegisterMetric(metadata)

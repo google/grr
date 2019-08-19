@@ -14,8 +14,8 @@ from grr.test_lib import test_lib
 
 class PrometheusStatsCollectorTest(stats_test_utils.StatsCollectorTest):
 
-  def _CreateStatsCollector(self, metadata_list):
-    return prometheus_stats_collector.PrometheusStatsCollector(metadata_list)
+  def _CreateStatsCollector(self):
+    return prometheus_stats_collector.PrometheusStatsCollector()
 
 
 def main(argv):

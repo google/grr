@@ -43,7 +43,6 @@ router_params:
     enabled: True
     path_globs_whitelist:
       - "/**/*.plist"
-  robot_id: "TheRobot"
 users:
   - "%s"
 """.format(ROBOT_ROUTER_NAME)
@@ -168,7 +167,6 @@ router_params:
     enabled: True
     max_flows_per_client_daily: 2
     min_interval_between_duplicate_flows: 1h
-  robot_id: "TheRobot"
 users:
   - "%s"
 """.format(ROBOT_ROUTER_NAME)
@@ -221,7 +219,6 @@ router_params:
   file_finder_flow:
     enabled: True
     max_file_size: 5000000
-  robot_id: "TheRobot"
 users:
   - "%s"
 """.format(ROBOT_ROUTER_NAME)

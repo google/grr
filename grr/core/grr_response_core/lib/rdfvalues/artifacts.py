@@ -164,13 +164,12 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
       }
   }
 
-  def __init__(self, initializer=None, age=None, **kwarg):
+  def __init__(self, initializer=None, **kwarg):
     # Support initializing from a mapping
     if isinstance(initializer, dict):
-      super(ArtifactSource, self).__init__(age=age, **initializer)
+      super(ArtifactSource, self).__init__(**initializer)
     else:
-      super(ArtifactSource, self).__init__(
-          initializer=initializer, age=age, **kwarg)
+      super(ArtifactSource, self).__init__(initializer=initializer, **kwarg)
 
   def Validate(self):
     """Check the source is well constructed."""

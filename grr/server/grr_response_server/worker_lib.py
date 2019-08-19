@@ -22,7 +22,6 @@ from grr_response_server import server_stubs
 # pylint: enable=unused-import
 from grr_response_server.databases import db
 
-
 WELL_KNOWN_FLOW_REQUESTS = metrics.Counter(
     "well_known_flow_requests", fields=[("flow", str)])
 
@@ -42,11 +41,13 @@ def ProcessMessageHandlerRequests(requests):
       logging.error("Unknown message handler: %s", handler_name)
       continue
 
-    WELL_KNOWN_FLOW_REQUESTS.Increment(fields=[handler_name])
+    num_requests = len(requests_for_handler)
+    WELL_KNOWN_FLOW_REQUESTS.Increment(
+        fields=[handler_name], delta=num_requests)
 
     try:
-      logging.debug("Running %d messages for handler %s",
-                    len(requests_for_handler), handler_name)
+      logging.debug("Running %d messages for handler %s", num_requests,
+                    handler_name)
       handler_cls().ProcessMessages(requests_for_handler)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Exception while processing message handler %s: %s",
@@ -113,8 +114,9 @@ class GRRWorker(object):
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return
 
+    first_request_to_process = rdf_flow.next_request_to_process
     logging.info("Processing Flow %s/%s/%d (%s).", client_id, flow_id,
-                 rdf_flow.next_request_to_process, rdf_flow.flow_class_name)
+                 first_request_to_process, rdf_flow.flow_class_name)
 
     flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
     flow_obj = flow_cls(rdf_flow)
@@ -132,9 +134,21 @@ class GRRWorker(object):
           (flow_id, client_id))
 
     while not self._ReleaseProcessedFlow(flow_obj):
-      processed = flow_obj.ProcessAllReadyRequests()
-      if processed == 0:
+      new_processed = flow_obj.ProcessAllReadyRequests()
+      if new_processed == 0:
         raise ValueError(
             "%s/%s: ReleaseProcessedFlow returned false but no "
             "request could be processed (next req: %d)." %
             (client_id, flow_id, flow_obj.rdf_flow.next_request_to_process))
+
+      processed += new_processed
+
+    if flow_obj.IsRunning():
+      logging.info(
+          "Processing Flow %s/%s/%d (%s) done, next request to process: %d.",
+          client_id, flow_id, first_request_to_process,
+          rdf_flow.flow_class_name, rdf_flow.next_request_to_process)
+    else:
+      logging.info("Processing Flow %s/%s/%d (%s) done, flow is done.",
+                   client_id, flow_id, first_request_to_process,
+                   rdf_flow.flow_class_name)

@@ -52,11 +52,6 @@
         "name": "timestamp"
       },
       {
-        "type": "TIMESTAMP",
-        "description": "When original data was generated.",
-        "name": "original_timestamp"
-      },
-      {
         "type": "STRING",
         "description": "Deprecated session id of a hunt that collected the data.",
         "name": "deprecated_session_id"

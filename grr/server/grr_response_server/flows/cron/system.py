@@ -261,7 +261,7 @@ class InterrogateClientsCronJob(cronjobs.SystemCronJobBase,
 class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
   """Deletes outdated client statistics."""
 
-  frequency = rdfvalue.DurationSeconds("1w")
+  frequency = rdfvalue.DurationSeconds("1d")
   lifetime = rdfvalue.DurationSeconds("20h")
 
   def Run(self):

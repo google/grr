@@ -47,7 +47,6 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
       rdf_cls = self.classes.get(self.name)
       if rdf_cls:
         value = rdf_cls.FromSerializedBytes(self.data)
-        value.age = self.embedded_age
 
         return value
     except TypeError:
@@ -56,11 +55,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   @payload.setter
   def payload(self, payload):
     self.name = payload.__class__.__name__
-    self.embedded_age = payload.age
     self.data = payload.SerializeToBytes()
-
-  def __reduce__(self):
-    return type(self), (None, self.payload)
 
 
 class DataBlob(rdf_structs.RDFProtoStruct):
@@ -94,7 +89,6 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
     elif isinstance(value, rdfvalue.RDFValue):
       self.rdf_value.data = value.SerializeToBytes()
-      self.rdf_value.age = int(value.age)
       self.rdf_value.name = value.__class__.__name__
 
     elif isinstance(value, (list, tuple)):
@@ -147,8 +141,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     if self.HasField("rdf_value"):
       try:
         rdf_class = rdfvalue.RDFValue.classes[self.rdf_value.name]
-        return rdf_class.FromSerializedBytes(
-            self.rdf_value.data, age=self.rdf_value.age)
+        return rdf_class.FromSerializedBytes(self.rdf_value.data)
       except (ValueError, KeyError) as e:
         if ignore_error:
           return e
@@ -187,8 +180,8 @@ class Dict(rdf_structs.RDFProtoStruct):
 
   _values = None
 
-  def __init__(self, initializer=None, age=None, **kwarg):
-    super(Dict, self).__init__(initializer=None, age=age)
+  def __init__(self, initializer=None, **kwarg):
+    super(Dict, self).__init__(initializer=None)
 
     self.dat = None  # type: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper]
 
@@ -203,7 +196,6 @@ class Dict(rdf_structs.RDFProtoStruct):
     # Initialize from another Dict.
     elif isinstance(initializer, Dict):
       self.FromDict(initializer.ToDict())
-      self.age = initializer.age
 
     else:
       raise rdfvalue.InitializeError("Invalid initializer for ProtoDict.")
@@ -401,12 +393,11 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
   # Set this to an RDFValue class to ensure all members adhere to this type.
   rdf_type = None
 
-  def __init__(self, initializer=None, age=None):
-    super(RDFValueArray, self).__init__(age=age)
+  def __init__(self, initializer=None):
+    super(RDFValueArray, self).__init__()
 
     if self.__class__ == initializer.__class__:
       self.content = initializer.Copy().content
-      self.age = initializer.age
 
     # Initialize from a serialized protobuf.
     elif isinstance(initializer, str):

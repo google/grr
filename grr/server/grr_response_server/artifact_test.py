@@ -517,8 +517,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           token=self.token)
 
     results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].stdout, "1\n".encode("utf-8"))
+    self.assertEmpty(results)
 
     logs = data_store.REL_DB.ReadFlowLogEntries(
         client_id=client_id, flow_id=flow_id, offset=0, count=1024)

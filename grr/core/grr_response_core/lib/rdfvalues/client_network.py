@@ -53,9 +53,6 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
   v4 addresses and our own pure python implementations for IPv6.
   """
   protobuf = jobs_pb2.NetworkAddress
-  rdf_deps = [
-      rdfvalue.RDFBytes,
-  ]
 
   @property
   def human_readable_address(self):
@@ -82,18 +79,19 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
 
   def AsIPAddr(self):
     """Returns the IP as an `IPAddress` object (if packed bytes are defined)."""
+    precondition.AssertOptionalType(self.packed_bytes, bytes)
+
     if self.packed_bytes is None:
       return None
 
-    packed_bytes = self.packed_bytes.AsBytes()
-
     try:
       if self.address_type == NetworkAddress.Family.INET:
-        return ipaddress.IPv4Address(packed_bytes)
+        return ipaddress.IPv4Address(self.packed_bytes)
       if self.address_type == NetworkAddress.Family.INET6:
-        return ipaddress.IPv6Address(packed_bytes)
+        return ipaddress.IPv6Address(self.packed_bytes)
     except ipaddress.AddressValueError:
-      logging.error("AddressValueError for %s (%s)", packed_bytes.encode("hex"),
+      hex_packed_bytes = binascii.hexlify(self.packed_bytes).decode("ascii")
+      logging.error("AddressValueError for %s (%s)", hex_packed_bytes,
                     self.address_type)
       raise
 

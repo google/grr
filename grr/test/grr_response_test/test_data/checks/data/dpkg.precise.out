@@ -15,7 +15,7 @@ ii  cpio                        2.11-7ubuntu3.2              GNU cpio -- a progr
 ii  dash                        0.5.7-2ubuntu2               POSIX-compliant shell
 ii  debconf                     1.5.42ubuntu1                Debian configuration management system
 ii  debianutils                 4.2.1ubuntu2                 Miscellaneous utilities specific to Debian
-ii  diffutils                   1:3.2-1ubuntu1               File comparison utilities
+ii  diffutils                   1:3.2-1ubuntu1
 ii  dpkg                        1.16.1.2ubuntu7.7            Debian package management system
 ii  e2fslibs                    1.42-1ubuntu2.3              ext2/ext3/ext4 file system libraries
 ii  e2fsprogs                   1.42-1ubuntu2.3              ext2/ext3/ext4 file system utilities

@@ -71,11 +71,9 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
     self.timestamp = None
 
   @classmethod
-  def FromSerializedBytes(cls, value, age=None):
+  def FromSerializedBytes(cls, value):
     res = cls()
     res.ParseFromBytes(value)
-    if age:
-      res.age = age
     return res
 
   def Uname(self):
@@ -224,12 +222,12 @@ class HashID(rdfvalue.RDFValue):
 
   hash_id_length = None
 
-  def __init__(self, initializer=None, age=None):
+  def __init__(self, initializer=None):
     if self.__class__.hash_id_length is None:
       raise TypeError("Trying to instantiate base HashID class. "
                       "hash_id_length has to be set.")
 
-    super(HashID, self).__init__(initializer=initializer, age=age)
+    super(HashID, self).__init__(initializer=initializer)
     if not self._value:
       if initializer is None:
         initializer = b"\x00" * self.__class__.hash_id_length

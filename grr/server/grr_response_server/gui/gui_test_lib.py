@@ -314,8 +314,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       self.CheckBrowserErrors()
       time.sleep(self.sleep_time)
 
-    self.fail("condition not met, body is: %s" %
-              self.driver.find_element_by_tag_name("body").text)
+    self.fail(
+        "condition %s %s not met, body is: %s" %
+        (condition_cb, args, self.driver.find_element_by_tag_name("body").text))
 
   def _FindElements(self, selector):
     selector_type, effective_selector = selector.split("=", 1)

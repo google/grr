@@ -49,7 +49,7 @@ def GetKnowledgeBase(rdf_client_obj, allow_uninitialized=False):
   kb = rdf_client_obj.knowledge_base
   try:
     kb.os_major_version = int(version[0])
-    if len(version) >= 1:
+    if len(version) > 1:
       kb.os_minor_version = int(version[1])
   except ValueError:
     pass
@@ -382,7 +382,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       version = snapshot.os_version.split(".")
       try:
         state_kb.os_major_version = int(version[0])
-        if len(version) >= 1:
+        if len(version) > 1:
           state_kb.os_minor_version = int(version[1])
       except ValueError:
         pass
@@ -399,6 +399,10 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   Returns:
     A list of (possibly parsed) responses.
   """
+  if not parser_factory.HasParsers():
+    # If we don't have any parsers, we expect to use the unparsed responses.
+    return responses
+
   # We have some processors to run.
   knowledge_base = flow_obj.state.knowledge_base
 
@@ -450,7 +454,7 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
         parsed_responses.extend(
             parser.ParseFiles(knowledge_base, pathspecs, filedescs))
 
-  return parsed_responses or responses
+  return parsed_responses
 
 
 def UploadArtifactYamlFile(file_content,

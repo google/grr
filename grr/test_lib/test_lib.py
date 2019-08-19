@@ -19,7 +19,6 @@ import unittest
 
 from absl.testing import absltest
 from future.builtins import range
-from future.utils import itervalues
 import mock
 import pkg_resources
 
@@ -122,15 +121,13 @@ class GRRBaseTest(absltest.TestCase):
 
   def _SetupFakeStatsContext(self):
     """Creates a stats context for running tests based on defined metrics."""
-    metrics_metadata = list(
-        itervalues(stats_collector_instance.Get().GetAllMetricsMetadata()))
-    fake_stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
-        metrics_metadata)
-    fake_stats_context = mock.patch.object(stats_collector_instance,
-                                           "_stats_singleton",
-                                           fake_stats_collector)
-    fake_stats_context.start()
-    self.addCleanup(fake_stats_context.stop)
+    # Reset stats_collector_instance to None, then reinitialize it.
+    patcher = mock.patch.object(stats_collector_instance, "_stats_singleton",
+                                None)
+    patcher.start()
+    self.addCleanup(patcher.stop)
+    stats_collector_instance.Set(
+        prometheus_stats_collector.PrometheusStatsCollector())
 
   def SetupClient(self,
                   client_nr,

@@ -364,7 +364,11 @@ class InMemoryDBClientMixin(object):
     if client_id not in collection.Flatten(self.ReadAllClientIDs()):
       raise db.UnknownClientError(client_id)
 
-    self.client_stats[client_id][rdfvalue.RDFDatetime.Now()] = stats
+    if stats.timestamp is None:
+      stats.timestamp = rdfvalue.RDFDatetime.Now()
+
+    copy = rdf_client_stats.ClientStats(stats)
+    self.client_stats[client_id][copy.timestamp] = copy
 
   @utils.Synchronized
   def ReadClientStats(
@@ -375,7 +379,7 @@ class InMemoryDBClientMixin(object):
     results = []
     for timestamp, stats in iteritems(self.client_stats[client_id]):
       if min_timestamp <= timestamp <= max_timestamp:
-        results.append(stats)
+        results.append(rdf_client_stats.ClientStats(stats))
     return results
 
   @utils.Synchronized

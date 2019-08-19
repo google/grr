@@ -255,7 +255,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     client_id = self.SetupClient(0, system="Windows")
 
     artifact_list = ["FakeArtifact"]
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
@@ -263,7 +263,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         token=self.token,
         client_id=client_id)
 
-    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, session_id)
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     state = flow_obj.persistent_data
 
     self.assertLen(state.artifacts_skipped_due_to_condition, 1)
@@ -281,14 +281,14 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           attributes={"client_action": standard.ListProcesses.__name__})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
-      session_id = flow_test_lib.TestFlowHelper(
+      flow_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=client_id)
 
-      results = flow_test_lib.GetFlowResults(client_id, session_id)
+      results = flow_test_lib.GetFlowResults(client_id, flow_id)
       self.assertIsInstance(results[0], rdf_client.Process)
       self.assertLen(results, 1)
 
@@ -343,7 +343,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        session_id = flow_test_lib.TestFlowHelper(
+        flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
@@ -351,7 +351,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             client_id=client_id)
 
     # Test the statentry got stored.
-    results = flow_test_lib.GetFlowResults(client_id, session_id)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
     self.assertEndsWith(results[0].pathspec.CollapsePath(), "BootExecute")
 
@@ -373,14 +373,14 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        session_id = flow_test_lib.TestFlowHelper(
+        flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
             client_id=client_id)
 
-    results = flow_test_lib.GetFlowResults(client_id, session_id)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
     self.assertEqual(results[0].registry_data.GetValue(), "DefaultValue")
 
@@ -419,14 +419,38 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
   def _RunClientActionArtifact(self, client_id, client_mock, artifact_list):
     self.output_count += 1
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
         token=self.token,
         client_id=client_id)
 
-    return flow_test_lib.GetFlowResults(client_id, session_id)
+    return flow_test_lib.GetFlowResults(client_id, flow_id)
+
+  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
+                     factory.Factory(parsers.SingleResponseParser))
+  def testParsingFailure(self):
+    """Test a command artifact where parsing the response fails."""
+
+    filesystem_test_lib.Command("/bin/echo", args=["1"])
+
+    InitGRRWithTestArtifacts(self)
+
+    client_id = self.SetupClient(0, system="Linux")
+
+    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd",
+                                                    TestCmdNullParser)
+    artifact_list = ["TestUntypedEchoArtifact"]
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        collectors.ArtifactCollectorFlow,
+        action_mocks.ActionMock(standard.ExecuteCommand),
+        artifact_list=artifact_list,
+        apply_parsers=True,
+        client_id=client_id)
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    self.assertEmpty(results)
 
 
 class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
@@ -444,14 +468,14 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
-      session_id = flow_test_lib.TestFlowHelper(
+      flow_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=client_id,
           split_output_by_artifact=True)
-      results_by_tag = flow_test_lib.GetFlowResultsByTag(client_id, session_id)
+      results_by_tag = flow_test_lib.GetFlowResultsByTag(client_id, flow_id)
       self.assertCountEqual(results_by_tag.keys(),
                             ["artifact:FakeArtifact", "artifact:FakeArtifact2"])
 
@@ -831,6 +855,17 @@ class TestCmdParser(parser.CommandParser):
     ])
 
 
+class TestCmdNullParser(parser.CommandParser):
+
+  output_types = [rdf_client.SoftwarePackages]
+  supported_artifacts = ["TestUntypedEchoArtifact"]
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
+    del cmd, args, stderr, return_val, knowledge_base  # Unused
+    # This parser tests flow behavior when the input can't be parsed.
+    return []
+
+
 class TestFileParser(parsers.SingleFileParser):
 
   output_types = [rdf_protodict.AttributedDict]
@@ -887,14 +922,14 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.client_id = self.SetupClient(0)
 
   def _RunFlow(self, flow_cls, action, artifact_list, apply_parsers):
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         flow_cls.__name__,
         action_mocks.ActionMock(action),
         artifact_list=artifact_list,
         token=self.token,
         apply_parsers=apply_parsers,
         client_id=self.client_id)
-    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+    return flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
   def InitializeTestFileArtifact(self, with_pathspec_attribute=False):
     file_path = os.path.join(self.base_path, "numbers.txt")
@@ -1014,14 +1049,14 @@ sources:
                                      vfs_test_lib.FakeFullVFSHandler):
 
         # Run the ArtifactCollector to get the expected result.
-        session_id = flow_test_lib.TestFlowHelper(
+        flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
             token=self.token,
             client_id=self.client_id,
             apply_parsers=False)
-        results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+        results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
         expected = results[0]
         self.assertIsInstance(expected, rdf_client_fs.StatEntry)
 
@@ -1059,14 +1094,14 @@ sources:
                                      vfs_test_lib.FakeFullVFSHandler):
 
         # Run the ArtifactCollector to get the expected result.
-        session_id = flow_test_lib.TestFlowHelper(
+        flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
             token=self.token,
             client_id=self.client_id,
             apply_parsers=False)
-        results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+        results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
         self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
 
         # Run the ClientArtifactCollector to get the actual result.
@@ -1103,14 +1138,14 @@ sources:
                                      vfs_test_lib.FakeFullVFSHandler):
 
         # Run the ArtifactCollector to get the expected result.
-        session_id = flow_test_lib.TestFlowHelper(
+        flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
             token=self.token,
             client_id=self.client_id,
             apply_parsers=False)
-        expected = flow_test_lib.GetFlowResults(self.client_id, session_id)[0]
+        expected = flow_test_lib.GetFlowResults(self.client_id, flow_id)[0]
         self.assertIsInstance(expected, rdf_client_fs.StatEntry)
 
         # Run the ClientArtifactCollector to get the actual result.
@@ -1132,68 +1167,83 @@ sources:
     filesystem_test_lib.Command("/bin/echo", args=["1"])
 
     parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd", TestCmdParser)
-    try:
-      artifact_list = ["TestEchoArtifact"]
 
-      # Run the ArtifactCollector to get the expected result.
-      expected = self._RunFlow(
-          collectors.ArtifactCollectorFlow,
-          standard.ExecuteCommand,
-          artifact_list,
-          apply_parsers=True)
-      self.assertTrue(expected)
-      expected = expected[0]
-      self.assertIsInstance(expected, rdf_client.SoftwarePackages)
+    artifact_list = ["TestEchoArtifact"]
 
-      # Run the ClientArtifactCollector to get the actual result.
-      results = self._RunFlow(
-          collectors.ClientArtifactCollector,
-          artifact_collector.ArtifactCollector,
-          artifact_list,
-          apply_parsers=True)
-      self.assertLen(results, 1)
-      artifact_response = results[0]
-      self.assertIsInstance(artifact_response, rdf_client.SoftwarePackages)
+    # Run the ArtifactCollector to get the expected result.
+    expected = self._RunFlow(
+        collectors.ArtifactCollectorFlow,
+        standard.ExecuteCommand,
+        artifact_list,
+        apply_parsers=True)
+    self.assertTrue(expected)
+    expected = expected[0]
+    self.assertIsInstance(expected, rdf_client.SoftwarePackages)
 
-      self.assertEqual(artifact_response, expected)
-    finally:
-      parsers.SINGLE_RESPONSE_PARSER_FACTORY.Unregister("TestCmd")
+    # Run the ClientArtifactCollector to get the actual result.
+    results = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=True)
+    self.assertLen(results, 1)
+    artifact_response = results[0]
+    self.assertIsInstance(artifact_response, rdf_client.SoftwarePackages)
+
+    self.assertEqual(artifact_response, expected)
 
   @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
                      factory.Factory(parsers.SingleFileParser))
   def testFileArtifactWithParser(self):
     """Test collecting a file artifact and parsing the response."""
     parsers.SINGLE_FILE_PARSER_FACTORY.Register("TestFile", TestFileParser)
-    try:
-      artifact_list = ["TestFileArtifact"]
 
-      file_path = self.InitializeTestFileArtifact()
+    artifact_list = ["TestFileArtifact"]
 
-      # Run the ArtifactCollector to get the expected result.
-      session_id = flow_test_lib.TestFlowHelper(
-          collectors.ArtifactCollectorFlow.__name__,
-          action_mocks.FileFinderClientMock(),
-          artifact_list=artifact_list,
-          token=self.token,
-          apply_parsers=True,
-          client_id=self.client_id)
-      results = flow_test_lib.GetFlowResults(self.client_id, session_id)
-      expected = results[0]
-      self.assertIsInstance(expected, rdf_protodict.AttributedDict)
-      self.assertEqual(expected.filename, file_path)
-      self.assertLen(expected.users, 1000)
+    file_path = self.InitializeTestFileArtifact()
 
-      # Run the ClientArtifactCollector to get the actual result.
-      cac_results = self._RunFlow(
-          collectors.ClientArtifactCollector,
-          artifact_collector.ArtifactCollector,
-          artifact_list,
-          apply_parsers=True)
-      self.assertLen(cac_results, 1)
+    # Run the ArtifactCollector to get the expected result.
+    flow_id = flow_test_lib.TestFlowHelper(
+        collectors.ArtifactCollectorFlow.__name__,
+        action_mocks.FileFinderClientMock(),
+        artifact_list=artifact_list,
+        token=self.token,
+        apply_parsers=True,
+        client_id=self.client_id)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    expected = results[0]
+    self.assertIsInstance(expected, rdf_protodict.AttributedDict)
+    self.assertEqual(expected.filename, file_path)
+    self.assertLen(expected.users, 1000)
 
-      self.assertEqual(results, cac_results)
-    finally:
-      parsers.SINGLE_FILE_PARSER_FACTORY.Unregister("TestFile")
+    # Run the ClientArtifactCollector to get the actual result.
+    cac_results = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=True)
+    self.assertLen(cac_results, 1)
+
+    self.assertEqual(results, cac_results)
+
+  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
+                     factory.Factory(parsers.SingleResponseParser))
+  def testParsingFailure(self):
+    """Test a command artifact where parsing the response fails."""
+
+    filesystem_test_lib.Command("/bin/echo", args=["1"])
+
+    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd",
+                                                    TestCmdNullParser)
+    artifact_list = ["TestUntypedEchoArtifact"]
+
+    # Run the ClientArtifactCollector to get the result.
+    results = self._RunFlow(
+        collectors.ClientArtifactCollector,
+        artifact_collector.ArtifactCollector,
+        artifact_list,
+        apply_parsers=True)
+    self.assertEmpty(results)
 
   def testAggregatedArtifact(self):
     """Test we can collect an ARTIFACT_GROUP."""
@@ -1225,14 +1275,14 @@ sources:
     self.InitializeTestFileArtifact()
 
     # Run the ArtifactCollector to get the expected result.
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
         token=self.token,
         apply_parsers=False,
         client_id=self.client_id)
-    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     expected = results[0]
 
     self.assertIsInstance(expected, rdf_client_fs.StatEntry)
@@ -1255,14 +1305,14 @@ sources:
     self.InitializeTestFileArtifact(with_pathspec_attribute=True)
 
     # Run the ArtifactCollector to get the expected result.
-    session_id = flow_test_lib.TestFlowHelper(
+    flow_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
         token=self.token,
         apply_parsers=False,
         client_id=self.client_id)
-    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     expected = results[0]
 
     self.assertIsInstance(expected, rdf_client_fs.StatEntry)

@@ -860,6 +860,38 @@ class DatabaseTestFlowMixin(object):
     for response_id, response in iteritems(read_responses):
       self.assertEqual(response.response_id, response_id)
 
+  def testCompletingMultipleRequests(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    requests = []
+    responses = []
+    for i in range(5):
+      requests.append(
+          rdf_flow_objects.FlowRequest(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=i,
+              needs_processing=False))
+      responses.append(
+          rdf_flow_objects.FlowResponse(
+              client_id=client_id, flow_id=flow_id, request_id=i,
+              response_id=1))
+      responses.append(
+          rdf_flow_objects.FlowStatus(
+              client_id=client_id, flow_id=flow_id, request_id=i,
+              response_id=2))
+
+    self.db.WriteFlowRequests(requests)
+
+    # Complete all requests at once.
+    self.db.WriteFlowResponses(responses)
+
+    read = self.db.ReadAllFlowRequestsAndResponses(
+        client_id=client_id, flow_id=flow_id)
+    self.assertEqual(len(read), 5)
+    for req, _ in read:
+      self.assertTrue(req.needs_processing)
+
   def testStatusMessagesCanBeWrittenAndRead(self):
     client_id, flow_id = self._SetupClientAndFlow()
 

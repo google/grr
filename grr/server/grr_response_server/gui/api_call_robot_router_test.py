@@ -37,7 +37,7 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClient(0)
 
   def testPassesFlowArgsThroughIfNoOverridesSpecified(self):
-    h = rr.ApiRobotCreateFlowHandler(robot_id="foo")
+    h = rr.ApiRobotCreateFlowHandler()
 
     args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
@@ -48,7 +48,7 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
 
   def testOverridesFlowNameIfOverrideArgIsSpecified(self):
     h = rr.ApiRobotCreateFlowHandler(
-        robot_id="foo", override_flow_name=AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
+        override_flow_name=AnotherFileFinder.__name__)  # pylint: disable=undefined-variable
 
     args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
@@ -59,8 +59,7 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
 
   def testOverridesFlowArgsThroughIfOverridesSpecified(self):
     override_flow_args = rdf_file_finder.FileFinderArgs(paths=["bar"])
-    h = rr.ApiRobotCreateFlowHandler(
-        robot_id="foo", override_flow_args=override_flow_args)
+    h = rr.ApiRobotCreateFlowHandler(override_flow_args=override_flow_args)
 
     args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     args.flow.name = file_finder.FileFinder.__name__
@@ -74,13 +73,12 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
   """Tests for ApiCallRobotRouter."""
 
   def _CreateRouter(self, delegate=None, **kwargs):
-    params = rr.ApiCallRobotRouterParams(robot_id=self.robot_id, **kwargs)
+    params = rr.ApiCallRobotRouterParams(**kwargs)
     return rr.ApiCallRobotRouter(params=params, delegate=delegate)
 
   def setUp(self):
     super(ApiCallRobotRouterTest, self).setUp()
     self.client_id = self.SetupClient(0)
-    self.robot_id = "TestRobot"
     self.another_username = "someotherguy"
     self.CreateUser(self.another_username)
 
@@ -330,18 +328,10 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
               client_id=self.client_id),
           token=self.token)
 
-  # Pre-REL_DB ApiCallRobotRouter was using robot id annotation to identify
-  # flows created by a robot.
-  # REL_DB-enabled ApiCallRobotRouter ignores the robot_id and simply checks
-  # that the creator username has to match the requestor username, effectively
-  # forcing a single robot account to do all operations.
-  # Still, we have to maintain old robot_id-based logic while AFF4 code is
-  # not removed.
-  # TODO(user): remove robot_id support when AFF4 is gone.
   def _CreateFlowWithRobotId(self, flow_name=None, flow_args=None):
     flow_name = flow_name or file_finder.FileFinder.__name__
 
-    handler = rr.ApiRobotCreateFlowHandler(robot_id=self.robot_id)
+    handler = rr.ApiRobotCreateFlowHandler()
     flow_result = handler.Handle(
         api_flow.ApiCreateFlowArgs(
             client_id=self.client_id,

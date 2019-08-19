@@ -143,7 +143,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -156,7 +156,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -1327,7 +1327,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -1340,7 +1340,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -1655,7 +1655,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAQ=="
                           }
                         }
@@ -1668,7 +1668,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAQ=="
                           }
                         }
@@ -1945,7 +1945,7 @@
                         "value": "INET"
                       },
                       "packed_bytes": {
-                        "type": "RDFBytes",
+                        "type": "bytes",
                         "value": "wKgAAA=="
                       }
                     }
@@ -1958,7 +1958,7 @@
                         "value": "INET6"
                       },
                       "packed_bytes": {
-                        "type": "RDFBytes",
+                        "type": "bytes",
                         "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                       }
                     }
@@ -2259,7 +2259,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -2272,7 +2272,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -2452,7 +2452,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -2465,7 +2465,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -2793,7 +2793,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -2806,7 +2806,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -3067,7 +3067,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -3080,7 +3080,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -9096,7 +9096,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -9109,7 +9109,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }
@@ -10543,7 +10543,7 @@
                                 "value": "INET"
                               },
                               "packed_bytes": {
-                                "type": "RDFBytes",
+                                "type": "bytes",
                                 "value": "wKgAAQ=="
                               }
                             }
@@ -10556,7 +10556,7 @@
                                 "value": "INET6"
                               },
                               "packed_bytes": {
-                                "type": "RDFBytes",
+                                "type": "bytes",
                                 "value": "IAGrzQAAAAAAAAAAAAAAAQ=="
                               }
                             }
@@ -10782,7 +10782,7 @@
                                 "value": "INET"
                               },
                               "packed_bytes": {
-                                "type": "RDFBytes",
+                                "type": "bytes",
                                 "value": "wKgAAA=="
                               }
                             }
@@ -10795,7 +10795,7 @@
                                 "value": "INET6"
                               },
                               "packed_bytes": {
-                                "type": "RDFBytes",
+                                "type": "bytes",
                                 "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                               }
                             }
@@ -11201,7 +11201,7 @@
                                 "value": "INET"
                               },
                               "packed_bytes": {
-                                "type": "RDFBytes",
+                                "type": "bytes",
                                 "value": "wKgAAA=="
                               }
                             }
@@ -11214,7 +11214,7 @@
                                 "value": "INET6"
                               },
                               "packed_bytes": {
-                                "type": "RDFBytes",
+                                "type": "bytes",
                                 "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                               }
                             }
@@ -16534,7 +16534,7 @@
                             "value": "INET"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "wKgAAA=="
                           }
                         }
@@ -16547,7 +16547,7 @@
                             "value": "INET6"
                           },
                           "packed_bytes": {
-                            "type": "RDFBytes",
+                            "type": "bytes",
                             "value": "IAGrzQAAAAAAAAAAAAAAAA=="
                           }
                         }

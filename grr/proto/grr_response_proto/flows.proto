@@ -2039,11 +2039,29 @@ message DumpACPITableArgs {
   reserved 3;
 }
 
-// Next field ID: 17
+message YaraSignatureShard {
+  // 0-index of the shard in the full Yara signature.
+  optional uint32 index = 1;
+  // UTF-8-encoded segment of a Yara signature.
+  optional bytes payload = 2;
+}
+
+// Next field ID: 19
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
     description: "The yara signature(s) to use for scanning.",
+  }];
+  optional YaraSignatureShard signature_shard = 17 [(sem_type) = {
+    description: "A segment of a Yara signature used for process-scanning. "
+                 "Long Yara signatures are split on the server and sent to "
+                 "clients in multiple shards."
+    label: HIDDEN,
+  }];
+  optional uint32 num_signature_shards = 18 [(sem_type) = {
+    description: "The number of shards in which the Yara signature is sent "
+                 "to clients."
+    label: HIDDEN,
   }];
   repeated uint64 pids = 2 [(sem_type) = {
     description: "The pids to scan. No pids given indicates all processes.",

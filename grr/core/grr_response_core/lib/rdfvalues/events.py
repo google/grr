@@ -20,8 +20,8 @@ class AuditEvent(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFURN,
   ]
 
-  def __init__(self, initializer=None, age=None, **kwargs):
-    super(AuditEvent, self).__init__(initializer=initializer, age=age, **kwargs)
+  def __init__(self, initializer=None, **kwargs):
+    super(AuditEvent, self).__init__(initializer=initializer, **kwargs)
     if not self.id:
       self.id = random.UInt32()
     if not self.timestamp:

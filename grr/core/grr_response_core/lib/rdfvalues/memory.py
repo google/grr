@@ -21,9 +21,14 @@ class YaraSignature(rdfvalue.RDFString):
     return yara.compile(source=str(self))
 
 
+class YaraSignatureShard(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.YaraSignatureShard
+  rdf_deps = []
+
+
 class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessScanRequest
-  rdf_deps = [YaraSignature]
+  rdf_deps = [YaraSignature, YaraSignatureShard]
 
 
 class ProcessMemoryError(rdf_structs.RDFProtoStruct):

@@ -17,6 +17,7 @@ import sys
 from absl import app
 from absl import flags
 from absl.flags import argparse_flags
+import distro
 
 from grr_response_client_builder import build
 from grr_response_client_builder import builders
@@ -194,13 +195,14 @@ class TemplateBuilder(object):
 
   def GetPackageFormat(self):
     if platform.system() == "Linux":
-      distro = platform.linux_distribution()[0].lower()
-      if distro in ["ubuntu", "debian"]:
+      distro_id = distro.id()
+      if distro_id in ["ubuntu", "debian"]:
         return "Target:LinuxDeb"
-      elif distro in ["centos linux", "centos", "redhat", "fedora"]:
+      elif distro_id in ["centos", "rhel", "fedora"]:
         return "Target:LinuxRpm"
       else:
-        raise RuntimeError("Unknown distro, can't determine package format")
+        message = "Unknown distro '{}', can't determine package format"
+        raise RuntimeError(message.format(distro_id))
 
   def BuildTemplate(self, context=None, output=None):
     """Find template builder and call it."""

@@ -22,12 +22,12 @@ class Distribution(rdf_structs.RDFProtoStruct):
 
   protobuf = jobs_pb2.Distribution
 
-  def __init__(self, initializer=None, age=None, bins=None):
+  def __init__(self, initializer=None, bins=None):
     if initializer and bins:
       raise ValueError("Either 'initializer' or 'bins' arguments can "
                        "be specified.")
 
-    super(Distribution, self).__init__(initializer=initializer, age=age)
+    super(Distribution, self).__init__(initializer=initializer)
 
     if bins:
       self.bins = [-float("inf")] + bins

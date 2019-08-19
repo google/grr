@@ -64,10 +64,7 @@ message ExportedMetadata {
     (sem_type) = { type: "RDFDatetime", description: "When data was exported." }
   ];
 
-  optional uint64 original_timestamp = 15 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "When original data was generated."
-  }];
+  reserved 15;  // Deprecated optional uint64 original_timestamp
 
   // BEGIN DEPRECATED
   optional string deprecated_session_id = 11 [
@@ -372,6 +369,8 @@ message ExportedYaraProcessScanMatch {
   optional uint64 scan_time_us = 4 [(sem_type) = {
     description: "Time in microseconds taken to perform the scan.",
   }];
+
+  reserved 5;
 }
 
 message ExportedSoftwarePackage {

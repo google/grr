@@ -32,6 +32,7 @@ from grr_response_server import data_store_utils
 from grr_response_server import decoders
 from grr_response_server import file_store
 from grr_response_server import flow
+from grr_response_server import notification
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
@@ -179,18 +180,6 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     except KeyError:
       self.age = rdfvalue.RDFDatetime.Now()
 
-  # Property below is needed so that "age" proto attribute is not shadowed
-  # by RDFValue's age.
-  # TODO(user): As soon as we get rid of AFF4 - remove RDF's builtin
-  # "age" property and get rid of this code.
-  @property
-  def age(self):
-    return self.Get("age")
-
-  @age.setter
-  def age(self, value):
-    self.Set("age", value)
-
 
 class ApiGetFileDetailsArgs(rdf_structs.RDFProtoStruct):
   protobuf = vfs_pb2.ApiGetFileDetailsArgs
@@ -219,9 +208,7 @@ def _GenerateApiFileDetails(path_infos):
   def _Value(age, value):
     """Generate ApiAff4ObjectAttributeValue from an age and a value."""
 
-    v = ApiAff4ObjectAttributeValue()
-    # TODO(user): get rid of RDF builtin "age" property.
-    v.Set("age", age)
+    v = ApiAff4ObjectAttributeValue(age=age)
     # With dynamic values we first have to set the type and
     # then the value itself.
     # TODO(user): refactor dynamic values logic so that it's not needed,
@@ -573,16 +560,37 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     for start in range(offset, offset + length, self.CHUNK_SIZE):
       yield file_obj.read(min(self.CHUNK_SIZE, offset + length - start))
 
+  def _WrapContentGenerator(self, generator, args, username):
+    try:
+      for item in generator:
+        yield item
+    except Exception as e:
+      path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+      vfs_file_ref = rdf_objects.VfsFileReference(
+          client_id=args.client_id,
+          path_type=path_type,
+          path_components=components)
+      object_reference = rdf_objects.ObjectReference(
+          reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+          vfs_file=vfs_file_ref)
+
+      notification.Notify(
+          username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_BLOB_FETCH_FAILED,
+          "File blob fetch failed for path %s on client %s: %s" %
+          (args.client_id, args.file_path, e), object_reference)
+      raise
+
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
     client_path = db.ClientPath(str(args.client_id), path_type, components)
 
-    # TODO: Raise FileNotFoundError if the file does not exist in
-    #  VFS.
     try:
       file_obj = file_store.OpenFile(client_path, max_timestamp=args.timestamp)
+    except file_store.FileNotFoundError:
+      raise FileNotFoundError(args.client_id, path_type, components)
     except file_store.FileHasNoContentError:
       raise FileContentNotFoundError(args.client_id, path_type, components,
                                      args.timestamp)
@@ -591,7 +599,8 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler):
     if args.length and args.length < size:
       size = args.length
 
-    generator = self._GenerateFile(file_obj, args.offset, size)
+    generator = self._WrapContentGenerator(
+        self._GenerateFile(file_obj, args.offset, size), args, token.username)
     return api_call_handler_base.ApiBinaryStream(
         filename=components[-1],
         content_generator=generator,
@@ -1145,6 +1154,37 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     yield archive_generator.Close()
 
+  def _WrapContentGenerator(self, generator, args, username):
+    if args.file_path:
+      path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
+      vfs_file_ref = rdf_objects.VfsFileReference(
+          client_id=args.client_id,
+          path_type=path_type,
+          path_components=components)
+    else:
+      vfs_file_ref = rdf_objects.VfsFileReference(client_id=args.client_id)
+
+    object_reference = rdf_objects.ObjectReference(
+        reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+        vfs_file=vfs_file_ref)
+    try:
+      for item in generator:
+        yield item
+      notification.Notify(
+          username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
+          "Downloaded an archive of folder %s from client %s." %
+          (args.file_path, args.client_id), object_reference)
+
+    except Exception as e:
+      notification.Notify(
+          username,
+          rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
+          "Archive generation failed for folder %s on client %s: %s" %
+          (args.file_path, args.client_id, e), object_reference)
+
+      raise
+
   def Handle(self, args, token=None):
     client_id = str(args.client_id)
     path = args.file_path
@@ -1160,8 +1200,9 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
                                client_id + "_" + path).strip("_")
 
-    content_generator = self._GenerateContent(client_id, start_paths,
-                                              args.timestamp, prefix)
+    content_generator = self._WrapContentGenerator(
+        self._GenerateContent(client_id, start_paths, args.timestamp, prefix),
+        args, token.username)
     return api_call_handler_base.ApiBinaryStream(
         prefix + ".zip", content_generator=content_generator)
 

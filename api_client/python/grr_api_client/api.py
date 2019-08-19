@@ -11,6 +11,7 @@ from grr_api_client import context
 from grr_api_client import hunt
 from grr_api_client import root
 from grr_api_client import types
+from grr_api_client import user
 from grr_api_client.connectors import http_connector
 
 
@@ -55,6 +56,9 @@ class GrrApi(object):
   def GrrBinary(self, binary_type, path):
     return config.GrrBinaryRef(
         binary_type=binary_type, path=path, context=self._context)
+
+  def GrrUser(self):
+    return user.GrrUser(context=self._context)
 
   @property
   def username(self):

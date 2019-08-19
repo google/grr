@@ -14,7 +14,6 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import temp
-from grr_response_core.stats import metrics
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import artifact
 from grr_response_server import data_store
@@ -41,9 +40,7 @@ def TestInit():
   """Only used in tests and will rerun all the hooks to create a clean state."""
   global INIT_RAN
 
-  metric_metadata = metrics.FinalizeMetricRegistration()
-  stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
-      metric_metadata)
+  stats_collector = prometheus_stats_collector.PrometheusStatsCollector()
   stats_collector_instance.Set(stats_collector)
 
   # Tests use both the server template grr_server.yaml as a primary config file
@@ -63,6 +60,11 @@ def TestInit():
   if os.path.exists(extra_test_config):
     flags.FLAGS.secondary_configs.append(extra_test_config)
 
+  # Prevent using the default writeback location since it may clash with local
+  # setup.
+  writeback_filepath = temp.TempFilePath(prefix="grr_writeback", suffix=".yaml")
+  config.CONFIG.global_override["Config.writeback"] = writeback_filepath
+
   # Tests additionally add a test configuration file.
   config_lib.SetPlatformArchContext()
   config_lib.ParseConfigCommandLine()
@@ -70,11 +72,6 @@ def TestInit():
   # We are running a test so let the config system know that.
   config.CONFIG.AddContext(contexts.TEST_CONTEXT,
                            "Context applied when we run tests.")
-
-  # Prevent using the default writeback location since it may clash with local
-  # setup.
-  writeback_filepath = temp.TempFilePath(prefix="grr_writeback", suffix=".yaml")
-  config.CONFIG.Set("Config.writeback", writeback_filepath)
 
   if not INIT_RAN:
     server_logging.ServerLoggingStartupInit()

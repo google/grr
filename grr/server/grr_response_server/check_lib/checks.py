@@ -74,13 +74,13 @@ class Hint(rdf_structs.RDFProtoStruct):
 
   protobuf = checks_pb2.Hint
 
-  def __init__(self, initializer=None, age=None, reformat=True, **kwargs):
+  def __init__(self, initializer=None, reformat=True, **kwargs):
     if isinstance(initializer, dict):
       conf = initializer
       initializer = None
     else:
       conf = kwargs
-    super(Hint, self).__init__(initializer=initializer, age=age, **conf)
+    super(Hint, self).__init__(initializer=initializer, **conf)
     if not self.max_results:
       self.max_results = config.CONFIG.Get("Checks.max_results")
     if reformat:
@@ -116,7 +116,7 @@ class Filter(rdf_structs.RDFProtoStruct):
       Hint,
   ]
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, **kwargs):
     # FIXME(sebastianw): Probe seems to pass in the configuration for filters
     # as a dict in initializer, rather than as kwargs.
     if isinstance(initializer, dict):
@@ -124,7 +124,7 @@ class Filter(rdf_structs.RDFProtoStruct):
       initializer = None
     else:
       conf = kwargs
-    super(Filter, self).__init__(initializer=initializer, age=age, **conf)
+    super(Filter, self).__init__(initializer=initializer, **conf)
     filter_name = self.type or "Filter"
     self._filter = filters.Filter.GetFilter(filter_name)
 
@@ -165,14 +165,14 @@ class Probe(rdf_structs.RDFProtoStruct):
       triggers.Target,
   ]
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, dict):
       conf = initializer
       initializer = None
     else:
       conf = kwargs
     conf["match"] = MatchStrToList(kwargs.get("match"))
-    super(Probe, self).__init__(initializer=initializer, age=age, **conf)
+    super(Probe, self).__init__(initializer=initializer, **conf)
     if self.filters:
       handler = filters.GetHandler(mode=self.mode)
     else:
@@ -228,13 +228,13 @@ class Method(rdf_structs.RDFProtoStruct):
       triggers.Target,
   ]
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, dict):
       conf = initializer
       initializer = None
     else:
       conf = kwargs
-    super(Method, self).__init__(initializer=initializer, age=age)
+    super(Method, self).__init__(initializer=initializer)
     probe = conf.get("probe", {})
     resource = conf.get("resource", {})
     hint = conf.get("hint", {})
@@ -349,13 +349,12 @@ class Check(rdf_structs.RDFProtoStruct):
 
   def __init__(self,
                initializer=None,
-               age=None,
                check_id=None,
                target=None,
                match=None,
                method=None,
                hint=None):
-    super(Check, self).__init__(initializer=initializer, age=age)
+    super(Check, self).__init__(initializer=initializer)
     self.check_id = check_id
     self.match = MatchStrToList(match)
     self.hint = Hint(hint, reformat=False)

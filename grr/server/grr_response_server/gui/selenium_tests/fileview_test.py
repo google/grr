@@ -196,8 +196,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(downloaded_files[0][0], u"fs/os/c/Downloads/a.txt")
     self.assertEqual(downloaded_files[2][0], u"fs/os/c/Downloads/a.txt")
     # But from different times. The downloaded file timestamp is only accurate
-    # to the nearest second. Also, the HEAD version of the file is downloaded
-    # with age=None.
+    # to the nearest second.
     self.assertEqual(downloaded_files[0][1], None)
     self.assertAlmostEqual(
         downloaded_files[2][1],

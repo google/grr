@@ -41,6 +41,10 @@ class ArtifactParserFactory(object):
     precondition.AssertType(artifact_name, Text)
     self._artifact_name = artifact_name
 
+  def HasParsers(self):
+    return (self.HasSingleResponseParsers() or self.HasMultiResponseParsers() or
+            self.HasSingleFileParsers() or self.HasMultiFileParsers())
+
   def HasSingleResponseParsers(self):
     return any(self.SingleResponseParsers())
 

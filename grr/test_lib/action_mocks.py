@@ -56,12 +56,14 @@ class ActionMock(object):
     self.action_classes = {cls.__name__: cls for cls in action_classes}
     self.action_counts = dict((cls_name, 0) for cls_name in self.action_classes)
     self.recorded_args = {}
+    self._recorded_messages = []
 
     self.client_worker = (
         kwargs.get("client_worker", None) or worker_mocks.FakeClientWorker())
 
-  def RecordCall(self, action_name, action_args):
-    self.recorded_args.setdefault(action_name, []).append(action_args)
+  def _RecordCall(self, message):
+    self._recorded_messages.append(message)
+    self.recorded_args.setdefault(message.name, []).append(message.payload)
 
   def GenerateStatusMessage(self, message, response_id=1, status=None):
     return rdf_flows.GrrMessage(
@@ -100,7 +102,7 @@ class ActionMock(object):
     if hasattr(self, message.name):
       return self._HandleMockAction(message)
 
-    self.RecordCall(message.name, message.payload)
+    self._RecordCall(message)
 
     if message.name not in self.action_classes:
       return [
@@ -115,6 +117,10 @@ class ActionMock(object):
     self.action_counts[message.name] += 1
 
     return self.client_worker.Drain()
+
+  @property
+  def recorded_messages(self):
+    return self._recorded_messages
 
 
 class Store(server_stubs.ClientActionStub):
@@ -346,13 +352,7 @@ class InterrogatedClient(ActionMock):
     self.kernel = kernel
     self.release = release
     self.response_count = 0
-    self.recorded_messages = []
     self.fqdn = fqdn
-
-  def HandleMessage(self, message):
-    """Record all messages."""
-    self.recorded_messages.append(message)
-    return super(InterrogatedClient, self).HandleMessage(message)
 
   def GetPlatformInfo(self, _):
     self.response_count += 1

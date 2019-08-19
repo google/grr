@@ -739,9 +739,8 @@ class EnumNamedValue(rdfvalue.RDFInteger):
                initializer=None,
                name=None,
                description=None,
-               labels=None,
-               age=None):
-    super(EnumNamedValue, self).__init__(initializer, age=age)
+               labels=None):
+    super(EnumNamedValue, self).__init__(initializer)
 
     if name is None:
       name = str(initializer)
@@ -1698,11 +1697,10 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   # Stores the raw data here.
   _data = None
 
-  def __init__(self, initializer=None, age=None, **kwargs):
+  def __init__(self, initializer=None, **kwargs):
     # Maintain the order so that parsing and serializing a proto does not change
     # the serialized form.
     self._data = {}
-    self._age = age
     self._prev_hash = None
 
     for arg, value in iteritems(kwargs):
@@ -1786,10 +1784,6 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     """Make an efficient copy of this protobuf."""
     result = self.__class__()
     result.SetRawData(self._CopyRawData())
-
-    # The copy should have the same age as us.
-    result.age = self.age
-
     return result
 
   def __deepcopy__(self, memo):
@@ -2130,10 +2124,13 @@ class RDFProtoStruct(RDFStruct):
     elif isinstance(value, (EnumNamedValue)):
       return str(value)
     elif isinstance(value, rdfvalue.RDFBytes):
-      return base64.encodestring(value.SerializeToBytes())
+      return base64.b64encode(value.SerializeToBytes()).decode("ascii")
     else:
       if stringify_leaf_fields:
-        return str(value)
+        if isinstance(value, bytes):
+          return base64.b64encode(value).decode("ascii")
+        else:
+          return str(value)
       else:
         return value
 

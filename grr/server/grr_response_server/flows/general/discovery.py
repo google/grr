@@ -33,7 +33,6 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.rdfvalues import aff4 as rdf_aff4
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-
 FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 
 
@@ -315,16 +314,12 @@ class Interrogate(flow_base.FlowBase):
 
     self.SendReply(summary)
 
-    try:
-      index = client_index.ClientIndex()
-      index.AddClient(self.state.client)
-      labels = self.state.client.startup_info.client_info.labels
-      if labels:
-        data_store.REL_DB.AddClientLabels(self.state.client.client_id, u"GRR",
-                                          labels)
-    except db.UnknownClientError:
-      # TODO(amoser): Remove after data migration.
-      pass
+    index = client_index.ClientIndex()
+    index.AddClient(self.state.client)
+    labels = self.state.client.startup_info.client_info.labels
+    if labels:
+      data_store.REL_DB.AddClientLabels(self.state.client.client_id, "GRR",
+                                        labels)
 
 
 class EnrolmentInterrogateEvent(events.EventListener):

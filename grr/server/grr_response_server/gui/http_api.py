@@ -396,6 +396,9 @@ class HttpRequestHandler(object):
     """Builds HTTPResponse object for streaming."""
     precondition.AssertType(method_name, Text)
 
+    # For the challenges of implemeting correct streaming response logic:
+    # https://rhodesmill.org/brandon/2013/chunked-wsgi/
+
     # We get a first chunk of the output stream. This way the likelihood
     # of catching an exception that may happen during response generation
     # is much higher.

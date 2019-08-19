@@ -7,7 +7,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-import threading
 
 import prometheus_client
 import six
@@ -157,12 +156,10 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
     lock: threading.Lock required by the utils.Synchronized decorator.
   """
 
-  def __init__(self, metadata_list, registry=None):
+  def __init__(self, registry=None):
     """Instantiates a new PrometheusStatsCollector.
 
     Args:
-      metadata_list: A list of MetricMetadata objects describing the metrics
-        that the StatsCollector will track.
       registry: An instance of prometheus_client.CollectorRegistry. If None, a
         new CollectorRegistry is instantiated. Use prometheus_client.REGISTRY
         for the global default registry.
@@ -174,9 +171,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
     else:
       self._registry = registry
 
-    self.lock = threading.RLock()
-
-    super(PrometheusStatsCollector, self).__init__(metadata_list)
+    super(PrometheusStatsCollector, self).__init__()
 
   def _InitializeMetric(self, metadata):
     self._metrics[metadata.varname] = _Metric(metadata, registry=self._registry)

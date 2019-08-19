@@ -16,7 +16,6 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
 from grr_response_core.lib.local import plugins  # pylint: disable=unused-import
 from grr_response_core.lib.parsers import all as all_parsers
-from grr_response_core.stats import metrics
 from grr_response_core.stats import stats_collector_instance
 
 from grr_response_server import artifact
@@ -75,10 +74,8 @@ def Init():
     syslog_logger.exception("Died during config initialization")
     raise
 
-  metric_metadata = metrics.FinalizeMetricRegistration()
-
   stats_collector = prometheus_stats_collector.PrometheusStatsCollector(
-      metric_metadata, registry=prometheus_client.REGISTRY)
+      registry=prometheus_client.REGISTRY)
   stats_collector_instance.Set(stats_collector)
 
   server_logging.ServerLoggingStartupInit()

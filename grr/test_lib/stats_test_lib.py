@@ -57,12 +57,11 @@ class StatsCollectorTestMixin(object):
   """Mixin for setting up a StatsCollector with metrics."""
 
   @contextlib.contextmanager
-  def SetUpStatsCollector(self, collector_fn):
-    with mock.patch.multiple(metrics, _metadata=[], _finalized=False):
-      yield None
-      metadata = metrics.FinalizeMetricRegistration()
-    self.collector = collector_fn(metadata)
-    patcher = mock.patch.object(stats_collector_instance, "_stats_singleton",
-                                self.collector)
+  def SetUpStatsCollector(self, collector):
+    patcher = mock.patch.multiple(
+        stats_collector_instance, _metadatas=[], _stats_singleton=None)
     patcher.start()
     self.addCleanup(patcher.stop)
+    yield
+    stats_collector_instance.Set(collector)
+    self.collector = stats_collector_instance.Get()

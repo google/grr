@@ -329,6 +329,21 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   def testRaisesOnNonExistentPath(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="fs/os/foo/bar")
+    with self.assertRaises(vfs_plugin.FileNotFoundError) as context:
+      self.handler.Handle(args, token=self.token)
+
+    exception = context.exception
+    self.assertEqual(exception.client_id, self.client_id)
+    self.assertEqual(exception.path_type, rdf_objects.PathInfo.PathType.OS)
+    self.assertItemsEqual(exception.components, ["foo", "bar"])
+
+  def testRaisesOnExistingPathWithoutContent(self):
+    path_info = rdf_objects.PathInfo.OS(components=["foo", "bar"])
+    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path="fs/os/foo/bar")
+
     with self.assertRaises(vfs_plugin.FileContentNotFoundError) as context:
       self.handler.Handle(args, token=self.token)
 

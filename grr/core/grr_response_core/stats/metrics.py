@@ -6,54 +6,12 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import threading
 
 from future import utils as future_utils
-from typing import List
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
-
-
-# List of registered MetricMetadatas to be passed to StatsCollector.
-_metadata = []
-# Flag indicating that the StatsCollector has received _metadata and no new
-# metrics can be registered.
-_finalized = False
-# Lock to ensure metric registration thread-safety.
-_lock = threading.Lock()
-
-
-class Error(Exception):
-  """Base error class for metrics related errors."""
-
-
-class StatsCollectorAlreadyInitializedError(Error):
-  """Error raised when Metrics are initialized after the StatsCollector."""
-
-
-def FinalizeMetricRegistration():
-  """Returns all registered metadatas and prevents further registration."""
-  global _finalized
-  with _lock:
-    _finalized = True
-    return list(_metadata)
-
-
-def _RegisterMetric(metadata):
-  """Registers a Metric before a StatsCollector has been initialized."""
-  with _lock:
-    if _finalized:
-      # Raising helps prevent errors where metrics are registered too late and
-      # just silently ignored. Our current architecture uses a one-time
-      # metric registration and does not allow late-registration of metrics.
-      raise StatsCollectorAlreadyInitializedError(
-          "Cannot set up {} {}, because the StatsCollector has already "
-          "been initialized. Make sure to initialize Metrics before "
-          "{{client,server,testing}}_startup.Init() is executed.".format(
-              metadata.metric_type, metadata.varname))
-    _metadata.append(metadata)
 
 
 class AbstractMetric(future_utils.with_metaclass(abc.ABCMeta, object)):
@@ -69,7 +27,7 @@ class AbstractMetric(future_utils.with_metaclass(abc.ABCMeta, object)):
   def __init__(self, metadata):
     """Initializes a new metric and registers it with the StatsCollector."""
     self.name = metadata.varname
-    _RegisterMetric(metadata)
+    stats_collector_instance.RegisterMetric(metadata)
 
   def GetValue(self, fields=None):
     """Returns the value of a given metric for given field values."""

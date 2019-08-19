@@ -28,7 +28,6 @@ from grr_response_server import notification as notification_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-
 FLOW_STARTS = metrics.Counter("flow_starts", fields=[("flow", str)])
 FLOW_ERRORS = metrics.Counter("flow_errors", fields=[("flow", str)])
 FLOW_COMPLETIONS = metrics.Counter("flow_completions", fields=[("flow", str)])
@@ -455,25 +454,19 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           "Network bytes limit exceeded {} {}.".format(
               self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
-  def Error(self,
-            error_message=None,
-            backtrace=None,
-            status=None,
-            exception_context=False):
+  def Error(self, error_message=None, backtrace=None, status=None):
     """Terminates this flow with an error."""
     FLOW_ERRORS.Increment(fields=[compatibility.GetName(self.__class__)])
 
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
 
-    if exception_context:
-      # Have the log library fetch the backtrace from callers if we are
-      # handling an exception.
-      logging.exception("Error in flow %s on %s: %s:", flow_id, client_id,
-                        error_message)
+    if backtrace:
+      logging.warning("Error in flow %s on %s: %s, %s", flow_id, client_id,
+                      error_message, backtrace)
     else:
-      logging.error("Error in flow %s on %s: %s, %s", flow_id, client_id,
-                    error_message, backtrace)
+      logging.warning("Error in flow %s on %s: %s:", flow_id, client_id,
+                      error_message)
 
     if self.rdf_flow.parent_flow_id or self.rdf_flow.parent_hunt_id:
       status_msg = rdf_flow_objects.FlowStatus(
@@ -664,10 +657,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
       FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
 
-      self.Error(
-          error_message=msg,
-          backtrace=traceback.format_exc(),
-          exception_context=True)
+      self.Error(error_message=msg, backtrace=traceback.format_exc())
 
   def ProcessAllReadyRequests(self):
     """Processes all requests that are due to run.

@@ -91,14 +91,9 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   result_type = api_flow.ApiFlow
 
   def __init__(self,
-               robot_id=None,
                override_flow_name=None,
                override_flow_args=None):
     super(ApiRobotCreateFlowHandler, self).__init__()
-
-    if not robot_id:
-      raise ValueError("Robot id can't be empty.")
-    self.robot_id = robot_id
 
     self.override_flow_name = override_flow_name
     self.override_flow_args = override_flow_args
@@ -153,9 +148,6 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     if params is None:
       raise ValueError("Router params are mandatory for ApiCallRobotRouter.")
-    if not params.robot_id:
-      raise ValueError("robot_id has to be specified in ApiCallRobotRouter "
-                       "parameters.")
     self.params = params or self.__class__.params_type()
 
     if not delegate:
@@ -303,7 +295,6 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       raise access_control.UnauthorizedAccess(str(e))
 
     return ApiRobotCreateFlowHandler(
-        robot_id=self.params.robot_id,
         override_flow_name=override_flow_name,
         override_flow_args=override_flow_args)
 

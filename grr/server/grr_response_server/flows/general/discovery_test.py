@@ -123,9 +123,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(client.interfaces[0].addresses[0].human_readable_address,
                      "100.100.100.1")
     self.assertEqual(
-        socket.inet_ntop(
-            socket.AF_INET,
-            client.interfaces[0].addresses[0].packed_bytes.AsBytes()),
+        socket.inet_ntop(socket.AF_INET,
+                         client.interfaces[0].addresses[0].packed_bytes),
         "100.100.100.1")
 
   def _CheckLabels(self, client_id):

@@ -7,16 +7,19 @@ from __future__ import unicode_literals
 
 import logging
 import re
-from typing import Union
+from typing import Iterable, Union
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
+
+_YARA_SIGNATURE_SHARD_SIZE = 500 << 10  # 500 KiB
 
 
 class YaraProcessScan(flow_base.FlowBase):
@@ -28,23 +31,41 @@ class YaraProcessScan(flow_base.FlowBase):
   args_type = rdf_memory.YaraProcessScanRequest
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  def Start(self):
-    """The start method."""
-
-    # Catch signature issues early.
+  def _ValidateFlowArgs(self):
     rules = self.args.yara_signature.GetRules()
     if not list(rules):
       raise flow_base.FlowError(
           "No rules found in the signature specification.")
 
-    # Same for regex errors.
     if self.args.process_regex:
       re.compile(self.args.process_regex)
 
-    self.CallClient(
-        server_stubs.YaraProcessScan,
-        request=self.args,
-        next_state="ProcessScanResults")
+  def Start(self):
+    """See base class."""
+    self._ValidateFlowArgs()
+    if self.client_version < 3306:
+      # TODO(user): Remove when support ends for old clients (Jan 1 2022).
+      self.CallClient(
+          server_stubs.YaraProcessScan,
+          request=self.args,
+          next_state="ProcessScanResults")
+      return
+
+    signature_bytes = self.args.yara_signature.SerializeToBytes()
+    offsets = range(0, len(signature_bytes), _YARA_SIGNATURE_SHARD_SIZE)
+    for i, offset in enumerate(offsets):
+      client_request = self.args.Copy()
+      # We do not want to send the whole signature to the client, so we clear
+      # the field.
+      client_request.yara_signature = None
+      client_request.signature_shard = rdf_memory.YaraSignatureShard(
+          index=i,
+          payload=signature_bytes[offset:offset + _YARA_SIGNATURE_SHARD_SIZE])
+      client_request.num_signature_shards = len(offsets)
+      self.CallClient(
+          server_stubs.YaraProcessScan,
+          request=client_request,
+          next_state="ProcessScanResults")
 
   def ProcessScanResults(
       self,
@@ -52,6 +73,11 @@ class YaraProcessScan(flow_base.FlowBase):
     """Processes the results of the scan."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
+
+    if not responses:
+      # Clients (versions 3306 and above) only send back responses when
+      # the full signature has been received.
+      return
 
     pids_to_dump = set()
 
@@ -124,6 +150,20 @@ def _MigrateLegacyDumpFilesToMemoryAreas(
     info.dump_files = None
 
 
+def _ReplaceDumpPathspecsWithMultiGetFilePathspec(
+    dump_response,
+    stat_entries):
+  """Replaces a dump's PathSpecs based on their Basename."""
+  memory_regions = {}
+  for dumped_process in dump_response.dumped_processes:
+    for memory_region in dumped_process.memory_regions:
+      memory_regions[memory_region.file.Basename()] = memory_region
+
+  for stat_entry in stat_entries:
+    memory_regions[stat_entry.pathspec.Basename()].file = rdf_paths.PathSpec(
+        stat_entry.pathspec)
+
+
 class DumpProcessMemory(flow_base.FlowBase):
   """Acquires memory for a given list of processes."""
 
@@ -157,8 +197,6 @@ class DumpProcessMemory(flow_base.FlowBase):
     response = responses.First()
     _MigrateLegacyDumpFilesToMemoryAreas(response)
 
-    self.SendReply(response)
-
     for error in response.errors:
       p = error.process
       self.Log("Error dumping process %s (pid %d): %s" %
@@ -181,12 +219,26 @@ class DumpProcessMemory(flow_base.FlowBase):
         pathspecs=dump_files_to_get,
         file_size=1024 * 1024 * 1024,
         use_external_stores=False,
-        next_state="DeleteFiles")
+        next_state=compatibility.GetName(self.ProcessMemoryRegions),
+        request_data={"YaraProcessDumpResponse": response})
 
-  def DeleteFiles(self,
-                  responses):
+  def ProcessMemoryRegions(
+      self, responses):
     if not responses.success:
       raise flow_base.FlowError(responses.status)
+
+    # request_data is not present
+    if "YaraProcessDumpResponse" in responses.request_data:
+      # On case-sensitive filesystems, the requested PathSpecs (located in
+      # YaraProcessDumpResponse.dumped_processes[*].memory_regions[*]file) might
+      # differ from the real location of the received MemoryRegion (located in
+      # StatEntry.pathspec). Since MemoryRegions are later identified
+      # case-sensitive by their filename in file_store.OpenFile(), we need to
+      # align both PathSpecs to make sure we can actually find MemoryRegions in
+      # file_store again.
+      dump_response = responses.request_data["YaraProcessDumpResponse"]
+      _ReplaceDumpPathspecsWithMultiGetFilePathspec(dump_response, responses)
+      self.SendReply(dump_response)
 
     for response in responses:
       self.SendReply(response)

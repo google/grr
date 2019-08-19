@@ -6,14 +6,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import base64
 import logging
 import random
 
 from absl import app
 from future.builtins import range
 from future.builtins import str
-
 import mock
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -698,6 +699,37 @@ message DynamicTypeTest {{
     }
     self.assertEqual(
         test_struct.ToPrimitiveDict(stringify_leaf_fields=True), expected_dict)
+
+  def testToPrimitiveDictStringifyBytes(self):
+    data = b"\xff\xfe\xff"
+    encoded_data = base64.b64encode(data).decode("ascii")
+
+    class FooStruct(rdf_structs.RDFProtoStruct):
+
+      type_description = type_info.TypeDescriptorSet(
+          rdf_structs.ProtoBinary(name="data", field_number=1))
+
+    foo_struct = FooStruct(data=data)
+    foo_dict = foo_struct.ToPrimitiveDict(stringify_leaf_fields=True)
+
+    self.assertIsInstance(foo_dict["data"], Text)
+    self.assertEqual(foo_dict["data"], encoded_data)
+
+  def testToPrimitiveDictStringifyRDFBytes(self):
+    data = b"\xff\xfe\xff"
+    encoded_data = base64.b64encode(data).decode("ascii")
+
+    class BarStruct(rdf_structs.RDFProtoStruct):
+
+      type_description = type_info.TypeDescriptorSet(
+          rdf_structs.ProtoRDFValue(
+              name="data", field_number=1, rdf_type=rdfvalue.RDFBytes))
+
+    bar_struct = BarStruct(data=data)
+    bar_dict = bar_struct.ToPrimitiveDict(stringify_leaf_fields=True)
+
+    self.assertIsInstance(bar_dict["data"], Text)
+    self.assertEqual(bar_dict["data"], encoded_data)
 
   def _GenerateSampleWithManyFields(self):
     fields = {}

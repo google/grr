@@ -1330,7 +1330,9 @@ class DatabaseTestClientsMixin(object):
       with test_lib.FakeTime(now - offset):
         for client_id in [1, 2]:
           stats = rdf_client_stats.ClientStats(
-              RSS_size=offset_i, VMS_size=client_id)
+              RSS_size=offset_i,
+              VMS_size=client_id,
+              timestamp=rdfvalue.RDFDatetime.Now())
           self.db.WriteClientStats("C.%016x" % client_id, stats)
 
     return now
@@ -1352,7 +1354,11 @@ class DatabaseTestClientsMixin(object):
     client_id_2 = db_test_utils.InitializeClient(self.db)
 
     self.db.WriteClientStats(
-        client_id_1, rdf_client_stats.ClientStats(RSS_size=1, VMS_size=5))
+        client_id_1,
+        rdf_client_stats.ClientStats(
+            RSS_size=1,
+            VMS_size=5,
+            timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5)))
     self.db.WriteClientStats(
         client_id_1, rdf_client_stats.ClientStats(RSS_size=2, VMS_size=6))
 
@@ -1366,6 +1372,8 @@ class DatabaseTestClientsMixin(object):
         min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
     self.assertEqual(stats[0].RSS_size, 1)
     self.assertEqual(stats[0].VMS_size, 5)
+    self.assertEqual(stats[0].timestamp,
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5))
     self.assertEqual(stats[1].RSS_size, 2)
     self.assertEqual(stats[1].VMS_size, 6)
 

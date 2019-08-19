@@ -4,8 +4,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
 import os
 import re
+import shutil
 import time
 
 from future.builtins import str
@@ -99,27 +101,28 @@ class YaraProcessScan(actions.ActionPlugin):
             yield rdf_match
             break
 
-  def _ScanProcess(self, psutil_process, args):
-    if args.per_process_timeout:
-      deadline = rdfvalue.RDFDatetime.Now() + args.per_process_timeout
+  def _GetMatches(self, psutil_process, scan_request):
+    if scan_request.per_process_timeout:
+      deadline = rdfvalue.RDFDatetime.Now() + scan_request.per_process_timeout
     else:
       deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1w")
 
-    rules = args.yara_signature.GetRules()
+    rules = scan_request.yara_signature.GetRules()
 
     process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
     with process:
       streamer = streaming.Streamer(
-          chunk_size=args.chunk_size, overlap_size=args.overlap_size)
+          chunk_size=scan_request.chunk_size,
+          overlap_size=scan_request.overlap_size)
       matches = []
 
       try:
-        for region in client_utils.MemoryRegions(process, args):
+        for region in client_utils.MemoryRegions(process, scan_request):
           chunks = streamer.StreamMemory(
               process, offset=region.start, amount=region.size)
           for m in self._ScanRegion(rules, chunks, deadline):
             matches.append(m)
-            if 0 < args.max_results_per_process <= len(matches):
+            if 0 < scan_request.max_results_per_process <= len(matches):
               return matches
       except yara.Error as e:
         # Yara internal error 30 is too many hits (obviously...). We
@@ -134,46 +137,107 @@ class YaraProcessScan(actions.ActionPlugin):
   # multiple responses for 100 processes each.
   _RESULTS_PER_RESPONSE = 100
 
+  def _ScanProcess(self, process, scan_request, scan_response):
+    rdf_process = rdf_client.Process.FromPsutilProcess(process)
+
+    # TODO: Replace time.time() arithmetic with RDFDatetime
+    # subtraction.
+    start_time = time.time()
+    try:
+      matches = self._GetMatches(process, scan_request)
+      scan_time = time.time() - start_time
+      scan_time_us = int(scan_time * 1e6)
+    except yara.TimeoutError:
+      scan_response.errors.Append(
+          rdf_memory.ProcessMemoryError(
+              process=rdf_process,
+              error="Scanning timed out (%s seconds)." %
+              (time.time() - start_time)))
+      return
+    except Exception as e:  # pylint: disable=broad-except
+      scan_response.errors.Append(
+          rdf_memory.ProcessMemoryError(process=rdf_process, error=str(e)))
+      return
+
+    if matches:
+      scan_response.matches.Append(
+          rdf_memory.YaraProcessScanMatch(
+              process=rdf_process, match=matches, scan_time_us=scan_time_us))
+    else:
+      scan_response.misses.Append(
+          rdf_memory.YaraProcessScanMiss(
+              process=rdf_process, scan_time_us=scan_time_us))
+
+  def _SaveSignatureShard(self, scan_request):
+    """Writes a YaraSignatureShard received from the server to disk.
+
+    Args:
+      scan_request: The YaraProcessScanRequest sent by the server.
+
+    Returns:
+      The full Yara signature, if all shards have been received. Otherwise,
+      None is returned.
+    """
+
+    def GetShardName(shard_index, num_shards):
+      return "shard_%02d_of_%02d" % (shard_index, num_shards)
+
+    signature_dir = os.path.join(tempfiles.GetDefaultGRRTempDirectory(),
+                                 "Sig_%s" % self.session_id.Basename())
+    # Create the temporary directory and set permissions, if it does not exist.
+    tempfiles.EnsureTempDirIsSane(signature_dir)
+    shard_path = os.path.join(
+        signature_dir,
+        GetShardName(scan_request.signature_shard.index,
+                     scan_request.num_signature_shards))
+    with io.open(shard_path, "wb") as f:
+      f.write(scan_request.signature_shard.payload)
+
+    dir_contents = set(os.listdir(signature_dir))
+    all_shards = [
+        GetShardName(i, scan_request.num_signature_shards)
+        for i in range(scan_request.num_signature_shards)
+    ]
+    if dir_contents.issuperset(all_shards):
+      # All shards have been received; delete the temporary directory and
+      # return the full signature.
+      full_signature = io.BytesIO()
+      for shard in all_shards:
+        with io.open(os.path.join(signature_dir, shard), "rb") as f:
+          full_signature.write(f.read())
+      shutil.rmtree(signature_dir, ignore_errors=True)
+      return full_signature.getvalue().decode("utf-8")
+    else:
+      return None
+
   def Run(self, args):
-    result = rdf_memory.YaraProcessScanResponse()
-    for p in ProcessIterator(args.pids, args.process_regex,
-                             args.ignore_grr_process, result.errors):
+    if args.yara_signature or not args.signature_shard.payload:
+      raise ValueError(
+          "A Yara signature shard is required, and not the full signature.")
+
+    yara_signature = self._SaveSignatureShard(args)
+    if yara_signature is None:
+      # We haven't received the whole signature yet.
+      return
+
+    scan_request = args.Copy()
+    scan_request.yara_signature = yara_signature
+    scan_response = rdf_memory.YaraProcessScanResponse()
+    processes = ProcessIterator(scan_request.pids, scan_request.process_regex,
+                                scan_request.ignore_grr_process,
+                                scan_response.errors)
+
+    for process in processes:
       self.Progress()
+      num_results = (
+          len(scan_response.errors) + len(scan_response.matches) +
+          len(scan_response.misses))
+      if num_results >= self._RESULTS_PER_RESPONSE:
+        self.SendReply(scan_response)
+        scan_response = rdf_memory.YaraProcessScanResponse()
+      self._ScanProcess(process, scan_request, scan_response)
 
-      n_results = len(result.errors) + len(result.matches) + len(result.misses)
-      if n_results >= self._RESULTS_PER_RESPONSE:
-        self.SendReply(result)
-        result = rdf_memory.YaraProcessScanResponse()
-
-      rdf_process = rdf_client.Process.FromPsutilProcess(p)
-
-      start_time = time.time()
-      try:
-        matches = self._ScanProcess(p, args)
-        scan_time = time.time() - start_time
-        scan_time_us = int(scan_time * 1e6)
-      except yara.TimeoutError:
-        result.errors.Append(
-            rdf_memory.ProcessMemoryError(
-                process=rdf_process,
-                error="Scanning timed out (%s seconds)." %
-                (time.time() - start_time)))
-        continue
-      except Exception as e:  # pylint: disable=broad-except
-        result.errors.Append(
-            rdf_memory.ProcessMemoryError(process=rdf_process, error=str(e)))
-        continue
-
-      if matches:
-        result.matches.Append(
-            rdf_memory.YaraProcessScanMatch(
-                process=rdf_process, match=matches, scan_time_us=scan_time_us))
-      else:
-        result.misses.Append(
-            rdf_memory.YaraProcessScanMiss(
-                process=rdf_process, scan_time_us=scan_time_us))
-
-    self.SendReply(result)
+    self.SendReply(scan_response)
 
 
 class YaraProcessDump(actions.ActionPlugin):
@@ -228,6 +292,9 @@ class YaraProcessDump(actions.ActionPlugin):
 
           end = region.start + region.size
 
+          # _ReplaceDumpPathspecsWithMultiGetFilePathspec in DumpProcessMemory
+          # flow asserts that MemoryRegions can be uniquely identified by their
+          # file's basename.
           filename = "%s_%d_%x_%x.tmp" % (psutil_process.name(),
                                           psutil_process.pid, region.start, end)
           filepath = os.path.join(tmp_dir.path, filename)

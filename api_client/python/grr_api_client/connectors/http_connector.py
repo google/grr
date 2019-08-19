@@ -198,6 +198,7 @@ class HttpConnector(connector.Connector):
     json_str = content[len(self.JSON_PREFIX):]
 
     try:
+      # TODO(hanuszczak): `json` package should not be used.
       parsed_json = json.loads(json_str)
       message = parsed_json["message"]
     except (ValueError, KeyError):

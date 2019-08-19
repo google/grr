@@ -119,7 +119,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # Compare to our stored data.
     expected_fd = open(
         os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.json"), "rb")
+                     "ExportedFile.jsonlines"), "rb")
 
     # Bigquery expects a newline separarted list of JSON dicts, but this isn't
     # valid JSON so we can't just load the whole thing and compare.
@@ -226,7 +226,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # change than breaking into the debugger.
     expected_fd = open(
         os.path.join(config.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.json"), "rb")
+                     "ExportedFile.jsonlines"), "rb")
 
     # Check that the same entries we expect are spread across the two files.
     counter = 0

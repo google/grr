@@ -105,7 +105,6 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   context_help_url = None
 
   _value = None
-  _age = 0
   _prev_hash = None
 
   # Mark as dirty each time we modify this object.
@@ -115,22 +114,16 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   # assigned here.
   attribute_instance = None
 
-  def __init__(self, initializer=None, age=None):
+  def __init__(self, initializer=None):
     """Constructor must be able to take no args.
 
     Args:
       initializer: Optional parameter to construct from.
-      age: The age of this entry as an RDFDatetime. If not provided, create a
-        new instance.
 
     Raises:
       InitializeError: if we can not be initialized from this parameter.
     """
     # Default timestamp is now.
-    if age is None:
-      age = RDFDatetime(age=0)
-
-    self._age = age
 
     # Allow an RDFValue to be initialized from an identical RDFValue.
     # TODO(user):pytype: type checker can't infer that the initializer
@@ -146,25 +139,11 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     res.ParseFromBytes(self.SerializeToBytes())
     return res
 
-  def SetRaw(self, value, age=None):
+  def SetRaw(self, value):
     self._value = value
-    if age is not None:
-      self._age = age
 
   def __copy__(self):
     return self.Copy()
-
-  @property
-  def age(self):
-    if self._age.__class__ is not RDFDatetime:
-      self._age = RDFDatetime(self._age, age=0)
-
-    return self._age
-
-  @age.setter
-  def age(self, value):
-    """When assigning to this attribute it must be an RDFDatetime."""
-    self._age = RDFDatetime(value, age=0)
 
   @abc.abstractmethod
   def ParseFromBytes(self, string):
@@ -177,19 +156,15 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     pass
 
   @classmethod
-  def FromDatastoreValue(cls, value, age=None):
+  def FromDatastoreValue(cls, value):
     res = cls()
     res.ParseFromDatastore(value)
-    if age:
-      res.age = age
     return res
 
   @classmethod
-  def FromSerializedBytes(cls, value, age=None):
+  def FromSerializedBytes(cls, value):
     res = cls()
     res.ParseFromBytes(value)
-    if age:
-      res.age = age
     return res
 
   # TODO: Remove legacy SerializeToDataStore.
@@ -265,8 +240,8 @@ class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
   data_store_type = "bytes"
 
-  def __init__(self, initializer=None, age=None):
-    super(RDFBytes, self).__init__(age=age)
+  def __init__(self, initializer=None):
+    super(RDFBytes, self).__init__()
     if initializer is None:
       self._value = b""
     elif isinstance(initializer, bytes):
@@ -343,8 +318,8 @@ class RDFString(RDFPrimitive):
   _value = u""
 
   # TODO(hanuszczak): Allow initializing from arbitrary `unicode`-able object.
-  def __init__(self, initializer=None, age=None):
-    super(RDFString, self).__init__(initializer=None, age=age)
+  def __init__(self, initializer=None):
+    super(RDFString, self).__init__(initializer=None)
 
     if isinstance(initializer, RDFString):
       self._value = initializer._value  # pylint: disable=protected-access
@@ -467,8 +442,8 @@ class RDFInteger(RDFPrimitive):
   def IsNumeric(value):
     return isinstance(value, (int, float, RDFInteger))
 
-  def __init__(self, initializer=None, age=None):
-    super(RDFInteger, self).__init__(initializer=initializer, age=age)
+  def __init__(self, initializer=None):
+    super(RDFInteger, self).__init__(initializer=initializer)
     if self._value is None:
       if initializer is None:
         self._value = 0
@@ -499,8 +474,8 @@ class RDFInteger(RDFPrimitive):
     return str(self._value)
 
   @classmethod
-  def FromDatastoreValue(cls, value, age=None):
-    return cls(initializer=value, age=age)
+  def FromDatastoreValue(cls, value):
+    return cls(initializer=value)
 
   def SerializeToDataStore(self):
     """Use varint to store the integer."""
@@ -591,8 +566,8 @@ class RDFDatetime(RDFInteger):
   converter = 1000000
   data_store_type = "unsigned_integer"
 
-  def __init__(self, initializer=None, age=None):
-    super(RDFDatetime, self).__init__(None, age)
+  def __init__(self, initializer=None):
+    super(RDFDatetime, self).__init__(None)
 
     self._value = 0
 
@@ -809,16 +784,15 @@ class Duration(RDFPrimitive):
       (("w", WEEKS), ("d", DAYS), ("h", HOURS), ("m", MINUTES), ("s", SECONDS),
        ("ms", MILLISECONDS), ("us", MICROSECONDS)))
 
-  def __init__(self, initializer=None, age=None):
+  def __init__(self, initializer=None):
     """Instantiates a new microsecond-based Duration.
 
     Args:
       initializer: Integer specifying microseconds, or another Duration to copy.
         If None, Duration will be set to 0. Given a negative integer, its
         absolute (positive) value will be stored.
-      age:
     """
-    super(Duration, self).__init__(initializer=initializer, age=age)
+    super(Duration, self).__init__(initializer=initializer)
     if isinstance(initializer, (int, RDFInteger)):
       self._value = abs(int(initializer))
     elif isinstance(initializer, (DurationSeconds, Duration)):
@@ -996,8 +970,8 @@ class DurationSeconds(RDFInteger):
       ("s", 1)))
   # pyformat: enable
 
-  def __init__(self, initializer=None, age=None):
-    super(DurationSeconds, self).__init__(None, age)
+  def __init__(self, initializer=None):
+    super(DurationSeconds, self).__init__(None)
     if isinstance(initializer, DurationSeconds):
       self._value = initializer._value  # pylint: disable=protected-access
     elif isinstance(initializer, Text):
@@ -1154,8 +1128,8 @@ class ByteSize(RDFInteger):
 
   REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$", re.I)
 
-  def __init__(self, initializer=None, age=None):
-    super(ByteSize, self).__init__(None, age)
+  def __init__(self, initializer=None):
+    super(ByteSize, self).__init__(None)
     if isinstance(initializer, ByteSize):
       self._value = initializer._value  # pylint: disable=protected-access
     elif isinstance(initializer, string_types):
@@ -1228,12 +1202,11 @@ class RDFURN(RDFPrimitive):
 
   _string_urn = ""
 
-  def __init__(self, initializer=None, age=None):
+  def __init__(self, initializer=None):
     """Constructor.
 
     Args:
       initializer: A string or another RDFURN.
-      age: The age of this entry.
     """
     # This is a shortcut that is a bit faster than the standard way of
     # using the RDFValue constructor to make a copy of the class. For
@@ -1243,10 +1216,10 @@ class RDFURN(RDFPrimitive):
     if isinstance(initializer, RDFURN):
       # Make a direct copy of the other object
       self._string_urn = initializer.Path()
-      super(RDFURN, self).__init__(None, age=age)
+      super(RDFURN, self).__init__(None)
       return
 
-    super(RDFURN, self).__init__(initializer=initializer, age=age)
+    super(RDFURN, self).__init__(initializer=initializer)
     if self._value is None and initializer is not None:
       if isinstance(initializer, bytes):
         self.ParseFromBytes(initializer)
@@ -1297,14 +1270,13 @@ class RDFURN(RDFPrimitive):
   def Basename(self):
     return posixpath.basename(self.Path())
 
-  def Add(self, path, age=None):
+  def Add(self, path):
     """Add a relative stem to the current value and return a new RDFURN.
 
     If urn is a fully qualified URN, replace the current value with it.
 
     Args:
       path: A string containing a relative path.
-      age: The age of the object. If None set to current time.
 
     Returns:
        A new RDFURN that can be chained.
@@ -1316,7 +1288,7 @@ class RDFURN(RDFPrimitive):
       raise ValueError("Only strings should be added to a URN, not %s" %
                        path.__class__)
 
-    result = self.Copy(age)
+    result = self.Copy()
     result.Update(path=utils.JoinPath(self._string_urn, path))
 
     return result
@@ -1334,11 +1306,9 @@ class RDFURN(RDFPrimitive):
       self._string_urn = path
     self.dirty = True
 
-  def Copy(self, age=None):
+  def Copy(self):
     """Make a copy of ourselves."""
-    if age is None:
-      age = int(time.time() * SECONDS)
-    return self.__class__(self, age=age)
+    return self.__class__(self)
 
   def __str__(self):
     return "aff4:%s" % self._string_urn
@@ -1415,7 +1385,7 @@ class RDFURN(RDFPrimitive):
     return None
 
   def __repr__(self):
-    return "<%s age=%s>" % (self, self.age)
+    return "<%s>" % self
 
 
 class Subject(RDFURN):
@@ -1430,7 +1400,6 @@ class SessionID(RDFURN):
 
   def __init__(self,
                initializer=None,
-               age=None,
                base="aff4:/flows",
                queue=DEFAULT_FLOW_QUEUE,
                flow_name=None):
@@ -1438,7 +1407,6 @@ class SessionID(RDFURN):
 
     Args:
       initializer: A string or another RDFURN.
-      age: The age of this entry.
       base: The base namespace this session id lives in.
       queue: The queue to use.
       flow_name: The name of this flow or its random id.
@@ -1463,7 +1431,7 @@ class SessionID(RDFURN):
           raise InitializeError("Invalid URN for SessionID: %s, %s" %
                                 (initializer, e))
 
-    super(SessionID, self).__init__(initializer=initializer, age=age)
+    super(SessionID, self).__init__(initializer=initializer)
 
   def Queue(self):
     return RDFURN(self.Basename().split(":")[0])
@@ -1471,9 +1439,9 @@ class SessionID(RDFURN):
   def FlowName(self):
     return self.Basename().split(":", 1)[1]
 
-  def Add(self, path, age=None):
+  def Add(self, path):
     # Adding to a SessionID results in a normal RDFURN.
-    return RDFURN(self).Add(path, age=age)
+    return RDFURN(self).Add(path)
 
   @classmethod
   def ValidateID(cls, id_str):

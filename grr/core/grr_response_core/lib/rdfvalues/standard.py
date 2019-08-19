@@ -26,8 +26,8 @@ class RegularExpression(rdfvalue.RDFString):
   context_help_url = ("investigating-with-grr/flows/"
                       "literal-and-regex-matching.html#regex-matches")
 
-  def __init__(self, initializer=None, age=None):
-    super(RegularExpression, self).__init__(initializer=initializer, age=age)
+  def __init__(self, initializer=None):
+    super(RegularExpression, self).__init__(initializer=initializer)
     # Try compiling the pattern right away to fail fast for pattern errors.
     self._Regex()
 

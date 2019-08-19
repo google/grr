@@ -47,8 +47,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import threading
 
 from future.utils import with_metaclass
+
+from grr_response_core.lib import utils
 
 
 class StatsCollector(with_metaclass(abc.ABCMeta, object)):
@@ -63,21 +66,20 @@ class StatsCollector(with_metaclass(abc.ABCMeta, object)):
   an example of how it gets incremented would be:
     collector.IncrementCounter("counter_name", fields=["POST", 200])
 
-  Args:
-    metadata_list: A list of MetricMetadata objects describing the metrics that
-      the stats-collector will track.
-
-  Raises:
-    ValueError: If there are two metrics with the same name in metadata_list.
+  Attributes:
+    lock: threading.RLock required by the utils.Synchronized decorator.
   """
 
-  def __init__(self, metadata_list):
+  def __init__(self):
     self._metadata_dict = {}
-    for metadata in metadata_list:
-      if metadata.varname in self._metadata_dict:
-        raise ValueError("Duplicate metadata for metric %s." % metadata.varname)
-      self._InitializeMetric(metadata)
-      self._metadata_dict[metadata.varname] = metadata
+    self.lock = threading.RLock()
+
+  @utils.Synchronized
+  def RegisterMetric(self, metadata):
+    if metadata.varname in self._metadata_dict:
+      raise ValueError("Duplicate metadata for metric %s." % metadata.varname)
+    self._InitializeMetric(metadata)
+    self._metadata_dict[metadata.varname] = metadata
 
   @abc.abstractmethod
   def _InitializeMetric(self, metadata):

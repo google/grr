@@ -391,8 +391,12 @@ class FrontEndServer(object):
     if unprocessed_msgs:
       flow_responses = []
       for message in unprocessed_msgs:
-        flow_responses.append(
-            rdf_flow_objects.FlowResponseForLegacyResponse(message))
+        try:
+          flow_responses.append(
+              rdf_flow_objects.FlowResponseForLegacyResponse(message))
+        except ValueError as e:
+          logging.warning("Failed to parse legacy FlowResponse:\n%s\n%s", e,
+                          message)
 
       data_store.REL_DB.WriteFlowResponses(flow_responses)
 
