@@ -66,9 +66,10 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
 
     results = self.ExecuteAction(
         memory.YaraProcessScan, arg=requests[1], session_id=session_id)
-    self.assertLen(results, 2)
+    # We expect at least one YaraProcessScanResponse and a final GrrStatus.
+    self.assertGreater(len(results), 1)
     self.assertIsInstance(results[0], rdf_memory.YaraProcessScanResponse)
-    self.assertIsInstance(results[1], rdf_flows.GrrStatus)
+    self.assertIsInstance(results[-1], rdf_flows.GrrStatus)
     # The Yara signature provided is invalid, so we expect errors.
     self.assertNotEmpty(results[0].errors)
     # Make sure the temporary directory gets deleted when all shards have

@@ -42,6 +42,9 @@ pip install -e grr/client_builder --progress-bar off
 # Depends on grr-response-client-builder
 pip install -e grr/server/[mysqldatastore] --progress-bar off
 
+# Depends on grr-api-client and grr-response-proto
+pip install -e colab --progress-bar off
+
 # Depends on all other packages
 pip install -e grr/test --progress-bar off
 

@@ -11,6 +11,7 @@ readonly GRR_PKGS=(\
   'grr-response-server' \
   'grr-response-test' \
   'grr-response-templates' \
+  'grr-colab' \
 )
 
 function fatal() {
@@ -39,6 +40,8 @@ function build_sdists() {
   python grr/test/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
   python grr/config/grr_response_templates/setup.py sdist \
+      --formats=zip --dist-dir="${PWD}/sdists"
+  python colab/setup.py --quiet sdist \
       --formats=zip --dist-dir="${PWD}/sdists"
 }
 
