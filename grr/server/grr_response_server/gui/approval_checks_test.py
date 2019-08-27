@@ -21,8 +21,8 @@ def _CreateApprovalRequest(approval_type,
                            subject_id,
                            expiration_time=None,
                            grants=None):
-  expiration_time = expiration_time or (rdfvalue.RDFDatetime.Now() +
-                                        rdfvalue.DurationSeconds("1h"))
+  expiration_time = expiration_time or (
+      rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.HOURS))
   return rdf_objects.ApprovalRequest(
       approval_type=approval_type,
       approval_id="1234",
@@ -38,8 +38,8 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
                                      test_lib.GRRBaseTest):
 
   def _CreateRequest(self, expiration_time=None, grants=None):
-    expiration_time = expiration_time or (rdfvalue.RDFDatetime.Now() +
-                                          rdfvalue.DurationSeconds("1h"))
+    expiration_time = expiration_time or (
+        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.HOURS))
     return _CreateApprovalRequest(
         rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
         self.client_id,
@@ -70,7 +70,7 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
   def testRaisesIfApprovalExpired(self):
     approval_request = self._CreateRequest(
         expiration_time=rdfvalue.RDFDatetime.Now() -
-        rdfvalue.DurationSeconds("1m"),
+        rdfvalue.Duration.From(1, rdfvalue.MINUTES),
         grants=[
             rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
             rdf_objects.ApprovalGrant(grantor_username=u"grantor2")
@@ -198,7 +198,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
 
     approval_request = self._CreateRequest(
         expiration_time=rdfvalue.RDFDatetime.Now() -
-        rdfvalue.DurationSeconds("1m"),
+        rdfvalue.Duration.From(1, rdfvalue.MINUTES),
         grants=[
             rdf_objects.ApprovalGrant(grantor_username=u"grantor1"),
             rdf_objects.ApprovalGrant(grantor_username=u"grantor2")

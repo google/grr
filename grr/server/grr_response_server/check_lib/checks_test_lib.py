@@ -16,7 +16,6 @@ import yaml
 from grr_response_core import config
 from grr_response_core.lib import parsers
 from grr_response_core.lib import type_info
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -147,7 +146,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     for path, lines in iteritems(data):
       stat = self.CreateStat(path)
       stats.append(stat)
-      file_obj = io.BytesIO(utils.SmartStr(lines))
+      file_obj = io.BytesIO(lines.encode("utf-8"))
       files.append(file_obj)
       if isinstance(parser, parsers.SingleFileParser):
         rdfs.extend(parser.ParseFile(None, stat.pathspec, file_obj))

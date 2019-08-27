@@ -193,7 +193,7 @@ config_lib.DEFINE_integer(
 
 # Data retention policies.
 config_lib.DEFINE_semantic_value(
-    rdfvalue.DurationSeconds,
+    rdfvalue.Duration,
     "DataRetention.cron_jobs_flows_ttl",
     default=None,
     help="Cron job flows TTL specified as the duration string. "
@@ -201,7 +201,7 @@ config_lib.DEFINE_semantic_value(
     "forever.")
 
 config_lib.DEFINE_semantic_value(
-    rdfvalue.DurationSeconds,
+    rdfvalue.Duration,
     "DataRetention.hunts_ttl",
     default=None,
     help="Hunts TTL specified as the duration string. Examples: 90d, "
@@ -214,7 +214,7 @@ config_lib.DEFINE_string(
     "will be retained forever.")
 
 config_lib.DEFINE_semantic_value(
-    rdfvalue.DurationSeconds,
+    rdfvalue.Duration,
     "DataRetention.tmp_ttl",
     default=None,
     help="Temp TTL specified as the duration string. Examples: 90d, "
@@ -227,7 +227,7 @@ config_lib.DEFINE_string(
     "label will be retained forever.")
 
 config_lib.DEFINE_semantic_value(
-    rdfvalue.DurationSeconds,
+    rdfvalue.Duration,
     "DataRetention.inactive_client_ttl",
     default=None,
     help="Temp TTL specified as the duration string. Examples: 90d, "
@@ -290,7 +290,7 @@ config_lib.DEFINE_list(
     "DB as part of the Interrogate flow.")
 
 config_lib.DEFINE_semantic_value(
-    rdfvalue.DurationSeconds,
+    rdfvalue.Duration,
     "Server.fleetspeak_last_ping_threshold",
     default="2h",
     help="Age above which to consider last-ping timestamps for Fleetspeak "

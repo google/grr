@@ -74,8 +74,8 @@ def AddFakeAuditLog(user=None, router_method_name=None, http_request_path=None):
 class ClientReportPluginsTest(test_lib.GRRBaseTest):
 
   def MockClients(self):
-    client_ping_time = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds(
-        "8d")
+    client_ping_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        8, rdfvalue.DAYS)
     self.SetupClients(20, ping=client_ping_time)
 
   def testGRRVersionReportPlugin(self):
@@ -319,7 +319,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.ClientApprovalsReportPlugin.__name__)
 
     start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -356,7 +356,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.ClientApprovalsReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -388,7 +388,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.HuntActionsReportPlugin.__name__)
 
     start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -421,7 +421,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.HuntActionsReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -463,7 +463,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.HuntApprovalsReportPlugin.__name__)
 
     start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -511,7 +511,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.HuntApprovalsReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -552,7 +552,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.CronApprovalsReportPlugin.__name__)
 
     start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -591,7 +591,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.CronApprovalsReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -625,7 +625,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         rdfvalue.RDFDatetime.FromHumanReadable("2012/12/31")):
 
       now = rdfvalue.RDFDatetime().Now()
-      month_duration = rdfvalue.DurationSeconds("30d")
+      month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
       api_report_data = report.GetReportData(
           stats_api.ApiGetReportArgs(
@@ -649,7 +649,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.MostActiveUsersReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -702,7 +702,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.SystemFlowsReportPlugin.__name__)
 
     start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -731,7 +731,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.SystemFlowsReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -765,7 +765,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.UserActivityReportPlugin.__name__)
 
     # Use 15 days which will be rounded up to 3 full weeks.
-    duration = rdfvalue.DurationSeconds.FromDays(15)
+    duration = rdfvalue.Duration.From(15, rdfvalue.DAYS)
     start_time = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/07")
 
     api_report_data = report.GetReportData(
@@ -800,7 +800,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
     report = report_plugins.GetReportByName(
         server_report_plugins.UserActivityReportPlugin.__name__)
 
-    duration = rdfvalue.DurationSeconds.FromDays(14)
+    duration = rdfvalue.Duration.From(14, rdfvalue.DAYS)
     start_time = rdfvalue.RDFDatetime.Now() - duration
 
     api_report_data = report.GetReportData(
@@ -855,7 +855,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.UserFlowsReportPlugin.__name__)
 
     start = rdfvalue.RDFDatetime.FromHumanReadable("2012/12/15")
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(
@@ -884,7 +884,7 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
         server_report_plugins.UserFlowsReportPlugin.__name__)
 
     now = rdfvalue.RDFDatetime().Now()
-    month_duration = rdfvalue.DurationSeconds("30d")
+    month_duration = rdfvalue.Duration.From(30, rdfvalue.DAYS)
 
     api_report_data = report.GetReportData(
         stats_api.ApiGetReportArgs(

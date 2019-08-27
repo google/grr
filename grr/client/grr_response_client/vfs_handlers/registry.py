@@ -18,6 +18,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import compatibility
 
 try:  # future.moves.winreg can't be used because mocking of modules is hard.
   import winreg  # pylint: disable=g-import-not-at-top
@@ -468,6 +469,13 @@ class RegistryFile(vfs_base.VFSHandler):
 
     if self.hive is None:
       for name in dir(winreg):
+        # TODO: `dir` call in Python 2 yields names as a list of
+        # `bytes` objects. Because `JoinPath` requires `unicode` objects, we
+        # have to properly convert these. Once support for Python 2 is dropped,
+        # this part be removed.
+        if compatibility.PY2:
+          name = name.decode("utf-8")
+
         if name.startswith("HKEY_"):
           response = rdf_client_fs.StatEntry(st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()
@@ -525,11 +533,18 @@ class RegistryFile(vfs_base.VFSHandler):
 
   def Read(self, length):
     if not self.fd:
-      self.fd = io.BytesIO(utils.SmartStr(self.value))
+      self.fd = io.BytesIO(self._bytes_value)
 
     return self.fd.read(length)
 
   def Seek(self, offset, whence=0):
     if not self.fd:
-      self.fd = io.BytesIO(utils.SmartStr(self.value))
+      self.fd = io.BytesIO(self._bytes_value)
     return self.fd.seek(offset, whence)
+
+  @property
+  def _bytes_value(self):
+    if isinstance(self.value, bytes):
+      return self.value
+    else:
+      return str(self.value).encode("utf-8")

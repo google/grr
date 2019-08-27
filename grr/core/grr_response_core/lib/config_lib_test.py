@@ -245,7 +245,7 @@ Section1.foobar: 6d
 
     value = conf.Get("Section1.foobar")
     self.assertIsInstance(value, rdfvalue.DurationSeconds)
-    self.assertEqual(value, rdfvalue.DurationSeconds("6d"))
+    self.assertEqual(value, rdfvalue.Duration.From(6, rdfvalue.DAYS))
 
   def testSemanticStructType(self):
     conf = config_lib.GrrConfigManager()

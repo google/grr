@@ -89,7 +89,7 @@ class RegistryFinder(flow_base.FlowBase):
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         conditions=_ConditionsToFileFinderConditions(self.args.conditions),
         action=rdf_file_finder.FileFinderAction.Stat(),
-        next_state="Done")
+        next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     if not responses.success:
@@ -120,7 +120,7 @@ class ClientRegistryFinder(flow_base.FlowBase):
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         conditions=_ConditionsToFileFinderConditions(self.args.conditions),
         action=rdf_file_finder.FileFinderAction.Stat(),
-        next_state="Done")
+        next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     if not responses.success:
@@ -146,7 +146,7 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
         collectors.ArtifactCollectorFlow.__name__,
         artifact_list=["WindowsRunKeys"],
         use_tsk=True,
-        next_state="ParseRunKeys")
+        next_state=compatibility.GetName(self.ParseRunKeys))
 
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
@@ -173,7 +173,7 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
       self.CallFlow(
           transfer.MultiGetFile.__name__,
           pathspecs=filenames,
-          next_state="Done")
+          next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     for response in responses:

@@ -187,7 +187,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "10.5MiB")
 
   def testHuntOverviewShowsStartAndExpirationTime(self):
-    duration = rdfvalue.DurationSeconds("3d")
+    duration = rdfvalue.Duration.From(3, rdfvalue.DAYS)
     init_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1973-01-01 08:34")
     last_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1981-03-04 12:52")
     expiration_time = init_start_time + duration
@@ -230,8 +230,8 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_1_start_time = rdfvalue.RDFDatetime.FromHumanReadable("1992-11-11")
     hunt_2_start_time = rdfvalue.RDFDatetime.FromHumanReadable("2001-05-03")
 
-    hunt_1_duration = rdfvalue.DurationSeconds("3d")
-    hunt_2_duration = rdfvalue.DurationSeconds("5h")
+    hunt_1_duration = rdfvalue.Duration.From(3, rdfvalue.DAYS)
+    hunt_2_duration = rdfvalue.Duration.From(5, rdfvalue.HOURS)
 
     hunt_1_expiration_time = hunt_1_start_time + hunt_1_duration
     hunt_2_expiration_time = hunt_2_start_time + hunt_2_duration

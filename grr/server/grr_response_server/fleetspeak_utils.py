@@ -6,6 +6,8 @@ from __future__ import unicode_literals
 
 import binascii
 
+from future.builtins import str
+
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
@@ -26,13 +28,19 @@ def IsFleetspeakEnabledClient(grr_id):
   return md.fleetspeak_enabled
 
 
-def SendGrrMessageThroughFleetspeak(grr_id, msg):
+def SendGrrMessageThroughFleetspeak(grr_id, grr_msg):
   """Sends the given GrrMessage through FS."""
   fs_msg = fs_common_pb2.Message(
       message_type="GrrMessage",
       destination=fs_common_pb2.Address(
           client_id=GRRIDToFleetspeakID(grr_id), service_name="GRR"))
-  fs_msg.data.Pack(msg.AsPrimitiveProto())
+  fs_msg.data.Pack(grr_msg.AsPrimitiveProto())
+  if grr_msg.session_id is not None:
+    annotation = fs_msg.annotations.entries.add()
+    annotation.key, annotation.value = "flow_id", grr_msg.session_id.Basename()
+  if grr_msg.request_id is not None:
+    annotation = fs_msg.annotations.entries.add()
+    annotation.key, annotation.value = "request_id", str(grr_msg.request_id)
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 

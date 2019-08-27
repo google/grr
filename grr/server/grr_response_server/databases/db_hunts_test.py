@@ -99,7 +99,7 @@ class DatabaseTestHuntMixin(object):
 
     self.db.UpdateHuntObject(
         hunt_obj.hunt_id,
-        duration=rdfvalue.DurationSeconds("1w"),
+        duration=rdfvalue.Duration.From(1, rdfvalue.WEEKS),
         client_rate=33,
         client_limit=48,
         hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED,
@@ -108,7 +108,8 @@ class DatabaseTestHuntMixin(object):
         num_clients_at_start_time=44)
 
     updated_hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
-    self.assertEqual(updated_hunt_obj.duration, rdfvalue.DurationSeconds("1w"))
+    self.assertEqual(updated_hunt_obj.duration,
+                     rdfvalue.Duration.From(1, rdfvalue.WEEKS))
     self.assertEqual(updated_hunt_obj.client_rate, 33)
     self.assertEqual(updated_hunt_obj.client_limit, 48)
     self.assertEqual(updated_hunt_obj.hunt_state,
@@ -184,7 +185,8 @@ class DatabaseTestHuntMixin(object):
     got = self.db.ReadHuntObjects(
         0,
         db.MAX_COUNT,
-        created_after=all_hunts[0].create_time - rdfvalue.DurationSeconds("1s"))
+        created_after=all_hunts[0].create_time -
+        rdfvalue.Duration.From(1, rdfvalue.SECONDS))
     self.assertListEqual(got, list(reversed(all_hunts)))
 
     got = self.db.ReadHuntObjects(
@@ -252,7 +254,8 @@ class DatabaseTestHuntMixin(object):
     got = self.db.ListHuntObjects(
         0,
         db.MAX_COUNT,
-        created_after=all_hunts[0].create_time - rdfvalue.DurationSeconds("1s"))
+        created_after=all_hunts[0].create_time -
+        rdfvalue.Duration.From(1, rdfvalue.SECONDS))
     self.assertListEqual(got, list(reversed(all_hunts)))
 
     got = self.db.ListHuntObjects(
@@ -1585,8 +1588,8 @@ class DatabaseTestHuntMixin(object):
 
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_id)
 
-    flow_obj = self.db.LeaseFlowForProcessing(client_id, flow_id,
-                                              rdfvalue.DurationSeconds("1m"))
+    flow_obj = self.db.LeaseFlowForProcessing(
+        client_id, flow_id, rdfvalue.Duration.From(1, rdfvalue.MINUTES))
     self.assertEqual(flow_obj.flow_state, rdf_flow_objects.Flow.FlowState.UNSET)
 
     flow_obj.flow_state = rdf_flow_objects.Flow.FlowState.ERROR

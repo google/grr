@@ -86,7 +86,7 @@ message Group {
 
   // Posix specific values.
   optional uint32 gid = 3 [(sem_type) = {
-    description: "The gid of the the group, e.g.: 1001.",
+    description: "The gid of the group, e.g.: 1001.",
   }];
 
   optional PwEntry pw_entry = 4 [(sem_type) = {

@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import access_control
@@ -40,7 +41,8 @@ from grr_response_server import prometheus_stats_collector
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import testing_startup
 
-FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("8d")
+FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+    8, rdfvalue.DAYS)
 TEST_CLIENT_ID = "C.1000000000000000"
 
 
@@ -444,16 +446,14 @@ class FakeTimeline(object):
     """Simulated running the underlying thread for the specified duration.
 
     Args:
-      duration: A `DurationSeconds` object describing for how long simulate the
+      duration: A `Duration` object describing for how long simulate the
         thread.
 
     Raises:
-      TypeError: If `duration` is not an instance of `rdfvalue.DurationSeconds`.
+      TypeError: If `duration` is not an instance of `rdfvalue.Duration`.
       AssertionError: If this method is called without automatic context.
     """
-    if not isinstance(duration, rdfvalue.DurationSeconds):
-      raise TypeError(
-          "`duration` is not an instance of `rdfvalue.DurationSeconds")
+    precondition.AssertType(duration, rdfvalue.Duration)
 
     if self._worker_thread is None:
       raise AssertionError("Worker thread hasn't been started (method was "
@@ -462,7 +462,7 @@ class FakeTimeline(object):
     if self._worker_thread_done:
       return
 
-    self._budget += duration.seconds
+    self._budget += duration.ToInt(rdfvalue.SECONDS)
 
     self._original_time = time.time
     self._original_sleep = time.sleep
@@ -581,6 +581,7 @@ class Instrument(object):
   def __init__(self, module, target_name):
     self.old_target = getattr(module, target_name)
 
+    @functools.wraps(self.old_target)
     def Wrapper(*args, **kwargs):
       self.args.append(args)
       self.kwargs.append(kwargs)

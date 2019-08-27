@@ -8,6 +8,7 @@ import hashlib
 import io
 import os
 import platform
+import struct
 import unittest
 
 from absl import app
@@ -339,6 +340,49 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(history[-1].hash_entry.num_bytes, expected_size)
     self.assertIsNotNone(history[-1].hash_entry.sha1)
     self.assertIsNotNone(history[-1].hash_entry.md5)
+
+  # Setting MIN_CALL_TO_FILE_STORE to a smaller value emulates MultiGetFile's
+  # behavior when dealing with large files.
+  @mock.patch.object(transfer.MultiGetFile, "MIN_CALL_TO_FILE_STORE", 1)
+  def testMultiGetFileCorrectlyFetchesSameFileMultipleTimes(self):
+    """Test MultiGetFile."""
+
+    client_mock = action_mocks.MultiGetFileClientMock()
+
+    total_num_chunks = 10
+    total_size = transfer.MultiGetFile.CHUNK_SIZE * total_num_chunks
+    path = os.path.join(self.temp_dir, "test_big.txt")
+    with io.open(path, "wb") as fd:
+      for i in range(total_num_chunks):
+        fd.write(struct.pack("b", i) * transfer.MultiGetFile.CHUNK_SIZE)
+
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
+
+    def _Check(expected_size):
+      args = transfer.MultiGetFileArgs(
+          pathspecs=[pathspec], file_size=expected_size)
+      flow_test_lib.TestFlowHelper(
+          transfer.MultiGetFile.__name__,
+          client_mock,
+          token=self.token,
+          client_id=self.client_id,
+          args=args)
+
+      # Test the file that was created.
+      cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+      fd = file_store.OpenFile(cp)
+      self.assertEqual(fd.size, expected_size)
+
+    # Fetch the file twice to test a real-world scenario when a file is first
+    # fetched with a smaller limit, and then - with a bigger one.
+    # This tests against a bug in MultiGetFileLogic when first N chunks of
+    # the file were already fetched during a previous MultiGetFileLogic run,
+    # and as a consequence the file was considered fully fetched, even if
+    # the max_file_size value of the current run was much bigger than
+    # the size of the previously fetched file.
+    _Check(transfer.MultiGetFileLogic.CHUNK_SIZE * 2)
+    _Check(total_size)
 
   def testMultiGetFileMultiFiles(self):
     """Test MultiGetFile downloading many files at once."""

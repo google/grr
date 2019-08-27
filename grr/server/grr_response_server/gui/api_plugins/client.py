@@ -393,7 +393,8 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     end_time = args.end or rdfvalue.RDFDatetime.Now()
-    start_time = args.start or end_time - rdfvalue.DurationSeconds("3m")
+    start_time = args.start or end_time - rdfvalue.Duration.From(
+        3, rdfvalue.MINUTES)
     items = []
 
     client_id = str(args.client_id)
@@ -782,7 +783,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       end_time = rdfvalue.RDFDatetime.Now()
 
     if not start_time:
-      start_time = end_time - rdfvalue.DurationSeconds("30m")
+      start_time = end_time - rdfvalue.Duration.From(30, rdfvalue.MINUTES)
 
     stat_values = data_store.REL_DB.ReadClientStats(
         client_id=str(args.client_id),
@@ -836,8 +837,9 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       ts.MakeIncreasing()
 
     if len(stat_values) > self.MAX_SAMPLES:
-      sampling_interval = rdfvalue.DurationSeconds.FromSeconds(
-          ((end_time - start_time).seconds // self.MAX_SAMPLES) or 1)
+      sampling_interval = rdfvalue.Duration.From(
+          ((end_time - start_time).ToInt(rdfvalue.SECONDS) // self.MAX_SAMPLES)
+          or 1, rdfvalue.SECONDS)
       if args.metric in self.GAUGE_METRICS:
         mode = timeseries.NORMALIZE_MODE_GAUGE
       else:

@@ -148,7 +148,8 @@ class RDFBoolTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     TestAnd(True, True, True)
 
 
-class DurationTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
+class DurationSecondsTest(rdf_test_base.RDFValueTestMixin,
+                          test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.DurationSeconds
 
   def GenerateSample(self, number=5):
@@ -176,6 +177,9 @@ class DurationTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(t2.seconds, int(300 * 1000.23))
     t2 = (-10) * t
     self.assertEqual(t2.seconds, int(300 * (-10)))
+
+  def testHashability(self):
+    pass  # DurationSeconds does not need to be hashable.
 
 
 class ByteSizeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):

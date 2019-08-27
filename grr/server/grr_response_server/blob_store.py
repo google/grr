@@ -123,13 +123,12 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
 
   def ReadAndWaitForBlobs(
       self, blob_ids,
-      timeout
-  ):
+      timeout):
     """Reads specified blobs, waiting and retrying if blobs do not exist yet.
 
     Args:
       blob_ids: An iterable of BlobIDs.
-      timeout: A rdfvalue.DurationSeconds specifying the maximum time to pass
+      timeout: A rdfvalue.Duration specifying the maximum time to pass
         until the last poll is conducted. The overall runtime of
         ReadAndWaitForBlobs can be higher, because `timeout` is a threshold for
         the start (and not end) of the last attempt at reading.
@@ -143,15 +142,15 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     results = {blob_id: None for blob_id in remaining_ids}
     # TODO: Migrate to RDFDatetime and Duration when Duration
     # supports microsecond-precision.
-    start_us = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
+    start = rdfvalue.RDFDatetime.Now()
     # TODO: Implement truncated exponential backoff.
-    sleep_dur = rdfvalue.DurationSeconds.FromSeconds(1)
+    sleep_dur = rdfvalue.Duration.From(1, rdfvalue.SECONDS)
     poll_num = 0
 
     while remaining_ids:
       cur_blobs = self.ReadBlobs(list(remaining_ids))
-      now_us = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
-      elapsed_us = now_us - start_us
+      now = rdfvalue.RDFDatetime.Now()
+      elapsed = now - start
       poll_num += 1
 
       for blob_id, blob in iteritems(cur_blobs):
@@ -159,14 +158,14 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
           continue
         results[blob_id] = blob
         remaining_ids.remove(blob_id)
-        BLOB_STORE_POLL_HIT_LATENCY.RecordEvent(elapsed_us / rdfvalue.SECONDS)
+        BLOB_STORE_POLL_HIT_LATENCY.RecordEvent(
+            elapsed.ToFractional(rdfvalue.SECONDS))
         BLOB_STORE_POLL_HIT_ITERATION.RecordEvent(poll_num)
 
-      if (not remaining_ids or
-          elapsed_us + sleep_dur.microseconds >= timeout.microseconds):
+      if (not remaining_ids or elapsed + sleep_dur >= timeout):
         break
 
-      time.sleep(sleep_dur.seconds)
+      time.sleep(sleep_dur.ToFractional(rdfvalue.SECONDS))
 
     return results
 

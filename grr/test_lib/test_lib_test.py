@@ -24,13 +24,13 @@ class FakeTimelineTest(absltest.TestCase):
     thread = threading.Thread(name="foo-thread", target=foo)
     with test_lib.FakeTimeline(thread) as foo_timeline:
       log.append("start")
-      foo_timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      foo_timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
       log.append("5 seconds have passed")
-      foo_timeline.Run(duration=rdfvalue.DurationSeconds("3s"))
+      foo_timeline.Run(duration=rdfvalue.Duration.From(3, rdfvalue.SECONDS))
       log.append("3 seconds have passed")
-      foo_timeline.Run(duration=rdfvalue.DurationSeconds("4s"))
+      foo_timeline.Run(duration=rdfvalue.Duration.From(4, rdfvalue.SECONDS))
       log.append("4 seconds have passed")
-      foo_timeline.Run(duration=rdfvalue.DurationSeconds("22s"))
+      foo_timeline.Run(duration=rdfvalue.Duration.From(22, rdfvalue.SECONDS))
       log.append("22 seconds have passed")
 
     self.assertEqual(log, [
@@ -58,15 +58,15 @@ class FakeTimelineTest(absltest.TestCase):
     thread = threading.Thread(name="barz=thread", target=barz)
     with test_lib.FakeTimeline(thread) as barz_timeline:
       log.append("start")
-      barz_timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      barz_timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
       log.append("5 seconds have passed")
-      barz_timeline.Run(duration=rdfvalue.DurationSeconds("7s"))
+      barz_timeline.Run(duration=rdfvalue.Duration.From(7, rdfvalue.SECONDS))
       log.append("7 seconds have passed")
-      barz_timeline.Run(duration=rdfvalue.DurationSeconds("1s"))
+      barz_timeline.Run(duration=rdfvalue.Duration.From(1, rdfvalue.SECONDS))
       log.append("1 second has passed")
-      barz_timeline.Run(duration=rdfvalue.DurationSeconds("3s"))
+      barz_timeline.Run(duration=rdfvalue.Duration.From(3, rdfvalue.SECONDS))
       log.append("3 seconds have passed")
-      barz_timeline.Run(duration=rdfvalue.DurationSeconds("20s"))
+      barz_timeline.Run(duration=rdfvalue.Duration.From(20, rdfvalue.SECONDS))
       log.append("20 seconds have passed")
 
     self.assertEqual(log, [
@@ -96,9 +96,9 @@ class FakeTimelineTest(absltest.TestCase):
     thread = threading.Thread(name="norf-thread", target=norf)
     with test_lib.FakeTimeline(thread) as norf_timeline:
       log.append("start")
-      norf_timeline.Run(duration=rdfvalue.DurationSeconds("0s"))
+      norf_timeline.Run(duration=rdfvalue.Duration.From(0, rdfvalue.SECONDS))
       log.append("rest")
-      norf_timeline.Run(duration=rdfvalue.DurationSeconds("0s"))
+      norf_timeline.Run(duration=rdfvalue.Duration.From(0, rdfvalue.SECONDS))
       log.append("stop")
 
     self.assertEqual(log, [
@@ -122,11 +122,11 @@ class FakeTimelineTest(absltest.TestCase):
     thread = threading.Thread(name="quux-thread", target=quux)
     with test_lib.FakeTimeline(thread) as quux_timeline:
       log.append("start")
-      quux_timeline.Run(duration=rdfvalue.DurationSeconds("6s"))
+      quux_timeline.Run(duration=rdfvalue.Duration.From(6, rdfvalue.SECONDS))
       log.append("6 seconds have passed")
-      quux_timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      quux_timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
       log.append("5 seconds have passed")
-      quux_timeline.Run(duration=rdfvalue.DurationSeconds("7s"))
+      quux_timeline.Run(duration=rdfvalue.Duration.From(7, rdfvalue.SECONDS))
       log.append("7 seconds have passed")
 
       self.assertEqual(log, [
@@ -138,7 +138,7 @@ class FakeTimelineTest(absltest.TestCase):
       ])
 
       with self.assertRaisesRegex(Exception, "bar"):
-        quux_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+        quux_timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
   def testNoRuns(self):
     log = []
@@ -160,9 +160,9 @@ class FakeTimelineTest(absltest.TestCase):
 
     with test_lib.FakeTimeline(
         threading.Thread(name="moof-thread", target=moof)) as moof_timeline:
-      moof_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
-      moof_timeline.Run(duration=rdfvalue.DurationSeconds("20s"))
-      moof_timeline.Run(duration=rdfvalue.DurationSeconds("30s"))
+      moof_timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
+      moof_timeline.Run(duration=rdfvalue.Duration.From(20, rdfvalue.SECONDS))
+      moof_timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.SECONDS))
 
     self.assertEqual(log, ["moof"])
 
@@ -171,7 +171,7 @@ class FakeTimelineTest(absltest.TestCase):
         threading.Thread(name="weez-thread", target=lambda: None))
 
     with self.assertRaisesRegex(AssertionError, "called without context"):
-      weez_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+      weez_timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
   def testReuse(self):
     log = []
@@ -182,24 +182,31 @@ class FakeTimelineTest(absltest.TestCase):
     blargh_timeline = test_lib.FakeTimeline(
         threading.Thread(name="blargh-thread", target=blargh))
     with blargh_timeline:
-      blargh_timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      blargh_timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
 
     self.assertEqual(log, ["blargh"])
 
     with self.assertRaisesRegex(AssertionError, "cannot be reused"):
       with blargh_timeline:
-        blargh_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+        blargh_timeline.Run(
+            duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
   def testTimePassage(self):
     log = []
 
     def fhesh():
       log.append(rdfvalue.RDFDatetime.Now().Format("%Y-%m-%d"))
-      time.sleep(rdfvalue.DurationSeconds("2d").seconds)
+      time.sleep(
+          rdfvalue.Duration.From(2,
+                                 rdfvalue.DAYS).ToFractional(rdfvalue.SECONDS))
       log.append(rdfvalue.RDFDatetime.Now().Format("%Y-%m-%d"))
-      time.sleep(rdfvalue.DurationSeconds("15s").seconds)
+      time.sleep(
+          rdfvalue.Duration.From(15, rdfvalue.SECONDS).ToFractional(
+              rdfvalue.SECONDS))
       log.append(rdfvalue.RDFDatetime.Now().Format("%Y-%m-%d %H:%M:%S"))
-      time.sleep(rdfvalue.DurationSeconds("20m").seconds)
+      time.sleep(
+          rdfvalue.Duration.From(20, rdfvalue.MINUTES).ToFractional(
+              rdfvalue.SECONDS))
       log.append(rdfvalue.RDFDatetime.Now().Format("%Y-%m-%d %H:%M:%S"))
 
     fhesh_timeline = test_lib.FakeTimeline(
@@ -207,15 +214,15 @@ class FakeTimelineTest(absltest.TestCase):
         now=rdfvalue.RDFDatetime.FromHumanReadable("2077-01-01"))
     with fhesh_timeline:
       log.append("beep (0)")
-      fhesh_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+      fhesh_timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
       log.append("beep (1)")
-      fhesh_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+      fhesh_timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
       log.append("beep (2)")
-      fhesh_timeline.Run(duration=rdfvalue.DurationSeconds("2d"))
+      fhesh_timeline.Run(duration=rdfvalue.Duration.From(2, rdfvalue.DAYS))
       log.append("beep (3)")
-      fhesh_timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+      fhesh_timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
       log.append("beep (4)")
-      fhesh_timeline.Run(duration=rdfvalue.DurationSeconds("30m"))
+      fhesh_timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.MINUTES))
       log.append("beep (5)")
 
     self.assertEqual(log, [

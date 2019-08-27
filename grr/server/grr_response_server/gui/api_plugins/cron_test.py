@@ -33,8 +33,8 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
     cron_job.current_run_id = "bar"
     cron_job.last_run_time = self._DATETIME("2001-01-01")
     cron_job.last_run_status = "FINISHED"
-    cron_job.frequency = rdfvalue.DurationSeconds("1d")
-    cron_job.lifetime = rdfvalue.DurationSeconds("30d")
+    cron_job.frequency = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    cron_job.lifetime = rdfvalue.Duration.From(30, rdfvalue.DAYS)
     cron_job.enabled = False
     cron_job.forced_run_requested = True
     cron_job.state = state
@@ -47,8 +47,10 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
     self.assertEqual(api_cron_job.description, "testdescription")
     self.assertEqual(api_cron_job.last_run_time, self._DATETIME("2001-01-01"))
     self.assertEqual(api_cron_job.last_run_status, "FINISHED")
-    self.assertEqual(api_cron_job.frequency, rdfvalue.DurationSeconds("1d"))
-    self.assertEqual(api_cron_job.lifetime, rdfvalue.DurationSeconds("30d"))
+    self.assertEqual(api_cron_job.frequency,
+                     rdfvalue.Duration.From(1, rdfvalue.DAYS))
+    self.assertEqual(api_cron_job.lifetime,
+                     rdfvalue.Duration.From(30, rdfvalue.DAYS))
     self.assertFalse(api_cron_job.enabled)
     self.assertTrue(api_cron_job.forced_run_requested)
 
@@ -128,8 +130,8 @@ class ApiGetCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
           cron_job_id="job_id",
           enabled=True,
           last_run_status="FINISHED",
-          frequency=rdfvalue.DurationSeconds("7d"),
-          lifetime=rdfvalue.DurationSeconds("1h"),
+          frequency=rdfvalue.Duration.From(7, rdfvalue.DAYS),
+          lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
           allow_overruns=True)
       data_store.REL_DB.WriteCronJob(job)
 

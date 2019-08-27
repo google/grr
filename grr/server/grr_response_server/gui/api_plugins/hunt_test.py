@@ -371,7 +371,8 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_id=self.hunt_id,
         client_id=self.client_id,
         vfs_path=self.vfs_file_path,
-        timestamp=results[0].timestamp + rdfvalue.DurationSeconds("1s"))
+        timestamp=results[0].timestamp +
+        rdfvalue.Duration.From(1, rdfvalue.SECONDS))
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
 
@@ -380,7 +381,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     original_result = results[0]
 
     with test_lib.FakeTime(original_result.timestamp -
-                           rdfvalue.DurationSeconds("1s")):
+                           rdfvalue.Duration.From(1, rdfvalue.SECONDS)):
       wrong_result = original_result.Copy()
       payload = wrong_result.payload
       payload.stat_entry.pathspec.path += "blah"
@@ -561,7 +562,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testModifiesHuntCorrectly(self):
     self.args.client_rate = 100
     self.args.client_limit = 42
-    self.args.duration = rdfvalue.DurationSeconds("1d")
+    self.args.duration = rdfvalue.Duration.From(1, rdfvalue.DAYS)
 
     self.handler.Handle(self.args, token=self.token)
 
@@ -570,7 +571,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.assertEqual(after.client_rate, 100)
     self.assertEqual(after.client_limit, 42)
-    self.assertEqual(after.duration, rdfvalue.DurationSeconds("1d"))
+    self.assertEqual(after.duration, rdfvalue.Duration.From(1, rdfvalue.DAYS))
 
 
 class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,

@@ -312,7 +312,7 @@ class MockClient(object):
     else:
       request = data_store.REL_DB.LeaseClientActionRequests(
           self.client_id,
-          lease_time=rdfvalue.DurationSeconds("10000s"),
+          lease_time=rdfvalue.Duration.From(10000, rdfvalue.SECONDS),
           limit=1)
       try:
         next_task = rdf_flow_objects.GRRMessageFromClientActionRequest(
@@ -482,8 +482,9 @@ def RunFlow(client_id,
         rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
         if rdf_flow.flow_state != rdf_flow.FlowState.FINISHED:
           raise RuntimeError(
-              "Flow %s on %s completed in state %s (error message: %s)" %
-              (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message))
+              "Flow %s on %s completed in state %s (error message: %s %s)" %
+              (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message,
+               rdf_flow.backtrace))
 
     return flow_id
   finally:

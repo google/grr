@@ -123,7 +123,7 @@ class CronJobBase(
       self.run_state.finished_at = rdfvalue.RDFDatetime.Now()
       elapsed = self.run_state.finished_at - self.run_state.started_at
       CRON_JOB_LATENCY.RecordEvent(
-          elapsed.seconds, fields=[self.job.cron_job_id])
+          elapsed.ToFractional(rdfvalue.SECONDS), fields=[self.job.cron_job_id])
       if self.job.lifetime:
         expiration_time = self.run_state.started_at + self.job.lifetime
         if self.run_state.finished_at > expiration_time:
@@ -312,7 +312,8 @@ class CronManager(object):
     del token
 
     leased_jobs = data_store.REL_DB.LeaseCronJobs(
-        cronjob_ids=names, lease_time=rdfvalue.DurationSeconds("10m"))
+        cronjob_ids=names,
+        lease_time=rdfvalue.Duration.From(10, rdfvalue.MINUTES))
     logging.info("Leased %d cron jobs for processing.", len(leased_jobs))
     if not leased_jobs:
       return
@@ -358,7 +359,8 @@ class CronManager(object):
       # during one of the HeartBeat calls (HeartBeat checks if a cron job is
       # run is running too long and raises if it is).
       expiration_time = (
-          job.last_run_time + job.lifetime + rdfvalue.DurationSeconds("10m"))
+          job.last_run_time + job.lifetime +
+          rdfvalue.Duration.From(10, rdfvalue.MINUTES))
       if now > expiration_time:
         run = data_store.REL_DB.ReadCronJobRun(job.cron_job_id,
                                                job.current_run_id)
@@ -368,7 +370,8 @@ class CronManager(object):
         data_store.REL_DB.UpdateCronJob(
             job.cron_job_id, current_run_id=None, last_run_status=run.status)
         CRON_JOB_LATENCY.RecordEvent(
-            (now - job.last_run_time).seconds, fields=[job.cron_job_id])
+            (now - job.last_run_time).ToFractional(rdfvalue.SECONDS),
+            fields=[job.cron_job_id])
         CRON_JOB_TIMEOUT.Increment(fields=[job.cron_job_id])
 
         return True
@@ -589,7 +592,7 @@ class RunHunt(CronJobBase):
         client_rule_set=hra.client_rule_set,
         crash_limit=hra.crash_limit,
         description=hra.description,
-        duration=hra.expiry_time,
+        duration=rdfvalue.Duration(hra.expiry_time),
         original_object=hra.original_object,
         output_plugins=hra.output_plugins,
         per_client_cpu_limit=hra.per_client_cpu_limit,

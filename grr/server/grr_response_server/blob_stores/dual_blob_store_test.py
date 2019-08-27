@@ -192,12 +192,15 @@ class DualBlobStoreTest(
   def assertMethodIsMeasured(self, method, arg):
     latency = dual_blob_store.DUAL_BLOB_STORE_LATENCY
     successes = dual_blob_store.DUAL_BLOB_STORE_SUCCESS_COUNT
+    op_size = dual_blob_store.DUAL_BLOB_STORE_OP_SIZE
     primary = ["PrimaryBlobStore", method]
     secondary = ["SecondaryBlobStore", method]
     with self.assertStatsCounterDelta(1, latency, primary), \
          self.assertStatsCounterDelta(1, latency, secondary), \
          self.assertStatsCounterDelta(1, successes, primary), \
-         self.assertStatsCounterDelta(1, successes, secondary):
+         self.assertStatsCounterDelta(1, successes, secondary), \
+         self.assertStatsCounterDelta(1, op_size, primary), \
+         self.assertStatsCounterDelta(1, op_size, secondary):
       getattr(self.blob_store, method)(arg)
       _WaitUntilQueueIsEmpty(self.blob_store.delegate)
 

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import io
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -43,7 +42,7 @@ def GenTestData(paths, data, st_mode=33188):
     p = rdf_paths.PathSpec(path=path, pathtype="OS")
     stats.append(rdf_client_fs.StatEntry(pathspec=p, st_mode=st_mode))
   for val in data:
-    files.append(io.BytesIO(utils.SmartStr(val)))
+    files.append(io.BytesIO(val.encode("utf-8")))
   return stats, files
 
 

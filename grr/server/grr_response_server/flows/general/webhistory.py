@@ -10,11 +10,11 @@ import datetime
 import os
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import chrome_history
 from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -78,7 +78,7 @@ class ChromeHistory(flow_base.FlowBase):
             paths=[os.path.join(path, fname)],
             pathtype=self.args.pathtype,
             action=rdf_file_finder.FileFinderAction.Download(),
-            next_state="ParseFiles")
+            next_state=compatibility.GetName(self.ParseFiles))
 
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
@@ -95,7 +95,7 @@ class ChromeHistory(flow_base.FlowBase):
           count += 1
           str_entry = "%s %s %s %s %s %s" % (datetime.datetime.utcfromtimestamp(
               epoch64 / 1e6), url, dat1, dat2, dat3, dtype)
-          self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
+          self.SendReply(rdfvalue.RDFString(str_entry))
 
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
                  self.args.username, response.stat_entry.pathspec.Basename())
@@ -189,7 +189,7 @@ class FirefoxHistory(flow_base.FlowBase):
           paths=[os.path.join(path, "**2", filename)],
           pathtype=self.args.pathtype,
           action=rdf_file_finder.FileFinderAction.Download(),
-          next_state="ParseFiles")
+          next_state=compatibility.GetName(self.ParseFiles))
 
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
@@ -204,7 +204,7 @@ class FirefoxHistory(flow_base.FlowBase):
           count += 1
           str_entry = "%s %s %s %s" % (datetime.datetime.utcfromtimestamp(
               epoch64 / 1e6), url, dat1, dtype)
-          self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
+          self.SendReply(rdfvalue.RDFString(str_entry))
         self.Log("Wrote %d Firefox History entries for user %s from %s", count,
                  self.args.username, response.stat_entry.pathspec.Basename())
         self.state.hist_count += count
@@ -335,7 +335,7 @@ class CacheGrep(flow_base.FlowBase):
             pathtype=self.args.pathtype,
             conditions=[condition],
             action=rdf_file_finder.FileFinderAction.Download(),
-            next_state="HandleResults")
+            next_state=compatibility.GetName(self.HandleResults))
 
   def HandleResults(self, responses):
     """Take each file we retrieved and add it to the collection."""

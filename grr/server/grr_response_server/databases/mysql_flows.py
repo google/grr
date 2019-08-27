@@ -11,6 +11,7 @@ import time
 
 from future.utils import iteritems
 import MySQLdb
+from MySQLdb.constants import ER as mysql_errors
 from typing import List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
@@ -265,7 +266,7 @@ class MySQLDBFlowMixin(object):
       raise db.AtLeastOneUnknownRequestError(request_keys=request_keys, cause=e)
 
   @mysql_utils.WithTransaction()
-  def WriteFlowObject(self, flow_obj, cursor=None):
+  def WriteFlowObject(self, flow_obj, allow_update=True, cursor=None):
     """Writes a flow object to the database."""
 
     query = """
@@ -279,13 +280,15 @@ class MySQLDBFlowMixin(object):
             %(next_request_to_process)s, %(pending_termination)s,
             FROM_UNIXTIME(%(timestamp)s),
             %(network_bytes_sent)s, %(user_cpu_time_used_micros)s,
-            %(system_cpu_time_used_micros)s, %(num_replies_sent)s, NOW(6))
-    ON DUPLICATE KEY UPDATE
-        flow=VALUES(flow),
-        flow_state=VALUES(flow_state),
-        next_request_to_process=VALUES(next_request_to_process),
-        last_update=VALUES(last_update)
-    """
+            %(system_cpu_time_used_micros)s, %(num_replies_sent)s, NOW(6))"""
+
+    if allow_update:
+      query += """
+        ON DUPLICATE KEY UPDATE
+          flow=VALUES(flow),
+          flow_state=VALUES(flow_state),
+          next_request_to_process=VALUES(next_request_to_process),
+          last_update=VALUES(last_update)"""
 
     user_cpu_time_used_micros = db_utils.SecondsToMicros(
         flow_obj.cpu_time_used.user_cpu_time)
@@ -325,7 +328,10 @@ class MySQLDBFlowMixin(object):
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError as e:
-      raise db.UnknownClientError(flow_obj.client_id, cause=e)
+      if e.args[0] == mysql_errors.DUP_ENTRY:
+        raise db.FlowExistsError(flow_obj.client_id, flow_obj.flow_id)
+      else:
+        raise db.UnknownClientError(flow_obj.client_id, cause=e)
 
   def _FlowObjectFromRow(self, row):
     """Generates a flow object from a database row."""
@@ -1147,7 +1153,7 @@ class MySQLDBFlowMixin(object):
   def _LeaseFlowProcessingReqests(self, cursor=None):
     """Leases a number of flow processing requests."""
     now = rdfvalue.RDFDatetime.Now()
-    expiry = now + rdfvalue.DurationSeconds("10m")
+    expiry = now + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
 
     query = """
       UPDATE flow_processing_requests

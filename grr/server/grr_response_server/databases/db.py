@@ -51,7 +51,7 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-CLIENT_STATS_RETENTION = rdfvalue.DurationSeconds("31d")
+CLIENT_STATS_RETENTION = rdfvalue.Duration.From(31, rdfvalue.DAYS)
 
 # Use 254 as max length for usernames to allow email addresses.
 MAX_USERNAME_LENGTH = 254
@@ -392,6 +392,16 @@ class ConflictingUpdateFlowArgumentsError(Error):
                     "%s (client %s). Can't call UpdateFlow with "
                     "flow_obj and %s passed together." %
                     (flow_id, client_id, param_name))
+
+
+class FlowExistsError(Error):
+  """Raised when an insertion fails because the Flow already exists."""
+
+  def __init__(self, client_id, flow_id):
+    super(FlowExistsError, self).__init__("Flow {}/{} already exists.".format(
+        client_id, flow_id))
+    self.client_id = client_id
+    self.flow_id = flow_id
 
 
 class StringTooLongError(ValueError):
@@ -1588,7 +1598,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       handler: Method, which will be called repeatedly with lists of leased
         objects.MessageHandlerRequest. Required.
-      lease_time: rdfvalue.DurationSeconds indicating how long the lease should
+      lease_time: rdfvalue.Duration indicating how long the lease should
         be valid. Required.
       limit: Limit for the number of leased requests to give one execution of
         handler.
@@ -1703,7 +1713,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     Args:
       cronjob_ids: A list of cronjob ids that should be leased. If None, all
         available cronjobs will be leased.
-      lease_time: rdfvalue.DurationSeconds indicating how long the lease should
+      lease_time: rdfvalue.Duration indicating how long the lease should
         be valid.
 
     Returns:
@@ -1828,7 +1838,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       client_id: The client for which the requests should be leased.
-      lease_time: rdfvalue.DurationSeconds indicating how long the lease should
+      lease_time: rdfvalue.Duration indicating how long the lease should
         be valid.
       limit: Lease at most <limit> requests. If set, must be less than 10000.
         Default is 5000.
@@ -1857,13 +1867,16 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """
 
   @abc.abstractmethod
-  def WriteFlowObject(self, flow_obj):
+  def WriteFlowObject(self, flow_obj, allow_update=True):
     """Writes a flow object to the database.
 
     Args:
       flow_obj: An rdf_flow_objects.Flow object to write.
+      allow_update: If False, raises AlreadyExistsError if the flow already
+        exists in the database. If True, the flow will be updated.
 
     Raises:
+      AlreadyExistsError: The flow already exists and allow_update is False.
       UnknownClientError: The client with the flow's client_id does not exist.
     """
 
@@ -3479,10 +3492,11 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertType(request, rdf_flows.ClientActionRequest)
     return self.delegate.DeleteClientActionRequests(requests)
 
-  def WriteFlowObject(self, flow_obj):
+  def WriteFlowObject(self, flow_obj, allow_update=True):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
     precondition.AssertType(flow_obj.create_time, rdfvalue.RDFDatetime)
-    return self.delegate.WriteFlowObject(flow_obj)
+    precondition.AssertType(allow_update, bool)
+    return self.delegate.WriteFlowObject(flow_obj, allow_update=allow_update)
 
   def ReadFlowObject(self, client_id, flow_id):
     precondition.ValidateClientId(client_id)
@@ -3814,7 +3828,7 @@ class DatabaseValidationWrapper(Database):
                        num_clients_at_start_time=None):
     """Updates the hunt object by applying the update function."""
     _ValidateHuntId(hunt_id)
-    precondition.AssertOptionalType(duration, rdfvalue.DurationSeconds)
+    precondition.AssertOptionalType(duration, rdfvalue.Duration)
     precondition.AssertOptionalType(client_rate, (float, int))
     precondition.AssertOptionalType(client_limit, int)
     if hunt_state is not None:
@@ -4168,7 +4182,7 @@ def _ValidateClosedTimeRange(time_range):
 
 
 def _ValidateDuration(duration):
-  precondition.AssertType(duration, rdfvalue.DurationSeconds)
+  precondition.AssertType(duration, rdfvalue.Duration)
 
 
 def _ValidateTimestamp(timestamp):

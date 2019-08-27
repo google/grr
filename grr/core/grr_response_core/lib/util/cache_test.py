@@ -23,7 +23,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     compatibility.SetName(self.mock_fn, "foo")  # Expected by functools.wraps.
 
   def testCallsFunctionEveryTimeWhenMinTimeBetweenCallsZero(self):
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds(0))(
+    decorated = cache.WithLimitedCallFrequency(rdfvalue.Duration(0))(
         self.mock_fn)
     for _ in range(10):
       decorated()
@@ -31,28 +31,30 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     self.assertEqual(self.mock_fn.call_count, 10)
 
   def testCallsFunctionOnceInGivenTimeRangeWhenMinTimeBetweenCallsNonZero(self):
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))(
-        self.mock_fn)
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
+            self.mock_fn)
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
       r1 = decorated()
 
-    with test_lib.FakeTime(now + rdfvalue.DurationSeconds("15s")):
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(15, rdfvalue.SECONDS)):
       r2 = decorated()
 
     self.assertEqual(r1, r2)
     self.assertEqual(self.mock_fn.call_count, 1)
 
-    with test_lib.FakeTime(now + rdfvalue.DurationSeconds("30s")):
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(30, rdfvalue.SECONDS)):
       r3 = decorated()
 
     self.assertNotEqual(r1, r3)
     self.assertEqual(self.mock_fn.call_count, 2)
 
   def testCachingIsDonePerArguments(self):
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))(
-        self.mock_fn)
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
+            self.mock_fn)
 
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
@@ -62,7 +64,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     self.assertNotEqual(r1_a, r1_b)
     self.assertEqual(self.mock_fn.call_count, 2)
 
-    with test_lib.FakeTime(now + rdfvalue.DurationSeconds("15s")):
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(15, rdfvalue.SECONDS)):
       r2_a = decorated(1)
       r2_b = decorated(2)
 
@@ -70,7 +72,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     self.assertEqual(r1_b, r2_b)
     self.assertEqual(self.mock_fn.call_count, 2)
 
-    with test_lib.FakeTime(now + rdfvalue.DurationSeconds("30s")):
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(30, rdfvalue.SECONDS)):
       r3_a = decorated(1)
       r3_b = decorated(2)
 
@@ -85,8 +87,9 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
       event.wait()
       return self.mock_fn()
 
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))(
-        Fn)
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
+            Fn)
 
     results = []
 
@@ -122,8 +125,9 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     mock_fn = mock.Mock(wraps=Fn)
     compatibility.SetName(mock_fn, "foo")  # Expected by functools.wraps.
 
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))(
-        mock_fn)
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
+            mock_fn)
 
     def T():
       decorated(1)
@@ -147,8 +151,9 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     mock_fn = mock.Mock(side_effect=ValueError())
     compatibility.SetName(mock_fn, "foo")  # Expected by functools.wraps.
 
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))(
-        mock_fn)
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
+            mock_fn)
 
     with self.assertRaises(ValueError):
       decorated()
@@ -157,8 +162,9 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
     mock_fn = mock.Mock(side_effect=ValueError())
     compatibility.SetName(mock_fn, "foo")  # Expected by functools.wraps.
 
-    decorated = cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))(
-        mock_fn)
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
+            mock_fn)
 
     for _ in range(10):
       with self.assertRaises(ValueError):

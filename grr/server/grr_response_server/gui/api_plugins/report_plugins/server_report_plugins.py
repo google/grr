@@ -313,9 +313,12 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
     ret = rdf_report_plugins.ApiReportData(
         representation_type=RepresentationType.STACK_CHART)
 
-    week_duration = rdfvalue.DurationSeconds("7d")
-    num_weeks = math.ceil(get_report_args.duration.seconds /
-                          week_duration.seconds)
+    week_duration = rdfvalue.Duration.From(7, rdfvalue.DAYS)
+    num_weeks = int(
+        math.ceil(
+            rdfvalue.Duration(get_report_args.duration).ToFractional(
+                rdfvalue.SECONDS) /
+            week_duration.ToFractional(rdfvalue.SECONDS)))
     weeks = range(0, num_weeks)
     start_time = get_report_args.start_time
     end_time = start_time + num_weeks * week_duration
@@ -325,7 +328,8 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
         start_time=get_report_args.start_time, end_time=end_time, token=token)
 
     for username, timestamp, count in entries:
-      week = (timestamp - start_time).seconds // week_duration.seconds
+      week = (timestamp - start_time).ToInt(
+          rdfvalue.SECONDS) // week_duration.ToInt(rdfvalue.SECONDS)
       if week in user_activity[username]:
         user_activity[username][week] += count
 

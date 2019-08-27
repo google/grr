@@ -34,7 +34,7 @@ class ForemanTests(test_lib.GRRBaseTest):
                        self.StartHuntFlowOnClient):
       # Now setup the filters
       now = rdfvalue.RDFDatetime.Now()
-      expiration_time = now + rdfvalue.DurationSeconds("1h")
+      expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
 
       # Make a new rule
       rule = foreman_rules.ForemanCondition(
@@ -81,14 +81,14 @@ class ForemanTests(test_lib.GRRBaseTest):
     self.SetupClient(0x11, system="Windows XP", install_time=base_time)
     self.SetupClient(0x12, system="Windows 7", install_time=base_time)
     # This one was installed one week earlier.
-    one_week_ago = base_time - rdfvalue.DurationSeconds("1w")
+    one_week_ago = base_time - rdfvalue.Duration.From(1, rdfvalue.WEEKS)
     self.SetupClient(0x13, system="Windows 7", install_time=one_week_ago)
     self.SetupClient(0x14, system="Windows 7", last_boot_time=boot_time)
 
     with utils.Stubber(hunt, "StartHuntFlowOnClient",
                        self.StartHuntFlowOnClient):
       now = rdfvalue.RDFDatetime.Now()
-      expiration_time = now + rdfvalue.DurationSeconds("1h")
+      expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
 
       # Make a new rule
       rule = foreman_rules.ForemanCondition(
@@ -98,7 +98,7 @@ class ForemanTests(test_lib.GRRBaseTest):
           hunt_id="111111")
 
       # Matches the old client
-      one_hour_ago = base_time - rdfvalue.DurationSeconds("1h")
+      one_hour_ago = base_time - rdfvalue.Duration.From(1, rdfvalue.HOURS)
       rule.client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
           foreman_rules.ForemanClientRule(
               rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,

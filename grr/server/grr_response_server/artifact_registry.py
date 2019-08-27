@@ -367,7 +367,7 @@ class ArtifactRegistry(object):
 
   @utils.Synchronized
   def GetRegisteredArtifactNames(self):
-    return [utils.SmartStr(x) for x in self._artifacts]
+    return [str(x) for x in self._artifacts]
 
   @utils.Synchronized
   def GetArtifact(self, name):

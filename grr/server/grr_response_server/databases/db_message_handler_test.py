@@ -59,7 +59,7 @@ class DatabaseTestHandlerMixin(object):
             request_id=i * 100,
             request=rdfvalue.RDFInteger(i)) for i in range(10)
     ]
-    lease_time = rdfvalue.DurationSeconds("5m")
+    lease_time = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
 
     leased = queue.Queue()
     self.db.RegisterMessageHandler(leased.put, lease_time, limit=5)

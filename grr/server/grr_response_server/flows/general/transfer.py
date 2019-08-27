@@ -21,6 +21,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -89,7 +90,7 @@ class GetFile(flow_base.FlowBase):
       stub = server_stubs.StatFile
       request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
 
-    self.CallClient(stub, request, next_state="Stat")
+    self.CallClient(stub, request, next_state=compatibility.GetName(self.Stat))
 
   def Stat(self, responses):
     """Fix up the pathspec of the file."""
@@ -133,7 +134,9 @@ class GetFile(flow_base.FlowBase):
           offset=next_offset,
           length=self.CHUNK_SIZE)
       self.CallClient(
-          server_stubs.TransferBuffer, request, next_state="ReadBuffer")
+          server_stubs.TransferBuffer,
+          request,
+          next_state=compatibility.GetName(self.ReadBuffer))
       self.state.current_chunk_number += 1
 
   def ReadBuffer(self, responses):
@@ -341,7 +344,7 @@ class MultiGetFileLogic(object):
     self.CallClient(
         stub,
         request,
-        next_state="StoreStat",
+        next_state=compatibility.GetName(self.StoreStat),
         request_data=dict(index=index, request_name=request_name))
 
     request = rdf_client_action.FingerprintRequest(
@@ -357,7 +360,7 @@ class MultiGetFileLogic(object):
     self.CallClient(
         server_stubs.HashFile,
         request,
-        next_state="ReceiveFileHash",
+        next_state=compatibility.GetName(self.ReceiveFileHash),
         request_data=dict(index=index))
 
   def _RemoveCompletedPathspec(self, index):
@@ -497,7 +500,6 @@ class MultiGetFileLogic(object):
     # values are arrays of tracker dicts.
     hash_to_tracker = {}
     for index, tracker in iteritems(self.state.pending_hashes):
-
       # We might not have gotten this hash yet
       if tracker.get("hash_obj") is None:
         continue
@@ -562,7 +564,7 @@ class MultiGetFileLogic(object):
         file_tracker["size_to_download"] = file_tracker["stat_entry"].st_size
 
       # We do not have the file here yet - we need to retrieve it.
-      expected_number_of_hashes = (
+      expected_number_of_hashes = file_tracker["expected_chunks"] = (
           file_tracker["size_to_download"] // self.CHUNK_SIZE + 1)
 
       # We just hash ALL the chunks in the file now. NOTE: This maximizes client
@@ -582,7 +584,7 @@ class MultiGetFileLogic(object):
             pathspec=file_tracker["stat_entry"].pathspec,
             offset=i * self.CHUNK_SIZE,
             length=length,
-            next_state="CheckHash",
+            next_state=compatibility.GetName(self.CheckHash),
             request_data=dict(index=index))
 
     if self.state.files_hashed % 100 == 0:
@@ -645,14 +647,14 @@ class MultiGetFileLogic(object):
           # If we have the data we may call our state directly.
           self.CallStateInline(
               messages=[hash_response],
-              next_state="WriteBuffer",
+              next_state=compatibility.GetName(self.WriteBuffer),
               request_data=dict(index=index, blob_index=i))
         else:
           # We dont have this blob - ask the client to transmit it.
           self.CallClient(
               server_stubs.TransferBuffer,
               hash_response,
-              next_state="WriteBuffer",
+              next_state=compatibility.GetName(self.WriteBuffer),
               request_data=dict(index=index, blob_index=i))
 
   def WriteBuffer(self, responses):
@@ -676,7 +678,7 @@ class MultiGetFileLogic(object):
     blob_index = responses.request_data["blob_index"]
     blob_dict[blob_index] = (response.data, response.length)
 
-    if len(blob_dict) != len(file_tracker["hash_list"]):
+    if len(blob_dict) != file_tracker["expected_chunks"]:
       # We need more data before we can write the file.
       return
 
@@ -814,7 +816,10 @@ class GetMBR(flow_base.FlowBase):
           pathspec=pathspec,
           offset=i * buffer_size,
           length=min(bytes_we_need, buffer_size))
-      self.CallClient(server_stubs.ReadBuffer, request, next_state="StoreMBR")
+      self.CallClient(
+          server_stubs.ReadBuffer,
+          request,
+          next_state=compatibility.GetName(self.StoreMBR))
       bytes_we_need -= buffer_size
 
   def StoreMBR(self, responses):
@@ -882,7 +887,10 @@ class SendFile(flow_base.FlowBase):
 
   def Start(self):
     """This issues the sendfile request."""
-    self.CallClient(server_stubs.SendFile, self.args, next_state="Done")
+    self.CallClient(
+        server_stubs.SendFile,
+        self.args,
+        next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     if not responses.success:

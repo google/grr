@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 from absl import app
 
-from grr_response_core.lib import rdfvalue
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import test_lib
 
@@ -178,7 +177,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
         "42")
     self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
-              str(rdfvalue.DurationSeconds("1337s")))
+              "1337s")
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -203,7 +202,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
         "42")
     self.Type("css=grr-modify-hunt-dialog label:contains('Duration') ~ * input",
-              str(rdfvalue.DurationSeconds("1337s")))
+              "1337s")
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.

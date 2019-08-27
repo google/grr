@@ -279,8 +279,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     # Check that the hunt was created with correct rules
     self.assertLen(hunt_rules, 1)
     lifetime = hunt_rules[0].GetLifetime()
-    lifetime -= rdfvalue.DurationSeconds("2w")
-    self.assertLessEqual(lifetime, rdfvalue.DurationSeconds("1s"))
+    lifetime -= rdfvalue.Duration.From(2, rdfvalue.WEEKS)
+    self.assertLessEqual(lifetime, rdfvalue.Duration.From(1, rdfvalue.SECONDS))
 
     r = hunt_rules[0].client_rule_set
 

@@ -85,7 +85,8 @@ class ActionPlugin(object):
     self.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     self._last_gc_run = rdfvalue.RDFDatetime.Now()
-    self._gc_frequency = config.CONFIG["Client.gc_frequency"]
+    self._gc_frequency = rdfvalue.Duration.From(
+        config.CONFIG["Client.gc_frequency"], rdfvalue.SECONDS)
     self.proc = psutil.Process()
     self.cpu_start = self.proc.cpu_times()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit

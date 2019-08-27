@@ -1346,7 +1346,10 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
         if args.HasField("client_rate"):
           kw_args["client_rate"] = args.client_rate
 
-        kw_args["duration"] = args.duration
+        if args.duration is None:
+          kw_args["duration"] = None
+        else:
+          kw_args["duration"] = rdfvalue.Duration(args.duration)
 
         data_store.REL_DB.UpdateHuntObject(hunt_id, **kw_args)
         hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)

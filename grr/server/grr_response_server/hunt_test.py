@@ -9,6 +9,7 @@ import os
 import sys
 
 from absl import app
+import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -284,8 +285,8 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     for i, (r, client_id) in enumerate(zip(requests, client_ids[1:])):
       self.assertEqual(r.client_id, client_id)
       time_diff = r.delivery_time - (
-          now + rdfvalue.DurationSeconds("1m") * (i + 1))
-      self.assertLess(time_diff, rdfvalue.DurationSeconds("5s"))
+          now + rdfvalue.Duration.From(1, rdfvalue.MINUTES) * (i + 1))
+      self.assertLess(time_diff, rdfvalue.Duration.From(5, rdfvalue.SECONDS))
 
   def testResultsAreCorrectlyCounted(self):
     path = os.path.join(self.base_path, "*hello*")
@@ -784,7 +785,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
   def testHuntIsStoppedWhenExpirationTimeIsReached(self):
     client_ids = self.SetupClients(5)
 
-    duration = rdfvalue.DurationSeconds("1d")
+    duration = rdfvalue.Duration.From(1, rdfvalue.DAYS)
     expiry_time = rdfvalue.RDFDatetime.Now() + duration
 
     hunt_id = self._CreateHunt(
@@ -803,13 +804,15 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     self.assertEqual(hunt_obj.hunt_state,
                      rdf_hunt_objects.Hunt.HuntState.STARTED)
 
-    with test_lib.FakeTime(expiry_time - rdfvalue.DurationSeconds("1s")):
+    with test_lib.FakeTime(expiry_time -
+                           rdfvalue.Duration.From(1, rdfvalue.SECONDS)):
       hunt_test_lib.TestHuntHelper(client_mock, client_ids[3:4])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state,
                        rdf_hunt_objects.Hunt.HuntState.STARTED)
 
-    with test_lib.FakeTime(expiry_time + rdfvalue.DurationSeconds("1s")):
+    with test_lib.FakeTime(expiry_time +
+                           rdfvalue.Duration.From(1, rdfvalue.SECONDS)):
       hunt_test_lib.TestHuntHelper(client_mock, client_ids[4:5])
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
       self.assertEqual(hunt_obj.hunt_state,
@@ -1016,6 +1019,27 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     hunt_urn = hunt.HuntURNFromID("12345678")
     self.assertIsInstance(hunt_urn, rdfvalue.RDFURN)
     self.assertEqual(hunt_urn, rdfvalue.RDFURN("aff4:/hunts/H:12345678"))
+
+  def testScheduleHuntRaceCondition(self):
+    client_id = self.SetupClient(0)
+    hunt_id = self._CreateHunt(args=self.GetFileHuntArgs())
+    original = data_store.REL_DB.delegate.WriteFlowObject
+
+    def WriteFlowObject(*args, **kwargs):
+      with mock.patch.object(data_store.REL_DB.delegate, "WriteFlowObject",
+                             original):
+        try:
+          hunt.StartHuntFlowOnClient(client_id, hunt_id)
+        except Exception as e:
+          raise AssertionError(e)
+        return data_store.REL_DB.WriteFlowObject(*args, **kwargs)
+
+    # Patch WriteFlowObject to execute another hunt.StartHuntFlowOnClient() for
+    # the same flow and client during the initial StartHuntFlowOnClient().
+    with mock.patch.object(data_store.REL_DB.delegate, "WriteFlowObject",
+                           WriteFlowObject):
+      with self.assertRaises(hunt.flow.CanNotStartFlowWithExistingIdError):
+        hunt.StartHuntFlowOnClient(client_id, hunt_id)
 
 
 def main(argv):

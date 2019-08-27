@@ -41,7 +41,7 @@ from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
 
 CSRF_DELIMITER = b":"
-CSRF_TOKEN_DURATION = rdfvalue.DurationSeconds("10h")
+CSRF_TOKEN_DURATION = rdfvalue.Duration.From(10, rdfvalue.HOURS)
 
 
 def GenerateCSRFToken(user_id, time):
@@ -69,7 +69,9 @@ def StoreCSRFCookie(user, response):
 
   csrf_token = GenerateCSRFToken(user, None)
   response.set_cookie(
-      "csrftoken", csrf_token, max_age=CSRF_TOKEN_DURATION.seconds)
+      "csrftoken",
+      csrf_token,
+      max_age=CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS))
 
 
 def ValidateCSRFTokenOrRaise(request):

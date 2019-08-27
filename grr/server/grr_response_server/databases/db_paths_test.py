@@ -540,7 +540,7 @@ class DatabaseTestPathsMixin(object):
           client_id,
           rdf_objects.PathInfo.PathType.REGISTRY,
           components=("foo", "bar", "baz"),
-          timestamp=rdfvalue.DurationSeconds("10s"))
+          timestamp=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
   def testReadPathInfoNonExistent(self):
     client_id = db_test_utils.InitializeClient(self.db)

@@ -78,14 +78,14 @@ def Repr(obj):
 
 
 def GetName(obj):
-  """A compatibility wrapper for getting object's name.
+  """A compatibility wrapper for getting the name of an object or function.
 
-  In Python 2 class names are returned as `bytes` (since class names can contain
-  only ASCII characters) whereas in Python 3 they are `unicode` (since class
-  names can contain arbitrary unicode characters).
+  In Python 2 names are returned as `bytes` (since names can contain only ASCII
+  characters) whereas in Python 3 they are `unicode` (since names can contain
+  arbitrary unicode characters).
 
-  This function makes this behaviour consistent and always returns class name as
-  an unicode string.
+  This function makes this behaviour consistent and always returns the name as
+  a unicode string.
 
   Once support for Python 2 is dropped all invocations of this call can be
   replaced with ordinary `__name__` access.
@@ -94,7 +94,7 @@ def GetName(obj):
     obj: A type or function object to get the name for.
 
   Returns:
-    Name of the specified class as unicode string.
+    Name of the specified object as unicode string.
   """
   precondition.AssertType(obj, (type, types.FunctionType, types.MethodType))
 

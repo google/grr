@@ -48,7 +48,7 @@ class YaraProcessScan(flow_base.FlowBase):
       self.CallClient(
           server_stubs.YaraProcessScan,
           request=self.args,
-          next_state="ProcessScanResults")
+          next_state=compatibility.GetName(self.ProcessScanResults))
       return
 
     signature_bytes = self.args.yara_signature.SerializeToBytes()
@@ -65,7 +65,7 @@ class YaraProcessScan(flow_base.FlowBase):
       self.CallClient(
           server_stubs.YaraProcessScan,
           request=client_request,
-          next_state="ProcessScanResults")
+          next_state=compatibility.GetName(self.ProcessScanResults))
 
   def ProcessScanResults(
       self,
@@ -108,7 +108,7 @@ class YaraProcessScan(flow_base.FlowBase):
           skip_shared_regions=self.args.skip_shared_regions,
           skip_executable_regions=self.args.skip_executable_regions,
           skip_readonly_regions=self.args.skip_readonly_regions,
-          next_state="CheckDumpProcessMemoryResults")
+          next_state=compatibility.GetName(self.CheckDumpProcessMemoryResults))
 
   def CheckDumpProcessMemoryResults(self, responses):
     if not responses.success:
@@ -185,7 +185,7 @@ class DumpProcessMemory(flow_base.FlowBase):
     self.CallClient(
         server_stubs.YaraProcessDump,
         request=self.args,
-        next_state="ProcessResults")
+        next_state=compatibility.GetName(self.ProcessResults))
 
   def ProcessResults(
       self,
@@ -246,7 +246,7 @@ class DumpProcessMemory(flow_base.FlowBase):
       self.CallClient(
           server_stubs.DeleteGRRTempFiles,
           response.pathspec,
-          next_state="LogDeleteFiles")
+          next_state=compatibility.GetName(self.LogDeleteFiles))
 
   def LogDeleteFiles(
       self, responses):

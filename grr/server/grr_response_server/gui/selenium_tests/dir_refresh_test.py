@@ -73,7 +73,8 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     flow_test_lib.FinishAllFlowsOnClient(
         self.client_id, check_flow_errors=False)
 
-    time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1h")
+    time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
+        1, rdfvalue.HOURS)
     # We have to make sure that the new version will not be within a second
     # from the current one, otherwise the previous one and the new one will
     # be indistinguishable in the UI (as it has a 1s precision when

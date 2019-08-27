@@ -325,7 +325,7 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
     """Returns the cipher for self.server_name."""
 
     if self.server_cipher is not None:
-      expiry = self.server_cipher_age + rdfvalue.DurationSeconds("1d")
+      expiry = self.server_cipher_age + rdfvalue.Duration.From(1, rdfvalue.DAYS)
       if expiry > rdfvalue.RDFDatetime.Now():
         return self.server_cipher
 

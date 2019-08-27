@@ -95,7 +95,7 @@ class ClientStats(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  DEFAULT_SAMPLING_INTERVAL = rdfvalue.DurationSeconds("60s")
+  DEFAULT_SAMPLING_INTERVAL = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
   @classmethod
   def Downsampled(cls, stats, interval=None):

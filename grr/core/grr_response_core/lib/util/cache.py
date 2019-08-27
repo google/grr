@@ -22,7 +22,7 @@ def WithLimitedCallFrequency(min_time_between_calls):
   excessive calls a previous cached return value will be returned.
 
   Suppose we use the decorator like this:
-  @cache.WithLimitedCallFrequency(rdfvalue.DurationSeconds("30s"))
+  @cache.WithLimitedCallFrequency(rdfvalue.Duration.From(30, rdfvalue.SECONDS))
   def Foo(id):
     ...
 
@@ -46,7 +46,7 @@ def WithLimitedCallFrequency(min_time_between_calls):
   NOTE 2: all decorated functions' arguments have to be hashable.
 
   Args:
-    min_time_between_calls: An rdfvalue.DurationSeconds specifying the minimal
+    min_time_between_calls: An rdfvalue.Duration specifying the minimal
     time to pass between 2 consecutive function calls with same arguments.
 
   Returns:
@@ -67,7 +67,7 @@ def WithLimitedCallFrequency(min_time_between_calls):
 
       if WITH_LIMITED_CALL_FREQUENCY_PASS_THROUGH:
         # This effectively turns off the caching.
-        min_time = rdfvalue.DurationSeconds(0)
+        min_time = rdfvalue.Duration(0)
       else:
         min_time = min_time_between_calls
 

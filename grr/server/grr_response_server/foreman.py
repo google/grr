@@ -55,7 +55,7 @@ class Foreman(object):
       if self._CheckIfHuntTaskWasAssigned(client_id, rule.hunt_id):
         logging.info(
             "Foreman: ignoring hunt %s on client %s: was started "
-            "here before", client_id, rule.hunt_id)
+            "here before", rule.hunt_id, client_id)
       else:
         try:
           hunt.StartHuntFlowOnClient(client_id, rule.hunt_id)
@@ -64,7 +64,7 @@ class Foreman(object):
         except flow.CanNotStartFlowWithExistingIdError:
           logging.info(
               "Foreman: ignoring hunt %s on client %s: was started "
-              "here before", client_id, rule.hunt_id)
+              "here before", rule.hunt_id, client_id)
 
         actions_count += 1
 

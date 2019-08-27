@@ -28,9 +28,8 @@ config_lib.DEFINE_integer("BigQuery.max_upload_failures", 100,
                           "Total number of times to try uploading to BigQuery"
                           " for a given hunt or flow.")
 
-config_lib.DEFINE_semantic_value(rdfvalue.DurationSeconds,
-                                 "BigQuery.retry_interval", "2s",
-                                 "Time to wait before first retry.")
+config_lib.DEFINE_semantic_value(rdfvalue.Duration, "BigQuery.retry_interval",
+                                 "2s", "Time to wait before first retry.")
 
 config_lib.DEFINE_integer("BigQuery.retry_multiplier", 2,
                           "For each retry, multiply last delay by this value.")

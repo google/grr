@@ -24,7 +24,7 @@ from grr_response_server.flows.general import discovery as flows_discovery
 _STATS_DELETION_BATCH_SIZE = 10000
 
 # How often to save progress to the DB when deleting stats.
-_stats_checkpoint_period = rdfvalue.DurationSeconds("15m")
+_stats_checkpoint_period = rdfvalue.Duration.From(15, rdfvalue.MINUTES)
 
 # Label used for aggregating fleet statistics across all clients.
 _ALL_CLIENT_FLEET_STATS_LABEL = "All"
@@ -70,8 +70,8 @@ def _WriteFleetBreakdownStatsToDB(fleet_stats, report_type):
 class GRRVersionBreakDownCronJob(cronjobs.SystemCronJobBase):
   """Saves a snapshot of n-day-active stats for all GRR client versions."""
 
-  frequency = rdfvalue.DurationSeconds("6h")
-  lifetime = rdfvalue.DurationSeconds("6h")
+  frequency = rdfvalue.Duration.From(6, rdfvalue.HOURS)
+  lifetime = rdfvalue.Duration.From(6, rdfvalue.HOURS)
 
   def Run(self):
     version_stats = data_store.REL_DB.CountClientVersionStringsByLabel(
@@ -83,8 +83,8 @@ class GRRVersionBreakDownCronJob(cronjobs.SystemCronJobBase):
 class OSBreakDownCronJob(cronjobs.SystemCronJobBase):
   """Saves a snapshot of n-day-active stats for all client platform/releases."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+  lifetime = rdfvalue.Duration.From(20, rdfvalue.HOURS)
 
   def Run(self):
     platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
@@ -101,7 +101,7 @@ def _WriteFleetAggregateStatsToDB(client_label, bucket_dict):
   graph = rdf_stats.Graph()
   for day_bucket, num_actives in sorted(iteritems(bucket_dict)):
     graph.Append(
-        x_value=rdfvalue.DurationSeconds.FromDays(day_bucket).microseconds,
+        x_value=rdfvalue.Duration.From(day_bucket, rdfvalue.DAYS).microseconds,
         y_value=num_actives)
   graph_series = rdf_stats.ClientGraphSeries(
       report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE)
@@ -112,8 +112,8 @@ def _WriteFleetAggregateStatsToDB(client_label, bucket_dict):
 class LastAccessStatsCronJob(cronjobs.SystemCronJobBase):
   """Saves a snapshot of generalized n-day-active stats."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+  lifetime = rdfvalue.Duration.From(20, rdfvalue.HOURS)
 
   def Run(self):
     platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
@@ -164,7 +164,8 @@ class _ActiveCounter(object):
 
     for active_time in self.active_days:
       self.categories[active_time].setdefault(label, {})
-      if (now - age).seconds < active_time * 24 * 60 * 60:
+      if (now - age).ToFractional(
+          rdfvalue.SECONDS) < active_time * 24 * 60 * 60:
         self.categories[active_time][label][
             category] = self.categories[active_time][label].get(category, 0) + 1
 
@@ -237,7 +238,7 @@ class InterrogationHuntMixin(object):
         client_rate=50,
         crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],
         description=description,
-        duration=rdfvalue.DurationSeconds("1w"),
+        duration=rdfvalue.Duration.From(1, rdfvalue.WEEKS),
         output_plugins=self.GetOutputPlugins())
     self.Log("Started hunt %s.", hunt_id)
 
@@ -250,9 +251,9 @@ class InterrogateClientsCronJob(cronjobs.SystemCronJobBase,
   fresh and enable searching by username etc. in the GUI.
   """
 
-  frequency = rdfvalue.DurationSeconds("1w")
+  frequency = rdfvalue.Duration.From(1, rdfvalue.WEEKS)
   # This just starts a hunt, which should be essentially instantantaneous
-  lifetime = rdfvalue.DurationSeconds("30m")
+  lifetime = rdfvalue.Duration.From(30, rdfvalue.MINUTES)
 
   def Run(self):
     self.StartInterrogationHunt()
@@ -261,8 +262,8 @@ class InterrogateClientsCronJob(cronjobs.SystemCronJobBase,
 class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
   """Deletes outdated client statistics."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+  lifetime = rdfvalue.Duration.From(20, rdfvalue.HOURS)
 
   def Run(self):
     end = rdfvalue.RDFDatetime.Now() - db.CLIENT_STATS_RETENTION

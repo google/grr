@@ -134,9 +134,19 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     return row
 
   def _WriteJSONValue(self, output_file, value, delimiter=None):
-    # We write newline-separated dicts of JSON values, so each JSON value is not
-    # allowed to contain any newline characters.
-    dumped_json = json.Dump(self._GetNestedDict(value)).replace("\n", "")
+    dct = self._GetNestedDict(value)
+
+    # TODO: One of the users reported an error where serialization
+    # to JSON fails with decoding error. This is likely due to improper handling
+    # of spurious browser history entries. Because the bug is hard to reproduce,
+    # we log erroneous dictionary and re-raise the exception.
+    try:
+      # We write newline-separated dicts of JSON values, so each JSON value is
+      # not allowed to contain any newline characters.
+      dumped_json = json.Dump(dct).replace("\n", "")
+    except UnicodeDecodeError:
+      logging.error("Incorrect primitive dict has been built: %r", dct)
+      raise
 
     if delimiter:
       output_file.write(delimiter.encode("utf-8"))

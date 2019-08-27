@@ -493,10 +493,10 @@ class GRRClientWorker(threading.Thread):
   sent_bytes_per_flow = {}
 
   # Client sends stats notifications at least every 50 minutes.
-  STATS_MAX_SEND_INTERVAL = rdfvalue.DurationSeconds("50m")
+  STATS_MAX_SEND_INTERVAL = rdfvalue.Duration.From(50, rdfvalue.MINUTES)
 
   # Client sends stats notifications at most every 60 seconds.
-  STATS_MIN_SEND_INTERVAL = rdfvalue.DurationSeconds("60s")
+  STATS_MIN_SEND_INTERVAL = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
   def __init__(self,
                client=None,

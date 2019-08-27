@@ -35,7 +35,7 @@ from future.utils import iteritems
 from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
-from typing import cast, Text, Union
+from typing import cast, Any, Text, Union
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -699,8 +699,7 @@ class RDFDatetime(RDFInteger):
     elif isinstance(other, RDFDatetime):
       diff_us = (
           self.AsMicrosecondsSinceEpoch() - other.AsMicrosecondsSinceEpoch())
-      # TODO: Replace with Duration.
-      return DurationSeconds.FromMicroseconds(diff_us)
+      return Duration.From(diff_us, MICROSECONDS)
 
     return NotImplemented
 
@@ -745,11 +744,9 @@ class RDFDatetime(RDFInteger):
     return calendar.timegm(timestamp.utctimetuple()) * cls.converter
 
   def Floor(self, interval):
-    if not isinstance(interval, DurationSeconds):
-      raise TypeError("Expected `DurationSeconds`, got `%s`" %
-                      interval.__class__)
-
-    seconds = self.AsSecondsSinceEpoch() // interval.seconds * interval.seconds
+    precondition.AssertType(interval, Duration)
+    seconds = self.AsSecondsSinceEpoch() // interval.ToInt(
+        SECONDS) * interval.ToInt(SECONDS)
     return self.FromSecondsSinceEpoch(seconds)
 
 
@@ -793,10 +790,10 @@ class Duration(RDFPrimitive):
         absolute (positive) value will be stored.
     """
     super(Duration, self).__init__(initializer=initializer)
-    if isinstance(initializer, (int, RDFInteger)):
-      self._value = abs(int(initializer))
-    elif isinstance(initializer, (DurationSeconds, Duration)):
+    if isinstance(initializer, (DurationSeconds, Duration)):
       self._value = abs(initializer.microseconds)
+    elif isinstance(initializer, (int, RDFInteger)):
+      self._value = abs(int(initializer))
     elif initializer is None:
       self._value = 0
     else:
@@ -865,6 +862,15 @@ class Duration(RDFPrimitive):
       return self.__class__(self.microseconds - other.microseconds)
     else:
       return NotImplemented
+
+  def __mul__(self, other):
+    if isinstance(other, int):
+      return self.__class__(self.microseconds * other)
+    else:
+      return NotImplemented
+
+  def __rmul__(self, other):
+    return self.__mul__(other)
 
   def __lt__(self, other):
     if isinstance(other, (Duration, DurationSeconds)):
@@ -970,10 +976,12 @@ class DurationSeconds(RDFInteger):
       ("s", 1)))
   # pyformat: enable
 
-  def __init__(self, initializer=None):
+  def __init__(self, initializer = None):
     super(DurationSeconds, self).__init__(None)
     if isinstance(initializer, DurationSeconds):
-      self._value = initializer._value  # pylint: disable=protected-access
+      self._value = initializer.seconds
+    elif isinstance(initializer, Duration):
+      self._value = initializer.ToInt(SECONDS)  # type: ignore
     elif isinstance(initializer, Text):
       self.ParseFromHumanReadable(initializer)
     elif isinstance(initializer, bytes):
@@ -1105,6 +1113,12 @@ class DurationSeconds(RDFInteger):
     except ValueError:
       raise InitializeError("Could not parse expiration time '%s'." %
                             orig_string)
+
+  def __eq__(self, other):
+    if isinstance(other, (Duration, DurationSeconds)):
+      return self.microseconds == other.microseconds
+    else:
+      return NotImplemented
 
 
 class ByteSize(RDFInteger):

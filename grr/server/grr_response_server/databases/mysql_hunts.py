@@ -167,8 +167,8 @@ class MySQLDBHuntMixin(object):
         body,
     ) = row
     hunt_obj = rdf_hunt_objects.Hunt.FromSerializedBytes(body)
-    hunt_obj.duration = rdfvalue.DurationSeconds.FromMicroseconds(
-        duration_micros)
+    hunt_obj.duration = rdfvalue.Duration.From(duration_micros,
+                                               rdfvalue.MICROSECONDS)
     hunt_obj.create_time = mysql_utils.TimestampToRDFDatetime(create_time)
     hunt_obj.last_update_time = mysql_utils.TimestampToRDFDatetime(
         last_update_time)
@@ -312,8 +312,8 @@ class MySQLDBHuntMixin(object):
               description=description or None,
               create_time=mysql_utils.TimestampToRDFDatetime(create_timestamp),
               creator=creator,
-              duration=rdfvalue.DurationSeconds.FromMicroseconds(
-                  duration_micros),
+              duration=rdfvalue.Duration.From(duration_micros,
+                                              rdfvalue.MICROSECONDS),
               client_rate=client_rate,
               client_limit=client_limit,
               hunt_state=hunt_state,

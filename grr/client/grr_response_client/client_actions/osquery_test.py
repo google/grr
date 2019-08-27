@@ -8,11 +8,11 @@ from __future__ import unicode_literals
 
 import binascii
 import collections
-import datetime
 import hashlib
 import io
 import os
 import socket
+import time
 
 from absl import flags
 from absl.testing import absltest
@@ -137,19 +137,16 @@ class OsqueryTest(absltest.TestCase):
       _Query("")
 
   def testTime(self):
-    date_before = datetime.date.today()
-    results = _Query("SELECT year, month, day FROM time;")
-    date_after = datetime.date.today()
+    time_before = int(time.time())
+    results = _Query("SELECT unix_time FROM time;")
+    time_after = int(time.time())
     self.assertLen(results, 1)
 
     table = results[0].table
     self.assertLen(table.rows, 1)
 
-    date_result = datetime.date(
-        year=int(list(table.Column("year"))[0]),
-        month=int(list(table.Column("month"))[0]),
-        day=int(list(table.Column("day"))[0]))
-    self.assertBetween(date_result, date_before, date_after)
+    time_result = int(list(table.Column("unix_time"))[0])
+    self.assertBetween(time_result, time_before, time_after)
 
   def testTimeout(self):
     with self.assertRaises(osquery.TimeoutError):
@@ -159,7 +156,8 @@ class OsqueryTest(absltest.TestCase):
     results = _Query("SELECT hostname FROM system_info;")
     self.assertLen(results, 1)
 
-    hostname = socket.gethostname()
+    # Apparently osquery returns FQDN in "hostname" column.
+    hostname = socket.getfqdn()
 
     table = results[0].table
     self.assertLen(table.rows, 1)

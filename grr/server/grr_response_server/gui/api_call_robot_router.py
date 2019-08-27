@@ -215,7 +215,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return throttle.FlowThrottler(
         daily_req_limit=ffparams.max_flows_per_client_daily,
-        dup_interval=ffparams.min_interval_between_duplicate_flows)
+        dup_interval=rdfvalue.Duration(
+            ffparams.min_interval_between_duplicate_flows))
 
   def _CheckArtifactCollectorFlowArgs(self, flow_args):
     if not self.params.artifact_collector_flow.enabled:
@@ -232,7 +233,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
 
     return throttle.FlowThrottler(
         daily_req_limit=acparams.max_flows_per_client_daily,
-        dup_interval=acparams.min_interval_between_duplicate_flows)
+        dup_interval=rdfvalue.Duration(
+            acparams.min_interval_between_duplicate_flows))
 
   def _CheckFlowRobotId(self, client_id, flow_id, token=None):
     # We don't use robot ids in REL_DB, but simply check that flow's creator is

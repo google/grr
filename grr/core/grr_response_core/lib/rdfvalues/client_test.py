@@ -389,7 +389,7 @@ class ClientStatsTest(absltest.TestCase):
         ])
 
     actual = rdf_client_stats.ClientStats.Downsampled(
-        stats, interval=rdfvalue.DurationSeconds("10m"))
+        stats, interval=rdfvalue.Duration.From(10, rdfvalue.MINUTES))
 
     self.assertEqual(actual, expected)
 

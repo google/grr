@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
@@ -75,7 +76,9 @@ class FindFiles(flow_base.FlowBase):
 
     # Call the client with it
     self.CallClient(
-        server_stubs.Find, self.args.findspec, next_state="StoreResults")
+        server_stubs.Find,
+        self.args.findspec,
+        next_state=compatibility.GetName(self.StoreResults))
 
   def StoreResults(self, responses):
     """Stores the results returned from the client."""

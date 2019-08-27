@@ -63,7 +63,7 @@ class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ActionMock(admin.Echo)
     flow_test_lib.TestFlowHelper(
         compatibility.GetName(administrative.KeepAlive),
-        duration=rdfvalue.DurationSeconds("1s"),
+        duration=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
         client_id=client_id,
         client_mock=client_mock,
         token=self.token)

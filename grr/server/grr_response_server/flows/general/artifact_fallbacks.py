@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
@@ -60,7 +61,7 @@ class SystemRootSystemDriveFallbackFlow(flow_base.FlowBase):
       self.CallClient(
           server_stubs.ListDirectory,
           pathspec=pathspec,
-          next_state="ProcessFileStats")
+          next_state=compatibility.GetName(self.ProcessFileStats))
 
   def ProcessFileStats(self, responses):
     """Extract DataBlob from Stat response."""

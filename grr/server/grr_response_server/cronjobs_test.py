@@ -23,8 +23,8 @@ from grr.test_lib import test_lib
 class DummySystemCronJobRel(cronjobs.SystemCronJobBase):
   """Dummy system cron job."""
 
-  lifetime = rdfvalue.DurationSeconds("42h")
-  frequency = rdfvalue.DurationSeconds("42d")
+  lifetime = rdfvalue.Duration.From(42, rdfvalue.HOURS)
+  frequency = rdfvalue.Duration.From(42, rdfvalue.DAYS)
 
   def Run(self):
     pass
@@ -33,8 +33,8 @@ class DummySystemCronJobRel(cronjobs.SystemCronJobBase):
 class DummyStatefulSystemCronJobRel(cronjobs.SystemCronJobBase):
   """Dummy stateful system cron job."""
 
-  frequency = rdfvalue.DurationSeconds("1d")
-  lifetime = rdfvalue.DurationSeconds("20h")
+  frequency = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+  lifetime = rdfvalue.Duration.From(20, rdfvalue.HOURS)
 
   VALUES = []
 
@@ -97,7 +97,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     self.assertEqual(hunt_args.flow_args.pathspec, pathspec)
 
-    self.assertEqual(cron_job.frequency, rdfvalue.DurationSeconds("1d"))
+    self.assertEqual(cron_job.frequency,
+                     rdfvalue.Duration.From(1, rdfvalue.DAYS))
     self.assertEqual(cron_job.allow_overruns, False)
 
   def testCronJobStartsRun(self):
@@ -202,8 +203,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_job_id="cron_1",
         args=args,
         enabled=True,
-        frequency=rdfvalue.DurationSeconds("2h"),
-        lifetime=rdfvalue.DurationSeconds("1h"),
+        frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
+        lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
         allow_overruns=False)
     data_store.REL_DB.WriteCronJob(job)
 
@@ -218,8 +219,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_job_id="cron_2",
         args=args,
         enabled=True,
-        frequency=rdfvalue.DurationSeconds("2h"),
-        lifetime=rdfvalue.DurationSeconds("1h"),
+        frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
+        lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
         allow_overruns=False)
     data_store.REL_DB.WriteCronJob(job)
 
@@ -250,7 +251,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           job = cron_manager.ReadJob(job_id)
           self.assertTrue(cron_manager.JobIsRunning(job))
 
-        fake_time += rdfvalue.DurationSeconds("2h")
+        fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
           cron_manager.RunOnce(token=self.token)
 
@@ -327,7 +328,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     # Let 59 minutes pass. Frequency is 1 hour, so new flow is not
     # supposed to start.
-    fake_time += rdfvalue.DurationSeconds("59m")
+    fake_time += rdfvalue.Duration.From(59, rdfvalue.MINUTES)
     with test_lib.FakeTime(fake_time):
 
       cron_manager.RunOnce(token=self.token)
@@ -357,7 +358,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         # supposed to be started every hour), so the new flow should be started
         # by RunOnce(). However, as allow_overruns is False, and previous
         # iteration flow hasn't finished yet, no flow will be started.
-        fake_time += rdfvalue.DurationSeconds("2h")
+        fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
 
           cron_manager.RunOnce(token=self.token)
@@ -391,7 +392,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         # supposed to be started every hour), so the new flow should be started
         # by RunOnce(). However, as allow_overruns is False, and previous
         # iteration flow hasn't finished yet, no flow will be started.
-        fake_time += rdfvalue.DurationSeconds("2h")
+        fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
 
           cron_manager.RunOnce(token=self.token)
@@ -493,7 +494,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
         prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
-        fake_time += rdfvalue.DurationSeconds("2h")
+        fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
           signal_event.clear()
           # First RunOnce call will mark the stuck job as failed.
@@ -533,8 +534,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
           self.assertEqual(
               current_latency_value.count - prev_latency_value.count, 1)
-          self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
-                           rdfvalue.DurationSeconds("2h").seconds)
+          self.assertEqual(
+              current_latency_value.sum - prev_latency_value.sum,
+              rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS))
 
       finally:
         # Make sure that the cron job thread actually finishes.
@@ -574,7 +576,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
       prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
-      fake_time += rdfvalue.DurationSeconds("2h")
+      fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
       with test_lib.FakeTime(fake_time):
         wait_event.set()
         cron_manager._GetThreadPool().Join()
@@ -595,8 +597,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         current_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
         self.assertEqual(current_latency_value.count - prev_latency_value.count,
                          1)
-        self.assertEqual(current_latency_value.sum - prev_latency_value.sum,
-                         rdfvalue.DurationSeconds("2h").seconds)
+        self.assertEqual(
+            current_latency_value.sum - prev_latency_value.sum,
+            rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS))
 
   def testError(self):
     with mock.patch.object(
@@ -712,15 +715,15 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_job_id="test_cron",
         args=args,
         enabled=True,
-        frequency=rdfvalue.DurationSeconds("2h"),
-        lifetime=rdfvalue.DurationSeconds("1h"),
+        frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
+        lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
         allow_overruns=False)
     data_store.REL_DB.WriteCronJob(job)
 
     fake_time = rdfvalue.RDFDatetime.Now()
     for i in range(3):
-      with test_lib.FakeTime(fake_time + rdfvalue.DurationSeconds("%dh" %
-                                                                  (3 * i))):
+      with test_lib.FakeTime(fake_time +
+                             rdfvalue.Duration.From(3 * i, rdfvalue.HOURS)):
         cron_manager.RunOnce()
         cron_manager._GetThreadPool().Join()
       runs = cron_manager.ReadJobRuns("test_cron")
@@ -735,14 +738,15 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     heartbeat_event = threading.Event()
 
     class HeartbeatingCronJob(cronjobs.SystemCronJobBase):
-      lifetime = rdfvalue.DurationSeconds("1h")
-      frequency = rdfvalue.DurationSeconds("2h")
+      lifetime = rdfvalue.Duration.From(1, rdfvalue.HOURS)
+      frequency = rdfvalue.Duration.From(2, rdfvalue.HOURS)
       allow_overruns = False
 
       def Run(self):
         cron_started_event.set()
         heartbeat_event.wait()
-        fake_time = self.run_state.started_at + rdfvalue.DurationSeconds("3h")
+        fake_time = self.run_state.started_at + rdfvalue.Duration.From(
+            3, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
           self.HeartBeat()
 
@@ -754,14 +758,15 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     heartbeat_event = threading.Event()
 
     class HeartbeatingOverruningCronJob(cronjobs.SystemCronJobBase):
-      lifetime = rdfvalue.DurationSeconds("1h")
-      frequency = rdfvalue.DurationSeconds("2h")
+      lifetime = rdfvalue.Duration.From(1, rdfvalue.HOURS)
+      frequency = rdfvalue.Duration.From(2, rdfvalue.HOURS)
       allow_overruns = True
 
       def Run(self):
         cron_started_event.set()
         heartbeat_event.wait()
-        fake_time = self.run_state.started_at + rdfvalue.DurationSeconds("3h")
+        fake_time = self.run_state.started_at + rdfvalue.Duration.From(
+            3, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
           self.HeartBeat()
 
@@ -799,8 +804,8 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def testLogging(self):
 
     class LoggingCronJob(cronjobs.SystemCronJobBase):
-      lifetime = rdfvalue.DurationSeconds("1h")
-      frequency = rdfvalue.DurationSeconds("2h")
+      lifetime = rdfvalue.Duration.From(1, rdfvalue.HOURS)
+      frequency = rdfvalue.Duration.From(2, rdfvalue.HOURS)
 
       def Run(self):
         for i in range(7):

@@ -11,6 +11,7 @@ import platform
 
 from absl import app
 from future.builtins import range
+from future.builtins import str
 import mock
 
 from grr_response_core.lib import utils
@@ -317,7 +318,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     top_level_path = self.temp_dir
     io.open(utils.JoinPath(top_level_path, "bar"), "wb").close()
     for level in range(1, 5):
-      top_level_path = utils.JoinPath(top_level_path, level)
+      top_level_path = utils.JoinPath(top_level_path, str(level))
       for filename in ("foo", "fOo", "bar"):
         file_path = utils.JoinPath(top_level_path, filename + str(level))
         io.open(file_path, "wb").close()

@@ -60,7 +60,8 @@ class ClientIndex(object):
 
   def _AnalyzeKeywords(self, keywords):
     """Extracts a start time from a list of keywords if present."""
-    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("180d")
+    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        180, rdfvalue.DAYS)
     filtered_keywords = []
 
     for k in keywords:

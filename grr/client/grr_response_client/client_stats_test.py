@@ -30,12 +30,14 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
     future = rdfvalue.RDFDatetime.FromHumanReadable("2033-09-01")
     with test_lib.FakeTimeline(thread=collector, now=future) as timeline:
-      timeline.Run(duration=rdfvalue.DurationSeconds("25s"))
+      timeline.Run(duration=rdfvalue.Duration.From(25, rdfvalue.SECONDS))
 
     cpu_samples = collector.CpuSamplesBetween(
-        start_time=future, end_time=future + rdfvalue.DurationSeconds("25s"))
+        start_time=future,
+        end_time=future + rdfvalue.Duration.From(25, rdfvalue.SECONDS))
     io_samples = collector.IOSamplesBetween(
-        start_time=future, end_time=future + rdfvalue.DurationSeconds("25s"))
+        start_time=future,
+        end_time=future + rdfvalue.Duration.From(25, rdfvalue.SECONDS))
 
     self.assertLen(cpu_samples, 3)
     self.assertLen(io_samples, 3)
@@ -49,19 +51,20 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
       millennium = rdfvalue.RDFDatetime.FromHumanReadable("2000-01-01")
       with test_lib.FakeTimeline(thread=collector, now=millennium) as timeline:
-        timeline.Run(duration=rdfvalue.DurationSeconds("25s"))
+        timeline.Run(duration=rdfvalue.Duration.From(25, rdfvalue.SECONDS))
 
       cpu_samples = collector.CpuSamplesBetween(
           start_time=millennium,
-          end_time=millennium + rdfvalue.DurationSeconds("25s"))
+          end_time=millennium + rdfvalue.Duration.From(25, rdfvalue.SECONDS))
       io_samples = collector.IOSamplesBetween(
           start_time=millennium,
-          end_time=millennium + rdfvalue.DurationSeconds("25s"))
+          end_time=millennium + rdfvalue.Duration.From(25, rdfvalue.SECONDS))
 
     self.assertLen(cpu_samples, 3)
     self.assertLen(io_samples, 3)
     for i in range(3):
-      expected_timestamp = millennium + rdfvalue.DurationSeconds("10s") * i
+      expected_timestamp = millennium + rdfvalue.Duration.From(
+          10, rdfvalue.SECONDS) * i
 
       cpu_sample = cpu_samples[i]
       self.assertEqual(cpu_sample.timestamp, expected_timestamp)
@@ -82,29 +85,31 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
     past = rdfvalue.RDFDatetime.FromHumanReadable("1980-01-01")
     with test_lib.FakeTimeline(thread=collector, now=past) as timeline:
-      timeline.Run(duration=rdfvalue.DurationSeconds("30m"))
+      timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.MINUTES))
 
     cpu_samples = collector.CpuSamplesBetween(
-        start_time=past + rdfvalue.DurationSeconds("10m") +
-        rdfvalue.DurationSeconds("1s"),
-        end_time=past + rdfvalue.DurationSeconds("20m"))
+        start_time=past + rdfvalue.Duration.From(10, rdfvalue.MINUTES) +
+        rdfvalue.Duration.From(1, rdfvalue.SECONDS),
+        end_time=past + rdfvalue.Duration.From(20, rdfvalue.MINUTES))
 
     self.assertLen(cpu_samples, 60)
     for sample in cpu_samples:
-      self.assertLess(past + rdfvalue.DurationSeconds("10m"), sample.timestamp)
-      self.assertGreaterEqual(past + rdfvalue.DurationSeconds("20m"),
-                              sample.timestamp)
+      self.assertLess(past + rdfvalue.Duration.From(10, rdfvalue.MINUTES),
+                      sample.timestamp)
+      self.assertGreaterEqual(
+          past + rdfvalue.Duration.From(20, rdfvalue.MINUTES), sample.timestamp)
 
     io_samples = collector.IOSamplesBetween(
-        start_time=past + rdfvalue.DurationSeconds("1m") +
-        rdfvalue.DurationSeconds("1s"),
-        end_time=past + rdfvalue.DurationSeconds("2m"))
+        start_time=past + rdfvalue.Duration.From(1, rdfvalue.MINUTES) +
+        rdfvalue.Duration.From(1, rdfvalue.SECONDS),
+        end_time=past + rdfvalue.Duration.From(2, rdfvalue.MINUTES))
 
     self.assertLen(io_samples, 6)
     for sample in io_samples:
-      self.assertLess(past + rdfvalue.DurationSeconds("1m"), sample.timestamp)
-      self.assertGreaterEqual(past + rdfvalue.DurationSeconds("2m"),
-                              sample.timestamp)
+      self.assertLess(past + rdfvalue.Duration.From(1, rdfvalue.MINUTES),
+                      sample.timestamp)
+      self.assertGreaterEqual(
+          past + rdfvalue.Duration.From(2, rdfvalue.MINUTES), sample.timestamp)
 
   @mock.patch.object(admin, "GetClientStatsAuto")
   def testOldSampleCleanup(self, mock_get_client_stats_auto):
@@ -114,16 +119,17 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
     epoch = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
     with test_lib.FakeTimeline(thread=collector, now=epoch) as timeline:
-      timeline.Run(duration=rdfvalue.DurationSeconds("3h"))
+      timeline.Run(duration=rdfvalue.Duration.From(3, rdfvalue.HOURS))
 
     cpu_samples = collector.CpuSamplesBetween(
-        start_time=epoch, end_time=epoch + rdfvalue.DurationSeconds("1h"))
+        start_time=epoch,
+        end_time=epoch + rdfvalue.Duration.From(1, rdfvalue.HOURS))
     self.assertEmpty(cpu_samples)
 
     io_samples = collector.IOSamplesBetween(
-        start_time=epoch + rdfvalue.DurationSeconds("30m"),
-        end_time=epoch + rdfvalue.DurationSeconds("1h") +
-        rdfvalue.DurationSeconds("50m"))
+        start_time=epoch + rdfvalue.Duration.From(30, rdfvalue.MINUTES),
+        end_time=epoch + rdfvalue.Duration.From(1, rdfvalue.HOURS) +
+        rdfvalue.Duration.From(50, rdfvalue.MINUTES))
     self.assertEmpty(io_samples)
 
   @mock.patch.object(config, "CONFIG")
@@ -139,7 +145,7 @@ class ClientStatsCollectorTest(absltest.TestCase):
 
       today = rdfvalue.RDFDatetime.FromHumanReadable("2018-03-14")
       with test_lib.FakeTimeline(thread=collector, now=today) as timeline:
-        timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+        timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
 
         self.assertTrue(mock_send.called)
         response = mock_send.call_args[0][0]
@@ -175,25 +181,25 @@ class ClientStatsCollectorTest(absltest.TestCase):
     worker.IsActive = lambda: False
 
     with test_lib.FakeTimeline(thread=collector) as timeline:
-      timeline.Run(duration=rdfvalue.DurationSeconds("15s"))
+      timeline.Run(duration=rdfvalue.Duration.From(15, rdfvalue.SECONDS))
       self.assertTrue(mock_send.called)
 
       collector.RequestSend()
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("10s"))
+      timeline.Run(duration=rdfvalue.Duration.From(10, rdfvalue.SECONDS))
       self.assertFalse(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("20s"))
+      timeline.Run(duration=rdfvalue.Duration.From(20, rdfvalue.SECONDS))
       self.assertFalse(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("40s"))
+      timeline.Run(duration=rdfvalue.Duration.From(40, rdfvalue.SECONDS))
       self.assertTrue(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("30s"))
+      timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.SECONDS))
       self.assertFalse(mock_send.called)
 
   @mock.patch.object(config, "CONFIG")
@@ -207,29 +213,29 @@ class ClientStatsCollectorTest(absltest.TestCase):
     worker.IsActive = lambda: False
 
     with test_lib.FakeTimeline(thread=collector) as timeline:
-      timeline.Run(duration=rdfvalue.DurationSeconds("15s"))
+      timeline.Run(duration=rdfvalue.Duration.From(15, rdfvalue.SECONDS))
       self.assertTrue(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("20s"))
+      timeline.Run(duration=rdfvalue.Duration.From(20, rdfvalue.SECONDS))
       self.assertFalse(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("30m"))
+      timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.MINUTES))
       self.assertFalse(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("30m"))
+      timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.MINUTES))
       self.assertTrue(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("20m"))
+      timeline.Run(duration=rdfvalue.Duration.From(20, rdfvalue.MINUTES))
       self.assertFalse(mock_send.called)
 
       collector.RequestSend()
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
       self.assertTrue(mock_send.called)
 
   @mock.patch.object(config, "CONFIG")
@@ -245,23 +251,23 @@ class ClientStatsCollectorTest(absltest.TestCase):
       worker.IsActive = lambda: True
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
       self.assertTrue(mock_send.called)
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("2m"))
+      timeline.Run(duration=rdfvalue.Duration.From(2, rdfvalue.MINUTES))
       self.assertTrue(mock_send.called)
 
       worker.IsActive = lambda: False
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("30m"))
+      timeline.Run(duration=rdfvalue.Duration.From(30, rdfvalue.MINUTES))
       self.assertFalse(mock_send.called)
 
       worker.IsActive = lambda: True
 
       mock_send.reset_mock()
-      timeline.Run(duration=rdfvalue.DurationSeconds("5s"))
+      timeline.Run(duration=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
       self.assertTrue(mock_send.called)
 
 

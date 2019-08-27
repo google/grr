@@ -31,7 +31,7 @@ class TestClientLoadView(TestInspectViewBase):
   def CreateLeasedClientRequest(self, client_id=None, token=None):
     flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses)
     client_messages = data_store.REL_DB.LeaseClientActionRequests(
-        client_id, lease_time=rdfvalue.DurationSeconds("10000s"))
+        client_id, lease_time=rdfvalue.Duration.From(10000, rdfvalue.SECONDS))
     self.assertNotEmpty(client_messages)
 
   def testNoClientActionIsDisplayed(self):

@@ -62,13 +62,13 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testOneDayClientStatus(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.DurationSeconds("1h"))
+                                  rdfvalue.Duration.From(1, rdfvalue.HOURS))
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online-1d.png']")
 
   def testOfflineClientStatus(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.DurationSeconds("1d"))
+                                  rdfvalue.Duration.From(1, rdfvalue.DAYS))
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='offline.png']")
 
@@ -85,7 +85,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testOneDayClientStatusInClientSearch(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.DurationSeconds("1h"))
+                                  rdfvalue.Duration.From(1, rdfvalue.HOURS))
 
     self.Open("/")
     self.Type("client_query", client_id)
@@ -97,7 +97,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testOfflineClientStatusInClientSearch(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
-                                  rdfvalue.DurationSeconds("1d"))
+                                  rdfvalue.Duration.From(1, rdfvalue.DAYS))
 
     self.Open("/")
     self.Type("client_query", client_id)
@@ -116,7 +116,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testCrashIsDisplayedInClientStatus(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
-    self.RecordCrash(client_id, timestamp - rdfvalue.DurationSeconds("5s"))
+    self.RecordCrash(client_id,
+                     timestamp - rdfvalue.Duration.From(5, rdfvalue.SECONDS))
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/#c=" + str(client_id))
@@ -127,8 +128,10 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testOnlyTheLatestCrashIsDisplayed(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
-    self.RecordCrash(client_id, timestamp - rdfvalue.DurationSeconds("2h"))
-    self.RecordCrash(client_id, timestamp - rdfvalue.DurationSeconds("5s"))
+    self.RecordCrash(client_id,
+                     timestamp - rdfvalue.Duration.From(2, rdfvalue.HOURS))
+    self.RecordCrash(client_id,
+                     timestamp - rdfvalue.Duration.From(5, rdfvalue.SECONDS))
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/#c=" + str(client_id))
@@ -139,7 +142,8 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testOnlyCrashesHappenedInPastWeekAreDisplayed(self):
     timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
-    self.RecordCrash(client_id, timestamp - rdfvalue.DurationSeconds("8d"))
+    self.RecordCrash(client_id,
+                     timestamp - rdfvalue.Duration.From(8, rdfvalue.DAYS))
     self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/#c=" + str(client_id))
@@ -165,7 +169,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     client_id = self.CreateClient()
     self.RecordCrash(
         client_id,
-        rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("25h"))
+        rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(25, rdfvalue.HOURS))
 
     self.Open("/")
     self.Type("client_query", client_id)

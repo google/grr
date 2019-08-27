@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
@@ -29,7 +30,9 @@ class ListProcesses(flow_base.FlowBase):
 
   def Start(self):
     """Start processing."""
-    self.CallClient(server_stubs.ListProcesses, next_state="IterateProcesses")
+    self.CallClient(
+        server_stubs.ListProcesses,
+        next_state=compatibility.GetName(self.IterateProcesses))
 
   def _FilenameMatch(self, process):
     if not self.args.filename_regex:
@@ -70,7 +73,7 @@ class ListProcesses(flow_base.FlowBase):
           file_finder.FileFinder.__name__,
           paths=paths_to_fetch,
           action=rdf_file_finder.FileFinderAction.Download(),
-          next_state="HandleDownloadedFiles")
+          next_state=compatibility.GetName(self.HandleDownloadedFiles))
 
     else:
       # Only send the list of processes if we don't fetch the binaries

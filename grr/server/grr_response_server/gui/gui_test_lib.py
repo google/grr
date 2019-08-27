@@ -58,6 +58,11 @@ flags.DEFINE_string(
     "Path to the chrome driver binary. If not set, webdriver "
     "will search on PATH for the binary.")
 
+flags.DEFINE_string(
+    "chrome_binary_path", None,
+    "Path to the Chrome binary. If not set, webdriver will search for "
+    "Chrome on PATH.")
+
 flags.DEFINE_bool(
     "use_headless_chrome", False, "If set, run Chrome driver in "
     "headless mode. Useful when running tests in a window-manager-less "
@@ -70,8 +75,8 @@ flags.DEFINE_bool(
 
 # A increasing sequence of times.
 TIME_0 = test_lib.FIXED_TIME
-TIME_1 = TIME_0 + rdfvalue.DurationSeconds("1d")
-TIME_2 = TIME_1 + rdfvalue.DurationSeconds("1d")
+TIME_1 = TIME_0 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+TIME_2 = TIME_1 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
 
 
 def DateString(t):
@@ -191,6 +196,10 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # pylint: disable=unreachable
     os.environ.pop("http_proxy", None)
     options = webdriver.ChromeOptions()
+
+    if flags.FLAGS.chrome_binary_path:
+      options.binary_location = flags.FLAGS.chrome_binary_path
+
     options.add_argument("--disable-notifications")
 
     if flags.FLAGS.use_headless_chrome:

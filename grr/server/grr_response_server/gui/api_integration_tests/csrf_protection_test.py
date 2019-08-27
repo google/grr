@@ -108,7 +108,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
     # current_time - token_time > CSRF_TOKEN_DURATION.microseconds
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42) +
-        wsgiapp.CSRF_TOKEN_DURATION.seconds):
+        wsgiapp.CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS)):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,
@@ -118,7 +118,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
 
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42) +
-        wsgiapp.CSRF_TOKEN_DURATION.seconds + 1):
+        wsgiapp.CSRF_TOKEN_DURATION.ToInt(rdfvalue.SECONDS) + 1):
       response = requests.post(
           self.base_url + "/api/clients/labels/add",
           headers=headers,

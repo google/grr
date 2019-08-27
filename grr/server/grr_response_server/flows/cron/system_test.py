@@ -25,9 +25,12 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(SystemCronJobTest, self).setUp()
 
-    one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1h")
-    eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("8d")
-    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("61d")
+    one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        1, rdfvalue.HOURS)
+    eight_day_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        8, rdfvalue.DAYS)
+    ancient_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        61, rdfvalue.DAYS)
 
     self.SetupClientsWithIndices(
         range(0, 10), system="Windows", ping=eight_day_ping)
@@ -135,7 +138,7 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
     self.assertEqual(data, expected)
 
   def _ToMicros(self, duration_str):
-    return rdfvalue.DurationSeconds(duration_str).microseconds
+    return rdfvalue.Duration.FromHumanReadable(duration_str).microseconds
 
   def _CheckLastAccessStats(self):
     # pyformat: disable
@@ -170,7 +173,7 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
 
   def testPurgeClientStats(self):
     client_id = test_lib.TEST_CLIENT_ID
-    max_age = db.CLIENT_STATS_RETENTION.seconds
+    max_age = db.CLIENT_STATS_RETENTION.ToInt(rdfvalue.SECONDS)
 
     for t in [1 * max_age, 1.5 * max_age, 2 * max_age]:
       with test_lib.FakeTime(t):

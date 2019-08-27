@@ -197,7 +197,7 @@ class ApiListClientActionRequestsHandlerRegressionTest(
     flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kw)
     # Lease the client message.
     data_store.REL_DB.LeaseClientActionRequests(
-        client_id, lease_time=rdfvalue.DurationSeconds("10000s"))
+        client_id, lease_time=rdfvalue.Duration.From(10000, rdfvalue.SECONDS))
     # Write some responses. In the relational db, the client queue will be
     # cleaned up as soon as all responses are available. Therefore we cheat
     # here and make it look like the request needs more responses so it's not

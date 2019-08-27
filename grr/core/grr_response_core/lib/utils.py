@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import base64
 import errno
 import functools
 import getpass
@@ -35,7 +34,7 @@ from future.utils import python_2_unicode_compatible
 import psutil
 import queue
 
-from typing import Any, Iterable, Optional, Text
+from typing import Iterable, Optional, Text
 
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -151,10 +150,10 @@ class Node(object):
     self.key = key
 
   def __str__(self):
-    return "Node %s: %s" % (self.key, SmartStr(self.data))
+    return "Node %s: %s" % (self.key, self.data)
 
   def __repr__(self):
-    return SmartStr(self)
+    return str(self)
 
 
 # TODO(user):pytype: self.next and self.prev are assigned to self but then
@@ -487,24 +486,6 @@ class Struct(object):
     return struct.calcsize(format_str)
 
 
-def SmartStr(string):
-  """Returns a string or encodes a unicode object.
-
-  This function essentially will always return an encoded string. It should be
-  used on an interface to the system which must accept a string and not unicode.
-
-  Args:
-    string: The string to convert.
-
-  Returns:
-    an encoded string.
-  """
-  if type(string) == Text:  # pylint: disable=unidiomatic-typecheck
-    return string.encode("utf8", "ignore")
-
-  return bytes(string)
-
-
 def SmartUnicode(string):
   """Returns a unicode object.
 
@@ -568,7 +549,7 @@ def FormatAsTimestamp(timestamp):
   return compatibility.FormatTime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
 
 
-def NormalizePath(path, sep="/"):
+def NormalizePath(path, sep = "/"):
   """A sane implementation of os.path.normpath.
 
   The standard implementation treats leading / and // as different leading to
@@ -587,9 +568,11 @@ def NormalizePath(path, sep="/"):
      that would result in the system opening the same physical file will produce
      the same normalized path.
   """
+  precondition.AssertType(path, Text)
+  precondition.AssertType(sep, Text)
+
   if not path:
     return sep
-  path = SmartUnicode(path)
 
   path_list = path.split(sep)
 
@@ -625,7 +608,9 @@ def NormalizePath(path, sep="/"):
       return sep + sep.join(path_list)
 
 
-def JoinPath(stem="", *parts):
+# TODO(hanuszczak): The linter complains for a reason here, the signature of
+# this function should be fixed as soon as possible.
+def JoinPath(stem = "", *parts):  # pylint: disable=keyword-arg-before-vararg
   """A sane version of os.path.join.
 
   The intention here is to append the stem to the path. The standard module
@@ -639,10 +624,10 @@ def JoinPath(stem="", *parts):
   Returns:
      a normalized path.
   """
-  # Ensure all path components are unicode
-  parts = [SmartUnicode(path) for path in parts]
+  precondition.AssertIterableType(parts, Text)
+  precondition.AssertType(stem, Text)
 
-  result = (stem + NormalizePath(u"/".join(parts))).replace("//", "/")
+  result = (stem + NormalizePath("/".join(parts))).replace("//", "/")
   result = result.rstrip("/")
 
   return result or "/"
@@ -668,14 +653,6 @@ def Join(*parts):
   """
 
   return "/".join(parts)
-
-
-def EncodeReasonString(reason):
-  return base64.urlsafe_b64encode(SmartStr(reason))
-
-
-def DecodeReasonString(reason):
-  return SmartUnicode(base64.urlsafe_b64decode(SmartStr(reason)))
 
 
 # Regex chars that should not be in a regex

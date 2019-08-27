@@ -36,7 +36,7 @@ class FlowThrottler(object):
 
     Args:
       daily_req_limit: Number of flows allow per user per client. Integer.
-      dup_interval: rdfvalue.DurationSeconds time during which duplicate flows
+      dup_interval: rdfvalue.Duration time during which duplicate flows
         will be blocked.
     """
     self.daily_req_limit = daily_req_limit
@@ -80,7 +80,7 @@ class FlowThrottler(object):
       return
 
     now = rdfvalue.RDFDatetime.Now()
-    yesterday = now - rdfvalue.DurationSeconds("1d")
+    yesterday = now - rdfvalue.Duration.From(1, rdfvalue.DAYS)
     dup_boundary = now - self.dup_interval
     min_create_time = min(yesterday, dup_boundary)
 

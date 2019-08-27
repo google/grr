@@ -44,8 +44,8 @@ class VfsTestMixin(object):
   """A helper mixin providing methods to prepare files and flows for testing."""
 
   time_0 = rdfvalue.RDFDatetime(42)
-  time_1 = time_0 + rdfvalue.DurationSeconds("1d")
-  time_2 = time_1 + rdfvalue.DurationSeconds("1d")
+  time_1 = time_0 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+  time_2 = time_1 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
 
   # TODO(hanuszczak): This function not only contains a lot of code duplication
   # but is also a duplication with `gui_test_lib.CreateFileVersion(s)`. This
@@ -124,7 +124,9 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     # Should return the newest version.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age, self.time_2, delta=rdfvalue.DurationSeconds("1s"))
+        result.file.age,
+        self.time_2,
+        delta=rdfvalue.Duration.From(1, rdfvalue.SECONDS))
 
   def testHandlerReturnsClosestSpecificVersion(self):
     # Get specific version.
@@ -137,7 +139,9 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     # The age of the returned version might have a slight deviation.
     self.assertEqual(result.file.path, self.file_path)
     self.assertAlmostEqual(
-        result.file.age, self.time_1, delta=rdfvalue.DurationSeconds("1s"))
+        result.file.age,
+        self.time_1,
+        delta=rdfvalue.Duration.From(1, rdfvalue.SECONDS))
 
   def testResultIncludesDetails(self):
     """Checks if the details include certain attributes.

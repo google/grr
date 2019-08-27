@@ -8,7 +8,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
-import platform
 import shutil
 import stat
 import sys
@@ -293,17 +292,10 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     if args.path:
       # Normalize the path, so DeleteGRRTempFile can correctly check if
       # it is within Client.tempdir.
-      path = utils.NormalizePath(args.path)
-      if platform.system() == "Windows":
-        # TODO: On non-Windows systems `CanonicalPathToLocalPath`
-        # is equivalent to `SmartStr`, so it does nothing except for breaking
-        # the types. However, a lot of code actually depends on this behaviour
-        # so we cannot easily change it. As a workaround for now we simply do
-        # not call it on Linux and macOS but ideally we should get rid of this
-        # `SmartStr` call and not branch here.
-        path = client_utils.CanonicalPathToLocalPath(path)
+      normal_path = utils.NormalizePath(args.path)
+      local_path = client_utils.CanonicalPathToLocalPath(normal_path)
 
-      paths = [path]
+      paths = [local_path]
     else:
       paths = allowed_temp_dirs
 

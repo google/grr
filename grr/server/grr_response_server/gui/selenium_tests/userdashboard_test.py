@@ -51,9 +51,12 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   def testShows5LatestHunts(self):
     # Only hunts created in the last 31 days will get shown, so we have
     # to adjust their timestamps accordingly.
-    timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("1d")
+    timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        1, rdfvalue.DAYS)
     for i in range(20):
-      with test_lib.FakeTime(timestamp + rdfvalue.DurationSeconds(1000 * i)):
+      with test_lib.FakeTime(timestamp +
+                             rdfvalue.Duration.From(1000 *
+                                                    i, rdfvalue.SECONDS)):
         if i % 2 == 0:
           descr = "foo-%d" % i
           creator = "another"
@@ -74,10 +77,10 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
 
   def testDoesNotShowHuntsOlderThan31Days(self):
     now = rdfvalue.RDFDatetime.Now()
-    with test_lib.FakeTime(now - rdfvalue.DurationSeconds("30d")):
+    with test_lib.FakeTime(now - rdfvalue.Duration.From(30, rdfvalue.DAYS)):
       self.CreateSampleHunt("foo", creator=self.token.username)
 
-    with test_lib.FakeTime(now - rdfvalue.DurationSeconds("32d")):
+    with test_lib.FakeTime(now - rdfvalue.Duration.From(32, rdfvalue.DAYS)):
       self.CreateSampleHunt("bar", creator=self.token.username)
 
     with test_lib.FakeTime(now):

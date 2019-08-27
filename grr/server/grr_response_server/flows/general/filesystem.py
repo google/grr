@@ -18,6 +18,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
@@ -125,13 +126,13 @@ class ListDirectory(flow_base.FlowBase):
       stub = server_stubs.StatFile
       request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
 
-    self.CallClient(stub, request, next_state="Stat")
+    self.CallClient(stub, request, next_state=compatibility.GetName(self.Stat))
 
     # We use data to pass the path to the callback:
     self.CallClient(
         server_stubs.ListDirectory,
         pathspec=self.args.pathspec,
-        next_state="List")
+        next_state=compatibility.GetName(self.List))
 
   def Stat(self, responses):
     """Save stat information on the directory."""
@@ -217,7 +218,7 @@ class RecursiveListDirectory(flow_base.FlowBase):
     self.CallClient(
         server_stubs.ListDirectory,
         pathspec=self.args.pathspec,
-        next_state="ProcessDirectory")
+        next_state=compatibility.GetName(self.ProcessDirectory))
 
   def ProcessDirectory(self, responses):
     """Recursively list the directory, and add to the timeline."""
@@ -251,7 +252,7 @@ class RecursiveListDirectory(flow_base.FlowBase):
           self.CallClient(
               server_stubs.ListDirectory,
               pathspec=stat_response.pathspec,
-              next_state="ProcessDirectory")
+              next_state=compatibility.GetName(self.ProcessDirectory))
           self.state.dir_count += 1
           if self.state.dir_count % 100 == 0:  # Log every 100 directories
             self.Log("Reading %s. (%d nodes, %d directories done)",
@@ -392,7 +393,7 @@ class GlobLogic(object):
     root_path = next(iter(iterkeys(self.state.component_tree)))
     self.CallStateInline(
         messages=[None],
-        next_state="ProcessEntry",
+        next_state=compatibility.GetName(self.ProcessEntry),
         request_data=dict(component_path=[root_path]))
 
   def GlobReportMatch(self, stat_response):
@@ -619,7 +620,7 @@ class GlobLogic(object):
               self.CallClient(
                   stub,
                   request,
-                  next_state="ProcessEntry",
+                  next_state=compatibility.GetName(self.ProcessEntry),
                   request_data=dict(component_path=next_component))
           else:
             # There is no need to go back to the client for intermediate
@@ -627,7 +628,7 @@ class GlobLogic(object):
             # calling this state inline.
             self.CallStateInline(
                 [rdf_client_fs.StatEntry(pathspec=pathspec)],
-                next_state="ProcessEntry",
+                next_state=compatibility.GetName(self.ProcessEntry),
                 request_data=dict(component_path=next_component))
 
       if recursions_to_get or regexes_to_get:
@@ -654,7 +655,7 @@ class GlobLogic(object):
           self.CallClient(
               server_stubs.Find,
               findspec,
-              next_state="ProcessEntry",
+              next_state=compatibility.GetName(self.ProcessEntry),
               request_data=dict(base_path=component_path))
 
         if regexes_to_get:
@@ -667,7 +668,7 @@ class GlobLogic(object):
           self.CallClient(
               server_stubs.Find,
               findspec,
-              next_state="ProcessEntry",
+              next_state=compatibility.GetName(self.ProcessEntry),
               request_data=dict(base_path=component_path))
 
 
@@ -751,10 +752,11 @@ class DiskVolumeInfo(flow_base.FlowBase):
             # collectors.ArtifactCollectorFlow.__name__,
             "ArtifactCollectorFlow",
             artifact_list=["WindowsEnvironmentVariableSystemRoot"],
-            next_state="StoreSystemRoot")
+            next_state=compatibility.GetName(self.StoreSystemRoot))
         return
 
-    self.CallStateInline(next_state="CollectVolumeInfo")
+    self.CallStateInline(
+        next_state=compatibility.GetName(self.CollectVolumeInfo))
 
   def StoreSystemRoot(self, responses):
     if not responses.success or not responses.First():
@@ -772,7 +774,8 @@ class DiskVolumeInfo(flow_base.FlowBase):
     else:
       self.Log("Bad result for systemdrive: %s", responses.First())
 
-    self.CallStateInline(next_state="CollectVolumeInfo")
+    self.CallStateInline(
+        next_state=compatibility.GetName(self.CollectVolumeInfo))
 
   def CollectVolumeInfo(self, responses):
     del responses
@@ -785,14 +788,14 @@ class DiskVolumeInfo(flow_base.FlowBase):
           # collectors.ArtifactCollectorFlow.__name__,
           "ArtifactCollectorFlow",
           artifact_list=["WMILogicalDisks"],
-          next_state="ProcessWindowsVolumes",
+          next_state=compatibility.GetName(self.ProcessWindowsVolumes),
           dependencies=deps)
     else:
       self.CallClient(
           server_stubs.StatFS,
           rdf_client_action.StatFSRequest(
               path_list=self.args.path_list, pathtype=self.args.pathtype),
-          next_state="ProcessVolumes")
+          next_state=compatibility.GetName(self.ProcessVolumes))
 
   def ProcessWindowsVolumes(self, responses):
     if not responses.success:

@@ -38,7 +38,8 @@ class ThrottleTest(test_lib.GRRBaseTest):
 
       # Disable the dup interval checking by setting it to 0.
       throttler = throttle.FlowThrottler(
-          daily_req_limit=2, dup_interval=rdfvalue.DurationSeconds("0s"))
+          daily_req_limit=2,
+          dup_interval=rdfvalue.Duration.From(0, rdfvalue.SECONDS))
 
       # Should succeeed, only one flow present in the 1 day window.
       throttler.EnforceLimits(self.client_id, self.token.username,
@@ -69,7 +70,8 @@ class ThrottleTest(test_lib.GRRBaseTest):
   def testFlowDuplicateLimit(self):
     # Disable the request limit checking by setting it to 0.
     throttler = throttle.FlowThrottler(
-        daily_req_limit=0, dup_interval=rdfvalue.DurationSeconds("1200s"))
+        daily_req_limit=0,
+        dup_interval=rdfvalue.Duration.From(1200, rdfvalue.SECONDS))
 
     # Running the same flow immediately should fail
     with test_lib.FakeTime(self.BASE_TIME):

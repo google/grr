@@ -845,7 +845,7 @@ class MySQLDBClientMixin(object):
       ping_cast_clauses.append(
           "CAST(c.last_ping > FROM_UNIXTIME(%s) AS UNSIGNED) AS {}".format(
               column_name))
-      timestamp_bucket = now - rdfvalue.DurationSeconds.FromDays(day_bucket)
+      timestamp_bucket = now - rdfvalue.Duration.From(day_bucket, rdfvalue.DAYS)
       timestamp_buckets.append(
           mysql_utils.RDFDatetimeToTimestamp(timestamp_bucket))
 

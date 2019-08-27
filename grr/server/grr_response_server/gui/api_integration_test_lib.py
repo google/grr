@@ -10,7 +10,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import threading
 
 import portpicker
 
@@ -49,31 +48,30 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     poll_stubber.Start()
     self.addCleanup(poll_stubber.Stop)
 
-  _api_set_up_lock = threading.RLock()
   _api_set_up_done = False
+  _server_trd = None
+  server_port = None
 
+  # NOTE: there's no corresponding tearDownClass method for the logic
+  # below, since we want to have one SSL server thread not per test
+  # suite, but per process. It effectively has to survive set up/tear down
+  # of all the test suites inheriting from ApiIntegrationTest.
   @classmethod
   def setUpClass(cls):
     super(ApiIntegrationTest, cls).setUpClass()
-    with ApiIntegrationTest._api_set_up_lock:
-      if not ApiIntegrationTest._api_set_up_done:
+    if ApiIntegrationTest._api_set_up_done:
+      return
 
-        # Set up HTTP server
-        port = portpicker.pick_unused_port()
-        ApiIntegrationTest.server_port = port
-        logging.info("Picked free AdminUI port for HTTP %d.", port)
+    # Set up HTTP server
+    port = portpicker.pick_unused_port()
+    ApiIntegrationTest.server_port = port
+    logging.info("Picked free AdminUI port for HTTP %d.", port)
 
-        ApiIntegrationTest.trd = wsgiapp_testlib.ServerThread(
-            port, name="api_integration_server")
-        ApiIntegrationTest.trd.StartAndWaitUntilServing()
+    ApiIntegrationTest._server_trd = wsgiapp_testlib.ServerThread(
+        port, name="api_integration_server")
+    ApiIntegrationTest._server_trd.StartAndWaitUntilServing()
 
-        ApiIntegrationTest._api_set_up_done = True
-
-  @classmethod
-  def tearDownClass(cls):
-    super(ApiIntegrationTest, cls).tearDownClass()
-    ApiIntegrationTest.trd.Stop()
-    ApiIntegrationTest._api_set_up_done = False
+    ApiIntegrationTest._api_set_up_done = True
 
 
 class RootApiBinaryManagementTestRouter(

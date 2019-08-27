@@ -235,12 +235,22 @@ def StartFlow(client_id=None,
   rdf_flow.current_state = "Start"
 
   flow_obj = flow_cls(rdf_flow)
+
+  # Prevent a race condition, where a flow is scheduled twice, because one
+  # worker inserts the row and another worker silently updates the existing row.
+  allow_update = False
+
   if start_at is None:
 
     # Store an initial version of the flow straight away. This is needed so the
     # database doesn't raise consistency errors due to missing parent keys when
     # writing logs / errors / results which might happen in Start().
-    data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow)
+    try:
+      data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow, allow_update=False)
+    except db.FlowExistsError:
+      raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
+
+    allow_update = True
 
     try:
       # Just run the first state inline. NOTE: Running synchronously means
@@ -269,7 +279,11 @@ def StartFlow(client_id=None,
 
   flow_obj.PersistState()
 
-  data_store.REL_DB.WriteFlowObject(flow_obj.rdf_flow)
+  try:
+    data_store.REL_DB.WriteFlowObject(
+        flow_obj.rdf_flow, allow_update=allow_update)
+  except db.FlowExistsError:
+    raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
 
   if parent_flow_obj is not None:
     # We can optimize here and not write requests/responses to the database

@@ -62,7 +62,7 @@ z5KjO8gWio6YOhsDwrketcBcIANMDYws2+TzrLs9ttuHNS0=
 
 def _DaysSinceEpoch(days):
   return rdfvalue.RDFDatetime(
-      rdfvalue.DurationSeconds.FromDays(days).microseconds)
+      rdfvalue.Duration.From(days, rdfvalue.DAYS).microseconds)
 
 
 def _FlattenDicts(dicts):
@@ -631,7 +631,8 @@ class DatabaseTestClientsMixin(object):
 
     client_old = rdf_objects.ClientSnapshot(client_id=client_id)
     client_old.kernel = "1.0.0"
-    client_old.timestamp = new_timestamp - rdfvalue.DurationSeconds("1d")
+    client_old.timestamp = new_timestamp - rdfvalue.Duration.From(
+        1, rdfvalue.DAYS)
     self.db.WriteClientSnapshotHistory([client_old])
 
     info = self.db.ReadClientFullInfo(client_id)
@@ -1250,7 +1251,7 @@ class DatabaseTestClientsMixin(object):
     self._VerifySnapshots(snapshots)
 
   def _SetupLastPingClients(self, now):
-    time_past = now - rdfvalue.DurationSeconds("1d")
+    time_past = now - rdfvalue.Duration.From(1, rdfvalue.DAYS)
 
     client_ids_to_ping = {}
     for i in range(10):
@@ -1269,7 +1270,7 @@ class DatabaseTestClientsMixin(object):
     d = self.db
 
     base_time = rdfvalue.RDFDatetime.Now()
-    cutoff_time = base_time - rdfvalue.DurationSeconds("1s")
+    cutoff_time = base_time - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
     client_ids_to_ping = self._SetupLastPingClients(base_time)
 
     expected_client_ids = [
@@ -1319,10 +1320,10 @@ class DatabaseTestClientsMixin(object):
     db_test_utils.InitializeClient(self.db, "C.0000000000000002")
 
     offsets = [
-        rdfvalue.DurationSeconds("0s"),
-        rdfvalue.DurationSeconds("1s"),
+        rdfvalue.Duration.From(0, rdfvalue.SECONDS),
+        rdfvalue.Duration.From(1, rdfvalue.SECONDS),
         db.CLIENT_STATS_RETENTION,
-        db.CLIENT_STATS_RETENTION + rdfvalue.DurationSeconds("1s"),
+        db.CLIENT_STATS_RETENTION + rdfvalue.Duration.From(1, rdfvalue.SECONDS),
     ]
     now = rdfvalue.RDFDatetime.Now()
 
@@ -1446,7 +1447,7 @@ class DatabaseTestClientsMixin(object):
     now = rdfvalue.RDFDatetime.Now()
     for i in range(1, total + 1):
       with test_lib.FakeTime(now - db.CLIENT_STATS_RETENTION -
-                             rdfvalue.DurationSeconds.FromSeconds(i)):
+                             rdfvalue.Duration.From(i, rdfvalue.SECONDS)):
         self.db.WriteClientStats("C.0000000000000001",
                                  rdf_client_stats.ClientStats())
 

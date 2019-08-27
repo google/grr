@@ -61,7 +61,7 @@ def ProcessMessageHandlerRequests(requests):
 class GRRWorker(object):
   """A GRR worker."""
 
-  message_handler_lease_time = rdfvalue.DurationSeconds.FromSeconds(600)
+  message_handler_lease_time = rdfvalue.Duration.From(600, rdfvalue.SECONDS)
 
   def __init__(self):
     """Constructor."""
@@ -109,7 +109,9 @@ class GRRWorker(object):
 
     try:
       rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
-          client_id, flow_id, processing_time=rdfvalue.DurationSeconds("6h"))
+          client_id,
+          flow_id,
+          processing_time=rdfvalue.Duration.From(6, rdfvalue.HOURS))
     except db.ParentHuntIsNotRunningError:
       flow_base.TerminateFlow(client_id, flow_id, "Parent hunt stopped.")
       return

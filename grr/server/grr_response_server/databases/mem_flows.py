@@ -222,14 +222,19 @@ class InMemoryDBFlowMixin(object):
       self.client_action_requests[request_key] = r
 
   @utils.Synchronized
-  def WriteFlowObject(self, flow_obj):
+  def WriteFlowObject(self, flow_obj, allow_update=True):
     """Writes a flow object to the database."""
     if flow_obj.client_id not in self.metadatas:
       raise db.UnknownClientError(flow_obj.client_id)
 
+    key = (flow_obj.client_id, flow_obj.flow_id)
+
+    if not allow_update and key in self.flows:
+      raise db.FlowExistsError(flow_obj.client_id, flow_obj.flow_id)
+
     clone = flow_obj.Copy()
     clone.last_update_time = rdfvalue.RDFDatetime.Now()
-    self.flows[(flow_obj.client_id, flow_obj.flow_id)] = clone
+    self.flows[key] = clone
 
   @utils.Synchronized
   def ReadFlowObject(self, client_id, flow_id):

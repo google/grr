@@ -201,7 +201,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.assertAlmostEqual(
         downloaded_files[2][1],
         gui_test_lib.TIME_1,
-        delta=rdfvalue.DurationSeconds("1s"))
+        delta=rdfvalue.Duration.From(1, rdfvalue.SECONDS))
 
     self.Click("css=li[heading=TextView]")
 

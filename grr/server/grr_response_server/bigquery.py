@@ -13,7 +13,9 @@ from googleapiclient import http
 import httplib2
 
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util.compat import json
+
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -140,7 +142,7 @@ class BigQueryClient(object):
       sleep_interval = config.CONFIG["BigQuery.retry_interval"]
       while retry_count < config.CONFIG["BigQuery.retry_max_attempts"]:
 
-        time.sleep(sleep_interval.seconds)
+        time.sleep(sleep_interval.ToFractional(rdfvalue.SECONDS))
         logging.info("Retrying job_id: %s", job_id)
         retry_count += 1
 

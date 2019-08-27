@@ -163,18 +163,15 @@ class ClientBuilder(BuilderBase):
         config.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
 
-    # Pyinstaller doesn't handle unicode strings.
     args = [
         "--distpath",
-        str(config.CONFIG.Get("PyInstaller.distpath", context=self.context)),
+        config.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "--workpath",
-        str(
-            config.CONFIG.Get("PyInstaller.workpath_dir",
-                              context=self.context)),
-        str(self.spec_file)
+        config.CONFIG.Get("PyInstaller.workpath_dir", context=self.context),
+        self.spec_file,
     ]
     logging.info("Running pyinstaller: %s", args)
-    PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
+    PyInstallerMain.run(pyi_args=args)
 
     # Clear out some crud that pyinstaller includes.
     for path in ["tcl", "tk", "pytz"]:
@@ -586,9 +583,7 @@ class WindowsClientRepacker(ClientRepacker):
 
     # The zip file comment is used by the self extractor to run the installation
     # script. Comment has to be `bytes` object because `zipfile` module is not
-    # smart enough to properly handle `unicode` objects. We use the `encode`
-    # method instead of `SmartStr` because we expect this option to be an
-    # `unicode` object and in case it is not, we want it to blow up.
+    # smart enough to properly handle `unicode` objects.
     output_zip.comment = b"$AUTORUN$>%s" % config.CONFIG.Get(
         "ClientBuilder.autorun_command_line", context=context).encode("utf-8")
 

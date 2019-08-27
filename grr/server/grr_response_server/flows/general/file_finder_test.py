@@ -9,6 +9,7 @@ import glob
 import hashlib
 import io
 import os
+import struct
 
 from absl import app
 from future.utils import itervalues
@@ -586,6 +587,44 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         ["test_img.dd"], path_type=rdf_objects.PathInfo.PathType.OS)
     self.assertEqual(path_info.hash_entry.sha1, expected_hash)
     self.assertEqual(path_info.hash_entry.num_bytes, expected_size)
+
+  # Setting MIN_CALL_TO_FILE_STORE to a smaller value emulates MultiGetFile's
+  # behavior when dealing with large files.
+  @mock.patch.object(file_finder.FileFinder, "MIN_CALL_TO_FILE_STORE", 1)
+  def testDownloadActionWithMultipleAttemptsWithMultipleSizeLimits(self):
+    total_num_chunks = 10
+    total_size = total_num_chunks * file_finder.FileFinder.CHUNK_SIZE
+
+    path = os.path.join(self.temp_dir, "test_big.txt")
+    with io.open(path, "wb") as fd:
+      for i in range(total_num_chunks):
+        fd.write(struct.pack("b", i) * file_finder.FileFinder.CHUNK_SIZE)
+
+    da = rdf_file_finder.FileFinderDownloadActionOptions
+
+    # Read a truncated version of the file. This tests against a bug in
+    # MultiGetFileLogic when first N chunks of the file were already
+    # fetched during a previous MultiGetFileLogic run, and as a consequence
+    # the file was considered fully fetched, even if the max_file_size value
+    # of the current run was much bigger than the size of the previously
+    # fetched file.
+    action = rdf_file_finder.FileFinderAction.Download(
+        max_size=2 * file_finder.FileFinder.CHUNK_SIZE,
+        oversized_file_policy=da.OversizedFilePolicy.DOWNLOAD_TRUNCATED)
+    self.RunFlow(paths=[path], action=action)
+
+    action = rdf_file_finder.FileFinderAction.Download(
+        max_size=total_size,
+        oversized_file_policy=da.OversizedFilePolicy.DOWNLOAD_TRUNCATED)
+    self.RunFlow(paths=[path], action=action)
+
+    # Check that the first FileFinder run that downloaded a smaller version
+    # of the file, hasn't influenced the next runs.
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
+    client_path = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    fd = file_store.OpenFile(client_path)
+    self.assertEqual(fd.size, total_size)
 
   def testSizeAndRegexConditionsWithDifferentActions(self):
     files_over_size_limit = ["auth.log"]

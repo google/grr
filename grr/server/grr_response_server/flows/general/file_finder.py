@@ -14,6 +14,7 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -185,7 +186,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     self.CallClient(
         server_stubs.Grep,
         request=grep_spec,
-        next_state="ProcessGrep",
+        next_state=compatibility.GetName(self.ProcessGrep),
         request_data=dict(
             original_result=response, condition_index=condition_index + 1))
 
@@ -211,7 +212,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     self.CallClient(
         server_stubs.Grep,
         request=grep_spec,
-        next_state="ProcessGrep",
+        next_state=compatibility.GetName(self.ProcessGrep),
         request_data=dict(
             original_result=response, condition_index=condition_index + 1))
 
@@ -368,7 +369,10 @@ class ClientFileFinder(flow_base.FlowBase):
     interpolated_args.paths = list(
         self._InterpolatePaths(interpolated_args.paths))
 
-    self.CallClient(stub, request=interpolated_args, next_state="StoreResults")
+    self.CallClient(
+        stub,
+        request=interpolated_args,
+        next_state=compatibility.GetName(self.StoreResults))
 
   def _InterpolatePaths(self, globs):
 

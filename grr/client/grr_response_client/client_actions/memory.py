@@ -83,9 +83,10 @@ class YaraProcessScan(actions.ActionPlugin):
       if not chunk.data:
         break
 
-      time_left = deadline - rdfvalue.RDFDatetime.Now()
+      time_left = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
+          rdfvalue.SECONDS)
 
-      for m in rules.match(data=chunk.data, timeout=int(time_left)):
+      for m in rules.match(data=chunk.data, timeout=time_left):
         # Note that for regexps in general it might be possible to
         # specify characters at the end of the string that are not
         # part of the returned match. In that case, this algorithm
@@ -105,7 +106,8 @@ class YaraProcessScan(actions.ActionPlugin):
     if scan_request.per_process_timeout:
       deadline = rdfvalue.RDFDatetime.Now() + scan_request.per_process_timeout
     else:
-      deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.DurationSeconds("1w")
+      deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
+          1, rdfvalue.WEEKS)
 
     rules = scan_request.yara_signature.GetRules()
 
@@ -215,10 +217,14 @@ class YaraProcessScan(actions.ActionPlugin):
       raise ValueError(
           "A Yara signature shard is required, and not the full signature.")
 
-    yara_signature = self._SaveSignatureShard(args)
-    if yara_signature is None:
-      # We haven't received the whole signature yet.
-      return
+    if args.num_signature_shards == 1:
+      # Skip saving to disk if there is just one shard.
+      yara_signature = args.signature_shard.payload.decode("utf-8")
+    else:
+      yara_signature = self._SaveSignatureShard(args)
+      if yara_signature is None:
+        # We haven't received the whole signature yet.
+        return
 
     scan_request = args.Copy()
     scan_request.yara_signature = yara_signature

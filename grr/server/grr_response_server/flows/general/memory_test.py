@@ -795,7 +795,9 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         ]))
 
   def testPathSpecCasingIsCorrected(self):
-    flow = mock.MagicMock(spec=memory.DumpProcessMemory)
+    flow = memory.DumpProcessMemory(rdf_flow_objects.Flow())
+    flow.SendReply = mock.Mock(spec=flow.SendReply)
+
     request = rdf_flow_objects.FlowRequest(
         request_data={
             "YaraProcessDumpResponse":
@@ -824,7 +826,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         for pathspec in pathspecs
     ])
 
-    memory.DumpProcessMemory.ProcessMemoryRegions(flow, responses)
+    flow.ProcessMemoryRegions(responses)
     flow.SendReply.assert_any_call(
         rdf_memory.YaraProcessDumpResponse(dumped_processes=[
             rdf_memory.YaraProcessDumpInformation(memory_regions=[

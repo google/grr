@@ -37,6 +37,18 @@ START_STRING = "Starting client."
 # //depot/grr_response_client/comms.py)
 # pyformat: enable
 
+# Limit on the total size of GrrMessages to batch into a single
+# PackedMessageList (before sending to Fleetspeak).
+_MAX_MSG_LIST_BYTES = 1 << 20  # 1 MiB
+
+# Maximum number of GrrMessages to put in one PackedMessageList.
+_MAX_MSG_LIST_MSG_COUNT = 100
+
+# Maximum size of annotations to add for a Fleetspeak message.
+_MAX_ANNOTATIONS_BYTES = 3 << 10  # 3 KiB
+
+_DATA_IDS_ANNOTATION_KEY = "data_ids"
+
 
 class FatalError(Exception):
   pass
@@ -136,6 +148,20 @@ class GRRFleetspeakClient(object):
         background=background)
     fs_msg.data.Pack(message_list.AsPrimitiveProto())
 
+    for grr_msg in grr_msgs:
+      if (grr_msg.session_id is None or grr_msg.request_id is None or
+          grr_msg.response_id is None):
+        continue
+      # Place all ids in a single annotation, instead of having separate
+      # annotations for the flow-id, request-id and response-id. This reduces
+      # overall size of the annotations by half (~60 bytes to ~30 bytes).
+      annotation = fs_msg.annotations.entries.add()
+      annotation.key = _DATA_IDS_ANNOTATION_KEY
+      annotation.value = "%s:%d:%d" % (grr_msg.session_id.Basename(),
+                                       grr_msg.request_id, grr_msg.response_id)
+      if fs_msg.annotations.ByteSize() >= _MAX_ANNOTATIONS_BYTES:
+        break
+
     try:
       sent_bytes = self._fs.Send(fs_msg)
     except (IOError, struct.error):
@@ -157,7 +183,7 @@ class GRRFleetspeakClient(object):
     count = 1
     size = len(msg.SerializeToBytes())
 
-    while count < 100 and size < 1024 * 1024:
+    while count < _MAX_MSG_LIST_MSG_COUNT and size < _MAX_MSG_LIST_BYTES:
       try:
         msg = self._sender_queue.get(timeout=1)
         if not msg.require_fastpoll:

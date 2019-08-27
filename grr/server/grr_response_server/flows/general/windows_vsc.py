@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import compatibility
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import filesystem
@@ -22,7 +23,7 @@ class ListVolumeShadowCopies(flow_base.FlowBase):
     self.CallClient(
         server_stubs.WmiQuery,
         query="SELECT * FROM Win32_ShadowCopy",
-        next_state="ListDeviceDirectories")
+        next_state=compatibility.GetName(self.ListDeviceDirectories))
 
   def ListDeviceDirectories(self, responses):
     """Flow state that calls ListDirectory action for each shadow copy."""
@@ -51,7 +52,7 @@ class ListVolumeShadowCopies(flow_base.FlowBase):
         self.CallClient(
             server_stubs.ListDirectory,
             pathspec=path_spec,
-            next_state="ProcessListDirectory")
+            next_state=compatibility.GetName(self.ProcessListDirectory))
 
         shadows_found = True
 

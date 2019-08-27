@@ -2,6 +2,7 @@
 """Utils common to macOS and Linux."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import io
@@ -22,6 +23,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import precondition
 
 
 def VerifyFileOwner(filename):
@@ -43,15 +45,15 @@ def CanonicalPathToLocalPath(path):
     path: the canonical path as an Unicode string
 
   Returns:
-    a unicode string or an encoded (narrow) string dependent on
-    system settings
-
+    A unicode string.
   """
-  return utils.SmartStr(utils.NormalizePath(path))
+  precondition.AssertType(path, Text)
+  return utils.NormalizePath(path)
 
 
 def LocalPathToCanonicalPath(path):
   """Linux uses a normal path."""
+  precondition.AssertType(path, Text)
   return utils.NormalizePath(path)
 
 

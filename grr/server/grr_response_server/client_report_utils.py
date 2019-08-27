@@ -36,7 +36,7 @@ def FetchAllGraphSeries(
   Args:
     label: Client label to fetch data for.
     report_type: rdf_stats.ClientGraphSeries.ReportType to fetch data for.
-    period: rdfvalue.DurationSeconds specifying how far back in time to fetch
+    period: rdfvalue.Duration specifying how far back in time to fetch
       data. If not provided, all data for the given label and report-type will
       be returned.
 

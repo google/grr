@@ -149,7 +149,7 @@ class DatabaseTestCronJobMixin(object):
     self.db.WriteCronJob(job)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
-    lease_time = rdfvalue.DurationSeconds("5m")
+    lease_time = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(lease_time=lease_time)
       self.assertLen(leased, 1)
@@ -157,18 +157,20 @@ class DatabaseTestCronJobMixin(object):
       self.assertTrue(leased_job.leased_by)
       self.assertEqual(leased_job.leased_until, current_time + lease_time)
 
-    with test_lib.FakeTime(current_time + rdfvalue.DurationSeconds("1m")):
+    with test_lib.FakeTime(current_time +
+                           rdfvalue.Duration.From(1, rdfvalue.MINUTES)):
       leased = self.db.LeaseCronJobs(lease_time=lease_time)
       self.assertFalse(leased)
 
-    with test_lib.FakeTime(current_time + rdfvalue.DurationSeconds("6m")):
+    with test_lib.FakeTime(current_time +
+                           rdfvalue.Duration.From(6, rdfvalue.MINUTES)):
       leased = self.db.LeaseCronJobs(lease_time=lease_time)
       self.assertLen(leased, 1)
       leased_job = leased[0]
       self.assertTrue(leased_job.leased_by)
       self.assertEqual(
-          leased_job.leased_until,
-          current_time + rdfvalue.DurationSeconds("6m") + lease_time)
+          leased_job.leased_until, current_time +
+          rdfvalue.Duration.From(6, rdfvalue.MINUTES) + lease_time)
 
   def testCronJobLeasingByID(self):
     jobs = [self._CreateCronJob() for _ in range(3)]
@@ -176,7 +178,7 @@ class DatabaseTestCronJobMixin(object):
       self.db.WriteCronJob(j)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
-    lease_time = rdfvalue.DurationSeconds("5m")
+    lease_time = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
           cronjob_ids=[job.cron_job_id for job in jobs[:2]],
@@ -199,10 +201,11 @@ class DatabaseTestCronJobMixin(object):
     with test_lib.FakeTime(current_time):
       leased = self.db.LeaseCronJobs(
           cronjob_ids=[leased_job.cron_job_id],
-          lease_time=rdfvalue.DurationSeconds("5m"))
+          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES))
       self.assertTrue(leased)
 
-    with test_lib.FakeTime(current_time + rdfvalue.DurationSeconds("1m")):
+    with test_lib.FakeTime(current_time +
+                           rdfvalue.Duration.From(1, rdfvalue.MINUTES)):
       self.db.ReturnLeasedCronJobs([leased[0]])
 
     returned_job = self.db.ReadCronJob(leased[0].cron_job_id)
@@ -216,20 +219,22 @@ class DatabaseTestCronJobMixin(object):
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10000)
     with test_lib.FakeTime(current_time):
-      leased = self.db.LeaseCronJobs(lease_time=rdfvalue.DurationSeconds("5m"))
+      leased = self.db.LeaseCronJobs(
+          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES))
       self.assertLen(leased, 3)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10001)
     with test_lib.FakeTime(current_time):
       unleased_jobs = self.db.LeaseCronJobs(
-          lease_time=rdfvalue.DurationSeconds("5m"))
+          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES))
       self.assertEmpty(unleased_jobs)
 
       self.db.ReturnLeasedCronJobs(leased)
 
     current_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10002)
     with test_lib.FakeTime(current_time):
-      leased = self.db.LeaseCronJobs(lease_time=rdfvalue.DurationSeconds("5m"))
+      leased = self.db.LeaseCronJobs(
+          lease_time=rdfvalue.Duration.From(5, rdfvalue.MINUTES))
       self.assertLen(leased, 3)
 
   def testCronJobRuns(self):
@@ -279,7 +284,7 @@ class DatabaseTestCronJobMixin(object):
     now = rdfvalue.RDFDatetime.Now()
     run.backtrace = "error"
     run.log_message = "log"
-    run.started_at = now - rdfvalue.DurationSeconds("5s")
+    run.started_at = now - rdfvalue.Duration.From(5, rdfvalue.SECONDS)
     run.finished_at = now
     self.db.WriteCronJobRun(run)
 
@@ -295,30 +300,32 @@ class DatabaseTestCronJobMixin(object):
     job_id = "job1"
     self.db.WriteCronJob(rdf_cronjobs.CronJob(cron_job_id=job_id))
 
-    fake_time = rdfvalue.RDFDatetime.Now() - rdfvalue.DurationSeconds("7d")
+    fake_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        7, rdfvalue.DAYS)
     with test_lib.FakeTime(fake_time):
       run = rdf_cronjobs.CronJobRun(cron_job_id=job_id, run_id="00000000")
       self.db.WriteCronJobRun(run)
 
-    with test_lib.FakeTime(fake_time + rdfvalue.DurationSeconds("1d")):
+    with test_lib.FakeTime(fake_time +
+                           rdfvalue.Duration.From(1, rdfvalue.DAYS)):
       run = rdf_cronjobs.CronJobRun(cron_job_id=job_id, run_id="00000001")
       self.db.WriteCronJobRun(run)
 
-    with test_lib.FakeTime(fake_time + rdfvalue.DurationSeconds("2d")):
+    with test_lib.FakeTime(fake_time +
+                           rdfvalue.Duration.From(2, rdfvalue.DAYS)):
       run = rdf_cronjobs.CronJobRun(cron_job_id=job_id, run_id="00000002")
       self.db.WriteCronJobRun(run)
 
     self.assertLen(self.db.ReadCronJobRuns(job_id), 3)
 
-    cutoff = fake_time + rdfvalue.DurationSeconds("1h")
+    cutoff = fake_time + rdfvalue.Duration.From(1, rdfvalue.HOURS)
     self.db.DeleteOldCronJobRuns(cutoff)
     jobs = self.db.ReadCronJobRuns(job_id)
     self.assertLen(jobs, 2)
     for job in jobs:
       self.assertGreater(job.timestamp, cutoff)
 
-    cutoff = fake_time + rdfvalue.DurationSeconds(
-        "1d") + rdfvalue.DurationSeconds("1h")
+    cutoff = fake_time + rdfvalue.Duration.From(25, rdfvalue.HOURS)
     self.db.DeleteOldCronJobRuns(cutoff)
     jobs = self.db.ReadCronJobRuns(job_id)
     self.assertLen(jobs, 1)

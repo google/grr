@@ -4,10 +4,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
-import datetime
 import hashlib
 import io
 import os
+import time
 
 from absl import app
 from future.builtins import range
@@ -45,20 +45,17 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def testTime(self):
-    date_before = datetime.date.today()
-    results = self._RunQuery("SELECT day, month, year FROM time;")
-    date_after = datetime.date.today()
+    time_before = int(time.time())
+    results = self._RunQuery("SELECT unix_time FROM time;")
+    time_after = int(time.time())
 
     self.assertLen(results, 1)
 
     table = results[0].table
     self.assertLen(table.rows, 1)
 
-    date_result = datetime.date(
-        year=int(list(table.Column("year"))[0]),
-        month=int(list(table.Column("month"))[0]),
-        day=int(list(table.Column("day"))[0]))
-    self.assertBetween(date_result, date_before, date_after)
+    time_result = int(list(table.Column("unix_time"))[0])
+    self.assertBetween(time_result, time_before, time_after)
 
   def testFile(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:

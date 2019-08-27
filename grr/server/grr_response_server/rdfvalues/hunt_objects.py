@@ -86,7 +86,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
       self.hunt_state = self.HuntState.PAUSED
 
     if not self.HasField("duration"):
-      self.duration = rdfvalue.DurationSeconds("2w")
+      self.duration = rdfvalue.Duration.From(2, rdfvalue.WEEKS)
 
     if not self.HasField("client_rate"):
       self.client_rate = 20.5

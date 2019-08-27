@@ -30,6 +30,10 @@ DUAL_BLOB_STORE_LATENCY = metrics.Event(
     "dual_blob_store_latency",
     fields=[("backend_class", str), ("method", str)],
     bins=[0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50])
+DUAL_BLOB_STORE_OP_SIZE = metrics.Event(
+    "dual_blob_store_op_size",
+    fields=[("backend_class", str), ("method", str)],
+    bins=[0, 1, 2, 5, 10, 20, 50, 100, 200, 500])
 DUAL_BLOB_STORE_SUCCESS_COUNT = metrics.Counter(
     "dual_blob_store_success_count",
     fields=[("backend_class", str), ("method", str)])
@@ -58,6 +62,14 @@ def _MeasureFn(bs, fn, arg):
   start_time = time.time()
   cls_name = compatibility.GetName(type(bs))
   fn_name = compatibility.GetName(fn)
+
+  # Record the number of BlobIDs given to the current operation, which is either
+  # 1 for a single BlobID or the length of the given Sequence/Mapping.
+  if isinstance(arg, rdf_objects.BlobID):
+    op_size = 1
+  else:
+    op_size = len(arg)
+  DUAL_BLOB_STORE_OP_SIZE.RecordEvent(op_size, fields=[cls_name, fn_name])
 
   try:
     result = fn(arg)

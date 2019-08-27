@@ -119,7 +119,7 @@ class ClientReportUtilsTest(test_lib.GRRBaseTest):
       # series written starting from 4 seconds ago.
       fetched_data = client_report_utils.FetchAllGraphSeries(
           _TEST_LABEL, rdf_stats.ClientGraphSeries.ReportType.GRR_VERSION,
-          rdfvalue.DurationSeconds("4s"))
+          rdfvalue.Duration.From(4, rdfvalue.SECONDS))
       expected_data = {
           rdfvalue.RDFDatetime.FromSecondsSinceEpoch(6): graph_series_list[6],
           rdfvalue.RDFDatetime.FromSecondsSinceEpoch(7): graph_series_list[7],

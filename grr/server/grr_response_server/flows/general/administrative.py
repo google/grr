@@ -21,6 +21,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
@@ -169,7 +170,9 @@ class GetClientStats(flow_base.FlowBase, GetClientStatsProcessResponseMixin):
   category = "/Administrative/"
 
   def Start(self):
-    self.CallClient(server_stubs.GetClientStats, next_state="StoreResults")
+    self.CallClient(
+        server_stubs.GetClientStats,
+        next_state=compatibility.GetName(self.StoreResults))
 
   def StoreResults(self, responses):
     """Stores the responses."""
@@ -215,7 +218,9 @@ class DeleteGRRTempFiles(flow_base.FlowBase):
   def Start(self):
     """Issue a request to delete tempfiles in directory."""
     self.CallClient(
-        server_stubs.DeleteGRRTempFiles, self.args.pathspec, next_state="Done")
+        server_stubs.DeleteGRRTempFiles,
+        self.args.pathspec,
+        next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     if not responses.success:
@@ -244,7 +249,8 @@ class Uninstall(flow_base.FlowBase):
     system = self.client_os
 
     if system == "Darwin" or system == "Windows":
-      self.CallClient(server_stubs.Uninstall, next_state="Kill")
+      self.CallClient(
+          server_stubs.Uninstall, next_state=compatibility.GetName(self.Kill))
     else:
       self.Log("Unsupported platform for Uninstall")
 
@@ -253,7 +259,9 @@ class Uninstall(flow_base.FlowBase):
     if not responses.success:
       self.Log("Failed to uninstall client.")
     elif self.args.kill:
-      self.CallClient(server_stubs.Kill, next_state="Confirmation")
+      self.CallClient(
+          server_stubs.Kill,
+          next_state=compatibility.GetName(self.Confirmation))
 
   def Confirmation(self, responses):
     """Confirmation of kill."""
@@ -268,7 +276,8 @@ class Kill(flow_base.FlowBase):
 
   def Start(self):
     """Call the kill function on the client."""
-    self.CallClient(server_stubs.Kill, next_state="Confirmation")
+    self.CallClient(
+        server_stubs.Kill, next_state=compatibility.GetName(self.Confirmation))
 
   def Confirmation(self, responses):
     """Confirmation of kill."""
@@ -298,7 +307,7 @@ class UpdateConfiguration(flow_base.FlowBase):
     self.CallClient(
         server_stubs.UpdateConfiguration,
         request=self.args.config,
-        next_state="Confirmation")
+        next_state=compatibility.GetName(self.Confirmation))
 
   def Confirmation(self, responses):
     """Confirmation."""
@@ -338,7 +347,7 @@ class ExecutePythonHack(flow_base.FlowBase):
           server_stubs.ExecutePython,
           python_code=python_blob,
           py_args=self.args.py_args,
-          next_state="Done")
+          next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     """Retrieves the output for the hack."""
@@ -347,13 +356,13 @@ class ExecutePythonHack(flow_base.FlowBase):
       raise flow_base.FlowError("Execute Python hack failed: %s" %
                                 responses.status)
     if response:
-      result = utils.SmartStr(response.return_val)
+      result = response.return_val
       # Send reply with full data, but only log the first 200 bytes.
       str_result = result[0:200]
       if len(result) >= 200:
         str_result += "...[truncated]"
       self.Log("Result: %s" % str_result)
-      self.SendReply(rdfvalue.RDFBytes(utils.SmartStr(response.return_val)))
+      self.SendReply(rdfvalue.RDFString(response.return_val))
 
 
 class ExecuteCommandArgs(rdf_structs.RDFProtoStruct):
@@ -372,7 +381,7 @@ class ExecuteCommand(flow_base.FlowBase):
         cmd=self.args.cmd,
         args=shlex.split(self.args.command_line),
         time_limit=self.args.time_limit,
-        next_state="Confirmation")
+        next_state=compatibility.GetName(self.Confirmation))
 
   def Confirmation(self, responses):
     """Confirmation."""
@@ -451,7 +460,10 @@ class OnlineNotification(flow_base.FlowBase):
     """Starts processing."""
     if self.args.email is None:
       self.args.email = self.token.username
-    self.CallClient(server_stubs.Echo, data="Ping", next_state="SendMail")
+    self.CallClient(
+        server_stubs.Echo,
+        data="Ping",
+        next_state=compatibility.GetName(self.SendMail))
 
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
@@ -532,7 +544,7 @@ class UpdateClient(flow_base.FlowBase):
           more_data=False,
           offset=0,
           write_path=self.state.write_path,
-          next_state="Interrogate",
+          next_state=compatibility.GetName(self.Interrogate),
           use_client_env=False)
       return
 
@@ -542,7 +554,7 @@ class UpdateClient(flow_base.FlowBase):
         more_data=True,
         offset=0,
         write_path=self.state.write_path,
-        next_state="SendBlobs",
+        next_state=compatibility.GetName(self.SendBlobs),
         use_client_env=False)
 
   def SendBlobs(self, responses):
@@ -556,7 +568,7 @@ class UpdateClient(flow_base.FlowBase):
     to_send = blobs[1:-1]
 
     if not to_send:
-      self.CallStateInline(next_state="SendLastBlob")
+      self.CallStateInline(next_state=compatibility.GetName(self.SendLastBlob))
       return
     offset = len(blobs[0].data)
 
@@ -594,7 +606,7 @@ class UpdateClient(flow_base.FlowBase):
         more_data=False,
         offset=offset,
         write_path=self.state.write_path,
-        next_state="Interrogate",
+        next_state=compatibility.GetName(self.Interrogate),
         use_client_env=False)
 
   def CheckUpdateAgent(self, responses):
@@ -608,7 +620,9 @@ class UpdateClient(flow_base.FlowBase):
                                 responses.status)
 
     self.Log("Installer completed.")
-    self.CallFlow(discovery.Interrogate.__name__, next_state="Done")
+    self.CallFlow(
+        discovery.Interrogate.__name__,
+        next_state=compatibility.GetName(self.Done))
 
   def Done(self, responses):
     if not responses.success:
@@ -725,7 +739,7 @@ class ClientStartupHandlerMixin(object):
 
   def WriteClientStartupInfo(self, client_id, new_si):
     """Handle a startup event."""
-    drift = rdfvalue.DurationSeconds("5m")
+    drift = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
 
     current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
 
@@ -733,7 +747,7 @@ class ClientStartupHandlerMixin(object):
     # or the boot time is more than 5 minutes different.
     if (not current_si or current_si.client_info != new_si.client_info or
         not current_si.boot_time or
-        abs(current_si.boot_time - new_si.boot_time) > drift):
+        current_si.boot_time - new_si.boot_time > drift):
       try:
         data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
       except db.UnknownClientError:
@@ -769,14 +783,17 @@ class KeepAlive(flow_base.FlowBase):
 
   def Start(self):
     self.state.end_time = self.args.duration.Expiry()
-    self.CallStateInline(next_state="SendMessage")
+    self.CallStateInline(next_state=compatibility.GetName(self.SendMessage))
 
   def SendMessage(self, responses):
     if not responses.success:
       self.Log(responses.status.error_message)
       raise flow_base.FlowError(responses.status.error_message)
 
-    self.CallClient(server_stubs.Echo, data="Wake up!", next_state="Sleep")
+    self.CallClient(
+        server_stubs.Echo,
+        data="Wake up!",
+        next_state=compatibility.GetName(self.Sleep))
 
   def Sleep(self, responses):
     if not responses.success:
@@ -785,7 +802,9 @@ class KeepAlive(flow_base.FlowBase):
 
     if rdfvalue.RDFDatetime.Now() < self.state.end_time - self.sleep_time:
       start_time = rdfvalue.RDFDatetime.Now() + self.sleep_time
-      self.CallState(next_state="SendMessage", start_time=start_time)
+      self.CallState(
+          next_state=compatibility.GetName(self.SendMessage),
+          start_time=start_time)
 
 
 class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):
@@ -838,7 +857,7 @@ class LaunchBinary(flow_base.FlowBase):
           args=shlex.split(self.args.command_line),
           offset=0,
           write_path=self.state.write_path,
-          next_state="End")
+          next_state=compatibility.GetName(self.End))
       return
 
     self.CallClient(
@@ -847,7 +866,7 @@ class LaunchBinary(flow_base.FlowBase):
         more_data=True,
         offset=0,
         write_path=self.state.write_path,
-        next_state="SendBlobs")
+        next_state=compatibility.GetName(self.SendBlobs))
 
   def SendBlobs(self, responses):
     """Sends all blobs that are not the first or the last."""
@@ -860,7 +879,7 @@ class LaunchBinary(flow_base.FlowBase):
     to_send = blobs[1:-1]
 
     if not to_send:
-      self.CallStateInline(next_state="SendLastBlob")
+      self.CallStateInline(next_state=compatibility.GetName(self.SendLastBlob))
       return
     offset = len(blobs[0].data)
 
@@ -898,7 +917,7 @@ class LaunchBinary(flow_base.FlowBase):
         args=shlex.split(self.args.command_line),
         offset=offset,
         write_path=self.state.write_path,
-        next_state="End",
+        next_state=compatibility.GetName(self.End),
         use_client_env=False)
 
   def CheckResponse(self, responses):

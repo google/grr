@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import time
 
+from future.builtins import str
 from future.utils import iteritems
 import mock
 
@@ -225,11 +226,11 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       raise IOError("File not found")
 
     result = result[1]  # We just want the stat.
-    data = ""
+    data = b""
     if result.HasField("resident"):
       data = result.resident
     elif result.HasField("registry_type"):
-      data = utils.SmartStr(result.registry_data.GetValue())
+      data = str(result.registry_data.GetValue()).encode("utf-8")
 
     data = data[self.offset:self.offset + length]
 

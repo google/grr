@@ -695,8 +695,8 @@ class ApiDeletePendingUserNotificationHandlerTest(
   """Test for ApiDeletePendingUserNotificationHandler."""
 
   TIME_0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42)
-  TIME_1 = TIME_0 + rdfvalue.DurationSeconds("1d")
-  TIME_2 = TIME_1 + rdfvalue.DurationSeconds("1d")
+  TIME_1 = TIME_0 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+  TIME_2 = TIME_1 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
 
   def setUp(self):
     super(ApiDeletePendingUserNotificationHandlerTest, self).setUp()
