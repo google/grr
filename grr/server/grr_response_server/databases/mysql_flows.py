@@ -20,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import random
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
@@ -1166,9 +1167,13 @@ class MySQLDBFlowMixin(object):
       LIMIT %(limit)s
     """
 
-    id_str = utils.ProcessIdString()
+    # Appending a random id here to make the key we lease by unique in cases
+    # where we run multiple leasing attempts with the same timestamp - which can
+    # happen on Windows where timestamp resolution is lower.
+    id_str = "%s:%d" % (utils.ProcessIdString(), random.UInt16())
+    expiry_str = mysql_utils.RDFDatetimeToTimestamp(expiry)
     args = {
-        "expiry": mysql_utils.RDFDatetimeToTimestamp(expiry),
+        "expiry": expiry_str,
         "id": id_str,
         "limit": 50,
     }
@@ -1187,7 +1192,7 @@ class MySQLDBFlowMixin(object):
     """
 
     args = {
-        "expiry": mysql_utils.RDFDatetimeToTimestamp(expiry),
+        "expiry": expiry_str,
         "id": id_str,
         "updated": updated,
     }

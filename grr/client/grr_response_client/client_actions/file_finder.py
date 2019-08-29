@@ -116,7 +116,7 @@ class FileFinderOS(actions.ActionPlugin):
     if args.process_non_regular_files:
       return
 
-    is_regular = stat.IsRegular() or stat.IsDirectory()
+    is_regular = stat.IsRegular() or stat.IsDirectory() or stat.IsSymlink()
     if not is_regular:
       raise _SkipFileException()
 

@@ -93,6 +93,9 @@ def StatEntryFromStat(stat,
     # `utils` to depend on `xattrs`.
     result.ext_attrs = list(GetExtAttrs(stat.GetPath()))
 
+  if stat.GetSymlinkTarget() is not None:
+    result.symlink = stat.GetSymlinkTarget()
+
   return result
 
 

@@ -48,8 +48,8 @@ class StatTest(absltest.TestCase):
       self._Touch(temp_filepath, "-m", mdate)
 
       stat = filesystem.Stat.FromPath(temp_filepath, follow_symlink=False)
-      self.assertEqual(stat.GetAccessTime(), self._EpochMillis(adate))
-      self.assertEqual(stat.GetModificationTime(), self._EpochMillis(mdate))
+      self.assertEqual(stat.GetAccessTime(), self._EpochMicros(adate))
+      self.assertEqual(stat.GetModificationTime(), self._EpochMicros(mdate))
 
   def testDirectory(self):
     with temp.AutoTempDirPath() as temp_dirpath:
@@ -188,8 +188,8 @@ class StatTest(absltest.TestCase):
     subprocess.check_call(["touch", mode, "-t", fmt_date, path])
 
   @staticmethod
-  def _EpochMillis(date):
-    return int(date.strftime("%s"))
+  def _EpochMicros(date):
+    return int(date.strftime("%s")) * 1000000
 
 
 class StatCacheTest(absltest.TestCase):

@@ -29,16 +29,7 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
 
-def MyStat(path):
-  stat_obj = MyStat.old_target(path)
-  if path.endswith("auth.log"):
-    res = list(stat_obj)
-    # Sets atime, ctime, and mtime to some time in 2022.
-    res[-1] = 1672466423
-    res[-2] = 1672466423
-    res[-3] = 1672466423
-    return os.stat_result(res)
-  return stat_obj
+# TODO(hanuszczak): This test suite is very bad, it needs to be rewritten.
 
 
 class FileFinderTest(client_test_lib.EmptyActionTest):
@@ -59,6 +50,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
                      action,
                      conditions=None,
                      follow_links=True,
+                     process_non_regular_files=True,
                      **kw):
     return self.RunAction(
         client_file_finder.FileFinderOS,
@@ -66,7 +58,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
             paths=paths,
             action=action,
             conditions=conditions,
-            process_non_regular_files=True,
+            process_non_regular_files=process_non_regular_files,
             follow_links=follow_links,
             **kw))
 
@@ -667,15 +659,47 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertLen(results, 1)
       res = results[0]
       self.assertEqual(res.stat_entry.st_size, expected_size)
+      self.assertEqual(res.stat_entry.symlink, lnk_target)
+
+  def testLinkStatWithProcessNonRegularFilesSetToFalse(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as test_dir:
+      lnk = os.path.join(test_dir, "lnk")
+      lnk_target = os.path.join(test_dir, "lnk_target")
+
+      with io.open(lnk_target, "wb") as fd:
+        fd.write(b"somebytes")
+      os.symlink(lnk_target, lnk)
+
+      paths = [lnk]
+      link_size = os.lstat(lnk).st_size
+      target_size = os.stat(lnk).st_size
+      for expected_size, resolve_links in [(link_size, False),
+                                           (target_size, True)]:
+        stat_action = rdf_file_finder.FileFinderAction.Stat(
+            resolve_links=resolve_links)
+        results = self._RunFileFinder(
+            paths,
+            stat_action,
+            follow_links=False,
+            process_non_regular_files=False)
+        self.assertLen(results, 1)
+        res = results[0]
+        self.assertEqual(res.stat_entry.st_size, expected_size)
+        self.assertEqual(res.stat_entry.symlink, lnk_target)
 
   def testModificationTimeCondition(self):
-    with utils.Stubber(os, "stat", MyStat):
-      test_dir = self._PrepareTimestampedFiles()
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      files = ["file1", "file2", "file3"]
+      for f in files:
+        with open(os.path.join(temp_dirpath, f), "wb"):
+          pass
 
-      # We have one "old" file, auth.log, and two "new" ones, dpkg*.
-      paths = [test_dir + "/{dpkg.log,dpkg_false.log,auth.log}"]
+      now = rdfvalue.RDFDatetime.Now()
+      change_time = now + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+      time_secs = change_time.AsSecondsSinceEpoch() + 10
+      os.utime(os.path.join(temp_dirpath, files[2]), (time_secs, time_secs))
 
-      change_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+      paths = [os.path.join(temp_dirpath, "{{{}}}".format(",".join(files)))]
 
       condition = rdf_file_finder.FileFinderCondition.ModificationTime(
           max_last_modified_time=change_time)
@@ -683,9 +707,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.RunAndCheck(
           paths,
           conditions=[condition],
-          expected=["dpkg.log", "dpkg_false.log"],
-          unexpected=["auth.log"],
-          base_path=test_dir)
+          expected=files[:2],
+          unexpected=files[2:],
+          base_path=temp_dirpath)
 
       # Now just the file from 2022.
       condition = rdf_file_finder.FileFinderCondition.ModificationTime(
@@ -694,17 +718,23 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.RunAndCheck(
           paths,
           conditions=[condition],
-          expected=["auth.log"],
-          unexpected=["dpkg.log", "dpkg_false.log"],
-          base_path=test_dir)
+          expected=files[2:],
+          unexpected=files[:2],
+          base_path=temp_dirpath)
 
   def testAccessTimeCondition(self):
-    with utils.Stubber(os, "stat", MyStat):
-      test_dir = self._PrepareTimestampedFiles()
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      files = ["file1", "file2", "file3"]
+      for f in files:
+        with open(os.path.join(temp_dirpath, f), "wb"):
+          pass
 
-      paths = [test_dir + "/{dpkg.log,dpkg_false.log,auth.log}"]
+      now = rdfvalue.RDFDatetime.Now()
+      change_time = now + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+      time_secs = change_time.AsSecondsSinceEpoch() + 10
+      os.utime(os.path.join(temp_dirpath, files[2]), (time_secs, time_secs))
 
-      change_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
+      paths = [os.path.join(temp_dirpath, "{{{}}}".format(",".join(files)))]
 
       # Check we can get the normal files.
       condition = rdf_file_finder.FileFinderCondition.AccessTime(
@@ -713,9 +743,9 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.RunAndCheck(
           paths,
           conditions=[condition],
-          expected=["dpkg.log", "dpkg_false.log"],
-          unexpected=["auth.log"],
-          base_path=test_dir)
+          expected=files[:2],
+          unexpected=files[2:],
+          base_path=temp_dirpath)
 
       # Now just the file from 2022.
       condition = rdf_file_finder.FileFinderCondition.AccessTime(
@@ -724,40 +754,11 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.RunAndCheck(
           paths,
           conditions=[condition],
-          expected=["auth.log"],
-          unexpected=["dpkg.log", "dpkg_false.log"],
-          base_path=test_dir)
+          expected=files[2:],
+          unexpected=files[:2],
+          base_path=temp_dirpath)
 
-  def testInodeChangeTimeCondition(self):
-    with utils.Stubber(os, "stat", MyStat):
-      test_dir = self._PrepareTimestampedFiles()
-
-      # We have one "old" file, auth.log, and two "new" ones, dpkg*.
-      paths = [test_dir + "/{dpkg.log,dpkg_false.log,auth.log}"]
-
-      # Check we can get the auth log only (huge ctime).
-      change_time = rdfvalue.RDFDatetime.FromHumanReadable("2020-01-01")
-
-      condition = rdf_file_finder.FileFinderCondition.InodeChangeTime(
-          min_last_inode_change_time=change_time)
-
-      self.RunAndCheck(
-          paths,
-          conditions=[condition],
-          expected=["auth.log"],
-          unexpected=["dpkg.log", "dpkg_false.log"],
-          base_path=test_dir)
-
-      # Now just the others.
-      condition = rdf_file_finder.FileFinderCondition.InodeChangeTime(
-          max_last_inode_change_time=change_time)
-
-      self.RunAndCheck(
-          paths,
-          conditions=[condition],
-          expected=["dpkg.log", "dpkg_false.log"],
-          unexpected=["auth.log"],
-          base_path=test_dir)
+  # TODO(hanuszczak): Add tests for change metadata time conditions.
 
   def testSizeCondition(self):
     test_dir = self._PrepareTimestampedFiles()

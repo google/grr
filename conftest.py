@@ -129,7 +129,33 @@ def thread_leak_check(request):
 
   threads = threading.enumerate()
 
-  thread_names = [thread.name for thread in threads]
+  # Quoting Python docs (https://docs.python.org/3/library/threading.html):
+  # threading.current_thread():
+  # Return the current Thread object, corresponding to the caller's thread
+  # of control. If the caller's thread of control was not created through
+  # the threading module, a dummy thread object with limited functionality
+  # is returned.
+  #
+  # Quoting Python source
+  # (https://github.com/python/cpython/blob/2a16eea71f56c2d8f38c295c8ce71a9a9a140aff/Lib/threading.py#L1269):
+  # Dummy thread class to represent threads not started here.
+  # These aren't garbage collected when they die, nor can they be waited for.
+  # If they invoke anything in threading.py that calls current_thread(), they
+  # leave an entry in the _active dict forever after.
+  # Their purpose is to return *something* from current_thread().
+  # They are marked as daemon threads so we won't wait for them
+  # when we exit (conform previous semantics).
+  #
+  # See
+  # https://stackoverflow.com/questions/55778365/what-is-dummy-in-threading-current-thread
+  # for additional context.
+  #
+  # Dummy threads are named "Dummy-*" and are never deleted, since it's
+  # impossible to detect the termination of alien threads, hence we have to
+  # ignore them.
+  thread_names = [
+      thread.name for thread in threads if not thread.name.startswith("Dummy-")
+  ]
 
   allowed_thread_names = [
       "MainThread",
@@ -148,9 +174,6 @@ def thread_leak_check(request):
       "ApiSslServerTest",
       "GRRHTTPServerTestThread",
       "SharedMemDBTestThread",
-
-      # Python specialty, sometimes it misreports threads using this name.
-      "Dummy-1",
   ]
 
   # Remove up to one instance of each allowed thread name.

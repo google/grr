@@ -110,9 +110,9 @@ class OsqueryTest(absltest.TestCase):
         filedesc.write(b"FOOBAR")
 
       stat = filesystem.Stat.FromPath(filepath)
-      atime = stat.GetAccessTime()
-      mtime = stat.GetModificationTime()
-      ctime = stat.GetChangeTime()
+      atime = stat.GetAccessTime() // 1000000
+      mtime = stat.GetModificationTime() // 1000000
+      ctime = stat.GetChangeTime() // 1000000
       size = stat.GetSize()
 
       results = _Query("""

@@ -173,6 +173,9 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[id=refresh-dir][disabled]")
 
+  # NOTE: sometimes with headless Chrome the files list doesn't
+  # get updated in time.
+  @flaky
   def testTreeAndFileListRefreshedWhenRefreshCompletes(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 

@@ -12,6 +12,7 @@ import stat
 
 from typing import Dict
 from typing import NamedTuple
+from typing import Optional
 from typing import Text
 
 from grr_response_core.lib.util import compatibility
@@ -38,8 +39,9 @@ class Stat(object):
 
     Args:
       path: A path to perform `stat` on.
-      follow_symlink: True if `stat` of a symlink should be returned instead of
-        a file that it points to. For non-symlinks this setting has no effect.
+      follow_symlink: True if `stat` of a file that a symlink points to should
+        be returned instead of the symlink itself. For non-symlinks this setting
+        has no effect.
 
     Returns:
       Stat instance, with information about the given path.
@@ -57,17 +59,32 @@ class Stat(object):
     else:
       stat_obj = os.lstat(path)
 
-    return cls(path=path, stat_obj=stat_obj)
+    if compatibility.PY2 and platform.system() == "Windows":
+      # TODO: In Python 2 on Windows `os.readlink` is missing.
+      target = None
+    else:
+      try:
+        target = os.readlink(path)
+      # `os.readlink` raises `ValueError` on Windows and `OSError` on UNIX.
+      except (OSError, ValueError):
+        target = None
 
-  def __init__(self, path, stat_obj):
+    return cls(path=path, stat_obj=stat_obj, symlink_target=target)
+
+  def __init__(self,
+               path,
+               stat_obj,
+               symlink_target = None):
     """Wrap an existing stat result in a `filesystem.Stat` instance.
 
     Args:
       path: the path of `stat_obj`.
       stat_obj: an instance of os.stat_result with information about `path`.
+      symlink_target: Path of the original file that symlink refers to.
     """
     self._path = path
     self._stat = stat_obj
+    self._symlink_target = symlink_target
     self._flags_linux = None
     self._flags_osx = None
 
@@ -91,16 +108,25 @@ class Stat(object):
     return self._stat.st_size
 
   def GetAccessTime(self):
-    return int(self._stat.st_atime)
+    if compatibility.PY2:
+      return _SecondsToMicroseconds(self._stat.st_atime)
+    return _NanosecondsToMicroseconds(self._stat.st_atime_ns)  # pytype: disable=attribute-error
 
   def GetModificationTime(self):
-    return int(self._stat.st_mtime)
+    if compatibility.PY2:
+      return _SecondsToMicroseconds(self._stat.st_mtime)
+    return _NanosecondsToMicroseconds(self._stat.st_mtime_ns)  # pytype: disable=attribute-error
 
   def GetChangeTime(self):
-    return int(self._stat.st_ctime)
+    if compatibility.PY2:
+      return _SecondsToMicroseconds(self._stat.st_ctime)
+    return _NanosecondsToMicroseconds(self._stat.st_ctime_ns)  # pytype: disable=attribute-error
 
   def GetDevice(self):
     return self._stat.st_dev
+
+  def GetSymlinkTarget(self):
+    return self._symlink_target
 
   def IsDirectory(self):
     return stat.S_ISDIR(self._stat.st_mode)
@@ -189,8 +215,9 @@ class StatCache(object):
 
     Args:
       path: A path to the file to perform `stat` on.
-      follow_symlink: True if `stat` of a symlink should be returned instead of
-        a file that it points to. For non-symlinks this setting has no effect.
+      follow_symlink: True if `stat` of a file that a symlink points to should
+        be returned instead of the symlink itself. For non-symlinks this setting
+        has no effect.
 
     Returns:
       `Stat` object corresponding to the given path.
@@ -209,3 +236,13 @@ class StatCache(object):
         self._cache[self._Key(path=path, follow_symlink=True)] = value
 
       return value
+
+
+def _SecondsToMicroseconds(secs):
+  """Converts seconds to microseconds."""
+  return int(secs * 1000000)
+
+
+def _NanosecondsToMicroseconds(ns):
+  """Converts nanoseconds to microseconds."""
+  return ns // 1000
