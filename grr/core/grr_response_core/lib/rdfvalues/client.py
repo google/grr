@@ -148,20 +148,6 @@ class ClientURN(rdfvalue.RDFURN):
 
     return result
 
-  def Queue(self):
-    """Returns the queue name of this clients task queue."""
-    return self.Add("tasks")
-
-
-def GetClientURNFromPath(path):
-  """Extracts the Client id from the path, if it is present."""
-
-  # Make sure that the first component of the path looks like a client.
-  try:
-    return ClientURN(path.split("/")[1])
-  except (type_info.TypeValueError, IndexError):
-    return None
-
 
 class PCIDevice(rdf_structs.RDFProtoStruct):
   """A PCI device on the client.

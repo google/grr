@@ -317,42 +317,6 @@ message GrrStatus {
   optional string nanny_status = 7;
 }
 
-message GrrNotification {
-  optional string session_id = 1 [(sem_type) = { type: "SessionID" }];
-
-  // DEPRECATED
-  // optional GrrMessage.Priority priority = 2;
-
-  optional uint64 first_queued = 3 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The first time this notification was queued.",
-  }];
-
-  optional uint64 last_status = 4 [(sem_type) = {
-    description: "If this is for a status based event (flows), the request number of the last status we received.",
-  }];
-
-  optional bool in_progress = 5 [
-    default = false,
-    (sem_type) = {
-      description: "This indicates that the flow is currently being processed by the worker.",
-    }
-  ];
-
-  optional uint64 timestamp = 6 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "The time the notification was scheduled for.",
-  }];
-
-  optional uint32 ttl = 7 [
-    default = 10,
-    (sem_type) = {
-      description: "Time to live - each time a notification is rescheduled, "
-                   "this is decremented until the notification expires."
-    }
-  ];
-}
-
 message ClientCrash {
   optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
   optional string session_id = 2 [(sem_type) = { type: "SessionID" }];
@@ -2000,21 +1964,6 @@ message Distribution {
   repeated float bins_heights = 4 [(sem_type) = {
     description: "Heights of all the bins defined in the bins field."
   }];
-}
-
-message AFF4ObjectLabel {
-  optional string name = 1;
-  optional string owner = 2 [(sem_type) = {
-    description: "Username of the user who added the label.",
-  }];
-  optional uint64 timestamp = 3 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Timestamp for when the label was added.",
-  }];
-}
-
-message AFF4ObjectLabelsList {
-  repeated AFF4ObjectLabel labels = 1;
 }
 
 // File used for persistence on a system.  e.g. windows service or runkey

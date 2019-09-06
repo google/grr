@@ -11,7 +11,6 @@ from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
@@ -31,7 +30,6 @@ from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
-from grr_response_server.rdfvalues import aff4 as rdf_aff4
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
@@ -249,6 +247,15 @@ class Interrogate(flow_base.FlowBase):
     # rdf_objects.ClientSnapshot.
     self.state.client.filesystems = responses
 
+  def _ValidateLabel(self, label):
+    if not label:
+      raise ValueError("Label name cannot be empty.")
+
+    is_valid = lambda char: char.isalnum() or char in " _./:-"
+    if not all(map(is_valid, label)):
+      raise ValueError("Label name can only contain: "
+                       "a-zA-Z0-9_./:- but got: '%s'" % label)
+
   def ClientInfo(self, responses):
     """Obtain some information about the GRR client running."""
     if not responses.success:
@@ -273,9 +280,9 @@ class Interrogate(flow_base.FlowBase):
     sanitized_labels = []
     for label in response.labels:
       try:
-        rdf_aff4.AFF4ObjectLabel(name=label)
+        self._ValidateLabel(label)
         sanitized_labels.append(label)
-      except type_info.TypeValueError:
+      except ValueError:
         self.Log("Got invalid label: %s", label)
 
     response.labels = sanitized_labels

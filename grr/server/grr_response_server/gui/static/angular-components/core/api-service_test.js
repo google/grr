@@ -62,13 +62,13 @@ describe('API service', () => {
       const richData = {
         'age': 0,
         'mro': [
-          'AFF4ObjectLabel',
+          'ObjectLabel',
           'RDFProtoStruct',
           'RDFStruct',
           'RDFValue',
           'object',
         ],
-        'type': 'AFF4ObjectLabel',
+        'type': 'ObjectLabel',
         'value': {
           'name': {
             'age': 0,
@@ -117,13 +117,13 @@ describe('API service', () => {
       const richData = {
         'age': 0,
         'mro': [
-          'AFF4ObjectLabel',
+          'ObjectLabel',
           'RDFProtoStruct',
           'RDFStruct',
           'RDFValue',
           'object',
         ],
-        'type': 'AFF4ObjectLabel',
+        'type': 'ObjectLabel',
         'value': {
           'name': [
             {
@@ -550,13 +550,13 @@ describe('API service', () => {
       const richData = {
         'age': 0,
         'mro': [
-          'AFF4ObjectLabel',
+          'ObjectLabel',
           'RDFProtoStruct',
           'RDFStruct',
           'RDFValue',
           'object',
         ],
-        'type': 'AFF4ObjectLabel',
+        'type': 'ObjectLabel',
         'value': {
           'name': {
             'age': 0,

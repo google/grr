@@ -199,75 +199,6 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
 
-  def InitFromAff4Object(self,
-                         flow_obj,
-                         flow_id=None,
-                         with_args=True,
-                         with_state_and_context=False):
-    try:
-      # TODO(user): we should be able to infer flow id from the
-      # URN. Currently it's not possible due to an inconsistent way in
-      # which we create symlinks and name them.
-      self.flow_id = flow_id
-      self.urn = flow_obj.urn
-
-      first_component = self.urn.Split()[0]
-      try:
-        self.client_id = first_component
-      except ValueError:
-        # This is not a client-based flow, nothing to be done here.
-        pass
-
-      self.name = flow_obj.runner_args.flow_name
-      self.started_at = flow_obj.context.create_time
-      self.last_active_at = flow_obj.Get(flow_obj.Schema.LAST)
-      self.creator = flow_obj.context.creator
-
-      if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
-        self.state = "CLIENT_CRASHED"
-      elif flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION):
-        self.state = flow_obj.context.state = "ERROR"
-        reason = flow_obj.Get(flow_obj.Schema.PENDING_TERMINATION).reason
-        flow_obj.context.status = "Pending termination: %s" % reason
-      else:
-        self.state = flow_obj.context.state
-
-      if with_args:
-        try:
-          self.args = flow_obj.args
-        except ValueError:
-          # If args class name has changed, ValueError will be raised. Handling
-          # this gracefully - we should still try to display some useful info
-          # about the flow.
-          pass
-
-      self.runner_args = flow_obj.runner_args
-
-      if self.runner_args.original_flow.flow_id:
-        self.original_flow = ApiFlowReference().FromFlowReference(
-            self.runner_args.original_flow)
-      else:
-        self.runner_args.original_flow = None
-
-      if with_state_and_context:
-        try:
-          self.context = flow_obj.context
-        except ValueError:
-          pass
-
-        flow_state_dict = flow_obj.Get(flow_obj.Schema.FLOW_STATE_DICT)
-        if flow_state_dict is not None:
-          flow_state_data = flow_state_dict.ToDict()
-
-          if flow_state_data:
-            self.state_data = (
-                api_call_handler_utils.ApiDataObject().InitFromDataObject(
-                    flow_state_data))
-    except Exception as e:  # pylint: disable=broad-except
-      self.internal_error = "Error while opening flow: %s" % str(e)
-
-    return self
-
   def InitFromFlowObject(self,
                          flow_obj,
                          with_args=True,
@@ -773,9 +704,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListFlowOutputPluginsResult(items=result)
 
 
-def GetOutputPluginIndex(
-    plugin_descriptors,
-    plugin_id):
+def GetOutputPluginIndex(plugin_descriptors, plugin_id):
   """Gets an output plugin index for a plugin with a given id.
 
   Historically output plugins descriptors were stored in dicts-like

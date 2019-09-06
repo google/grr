@@ -31,7 +31,7 @@ describe('client label form directive', () => {
           data: {
             items: [
               {
-                type: 'AFF4ObjectLabel',
+                type: 'ClientLabel',
                 value: {
                   name: {
                     type: 'unicode',
@@ -40,7 +40,7 @@ describe('client label form directive', () => {
                 },
               },
               {
-                type: 'AFF4ObjectLabel',
+                type: 'ClientLabel',
                 value: {
                   name: {
                     type: 'unicode',

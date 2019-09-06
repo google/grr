@@ -18,7 +18,6 @@ const {JsonDirective} = goog.require('grrUi.semantic.jsonDirective');
 const {MacAddressDirective} = goog.require('grrUi.semantic.macAddressDirective');
 const {NetworkAddressDirective} = goog.require('grrUi.semantic.networkAddressDirective');
 const {ObjectLabelDirective} = goog.require('grrUi.semantic.objectLabelDirective');
-const {ObjectLabelsListDirective} = goog.require('grrUi.semantic.objectLabelsListDirective');
 const {OsqueryTableDirective} = goog.require('grrUi.semantic.osqueryTableDirective');
 const {PrimitiveDirective} = goog.require('grrUi.semantic.primitiveDirective');
 const {RegistryOverrideDirective, SemanticValueDirective} = goog.require('grrUi.semantic.semanticValueDirective');
@@ -82,8 +81,6 @@ exports.semanticModule.directive(
     NetworkAddressDirective.directive_name, NetworkAddressDirective);
 exports.semanticModule.directive(
     ObjectLabelDirective.directive_name, ObjectLabelDirective);
-exports.semanticModule.directive(
-    ObjectLabelsListDirective.directive_name, ObjectLabelsListDirective);
 exports.semanticModule.directive(
     OsqueryTableDirective.directive_name, OsqueryTableDirective);
 exports.semanticModule.directive(
@@ -158,8 +155,6 @@ exports.semanticModule.run(function(grrSemanticValueDirectivesRegistryService) {
       ObjectLabelDirective.semantic_type, ObjectLabelDirective);
   registry.registerDirective(
       ObjectLabelDirective.semantic_type, ObjectLabelDirective);
-  registry.registerDirective(
-      ObjectLabelsListDirective.semantic_type, ObjectLabelsListDirective);
   registry.registerDirective(
       OsqueryTableDirective.semantic_type, OsqueryTableDirective);
   angular.forEach(PrimitiveDirective.semantic_types, function(type) {

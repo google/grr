@@ -130,15 +130,6 @@ class GrrStatus(rdf_structs.RDFProtoStruct):
   ]
 
 
-class GrrNotification(rdf_structs.RDFProtoStruct):
-  """A flow notification."""
-  protobuf = jobs_pb2.GrrNotification
-  rdf_deps = [
-      rdfvalue.RDFDatetime,
-      rdfvalue.SessionID,
-  ]
-
-
 class FlowProcessingRequest(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowProcessingRequest
   rdf_deps = [

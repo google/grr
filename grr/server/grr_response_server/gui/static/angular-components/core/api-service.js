@@ -38,13 +38,13 @@ var encodeUrlPath = exports.encodeUrlPath;
  * {
  *     "age": 0,
  *     "mro": [
- *       "AFF4ObjectLabel",
+ *       "ObjectLabel",
  *       "RDFProtoStruct",
  *       "RDFStruct",
  *       "RDFValue",
  *       "object"
  *     ],
- *     "type": "AFF4ObjectLabel",
+ *     "type": "ObjectLabel",
  *     "value": {
  *       "name": {
  *         "age": 0,

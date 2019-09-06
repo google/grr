@@ -28,20 +28,6 @@ class SessionIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/DEBUG-user1:12345678"))
     rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/DEBUG-user1:12345678:hunt"))
 
-  def testQueueGetterReturnsCorrectValues(self):
-    s = rdfvalue.SessionID("A:12345678")
-    self.assertEqual(s.Queue(), "A")
-
-    s = rdfvalue.SessionID("DEBUG-user1:12345678:hunt")
-    self.assertEqual(s.Queue(), "DEBUG-user1")
-
-  def testFlowNameGetterReturnsCorrectValues(self):
-    s = rdfvalue.SessionID("A:12345678")
-    self.assertEqual(s.FlowName(), "12345678")
-
-    s = rdfvalue.SessionID("DEBUG-user1:12345678:hunt")
-    self.assertEqual(s.FlowName(), "12345678:hunt")
-
   def testBadStructure(self):
     self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
                       rdfvalue.RDFURN("aff4:/flows/A:123456:1:"))
