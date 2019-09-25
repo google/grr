@@ -2,6 +2,7 @@
 """The MySQL database methods for event handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -11,7 +12,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 def _AuditEntryFromRow(details, timestamp):
   entry = rdf_objects.APIAuditEntry.FromSerializedBytes(details)
-  entry.timestamp = mysql_utils.MysqlToRDFDatetime(timestamp)
+  entry.timestamp = mysql_utils.TimestampToRDFDatetime(timestamp)
   return entry
 
 
@@ -27,7 +28,7 @@ class MySQLDBEventMixin(object):
                           cursor=None):
     """Returns audit entries stored in the database."""
 
-    query = """SELECT details, timestamp
+    query = """SELECT details, UNIX_TIMESTAMP(timestamp)
         FROM api_audit_entry
         FORCE INDEX (api_audit_entry_by_username_timestamp)
         {WHERE_PLACEHOLDER}
@@ -73,6 +74,7 @@ class MySQLDBEventMixin(object):
                                        max_timestamp=None,
                                        cursor=None):
     """Returns audit entry counts grouped by user and calendar day."""
+
     query = """
         -- Timestamps are timezone-agnostic whereas dates are not. Hence, we are
         -- forced to pick some timezone, in order to extract the day. We choose
@@ -110,15 +112,16 @@ class MySQLDBEventMixin(object):
   @mysql_utils.WithTransaction()
   def WriteAPIAuditEntry(self, entry, cursor=None):
     """Writes an audit entry to the database."""
+    if entry.timestamp is None:
+      datetime = rdfvalue.RDFDatetime.Now()
+    else:
+      datetime = entry.timestamp
+
     args = {
-        "username":
-            entry.username,
-        "router_method_name":
-            entry.router_method_name,
-        "details":
-            entry.SerializeToBytes(),
-        "timestamp":
-            mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now()),
+        "username": entry.username,
+        "router_method_name": entry.router_method_name,
+        "details": entry.SerializeToBytes(),
+        "timestamp": mysql_utils.RDFDatetimeToTimestamp(datetime),
     }
     query = """
     INSERT INTO api_audit_entry (username, router_method_name, details,

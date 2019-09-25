@@ -149,6 +149,7 @@ def IsExecutionWhitelisted(cmd, args):
   if platform.system() == "Windows":
     whitelist = [
         ("arp.exe", ["-a"]),
+        ("cmd.exe", ["/C", "echo 1"]),
         ("driverquery.exe", ["/v"]),
         ("ipconfig.exe", ["/all"]),
         ("netsh.exe", ["advfirewall", "firewall", "show", "rule", "name=all"]),

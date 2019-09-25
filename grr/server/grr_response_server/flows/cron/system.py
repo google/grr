@@ -193,7 +193,7 @@ def _IterateAllClients(recency_window=None):
   """Fetches client data from the relational db.
 
   Args:
-    recency_window: An rdfvalue.DurationSeconds specifying a window of last-ping
+    recency_window: An rdfvalue.Duration specifying a window of last-ping
       timestamps to consider. Clients that haven't communicated with GRR servers
       longer than the given period will be skipped. If recency_window is None,
       all clients will be iterated.

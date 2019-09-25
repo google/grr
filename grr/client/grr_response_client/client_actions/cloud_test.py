@@ -21,22 +21,22 @@ from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
 
+@unittest.skipIf(platform.system() == "Darwin",
+                 "OS X cloud machines unsupported.")
 class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
   ZONE_URL = "http://metadata.google.internal/computeMetadata/v1/instance/zone"
   PROJ_URL = ("http://metadata.google.internal/computeMetadata/"
               "v1/project/project-id")
 
-  @unittest.skipIf(platform.system() == "Darwin",
-                   ("OS X cloud machines unsupported."))
   def testBIOSCommandRaises(self):
-    with mock.patch.object(
-        cloud.GetCloudVMMetadata, "BIOS_VERSION_COMMAND", new="/bin/false"):
+    with mock.patch.multiple(
+        cloud.GetCloudVMMetadata,
+        LINUX_BIOS_VERSION_COMMAND="/bin/false",
+        WINDOWS_SERVICES_COMMAND=["cmd", "/C", "exit 1"]):
       with self.assertRaises(subprocess.CalledProcessError):
         self.RunAction(
-            cloud.GetCloudVMMetadata, arg=rdf_cloud.CloudMetadataRequest())
+            cloud.GetCloudVMMetadata, arg=rdf_cloud.CloudMetadataRequests())
 
-  @unittest.skipIf(platform.system() == "Darwin",
-                   ("OS X cloud machines unsupported."))
   def testNonMatchingBIOS(self):
     zone = mock.Mock(text="projects/123456789733/zones/us-central1-a")
     arg = rdf_cloud.CloudMetadataRequests(requests=[
@@ -49,7 +49,7 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
     ])
     with mock.patch.object(
         cloud.GetCloudVMMetadata,
-        "BIOS_VERSION_COMMAND",
+        "LINUX_BIOS_VERSION_COMMAND",
         new=["/bin/echo", "Gaagle"]):
       with mock.patch.object(requests, "request") as mock_requests:
         mock_requests.side_effect = [zone]
@@ -57,8 +57,6 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
 
       self.assertFalse(results)
 
-  @unittest.skipIf(platform.system() == "Darwin",
-                   ("OS X cloud machines unsupported."))
   def testWindowsServiceQuery(self):
     project = mock.Mock(text="myproject")
 
@@ -99,27 +97,29 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
       else:
         self.fail("Bad response.label: %s" % response.label)
 
-  @unittest.skipIf(platform.system() == "Darwin",
-                   ("OS X cloud machines unsupported."))
   def testMultipleBIOSMultipleURLs(self):
     ami = mock.Mock(text="ami-12345678")
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex=".*amazon",
+            service_name_regex="SERVICE_NAME: AWSLiteAgent",
             instance_type="AMAZON",
             url="http://169.254.169.254/latest/meta-data/ami-id",
             label="amazon-ami"),
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex="Google",
+            service_name_regex="SERVICE_NAME: GCEAgent",
             instance_type="GOOGLE",
             url=self.PROJ_URL,
             label="Google-project-id",
             headers={"Metadata-Flavor": "Google"})
     ])
-    with mock.patch.object(
+    with mock.patch.multiple(
         cloud.GetCloudVMMetadata,
-        "BIOS_VERSION_COMMAND",
-        new=["/bin/echo", "4.2.amazon"]):
+        LINUX_BIOS_VERSION_COMMAND=["/bin/echo", "4.2.amazon"],
+        WINDOWS_SERVICES_COMMAND=[
+            "cmd.exe", "/C", "echo SERVICE_NAME: AWSLiteAgent"
+        ]):
       with mock.patch.object(requests, "request") as mock_requests:
         mock_requests.side_effect = [ami]
         results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
@@ -133,30 +133,32 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
       else:
         self.fail("Bad response.label: %s" % response.label)
 
-  @unittest.skipIf(platform.system() == "Darwin",
-                   ("OS X cloud machines unsupported."))
   def testMatchingBIOSMultipleURLs(self):
     zone = mock.Mock(text="projects/123456789733/zones/us-central1-a")
     project = mock.Mock(text="myproject")
     arg = rdf_cloud.CloudMetadataRequests(requests=[
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex="Google",
+            service_name_regex="SERVICE_NAME: GCEAgent",
             instance_type="GOOGLE",
             url=self.ZONE_URL,
             label="zone",
             headers={"Metadata-Flavor": "Google"}),
         rdf_cloud.CloudMetadataRequest(
             bios_version_regex="Google",
+            service_name_regex="SERVICE_NAME: GCEAgent",
             instance_type="GOOGLE",
             url=self.PROJ_URL,
             label="project-id",
             headers={"Metadata-Flavor": "Google"})
     ])
 
-    with mock.patch.object(
+    with mock.patch.multiple(
         cloud.GetCloudVMMetadata,
-        "BIOS_VERSION_COMMAND",
-        new=["/bin/echo", "Google"]):
+        LINUX_BIOS_VERSION_COMMAND=["/bin/echo", "Google"],
+        WINDOWS_SERVICES_COMMAND=[
+            "cmd.exe", "/C", "echo SERVICE_NAME: GCEAgent"
+        ]):
       with mock.patch.object(requests, "request") as mock_requests:
         mock_requests.side_effect = [zone, project]
         results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)

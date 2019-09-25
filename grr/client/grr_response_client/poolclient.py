@@ -23,6 +23,7 @@ from grr_response_client import vfs
 from grr_response_client.vfs_handlers import files as vfs_files
 from grr_response_core import config
 from grr_response_core.config import contexts
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
@@ -128,7 +129,7 @@ def CreateClientPool(n):
   for c in clients:
     c.start()
 
-  start_time = time.time()
+  start_time = rdfvalue.RDFDatetime.Now()
   try:
     if flags.FLAGS.enroll_only:
       while True:
@@ -156,7 +157,9 @@ def CreateClientPool(n):
 
   # Note: code below is going to be executed after SIGTERM is sent to this
   # process.
-  logging.info("Pool done in %s seconds.", time.time() - start_time)
+  duration = rdfvalue.RDFDatetime.Now() - start_time
+  logging.info("Pool done in %s seconds.",
+               duration.ToFractional(rdfvalue.SECONDS))
 
   # The way benchmarking is supposed to work is that we execute poolclient with
   # --enroll_only flag, it dumps the certificates to the flags.FLAGS.cert_file.

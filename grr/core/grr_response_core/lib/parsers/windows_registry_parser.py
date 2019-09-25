@@ -21,6 +21,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.util import precondition
 
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 
@@ -251,7 +252,7 @@ class WinUserSpecialDirs(parser.RegistryMultiParser):
     return itervalues(user_dict)
 
 
-class WinServicesParser(parser.RegistryValueParser):
+class WinServicesParser(parsers.MultiResponseParser):
   """Parser for Windows services values from the registry.
 
   See service key doco:
@@ -277,9 +278,11 @@ class WinServicesParser(parser.RegistryValueParser):
       return None
     return key_name.lower()
 
-  def ParseMultiple(self, stats, knowledge_base):
+  def ParseResponses(self, knowledge_base, responses):
     """Parse Service registry keys and return WindowsServiceInformation."""
-    _ = knowledge_base
+    del knowledge_base  # Unused.
+    precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+
     services = {}
     field_map = {
         "Description": "description",
@@ -298,7 +301,7 @@ class WinServicesParser(parser.RegistryValueParser):
     # self._GetKeyName could have some  characters in different case than the
     # field map, e.g. ServiceDLL and ServiceDll.
     field_map = {k.lower(): v for k, v in iteritems(field_map)}
-    for stat in stats:
+    for stat in responses:
 
       # Ignore subkeys
       if not stat.HasField("registry_data"):

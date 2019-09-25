@@ -8218,11 +8218,11 @@
           "type": "DurationSeconds",
           "value": 0
         },
-        "doc": "Duration value stored in seconds internally.",
+        "doc": "Duration that is (de)serialized with second-precision.\n\n  This class exists for compatibility purposes and to keep certain API fields\n  simple. For most uses, please prefer `Duration` directly.\n  ",
         "kind": "primitive",
         "mro": [
           "DurationSeconds",
-          "RDFInteger",
+          "Duration",
           "RDFPrimitive",
           "RDFValue",
           "object"
@@ -8232,11 +8232,11 @@
       "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest_http_v1",
       "type_stripped_response": {
         "default": 0,
-        "doc": "Duration value stored in seconds internally.",
+        "doc": "Duration that is (de)serialized with second-precision.\n\n  This class exists for compatibility purposes and to keep certain API fields\n  simple. For most uses, please prefer `Duration` directly.\n  ",
         "kind": "primitive",
         "mro": [
           "DurationSeconds",
-          "RDFInteger",
+          "Duration",
           "RDFPrimitive",
           "RDFValue",
           "object"

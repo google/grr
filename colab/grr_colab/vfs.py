@@ -138,10 +138,17 @@ class VfsFile(io.BufferedIOBase):
   def read(self, size = -1):
     self._ensure_not_closed()
     size = size or -1
-    data = bytearray()
-    while not self._eof and (size < 0 or len(data) < size):
-      data += self._read_from_buffer(size=size - len(data))
-    return bytes(data)
+
+    chunks = []
+    chunks_size = 0
+
+    while not self._eof and (size < 0 or chunks_size < size):
+      chunk = self._read_from_buffer(size=size - chunks_size)
+
+      chunks.append(chunk)
+      chunks_size += len(chunk)
+
+    return b''.join(chunks)
 
   def read1(self, size = -1):
     self._ensure_not_closed()

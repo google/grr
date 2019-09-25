@@ -6,25 +6,21 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
-import os
 import platform
 import unittest
 import zlib
-from absl import app
 from absl.testing import absltest
 import mock
 
 from grr_response_client.client_actions import vfs_file_finder
 from grr_response_client.client_actions.file_finder_utils import globbing
 
-from grr_response_core import config
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr.test_lib import client_test_lib
-from grr.test_lib import test_lib
 
 _LONG_KEY = "🚀a🚀b🚀" * 51  # 255 characters.
 _LONG_STRING_VALUE = _LONG_KEY * 10  # 2550 characters.
@@ -444,26 +440,6 @@ class RegistryTest(absltest.TestCase):
         r"HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST\1\aaa",
     ])
 
-  def testTSKFile(self):
-    path = os.path.join(config.CONFIG["Test.data_dir"], "test_img.dd",
-                        "Test Directory", "numbers.txt")
-    results = self.RunFileFinder(
-        rdf_file_finder.FileFinderArgs(
-            paths=[path],
-            pathtype="TSK",
-            action=rdf_file_finder.FileFinderAction(action_type="STAT")))
-    self.assertNotEmpty(results)
-
-    last_path = results[0].stat_entry.pathspec
-    while last_path.HasField("nested_path"):
-      last_path = last_path.nested_path
-    self.assertEndsWith(last_path.path, "numbers.txt")
-    self.assertEqual(results[0].stat_entry.st_size, 3893)
-
-
-def main(argv):
-  test_lib.main(argv)
-
 
 if __name__ == "__main__":
-  app.run(main)
+  absltest.main()

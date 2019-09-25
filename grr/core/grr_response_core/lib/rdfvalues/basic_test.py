@@ -156,27 +156,19 @@ class DurationSecondsTest(rdf_test_base.RDFValueTestMixin,
     return rdfvalue.DurationSeconds("%ds" % number)
 
   def testStringRepresentationIsTransitive(self):
-    t = rdfvalue.DurationSeconds("5m")
-    self.assertEqual(t.seconds, 300)
+    t = rdfvalue.DurationSeconds("5 m")
+    self.assertEqual(t.ToInt(rdfvalue.SECONDS), 300)
     self.assertEqual(t, rdfvalue.DurationSeconds(300))
-    self.assertEqual(str(t), "5m")
+    self.assertEqual(str(t), "5 m")
 
   def testMulNumber(self):
     t = rdfvalue.DurationSeconds("5m")
     t2 = t * 3
-    self.assertEqual(t2.seconds, 300 * 3)
-    t2 = t * 1000.23
-    self.assertEqual(t2.seconds, int(300 * 1000.23))
-    t2 = t * (-10)
-    self.assertEqual(t2.seconds, int(300 * (-10)))
+    self.assertEqual(t2.ToInt(rdfvalue.SECONDS), 300 * 3)
 
     # Test rmul
     t2 = 3 * t
-    self.assertEqual(t2.seconds, 300 * 3)
-    t2 = 1000.23 * t
-    self.assertEqual(t2.seconds, int(300 * 1000.23))
-    t2 = (-10) * t
-    self.assertEqual(t2.seconds, int(300 * (-10)))
+    self.assertEqual(t2.ToInt(rdfvalue.SECONDS), 300 * 3)
 
   def testHashability(self):
     pass  # DurationSeconds does not need to be hashable.
@@ -378,41 +370,29 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(date, 1e9 - 1e18)
 
   def testAddDuration(self):
-    duration = rdfvalue.DurationSeconds("12h")
+    duration = rdfvalue.Duration.FromHumanReadable("12h")
     date = rdfvalue.RDFDatetime(1e9)
     self.assertEqual(int(date + duration), 1e9 + 12 * 3600e6)
-    duration = rdfvalue.DurationSeconds("-60s")
-    self.assertEqual(int(date + duration), 1e9 - 60e6)
 
   def testSubDuration(self):
-    duration = rdfvalue.DurationSeconds("5m")
+    duration = rdfvalue.Duration.FromHumanReadable("5m")
     date = rdfvalue.RDFDatetime(1e9)
     self.assertEqual(int(date - duration), 1e9 - 5 * 60e6)
-    duration = rdfvalue.DurationSeconds("-60s")
-    self.assertEqual(int(date - duration), 1e9 + 60e6)
-    duration = rdfvalue.DurationSeconds("1w")
+    duration = rdfvalue.Duration.FromHumanReadable("1w")
     self.assertEqual(int(date - duration), 1e9 - 7 * 24 * 3600e6)
 
   def testIAddDuration(self):
     date = rdfvalue.RDFDatetime(1e9)
-    date += rdfvalue.DurationSeconds("12h")
+    date += rdfvalue.Duration.FromHumanReadable("12h")
     self.assertEqual(date, 1e9 + 12 * 3600e6)
-
-    date = rdfvalue.RDFDatetime(1e9)
-    date += rdfvalue.DurationSeconds("-60s")
-    self.assertEqual(date, 1e9 - 60e6)
 
   def testISubDuration(self):
     date = rdfvalue.RDFDatetime(1e9)
-    date -= rdfvalue.DurationSeconds("5m")
+    date -= rdfvalue.Duration.FromHumanReadable("5m")
     self.assertEqual(date, 1e9 - 5 * 60e6)
 
     date = rdfvalue.RDFDatetime(1e9)
-    date -= rdfvalue.DurationSeconds("-60s")
-    self.assertEqual(date, 1e9 + 60e6)
-
-    date = rdfvalue.RDFDatetime(1e9)
-    date -= rdfvalue.DurationSeconds("1w")
+    date -= rdfvalue.Duration.FromHumanReadable("1w")
     self.assertEqual(date, 1e9 - 7 * 24 * 3600e6)
 
 

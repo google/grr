@@ -7,13 +7,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import base64
-import logging
 import random
 
 from absl import app
 from future.builtins import range
 from future.builtins import str
-import mock
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
@@ -368,6 +366,29 @@ message DynamicTypeTest {{
 
     self.assertLen(sliced, 2)
     self.assertEqual(sliced[0].foobar, "Nest3")
+
+  def testRepeatedFieldHelperEqualToSequences(self):
+    struct = TestStruct(repeated=["a", "b", "c"])
+
+    self.assertNotEqual(struct.repeated, "abc")
+    self.assertNotEqual(struct.repeated, {"a", "b", "c"})
+    self.assertNotEqual(struct.repeated, {"a": "a", "b": "b", "c": "c"})
+
+    self.assertNotEqual(struct.repeated, ["a"])
+    self.assertNotEqual(struct.repeated, ["a", "b"])
+    self.assertNotEqual(struct.repeated, ["a", "c", "b"])
+    self.assertEqual(struct.repeated, ["a", "b", "c"])
+
+    self.assertNotEqual(struct.repeated, ("a",))
+    self.assertNotEqual(struct.repeated, ("a", "b"))
+    self.assertNotEqual(struct.repeated, ("a", "c", "b"))
+    self.assertEqual(struct.repeated, ("a", "b", "c"))
+
+    self.assertIs(struct.repeated.__eq__(dict()), NotImplemented)
+    self.assertIs(struct.repeated.__eq__(set()), NotImplemented)
+    self.assertIs(struct.repeated.__eq__(b""), NotImplemented)
+    self.assertIs(struct.repeated.__eq__(""), NotImplemented)
+    self.assertIs(struct.repeated.__eq__(object()), NotImplemented)
 
   def testUnknownFields(self):
     """Test that unknown fields are preserved across decode/encode cycle."""
@@ -771,12 +792,6 @@ message DynamicTypeTest {{
   def testUnsetFieldsHaveSymmetricEqualityWithDefaultValues(self):
     self.assertEqual(TestStruct(repeated=[]), TestStruct())
     self.assertEqual(TestStruct(), TestStruct(repeated=[]))
-
-  def testHashingLogsError(self):
-    sample = TestStruct()
-    with mock.patch.object(logging, "error") as error_fn:
-      sample.__hash__()
-    self.assertEqual(error_fn.call_count, 1)
 
 
 class GenericRDFProtoTest(test_lib.GRRBaseTest):

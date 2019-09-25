@@ -98,13 +98,18 @@ class ParallelHandler(BaseHandler):
     Returns:
       A list of rdf values that matched at least one filter.
     """
-    self.results = set()
+    self.results = list()
     if not self.filters:
-      self.results.update(raw_data)
+      self.results.extend(raw_data)
     else:
       for f in self.filters:
-        self.results.update(f.Parse(raw_data))
-    return list(self.results)
+        for result in f.Parse(raw_data):
+          # This used a set() previously when RDFStruct supported hash(). Since
+          # this code is highly generic and can handle all types of data, we
+          # cannot optimize this below O(n^2).
+          if result not in self.results:
+            self.results.append(result)
+    return self.results
 
 
 class SerialHandler(BaseHandler):

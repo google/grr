@@ -150,6 +150,9 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadHashBlobReferences(self, hashes, cursor):
     """Reads blob references of a given set of hashes."""
+    if not hashes:
+      return {}
+
     query = ("SELECT hash_id, blob_references FROM hash_blob_references WHERE "
              "hash_id IN {}").format(mysql_utils.Placeholders(len(hashes)))
     cursor.execute(query, [hash_id.AsBytes() for hash_id in hashes])

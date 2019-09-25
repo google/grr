@@ -4,10 +4,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import functools
 import sys
 
+import mock
+
 from grr_response_core.lib.util import compatibility
+from grr_response_server import data_store
+from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_mixin
+from grr_response_server.databases import mem
 from grr_response_server.databases import mysql_test
 
 
@@ -36,3 +42,26 @@ def TestDatabases(mysql=True):
     return cls
 
   return _TestDatabasesDecorator
+
+
+def WithDatabase(func):
+  """A decorator for database-dependent test methods.
+
+  This decorator is intended for tests that need to access database in their
+  code. It will also augment the test function signature so that the database
+  object is provided and can be manipulated.
+
+  Args:
+    func: A test method to be decorated.
+
+  Returns:
+    A database-aware function.
+  """
+
+  @functools.wraps(func)
+  def Wrapper(*args, **kwargs):
+    db = abstract_db.DatabaseValidationWrapper(mem.InMemoryDB())
+    with mock.patch.object(data_store, "REL_DB", db):
+      func(*(args + (db,)), **kwargs)
+
+  return Wrapper

@@ -350,6 +350,20 @@ class ApiRDFIntegerRenderer(ApiValueRenderer):
     return self._IncludeTypeInfo(result, value)
 
 
+class ApiDurationRenderer(ApiValueRenderer):
+  """Renderer for Duration."""
+
+  value_class = rdfvalue.Duration
+
+  def RenderValue(self, value):
+    if isinstance(value, rdfvalue.DurationSeconds):
+      raw = value.ToInt(rdfvalue.SECONDS)
+    else:
+      raw = value.microseconds
+
+    return self._IncludeTypeInfo(raw, value)
+
+
 class ApiDataBlobRenderer(ApiValueRenderer):
   """Renderer for DataBlob."""
 

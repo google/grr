@@ -2,6 +2,7 @@
 """Client actions for cloud VMs."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import os
@@ -29,7 +30,11 @@ class GetCloudVMMetadata(actions.ActionPlugin):
   in_rdfvalue = rdf_cloud.CloudMetadataRequests
   out_rdfvalues = [rdf_cloud.CloudMetadataResponses]
 
-  BIOS_VERSION_COMMAND = ["/usr/sbin/dmidecode", "-s", "bios-version"]
+  LINUX_BIOS_VERSION_COMMAND = ["/usr/sbin/dmidecode", "-s", "bios-version"]
+  WINDOWS_SERVICES_COMMAND = [
+      "%s\\System32\\sc.exe" % os.environ.get("SYSTEMROOT", r"C:\Windows"),
+      "query"
+  ]
 
   def IsCloud(self, request, bios_version, services):
     """Test to see if we're on a cloud machine."""
@@ -76,14 +81,11 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     bios_version = None
     services = None
     if platform.system() == "Linux":
-      bios_version = subprocess.check_output(self.BIOS_VERSION_COMMAND)
+      bios_version = subprocess.check_output(self.LINUX_BIOS_VERSION_COMMAND)
       bios_version = bios_version.decode("utf-8")
     elif platform.system() == "Windows":
-      cmd = [
-          "%s\\System32\\sc.exe" % os.environ.get("SYSTEMROOT", r"C:\Windows"),
-          "query"
-      ]
-      services = subprocess.check_output(cmd).decode("utf-8")
+      services = subprocess.check_output(self.WINDOWS_SERVICES_COMMAND)
+      services = services.decode("utf-8")
     else:
       # Interrogate shouldn't call this client action on OS X machines at all,
       # so raise.

@@ -6,11 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
-import imp
 import io
 import os
 import platform
-import sys
 import unittest
 
 from absl import app
@@ -25,85 +23,47 @@ from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 
-def GetVolumePathName(_):
-  return "C:\\"
-
-
-def GetVolumeNameForVolumeMountPoint(_):
-  return "\\\\?\\Volume{11111}\\"
-
-
 class ClientUtilsTest(test_lib.GRRBaseTest):
   """Test the client utils."""
 
+  @unittest.skipIf(platform.system() != "Windows", "Windows only test.")
   def testWinSplitPathspec(self):
-    """Test windows split pathspec functionality."""
-
-    self.SetupWinEnvironment()
-
-    # We need to import after SetupWinEnvironment or this will fail
     # pylint: disable=g-import-not-at-top
     from grr_response_client import client_utils_windows
     # pylint: enable=g-import-not-at-top
-
-    testdata = [(r"C:\Windows", "\\\\?\\Volume{11111}", "/Windows"),
-                (r"C:\\Windows\\", "\\\\?\\Volume{11111}", "/Windows"),
-                (r"C:\\", "\\\\?\\Volume{11111}", "/")]
-
-    for filename, expected_device, expected_path in testdata:
-      raw_pathspec, path = client_utils_windows.GetRawDevice(filename)
-
-      # Pathspec paths are always absolute and therefore must have a leading /.
-      self.assertEqual(expected_device, raw_pathspec.path)
-      self.assertEqual(expected_path, path)
-
-  def SetupWinEnvironment(self):
-    """Mock windows includes."""
-
-    pywintypes = imp.new_module("pywintypes")
-    pywintypes.error = Exception
-    sys.modules["pywintypes"] = pywintypes
-
-    winfile = imp.new_module("win32file")
-    winfile.GetVolumeNameForVolumeMountPoint = GetVolumeNameForVolumeMountPoint
-    winfile.GetVolumePathName = GetVolumePathName
-    sys.modules["win32file"] = winfile
-
-    sys.modules["winreg"] = imp.new_module("winreg")
-    sys.modules["_winreg"] = imp.new_module("_winreg")
-    sys.modules["ntsecuritycon"] = imp.new_module("ntsecuritycon")
-    sys.modules["win32security"] = imp.new_module("win32security")
-    sys.modules["win32api"] = imp.new_module("win32api")
-    sys.modules["win32service"] = imp.new_module("win32service")
-    sys.modules["win32process"] = imp.new_module("win32process")
-    sys.modules["win32serviceutil"] = imp.new_module("win32serviceutil")
-    sys.modules["winerror"] = imp.new_module("winerror")
-
-    # Importing process.py pulls in lots of Windows specific stuff.
-    # pylint: disable=g-import-not-at-top
-    from grr_response_client import windows
-    windows.process = None
-    # pylint: enable=g-import-not-at-top
+    raw_pathspec, path = client_utils_windows.GetRawDevice("C:\\")
+    self.assertStartsWith(raw_pathspec.path, "\\\\?\\Volume{")
+    self.assertEqual("/", path)
 
   def testExecutionWhiteList(self):
     """Test if unknown commands are filtered correctly."""
 
     # ls is not allowed
-    (stdout, stderr, status, _) = client_utils_common.Execute("ls", ["."])
+    if platform.system() == "Windows":
+      cmd = "dir", []
+    else:
+      cmd = "ls", ["."]
+    (stdout, stderr, status, _) = client_utils_common.Execute(*cmd)
     self.assertEqual(status, -1)
     self.assertEqual(stdout, b"")
     self.assertEqual(stderr, b"Execution disallowed by whitelist.")
 
     # "echo 1" is
-    (stdout, stderr, status, _) = client_utils_common.Execute(
-        "/bin/echo", ["1"])
+    if platform.system() == "Windows":
+      cmd = "cmd.exe", ["/C", "echo 1"]
+    else:
+      cmd = "/bin/echo", ["1"]
+    (stdout, stderr, status, _) = client_utils_common.Execute(*cmd)
     self.assertEqual(status, 0)
-    self.assertEqual(stdout, b"1\n")
+    self.assertEqual(stdout, "1{}".format(os.linesep).encode("utf-8"))
     self.assertEqual(stderr, b"")
 
     # but not "echo 11"
-    (stdout, stderr, status, _) = client_utils_common.Execute(
-        "/bin/echo", ["11"])
+    if platform.system() == "Windows":
+      cmd = "cmd.exe", ["/C", "echo 11"]
+    else:
+      cmd = "/bin/echo", ["11"]
+    (stdout, stderr, status, _) = client_utils_common.Execute(*cmd)
     self.assertEqual(status, -1)
     self.assertEqual(stdout, b"")
     self.assertEqual(stderr, b"Execution disallowed by whitelist.")

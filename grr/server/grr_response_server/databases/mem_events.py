@@ -2,12 +2,14 @@
 """The in memory database methods for event handling."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import collections
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBEventMixin(object):
@@ -63,5 +65,6 @@ class InMemoryDBEventMixin(object):
   def WriteAPIAuditEntry(self, entry):
     """Writes an audit entry to the database."""
     copy = entry.Copy()
-    copy.timestamp = rdfvalue.RDFDatetime.Now()
+    if copy.timestamp is None:
+      copy.timestamp = rdfvalue.RDFDatetime.Now()
     self.api_audit_entries.append(copy)

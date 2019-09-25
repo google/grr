@@ -35,7 +35,7 @@ from future.utils import iteritems
 from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
-from typing import cast, Any, Text, Union
+from typing import cast, Any, Optional, Text, Union
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -77,16 +77,6 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
     # Run and clear any late binding callbacks registered for this class.
     for callback, kwargs in _LATE_BINDING_STORE.pop(name, []):
       callback(target=cls, **kwargs)
-
-
-class HashUnsupportedError(Exception):
-  """Raised in __hash__ of a class that will soon be unhashable."""
-
-  def __init__(self, cls):
-    precondition.AssertType(cls, type)
-    super(HashUnsupportedError,
-          self).__init__("Hashing {} is unsupported!".format(
-              compatibility.GetName(cls)))
 
 
 @python_2_unicode_compatible
@@ -764,7 +754,7 @@ HOURS = 60 * MINUTES
 DAYS = 24 * HOURS
 WEEKS = 7 * DAYS
 
-_DURATION_RE = re.compile(r"(?P<number>\d+) ?(?P<unit>[a-z]{1,2})")
+_DURATION_RE = re.compile(r"(?P<number>\d+) ?(?P<unit>[a-z]{1,2})?")
 
 
 @python_2_unicode_compatible
@@ -790,10 +780,12 @@ class Duration(RDFPrimitive):
         absolute (positive) value will be stored.
     """
     super(Duration, self).__init__(initializer=initializer)
-    if isinstance(initializer, (DurationSeconds, Duration)):
+    if isinstance(initializer, Duration):
       self._value = abs(initializer.microseconds)
     elif isinstance(initializer, (int, RDFInteger)):
       self._value = abs(int(initializer))
+    elif isinstance(initializer, Text):
+      self.ParseFromHumanReadable(initializer)
     elif initializer is None:
       self._value = 0
     else:
@@ -808,11 +800,16 @@ class Duration(RDFPrimitive):
       value: A number specifying the value of the duration.
       timeunit: A unit of time ranging from rdfvalue.MICROSECONDS to
         rdfvalue.WEEKS.
-    Examples: >>> Duration.From(50, MICROSECONDS) <Duration 50 us>  >>>
-      Duration.From(120, SECONDS) <Duration 2 m>
+
+    Examples:
+      >>> Duration.From(50, MICROSECONDS)
+      <Duration 50 us>
+
+      >>> Duration.From(120, SECONDS)
+      <Duration 2 m>
 
     Returns:
-      A new Duration, truncated to millisecond precision.
+      A new Duration.
     """
     return cls(int(timeunit * value))
 
@@ -820,6 +817,10 @@ class Duration(RDFPrimitive):
     """See base class."""
     precondition.AssertType(value, int)
     self._value = abs(compatibility.builtins.int(value))
+
+  def SerializeToDataStore(self):
+    """See base class."""
+    return self.microseconds
 
   def ParseFromBytes(self, string):
     """See base class."""
@@ -838,10 +839,10 @@ class Duration(RDFPrimitive):
     """See base class."""
     # Technically, equal to ascii encoding, since str(self._value) only contains
     # the digits 0-9.
-    return str(self._value).encode("utf-8")
+    return str(self.microseconds).encode("utf-8")
 
   def __repr__(self):
-    return "<Duration {}>".format(self)
+    return "<{} {}>".format(compatibility.GetName(type(self)), self)
 
   def __str__(self):
     if self._value == 0:
@@ -852,20 +853,22 @@ class Duration(RDFPrimitive):
     return "%d us" % self._value  # Make pytype happy.
 
   def __add__(self, other):
-    if isinstance(other, (Duration, DurationSeconds)):
-      return self.__class__(self.microseconds + other.microseconds)
+    if isinstance(other, Duration):
+      return self.__class__.From(self.microseconds + other.microseconds,
+                                 MICROSECONDS)
     else:
       return NotImplemented
 
   def __sub__(self, other):
-    if isinstance(other, (Duration, DurationSeconds)):
-      return self.__class__(self.microseconds - other.microseconds)
+    if isinstance(other, Duration):
+      return self.__class__.From(self.microseconds - other.microseconds,
+                                 MICROSECONDS)
     else:
       return NotImplemented
 
   def __mul__(self, other):
     if isinstance(other, int):
-      return self.__class__(self.microseconds * other)
+      return self.__class__.From(self.microseconds * other, MICROSECONDS)
     else:
       return NotImplemented
 
@@ -873,16 +876,19 @@ class Duration(RDFPrimitive):
     return self.__mul__(other)
 
   def __lt__(self, other):
-    if isinstance(other, (Duration, DurationSeconds)):
+    if isinstance(other, Duration):
       return self.microseconds < other.microseconds
     else:
       return NotImplemented
 
   def __eq__(self, other):
-    if isinstance(other, (Duration, DurationSeconds)):
+    if isinstance(other, Duration):
       return self.microseconds == other.microseconds
     else:
       return NotImplemented
+
+  def __abs__(self):
+    return self
 
   def ToInt(self, timeunit):
     """Returns the duration as truncated integer, converted to the time unit.
@@ -938,6 +944,9 @@ class Duration(RDFPrimitive):
 
   def ParseFromHumanReadable(self, string):
     """See base class."""
+    return self._ParseFromHumanReadable(string, default_unit=None)
+
+  def _ParseFromHumanReadable(self, string, default_unit):
     precondition.AssertType(string, Text)
 
     if not string:
@@ -951,6 +960,9 @@ class Duration(RDFPrimitive):
     number = int(matches.group("number"))
     unit_string = matches.group("unit")
 
+    if unit_string is None:
+      unit_string = default_unit
+
     try:
       unit_multiplier = self._DIVIDERS[unit_string]
     except KeyError:
@@ -960,165 +972,54 @@ class Duration(RDFPrimitive):
 
     self._value = number * unit_multiplier
 
-
-# TODO: Implement microsecond precision.
-@python_2_unicode_compatible
-class DurationSeconds(RDFInteger):
-  """Duration value stored in seconds internally."""
-  data_store_type = "unsigned_integer"
-
-  # pyformat: disable
-  DIVIDERS = collections.OrderedDict((
-      ("w", 60 * 60 * 24 * 7),
-      ("d", 60 * 60 * 24),
-      ("h", 60 * 60),
-      ("m", 60),
-      ("s", 1)))
-  # pyformat: enable
-
-  def __init__(self, initializer = None):
-    super(DurationSeconds, self).__init__(None)
-    if isinstance(initializer, DurationSeconds):
-      self._value = initializer.seconds
-    elif isinstance(initializer, Duration):
-      self._value = initializer.ToInt(SECONDS)  # type: ignore
-    elif isinstance(initializer, Text):
-      self.ParseFromHumanReadable(initializer)
-    elif isinstance(initializer, bytes):
-      self.ParseFromBytes(initializer)
-    elif isinstance(initializer, int):
-      self._value = initializer
-    elif isinstance(initializer, RDFInteger):
-      self._value = int(initializer)
-    elif initializer is None:
-      self._value = 0
-    else:
-      message = "Unsupported initializer `{value}` of type `{type}`"
-      raise TypeError(message.format(value=initializer, type=type(initializer)))
-
-  @classmethod
-  def FromDays(cls, days):
-    return cls.FromHours(24 * days)
-
-  @classmethod
-  def FromHours(cls, hours):
-    return cls.FromMinutes(60 * hours)
-
-  @classmethod
-  def FromMinutes(cls, minutes):
-    return cls.FromSeconds(60 * minutes)
-
-  @classmethod
-  def FromSeconds(cls, seconds):
-    return cls(seconds)
-
-  @classmethod
-  def FromMicroseconds(cls, microseconds):
-    return cls.FromSeconds(int(microseconds / 1e6))
-
-  def Validate(self, value, **_):
-    self.ParseFromBytes(value)
-
-  def ParseFromBytes(self, string):
-    precondition.AssertType(string, bytes)
-    self.ParseFromHumanReadable(string.decode("utf-8"))
-
-  def SerializeToBytes(self):
-    return str(self).encode("utf-8")
-
-  @property
-  def seconds(self):
-    return self._value
-
-  @property
-  def milliseconds(self):
-    return self._value * 1000
-
-  @property
-  def microseconds(self):
-    return self._value * 1000000
-
-  def __str__(self):
-    time_secs = self._value
-    for label, divider in iteritems(self.DIVIDERS):
-      if time_secs % divider == 0:
-        return "%d%s" % (time_secs // divider, label)
-
-    return "{} μs".format(self.microseconds)
-
-  def __add__(self, other):
-    if isinstance(other, (int, float, DurationSeconds)):
-      # Assume other is in seconds
-      return self.__class__(self._value + other)
-
-    return NotImplemented
-
-  def __mul__(self, other):
-    if isinstance(other, (int, float, DurationSeconds)):
-      return self.__class__(int(self._value * other))
-
-    return NotImplemented
-
-  def __rmul__(self, other):
-    return self.__mul__(other)
-
-  def __sub__(self, other):
-    if isinstance(other, (int, float, DurationSeconds)):
-      # Assume other is in seconds
-      return self.__class__(self._value - other)
-
-    return NotImplemented
-
-  def __abs__(self):
-    return DurationSeconds(abs(self._value))
-
   def Expiry(self, base_time=None):
     if base_time is None:
       base_time = RDFDatetime.Now()
-    else:
-      base_time = base_time.Copy()
+    return base_time + self
 
-    base_time_sec = base_time.AsSecondsSinceEpoch()
 
-    return RDFDatetime.FromSecondsSinceEpoch(base_time_sec + self._value)
+class DurationSeconds(Duration):
+  """Duration that is (de)serialized with second-precision.
 
-  def ParseFromHumanReadable(self, timestring):
-    """Parse a human readable string of a duration.
+  This class exists for compatibility purposes and to keep certain API fields
+  simple. For most uses, please prefer `Duration` directly.
+  """
 
-    Args:
-      timestring: The string to parse.
-    """
-    precondition.AssertType(timestring, Text)
+  def __init__(self, initializer = None):
+    if isinstance(initializer, (int, RDFInteger)):
+      initializer = int(initializer) * SECONDS
+    super(DurationSeconds, self).__init__(initializer)
 
-    if not timestring:
-      return
+  def SerializeToBytes(self):
+    """See base class."""
+    return str(self.ToInt(SECONDS)).encode("utf-8")
 
-    orig_string = timestring
+  def ParseFromBytes(self, string):
+    """See base class."""
+    super(DurationSeconds, self).ParseFromBytes(string)
+    self._value *= SECONDS
 
-    multiplicator = 1
+  def SerializeToDataStore(self):
+    """See base class."""
+    return self.ToInt(SECONDS)
 
-    if timestring[-1].isdigit():
-      pass
-    else:
-      try:
-        multiplicator = self.DIVIDERS[timestring[-1]]
-      except KeyError:
-        raise RuntimeError("Invalid duration multiplicator: '%s' ('%s')." %
-                           (timestring[-1], orig_string))
+  def ParseFromDatastore(self, value):
+    """See base class."""
+    super(DurationSeconds, self).ParseFromDatastore(value)
+    self._value *= SECONDS
 
-      timestring = timestring[:-1]
+  def ParseFromHumanReadable(self, string):
+    self._ParseFromHumanReadable(string, default_unit="s")
 
-    try:
-      self._value = int(timestring) * multiplicator
-    except ValueError:
-      raise InitializeError("Could not parse expiration time '%s'." %
-                            orig_string)
+  def __str__(self):
+    if self.microseconds == 0:
+      return "0 s"
+    return super(DurationSeconds, self).__str__()
 
-  def __eq__(self, other):
-    if isinstance(other, (Duration, DurationSeconds)):
-      return self.microseconds == other.microseconds
-    else:
-      return NotImplemented
+  @classmethod
+  def From(cls, value, timeunit):
+    """See base class."""
+    return cls(int(timeunit * value // SECONDS))
 
 
 class ByteSize(RDFInteger):

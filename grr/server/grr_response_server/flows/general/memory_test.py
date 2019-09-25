@@ -142,6 +142,11 @@ class FakeMemoryProcess(object):
           FakeRegion(0, b"A" * 100, is_executable=True, is_writable=True),
           FakeRegion(1000, b"X" * 50 + b"1234" + b"X" * 50)
       ],
+      109: [
+          FakeRegion(0, b"A" * 100),
+          FakeRegion(100, b"B"),
+          FakeRegion(101, b"X" * 50 + b"1234" + b"X" * 50)
+      ]
   }
 
   def __init__(self, pid=None):
@@ -246,6 +251,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
         client_test_lib.MockWindowsProcess(
             pid=106, name="proc106.exe", ppid=104),
         client_test_lib.MockWindowsProcess(pid=108, name="proc108.exe"),
+        client_test_lib.MockWindowsProcess(pid=109, name="proc109.exe"),
     ]
 
 
@@ -758,6 +764,48 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     self.assertEqual(regions[1].size, 104)
     self.assertEqual(regions[1].is_executable, False)
     self.assertEqual(regions[1].is_writable, False)
+    self.assertIsNotNone(regions[1].file)
+
+  def testScanAndDumpPrioritizesRegionsWithMatch(self):
+    client_mock = action_mocks.MultiGetFileClientMock(
+        memory_actions.YaraProcessScan, memory_actions.YaraProcessDump,
+        tempfiles.DeleteGRRTempFiles)
+
+    procs = [p for p in self.procs if p.pid in [109]]
+
+    with utils.MultiStubber(
+        (psutil, "process_iter", lambda: procs),
+        (psutil, "Process", functools.partial(self.process, procs)),
+        (client_utils, "OpenProcessForMemoryAccess",
+         lambda pid: FakeMemoryProcess(pid=pid))):
+      session_id = flow_test_lib.TestFlowHelper(
+          memory.YaraProcessScan.__name__,
+          client_mock,
+          yara_signature=_TEST_YARA_SIGNATURE,
+          client_id=self.client_id,
+          token=self.token,
+          include_errors_in_results=True,
+          include_misses_in_results=True,
+          dump_process_on_match=True,
+          process_dump_size_limit=100 + 104)  # size of first and third region.
+
+    results = flow_test_lib.GetFlowResults(self.client_id, session_id)
+    dumps = [
+        r for r in results if isinstance(r, rdf_memory.YaraProcessDumpResponse)
+    ]
+
+    self.assertLen(dumps, 1)
+    self.assertLen(dumps[0].dumped_processes, 1)
+    self.assertLen(dumps[0].dumped_processes[0].memory_regions, 2)
+    regions = dumps[0].dumped_processes[0].memory_regions
+
+    # Dump should skip the second region, because the first and third fill the
+    # size limit.
+    self.assertEqual(regions[0].start, 0)
+    self.assertEqual(regions[0].size, 100)
+    self.assertIsNotNone(regions[0].file)
+    self.assertEqual(regions[1].start, 101)
+    self.assertEqual(regions[1].size, 104)
     self.assertIsNotNone(regions[1].file)
 
   def testLegacyDataMigration(self):

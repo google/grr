@@ -79,7 +79,7 @@ def Register():
       "WinCodepage", windows_registry_parser.CodepageParser)
   parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
       "WinEnvironment", windows_registry_parser.WinEnvironmentParser)
-  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WinServices", windows_registry_parser.WinServicesParser)
   parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
       "WinSystemDrive", windows_registry_parser.WinSystemDriveParser)

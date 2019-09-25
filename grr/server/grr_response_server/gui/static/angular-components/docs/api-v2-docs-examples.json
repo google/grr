@@ -2508,12 +2508,12 @@
           "@type": "type.googleapis.com/google.protobuf.UInt64Value",
           "value": "0"
         },
-        "doc": "Duration value stored in seconds internally.",
+        "doc": "Duration that is (de)serialized with second-precision.\n\n  This class exists for compatibility purposes and to keep certain API fields\n  simple. For most uses, please prefer `Duration` directly.\n  ",
         "kind": "PRIMITIVE",
         "name": "DurationSeconds",
         "parents": [
           "DurationSeconds",
-          "RDFInteger",
+          "Duration",
           "RDFPrimitive",
           "RDFValue",
           "object"

@@ -71,7 +71,7 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
 
     stats = [self._MakeRegStat(*x) for x in service_keys]
     parser = windows_registry_parser.WinServicesParser()
-    results = parser.ParseMultiple(stats, None)
+    results = parser.ParseResponses(None, stats)
 
     names = []
     for result in results:

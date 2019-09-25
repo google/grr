@@ -236,7 +236,9 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     # We map this to aff4://client_id/fs/tsk/\\\\.\\Volume{1234}\\/windows/
 
     if not self.HasField("pathtype"):
-      raise ValueError("Can't determine AFF4 path without a valid pathtype.")
+      raise ValueError(
+          "Can't determine AFF4 path without a valid pathtype for {}.".format(
+              self))
 
     first_component = self[0]
     dev = first_component.path

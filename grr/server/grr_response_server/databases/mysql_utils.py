@@ -106,20 +106,6 @@ def Columns(iterable):
   return "({})".format(", ".join("`{}`".format(col) for col in columns))
 
 
-# The MySQL driver accepts and returns Python datetime objects.
-def MysqlToRDFDatetime(dt):
-  return dt if dt is None else rdfvalue.RDFDatetime.FromDatetime(dt)
-
-
-def RDFDatetimeToMysqlString(rdf):
-  if rdf is None:
-    return None
-  if not isinstance(rdf, rdfvalue.RDFDatetime):
-    raise ValueError("time value must be rdfvalue.RDFDatetime, got: %s" %
-                     type(rdf))
-  return "%s.%06d" % (rdf, rdf.AsMicrosecondsSinceEpoch() % 1000000)
-
-
 def TimestampToRDFDatetime(timestamp):
   """Converts MySQL `TIMESTAMP(6)` columns to datetime objects."""
   # TODO(hanuszczak): `timestamp` should be of MySQL type `Decimal`. However,

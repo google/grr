@@ -3,92 +3,47 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import os
-import platform
-import stat
-import unittest
-
-from absl import app
+from absl.testing import absltest
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import string_types
 import mock
 
-from grr_response_client import vfs
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_client.client_actions.windows import windows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr.test_lib import client_test_lib
-from grr.test_lib import test_lib
-from grr.test_lib import vfs_test_lib
 
 
-class WindowsActionTests(client_test_lib.OSSpecificClientTests):
+class WindowsActionTests(absltest.TestCase):
 
-  def setUp(self):
-    super(WindowsActionTests, self).setUp()
-    self.win32com = mock.MagicMock()
-    self.win32com.client = mock.MagicMock()
-    modules = {
-        "winreg":
-            mock.MagicMock(),
-        "_winreg":
-            mock.MagicMock(),
-        "pythoncom":
-            mock.MagicMock(),
-        "pywintypes":
-            mock.MagicMock(),
-        "win32api":
-            mock.MagicMock(),
-        # Necessary to stop the import of client_actions.standard re-populating
-        # actions.ActionPlugin.classes
-        ("grr_response_client.client_actions"
-         ".standard"):
-            mock.MagicMock(),
-        "win32com":
-            self.win32com,
-        "win32com.client":
-            self.win32com.client,
-        "win32file":
-            mock.MagicMock(),
-        "win32service":
-            mock.MagicMock(),
-        "win32serviceutil":
-            mock.MagicMock(),
-        "winerror":
-            mock.MagicMock(),
-        "wmi":
-            mock.MagicMock()
-    }
-
-    module_patcher = mock.patch.dict("sys.modules", modules)
-    module_patcher.start()
-    self.addCleanup(module_patcher.stop)
-
-    # pylint: disable= g-import-not-at-top
-    from grr_response_client.client_actions.windows import windows
-    # pylint: enable=g-import-not-at-top
-    self.windows = windows
-
-  @unittest.skipIf(
-      platform.system() == "Darwin",
-      ("IPv6 address strings are cosmetically slightly different on OS X, "
-       "and we only expect this parsing code to run on Linux or maybe Windows"))
   def testEnumerateInterfaces(self):
+    replies = []
+    enumif = windows.EnumerateInterfaces()
+    enumif.SendReply = replies.append
+    enumif.Run(None)
+
+    self.assertNotEmpty(replies)
+    found_address = False
+    for interface in replies:
+      for address in interface.addresses:
+        self.assertNotEmpty(address.human_readable_address)
+        found_address = True
+    if not found_address:
+      self.fail("Not a single address found in EnumerateInterfaces {}".format(
+          replies))
+
+  def testEnumerateInterfacesMock(self):
     # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration()
-    wmi_object = self.windows.wmi.WMI.return_value
-    wmi_object.Win32_NetworkAdapterConfiguration.return_value = [
+    wmi = mock.MagicMock()
+    wmi.Win32_NetworkAdapterConfiguration.return_value = [
         client_test_lib.WMIWin32NetworkAdapterConfigurationMock()
     ]
 
-    enumif = self.windows.EnumerateInterfaces()
-
     replies = []
-
-    def Collect(reply):
-      replies.append(reply)
-
-    enumif.SendReply = Collect
-    enumif.Run(None)
+    with mock.patch.object(windows.wmi, "WMI", return_value=wmi):
+      enumif = windows.EnumerateInterfaces()
+      enumif.SendReply = replies.append
+      enumif.Run(None)
 
     self.assertLen(replies, 1)
     interface = replies[0]
@@ -101,19 +56,29 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     ])
 
   def testRunWMI(self):
-    wmi_obj = self.windows.win32com.client.GetObject.return_value
-    mock_query_result = mock.MagicMock()
-    mock_query_result.Properties_ = []
-    mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-    wmi_properties = iteritems(mock_config.__dict__)
-    for key, value in wmi_properties:
-      keyval = mock.MagicMock()
-      keyval.Name, keyval.Value = key, value
-      mock_query_result.Properties_.append(keyval)
+    result_list = list(windows.RunWMIQuery("SELECT * FROM Win32_logicalDisk"))
+    self.assertNotEmpty(result_list)
 
-    wmi_obj.ExecQuery.return_value = [mock_query_result]
+    drive = result_list[0]
+    self.assertIsInstance(drive, rdf_protodict.Dict)
+    self.assertNotEmpty(drive["DeviceID"])
+    self.assertGreater(drive["Size"], 0)
 
-    result_list = list(self.windows.RunWMIQuery("select blah"))
+  def testRunWMIMocked(self):
+    with mock.patch.object(windows, "win32com") as win32com:
+      wmi_obj = win32com.client.GetObject.return_value
+      mock_query_result = mock.MagicMock()
+      mock_query_result.Properties_ = []
+      mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
+      wmi_properties = iteritems(mock_config.__dict__)
+      for key, value in wmi_properties:
+        keyval = mock.MagicMock()
+        keyval.Name, keyval.Value = key, value
+        mock_query_result.Properties_.append(keyval)
+
+      wmi_obj.ExecQuery.return_value = [mock_query_result]
+
+      result_list = list(windows.RunWMIQuery("select blah"))
     self.assertLen(result_list, 1)
 
     result = result_list.pop()
@@ -135,37 +100,5 @@ class WindowsActionTests(client_test_lib.OSSpecificClientTests):
     self.assertIn("Unsupported type", result["OpaqueObject"])
 
 
-class RegistryVFSTests(client_test_lib.EmptyActionTest):
-
-  def setUp(self):
-    super(RegistryVFSTests, self).setUp()
-    registry_stubber = vfs_test_lib.RegistryVFSStubber()
-    registry_stubber.Start()
-    self.addCleanup(registry_stubber.Stop)
-
-  def testRegistryListing(self):
-
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
-              "/Windows/CurrentVersion/Run"))
-
-    expected_names = {"MctAdmin": stat.S_IFDIR, "Sidebar": stat.S_IFDIR}
-    expected_data = [
-        u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
-        u"%TEMP%\\Sidebar.exe"
-    ]
-
-    for f in vfs.VFSOpen(pathspec).ListFiles():
-      base, name = os.path.split(f.pathspec.CollapsePath())
-      self.assertEqual(base, pathspec.CollapsePath())
-      self.assertIn(name, expected_names)
-      self.assertIn(f.registry_data.GetValue(), expected_data)
-
-
-def main(argv):
-  test_lib.main(argv)
-
-
 if __name__ == "__main__":
-  app.run(main)
+  absltest.main()

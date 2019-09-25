@@ -77,6 +77,7 @@ class RegistryFileTest(absltest.TestCase):
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa",
             pathtype="REGISTRY"))
     self.assertEqual(fd.Read(-1), b"lolcat")
+    self.assertEqual(fd.Stat().registry_data.GetValue(), b"lolcat")
 
   def testFileReadLongUnicodeValue(self):
     fd = vfs.VFSOpen(
@@ -105,6 +106,7 @@ class RegistryFileTest(absltest.TestCase):
             path=r"/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/dword42",
             pathtype="REGISTRY"))
     self.assertEqual(fd.value, 42)
+    self.assertEqual(fd.Stat().registry_data.GetValue(), 42)
 
   def testReadMaxDwordAsString(self):
     fd = vfs.VFSOpen(

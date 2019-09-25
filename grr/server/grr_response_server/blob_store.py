@@ -140,8 +140,6 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
     """
     remaining_ids = set(blob_ids)
     results = {blob_id: None for blob_id in remaining_ids}
-    # TODO: Migrate to RDFDatetime and Duration when Duration
-    # supports microsecond-precision.
     start = rdfvalue.RDFDatetime.Now()
     # TODO: Implement truncated exponential backoff.
     sleep_dur = rdfvalue.Duration.From(1, rdfvalue.SECONDS)
@@ -162,7 +160,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
             elapsed.ToFractional(rdfvalue.SECONDS))
         BLOB_STORE_POLL_HIT_ITERATION.RecordEvent(poll_num)
 
-      if (not remaining_ids or elapsed + sleep_dur >= timeout):
+      if not remaining_ids or elapsed + sleep_dur >= timeout:
         break
 
       time.sleep(sleep_dur.ToFractional(rdfvalue.SECONDS))

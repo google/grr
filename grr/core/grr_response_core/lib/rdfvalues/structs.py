@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import base64
 import collections
 import copy
-import logging
 import struct
 
 from future.builtins import chr
@@ -22,7 +21,7 @@ from future.utils import python_2_unicode_compatible
 from future.utils import string_types
 from future.utils import with_metaclass
 from past.builtins import long
-from typing import cast, Iterable, Iterator, Sized, Text, Type, TypeVar
+from typing import cast, ByteString, Iterator, Sequence, Text, Type, TypeVar
 
 # pylint: disable=g-import-not-at-top
 try:
@@ -1282,11 +1281,8 @@ class RepeatedFieldHelper(collections.Sequence, object):
   def __ne__(self, other):
     return not self == other  # pylint: disable=g-comparison-negation
 
-  # TODO: __eq__ checks equality without checking for types. Thus
-  # data structures that are definitely not lists (sets, dicts, strings) can
-  # be equal to RepeatedFieldHelper, which might lead to confusing behavior.
   def __eq__(self, other):
-    if not isinstance(other, Iterable) or not isinstance(other, Sized):
+    if not isinstance(other, Sequence) or isinstance(other, (ByteString, Text)):
       return NotImplemented
     if len(self) != len(other):
       return False
@@ -1827,14 +1823,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     precondition.AssertType(value, bytes)
     self.ParseFromBytes(value)
 
-  # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
-  # TODO: ProtoStruct indicating hashability is flawed, because
-  # instances are mutable.
-  # TODO: For increased fun, __hash__ can change during read access
-  # of fields.
-  def __hash__(self):
-    logging.error(rdfvalue.HashUnsupportedError(type(self)))
-    return super(RDFStruct, self).__hash__()
+  __hash__ = None
 
   def __eq__(self, other):
     if not isinstance(other, self.__class__):

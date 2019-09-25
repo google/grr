@@ -1,4 +1,5 @@
-variable "gce_project" {}
+variable "gce_project" {
+}
 
 variable "gce_region" {
   default = "europe-west1"
@@ -25,13 +26,13 @@ variable "linux_poolclient_count" {
 }
 
 provider "google" {
-  project = "${var.gce_project}"
-  region  = "${var.gce_region}"
+  project = var.gce_project
+  region  = var.gce_region
 }
 
 resource "google_sql_database_instance" "grr-db" {
   name   = "grr-db-instance"
-  region = "${var.gce_region}"
+  region = var.gce_region
 
   settings {
     tier = "db-n1-standard-1"
@@ -39,9 +40,9 @@ resource "google_sql_database_instance" "grr-db" {
     ip_configuration {
       ipv4_enabled = true
 
-      authorized_networks = {
+      authorized_networks {
         name  = "grr-server"
-        value = "${google_compute_address.grr-address.address}"
+        value = google_compute_address.grr-address.address
       }
     }
 
@@ -68,14 +69,14 @@ resource "google_sql_database_instance" "grr-db" {
 
 resource "google_sql_user" "users" {
   name     = "grr"
-  instance = "${google_sql_database_instance.grr-db.name}"
-  host     = "${google_compute_address.grr-address.address}"
+  instance = google_sql_database_instance.grr-db.name
+  host     = google_compute_address.grr-address.address
   password = "grrpassword"
 }
 
 resource "google_sql_database" "grr-db" {
-  name     = "grr"
-  instance = "${google_sql_database_instance.grr-db.name}"
+  name      = "grr"
+  instance  = google_sql_database_instance.grr-db.name
   charset   = "utf8mb4"
   collation = "utf8mb4_unicode_ci"
 }
@@ -85,37 +86,37 @@ resource "google_compute_address" "grr-address" {
 }
 
 data "template_file" "grr-startup" {
-  template = "${file("${path.module}/server_startup.sh")}"
+  template = file("${path.module}/server_startup.sh")
 
-  vars {
-    grr_version = "${var.grr_version}"
-    server_host = "${google_compute_address.grr-address.address}"
-    mysql_host  = "${google_sql_database_instance.grr-db.ip_address.0.ip_address}"
+  vars = {
+    grr_version = var.grr_version
+    server_host = google_compute_address.grr-address.address
+    mysql_host  = google_sql_database_instance.grr-db.ip_address[0].ip_address
   }
 }
 
 data "template_file" "windows_client_install" {
-  template = "${file("${path.module}/client_install.ps1")}"
+  template = file("${path.module}/client_install.ps1")
 
-  vars {
-    windows_installer_download_url = "${data.google_storage_object_signed_url.windows-installer-get.signed_url}"
+  vars = {
+    windows_installer_download_url = data.google_storage_object_signed_url.windows-installer-get.signed_url
   }
 }
 
 data "template_file" "linux_client_install" {
-  template = "${file("${path.module}/client_install.sh")}"
+  template = file("${path.module}/client_install.sh")
 
-  vars {
-    linux_installer_download_url = "${data.google_storage_object_signed_url.linux-installer-get.signed_url}"
+  vars = {
+    linux_installer_download_url = data.google_storage_object_signed_url.linux-installer-get.signed_url
   }
 }
 
 data "template_file" "linux_poolclient_install" {
-  template = "${file("${path.module}/poolclient_install.sh")}"
+  template = file("${path.module}/poolclient_install.sh")
 
-  vars {
-    num_clients = 100
-    linux_installer_download_url = "${data.google_storage_object_signed_url.linux-installer-get.signed_url}"
+  vars = {
+    num_clients                  = 100
+    linux_installer_download_url = data.google_storage_object_signed_url.linux-installer-get.signed_url
   }
 }
 
@@ -126,25 +127,25 @@ resource "google_storage_bucket" "installers-store" {
 }
 
 data "google_storage_object_signed_url" "windows-installer-put" {
-  bucket      = "${google_storage_bucket.installers-store.name}"
+  bucket      = google_storage_bucket.installers-store.name
   path        = "dbg_GRR_${var.grr_version}_amd64.exe"
   http_method = "PUT"
 }
 
 data "google_storage_object_signed_url" "windows-installer-get" {
-  bucket      = "${google_storage_bucket.installers-store.name}"
+  bucket      = google_storage_bucket.installers-store.name
   path        = "dbg_GRR_${var.grr_version}_amd64.exe"
   http_method = "GET"
 }
 
 data "google_storage_object_signed_url" "linux-installer-put" {
-  bucket      = "${google_storage_bucket.installers-store.name}"
+  bucket      = google_storage_bucket.installers-store.name
   path        = "grr_${var.grr_version}_amd64.deb"
   http_method = "PUT"
 }
 
 data "google_storage_object_signed_url" "linux-installer-get" {
-  bucket      = "${google_storage_bucket.installers-store.name}"
+  bucket      = google_storage_bucket.installers-store.name
   path        = "grr_${var.grr_version}_amd64.deb"
   http_method = "GET"
 }
@@ -176,14 +177,14 @@ resource "google_compute_firewall" "allow-frontend" {
 }
 
 resource "google_compute_project_metadata" "default" {
-  metadata {
-    windows_installer_upload_url = "${data.google_storage_object_signed_url.windows-installer-put.signed_url}"
-    linux_installer_upload_url   = "${data.google_storage_object_signed_url.linux-installer-put.signed_url}"
+  metadata = {
+    windows_installer_upload_url = data.google_storage_object_signed_url.windows-installer-put.signed_url
+    linux_installer_upload_url   = data.google_storage_object_signed_url.linux-installer-put.signed_url
   }
 }
 
 resource "google_compute_instance" "grr-server" {
-  depends_on = ["google_sql_database.grr-db"]
+  depends_on = [google_sql_database.grr-db]
 
   name         = "grr-server"
   machine_type = "n1-standard-8"
@@ -201,13 +202,13 @@ resource "google_compute_instance" "grr-server" {
     network = "default"
 
     access_config {
-      nat_ip = "${google_compute_address.grr-address.address}"
+      nat_ip = google_compute_address.grr-address.address
     }
   }
 
-  metadata {}
+  metadata = {}
 
-  metadata_startup_script = "${data.template_file.grr-startup.rendered}"
+  metadata_startup_script = data.template_file.grr-startup.rendered
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
@@ -215,7 +216,7 @@ resource "google_compute_instance" "grr-server" {
 }
 
 resource "google_compute_instance" "windows-client" {
-  count = "${var.windows_client_count}"
+  count = var.windows_client_count
 
   name         = "windows-client-${count.index}"
   machine_type = "g1-small"
@@ -230,11 +231,12 @@ resource "google_compute_instance" "windows-client" {
   network_interface {
     network = "default"
 
-    access_config {}
+    access_config {
+    }
   }
 
-  metadata {
-    windows-startup-script-ps1 = "${data.template_file.windows_client_install.rendered}"
+  metadata = {
+    windows-startup-script-ps1 = data.template_file.windows_client_install.rendered
   }
 
   service_account {
@@ -243,7 +245,7 @@ resource "google_compute_instance" "windows-client" {
 }
 
 resource "google_compute_instance" "linux-client" {
-  count = "${var.linux_client_count}"
+  count = var.linux_client_count
 
   name         = "linux-client-${count.index}"
   machine_type = "g1-small"
@@ -258,12 +260,13 @@ resource "google_compute_instance" "linux-client" {
   network_interface {
     network = "default"
 
-    access_config {}
+    access_config {
+    }
   }
 
-  metadata {}
+  metadata = {}
 
-  metadata_startup_script = "${data.template_file.linux_client_install.rendered}"
+  metadata_startup_script = data.template_file.linux_client_install.rendered
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
@@ -271,7 +274,7 @@ resource "google_compute_instance" "linux-client" {
 }
 
 resource "google_compute_instance" "linux-poolclient" {
-  count = "${var.linux_poolclient_count}"
+  count = var.linux_poolclient_count
 
   name         = "linux-poolclient-${count.index}"
   machine_type = "n1-standard-8"
@@ -286,12 +289,13 @@ resource "google_compute_instance" "linux-poolclient" {
   network_interface {
     network = "default"
 
-    access_config {}
+    access_config {
+    }
   }
 
-  metadata {}
+  metadata = {}
 
-  metadata_startup_script = "${data.template_file.linux_poolclient_install.rendered}"
+  metadata_startup_script = data.template_file.linux_poolclient_install.rendered
 
   service_account {
     scopes = ["userinfo-email", "compute-ro", "storage-ro"]
@@ -301,3 +305,4 @@ resource "google_compute_instance" "linux-poolclient" {
 output "grr_ui_url" {
   value = "https://${google_compute_address.grr-address.address}"
 }
+

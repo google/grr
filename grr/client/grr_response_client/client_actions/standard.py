@@ -14,7 +14,6 @@ import os
 import platform
 import socket
 import sys
-import time
 import zlib
 
 from absl import flags
@@ -330,7 +329,7 @@ class ExecutePython(actions.ActionPlugin):
 
   def Run(self, args):
     """Run."""
-    time_start = time.time()
+    time_start = rdfvalue.RDFDatetime.Now()
 
     args.python_code.Verify(
         config.CONFIG["Client.executable_signing_public_key"])
@@ -356,11 +355,11 @@ class ExecutePython(actions.ActionPlugin):
     else:
       output = stdout_output or magic_str_output
 
-    time_used = time.time() - time_start
-    # We have to return microseconds.
+    time_used = rdfvalue.RDFDatetime.Now() - time_start
     self.SendReply(
         rdf_client_action.ExecutePythonResponse(
-            time_used=int(1e6 * time_used), return_val=output))
+            time_used=time_used.ToInt(rdfvalue.MICROSECONDS),
+            return_val=output))
 
 
 # TODO(hanuszczak): This class has been moved out of `ExecutePython::Run`. The

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import binascii
 import os
 import zipfile
 
@@ -45,6 +46,9 @@ class CSVInstantOutputPlugin(
     for type_info in value.__class__.type_infos:
       if isinstance(type_info, rdf_structs.ProtoEmbedded):
         row.extend(self._GetCSVRow(value.Get(type_info.name)))
+      elif isinstance(type_info, rdf_structs.ProtoBinary):
+        data = binascii.hexlify(value.Get(type_info.name)).decode("ascii")
+        row.append(data)
       else:
         row.append(str(value.Get(type_info.name)))
 

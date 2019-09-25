@@ -152,6 +152,60 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     self.assertTrue(
         rs.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_lin)))
 
+  def testFromDictEmpty(self):
+    dct = {
+        "match_mode": "MATCH_ALL",
+        "rules": [],
+    }
+
+    rdf = foreman_rules.ForemanClientRuleSet()
+    rdf.FromDict(dct)
+
+    self.assertEqual(rdf.match_mode,
+                     foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ALL)
+    self.assertEmpty(rdf.rules)
+
+  def testFromDictMixedRules(self):
+    dct = {
+        "match_mode":
+            "MATCH_ANY",
+        "rules": [
+            {
+                "rule_type": "OS",
+                "os": {
+                    "os_windows": True,
+                    "os_linux": True,
+                },
+            },
+            {
+                "rule_type": "LABEL",
+                "label": {
+                    "label_names": ["foo", "bar"],
+                    "match_mode": "MATCH_ALL",
+                },
+            },
+        ],
+    }
+
+    rdf = foreman_rules.ForemanClientRuleSet()
+    rdf.FromDict(dct)
+
+    self.assertEqual(rdf.match_mode,
+                     foreman_rules.ForemanClientRuleSet.MatchMode.MATCH_ANY)
+    self.assertLen(rdf.rules, 2)
+
+    self.assertEqual(rdf.rules[0].rule_type,
+                     foreman_rules.ForemanClientRule.Type.OS)
+    self.assertTrue(rdf.rules[0].os.os_windows)
+    self.assertTrue(rdf.rules[0].os.os_linux)
+    self.assertFalse(rdf.rules[0].os.os_darwin)
+
+    self.assertEqual(rdf.rules[1].rule_type,
+                     foreman_rules.ForemanClientRule.Type.LABEL)
+    self.assertEqual(rdf.rules[1].label.label_names, ["foo", "bar"])
+    self.assertEqual(rdf.rules[1].label.match_mode,
+                     foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ALL)
+
 
 class ForemanClientRuleTest(rdf_test_base.RDFValueTestMixin,
                             test_lib.GRRBaseTest):
@@ -185,6 +239,79 @@ class ForemanClientRuleTest(rdf_test_base.RDFValueTestMixin,
     # The Windows client doesn't match rule r
     self.assertFalse(
         r.Evaluate(data_store.REL_DB.ReadClientFullInfo(client_id_win)))
+
+  def testFromDictOs(self):
+    dct = {
+        "rule_type": "OS",
+        "os": {
+            "os_windows": False,
+            "os_linux": True,
+        },
+    }
+
+    rdf = foreman_rules.ForemanClientRule()
+    rdf.FromDict(dct)
+
+    self.assertEqual(rdf.rule_type, foreman_rules.ForemanClientRule.Type.OS)
+    self.assertFalse(rdf.os.os_windows)
+    self.assertTrue(rdf.os.os_linux)
+
+  def testFromDictLabel(self):
+    dct = {
+        "rule_type": "LABEL",
+        "label": {
+            "label_names": ["quux", "norf", "thud"],
+            "match_mode": "MATCH_ANY",
+        },
+    }
+
+    rdf = foreman_rules.ForemanClientRule()
+    rdf.FromDict(dct)
+
+    self.assertEqual(rdf.rule_type, foreman_rules.ForemanClientRule.Type.LABEL)
+    self.assertEqual(rdf.label.label_names, ["quux", "norf", "thud"])
+    self.assertEqual(rdf.label.match_mode,
+                     foreman_rules.ForemanLabelClientRule.MatchMode.MATCH_ANY)
+
+  def testFromDictRegex(self):
+    dct = {
+        "rule_type": "REGEX",
+        "regex": {
+            "attribute_regex": "[a-z]+[0-9]",
+            "field": "FQDN",
+        },
+    }
+
+    rdf = foreman_rules.ForemanClientRule()
+    rdf.FromDict(dct)
+
+    self.assertEqual(rdf.rule_type, foreman_rules.ForemanClientRule.Type.REGEX)
+    self.assertEqual(rdf.regex.attribute_regex, "[a-z]+[0-9]")
+    self.assertEqual(
+        rdf.regex.field,
+        foreman_rules.ForemanRegexClientRule.ForemanStringField.FQDN)
+
+  def testFromDictInteger(self):
+    dct = {
+        "rule_type": "INTEGER",
+        "integer": {
+            "operator": "EQUAL",
+            "value": 42,
+            "field": "CLIENT_VERSION",
+        },
+    }
+
+    rdf = foreman_rules.ForemanClientRule()
+    rdf.FromDict(dct)
+
+    self.assertEqual(rdf.rule_type,
+                     foreman_rules.ForemanClientRule.Type.INTEGER)
+    self.assertEqual(rdf.integer.operator,
+                     foreman_rules.ForemanIntegerClientRule.Operator.EQUAL)
+    self.assertEqual(rdf.integer.value, 42)
+    self.assertEqual(
+        rdf.integer.field, foreman_rules.ForemanIntegerClientRule
+        .ForemanIntegerField.CLIENT_VERSION)
 
 
 class ForemanOsClientRuleTest(test_lib.GRRBaseTest):

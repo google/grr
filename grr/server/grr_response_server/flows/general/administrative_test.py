@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
+from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow_base
@@ -542,6 +543,33 @@ sys.test_code_ran_here = True
         new_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
         self.assertIsNotNone(new_si)
         self.assertNotEqual(new_si.client_info, si.client_info)
+
+  def testStartupHandlerNewLabels(self):
+    client_id = self.SetupClient(0, labels=[])
+    index = client_index.ClientIndex()
+
+    labels = data_store.REL_DB.ReadClientLabels(client_id)
+    self.assertEmpty(labels)
+
+    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    self.assertEmpty(snapshot.startup_info.client_info.labels)
+
+    search_result = index.LookupClients(["label:test_label"])
+    self.assertEmpty(search_result)
+
+    with test_lib.ConfigOverrider({"Client.labels": ["test_label"]}):
+      self._RunSendStartupInfo(client_id)
+
+    # Just sending the startup info with an updated label should also write the
+    # new label to the client_labels table and update the search index so the
+    # client can now also be found using the new label.
+
+    labels = data_store.REL_DB.ReadClientLabels(client_id)
+    self.assertLen(labels, 1)
+    self.assertEqual(labels[0].name, "test_label")
+
+    search_result = index.LookupClients(["label:test_label"])
+    self.assertEqual(search_result, [client_id])
 
   def testNannyMessageHandler(self):
     client_id = self.SetupClient(0)

@@ -2,6 +2,7 @@
 """Utility classes for streaming files and memory."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import abc
@@ -187,15 +188,16 @@ class Reader(with_metaclass(abc.ABCMeta, object)):
     """
 
 
-class FileReader(object):
-  """A reader implementation that wraps ordinary file objects.
-
-  Args:
-    filedesc: A file descriptor object to read from.
-    offset: An initial offset within the file.
-  """
+class FileReader(Reader):
+  """A reader implementation that wraps ordinary file objects."""
 
   def __init__(self, filedesc, offset=0):
+    """Initializes a new FileReader.
+
+    Args:
+      filedesc: A file descriptor object to read from.
+      offset: An initial offset within the file.
+    """
     self._filedesc = filedesc
     self._offset = offset
     filedesc.seek(offset, os.SEEK_SET)
@@ -210,15 +212,16 @@ class FileReader(object):
     return result
 
 
-class MemoryReader(object):
-  """A reader implementation that reads from process memory.
-
-  Args:
-    process: A platform-specific `Process` instance.
-    offset: An initial offset within the memory.
-  """
+class MemoryReader(Reader):
+  """A reader implementation that reads from process memory."""
 
   def __init__(self, process, offset=0):
+    """Initializes a new MemoryReader.
+
+    Args:
+      process: A platform-specific `Process` instance.
+      offset: An initial offset within the memory.
+    """
     self._process = process
     self._offset = offset
 

@@ -7,7 +7,9 @@ from __future__ import unicode_literals
 
 import hashlib
 import io
-import sys
+import os
+import platform
+import unittest
 
 from absl import app
 import mock
@@ -45,7 +47,8 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertGreater(result.time_used, 0)
+    if platform.system() != "Windows":  # Windows time resolution is too coarse.
+      self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "")
     self.assertEqual(utils.TEST_VAL, "modified")
 
@@ -75,7 +78,8 @@ magic_return_str = decode(s)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertGreater(result.time_used, 0)
+    if platform.system() != "Windows":  # Windows time resolution is too coarse.
+      self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "Hello World!")
 
   def testStdoutHooking(self):
@@ -93,7 +97,8 @@ print("Done.")
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertGreater(result.time_used, 0)
+    if platform.system() != "Windows":  # Windows time resolution is too coarse.
+      self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "Calling f.\nF called: 1\nDone.\n")
 
   def testProgress(self):
@@ -112,7 +117,8 @@ print("Done.")
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
     result = self.RunAction(standard.ExecutePython, request)[0]
 
-    self.assertGreater(result.time_used, 0)
+    if platform.system() != "Windows":  # Windows time resolution is too coarse.
+      self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "Done.\n")
 
   def testExecuteModifiedPython(self):
@@ -153,18 +159,23 @@ print("Done.")
 
   def testExecuteBinary(self):
     """Test the basic ExecuteBinaryCommand action."""
-    signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(open("/bin/ls", "rb").read(), self.signing_key)
+    if platform.system() == "Windows":
+      cmd, args = r"C:\Windows\System32\cmd.exe", ["/C", "echo", "foobar"]
+    else:
+      cmd, args = "/bin/echo", ["foobar"]
 
-    filepath = __file__.encode(sys.getfilesystemencoding())
+    signed_blob = rdf_crypto.SignedBlob()
+    signed_blob.Sign(open(cmd, "rb").read(), self.signing_key)
 
     request = rdf_client_action.ExecuteBinaryRequest(
-        executable=signed_blob, args=[filepath], write_path="ablob")
+        executable=signed_blob, args=args, write_path="ablob")
 
     result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
-    self.assertGreater(result.time_used, 0)
-    self.assertIn(filepath, result.stdout)
+    if platform.system() != "Windows":  # Windows time resolution is too coarse.
+      self.assertGreater(result.time_used, 0)
+    self.assertEqual("foobar{}".format(os.linesep).encode("utf-8"),
+                     result.stdout)
 
   def testReturnVals(self):
     """Test return values."""
@@ -207,6 +218,9 @@ utils.TEST_VAL = py_args[43]
 
 class GetFileStatTest(client_test_lib.EmptyActionTest):
 
+  # TODO:
+  @unittest.skipIf(platform.system() == "Windows",
+                   "Skipping due to temp file locking issues.")
   def testStatSize(self):
     with temp.AutoTempFilePath() as temp_filepath:
       with io.open(temp_filepath, "wb") as temp_file:

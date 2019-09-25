@@ -187,6 +187,31 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     urn = parsed_output[1][urn_pos]
     self.assertEqual(urn, "aff4:/C.1000000000000000/fs/os/中国新闻网新闻中")
 
+  def testCSVPluginWritesBytesValuesCorrectly(self):
+    pathspec = rdf_paths.PathSpec.OS(path="/żółta/gęśla/jaźń")
+    values = {
+        rdf_client.BufferReference: [
+            rdf_client.BufferReference(data=b"\xff\x00\xff", pathspec=pathspec),
+            rdf_client.BufferReference(data=b"\xfa\xfb\xfc", pathspec=pathspec),
+        ],
+    }
+
+    zip_fd, prefix = self.ProcessValuesToZip(values)
+
+    manifest_path = "{}/MANIFEST".format(prefix)
+    data_path = "{}/ExportedMatch/from_BufferReference.csv".format(prefix)
+
+    self.assertCountEqual(zip_fd.namelist(), [manifest_path, data_path])
+
+    with zip_fd.open(data_path) as data:
+      results = list(compat_csv.Reader(data.read().decode("utf-8")))
+
+    self.assertLen(results, 3)
+
+    data_idx = results[0].index("data")
+    self.assertEqual(results[1][data_idx], "ff00ff")
+    self.assertEqual(results[2][data_idx], "fafbfc")
+
   def testCSVPluginWritesMoreThanOneBatchOfRowsCorrectly(self):
     num_rows = csv_plugin.CSVInstantOutputPlugin.ROW_BATCH * 2 + 1
 

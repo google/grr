@@ -11,7 +11,6 @@ import unittest
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import int
 from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
@@ -215,39 +214,60 @@ class RDFDateTimeTest(absltest.TestCase):
 class DurationSecondsTest(absltest.TestCase):
 
   def testPublicAttributes(self):
-    duration = rdfvalue.DurationSeconds("1h")
-    self.assertEqual(duration.seconds, 3600)
-    self.assertEqual(duration.milliseconds, 3600 * 1000)
+    duration = rdfvalue.DurationSeconds.FromHumanReadable("1h")
+    self.assertEqual(duration.ToInt(rdfvalue.SECONDS), 3600)
+    self.assertEqual(duration.ToInt(rdfvalue.MILLISECONDS), 3600 * 1000)
     self.assertEqual(duration.microseconds, 3600 * 1000 * 1000)
-
-  def testFromHours(self):
-    self.assertEqual(
-        rdfvalue.DurationSeconds.FromDays(2), rdfvalue.DurationSeconds("2d"))
-    self.assertEqual(
-        rdfvalue.DurationSeconds.FromDays(31), rdfvalue.DurationSeconds("31d"))
 
   def testFromDays(self):
     self.assertEqual(
-        rdfvalue.DurationSeconds.FromHours(48), rdfvalue.DurationSeconds("48h"))
+        rdfvalue.DurationSeconds.From(2, rdfvalue.DAYS),
+        rdfvalue.DurationSeconds.FromHumanReadable("2d"))
     self.assertEqual(
-        rdfvalue.DurationSeconds.FromHours(24), rdfvalue.DurationSeconds("24h"))
+        rdfvalue.DurationSeconds.From(31, rdfvalue.DAYS),
+        rdfvalue.DurationSeconds.FromHumanReadable("31d"))
+
+  def testFromHours(self):
+    self.assertEqual(
+        rdfvalue.DurationSeconds.From(48, rdfvalue.HOURS),
+        rdfvalue.DurationSeconds.FromHumanReadable("48h"))
+    self.assertEqual(
+        rdfvalue.DurationSeconds.From(24, rdfvalue.HOURS),
+        rdfvalue.DurationSeconds.FromHumanReadable("24h"))
 
   def testFromSeconds(self):
-    self.assertEqual(rdfvalue.DurationSeconds.FromSeconds(1337).seconds, 1337)
+    self.assertEqual(
+        rdfvalue.DurationSeconds.From(1337,
+                                      rdfvalue.SECONDS).ToInt(rdfvalue.SECONDS),
+        1337)
 
   def testFromMicroseconds(self):
-    duration = rdfvalue.DurationSeconds.FromMicroseconds(3000000)
+    duration = rdfvalue.DurationSeconds.From(3000000, rdfvalue.MICROSECONDS)
     self.assertEqual(duration.microseconds, 3000000)
-    self.assertEqual(duration.seconds, 3)
-
-    # In general `int(•)` should not be used—one should use unit conversion
-    # functions instead. However, API value renderers currently use that logic
-    # so we verify that the call actually return an `int`.
-    self.assertIsInstance(int(duration), int)
+    self.assertEqual(duration.ToInt(rdfvalue.SECONDS), 3)
 
   def testFloatConstructorRaises(self):
     with self.assertRaises(TypeError):
       rdfvalue.DurationSeconds(3.14)
+
+  def testSerializeToBytes(self):
+    self.assertEqual(
+        b"0",
+        rdfvalue.DurationSeconds.From(0, rdfvalue.WEEKS).SerializeToBytes())
+    self.assertEqual(
+        b"1",
+        rdfvalue.DurationSeconds.From(1, rdfvalue.SECONDS).SerializeToBytes())
+    self.assertEqual(
+        b"2",
+        rdfvalue.DurationSeconds.From(2, rdfvalue.SECONDS).SerializeToBytes())
+    self.assertEqual(
+        b"999",
+        rdfvalue.DurationSeconds.From(999, rdfvalue.SECONDS).SerializeToBytes())
+    self.assertEqual(
+        b"1000",
+        rdfvalue.DurationSeconds.From(1000,
+                                      rdfvalue.SECONDS).SerializeToBytes())
+
 
 MAX_UINT64 = 18446744073709551615
 

@@ -167,9 +167,9 @@ class ApiCallRouterWithApprovalChecksE2ETest(
         # If this doesn't raise now, all answers were cached.
         self.api.Client(client_id).Flow(f.flow_id).Get()
 
-      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() +
-                             rdfvalue.DurationSeconds.FromSeconds(
-                                 api_router.AccessChecker.APPROVAL_CACHE_TIME)):
+      with test_lib.FakeTime(
+          rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
+              api_router.AccessChecker.APPROVAL_CACHE_TIME, rdfvalue.SECONDS)):
         # This must raise now.
         self.assertRaises(grr_api_errors.AccessForbiddenError,
                           self.api.Client(client_id).Flow(f.flow_id).Get)

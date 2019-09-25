@@ -25,6 +25,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
+from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import events
@@ -36,7 +37,6 @@ from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-
 
 GRR_CLIENT_CRASHES = metrics.Counter("grr_client_crashes")
 
@@ -750,6 +750,12 @@ class ClientStartupHandlerMixin(object):
         current_si.boot_time - new_si.boot_time > drift):
       try:
         data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
+        labels = new_si.client_info.labels
+        if labels:
+          data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
+          index = client_index.ClientIndex()
+          index.AddClientLabels(client_id, labels)
+
       except db.UnknownClientError:
         # On first contact with a new client, this write will fail.
         logging.info("Can't write StartupInfo for unknown client %s", client_id)

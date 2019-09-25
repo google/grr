@@ -28,6 +28,11 @@ class DatabaseTestBlobReferencesMixin(object):
     results = self.db.ReadHashBlobReferences([hash_id])
     self.assertEqual(results, {hash_id: None})
 
+  def testReadHashBlobReferencesWithEmptyInput(self):
+
+    results = self.db.ReadHashBlobReferences([])
+    self.assertEqual(results, {})
+
   def testCorrectlyHandlesRequestWithOneExistingAndOneMissingHash(self):
     blob_ref = rdf_objects.BlobReference(
         offset=0, size=42, blob_id=rdf_objects.BlobID(b"01234567" * 4))

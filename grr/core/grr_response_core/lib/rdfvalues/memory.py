@@ -28,7 +28,7 @@ class YaraSignatureShard(rdf_structs.RDFProtoStruct):
 
 class YaraProcessScanRequest(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.YaraProcessScanRequest
-  rdf_deps = [YaraSignature, YaraSignatureShard]
+  rdf_deps = [YaraSignature, YaraSignatureShard, rdfvalue.ByteSize]
 
 
 class ProcessMemoryError(rdf_structs.RDFProtoStruct):

@@ -2046,7 +2046,7 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 19
+// Next field ID: 20
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
@@ -2166,6 +2166,16 @@ message YaraProcessScanRequest {
                  "each process scanned.",
     label: ADVANCED,
   }];
+  optional uint64 process_dump_size_limit = 19 [
+    (sem_type) = {
+      description: "Maximum amount of raw process memory to dump. The first "
+                   "memory block going over the limit will not be written "
+                   "anymore. 0 indicates no limit.",
+      type: "ByteSize",
+      label: ADVANCED,
+    },
+    default = 0
+  ];
 }
 
 message ProcessMemoryError {
@@ -2312,6 +2322,13 @@ message YaraProcessDumpArgs {
     },
     default = false
   ];
+  repeated uint64 prioritize_offsets = 12 [(sem_type) = {
+    description: "Offets to prioritize when the process memory size is "
+                 "larger than size_limit. First, memory pages containing the "
+                 "offsets will be dumped up to size_limit. If not reached, "
+                 "the remaining memory pages will be dumped up to size_limit.",
+    label: ADVANCED,
+  }];
 }
 
 message ProcessMemoryRegion {

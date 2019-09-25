@@ -2,17 +2,22 @@
 """Client actions dealing with memory."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+import collections
 import io
 import os
 import re
 import shutil
-import time
 
 from future.builtins import str
 
 import psutil
+
+from typing import Iterable
+from typing import List
+
 import yara
 
 from grr_response_client import actions
@@ -142,19 +147,17 @@ class YaraProcessScan(actions.ActionPlugin):
   def _ScanProcess(self, process, scan_request, scan_response):
     rdf_process = rdf_client.Process.FromPsutilProcess(process)
 
-    # TODO: Replace time.time() arithmetic with RDFDatetime
-    # subtraction.
-    start_time = time.time()
+    start_time = rdfvalue.RDFDatetime.Now()
     try:
       matches = self._GetMatches(process, scan_request)
-      scan_time = time.time() - start_time
-      scan_time_us = int(scan_time * 1e6)
+      scan_time = rdfvalue.RDFDatetime.Now() - start_time
+      scan_time_us = scan_time.ToInt(rdfvalue.MICROSECONDS)
     except yara.TimeoutError:
       scan_response.errors.Append(
           rdf_memory.ProcessMemoryError(
               process=rdf_process,
-              error="Scanning timed out (%s seconds)." %
-              (time.time() - start_time)))
+              error="Scanning timed out (%s)." %
+              (rdfvalue.RDFDatetime.Now() - start_time)))
       return
     except Exception as e:  # pylint: disable=broad-except
       scan_response.errors.Append(
@@ -246,6 +249,82 @@ class YaraProcessScan(actions.ActionPlugin):
     self.SendReply(scan_response)
 
 
+def _PrioritizeRegions(
+    regions,
+    prioritize_offsets
+):
+  """Returns reordered `regions` to prioritize regions containing offsets.
+
+  Args:
+    regions: Iterable of ProcessMemoryRegions.
+    prioritize_offsets: List of integers containing prioritized offsets.  Pass
+      pre-sorted regions and offsets to improve this functions performance from
+      O(n * log n) to O(n) respectively.
+
+  Returns:
+    An iterable of first all ProcessMemoryRegions that contain a prioritized
+    offset, followed by all regions that do not contain a prioritized offset.
+    All prioritized regions and all unprioritized regions are sorted by their
+    starting address.
+  """
+
+  # Sort regions and offsets to be mononotically increasing and insert sentinel.
+  all_regions = collections.deque(sorted(regions, key=lambda r: r.start))
+  all_regions.append(None)
+  region = all_regions.popleft()
+
+  all_offsets = collections.deque(sorted(prioritize_offsets))
+  all_offsets.append(None)
+  offset = all_offsets.popleft()
+
+  prio_regions = []
+  nonprio_regions = []
+
+  # This loop runs in O(max(|regions|, |offsets|)) with use of invariants:
+  # - offset is increasing monotonically.
+  # - region[n+1] end >= region[n+1] start >= region[n] start
+  # Because memory regions could theoretically overlap, no relationship exists
+  # between the end of region[n+1] and region[n].
+
+  while region is not None and offset is not None:
+    if offset < region.start:
+      # Offset is before the first region, thus cannot be contained in any
+      # region. This could happen when some memory regions are unreadable.
+      offset = all_offsets.popleft()
+    elif offset >= region.start + region.size:
+      # Offset comes after the first region. The first region can not contain
+      # any following offsets, because offsets increase monotonically.
+      nonprio_regions.append(region)
+      region = all_regions.popleft()
+    else:
+      # The first region contains the offset. Mark it as prioritized and
+      # proceed with the next offset. All following offsets that are contained
+      # in the current region are skipped with the first if-branch.
+      prio_regions.append(region)
+      region = all_regions.popleft()
+      offset = all_offsets.popleft()
+
+  all_regions.appendleft(region)  # Put back the current region or sentinel.
+  all_regions.pop()  # Remove sentinel.
+
+  # When there are fewer offsets than regions, remaining regions can be present
+  # in `all_regions`.
+  return prio_regions + nonprio_regions + list(all_regions)
+
+
+def _ApplySizeLimit(regions,
+                    size_limit):
+  """Truncates regions so that the total size stays in size_limit."""
+  total_size = 0
+  regions_in_limit = []
+  for region in regions:
+    total_size += region.size
+    if total_size > size_limit:
+      break
+    regions_in_limit.append(region)
+  return regions_in_limit
+
+
 class YaraProcessDump(actions.ActionPlugin):
   """Dumps a process to disk and returns pathspecs for GRR to pick up."""
   in_rdfvalue = rdf_memory.YaraProcessDumpArgs
@@ -276,69 +355,80 @@ class YaraProcessDump(actions.ActionPlugin):
 
     return bytes_written
 
+  def _SaveRegionToDirectory(self, psutil_process, process, region, tmp_dir,
+                             streamer):
+    end = region.start + region.size
+
+    # _ReplaceDumpPathspecsWithMultiGetFilePathspec in DumpProcessMemory
+    # flow asserts that MemoryRegions can be uniquely identified by their
+    # file's basename.
+    filename = "%s_%d_%x_%x.tmp" % (psutil_process.name(), psutil_process.pid,
+                                    region.start, end)
+    filepath = os.path.join(tmp_dir.path, filename)
+
+    chunks = streamer.StreamMemory(
+        process, offset=region.start, amount=region.size)
+    bytes_written = self._SaveMemDumpToFilePath(filepath, chunks)
+
+    if not bytes_written:
+      return None
+
+    # TODO: Remove workaround after client_utils are fixed.
+    canonical_path = client_utils.LocalPathToCanonicalPath(filepath)
+    if not canonical_path.startswith("/"):
+      canonical_path = "/" + canonical_path
+
+    return rdf_paths.PathSpec(
+        path=canonical_path, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
+
   def DumpProcess(self, psutil_process, args):
     response = rdf_memory.YaraProcessDumpInformation()
     response.process = rdf_client.Process.FromPsutilProcess(psutil_process)
+    streamer = streaming.Streamer(chunk_size=args.chunk_size)
 
-    process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
+    with client_utils.OpenProcessForMemoryAccess(psutil_process.pid) as process:
+      regions = list(client_utils.MemoryRegions(process, args))
 
-    bytes_limit = args.size_limit
+      if args.prioritize_offsets:
+        regions = _PrioritizeRegions(regions, args.prioritize_offsets)
 
-    with process:
-      streamer = streaming.Streamer(chunk_size=args.chunk_size)
+      if args.size_limit:
+        total_regions = len(regions)
+        regions = _ApplySizeLimit(regions, args.size_limit)
+        if len(regions) < total_regions:
+          response.error = ("Byte limit exceeded. Writing {} of {} "
+                            "regions.").format(len(regions), total_regions)
+
+      regions = sorted(regions, key=lambda r: r.start)
 
       with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
-        for region in client_utils.MemoryRegions(process, args):
-
-          if bytes_limit and self.bytes_written + region.size > bytes_limit:
-            response.error = ("Byte limit exceeded. Wrote %d bytes, "
-                              "next block is %d bytes, limit is %d." %
-                              (self.bytes_written, region.size, bytes_limit))
-            return response
-
-          end = region.start + region.size
-
-          # _ReplaceDumpPathspecsWithMultiGetFilePathspec in DumpProcessMemory
-          # flow asserts that MemoryRegions can be uniquely identified by their
-          # file's basename.
-          filename = "%s_%d_%x_%x.tmp" % (psutil_process.name(),
-                                          psutil_process.pid, region.start, end)
-          filepath = os.path.join(tmp_dir.path, filename)
-
-          chunks = streamer.StreamMemory(
-              process, offset=region.start, amount=region.size)
-          bytes_written = self._SaveMemDumpToFilePath(filepath, chunks)
-
-          if not bytes_written:
-            continue
-
-          self.bytes_written += bytes_written
-
-          # TODO: Remove workaround after client_utils are fixed.
-          canonical_path = client_utils.LocalPathToCanonicalPath(filepath)
-          if not canonical_path.startswith("/"):
-            canonical_path = "/" + canonical_path
-
-          region.file = rdf_paths.PathSpec(
-              path=canonical_path, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
-
-          response.memory_regions.Append(region)
+        for region in regions:
+          pathspec = self._SaveRegionToDirectory(psutil_process, process,
+                                                 region, tmp_dir, streamer)
+          if pathspec is not None:
+            region.file = pathspec
+            response.memory_regions.Append(region)
 
     return response
 
   def Run(self, args):
-    result = rdf_memory.YaraProcessDumpResponse()
+    if args.prioritize_offsets and len(args.pids) != 1:
+      raise ValueError(
+          "Supplied prioritize_offsets {} for PIDs {} in YaraProcessDump. "
+          "Required exactly one PID.".format(args.prioritize_offsets,
+                                             args.pids))
 
-    self.bytes_written = 0
+    result = rdf_memory.YaraProcessDumpResponse()
 
     for p in ProcessIterator(args.pids, args.process_regex,
                              args.ignore_grr_process, result.errors):
       self.Progress()
-      start_time = time.time()
+      start = rdfvalue.RDFDatetime.Now()
 
       try:
         response = self.DumpProcess(p, args)
-        response.dump_time_us = int((time.time() - start_time) * 1e6)
+        now = rdfvalue.RDFDatetime.Now()
+        response.dump_time_us = (now - start).ToInt(rdfvalue.MICROSECONDS)
         result.dumped_processes.Append(response)
         if response.error:
           # Limit exceeded, we bail out early.

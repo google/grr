@@ -5,6 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import collections
 import logging
 import re
 from typing import Iterable, Union
@@ -79,7 +80,7 @@ class YaraProcessScan(flow_base.FlowBase):
       # the full signature has been received.
       return
 
-    pids_to_dump = set()
+    regions_to_dump = collections.defaultdict(set)
 
     for response in responses:
       for match in response.matches:
@@ -88,8 +89,11 @@ class YaraProcessScan(flow_base.FlowBase):
         rules_string = ",".join(sorted(rules))
         logging.debug("YaraScan match in pid %d (%s) for rules %s.",
                       match.process.pid, match.process.exe, rules_string)
+
         if self.args.dump_process_on_match:
-          pids_to_dump.add(match.process.pid)
+          for process_match in match.match:
+            for string_match in process_match.string_matches:
+              regions_to_dump[match.process.pid].add(string_match.offset)
 
       if self.args.include_errors_in_results:
         for error in response.errors:
@@ -99,10 +103,12 @@ class YaraProcessScan(flow_base.FlowBase):
         for miss in response.misses:
           self.SendReply(miss)
 
-    if pids_to_dump:
+    for pid, offsets in regions_to_dump.items():
       self.CallFlow(
-          DumpProcessMemory.__name__,  # pylint: disable=undefined-variable
-          pids=list(pids_to_dump),
+          DumpProcessMemory.__name__,
+          pids=[pid],
+          prioritize_offsets=list(sorted(offsets)),
+          size_limit=self.args.process_dump_size_limit,
           skip_special_regions=self.args.skip_special_regions,
           skip_mapped_files=self.args.skip_mapped_files,
           skip_shared_regions=self.args.skip_shared_regions,
@@ -181,6 +187,12 @@ class DumpProcessMemory(flow_base.FlowBase):
     if not (self.args.dump_all_processes or self.args.pids or
             self.args.process_regex):
       raise ValueError("No processes to dump specified.")
+
+    if self.args.prioritize_offsets and len(self.args.pids) != 1:
+      raise ValueError(
+          "Supplied prioritize_offsets {} for PIDs {} in YaraProcessDump. "
+          "Required exactly one PID.".format(self.args.prioritize_offsets,
+                                             self.args.pids))
 
     self.CallClient(
         server_stubs.YaraProcessDump,

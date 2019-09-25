@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import os
 
 from absl import app
+from absl.testing import absltest
 
 from grr_response_client.client_actions import memory
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -93,6 +94,41 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     # The temporary directory should not get created if there is only one
     # shard.
     self.assertFalse(os.path.exists(signature_dir))
+
+
+def R(start, size):
+  """Returns a new ProcessMemoryRegion with the given start and size."""
+  return rdf_memory.ProcessMemoryRegion(start=start, size=size)
+
+
+# Test some edge cases of _PrioritizeRegions, in addition to the pre-existing
+# tests of YaraProcessDump.
+class PrioritizeRegionsTest(absltest.TestCase):
+
+  def testEmptyInput(self):
+    r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
+    self.assertEqual(memory._PrioritizeRegions([r0, r1, r2], []), [r0, r1, r2])
+    self.assertEqual(memory._PrioritizeRegions([], [5]), [])
+
+  def testFewerOffsetsThanRegions(self):
+    r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
+    self.assertEqual(
+        memory._PrioritizeRegions([r0, r1, r2], [10]), [r1, r0, r2])
+
+  def testRegionContainsMultipleOffsets(self):
+    r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
+    self.assertEqual(
+        memory._PrioritizeRegions([r0, r1, r2], [10, 10, 11]), [r1, r0, r2])
+
+  def testMultipleOffsets(self):
+    r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
+    self.assertEqual(
+        memory._PrioritizeRegions([r0, r1, r2], [10, 20]), [r1, r2, r0])
+
+  def testOffsetInEveryRegion(self):
+    r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
+    self.assertEqual(
+        memory._PrioritizeRegions([r0, r1, r2], [5, 15, 25]), [r0, r1, r2])
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from future.utils import itervalues
 from future.utils import string_types
 
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -73,6 +74,7 @@ class Hint(rdf_structs.RDFProtoStruct):
   """Human-formatted descriptions of problems, fixes and findings."""
 
   protobuf = checks_pb2.Hint
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __init__(self, initializer=None, reformat=True, **kwargs):
     if isinstance(initializer, dict):
@@ -115,6 +117,7 @@ class Filter(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       Hint,
   ]
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __init__(self, initializer=None, **kwargs):
     # FIXME(sebastianw): Probe seems to pass in the configuration for filters
@@ -164,6 +167,7 @@ class Probe(rdf_structs.RDFProtoStruct):
       Hint,
       triggers.Target,
   ]
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, dict):
@@ -227,6 +231,7 @@ class Method(rdf_structs.RDFProtoStruct):
       Probe,
       triggers.Target,
   ]
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, dict):
@@ -298,6 +303,7 @@ class CheckResult(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_anomaly.Anomaly,
   ]
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __bool__(self):
     return bool(self.anomaly)
@@ -319,6 +325,7 @@ class CheckResults(rdf_structs.RDFProtoStruct):
       CheckResult,
       rdf_client.KnowledgeBase,
   ]
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __bool__(self):
     return bool(self.result)
@@ -346,6 +353,7 @@ class Check(rdf_structs.RDFProtoStruct):
       Method,
       triggers.Target,
   ]
+  __hash__ = rdfvalue.RDFValue.__hash__
 
   def __init__(self,
                initializer=None,

@@ -193,12 +193,16 @@ class GRRBaseTest(absltest.TestCase):
     """Sets up mock clients, one for each numerical index in 'indices'."""
     return [self.SetupClient(i, *args, **kwargs) for i in indices]
 
-  def _TestClientInfo(self):
-    return rdf_client.ClientInformation(
+  def _TestClientInfo(self, labels=None):
+    res = rdf_client.ClientInformation(
         client_name="GRR Monitor",
         client_version=config.CONFIG["Source.version_numeric"],
-        build_time="1980-01-01",
-        labels=["label1", "label2"])
+        build_time="1980-01-01")
+    if labels is None:
+      res.labels = ["label1", "label2"]
+    else:
+      res.labels = labels
+    return res
 
   def _TestInterfaces(self, client_nr):
     ip1 = rdf_client_network.NetworkAddress()
@@ -238,7 +242,7 @@ class GRRBaseTest(absltest.TestCase):
     client_id = u"C.1%015x" % client_nr
 
     client = rdf_objects.ClientSnapshot(client_id=client_id)
-    client.startup_info.client_info = self._TestClientInfo()
+    client.startup_info.client_info = self._TestClientInfo(labels=labels)
     if last_boot_time is not None:
       client.startup_info.boot_time = last_boot_time
 
@@ -277,8 +281,7 @@ class GRRBaseTest(absltest.TestCase):
     data_store.REL_DB.WriteClientSnapshot(client)
 
     client_index.ClientIndex().AddClient(client)
-
-    if labels:
+    if labels is not None:
       data_store.REL_DB.AddClientLabels(client_id, u"GRR", labels)
       client_index.ClientIndex().AddClientLabels(client_id, labels)
 
@@ -446,8 +449,7 @@ class FakeTimeline(object):
     """Simulated running the underlying thread for the specified duration.
 
     Args:
-      duration: A `Duration` object describing for how long simulate the
-        thread.
+      duration: A `Duration` object describing for how long simulate the thread.
 
     Raises:
       TypeError: If `duration` is not an instance of `rdfvalue.Duration`.
