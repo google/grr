@@ -432,7 +432,8 @@ class HMACTest(CryptoTestBase):
   def testM2CryptoCompatibility(self):
     message = b"HMAC by M2Crypto!"
     signature = binascii.unhexlify("99cae3ec7b41ceb6e6619f2f85368cb3ae118b70")
-    key = rdf_crypto.EncryptionKey.FromHex("94bd4e0ecc8397a8b2cdbc4b127ee7b0")
+    key = rdf_crypto.EncryptionKey.FromHumanReadable(
+        "94bd4e0ecc8397a8b2cdbc4b127ee7b0")
     h = rdf_crypto.HMAC(key)
 
     self.assertEqual(h.HMAC(message), signature)

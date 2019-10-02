@@ -6,9 +6,9 @@ objects defined by objects.proto.
 """
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
-import binascii
 import functools
 import hashlib
 import itertools
@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import text
 from grr_response_proto import objects_pb2
 
 _UNKNOWN_GRR_VERSION = "Unknown-GRR-version"
@@ -69,12 +70,6 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   def __init__(self, *args, **kwargs):
     super(ClientSnapshot, self).__init__(*args, **kwargs)
     self.timestamp = None
-
-  @classmethod
-  def FromSerializedBytes(cls, value):
-    res = cls()
-    res.ParseFromBytes(value)
-    return res
 
   def Uname(self):
     """OS summary string."""
@@ -227,52 +222,51 @@ class HashID(rdfvalue.RDFValue):
       raise TypeError("Trying to instantiate base HashID class. "
                       "hash_id_length has to be set.")
 
-    super(HashID, self).__init__(initializer=initializer)
-    if not self._value:
-      if initializer is None:
-        initializer = b"\x00" * self.__class__.hash_id_length
-      self.ParseFromBytes(initializer)
+    super(HashID, self).__init__()
 
-  def ParseFromBytes(self, string):
-    if not isinstance(string, (bytes, rdfvalue.RDFBytes)):
-      raise TypeError("Expected bytes or RDFBytes but got `%s` instead" %
-                      type(string))
-    if len(string) != self.__class__.hash_id_length:
-      raise ValueError("Expected %s bytes but got `%s` instead" %
-                       (self.__class__.hash_id_length, len(string)))
+    if isinstance(initializer, HashID):
+      initializer = initializer._value  # pylint: disable=protected-access
 
-    if isinstance(string, rdfvalue.RDFBytes):
-      self._value = string.SerializeToBytes()
+    if initializer is None:
+      initializer = b"\x00" * self.__class__.hash_id_length
+
+    precondition.AssertType(initializer, (bytes, rdfvalue.RDFBytes))
+
+    if len(initializer) != self.__class__.hash_id_length:
+      raise ValueError(
+          "Expected %s bytes but got `%s` `%s` instead" %
+          (self.__class__.hash_id_length, len(initializer), initializer))
+
+    if isinstance(initializer, rdfvalue.RDFBytes):
+      self._value = initializer.SerializeToBytes()
     else:
-      self._value = string
+      self._value = initializer
 
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromDatastoreValue(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromBytes(value)
+    return cls(value)
 
   def SerializeToBytes(self):
     return self.AsBytes()
 
   @classmethod
-  def FromBytes(cls, raw):
-    if not isinstance(raw, bytes):
-      message = "Expected value of type `%s` but got `%s` instead"
-      raise ValueError(message % (bytes, raw))
-
-    return cls(raw)
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(value)
 
   def AsBytes(self):
     return self._value
 
   def AsHexString(self):
-    return binascii.hexlify(self._value).decode("ascii")
+    return text.Hexify(self._value)
 
   def AsHashDigest(self):
     return rdfvalue.HashDigest(self._value)
 
   def __repr__(self):
     cls_name = compatibility.GetName(self.__class__)
-    value = binascii.hexlify(self._value).decode("ascii")
+    value = text.Hexify(self._value)
     return "{cls_name}('{value}')".format(cls_name=cls_name, value=value)
 
   def __str__(self):

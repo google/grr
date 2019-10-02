@@ -737,8 +737,7 @@ class PackageSourceParser(parsers.SingleFileParser):
     uris = []
 
     for url_to_parse in uris_to_parse:
-      url = rdf_standard.URI()
-      url.ParseFromHumanReadable(url_to_parse)
+      url = rdf_standard.URI.FromHumanReadable(url_to_parse)
 
       # if no transport then url_to_parse wasn't actually a valid URL
       # either host or path also have to exist for this to be a valid URL

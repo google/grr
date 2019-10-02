@@ -21,8 +21,6 @@ from grr.test_lib import test_lib
 
 
 def MakeClient():
-  client = rdf_objects.ClientSnapshot(client_id="C.0000000000000000")
-
   base_pb = objects_pb2.ClientSnapshot()
   # pylint: disable=line-too-long
   text_format.Merge(
@@ -71,7 +69,9 @@ def MakeClient():
     """, base_pb)
   # pylint: enable=line-too-long
 
-  client.ParseFromBytes(base_pb.SerializeToString())
+  client = rdf_objects.ClientSnapshot.FromSerializedBytes(
+      base_pb.SerializeToString())
+  client.client_id = "C.0000000000000000"
   return client
 
 

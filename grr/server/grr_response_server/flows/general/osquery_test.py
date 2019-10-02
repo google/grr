@@ -3,7 +3,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import binascii
 import hashlib
 import io
 import os
@@ -15,6 +14,7 @@ from future.builtins import range
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
 from grr_response_core.lib.util import temp
+from grr_response_core.lib.util import text
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -82,10 +82,10 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testHash(self):
 
     def MD5(data):
-      return binascii.hexlify(hashlib.md5(data).digest()).decode("ascii")
+      return text.Hexify(hashlib.md5(data).digest())
 
     def SHA256(data):
-      return binascii.hexlify(hashlib.sha256(data).digest()).decode("ascii")
+      return text.Hexify(hashlib.sha256(data).digest())
 
     with temp.AutoTempFilePath() as filepath:
       content = b"FOOBARBAZ"

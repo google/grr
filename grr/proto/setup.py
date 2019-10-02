@@ -75,8 +75,8 @@ def compile_protos():
     return
 
   # Only compile protobufs if we're inside GRR source tree.
-  subprocess.check_call(
-      ["python", "makefile.py", "--clean"], cwd=THIS_DIRECTORY)
+  subprocess.check_call([sys.executable, "makefile.py", "--clean"],
+                        cwd=THIS_DIRECTORY)
 
 
 class Build(build_py):

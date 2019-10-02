@@ -83,7 +83,11 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
   def testDecoratedFunctionIsNotExecutedConcurrently(self):
     event = threading.Event()
 
+    # Can't rely on mock's call_count as it's not thread safe.
+    fn_calls = []
+
     def Fn():
+      fn_calls.append(True)
       event.wait()
       return self.mock_fn()
 
@@ -112,22 +116,23 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
     self.assertLen(results, len(threads))
     self.assertEqual(set(results), set([results[0]]))
-    self.assertEqual(self.mock_fn.call_count, 1)
+    self.assertLen(fn_calls, 1)
 
   def testDecoratedFunctionsAreWaitedForPerArguments(self):
     event = threading.Event()
 
+    # Can't rely on mock's call_count as it's not thread safe.
+    fn_calls = []
+
     def Fn(x):
+      fn_calls.append(x)
       if x != 42:
         event.wait()
       return x
 
-    mock_fn = mock.Mock(wraps=Fn)
-    compatibility.SetName(mock_fn, "foo")  # Expected by functools.wraps.
-
     decorated = cache.WithLimitedCallFrequency(
         rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
-            mock_fn)
+            Fn)
 
     def T():
       decorated(1)
@@ -145,7 +150,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
       event.set()
       t.join()
 
-    self.assertEqual(mock_fn.call_count, 2)
+    self.assertLen(fn_calls, 2)
 
   def testPropagatesExceptions(self):
     mock_fn = mock.Mock(side_effect=ValueError())

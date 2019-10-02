@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import binascii
 import os
 
 from absl import app
@@ -13,6 +12,7 @@ from future.builtins import range
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import text
 
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
@@ -83,7 +83,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
               self.client_id)
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
-        binascii.hexlify(self.content_1_hash).decode("ascii"))
+        text.Hexify(self.content_1_hash))
 
     # Click on a file table row with file "b". Information in the download
     # tab should get rerendered and we should see Sha256 value corresponding
@@ -91,7 +91,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=tr:contains(\"b.txt\")")
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
-        binascii.hexlify(self.content_2_hash).decode("ascii"))
+        text.Hexify(self.content_2_hash))
 
   def testSwitchingBetweenFileVersionsRefreshesDownloadTab(self):
     with test_lib.FakeTime(gui_test_lib.TIME_0):
@@ -110,7 +110,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # Make sure displayed hash value is correct.
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
-        binascii.hexlify(self.content_2_hash).decode("ascii"))
+        text.Hexify(self.content_2_hash))
 
     # Select the previous file version.
     self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
@@ -118,7 +118,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     # Make sure displayed hash value gets updated.
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
-        binascii.hexlify(self.content_1_hash).decode("ascii"))
+        text.Hexify(self.content_1_hash))
 
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
@@ -222,8 +222,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=HexView]:not(.disabled)")
 
     self.WaitUntilEqual(
-        binascii.hexlify(content).decode("ascii"), self.GetText,
-        "css=table.hex-area tr:first td")
+        text.Hexify(content), self.GetText, "css=table.hex-area tr:first td")
 
     # The string inside the file is null-character-delimited. The way
     # a null character is displayed depends on Angular

@@ -15,7 +15,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import binascii
 import calendar
 import collections
 import datetime
@@ -42,6 +41,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import random
+from grr_response_core.lib.util import text
 
 # Somewhere to keep all the late binding placeholders.
 _LATE_BINDING_STORE = {}
@@ -104,58 +104,27 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   # assigned here.
   attribute_instance = None
 
-  def __init__(self, initializer=None):
-    """Constructor must be able to take no args.
-
-    Args:
-      initializer: Optional parameter to construct from.
-
-    Raises:
-      InitializeError: if we can not be initialized from this parameter.
-    """
-    # Default timestamp is now.
-
-    # Allow an RDFValue to be initialized from an identical RDFValue.
-    # TODO(user):pytype: type checker can't infer that the initializer
-    # is not None after the check below.
-    if initializer.__class__ == self.__class__:
-      self.ParseFromBytes(cast(self.__class__, initializer).SerializeToBytes())
-
+  def __init__(self):
     self._prev_hash = None
 
   def Copy(self):
     """Make a new copy of this RDFValue."""
-    res = self.__class__()  # pytype: disable=not-instantiable
-    res.ParseFromBytes(self.SerializeToBytes())
-    return res
-
-  def SetRaw(self, value):
-    self._value = value
+    return self.__class__.FromSerializedBytes(self.SerializeToBytes())
 
   def __copy__(self):
     return self.Copy()
 
-  @abc.abstractmethod
-  def ParseFromBytes(self, string):
-    """Given a string, parse ourselves from it."""
-    pass
-
-  @abc.abstractmethod
-  def ParseFromDatastore(self, value):
-    """Initialize the RDF object from the datastore value."""
-    pass
-
   @classmethod
   def FromDatastoreValue(cls, value):
-    res = cls()
-    res.ParseFromDatastore(value)
-    return res
+    raise NotImplementedError(
+        "Class {} does not implement FromDatastoreValue.".format(
+            compatibility.GetName(cls)))
 
   @classmethod
   def FromSerializedBytes(cls, value):
-    res = cls()
-    res.ParseFromBytes(value)
-    return res
+    raise NotImplementedError(
+        "Class {} does not implement FromSerializedBytes.".format(
+            compatibility.GetName(cls)))
 
   # TODO: Remove legacy SerializeToDataStore.
   def SerializeToDataStore(self):
@@ -164,7 +133,7 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
 
   @abc.abstractmethod
   def SerializeToBytes(self):
-    """Serialize into a string which can be parsed using ParseFromBytes."""
+    """Serialize into a string which can be parsed using FromSerializedBytes."""
 
   @classmethod
   def Fields(cls):
@@ -209,83 +178,88 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
 
 
 class RDFPrimitive(RDFValue):
+  """An immutable RDFValue that wraps a primitive value (e.g. int)."""
+
+  _primitive_value = None
+
+  def __init__(self, initializer):
+    super(RDFPrimitive, self).__init__()
+    self._primitive_value = initializer
+
+  @property
+  def _value(self):
+    return self._primitive_value
 
   @classmethod
   def FromHumanReadable(cls, string):
-    instance = cls()
-    instance.ParseFromHumanReadable(string)
-    return instance
-
-  @abc.abstractmethod
-  def ParseFromHumanReadable(self, string):
-    """Initializes the object from human-readable string.
+    """Returns a new instance from a human-readable string.
 
     Args:
       string: An `unicode` value to initialize the object from.
     """
+    raise NotImplementedError(
+        "Class {} does not implement FromHumanReadable.".format(
+            compatibility.GetName(cls)))
 
 
 @python_2_unicode_compatible
+@functools.total_ordering
 class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
   data_store_type = "bytes"
 
   def __init__(self, initializer=None):
-    super(RDFBytes, self).__init__()
     if initializer is None:
-      self._value = b""
+      super(RDFBytes, self).__init__(b"")
     elif isinstance(initializer, bytes):
-      self._value = initializer
+      super(RDFBytes, self).__init__(initializer)
     elif isinstance(initializer, RDFBytes):
-      self._value = initializer.AsBytes()
+      super(RDFBytes, self).__init__(initializer.AsBytes())
     else:
       message = "Unexpected initializer `{value}` of type {type}"
       raise TypeError(message.format(value=initializer, type=type(initializer)))
 
-  def ParseFromBytes(self, string):
-    precondition.AssertType(string, bytes)
-    self._value = string
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self._value = value
+    return cls(value)
 
-  def ParseFromHumanReadable(self, string):
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(value)
+
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    self._value = string.encode("utf-8")
+    return cls(string.encode("utf-8"))
 
   def AsBytes(self):
     return self._value
 
   def SerializeToBytes(self):
-    return self._value
+    return self.AsBytes()
 
   def __str__(self):
-    return binascii.hexlify(self._value).decode("ascii")
+    return text.Hexify(self.AsBytes())
 
   def __hash__(self):
-    return hash(self._value)
+    return hash(self.AsBytes())
 
   def __lt__(self, other):
     if isinstance(other, self.__class__):
-      return self._value < other._value  # pylint: disable=protected-access
+      return self.AsBytes() < other.AsBytes()
     else:
-      return self._value < other
-
-  def __gt__(self, other):
-    if isinstance(other, self.__class__):
-      return self._value > other._value  # pylint: disable=protected-access
-    else:
-      return self._value > other
+      return self.AsBytes() < other
 
   def __eq__(self, other):
     if isinstance(other, self.__class__):
-      return self._value == other._value  # pylint: disable=protected-access
+      return self.AsBytes() == other.AsBytes()
     else:
-      return self._value == other
+      return self.AsBytes() == other
 
   def __len__(self):
-    return len(self._value)
+    return len(self.AsBytes())
 
 
 class RDFZippedBytes(RDFBytes):
@@ -305,18 +279,16 @@ class RDFString(RDFPrimitive):
 
   data_store_type = "string"
 
-  _value = u""
-
   # TODO(hanuszczak): Allow initializing from arbitrary `unicode`-able object.
   def __init__(self, initializer=None):
-    super(RDFString, self).__init__(initializer=None)
-
+    if initializer is None:
+      super(RDFString, self).__init__("")
     if isinstance(initializer, RDFString):
-      self._value = initializer._value  # pylint: disable=protected-access
+      super(RDFString, self).__init__(str(initializer))
     elif isinstance(initializer, bytes):
-      self.ParseFromBytes(initializer)
+      super(RDFString, self).__init__(initializer.decode("utf-8"))
     elif isinstance(initializer, Text):
-      self._value = initializer
+      super(RDFString, self).__init__(initializer)
     elif initializer is not None:
       message = "Unexpected initializer `%s` of type `%s`"
       message %= (initializer, type(initializer))
@@ -370,17 +342,19 @@ class RDFString(RDFPrimitive):
 
     return NotImplemented
 
-  def ParseFromBytes(self, string):
-    precondition.AssertType(string, bytes)
-    self._value = string.decode("utf-8")
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(value)
 
-  def ParseFromDatastore(self, value):
-    precondition.AssertType(value, Text)
-    self._value = value
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    return cls.FromHumanReadable(value)
 
-  def ParseFromHumanReadable(self, string):
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    self._value = string
+    return cls(string)
 
   def SerializeToBytes(self):
     return self._value.encode("utf-8")
@@ -399,7 +373,7 @@ class HashDigest(RDFBytes):
   data_store_type = "bytes"
 
   def HexDigest(self):
-    return binascii.hexlify(self._value).decode("ascii")
+    return text.Hexify(self._value)
 
   def __str__(self):
     return self.HexDigest()
@@ -433,32 +407,27 @@ class RDFInteger(RDFPrimitive):
     return isinstance(value, (int, float, RDFInteger))
 
   def __init__(self, initializer=None):
-    super(RDFInteger, self).__init__(initializer=initializer)
-    if self._value is None:
-      if initializer is None:
-        self._value = 0
-      else:
-        self._value = compatibility.builtins.int(initializer)
+    if initializer is None:
+      super(RDFInteger, self).__init__(0)
+    else:
+      super(RDFInteger, self).__init__(compatibility.builtins.int(initializer))
 
   def SerializeToBytes(self):
     return str(self._value).encode("ascii")
 
-  def ParseFromBytes(self, string):
-    precondition.AssertType(string, bytes)
-    self._value = 0
-    if string:
-      try:
-        self._value = compatibility.builtins.int(string)
-      except TypeError as e:
-        raise DecodeError(e)
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
 
-  def ParseFromDatastore(self, value):
-    precondition.AssertType(value, int)
-    self._value = compatibility.builtins.int(value)
+    if value:
+      return cls(compatibility.builtins.int(value))
+    else:
+      return cls(0)
 
-  def ParseFromHumanReadable(self, string):
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    self._value = compatibility.builtins.int(string)
+    return cls(compatibility.builtins.int(string))
 
   def __str__(self):
     return str(self._value)
@@ -534,42 +503,116 @@ class RDFInteger(RDFPrimitive):
     return hash(self._value)
 
 
-class RDFBool(RDFInteger):
+@functools.total_ordering
+@python_2_unicode_compatible
+class RDFBool(RDFPrimitive):
   """Boolean value."""
   data_store_type = "unsigned_integer"
 
-  def ParseFromHumanReadable(self, string):
+  def __init__(self, initializer=None):
+    if initializer is None:
+      super(RDFBool, self).__init__(0)
+    else:
+      super(RDFBool, self).__init__(int(initializer))
+
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(int(value))
+
+  def SerializeToBytes(self):
+    return str(self._value).encode("ascii")
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, int)
+    return cls(value)
+
+  def SerializeToDataStore(self):
+    return self._value
+
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
 
     upper_string = string.upper()
     if upper_string == u"TRUE" or string == u"1":
-      self._value = 1
+      return cls(1)
     elif upper_string == u"FALSE" or string == u"0":
-      self._value = 0
+      return cls(0)
     else:
       raise ValueError("Unparsable boolean string: `%s`" % string)
 
+  def __bool__(self):
+    return bool(self._value)
+
+  def __int__(self):
+    return int(self._value)
+
+  def __and__(self, other):
+    return self._value & other
+
+  def __rand__(self, other):
+    return other & self._value
+
+  def __or__(self, other):
+    return self._value | other
+
+  def __ror__(self, other):
+    return other | self._value
+
+  def __str__(self):
+    return str(self._value)
+
+  def __hash__(self):
+    return hash(self._value)
+
+  def __eq__(self, other):
+    return self._value == other
+
+  def __lt__(self, other):
+    return self._value < other
+
 
 @python_2_unicode_compatible
-class RDFDatetime(RDFInteger):
+@functools.total_ordering
+class RDFDatetime(RDFPrimitive):
   """A date and time internally stored in MICROSECONDS."""
   converter = 1000000
   data_store_type = "unsigned_integer"
 
   def __init__(self, initializer=None):
-    super(RDFDatetime, self).__init__(None)
-
-    self._value = 0
-
     if initializer is None:
-      return
-
+      super(RDFDatetime, self).__init__(0)
+    elif isinstance(initializer, RDFDatetime):
+      super(RDFDatetime, self).__init__(initializer.AsMicrosecondsSinceEpoch() *
+                                        self.converter // 1000000)
     # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(initializer, (RDFInteger, int, float)):
-      self._value = compatibility.builtins.int(initializer)
+    elif isinstance(initializer, (RDFInteger, int, float)):
+      super(RDFDatetime, self).__init__(compatibility.builtins.int(initializer))
     else:
-      raise InitializeError("Unknown initializer for RDFDateTime: %s." %
-                            type(initializer))
+      raise InitializeError("Unknown initializer for RDFDateTime: %s %s." %
+                            (type(initializer), initializer))
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    return cls(initializer=value)
+
+  def SerializeToDataStore(self):
+    """Use varint to store the integer."""
+    return self._value
+
+  def SerializeToBytes(self):
+    return str(self._value).encode("ascii")
+
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+
+    if value:
+      return cls(compatibility.builtins.int(value))
+    else:
+      return cls(0)
 
   @classmethod
   def Now(cls):
@@ -595,7 +638,7 @@ class RDFDatetime(RDFInteger):
     return self._value // self.converter
 
   def AsMicrosecondsSinceEpoch(self):
-    return self._value
+    return self._value * 1000000 // self.converter
 
   @classmethod
   def FromSecondsSinceEpoch(cls, value):
@@ -606,7 +649,7 @@ class RDFDatetime(RDFInteger):
   @classmethod
   def FromMicrosecondsSinceEpoch(cls, value):
     precondition.AssertType(value, int)
-    return cls(value)
+    return cls(value * cls.converter // 1000000)
 
   @classmethod
   def FromDatetime(cls, value):
@@ -617,12 +660,6 @@ class RDFDatetime(RDFInteger):
   def FromDate(cls, value):
     seconds = calendar.timegm(value.timetuple())
     return cls(seconds * cls.converter)
-
-  @classmethod
-  def FromHumanReadable(cls, value, eoy=False):
-    res = cls()
-    res.ParseFromHumanReadable(value, eoy=eoy)
-    return res
 
   @classmethod
   def Lerp(cls, t, start_time, end_time):
@@ -649,10 +686,6 @@ class RDFDatetime(RDFInteger):
 
     return cls(round((1 - t) * start_time._value + t * end_time._value))  # pylint: disable=protected-access
 
-  def ParseFromHumanReadable(self, string, eoy=False):
-    # TODO(hanuszczak): This method should accept only unicode literals.
-    self._value = self._ParseFromHumanReadable(string, eoy=eoy)
-
   def __add__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
     if isinstance(other, (int, float)):
@@ -665,16 +698,6 @@ class RDFDatetime(RDFInteger):
       return self.__class__.FromMicrosecondsSinceEpoch(self_us + duration_us)
 
     return NotImplemented
-
-  def __mul__(self, other):
-    # TODO(hanuszczak): Disallow `float` initialization.
-    if isinstance(other, (int, float, DurationSeconds)):
-      return self.__class__(self._value * other)
-
-    return NotImplemented
-
-  def __rmul__(self, other):
-    return self.__mul__(other)
 
   def __sub__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
@@ -694,8 +717,8 @@ class RDFDatetime(RDFInteger):
     return NotImplemented
 
   @classmethod
-  def _ParseFromHumanReadable(cls, string, eoy=False):
-    """Parse a human readable string of a timestamp (in local time).
+  def FromHumanReadable(cls, string, eoy=False):
+    """Parses a human readable string of a timestamp (in local time).
 
     Args:
       string: The string to parse.
@@ -708,8 +731,9 @@ class RDFDatetime(RDFInteger):
            year, 23:59h.
 
     Returns:
-      The parsed timestamp.
+      A new instance based on the given string.
     """
+    # TODO(hanuszczak): This method should accept only unicode literals.
     # TODO(hanuszczak): Date can come either as a single integer (which we
     # interpret as a timestamp) or as a really human readable thing such as
     # '2000-01-01 13:37'. This is less than ideal (since timestamps are not
@@ -731,13 +755,32 @@ class RDFDatetime(RDFInteger):
 
     timestamp = parser.parse(string, default=default)
 
-    return calendar.timegm(timestamp.utctimetuple()) * cls.converter
+    raw = calendar.timegm(timestamp.utctimetuple()) * cls.converter
+    return cls(raw)
 
   def Floor(self, interval):
     precondition.AssertType(interval, Duration)
     seconds = self.AsSecondsSinceEpoch() // interval.ToInt(
         SECONDS) * interval.ToInt(SECONDS)
     return self.FromSecondsSinceEpoch(seconds)
+
+  def __hash__(self):
+    return hash(self._value)
+
+  def __eq__(self, other):
+    if isinstance(other, RDFDatetime):
+      return self.AsMicrosecondsSinceEpoch() == other.AsMicrosecondsSinceEpoch()
+    else:
+      return self._value == other
+
+  def __lt__(self, other):
+    if isinstance(other, RDFDatetime):
+      return self.AsMicrosecondsSinceEpoch() < other.AsMicrosecondsSinceEpoch()
+    else:
+      return self._value < other
+
+  def __int__(self):
+    return self._value
 
 
 class RDFDatetimeSeconds(RDFDatetime):
@@ -779,15 +822,15 @@ class Duration(RDFPrimitive):
         If None, Duration will be set to 0. Given a negative integer, its
         absolute (positive) value will be stored.
     """
-    super(Duration, self).__init__(initializer=initializer)
     if isinstance(initializer, Duration):
-      self._value = abs(initializer.microseconds)
+      super(Duration, self).__init__(abs(initializer.microseconds))
     elif isinstance(initializer, (int, RDFInteger)):
-      self._value = abs(int(initializer))
+      super(Duration, self).__init__(abs(int(initializer)))
     elif isinstance(initializer, Text):
-      self.ParseFromHumanReadable(initializer)
+      super(Duration,
+            self).__init__(self._ParseText(initializer, default_unit=None))
     elif initializer is None:
-      self._value = 0
+      super(Duration, self).__init__(0)
     else:
       message = "Unsupported initializer `{value}` of type `{type}`"
       raise TypeError(message.format(value=initializer, type=type(initializer)))
@@ -813,27 +856,28 @@ class Duration(RDFPrimitive):
     """
     return cls(int(timeunit * value))
 
-  def ParseFromDatastore(self, value):
-    """See base class."""
+  @classmethod
+  def FromDatastoreValue(cls, value):
     precondition.AssertType(value, int)
-    self._value = abs(compatibility.builtins.int(value))
+    return cls(value)
 
   def SerializeToDataStore(self):
     """See base class."""
     return self.microseconds
 
-  def ParseFromBytes(self, string):
-    """See base class."""
-    precondition.AssertType(string, bytes)
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
 
-    if not string:
-      self._value = 0
-      return
+    if not value:
+      return cls(0)
 
     try:
-      self._value = abs(compatibility.builtins.int(string))
+      raw = abs(compatibility.builtins.int(value))
     except ValueError as e:
       raise DecodeError(e)
+
+    return cls(raw)
 
   def SerializeToBytes(self):
     """See base class."""
@@ -942,16 +986,17 @@ class Duration(RDFPrimitive):
   def microseconds(self):
     return self._value
 
-  def ParseFromHumanReadable(self, string):
+  @classmethod
+  def FromHumanReadable(cls, string):
     """See base class."""
-    return self._ParseFromHumanReadable(string, default_unit=None)
+    return cls(cls._ParseText(string, default_unit=None))
 
-  def _ParseFromHumanReadable(self, string, default_unit):
+  @classmethod
+  def _ParseText(cls, string, default_unit):
     precondition.AssertType(string, Text)
 
     if not string:
-      self._value = 0
-      return
+      return 0
 
     matches = _DURATION_RE.match(string)
     if matches is None:
@@ -964,13 +1009,13 @@ class Duration(RDFPrimitive):
       unit_string = default_unit
 
     try:
-      unit_multiplier = self._DIVIDERS[unit_string]
+      unit_multiplier = cls._DIVIDERS[unit_string]
     except KeyError:
       raise ValueError(
           "Invalid unit {!r} for duration in {!r}. Expected any of {}.".format(
-              unit_string, string, ", ".join(self._DIVIDERS)))
+              unit_string, string, ", ".join(cls._DIVIDERS)))
 
-    self._value = number * unit_multiplier
+    return number * unit_multiplier
 
   def Expiry(self, base_time=None):
     if base_time is None:
@@ -988,28 +1033,22 @@ class DurationSeconds(Duration):
   def __init__(self, initializer = None):
     if isinstance(initializer, (int, RDFInteger)):
       initializer = int(initializer) * SECONDS
+    elif isinstance(initializer, Text):
+      initializer = self._ParseText(initializer, default_unit="s")
     super(DurationSeconds, self).__init__(initializer)
 
   def SerializeToBytes(self):
     """See base class."""
     return str(self.ToInt(SECONDS)).encode("utf-8")
 
-  def ParseFromBytes(self, string):
-    """See base class."""
-    super(DurationSeconds, self).ParseFromBytes(string)
-    self._value *= SECONDS
-
   def SerializeToDataStore(self):
     """See base class."""
     return self.ToInt(SECONDS)
 
-  def ParseFromDatastore(self, value):
-    """See base class."""
-    super(DurationSeconds, self).ParseFromDatastore(value)
-    self._value *= SECONDS
-
-  def ParseFromHumanReadable(self, string):
-    self._ParseFromHumanReadable(string, default_unit="s")
+  @classmethod
+  def FromHumanReadable(cls, string):
+    precondition.AssertType(string, Text)
+    return cls(string)
 
   def __str__(self):
     if self.microseconds == 0:
@@ -1044,17 +1083,16 @@ class ByteSize(RDFInteger):
   REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$", re.I)
 
   def __init__(self, initializer=None):
-    super(ByteSize, self).__init__(None)
     if isinstance(initializer, ByteSize):
-      self._value = initializer._value  # pylint: disable=protected-access
+      super(ByteSize, self).__init__(initializer._value)  # pylint: disable=protected-access
     elif isinstance(initializer, string_types):
-      self.ParseFromHumanReadable(initializer)
+      super(ByteSize, self).__init__(self._ParseText(initializer))
     elif isinstance(initializer, (int, float)):
-      self._value = initializer
+      super(ByteSize, self).__init__(initializer)
     elif isinstance(initializer, RDFInteger):
-      self._value = int(initializer)
+      super(ByteSize, self).__init__(int(initializer))
     elif initializer is None:
-      self._value = 0
+      super(ByteSize, self).__init__(0)
     else:
       raise InitializeError("Unknown initializer for ByteSize: %s." %
                             type(initializer))
@@ -1074,23 +1112,20 @@ class ByteSize(RDFInteger):
 
     return "{value:.1f} {unit}".format(value=value, unit=unit)
 
-  def ParseFromHumanReadable(self, string):
-    """Parse a human readable string of a byte string.
+  @classmethod
+  def FromHumanReadable(cls, string):
+    return cls(cls._ParseText(string))
 
-    Args:
-      string: The string to parse.
-
-    Raises:
-      DecodeError: If the string can not be parsed.
-    """
+  @classmethod
+  def _ParseText(cls, string):
     if not string:
-      return None
+      return 0
 
-    match = self.REGEX.match(string.strip().lower())
+    match = cls.REGEX.match(string.strip().lower())
     if not match:
       raise DecodeError("Unknown specification for ByteSize %s" % string)
 
-    multiplier = self.DIVIDERS.get(match.group(2))
+    multiplier = cls.DIVIDERS.get(match.group(2))
     if not multiplier:
       raise DecodeError("Invalid multiplier %s" % match.group(2))
 
@@ -1101,7 +1136,7 @@ class ByteSize(RDFInteger):
     else:
       value = int(value)
 
-    self._value = int(value * multiplier)
+    return int(value * multiplier)
 
 
 @functools.total_ordering
@@ -1115,8 +1150,6 @@ class RDFURN(RDFPrimitive):
   # class for performance reasons.
   scheme = "aff4"
 
-  _string_urn = ""
-
   def __init__(self, initializer=None):
     """Constructor.
 
@@ -1128,50 +1161,46 @@ class RDFURN(RDFPrimitive):
     # RDFURNs that way is a bit slow since it would try to normalize
     # the path again which is not needed - it comes from another
     # RDFURN so it is already in the correct format.
-    if isinstance(initializer, RDFURN):
-      # Make a direct copy of the other object
-      self._string_urn = initializer.Path()
-      super(RDFURN, self).__init__(None)
+
+    if initializer is None:
+      super(RDFURN, self).__init__("")
       return
 
-    super(RDFURN, self).__init__(initializer=initializer)
-    if self._value is None and initializer is not None:
-      if isinstance(initializer, bytes):
-        self.ParseFromBytes(initializer)
-      elif isinstance(initializer, Text):
-        self.ParseFromUnicode(initializer)
-      else:
-        message = "Unsupported initializer `%s` of type `%s"
-        message %= (initializer, type(initializer))
-        raise TypeError(message)
+    if isinstance(initializer, RDFURN):
+      # Make a direct copy of the other object
+      super(RDFURN, self).__init__(cast(RDFURN, initializer).Path())
+      return
 
-  def ParseFromBytes(self, initializer):
-    """Create RDFRUN from string.
+    precondition.AssertType(initializer, (bytes, Text))
 
-    Args:
-      initializer: url string
-    """
-    precondition.AssertType(initializer, bytes)
-    self.ParseFromUnicode(initializer.decode("utf-8"))
+    if isinstance(initializer, bytes):
+      initializer = initializer.decode("utf-8")
 
-  def ParseFromUnicode(self, initializer):
-    precondition.AssertType(initializer, Text)
-    # Strip off the aff4: prefix if necessary.
-    if initializer.startswith("aff4:/"):
-      initializer = initializer[5:]
+    super(RDFURN, self).__init__(self._Normalize(initializer))
 
-    self._string_urn = utils.NormalizePath(initializer)
+  @classmethod
+  def _Normalize(cls, string):
+    if string.startswith("aff4:/"):
+      string = string[5:]
+    return utils.NormalizePath(string)
 
-  def ParseFromDatastore(self, value):
-    precondition.AssertType(value, Text)
-    # TODO(hanuszczak): We should just assign the `self._string_urn` here
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(value)
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    # TODO(hanuszczak): We should just assign the `self._value` here
     # instead of including all of the parsing magic since the data store values
     # should be normalized already. But sadly this is not the case and for now
     # we have to deal with unnormalized values as well.
-    self.ParseFromUnicode(value)
+    return cls(value)
 
-  def ParseFromHumanReadable(self, string):
-    self.ParseFromUnicode(string)
+  @classmethod
+  def FromHumanReadable(cls, string):
+    precondition.AssertType(string, Text)
+    return cls(string)
 
   def SerializeToBytes(self):
     return str(self).encode("utf-8")
@@ -1180,7 +1209,7 @@ class RDFURN(RDFPrimitive):
     return str(self)
 
   def Dirname(self):
-    return posixpath.dirname(self._string_urn)
+    return posixpath.dirname(self._value)
 
   def Basename(self):
     return posixpath.basename(self.Path())
@@ -1202,31 +1231,10 @@ class RDFURN(RDFPrimitive):
     if not isinstance(path, string_types):
       raise ValueError("Only strings should be added to a URN, not %s" %
                        path.__class__)
-
-    result = self.Copy()
-    result.Update(path=utils.JoinPath(self._string_urn, path))
-
-    return result
-
-  def Update(self, url=None, path=None):
-    """Update one of the fields.
-
-    Args:
-       url: An optional string containing a URL.
-       path: If the path for this URN should be updated.
-    """
-    if url:
-      self.ParseFromBytes(url)
-    if path:
-      self._string_urn = path
-    self.dirty = True
-
-  def Copy(self):
-    """Make a copy of ourselves."""
-    return self.__class__(self)
+    return self.__class__(utils.JoinPath(self._value, path))
 
   def __str__(self):
-    return "aff4:%s" % self._string_urn
+    return "aff4:%s" % self._value
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
   __hash__ = RDFPrimitive.__hash__
@@ -1241,20 +1249,20 @@ class RDFURN(RDFPrimitive):
     elif not isinstance(other, RDFURN):
       return NotImplemented
 
-    return self._string_urn == other.Path()
+    return self._value == other.Path()
 
   def __bool__(self):
-    return bool(self._string_urn)
+    return bool(self._value)
 
   # TODO: Remove after support for Python 2 is dropped.
   __nonzero__ = __bool__
 
   def __lt__(self, other):
-    return self._string_urn < other
+    return self._value < other
 
   def Path(self):
     """Return the path of the urn."""
-    return self._string_urn
+    return self._value
 
   def Split(self, count=None):
     """Returns all the path components.
@@ -1269,14 +1277,14 @@ class RDFURN(RDFPrimitive):
       A list of path components of this URN.
     """
     if count:
-      result = list(filter(None, self._string_urn.split("/", count)))
+      result = list(filter(None, self._value.split("/", count)))
       while len(result) < count:
         result.append("")
 
       return result
 
     else:
-      return list(filter(None, self._string_urn.split("/")))
+      return list(filter(None, self._value.split("/")))
 
   def RelativeName(self, volume):
     """Given a volume URN return the relative URN as a unicode string.

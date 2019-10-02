@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 import argparse
 import os
 import subprocess
+import sys
 
 parser = argparse.ArgumentParser()
 
@@ -64,7 +65,7 @@ def MakeProto():
   if protos_to_compile:
     for proto in protos_to_compile:
       command = [
-          "python",
+          sys.executable,
           "-m",
           "grpc_tools.protoc",
           # Write the python files next to the .proto files.

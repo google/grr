@@ -371,8 +371,7 @@ class ClientRepacker(BuilderBase):
       errors.append(
           "Invalid Client.executable_signing_public_key: %s" % key_data)
     else:
-      rsa_key = rdf_crypto.RSAPublicKey()
-      rsa_key.ParseFromHumanReadable(key_data)
+      rdf_crypto.RSAPublicKey.FromHumanReadable(key_data)
 
     if not config.CONFIG["Client.fleetspeak_enabled"]:
       certificate = config_obj.GetRaw(

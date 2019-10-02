@@ -57,7 +57,7 @@ class InMemoryDBFlowMixin(object):
         existing_lease = leases.get(r.handler_name, {}).get(r.request_id, None)
         res[-1].leased_until = existing_lease
 
-    return sorted(res, key=lambda r: -1 * r.timestamp)
+    return sorted(res, key=lambda r: r.timestamp, reverse=True)
 
   @utils.Synchronized
   def DeleteMessageHandlerRequests(self, requests):

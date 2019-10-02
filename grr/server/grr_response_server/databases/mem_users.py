@@ -4,13 +4,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import binascii
 import os
 
 from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import text
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -88,7 +88,7 @@ class InMemoryDBUsersMixin(object):
     approvals = self.approvals_by_username.setdefault(
         approval_request.requestor_username, {})
 
-    approval_id = binascii.hexlify(os.urandom(16)).decode("ascii")
+    approval_id = text.Hexify(os.urandom(16))
     cloned_request = approval_request.Copy()
     cloned_request.timestamp = rdfvalue.RDFDatetime.Now()
     cloned_request.approval_id = approval_id

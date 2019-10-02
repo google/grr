@@ -272,8 +272,8 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFDatetime
 
   def GenerateSample(self, number=0):
-    result = self.rdfvalue_class()
-    result.ParseFromHumanReadable("2011/11/%02d" % (number + 1))
+    result = self.rdfvalue_class.FromHumanReadable("2011/11/%02d" %
+                                                   (number + 1))
     return result
 
   def testTimeZoneConversions(self):
@@ -281,13 +281,14 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
     # Human readable strings are assumed to always be in UTC
     # timezone. Initialize from the human readable string.
-    date1 = rdfvalue.RDFDatetime.FromHumanReadable(time_string)
+    date1 = self.rdfvalue_class.FromHumanReadable(time_string)
 
-    self.assertEqual(int(date1), 1320142980000000)
+    self.assertEqual(date1.AsMicrosecondsSinceEpoch(), 1320142980000000)
 
     self.assertEqual(
         compatibility.FormatTime("%Y-%m-%d %H:%M:%S",
-                                 time.gmtime(int(date1) // 1e6)), time_string)
+                                 time.gmtime(date1.AsSecondsSinceEpoch())),
+        time_string)
 
     # We always stringify the date in UTC timezone.
     self.assertEqual(str(date1), time_string)
@@ -296,19 +297,22 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     with test_lib.FakeTime(1000):
       # Init from an empty string should generate a DateTime object with a zero
       # time.
-      date = rdfvalue.RDFDatetime.FromSerializedBytes(b"")
+      date = self.rdfvalue_class.FromSerializedBytes(b"")
       self.assertEqual(int(date), 0)
 
-      self.assertEqual(int(date.Now()), int(1000 * 1e6))
+      self.assertEqual(self.rdfvalue_class.Now().AsMicrosecondsSinceEpoch(),
+                       int(1000 * 1e6))
 
   def testInitFromDatetimeObject(self):
     # Test initializing from a datetime object
     date = datetime.datetime(2015, 6, 17, 5, 22, 3)
-    self.assertEqual(rdfvalue.RDFDatetime.FromDatetime(date).AsDatetime(), date)
+    self.assertEqual(self.rdfvalue_class.FromDatetime(date).AsDatetime(), date)
     date = datetime.datetime.utcfromtimestamp(99999)
     self.assertEqual(
-        rdfvalue.RDFDatetime.FromDatetime(date).AsSecondsSinceEpoch(), 99999)
-
+        self.rdfvalue_class.FromDatetime(date).AsSecondsSinceEpoch(), 99999)
+    self.assertEqual(
+        self.rdfvalue_class.FromDatetime(date).AsMicrosecondsSinceEpoch(),
+        99999000000)
     # Test microsecond support
     date = datetime.datetime(1970, 1, 1, 0, 0, 0, 567)
     self.assertEqual(
@@ -317,25 +321,14 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def testInitFromDateObject(self):
     date = datetime.date(2018, 2, 1)
     self.assertEqual(
-        rdfvalue.RDFDatetime.FromDate(date),
-        rdfvalue.RDFDatetime.FromHumanReadable("2018-02-01 00:00:00"))
+        self.rdfvalue_class.FromDate(date),
+        self.rdfvalue_class.FromHumanReadable("2018-02-01 00:00:00"))
 
   def testAddNumber(self):
     date = rdfvalue.RDFDatetime(1e9)
     self.assertEqual(int(date + 60), 1e9 + 60e6)
     self.assertEqual(int(date + 1000.23), 1e9 + 1000230e3)
     self.assertEqual(int(date + (-10)), 1e9 - 10e6)
-
-  def testMulNumber(self):
-    date = rdfvalue.RDFDatetime(1e9)
-    self.assertEqual(int(date * 3), 1e9 * 3)
-    self.assertEqual(int(date * 1000.23), int(1e9 * 1000.23))
-    self.assertEqual(int(date * (-10)), int(1e9 * (-10)))
-
-    # Test rmul
-    self.assertEqual(int(3 * date), 1e9 * 3)
-    self.assertEqual(int(1000.23 * date), int(1e9 * 1000.23))
-    self.assertEqual(int((-10) * date), int(1e9 * (-10)))
 
   def testSubNumber(self):
     date = rdfvalue.RDFDatetime(1e9)
@@ -371,29 +364,32 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testAddDuration(self):
     duration = rdfvalue.Duration.FromHumanReadable("12h")
-    date = rdfvalue.RDFDatetime(1e9)
-    self.assertEqual(int(date + duration), 1e9 + 12 * 3600e6)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
+    self.assertEqual((date + duration).AsMicrosecondsSinceEpoch(),
+                     1e9 + 12 * 3600e6)
 
   def testSubDuration(self):
     duration = rdfvalue.Duration.FromHumanReadable("5m")
-    date = rdfvalue.RDFDatetime(1e9)
-    self.assertEqual(int(date - duration), 1e9 - 5 * 60e6)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
+    self.assertEqual((date - duration).AsMicrosecondsSinceEpoch(),
+                     1e9 - 5 * 60e6)
     duration = rdfvalue.Duration.FromHumanReadable("1w")
-    self.assertEqual(int(date - duration), 1e9 - 7 * 24 * 3600e6)
+    self.assertEqual((date - duration).AsMicrosecondsSinceEpoch(),
+                     1e9 - 7 * 24 * 3600e6)
 
   def testIAddDuration(self):
-    date = rdfvalue.RDFDatetime(1e9)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
     date += rdfvalue.Duration.FromHumanReadable("12h")
-    self.assertEqual(date, 1e9 + 12 * 3600e6)
+    self.assertEqual(date.AsMicrosecondsSinceEpoch(), 1e9 + 12 * 3600e6)
 
   def testISubDuration(self):
-    date = rdfvalue.RDFDatetime(1e9)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
     date -= rdfvalue.Duration.FromHumanReadable("5m")
-    self.assertEqual(date, 1e9 - 5 * 60e6)
+    self.assertEqual(date.AsMicrosecondsSinceEpoch(), 1e9 - 5 * 60e6)
 
-    date = rdfvalue.RDFDatetime(1e9)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
     date -= rdfvalue.Duration.FromHumanReadable("1w")
-    self.assertEqual(date, 1e9 - 7 * 24 * 3600e6)
+    self.assertEqual(date.AsMicrosecondsSinceEpoch(), 1e9 - 7 * 24 * 3600e6)
 
 
 class RDFDatetimeSecondsTest(RDFDatetimeTest):

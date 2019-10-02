@@ -78,7 +78,7 @@ setup_args = dict(
         "cryptography==2.4.2",
         "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
         "requests==2.21.0",
-        "Werkzeug==0.11.3",
+        "Werkzeug==0.15.3",
     ],
     data=["version.ini"])
 

@@ -228,8 +228,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       self.assertIsInstance(new_s.session_id, Text)
 
     def RDFStructDecode():
-      new_s = StructGrrMessage()
-      new_s.ParseFromBytes(data)
+      new_s = StructGrrMessage.FromSerializedBytes(data)
 
       self.assertEqual(new_s.session_id, "session")
       self.assertIsInstance(new_s.session_id, Text)
@@ -256,8 +255,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
       self.assertIsInstance(new_s.username, Text)
 
     def RDFStructDecode():
-      new_s = rdf_client.User()
-      new_s.ParseFromBytes(data)
+      new_s = rdf_client.User.FromSerializedBytes(data)
 
       self.assertEqual(new_s.username, "user")
       self.assertIsInstance(new_s.username, Text)

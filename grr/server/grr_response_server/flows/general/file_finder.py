@@ -424,7 +424,7 @@ class ClientFileFinder(flow_base.FlowBase):
             rdf_objects.BlobReference(
                 offset=c.offset,
                 size=c.length,
-                blob_id=rdf_objects.BlobID.FromBytes(c.digest)))
+                blob_id=rdf_objects.BlobID.FromSerializedBytes(c.digest)))
         file_size += c.length
 
       client_path_path_info[client_path] = path_info

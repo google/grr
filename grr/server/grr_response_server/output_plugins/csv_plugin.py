@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import binascii
 import os
 import zipfile
 
@@ -13,6 +12,7 @@ from future.builtins import str
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
+from grr_response_core.lib.util import text
 from grr_response_core.lib.util.compat import csv
 from grr_response_core.lib.util.compat import yaml
 from grr_response_server import instant_output_plugin
@@ -47,8 +47,7 @@ class CSVInstantOutputPlugin(
       if isinstance(type_info, rdf_structs.ProtoEmbedded):
         row.extend(self._GetCSVRow(value.Get(type_info.name)))
       elif isinstance(type_info, rdf_structs.ProtoBinary):
-        data = binascii.hexlify(value.Get(type_info.name)).decode("ascii")
-        row.append(data)
+        row.append(text.Asciify(value.Get(type_info.name)))
       else:
         row.append(str(value.Get(type_info.name)))
 

@@ -211,11 +211,10 @@ class GRRBaseTest(absltest.TestCase):
     ip2 = rdf_client_network.NetworkAddress()
     ip2.human_readable_address = "2001:abcd::%x" % client_nr
 
-    mac1 = rdf_client_network.MacAddress()
-    mac1.human_readable_address = "aabbccddee%02x" % client_nr
-
-    mac2 = rdf_client_network.MacAddress()
-    mac2.human_readable_address = "bbccddeeff%02x" % client_nr
+    mac1 = rdf_client_network.MacAddress.FromHumanReadableAddress(
+        "aabbccddee%02x" % client_nr)
+    mac2 = rdf_client_network.MacAddress.FromHumanReadableAddress(
+        "bbccddeeff%02x" % client_nr)
 
     return [
         rdf_client_network.Interface(addresses=[ip1, ip2]),

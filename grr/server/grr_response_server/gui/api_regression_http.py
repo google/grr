@@ -88,8 +88,8 @@ class HttpApiRegressionTestMixinBase(object):
     if args and request.data:
       body_proto = args.__class__().AsPrimitiveProto()
       json_format.Parse(request.data, body_proto)
-      body_args = args.__class__()
-      body_args.ParseFromBytes(body_proto.SerializeToString())
+      body_args = args.__class__.FromSerializedBytes(
+          body_proto.SerializeToString())
       request.data = json.Dump(
           api_value_renderers.StripTypeInfo(
               api_value_renderers.RenderValue(body_args)),

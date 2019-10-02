@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 import MySQLdb
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.util import random
 from grr_response_server.databases import db
 from grr_response_server.databases import mysql_utils
@@ -98,7 +99,7 @@ class MySQLDBUsersMixin(object):
         user_type=user_type)
 
     if password:
-      result.password.ParseFromBytes(password)
+      result.password = rdf_crypto.Password.FromSerializedBytes(password)
 
     return result
 

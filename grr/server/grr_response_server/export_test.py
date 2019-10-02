@@ -27,6 +27,7 @@ from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.util import text
 from grr_response_server import data_store
 from grr_response_server import export
 from grr_response_server.check_lib import checks
@@ -443,7 +444,7 @@ class ExportTest(ExportTestBase):
 
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
     mac_address_bytes = b"123456"
-    mac_address = binascii.hexlify(mac_address_bytes).decode("utf-8")
+    mac_address = text.Hexify(mac_address_bytes)
 
     client_summary = rdf_client.ClientSummary(interfaces=[
         rdf_client_network.Interface(
@@ -477,7 +478,7 @@ class ExportTest(ExportTestBase):
 
   def testInterfaceToExportedNetworkInterfaceConverter(self):
     mac_address_bytes = b"123456"
-    mac_address = binascii.hexlify(mac_address_bytes).decode("utf-8")
+    mac_address = text.Hexify(mac_address_bytes)
 
     interface = rdf_client_network.Interface(
         mac_address=mac_address_bytes,

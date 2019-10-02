@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import binascii
 import stat
 import zlib
 
@@ -22,6 +21,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import text
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -154,8 +154,7 @@ class GetFile(flow_base.FlowBase):
       # response.length is the length of the block.
       self.state.blobs.append((response.data, response.length))
 
-      hex_data = binascii.hexlify(response.data).decode("ascii")
-      self.Log("Received blob hash %s", hex_data)
+      self.Log("Received blob hash %s", text.Hexify(response.data))
 
       # Add one more chunk to the window.
       self.FetchWindow(1)
@@ -173,7 +172,7 @@ class GetFile(flow_base.FlowBase):
             rdf_objects.BlobReference(
                 offset=offset,
                 size=size,
-                blob_id=rdf_objects.BlobID.FromBytes(data)))
+                blob_id=rdf_objects.BlobID.FromSerializedBytes(data)))
         offset += size
 
       client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
@@ -514,7 +513,7 @@ class MultiGetFileLogic(object):
     files_in_filestore = set()
 
     statuses = file_store.CheckHashes([
-        rdf_objects.SHA256HashID.FromBytes(ho.sha256.AsBytes())
+        rdf_objects.SHA256HashID.FromSerializedBytes(ho.sha256.AsBytes())
         for ho in itervalues(file_hashes)
     ])
     for hash_id, status in iteritems(statuses):
@@ -629,7 +628,8 @@ class MultiGetFileLogic(object):
     blob_hashes = []
     for file_tracker in itervalues(self.state.pending_files):
       for hash_response in file_tracker.get("hash_list", []):
-        blob_hashes.append(rdf_objects.BlobID.FromBytes(hash_response.data))
+        blob_hashes.append(
+            rdf_objects.BlobID.FromSerializedBytes(hash_response.data))
 
     # This is effectively a BlobStore call.
     existing_blobs = data_store.BLOBS.CheckBlobsExist(blob_hashes)
@@ -643,7 +643,8 @@ class MultiGetFileLogic(object):
         # Make sure we read the correct pathspec on the client.
         hash_response.pathspec = file_tracker["stat_entry"].pathspec
 
-        if existing_blobs[rdf_objects.BlobID.FromBytes(hash_response.data)]:
+        if existing_blobs[rdf_objects.BlobID.FromSerializedBytes(
+            hash_response.data)]:
           # If we have the data we may call our state directly.
           self.CallStateInline(
               messages=[hash_response],
@@ -695,7 +696,7 @@ class MultiGetFileLogic(object):
           rdf_objects.BlobReference(
               offset=offset,
               size=size,
-              blob_id=rdf_objects.BlobID.FromBytes(digest)))
+              blob_id=rdf_objects.BlobID.FromSerializedBytes(digest)))
       offset += size
 
     hash_obj = file_tracker["hash_obj"]

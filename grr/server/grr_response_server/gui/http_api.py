@@ -152,36 +152,38 @@ class RouterMatcher(object):
       else:
         args = None
     elif request.method in ["POST", "DELETE", "PATCH"]:
-      args = method_metadata.args_type()
-      for type_info in args.type_infos:
-        if type_info.name in route_args:
-          try:
-            self._SetField(args, type_info, route_args[type_info.name])
-          except Exception as e:  # pylint: disable=broad-except
-            raise InvalidRequestArgumentsInRouteError(e)
-
       try:
         if request.content_type and request.content_type.startswith(
             "multipart/form-data;"):
           payload = json.Parse(request.form["_params_"].decode("utf-8"))
+          args = method_metadata.args_type()
           args.FromDict(payload)
 
           for name, fd in iteritems(request.files):
             args.Set(name, fd.read())
         elif format_mode == JsonMode.PROTO3_JSON_MODE:
           # NOTE: Arguments rdfvalue has to be a protobuf-based RDFValue.
-          args_proto = args.protobuf()
+          args_proto = method_metadata.args_type().protobuf()
           json_format.Parse(request.get_data(as_text=True) or "{}", args_proto)
-          args.ParseFromBytes(args_proto.SerializeToString())
+          args = method_metadata.args_type.FromSerializedBytes(
+              args_proto.SerializeToString())
         else:
           json_data = request.get_data(as_text=True) or "{}"
           payload = json.Parse(json_data)
+          args = method_metadata.args_type()
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("Error while parsing POST request %s (%s): %s",
                           request.path, request.method, e)
         raise PostRequestParsingError(e)
+
+      for type_info in args.type_infos:
+        if type_info.name in route_args:
+          try:
+            self._SetField(args, type_info, route_args[type_info.name])
+          except Exception as e:  # pylint: disable=broad-except
+            raise InvalidRequestArgumentsInRouteError(e)
     else:
       raise UnsupportedHttpMethod("Unsupported method: %s." % request.method)
 

@@ -35,7 +35,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import text
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
 from grr_response_proto import sysinfo_pb2
@@ -71,33 +71,28 @@ class ClientURN(rdfvalue.RDFURN):
   CLIENT_ID_RE = re.compile(r"^(aff4:)?/?(?P<clientid>(c|C)\.[0-9a-fA-F]{16})$")
 
   def __init__(self, initializer=None):
-    if isinstance(initializer, rdfvalue.RDFURN):
-      if not self.Validate(initializer.Path()):
-        raise type_info.TypeValueError("Client urn malformed: %s" % initializer)
-    super(ClientURN, self).__init__(initializer=initializer)
+    super(ClientURN, self).__init__(initializer)
 
-  def ParseFromUnicode(self, value):
-    """Parse a string into a client URN.
+    if self._value and not self.Validate(self._value):
+      raise type_info.TypeValueError("Client urn malformed: %s" % initializer)
 
-    Convert case so that all URNs are of the form C.[0-9a-f].
+  @classmethod
+  def _Normalize(cls, string):
+    normalized = super(ClientURN, cls)._Normalize(string.strip())
 
-    Args:
-      value: string value to parse
-    """
-    precondition.AssertType(value, Text)
-    value = value.strip()
+    if normalized:
+      match = cls.CLIENT_ID_RE.match(normalized)
+      if not match:
+        raise type_info.TypeValueError(
+            "Client URN '{!r} from initializer {!r} malformed".format(
+                normalized, string))
 
-    super(ClientURN, self).ParseFromUnicode(value)
+      clientid = match.group("clientid")
+      clientid_correctcase = "".join(
+          (clientid[0].upper(), clientid[1:].lower()))
 
-    match = self.CLIENT_ID_RE.match(self._string_urn)
-    if not match:
-      raise type_info.TypeValueError("Client urn malformed: %s" % value)
-
-    clientid = match.group("clientid")
-    clientid_correctcase = "".join((clientid[0].upper(), clientid[1:].lower()))
-
-    self._string_urn = self._string_urn.replace(clientid, clientid_correctcase,
-                                                1)
+      normalized = normalized.replace(clientid, clientid_correctcase, 1)
+    return normalized
 
   @classmethod
   def Validate(cls, value):
@@ -122,8 +117,8 @@ class ClientURN(rdfvalue.RDFURN):
 
     mpi_format = struct.pack(">i", len(raw_n) + 1) + b"\x00" + raw_n
 
-    digest = binascii.hexlify(hashlib.sha256(mpi_format).digest()[:8])
-    return cls("C.{}".format(digest.decode("ascii")))
+    digest = text.Hexify(hashlib.sha256(mpi_format).digest()[:8])
+    return cls("C.{}".format(digest))
 
   def Add(self, path):
     """Add a relative stem to the current value and return a new RDFURN.
@@ -143,10 +138,7 @@ class ClientURN(rdfvalue.RDFURN):
     if not isinstance(path, string_types):
       raise ValueError("Only strings should be added to a URN.")
 
-    result = rdfvalue.RDFURN(self.Copy())
-    result.Update(path=utils.JoinPath(self._string_urn, path))
-
-    return result
+    return rdfvalue.RDFURN(utils.JoinPath(self._value, path))
 
 
 class PCIDevice(rdf_structs.RDFProtoStruct):
@@ -204,10 +196,8 @@ class User(rdf_structs.RDFProtoStruct):
       # allows for backwards compatibility with clients returning KBUser
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
-      super(User, self).__init__(initializer=None, **kwargs)
-      self.ParseFromBytes(initializer.SerializeToBytes())
-    else:
-      super(User, self).__init__(initializer=initializer, **kwargs)
+      initializer = User.FromSerializedBytes(initializer.SerializeToBytes())
+    super(User, self).__init__(initializer=initializer, **kwargs)
 
 
 class KnowledgeBaseUser(User):

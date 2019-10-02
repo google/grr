@@ -2,6 +2,7 @@
 """Renderers that render RDFValues into JSON compatible data structures."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import base64
@@ -235,14 +236,13 @@ class ApiRDFDictRenderer(ApiDictRenderer):
 class FetchMoreLink(rdfvalue.RDFValue):
   """Stub used to display 'More data available...' link."""
 
-  def ParseFromBytes(self, unused_string):
-    pass
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     del value  # Unused.
+    return cls()
 
   def SerializeToBytes(self):
-    return ""
+    return b""
 
 
 class ApiListRenderer(ApiValueRenderer):
@@ -362,6 +362,15 @@ class ApiDurationRenderer(ApiValueRenderer):
       raw = value.microseconds
 
     return self._IncludeTypeInfo(raw, value)
+
+
+class ApiDateTimeRenderer(ApiValueRenderer):
+  """Renderer for RDFDateTime."""
+
+  value_class = rdfvalue.RDFDatetime
+
+  def RenderValue(self, value):
+    return self._IncludeTypeInfo(int(value), value)
 
 
 class ApiDataBlobRenderer(ApiValueRenderer):

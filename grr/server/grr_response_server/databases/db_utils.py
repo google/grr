@@ -5,7 +5,6 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-import binascii
 import functools
 import logging
 import time
@@ -112,11 +111,6 @@ def ClientIdFromGrrMessage(m):
     return m.queue.Split()[0]
   if m.source:
     return m.source.Basename()
-
-
-def _HexBytesFromUnicode(raw_value):
-  """Converts a unicode object to its hex representation (bytes)."""
-  return binascii.hexlify(raw_value.encode("utf-8"))
 
 
 # GRR Client IDs are strings of the form "C.<16 hex digits>", our F1 schema

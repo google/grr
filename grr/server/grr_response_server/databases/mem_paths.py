@@ -400,7 +400,7 @@ class InMemoryDBPathMixin(object):
         if max_timestamp is not None and ts > max_timestamp:
           continue
 
-        hash_id = rdf_objects.SHA256HashID.FromBytes(
+        hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(
             hash_entry.sha256.AsBytes())
         if hash_id not in self.blob_refs_by_hashes:
           continue

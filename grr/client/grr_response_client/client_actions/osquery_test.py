@@ -6,7 +6,6 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-import binascii
 import collections
 import hashlib
 import io
@@ -25,6 +24,7 @@ from grr_response_core import config
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import filesystem
 from grr_response_core.lib.util import temp
+from grr_response_core.lib.util import text
 from grr.test_lib import osquery_test_lib
 from grr.test_lib import skip
 from grr.test_lib import test_lib
@@ -63,8 +63,8 @@ class OsqueryTest(absltest.TestCase):
       md5_digest = hashlib.md5(content).digest()
       sha256_digest = hashlib.sha256(content).digest()
 
-      md5 = binascii.hexlify(md5_digest).decode("ascii")
-      sha256 = binascii.hexlify(sha256_digest).decode("ascii")
+      md5 = text.Hexify(md5_digest)
+      sha256 = text.Hexify(sha256_digest)
 
       with io.open(filepath, "wb") as filedesc:
         filedesc.write(content)

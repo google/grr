@@ -65,8 +65,7 @@ class RawConnector(connector.Connector):
     rdf_args = None
     if args is not None:
       mdata = router.__class__.GetAnnotatedMethods()[method_name]
-      rdf_args = mdata.args_type()
-      rdf_args.ParseFromBytes(args.SerializeToString())
+      rdf_args = mdata.args_type.FromSerializedBytes(args.SerializeToString())
 
     method = getattr(router, method_name)
     try:

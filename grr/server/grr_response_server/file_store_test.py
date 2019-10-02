@@ -460,7 +460,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
   def testRaisesIfSingleFileChunkIsMissing(self):
     _, missing_blob_refs = vfs_test_lib.GenerateBlobRefs(self.blob_size, "0")
 
-    hash_id = rdf_objects.SHA256HashID.FromBytes(
+    hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(
         missing_blob_refs[0].blob_id.AsBytes())
     data_store.REL_DB.WriteHashBlobReferences({hash_id: missing_blob_refs})
 

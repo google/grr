@@ -66,26 +66,26 @@ class EmailAddress(rdfvalue.RDFString):
 
   _EMAIL_REGEX = re.compile(r"[^@]+@([^@]+)$")
 
-  def ParseFromBytes(self, value):
-    super(EmailAddress, self).ParseFromBytes(value)
+  def __init__(self, initializer=None):
+    super(EmailAddress, self).__init__(initializer)
 
     self._match = self._EMAIL_REGEX.match(self._value)
-    if not self._match:
+    if self._value and not self._match:
       raise ValueError("Email address %r not well formed." % self._value)
 
 
 class DomainEmailAddress(EmailAddress):
   """A more restricted email address may only address the domain."""
 
-  def ParseFromBytes(self, value):
-    super(DomainEmailAddress, self).ParseFromBytes(value)
+  def __init__(self, initializer=None):
+    super(DomainEmailAddress, self).__init__(initializer)
 
     # TODO(user): dependency loop with
     # core/grr_response_core/grr/config/client.py.
     # pylint: disable=protected-access
     domain = config_lib._CONFIG["Logging.domain"]
     # pylint: enable=protected-access
-    if domain and self._match.group(1) != domain:
+    if self._value and domain and self._match.group(1) != domain:
       raise ValueError("Email address '%s' does not belong to the configured "
                        "domain '%s'" % (self._match.group(1), domain))
 
@@ -106,24 +106,33 @@ class URI(rdf_structs.RDFProtoStruct):
   """Represets a URI with its individual components seperated."""
   protobuf = sysinfo_pb2.URI
 
-  def ParseFromBytes(self, value):
+  def __init__(self, initializer=None, **kwargs):
+    if not isinstance(initializer, urlparse.ParseResult):
+      super(URI, self).__init__(initializer, **kwargs)
+      return
+
+    super(URI, self).__init__()
+
+    if initializer.scheme:
+      self.transport = initializer.scheme
+    if initializer.netloc:
+      self.host = initializer.netloc
+    if initializer.path:
+      self.path = initializer.path
+    if initializer.query:
+      self.query = initializer.query
+    if initializer.fragment:
+      self.fragment = initializer.fragment
+
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromHumanReadable(value.decode("utf-8"))
+    return cls(urlparse.urlparse(value.decode("utf-8")))
 
-  def ParseFromHumanReadable(self, value):
+  @classmethod
+  def FromHumanReadable(cls, value):
     precondition.AssertType(value, Text)
-    url = urlparse.urlparse(value)
-
-    if url.scheme:
-      self.transport = url.scheme
-    if url.netloc:
-      self.host = url.netloc
-    if url.path:
-      self.path = url.path
-    if url.query:
-      self.query = url.query
-    if url.fragment:
-      self.fragment = url.fragment
+    return cls(urlparse.urlparse(value))
 
   def SerializeToBytes(self):
     return self.SerializeToHumanReadable().encode("utf-8")

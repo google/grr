@@ -13,6 +13,7 @@ from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import text
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 
@@ -45,7 +46,7 @@ def SendGrrMessageThroughFleetspeak(grr_id, grr_msg):
 
 
 def FleetspeakIDToGRRID(fs_id):
-  return "C." + binascii.hexlify(fs_id).decode("ascii")
+  return "C." + text.Hexify(fs_id)
 
 
 def GRRIDToFleetspeakID(grr_id):

@@ -555,7 +555,7 @@ class MySQLDBPathMixin(object):
       # pyformat: enable
 
       path_id_bytes = stat_entry_path_id_bytes or hash_entry_path_id_bytes
-      path_id = rdf_objects.PathID.FromBytes(path_id_bytes)
+      path_id = rdf_objects.PathID.FromSerializedBytes(path_id_bytes)
       components = path_id_components[path_id]
 
       timestamp = stat_entry_timestamp or hash_entry_timestamp
@@ -642,7 +642,7 @@ class MySQLDBPathMixin(object):
        stat_entry_bytes, hash_entry_bytes) = row
       # pyformat: enable
 
-      path_id = rdf_objects.PathID.FromBytes(path_id_bytes)
+      path_id = rdf_objects.PathID.FromSerializedBytes(path_id_bytes)
       components = path_id_components[path_id]
 
       if stat_entry_bytes is not None:

@@ -42,7 +42,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     path_info.path_type = path_type
     path_info.components = components
 
-    blob_id = rdf_objects.BlobID.FromBytes(digest)
+    blob_id = rdf_objects.BlobID.FromSerializedBytes(digest)
     data_store.BLOBS.WriteBlobs({blob_id: content})
     blob_ref = rdf_objects.BlobReference(
         offset=0, size=len(content), blob_id=blob_id)

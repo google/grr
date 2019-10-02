@@ -35,9 +35,8 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(sample.fragment, "anchor1")
 
   def testHumanReadable(self):
-    sample = rdf_standard.URI()
     url = "http://google.com:443/search?query=hi#anchor2"
-    sample.ParseFromHumanReadable(url)
+    sample = rdf_standard.URI.FromHumanReadable(url)
 
     self.assertEqual(sample.transport, "http")
     self.assertEqual(sample.host, "google.com:443")
@@ -50,8 +49,7 @@ class URITests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   def testByteString(self):
     raw_uri = "http://gógiel.pl:1337/znajdź?frazę=🦋#nagłówek"
 
-    uri = rdf_standard.URI()
-    uri.ParseFromBytes(raw_uri.encode("utf-8"))
+    uri = rdf_standard.URI.FromSerializedBytes(raw_uri.encode("utf-8"))
 
     self.assertEqual(uri.transport, "http")
     self.assertEqual(uri.host, "gógiel.pl:1337")

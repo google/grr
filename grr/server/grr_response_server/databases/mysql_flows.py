@@ -1319,8 +1319,8 @@ class MySQLDBFlowMixin(object):
     ret = []
     for serialized_payload, payload_type, ts, tag in cursor.fetchall():
       if payload_type in rdfvalue.RDFValue.classes:
-        payload = rdfvalue.RDFValue.classes[payload_type]()
-        payload.ParseFromBytes(serialized_payload)
+        payload = rdfvalue.RDFValue.classes[payload_type].FromSerializedBytes(
+            serialized_payload)
       else:
         payload = rdf_objects.SerializedValueOfUnrecognizedType(
             type_name=payload_type, value=serialized_payload)

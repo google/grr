@@ -23,12 +23,14 @@ class FilterString(rdfvalue.RDFString):
   # A subclass of lexer.Searchparser able to parse textual queries.
   query_parser_cls = lexer.SearchParser
 
-  def ParseFromBytes(self, value):
-    super(FilterString, self).ParseFromBytes(value)
-    try:
-      self.query_parser_cls(self._value).Parse()
-    except lexer.ParseError as e:
-      raise type_info.TypeValueError("Malformed filter: %s" % (e))
+  def __init__(self, initializer=None):
+    super(FilterString, self).__init__(initializer)
+
+    if self._value:
+      try:
+        self.query_parser_cls(self._value).Parse()
+      except lexer.ParseError as e:
+        raise type_info.TypeValueError("Malformed filter: %s" % (e))
 
 
 class PlistQuery(FilterString):

@@ -39,6 +39,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import random
+from grr_response_core.lib.util import text
 from grr_response_proto import jobs_pb2
 
 
@@ -67,15 +68,25 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
   def __init__(self, initializer=None):
-    super(RDFX509Cert, self).__init__(initializer=initializer)
-    if self._value is None and initializer is not None:
-      if isinstance(initializer, x509.Certificate):
-        self._value = initializer
-      elif isinstance(initializer, bytes):
-        self.ParseFromBytes(initializer)
-      else:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+    if initializer is None:
+      super(RDFX509Cert, self).__init__(None)
+    elif isinstance(initializer, RDFX509Cert):
+      super(RDFX509Cert, self).__init__(initializer._value)  # pylint: disable=protected-access
+    elif isinstance(initializer, x509.Certificate):
+      super(RDFX509Cert, self).__init__(initializer)
+    elif isinstance(initializer, bytes):
+      try:
+        value = x509.load_pem_x509_certificate(
+            initializer, backend=openssl.backend)
+      except (ValueError, TypeError) as e:
+        raise rdfvalue.DecodeError("Invalid certificate %s: %s" %
+                                   (initializer, e))
+      super(RDFX509Cert, self).__init__(value)
+    else:
+      raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                     (self.__class__, initializer))
+    if self._value is not None:
+      self.GetCN()  # This can also raise if there isn't exactly one CN entry.
 
   def GetRawCertificate(self):
     return self._value
@@ -101,22 +112,20 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
   def GetIssuer(self):
     return self._value.issuer
 
-  def ParseFromBytes(self, string):
-    try:
-      self._value = x509.load_pem_x509_certificate(
-          string, backend=openssl.backend)
-    except (ValueError, TypeError) as e:
-      raise rdfvalue.DecodeError("Invalid certificate %s: %s" % (string, e))
-    # This can also raise if there isn't exactly one CN entry.
-    self.GetCN()
-
-  def ParseFromHumanReadable(self, string):
-    precondition.AssertType(string, Text)
-    self.ParseFromBytes(string.encode("ascii"))
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromBytes(value)
+    return cls(value)
+
+  @classmethod
+  def FromHumanReadable(cls, string):
+    precondition.AssertType(string, Text)
+    return cls.FromSerializedBytes(string.encode("ascii"))
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls.FromSerializedBytes(value)
 
   def SerializeToBytes(self):
     if self._value is None:
@@ -206,34 +215,39 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
 
 
 @python_2_unicode_compatible
-class CertificateSigningRequest(rdfvalue.RDFValue):
+class CertificateSigningRequest(rdfvalue.RDFPrimitive):
   """A CSR Rdfvalue."""
 
   def __init__(self, initializer=None, common_name=None, private_key=None):
-    super(CertificateSigningRequest, self).__init__(initializer=initializer)
-    if self._value is None:
-      if isinstance(initializer, x509.CertificateSigningRequest):
-        self._value = initializer
-      elif isinstance(initializer, bytes):
-        self.ParseFromBytes(initializer)
-      elif common_name and private_key:
-        self._value = x509.CertificateSigningRequestBuilder().subject_name(
-            x509.Name(
-                [x509.NameAttribute(oid.NameOID.COMMON_NAME,
-                                    str(common_name))])).sign(
-                                        private_key.GetRawPrivateKey(),
-                                        hashes.SHA256(),
-                                        backend=openssl.backend)
-      elif initializer is not None:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+    if isinstance(initializer, CertificateSigningRequest):
+      super(CertificateSigningRequest, self).__init__(initializer._value)  # pylint: disable=protected-access
+    if isinstance(initializer, x509.CertificateSigningRequest):
+      super(CertificateSigningRequest, self).__init__(initializer)
+    elif isinstance(initializer, bytes):
+      value = x509.load_pem_x509_csr(initializer, backend=openssl.backend)
+      super(CertificateSigningRequest, self).__init__(value)
+    elif common_name and private_key:
+      value = x509.CertificateSigningRequestBuilder().subject_name(
+          x509.Name(
+              [x509.NameAttribute(oid.NameOID.COMMON_NAME,
+                                  str(common_name))])).sign(
+                                      private_key.GetRawPrivateKey(),
+                                      hashes.SHA256(),
+                                      backend=openssl.backend)
+      super(CertificateSigningRequest, self).__init__(value)
+    elif initializer is not None:
+      raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                     (self.__class__, initializer))
 
-  def ParseFromBytes(self, csr_as_pem):
-    self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromBytes(value)
+    return cls(value)
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls.FromSerializedBytes(value)
 
   def SerializeToBytes(self):
     if self._value is None:
@@ -274,36 +288,49 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
   """An RSA public key."""
 
   def __init__(self, initializer=None):
-    super(RSAPublicKey, self).__init__(initializer=initializer)
-    if self._value is None and initializer is not None:
-      if isinstance(initializer, rsa.RSAPublicKey):
-        self._value = initializer
-      elif isinstance(initializer, bytes):
-        self.ParseFromBytes(initializer)
-      elif isinstance(initializer, Text):
-        self.ParseFromBytes(initializer.encode("ascii"))
-      else:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
+    if isinstance(initializer, RSAPublicKey):
+      initializer = initializer._value  # pylint: disable=protected-access
+
+    if initializer is None:
+      super(RSAPublicKey, self).__init__(None)
+      return
+
+    if isinstance(initializer, rsa.RSAPublicKey):
+      super(RSAPublicKey, self).__init__(initializer)
+      return
+
+    if isinstance(initializer, Text):
+      initializer = initializer.encode("ascii")
+
+    if isinstance(initializer, bytes):
+      try:
+        value = serialization.load_pem_public_key(
+            initializer, backend=openssl.backend)
+        super(RSAPublicKey, self).__init__(value)
+        return
+      except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
+        raise type_info.TypeValueError("Public key invalid: %s" % e)
+
+    raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                   (self.__class__, initializer))
 
   def GetRawPublicKey(self):
     return self._value
 
-  def ParseFromBytes(self, pem_string):
-    precondition.AssertType(pem_string, bytes)
-    try:
-      self._value = serialization.load_pem_public_key(
-          pem_string, backend=openssl.backend)
-    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
-      raise type_info.TypeValueError("Public key invalid: %s" % e)
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromBytes(value)
+    return cls(value)
 
-  def ParseFromHumanReadable(self, string):
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls.FromSerializedBytes(value)
+
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    self.ParseFromBytes(string.encode("ascii"))
+    return cls.FromSerializedBytes(string.encode("ascii"))
 
   def SerializeToBytes(self):
     if self._value is None:
@@ -371,22 +398,66 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
   """An RSA private key."""
 
   def __init__(self, initializer=None, allow_prompt=None):
-    self.allow_prompt = allow_prompt
-    super(RSAPrivateKey, self).__init__(initializer=initializer)
-    if self._value is None and initializer is not None:
-      if isinstance(initializer, rsa.RSAPrivateKey):
-        self._value = initializer
-      elif isinstance(initializer, bytes):
-        self.ParseFromBytes(initializer)
-      elif isinstance(initializer, Text):
-        self.ParseFromBytes(initializer.encode("ascii"))
-      else:
-        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
-                                       (self.__class__, initializer))
 
-  def ParseFromHumanReadable(self, string):
+    if isinstance(initializer, RSAPrivateKey):
+      initializer = initializer._value  # pylint: disable=protected-access
+
+    if initializer is None:
+      super(RSAPrivateKey, self).__init__(None)
+      return
+
+    if isinstance(initializer, rsa.RSAPrivateKey):
+      super(RSAPrivateKey, self).__init__(initializer)
+      return
+
+    if isinstance(initializer, Text):
+      initializer = initializer.encode("ascii")
+
+    if not isinstance(initializer, bytes):
+      raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                     (self.__class__, initializer))
+
+    try:
+      value = serialization.load_pem_private_key(
+          initializer, password=None, backend=openssl.backend)
+      super(RSAPrivateKey, self).__init__(value)
+      return
+    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
+
+      if "private key is encrypted" not in str(e):
+        raise type_info.TypeValueError("Private key invalid: %s" % e)
+
+      # The private key is passphrase protected, we need to see if we are
+      # allowed to ask the user.
+      #
+      # In the case where allow_prompt was not set at all, we use the context
+      # we are in to see if it makes sense to ask.
+      if allow_prompt is None:
+        # TODO(user): dependency loop with
+        # core/grr_response_core/grr/config/client.py.
+        # pylint: disable=protected-access
+        if "Commandline Context" not in config_lib._CONFIG.context:
+          raise type_info.TypeValueError("Private key invalid: %s" % e)
+        # pylint: enable=protected-access
+
+      # Otherwise, if allow_prompt is False, we are explicitly told that we are
+      # not supposed to ask the user.
+      elif not allow_prompt:
+        raise type_info.TypeValueError("Private key invalid: %s" % e)
+
+    try:
+      # The private key is encrypted and we can ask the user for the passphrase.
+      password = utils.PassphraseCallback()
+      value = serialization.load_pem_private_key(
+          initializer, password=password, backend=openssl.backend)
+      super(RSAPrivateKey, self).__init__(value)
+    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
+      raise type_info.TypeValueError("Unable to load private key: %s" % e)
+
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    self.ParseFromBytes(string.encode("ascii"))
+    return cls.FromSerializedBytes(string.encode("ascii"))
 
   def GetRawPrivateKey(self):
     return self._value
@@ -427,46 +498,15 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
         public_exponent=exponent, key_size=bits, backend=openssl.backend)
     return cls(key)
 
-  def ParseFromBytes(self, pem_string):
-    precondition.AssertType(pem_string, bytes)
-    try:
-      self._value = serialization.load_pem_private_key(
-          pem_string, password=None, backend=openssl.backend)
-      return
-    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
-
-      if "private key is encrypted" not in str(e):
-        raise type_info.TypeValueError("Private key invalid: %s" % e)
-
-      # The private key is passphrase protected, we need to see if we are
-      # allowed to ask the user.
-      #
-      # In the case where allow_prompt was not set at all, we use the context
-      # we are in to see if it makes sense to ask.
-      if self.allow_prompt is None:
-        # TODO(user): dependency loop with
-        # core/grr_response_core/grr/config/client.py.
-        # pylint: disable=protected-access
-        if "Commandline Context" not in config_lib._CONFIG.context:
-          raise type_info.TypeValueError("Private key invalid: %s" % e)
-        # pylint: enable=protected-access
-
-      # Otherwise, if allow_prompt is False, we are explicitly told that we are
-      # not supposed to ask the user.
-      elif not self.allow_prompt:
-        raise type_info.TypeValueError("Private key invalid: %s" % e)
-
-    try:
-      # The private key is encrypted and we can ask the user for the passphrase.
-      password = utils.PassphraseCallback()
-      self._value = serialization.load_pem_private_key(
-          pem_string, password=password, backend=openssl.backend)
-    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
-      raise type_info.TypeValueError("Unable to load private key: %s" % e)
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromBytes(value)
+    return cls(value)
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(value)
 
   def SerializeToBytes(self):
     if self._value is None:
@@ -598,38 +638,38 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
 
   data_store_type = "bytes"
 
-  # Size of the key in bits.
-  length = 0
-
   def __init__(self, initializer=None):
-    super(EncryptionKey, self).__init__()
     if initializer is None:
-      self._value = b""
-    elif isinstance(initializer, bytes):
-      self.ParseFromBytes(initializer)
+      super(EncryptionKey, self).__init__(b"")
     elif isinstance(initializer, EncryptionKey):
-      self._value = initializer.RawBytes()
+      super(EncryptionKey, self).__init__(initializer.RawBytes())
+    else:
+      precondition.AssertType(initializer, bytes)
 
-  def ParseFromBytes(self, string):
-    precondition.AssertType(string, bytes)
+      if len(initializer) % 8:
+        raise CipherError("Invalid key length %d (%s)." %
+                          (len(initializer) * 8, initializer))
 
-    if len(string) % 8:
-      raise CipherError("Invalid key length %d (%s)." %
-                        (len(string) * 8, string))
+      super(EncryptionKey, self).__init__(initializer)
 
-    self._value = string
     self.length = 8 * len(self._value)
+    if 0 < self.length < 128:  # Check length if _value is not empty.
+      raise CipherError("Key too short (%d): %s" % (self.length, initializer))
 
-    if self.length < 128:
-      raise CipherError("Key too short (%d): %s" % (self.length, string))
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromDatastoreValue(cls, value):
     precondition.AssertType(value, bytes)
-    self._value = value
+    return cls(value)
 
-  def ParseFromHumanReadable(self, string):
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls(value)
+
+  @classmethod
+  def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    self._value = binascii.unhexlify(string.encode("ascii"))
+    return cls(binascii.unhexlify(string))
 
   def __str__(self):
     return "%s (%s)" % (self.__class__.__name__, self.AsHexDigest())
@@ -638,12 +678,7 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
     return len(self._value)
 
   def AsHexDigest(self):
-    return binascii.hexlify(self._value).decode("ascii")
-
-  @classmethod
-  def FromHex(cls, hex_string):
-    precondition.AssertType(hex_string, Text)
-    return cls(binascii.unhexlify(hex_string))
+    return text.Hexify(self._value)
 
   def SerializeToBytes(self):
     return self._value

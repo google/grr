@@ -885,8 +885,7 @@ def _GetTimelineItems(client_id, file_path):
       if timestamp is None:
         continue
 
-      item = ApiVfsTimelineItem()
-      item.timestamp = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(timestamp)
+      item = ApiVfsTimelineItem(timestamp=timestamp)
 
       # Remove aff4:/<client_id> to have a more concise path to the
       # subject.

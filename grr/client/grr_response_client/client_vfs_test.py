@@ -93,41 +93,6 @@ class VFSTest(test_lib.GRRBaseTest):
     # This should not create any new file handles.
     self.assertLess(len(current_process.open_files()) - num_open_files, 5)
 
-  # TODO(hanuszczak): This test is fundamentally broken on so many levels:
-  # * it calls 'ListNames' on a text file
-  # * it repeatedly reads from the root file (instead of child files I presume)
-  # * it compares whether a list of numbers is greater (not longer, greater!)
-  #   than some number
-  # * it overrides a constant of public module and does not restore original
-  #   value at the end of the test
-  #
-  # Consult with somebody what it actually should do and write it properly.
-  def testOpenFilehandlesExpire(self):
-    """Test that file handles expire from cache."""
-    files.FILE_HANDLE_CACHE = utils.FastStore(max_size=10)
-
-    current_process = psutil.Process(os.getpid())
-    num_open_files = len(current_process.open_files())
-
-    path = os.path.join(self.base_path, "morenumbers.txt")
-    fd = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
-
-    fds = []
-    for filename in fd.ListNames():
-      child_fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(
-              path=os.path.join(path, filename),
-              pathtype=rdf_paths.PathSpec.PathType.OS))
-      fd.read(20)
-      fds.append(child_fd)
-
-    # This should not create any new file handles.
-    self.assertLess(len(current_process.open_files()) - num_open_files, 5)
-
-    # Make sure we exceeded the size of the cache.
-    # self.assertGreater(len(fds), 20)
-
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""
     try:

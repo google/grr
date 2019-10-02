@@ -760,8 +760,8 @@ message DynamicTypeTest {{
 
     sample = TestStructWithManyFields(**fields)
 
-    parsed = TestStructWithManyFields()
-    parsed.ParseFromBytes(sample.SerializeToBytes())
+    parsed = TestStructWithManyFields.FromSerializedBytes(
+        sample.SerializeToBytes())
 
     return sample, parsed
 

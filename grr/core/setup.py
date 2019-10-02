@@ -45,7 +45,7 @@ def find_data_files(source, ignore_dirs=None):
 def sync_artifacts():
   """Sync the artifact repo with upstream for distribution."""
 
-  subprocess.check_call(["python", "makefile.py"],
+  subprocess.check_call([sys.executable, "makefile.py"],
                         cwd="grr_response_core/artifacts")
 
 

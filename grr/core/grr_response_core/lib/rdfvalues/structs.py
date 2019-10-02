@@ -1694,6 +1694,8 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   _data = None
 
   def __init__(self, initializer=None, **kwargs):
+    super(RDFStruct, self).__init__()
+
     # Maintain the order so that parsing and serializing a proto does not change
     # the serialized form.
     self._data = {}
@@ -1815,13 +1817,18 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   def SerializeToBytes(self):
     return _SerializeEntries(_GetOrderedEntries(self._data))
 
-  def ParseFromBytes(self, string):
-    ReadIntoObject(string, 0, self)
-    self.dirty = True
-
-  def ParseFromDatastore(self, value):
+  @classmethod
+  def FromSerializedBytes(cls, value):
     precondition.AssertType(value, bytes)
-    self.ParseFromBytes(value)
+    instance = cls()
+    ReadIntoObject(value, 0, instance)
+    instance.dirty = True
+    return instance
+
+  @classmethod
+  def FromDatastoreValue(cls, value):
+    precondition.AssertType(value, bytes)
+    return cls.FromSerializedBytes(value)
 
   __hash__ = None
 

@@ -7,6 +7,7 @@ libs/server_stubs.py
 """
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import binascii
@@ -15,6 +16,7 @@ import logging
 from future.moves import winreg
 
 import pythoncom
+from typing import Text
 import win32api
 import win32com.client
 import win32file
@@ -32,6 +34,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 
 
 # Properties to remove from results sent to the server.
@@ -44,10 +47,10 @@ IGNORE_PROPS = [
 
 def UnicodeFromCodePage(string):
   """Attempt to coerce string into a unicode object."""
+  precondition.AssertType(string, bytes)
+
   # get the current code page
   codepage = ctypes.windll.kernel32.GetOEMCP()
-  if not compatibility.PY2:
-    return codepage
 
   try:
     return string.decode("cp%s" % codepage)
@@ -126,11 +129,15 @@ def EnumerateFilesystemsFromClient(args):
       label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
     except win32api.error:
       continue
+
+    if compatibility.PY2:
+      label = UnicodeFromCodePage(label)
+
     yield rdf_client_fs.Filesystem(
         device=volume,
         mount_point="/%s:/" % drive[0],
         type=fs_type,
-        label=UnicodeFromCodePage(label))
+        label=label)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):

@@ -102,8 +102,9 @@ class RecursiveComponent(PathComponent):
       pathspec = rdf_paths.PathSpec(
           path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
       try:
-        if not vfs.VFSOpen(pathspec).IsDirectory():
-          return
+        with vfs.VFSOpen(pathspec) as filedesc:
+          if not filedesc.IsDirectory():
+            return
       except IOError:
         return  # Skip inaccessible Registry parts (e.g. HKLM\SAM\SAM) silently.
     else:
@@ -146,17 +147,16 @@ class GlobComponent(PathComponent):
     new_path = os.path.join(dirpath, self._glob)
     pathspec = rdf_paths.PathSpec(path=new_path, pathtype=self.opts.pathtype)
     try:
-      fd = vfs.VFSOpen(pathspec)
-
-      if fd.path == "/" and new_path != "/":
-        # TODO: VFSHandler has path = "/" as default. Thus, if we
-        # encounter "/", it could either mean the path never has been assigned
-        # or the path is literally "/". Thus, we return None if the path is "/"
-        # because it has never been set, by cross-referencing with the path we
-        # glob for.
-        return None
-      else:
-        return os.path.basename(fd.path)
+      with vfs.VFSOpen(pathspec) as filedesc:
+        if filedesc.path == "/" and new_path != "/":
+          # TODO: VFSHandler has path = "/" as default. Thus, if we
+          # encounter "/", it could either mean the path never has been assigned
+          # or the path is literally "/". Thus, we return None if the path is
+          # "/" because it has never been set, by cross-referencing with the
+          # path we glob for.
+          return None
+        else:
+          return os.path.basename(filedesc.path)
     except IOError:
       return None  # Indicate "File not found" by returning None.
 
@@ -394,14 +394,14 @@ def _ListDir(dirpath, pathtype):
   pathspec = rdf_paths.PathSpec(path=dirpath, pathtype=pathtype)
   childpaths = []
   try:
-    file_obj = vfs.VFSOpen(pathspec)
-    for path in file_obj.ListNames():
-      # For Windows registry, ignore the empty string which corresponds to the
-      # default value in the current key. Otherwise, globbing a key will yield
-      # the key itself, because joining the name of the default value u"" with
-      # a key name yields the key name again.
-      if pathtype != rdf_paths.PathSpec.PathType.REGISTRY or path:
-        childpaths.append(path)
+    with vfs.VFSOpen(pathspec) as filedesc:
+      for path in filedesc.ListNames():
+        # For Windows registry, ignore the empty string which corresponds to the
+        # default value in the current key. Otherwise, globbing a key will yield
+        # the key itself, because joining the name of the default value u"" with
+        # a key name yields the key name again.
+        if pathtype != rdf_paths.PathSpec.PathType.REGISTRY or path:
+          childpaths.append(path)
   except IOError:
     pass
 

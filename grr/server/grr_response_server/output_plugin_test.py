@@ -32,8 +32,8 @@ class OutputPluginTest(test_lib.GRRBaseTest):
             flow_name=transfer.GetFile.__name__))
     serialized = descriptor.SerializeToBytes()
 
-    deserialized = rdf_output_plugin.OutputPluginDescriptor()
-    deserialized.ParseFromBytes(serialized)
+    deserialized = rdf_output_plugin.OutputPluginDescriptor.FromSerializedBytes(
+        serialized)
     self.assertEqual(deserialized, descriptor)
     self.assertEqual(deserialized.GetPluginClass(), TestOutputPluginWithArgs)
 
@@ -41,8 +41,8 @@ class OutputPluginTest(test_lib.GRRBaseTest):
     with utils.Stubber(opr, "PLUGIN_REGISTRY", opr.PLUGIN_REGISTRY.copy()):
       del opr.PLUGIN_REGISTRY["TestOutputPluginWithArgs"]
 
-      deserialized = rdf_output_plugin.OutputPluginDescriptor()
-      deserialized.ParseFromBytes(serialized)
+      deserialized = rdf_output_plugin.OutputPluginDescriptor.FromSerializedBytes(
+          serialized)
 
       self.assertEqual(deserialized.GetPluginClass(),
                        output_plugin.UnknownOutputPlugin)

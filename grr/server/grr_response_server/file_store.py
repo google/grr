@@ -307,7 +307,7 @@ def AddFilesWithUnknownHashes(
 
   for client_path in iterkeys(client_path_sha256):
     sha256 = client_path_sha256[client_path].digest()
-    hash_id = rdf_objects.SHA256HashID.FromBytes(sha256)
+    hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(sha256)
 
     client_path_hash_id[client_path] = hash_id
     hash_id_blob_refs[hash_id] = verified_client_path_blob_refs[client_path]
@@ -423,7 +423,7 @@ def OpenFile(client_path, max_timestamp=None):
     # FileHasNoContentError instead of FileNotFoundError.
     raise FileHasNoContentError(client_path)
 
-  hash_id = rdf_objects.SHA256HashID.FromBytes(
+  hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(
       path_info.hash_entry.sha256.AsBytes())
   blob_references = data_store.REL_DB.ReadHashBlobReferences([hash_id])[hash_id]
 
@@ -487,11 +487,11 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
       data_store.REL_DB.ReadLatestPathInfosWithHashBlobReferences(
           client_paths, max_timestamp=max_timestamp))
 
-  hash_ids_by_cp = {
-      cp: rdf_objects.SHA256HashID.FromBytes(pi.hash_entry.sha256.AsBytes())
-      for cp, pi in iteritems(path_infos_by_cp)
-      if pi
-  }
+  hash_ids_by_cp = {}
+  for cp, pi in iteritems(path_infos_by_cp):
+    if pi:
+      hash_ids_by_cp[cp] = rdf_objects.SHA256HashID.FromSerializedBytes(
+          pi.hash_entry.sha256.AsBytes())
 
   blob_refs_by_hash_id = data_store.REL_DB.ReadHashBlobReferences(
       hash_ids_by_cp.values())

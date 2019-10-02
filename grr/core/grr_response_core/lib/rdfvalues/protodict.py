@@ -180,7 +180,7 @@ class Dict(rdf_structs.RDFProtoStruct):
 
   _values = None
 
-  def __init__(self, initializer=None, **kwarg):
+  def __init__(self, initializer=None, **kwargs):
     super(Dict, self).__init__(initializer=None)
 
     self.dat = None  # type: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper]
@@ -191,7 +191,7 @@ class Dict(rdf_structs.RDFProtoStruct):
 
     # Can be initialized from kwargs (like a dict).
     elif initializer is None:
-      self.FromDict(kwarg)
+      self.FromDict(kwargs)
 
     # Initialize from another Dict.
     elif isinstance(initializer, Dict):
@@ -336,12 +336,6 @@ class Dict(rdf_structs.RDFProtoStruct):
     self.dat = itervalues(self._values)
     return super(Dict, self).SerializeToBytes()
 
-  def ParseFromBytes(self, value):
-    super(Dict, self).ParseFromBytes(value)
-    self._values = {}
-    for d in self.dat:
-      self._values[d.k.GetValue()] = d
-
   def __str__(self):
     return str(self.ToDict())
 
@@ -398,11 +392,6 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
 
     if self.__class__ == initializer.__class__:
       self.content = initializer.Copy().content
-
-    # Initialize from a serialized protobuf.
-    elif isinstance(initializer, str):
-      self.ParseFromBytes(initializer)
-
     else:
       try:
         for item in initializer:

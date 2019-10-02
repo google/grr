@@ -111,7 +111,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     cursor.execute(query, [blob_id.AsBytes() for blob_id in blob_ids])
     results = {blob_id: None for blob_id in blob_ids}
     for blob_id_bytes, blob in cursor.fetchall():
-      blob_id = rdf_objects.BlobID.FromBytes(blob_id_bytes)
+      blob_id = rdf_objects.BlobID.FromSerializedBytes(blob_id_bytes)
       if results[blob_id] is None:
         results[blob_id] = blob
       else:
@@ -132,7 +132,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
                  mysql_utils.Placeholders(len(blob_ids))))
     cursor.execute(query, [blob_id.AsBytes() for blob_id in blob_ids])
     for blob_id, in cursor.fetchall():
-      exists[rdf_objects.BlobID.FromBytes(blob_id)] = True
+      exists[rdf_objects.BlobID.FromSerializedBytes(blob_id)] = True
     return exists
 
   @mysql_utils.WithTransaction()
@@ -158,7 +158,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
     cursor.execute(query, [hash_id.AsBytes() for hash_id in hashes])
     results = {hash_id: None for hash_id in hashes}
     for hash_id, blob_references in cursor.fetchall():
-      sha_hash_id = rdf_objects.SHA256HashID.FromBytes(hash_id)
+      sha_hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(hash_id)
       refs = rdf_objects.BlobReferences.FromSerializedBytes(blob_references)
       results[sha_hash_id] = list(refs.items)
     return results

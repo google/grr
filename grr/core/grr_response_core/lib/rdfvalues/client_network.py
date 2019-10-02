@@ -20,6 +20,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import text
 
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
@@ -90,7 +91,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
       if self.address_type == NetworkAddress.Family.INET6:
         return ipaddress.IPv6Address(self.packed_bytes)
     except ipaddress.AddressValueError:
-      hex_packed_bytes = binascii.hexlify(self.packed_bytes).decode("ascii")
+      hex_packed_bytes = text.Hexify(self.packed_bytes)
       logging.error("AddressValueError for %s (%s)", hex_packed_bytes,
                     self.address_type)
       raise
@@ -109,12 +110,12 @@ class MacAddress(rdfvalue.RDFBytes):
 
   @property
   def human_readable_address(self):
-    return binascii.hexlify(self._value).decode("ascii")
+    return text.Hexify(self._value)
 
-  @human_readable_address.setter
-  def human_readable_address(self, value):
-    precondition.AssertType(value, Text)
-    self._value = binascii.unhexlify(value.encode("ascii"))
+  @classmethod
+  def FromHumanReadableAddress(cls, string):
+    precondition.AssertType(string, Text)
+    return cls(binascii.unhexlify(string.encode("ascii")))
 
 
 class Interface(rdf_structs.RDFProtoStruct):

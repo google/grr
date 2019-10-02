@@ -209,8 +209,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertLen(results, 3)
 
     data_idx = results[0].index("data")
-    self.assertEqual(results[1][data_idx], "ff00ff")
-    self.assertEqual(results[2][data_idx], "fafbfc")
+    self.assertEqual(results[1][data_idx], "\\xff\\x00\\xff")
+    self.assertEqual(results[2][data_idx], "\\xfa\\xfb\\xfc")
 
   def testCSVPluginWritesMoreThanOneBatchOfRowsCorrectly(self):
     num_rows = csv_plugin.CSVInstantOutputPlugin.ROW_BATCH * 2 + 1
