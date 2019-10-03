@@ -111,7 +111,6 @@ class TypeInfoObject(with_metaclass(registry.MetaclassRegistry, object)):
                                                        self.description,
                                                        self.GetDefault())
 
-
 class RDFValueType(TypeInfoObject):
   """An arg which must be an RDFValue."""
 
@@ -370,6 +369,21 @@ class List(TypeInfoObject):
   def ToString(self, value):
     return ",".join([self.validator.ToString(x) for x in value])
 
+
+class RDFValueList(List):
+  """A List of RDFValue."""
+  class _validator:
+    def __init__(self, validator=None):
+      self.validator = validator
+    def Validate(self, val):
+      try:
+        return self.validator.Validate(val.encode('utf-8'))
+      except Exception as e:
+        raise TypeValueError("Invalid data: %s" % e)
+  def __init__(self, rdfclass=None, validator=None, **kwargs):
+      super(RDFValueList, self).__init__(**kwargs)
+      self.validator = self._validator(validator)
+      self._type = self.rdfclass = rdfclass
 
 class String(TypeInfoObject):
   """A String type."""

@@ -159,7 +159,24 @@ config_lib.DEFINE_semantic_value(
 config_lib.DEFINE_semantic_value(
     rdf_crypto.RDFX509Cert,
     "CA.certificate",
-    help="Trusted CA certificate in X509 pem format",
+    help="Trusted CA certificate in X509 pem format (messages)",
+)
+
+config_lib.DEFINE_semantic_value_list(
+    rdf_crypto.RDFX509Cert,
+    "Client.transport_ca_certificate",None,
+    "Trusted CA certificate in X509 pem format (transport)")
+
+config_lib.DEFINE_semantic_value(
+    rdf_crypto.RSAPrivateKey,
+    "Client.transport_private_key",
+    help="Client private key in pem format (transport, 2-way ssl)",
+)
+
+config_lib.DEFINE_semantic_value(
+    rdf_crypto.RDFX509Cert,
+    "Client.transport_public_certificate",
+    help="Client certificate in X509 pem format (transport, 2-way ssl)",
 )
 
 config_lib.DEFINE_semantic_value(

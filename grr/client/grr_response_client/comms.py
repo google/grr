@@ -70,7 +70,6 @@ Examples:
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-
 import collections
 import logging
 import os
@@ -195,6 +194,9 @@ class HTTPManager(object):
   def OpenServerEndpoint(self,
                          path,
                          verify_cb=lambda x: True,
+                         transport_cert=None,
+                         transport_key=None,
+                         transport_cacert=None,
                          data=None,
                          params=None,
                          headers=None,
@@ -210,6 +212,9 @@ class HTTPManager(object):
       verify_cb: A callback which should return True if the response is
         reasonable. This is used to detect if we are able to talk to the correct
         endpoint. If not we try a different endpoint/proxy combination.
+      transport_cert: The certificate to encrypt communications at the transport level
+      transport_key: The private key to encrypt communications at the transport level
+      transport_cacert: The path to the trusted ca certificates files, default to certifi.where()
       data: Parameters to send in POST bodies (See Requests documentation).
       params: Parameters to send in GET URLs (See Requests documentation).
       headers: Additional headers (See Requests documentation)
@@ -228,6 +233,9 @@ class HTTPManager(object):
 
       result = self.OpenURL(
           self._ConcatenateURL(active_base_url, path),
+          transport_cert=transport_cert,
+          transport_key=transport_key,
+          transport_cacert=transport_cacert,
           data=data,
           params=params,
           headers=headers,
@@ -256,6 +264,9 @@ class HTTPManager(object):
 
   def OpenURL(self,
               url,
+              transport_cert=None,
+              transport_key=None,
+              transport_cacert=None,
               verify_cb=lambda x: True,
               data=None,
               params=None,
@@ -270,6 +281,9 @@ class HTTPManager(object):
 
     Args:
       url: The URL to fetch
+      transport_cert: The certificate to encrypt communications at the transport level
+      transport_key: The private key to encrypt communications at the transport level
+      transport_cacert: The path to the trusted ca certificates files, default to certifi.where()
       verify_cb: An optional callback which can be used to validate the URL. It
         receives the HTTPObject and return True if this seems OK, False
         otherwise. For example, if we are behind a captive portal we might
@@ -288,6 +302,16 @@ class HTTPManager(object):
     tries = 0
     last_error = 500
 
+    if transport_cert is not None and transport_key is not None:
+      cert = (transport_cert, transport_key)
+    else:
+      cert = None
+
+    if transport_cacert is not None:
+      verify = transport_cacert
+    else:
+      verify = True
+
     while tries < len(self.proxies):
       proxy_index = self.last_proxy_index % len(self.proxies)
       proxy = self.proxies[proxy_index]
@@ -305,6 +329,8 @@ class HTTPManager(object):
 
         duration, handle = self._RetryRequest(
             url=url,
+            verify=verify,
+            cert=cert,
             data=data,
             params=params,
             headers=headers,
@@ -952,7 +978,8 @@ class GRRHTTPClient(object):
 
   http_manager_class = HTTPManager
 
-  def __init__(self, ca_cert=None, worker_cls=None, private_key=None):
+  def __init__(self, ca_cert=None, worker_cls=None, private_key=None,
+               transport_cert=None, transport_key=None, transport_cacert=None):
     """Constructor.
 
     Args:
@@ -961,10 +988,63 @@ class GRRHTTPClient(object):
       worker_cls: The client worker class to use. Defaults to GRRClientWorker.
       private_key: The private key for this client. Defaults to config
         Client.private_key.
+      transport_cert: The certificate to encrypt communications at the transport level (2-way ssl)
+      transport_key: The private key to encrypt communications at the transport level (2-way ssl)
+      transport_cacert: The path to the trusted ca certificates files, requests will default to certifi.where()
     """
     self.ca_cert = ca_cert
     if private_key is None:
       private_key = config.CONFIG.Get("Client.private_key", default=None)
+
+    self.transport_cacerts = None
+    try:
+      if transport_cacert is None:
+        logging.debug("loading Client.transport_ca_certificate from configuration file ...")
+        transport_cacert = config.CONFIG.Get("Client.transport_ca_certificate", default=None)
+      if transport_cacert is not None:
+        pem_path = os.path.join(config.CONFIG["Client.install_path"], "certs", "cacert.pem")
+        logging.debug("dumping Client.transport_ca_certificate to %s ..." % pem_path)
+        with open(pem_path, "wb") as fd:
+          for cert in transport_cacert:
+            fd.write(cert.AsPEM().encode("utf-8"))
+            fd.write(os.linesep)
+        self.transport_cacert = pem_path
+      else:
+        logging.debug("Client.transport_ca_certificate is not set, defaulting to bundled CA")
+    except Exception as e:
+      logging.error("unable to save transport cacert: %s", e)
+
+    self.transport_key = None
+    try:
+      if transport_key is None:
+        logging.debug("loading Client.transport_private_key from configuration file ...")
+        transport_key = config.CONFIG.Get("Client.transport_private_key", default=None)
+      if transport_key is not None:
+        pem_path = os.path.join(config.CONFIG["Client.install_path"], "certs", "key.pem")
+        logging.debug("dumping Client.transport_private_key to %s ..." % pem_path)
+        with open(pem_path, "wb") as fd:
+          fd.write(transport_key.AsPEM().encode("utf-8"))
+          self.transport_key = pem_path
+      else:
+        logging.debug("Client.transport_private_key is not set")
+    except Exception as e:
+      logging.error("unable to save transport key: %s", e)
+
+    self.transport_cert = None
+    try:
+      if transport_cert is None:
+        logging.debug("loading Client.transport_public_certificate from configuration file ...")
+        transport_cert = config.CONFIG.Get("Client.transport_public_certificate", default=None)
+      if transport_cert is not None:
+        pem_path = os.path.join(config.CONFIG["Client.install_path"], "certs", "cert.pem")
+        logging.debug("dumping Client.transport_public_certificate to %s ..." % pem_path)
+        with open(pem_path, "wb") as fd:
+          fd.write(transport_cert.AsPEM().encode("utf-8"))
+          self.transport_cert = pem_path
+      else:
+        logging.debug("Client.transport_public_certificate is not set")
+    except Exception as e:
+      logging.error("unable to save transport cert: %s", e)
 
     # The server's PEM encoded certificate.
     self.server_certificate = None
@@ -1068,10 +1148,15 @@ class GRRHTTPClient(object):
     """Make a HTTP Post request to the server 'control' endpoint."""
     stats_collector_instance.Get().IncrementCounter("grr_client_sent_bytes",
                                                     len(data))
-
+    transport_cert=self.transport_cert
+    transport_key=self.transport_key
+    transport_cacert=self.transport_cacert
     # Verify the response is as it should be from the control endpoint.
     response = self.http_manager.OpenServerEndpoint(
         path="control?api=%s" % config.CONFIG["Network.api"],
+        transport_cert=transport_cert,
+        transport_key=transport_key,
+        transport_cacert=transport_cacert,
         verify_cb=self.VerifyServerControlResponse,
         data=data,
         headers={"Content-Type": "binary/octet-stream"})
@@ -1206,8 +1291,15 @@ class GRRHTTPClient(object):
     if self.server_certificate:
       return True
 
+    transport_cert=self.transport_cert
+    transport_key=self.transport_key
+    transport_cacert=self.transport_cacert
     response = self.http_manager.OpenServerEndpoint(
-        "server.pem", verify_cb=self.VerifyServerPEM)
+        "server.pem",
+        verify_cb=self.VerifyServerPEM,
+        transport_cert=transport_cert,
+        transport_cacert=transport_cacert,
+        transport_key=transport_key)
 
     if response.Success():
       self.server_certificate = response.data
