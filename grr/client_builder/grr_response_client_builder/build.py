@@ -178,7 +178,7 @@ class ClientBuilder(BuilderBase):
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
 
     # Clear out some crud that pyinstaller includes.
-    for path in ["tcl", "tk", "pytz"]:
+    for path in ["tcl", "tk", "pytz", "certs"]:
       dir_path = os.path.join(self.output_dir, path)
       try:
         shutil.rmtree(dir_path)

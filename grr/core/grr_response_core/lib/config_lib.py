@@ -1532,6 +1532,18 @@ class GrrConfigManager(object):
             validator=type_info.Integer()),
         constant=constant)
 
+  def DEFINE_semantic_value_list(self, semantic_type, name, default=None, help=""):
+    if issubclass(semantic_type, rdf_structs.RDFStruct):
+      raise ValueError("DEFINE_semantic_value_list should be used for types "
+                       "based on RDFValues.")
+    self.AddOption(
+        type_info.RDFValueList(
+            rdfclass=semantic_type,
+            name=name,
+            default=default,
+            validator=type_info.RDFValueType(rdfclass=semantic_type),
+            description=help))
+
   def DEFINE_list(self, name, default, help, constant=False):
     """A helper for defining lists of strings options."""
     self.AddOption(
@@ -1632,6 +1644,10 @@ def DEFINE_integer_list(name, default, help):
 def DEFINE_list(name, default, help):
   """A helper for defining lists of strings options."""
   _CONFIG.DEFINE_list(name, default, help)
+
+
+def DEFINE_semantic_value_list(semantic_type, name, default, help):
+  _CONFIG.DEFINE_semantic_value_list(semantic_type, name, default=default, help=help)
 
 
 def DEFINE_semantic_value(semantic_type, name, default=None, help=""):
