@@ -1,0 +1,29 @@
+:host {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  .toolbar {
+    .menu-icon {
+      margin-right: 0.5em;
+    }
+  }
+
+  .container {
+    flex-grow: 1;
+
+    .sidenav-container {
+      min-width: 200px;
+      background-color: #efefef;
+    }
+
+    .main-container {
+      background-color: #fff;
+    }
+  }
+}

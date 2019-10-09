@@ -213,7 +213,7 @@ class HashID(rdfvalue.RDFValue):
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  data_store_type = "bytes"
+  protobuf_type = "bytes"
 
   hash_id_length = None
 
@@ -243,7 +243,7 @@ class HashID(rdfvalue.RDFValue):
       self._value = initializer
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls(value)
 

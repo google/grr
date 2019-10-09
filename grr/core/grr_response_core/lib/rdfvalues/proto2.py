@@ -77,7 +77,7 @@ _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE = dict(
 CHECK_PROTOBUF_DEPENDENCIES = True
 
 
-def DefineFromProtobuf(cls, protobuf):
+def DefineFromWireFormat(cls, protobuf):
   """Add type info definitions from an existing protobuf.
 
   We support building this class by copying definitions from an annotated
@@ -151,13 +151,13 @@ def DefineFromProtobuf(cls, protobuf):
         # Make sure that the field type is the same as what is required by the
         # semantic type.
         required_field_type = _SEMANTIC_PRIMITIVE_TO_FIELD_TYPE[
-            rdf_type.data_store_type]
+            rdf_type.protobuf_type]
 
         if required_field_type != field.type:
           raise rdfvalue.InitializeError(
               ("%s: .proto file uses incorrect field to store Semantic Value "
                "%s: Should be %s") %
-              (cls.__name__, field.name, rdf_type.data_store_type))
+              (cls.__name__, field.name, rdf_type.protobuf_type))
 
       type_descriptor = classes_dict["ProtoRDFValue"](
           rdf_type=options.type, **kwargs)

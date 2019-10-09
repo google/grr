@@ -268,13 +268,13 @@ class DurationSecondsTest(absltest.TestCase):
         rdfvalue.DurationSeconds.From(1000,
                                       rdfvalue.SECONDS).SerializeToBytes())
 
-  def testFromDatastoreValue(self):
+  def testFromWireFormat(self):
     for i in [0, 7, 1337]:
-      val = rdfvalue.DurationSeconds.FromDatastoreValue(i)
+      val = rdfvalue.DurationSeconds.FromWireFormat(i)
       self.assertEqual(i, val.ToInt(rdfvalue.SECONDS))
 
-      val2 = rdfvalue.DurationSeconds.FromDatastoreValue(
-          val.SerializeToDataStore())
+      val2 = rdfvalue.DurationSeconds.FromWireFormat(
+          val.SerializeToWireFormat())
       self.assertEqual(val, val2)
 
 
@@ -428,9 +428,9 @@ class DurationTest(absltest.TestCase):
             rdfvalue.Duration(a) - rdfvalue.Duration(min(a, b)),
             rdfvalue.Duration(a - min(a, b)))
 
-  def testFromDatastoreValue(self):
+  def testFromWireFormat(self):
     for i in [0, 7, 1337, MAX_UINT64]:
-      val = rdfvalue.Duration.FromDatastoreValue(i)
+      val = rdfvalue.Duration.FromWireFormat(i)
       self.assertEqual(i, val.microseconds)
 
   def testSubtractionFromDateTimeIsEqualToIntegerSubtraction(self):

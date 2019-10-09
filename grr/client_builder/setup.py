@@ -75,7 +75,6 @@ setup_args = dict(
     include_package_data=True,
     python_requires=">=2.7.11",
     install_requires=[
-        "absl-py==0.6.1",
         "distro==1.4.0",
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),

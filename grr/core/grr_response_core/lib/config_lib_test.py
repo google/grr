@@ -8,9 +8,7 @@ from __future__ import unicode_literals
 import io
 import ntpath
 import os
-import platform
 import stat
-import unittest
 
 from absl import app
 from absl.testing import flagsaver
@@ -1040,19 +1038,16 @@ Client.labels: [Test1]
     self.assertRaises(AttributeError, conf.SetWriteBack, writeback_file)
     self.assertTrue(os.path.isfile(writeback_file + ".bak"))
 
-  # TODO: Fix test, which fails on Windows due to file locking.
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Fails due to Windows file locking issues.")
   def testNoRenameOfReadProtectedFile(self):
     """Don't rename config files we don't have permission to read."""
-    conf = config.CONFIG.MakeNewConfig()
     writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
-    with io.open(writeback_file, "w") as f:
-      f.write("...")
-      f.close()
+    with io.open(writeback_file, mode="w", encoding="utf-8") as f:
+      f.write("")
 
     # Remove all permissions except user write.
     os.chmod(writeback_file, stat.S_IWUSR)
+
+    conf = config.CONFIG.MakeNewConfig()
     conf.SetWriteBack(writeback_file)
 
     # File is still in the same place

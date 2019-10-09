@@ -164,7 +164,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser):
       kwargs["EnvironmentVariables"] = []
       for envvar in envvars:
         kwargs["EnvironmentVariables"].append(
-            rdf_plist.PlistStringDictEntry(name=envvar, value=envvars[envvar]))
+            rdf_plist.PlistStringDictEntry(
+                name=envvar, value=str(envvars[envvar])))
 
     startcalendarinterval = plist.get("StartCalendarInterval")
     if startcalendarinterval is not None:

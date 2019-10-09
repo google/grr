@@ -28,7 +28,7 @@ class MySQLDBClientReportsMixin(object):
     """Writes the provided graphs to the DB with the given client label."""
     args = {
         "client_label": client_label,
-        "report_type": graph_series.report_type.SerializeToDataStore(),
+        "report_type": graph_series.report_type.SerializeToWireFormat(),
         "timestamp": mysql_utils.RDFDatetimeToTimestamp(timestamp),
         "graph_series": graph_series.SerializeToBytes(),
     }
@@ -56,7 +56,7 @@ class MySQLDBClientReportsMixin(object):
       FROM client_report_graphs
       WHERE client_label = %s AND report_type = %s
     """
-    args = [client_label, report_type.SerializeToDataStore()]
+    args = [client_label, report_type.SerializeToWireFormat()]
 
     if time_range is not None:
       query += "AND `timestamp` BETWEEN FROM_UNIXTIME(%s) AND FROM_UNIXTIME(%s)"
@@ -91,7 +91,7 @@ class MySQLDBClientReportsMixin(object):
       ORDER BY timestamp DESC
       LIMIT 1
     """
-    args = [client_label, report_type.SerializeToDataStore()]
+    args = [client_label, report_type.SerializeToWireFormat()]
     cursor.execute(query, args)
     result = cursor.fetchone()
     if result is None:

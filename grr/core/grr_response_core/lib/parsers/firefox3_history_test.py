@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
+import io
 import os
 
 from absl import app
@@ -26,9 +27,10 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
   def testBasicParsing(self):
     """Test we can parse a standard file."""
     history_file = os.path.join(self.base_path, "places.sqlite")
-    history = firefox3_history.Firefox3History(open(history_file, "rb"))
-    # Parse returns (timestamp, dtype, url, title)
-    entries = [x for x in history.Parse()]
+    with io.open(history_file, mode="rb") as history_filedesc:
+      history = firefox3_history.Firefox3History()
+      # Parse returns (timestamp, dtype, url, title)
+      entries = [x for x in history.Parse(history_filedesc)]
 
     self.assertLen(entries, 1)
 
@@ -45,8 +47,9 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
   def testNewHistoryFile(self):
     """Tests reading of history files written by recent versions of Firefox."""
     history_file = os.path.join(self.base_path, "new_places.sqlite")
-    history = firefox3_history.Firefox3History(open(history_file, "rb"))
-    entries = [x for x in history.Parse()]
+    with io.open(history_file, mode="rb") as history_filedesc:
+      history = firefox3_history.Firefox3History()
+      entries = [x for x in history.Parse(history_filedesc)]
 
     self.assertLen(entries, 3)
     self.assertEqual(entries[1][3],

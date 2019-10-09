@@ -23,7 +23,7 @@ class MySQLDBSignedBinariesMixin(object):
                                   cursor=None):
     """Writes blob references for a signed binary to the DB."""
     args = {
-        "binary_type": binary_id.binary_type.SerializeToDataStore(),
+        "binary_type": binary_id.binary_type.SerializeToWireFormat(),
         "binary_path": binary_id.path,
         "binary_path_hash": mysql_utils.Hash(binary_id.path),
         "blob_references": references.SerializeToBytes()
@@ -49,7 +49,7 @@ class MySQLDBSignedBinariesMixin(object):
       FROM signed_binary_references
       WHERE binary_type = %s AND binary_path_hash = %s
     """, [
-        binary_id.binary_type.SerializeToDataStore(),
+        binary_id.binary_type.SerializeToWireFormat(),
         mysql_utils.Hash(binary_id.path)
     ])
     row = cursor.fetchone()
@@ -87,6 +87,6 @@ class MySQLDBSignedBinariesMixin(object):
       DELETE FROM signed_binary_references
       WHERE binary_type = %s AND binary_path_hash = %s
     """, [
-        binary_id.binary_type.SerializeToDataStore(),
+        binary_id.binary_type.SerializeToWireFormat(),
         mysql_utils.Hash(binary_id.path)
     ])

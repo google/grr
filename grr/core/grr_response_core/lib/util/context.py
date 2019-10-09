@@ -2,10 +2,18 @@
 """A module with utilities for dealing with context managers."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+from typing import ContextManager
+from typing import Generic
+from typing import Sequence
+from typing import TypeVar
 
-class NullContext(object):
+_T = TypeVar("_T")
+
+
+class NullContext(ContextManager[_T], Generic[_T]):
   """A context manager that always yields provided values.
 
   This class is useful for providing context-like semantics for values that are
@@ -27,7 +35,7 @@ class NullContext(object):
     del exc_type, exc_value, traceback  # Unused.
 
 
-class MultiContext(object):
+class MultiContext(ContextManager[Sequence[_T]], Generic[_T]):
   """A context managers that sequences multiple context managers.
 
   This is similar to the monadic `sequence` operator: it takes a list of context
@@ -38,6 +46,9 @@ class MultiContext(object):
   open multiple files.
   """
 
+  # TODO: `Collection` would be a better type here, but it is only
+  # available in Python 3.6+. Once support for Python 2 is dropped, this can be
+  # generalized.
   def __init__(self, managers):
     self._managers = managers
 

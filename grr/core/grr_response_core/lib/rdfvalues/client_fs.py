@@ -111,7 +111,7 @@ class Volumes(rdf_protodict.RDFValueArray):
 @python_2_unicode_compatible
 class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
-  data_store_type = "unsigned_integer"
+  protobuf_type = "unsigned_integer"
 
   def __str__(self):
     """Pretty print the file mode."""
@@ -164,13 +164,13 @@ class StatMode(rdfvalue.RDFInteger):
 class StatExtFlagsOsx(rdfvalue.RDFInteger):
   """Extended file attributes for Mac (set by `chflags`)."""
 
-  data_store_type = "unsigned_integer_32"
+  protobuf_type = "unsigned_integer_32"
 
 
 class StatExtFlagsLinux(rdfvalue.RDFInteger):
   """Extended file attributes as reported by `lsattr`."""
 
-  data_store_type = "unsigned_integer_32"
+  protobuf_type = "unsigned_integer_32"
 
 
 class ExtAttr(rdf_structs.RDFProtoStruct):

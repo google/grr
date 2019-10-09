@@ -418,14 +418,14 @@ class YaraFlowsTest(BaseYaraFlowsTest):
 
     self.assertLen(misses, 1)
     miss = misses[0]
-    self.assertEqual(miss.scan_time_us, 4 * 1e6)
+    self.assertEqual(miss.scan_time_us, 6 * 1e6)
 
     with test_lib.FakeTime(10000, increment=1):
       matches, _, _ = self._RunYaraProcessScan(self.procs, pids=[102])
 
     self.assertLen(matches, 1)
     match = matches[0]
-    self.assertEqual(match.scan_time_us, 3 * 1e6)
+    self.assertEqual(match.scan_time_us, 4 * 1e6)
 
   def testScanResponseChunking(self):
     procs = [

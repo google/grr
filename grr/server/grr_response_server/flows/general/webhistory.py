@@ -89,9 +89,9 @@ class ChromeHistory(flow_base.FlowBase):
         client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                  response.stat_entry.pathspec)
         fd = file_store.OpenFile(client_path)
-        hist = chrome_history.ChromeParser(fd)
+        hist = chrome_history.ChromeParser()
         count = 0
-        for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse():
+        for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse(fd):
           count += 1
           str_entry = "%s %s %s %s %s %s" % (datetime.datetime.utcfromtimestamp(
               epoch64 / 1e6), url, dat1, dat2, dat3, dtype)
@@ -198,9 +198,9 @@ class FirefoxHistory(flow_base.FlowBase):
         client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                  response.stat_entry.pathspec)
         fd = file_store.OpenFile(client_path)
-        hist = firefox3_history.Firefox3History(fd)
+        hist = firefox3_history.Firefox3History()
         count = 0
-        for epoch64, dtype, url, dat1, in hist.Parse():
+        for epoch64, dtype, url, dat1, in hist.Parse(fd):
           count += 1
           str_entry = "%s %s %s %s" % (datetime.datetime.utcfromtimestamp(
               epoch64 / 1e6), url, dat1, dtype)

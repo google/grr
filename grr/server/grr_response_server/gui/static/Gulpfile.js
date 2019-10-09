@@ -48,7 +48,7 @@ function errorHandler(err) {
 }
 
 const closureCompilerPath =
-    NODE_MODULES + '/google-closure-compiler/compiler.jar';
+    NODE_MODULES + '/google-closure-compiler-java/compiler.jar';
 
 const closureCompilerFlags = {
   compilation_level: 'WHITESPACE_ONLY',
@@ -110,7 +110,7 @@ function compileThirdPartyJs() {
         NODE_MODULES + '/jstree/dist/jstree.js',
         NODE_MODULES + '/moment/moment.js',
         NODE_MODULES + '/marked/lib/marked.js',
-        NODE_MODULES + '/split.js/split.js',
+        NODE_MODULES + '/split.js/dist/split.js',
       ]))
       .pipe(gulpNewer(config.distDir + '/third-party.bundle.js'))
       .pipe(gulpConcat('third-party.bundle.js'))
@@ -240,11 +240,12 @@ function compileGrrUiTests() {
         fileName: 'grr-ui-test.bundle.js',
         compilerFlags: Object.assign({}, closureCompilerFlags, {
           angular_pass: true,
+          compilation_level: 'BUNDLE',
+          create_source_map: config.distDir + '/grr-ui-test.bundle.js.map',
           dependency_mode: 'NONE',
           externs: [
             'angular-components/externs.js',
           ],
-          create_source_map: config.distDir + '/grr-ui-test.bundle.js.map',
           source_map_location_mapping:
               'angular-components/|/static/angular-components/',
         }),

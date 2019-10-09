@@ -87,9 +87,9 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
   """
 
   # This is how the attribute will be serialized to the data store. It must
-  # indicate both the type emitted by SerializeToDataStore() and expected by
-  # FromDatastoreValue()
-  data_store_type = "bytes"
+  # indicate both the type emitted by SerializeToWireFormat() and expected by
+  # FromWireFormat()
+  protobuf_type = "bytes"
 
   # URL pointing to a help page about this value type.
   context_help_url = None
@@ -115,9 +115,9 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return self.Copy()
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     raise NotImplementedError(
-        "Class {} does not implement FromDatastoreValue.".format(
+        "Class {} does not implement FromWireFormat.".format(
             compatibility.GetName(cls)))
 
   @classmethod
@@ -126,8 +126,8 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
         "Class {} does not implement FromSerializedBytes.".format(
             compatibility.GetName(cls)))
 
-  # TODO: Remove legacy SerializeToDataStore.
-  def SerializeToDataStore(self):
+  # TODO: Remove legacy SerializeToWireFormat.
+  def SerializeToWireFormat(self):
     """Serialize to a datastore compatible form."""
     return self.SerializeToBytes()
 
@@ -206,7 +206,7 @@ class RDFPrimitive(RDFValue):
 @functools.total_ordering
 class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
-  data_store_type = "bytes"
+  protobuf_type = "bytes"
 
   def __init__(self, initializer=None):
     if initializer is None:
@@ -225,7 +225,7 @@ class RDFBytes(RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -277,7 +277,7 @@ class RDFZippedBytes(RDFBytes):
 class RDFString(RDFPrimitive):
   """Represent a simple string."""
 
-  data_store_type = "string"
+  protobuf_type = "string"
 
   # TODO(hanuszczak): Allow initializing from arbitrary `unicode`-able object.
   def __init__(self, initializer=None):
@@ -348,7 +348,7 @@ class RDFString(RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     return cls.FromHumanReadable(value)
 
   @classmethod
@@ -359,7 +359,7 @@ class RDFString(RDFPrimitive):
   def SerializeToBytes(self):
     return self._value.encode("utf-8")
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     return self._value
 
 
@@ -370,7 +370,7 @@ class RDFString(RDFPrimitive):
 class HashDigest(RDFBytes):
   """Binary hash digest with hex string representation."""
 
-  data_store_type = "bytes"
+  protobuf_type = "bytes"
 
   def HexDigest(self):
     return text.Hexify(self._value)
@@ -400,7 +400,7 @@ class HashDigest(RDFBytes):
 class RDFInteger(RDFPrimitive):
   """Represent an integer."""
 
-  data_store_type = "integer"
+  protobuf_type = "integer"
 
   @staticmethod
   def IsNumeric(value):
@@ -433,10 +433,10 @@ class RDFInteger(RDFPrimitive):
     return str(self._value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     return cls(initializer=value)
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     """Use varint to store the integer."""
     return self._value
 
@@ -507,7 +507,7 @@ class RDFInteger(RDFPrimitive):
 @python_2_unicode_compatible
 class RDFBool(RDFPrimitive):
   """Boolean value."""
-  data_store_type = "unsigned_integer"
+  protobuf_type = "unsigned_integer"
 
   def __init__(self, initializer=None):
     if initializer is None:
@@ -524,11 +524,11 @@ class RDFBool(RDFPrimitive):
     return str(self._value).encode("ascii")
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, int)
     return cls(value)
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     return self._value
 
   @classmethod
@@ -579,7 +579,7 @@ class RDFBool(RDFPrimitive):
 class RDFDatetime(RDFPrimitive):
   """A date and time internally stored in MICROSECONDS."""
   converter = 1000000
-  data_store_type = "unsigned_integer"
+  protobuf_type = "unsigned_integer"
 
   def __init__(self, initializer=None):
     if initializer is None:
@@ -595,10 +595,10 @@ class RDFDatetime(RDFPrimitive):
                             (type(initializer), initializer))
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     return cls(initializer=value)
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     """Use varint to store the integer."""
     return self._value
 
@@ -808,7 +808,7 @@ class Duration(RDFPrimitive):
   The duration is stored as non-negative integer, guaranteeing microsecond
   precision up to MAX_UINT64 microseconds (584k years).
   """
-  data_store_type = "unsigned_integer"
+  protobuf_type = "unsigned_integer"
 
   _DIVIDERS = collections.OrderedDict(
       (("w", WEEKS), ("d", DAYS), ("h", HOURS), ("m", MINUTES), ("s", SECONDS),
@@ -857,11 +857,11 @@ class Duration(RDFPrimitive):
     return cls(int(timeunit * value))
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, int)
     return cls(value)
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     """See base class."""
     return self.microseconds
 
@@ -1041,7 +1041,7 @@ class DurationSeconds(Duration):
     """See base class."""
     return str(self.ToInt(SECONDS)).encode("utf-8")
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     """See base class."""
     return self.ToInt(SECONDS)
 
@@ -1068,7 +1068,7 @@ class ByteSize(RDFInteger):
   Binary units (powers of 2): Ki, Mi, Gi
   SI units (powers of 10): k, m, g
   """
-  data_store_type = "unsigned_integer"
+  protobuf_type = "unsigned_integer"
 
   DIVIDERS = dict((
       ("", 1),
@@ -1144,7 +1144,7 @@ class ByteSize(RDFInteger):
 class RDFURN(RDFPrimitive):
   """An object to abstract URL manipulation."""
 
-  data_store_type = "string"
+  protobuf_type = "string"
 
   # Careful when changing this value, this is hardcoded a few times in this
   # class for performance reasons.
@@ -1190,7 +1190,7 @@ class RDFURN(RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     # TODO(hanuszczak): We should just assign the `self._value` here
     # instead of including all of the parsing magic since the data store values
     # should be normalized already. But sadly this is not the case and for now
@@ -1205,7 +1205,7 @@ class RDFURN(RDFPrimitive):
   def SerializeToBytes(self):
     return str(self).encode("utf-8")
 
-  def SerializeToDataStore(self):
+  def SerializeToWireFormat(self):
     return str(self)
 
   def Dirname(self):

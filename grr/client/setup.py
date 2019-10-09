@@ -84,11 +84,11 @@ setup_args = dict(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        "absl-py==0.6.1",
+        "absl-py==0.8.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         # TODO: This is a backport of Python 3.2+ API, should be
         # removed once support for Python 2 is dropped.
-        "subprocess32==3.5.3",
+        "subprocess32==3.5.4",
         "pyinstaller==3.5",
     ],
     extras_require={
@@ -108,6 +108,6 @@ if platform.system() == "Linux":
   setup_args["install_requires"].append("chipsec=={}".format(chipsec_version))
 
 if platform.system() != "Windows":
-  setup_args["install_requires"].append("xattr==0.9.2")
+  setup_args["install_requires"].append("xattr==0.9.6")
 
 setup(**setup_args)

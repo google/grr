@@ -7,6 +7,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
+import io
 import os
 
 from absl import app
@@ -22,8 +23,9 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
   def testBasicParsing(self):
     """Test we can parse a standard file."""
     history_file = os.path.join(self.base_path, "parser_test", "History2")
-    history = chrome_history.ChromeParser(open(history_file, "rb"))
-    entries = [x for x in history.Parse()]
+    with io.open(history_file, mode="rb") as history_filedesc:
+      history = chrome_history.ChromeParser()
+      entries = list(history.Parse(history_filedesc))
 
     try:
       dt1 = datetime.datetime(1970, 1, 1)
@@ -53,8 +55,9 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
   def testTimeOrderingDownload(self):
     """Test we can correctly time order downloads and visits."""
     history_file = os.path.join(self.base_path, "parser_test", "History3")
-    history = chrome_history.ChromeParser(open(history_file, "rb"))
-    entries = [x for x in history.Parse()]
+    with io.open(history_file, mode="rb") as history_filedesc:
+      history = chrome_history.ChromeParser()
+      entries = list(history.Parse(history_filedesc))
 
     # Check that our results are properly time ordered
     time_results = [x[0] for x in entries]
@@ -64,8 +67,9 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
   def testBasicParsingOldFormat(self):
     """Test we can parse a standard file."""
     history_file = os.path.join(self.base_path, "parser_test", "History")
-    history = chrome_history.ChromeParser(open(history_file, "rb"))
-    entries = [x for x in history.Parse()]
+    with io.open(history_file, mode="rb") as history_filedesc:
+      history = chrome_history.ChromeParser()
+      entries = list(history.Parse(history_filedesc))
 
     try:
       dt1 = datetime.datetime(1970, 1, 1)

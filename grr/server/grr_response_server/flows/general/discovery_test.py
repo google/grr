@@ -117,6 +117,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(DiscoveryTestEventListener.event.interfaces[0].mac_address,
                      b"123456")
     self.assertTrue(DiscoveryTestEventListener.event.timestamp)
+    self.assertTrue(DiscoveryTestEventListener.event.last_ping)
 
   def _CheckNetworkInfo(self, client):
     self.assertEqual(client.interfaces[0].mac_address, b"123456")

@@ -2,17 +2,22 @@
 """Parser for Google chrome/chromium History files."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import itertools
+import logging
 
 from future.moves.urllib import parse as urlparse
 from past.builtins import long
+import sqlite3
+from typing import IO
+from typing import Iterator
+from typing import Tuple
 
 from grr_response_core.lib import parsers
-from grr_response_core.lib.parsers import sqlite_file
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
+from grr_response_core.lib.util import sqlite
 
 
 class ChromeHistoryParser(parsers.SingleFileParser):
@@ -25,8 +30,8 @@ class ChromeHistoryParser(parsers.SingleFileParser):
     del knowledge_base  # Unused.
 
     # TODO(user): Convert this to use the far more intelligent plaso parser.
-    chrome = ChromeParser(filedesc)
-    for timestamp, entry_type, url, data1, _, _ in chrome.Parse():
+    chrome = ChromeParser()
+    for timestamp, entry_type, url, data1, _, _ in chrome.Parse(filedesc):
       if entry_type == "CHROME_DOWNLOAD":
         yield rdf_webhistory.BrowserHistoryItem(
             url=url,
@@ -45,21 +50,18 @@ class ChromeHistoryParser(parsers.SingleFileParser):
             title=data1)
 
 
-class ChromeParser(sqlite_file.SQLiteFile):
-  """Class for handling the parsing of a Chrome history file.
-
-    Use as:
-      c = ChromeParser(open('History'))
-      for hist in c.Parse():
-        print hist
-
-  Returns results in chronological order
-  """
+# TODO(hanuszczak): This shouldn't be a class, just a `Parse` function taking
+# history file as input.
+class ChromeParser(object):
+  """Class for handling the parsing of a Chrome history file."""
   VISITS_QUERY = ("SELECT visits.visit_time, urls.url, urls.title, "
                   "urls.typed_count "
                   "FROM urls, visits "
                   "WHERE urls.id = visits.url "
                   "ORDER BY visits.visit_time ASC;")
+
+  # TODO(hanuszczak): Do we need to maintain code that is supposed to work with
+  # Chrome history format from 2013?
 
   # We use DESC here so we can pop off the end of the list and interleave with
   # visits to maintain time order.
@@ -91,29 +93,44 @@ class ChromeParser(sqlite_file.SQLiteFile):
       timestamp *= 1000000
     return timestamp
 
-  def Parse(self):
+  # TODO(hanuszczak): This function should return a well-structured data instead
+  # of a tuple of 6 elements (of which 2 of them are never used).
+  def Parse(self, filedesc):  # pylint: disable=g-bare-generic
     """Iterator returning a list for each entry in history.
 
     We store all the download events in an array (choosing this over visits
     since there are likely to be less of them). We later interleave them with
     visit events to get an overall correct time order.
 
+    Args:
+      filedesc: A file-like object
+
     Yields:
       a list of attributes for each entry
     """
-    # Query for old style and newstyle downloads storage.
-    query_iter = itertools.chain(
-        self.Query(self.DOWNLOADS_QUERY), self.Query(self.DOWNLOADS_QUERY_2))
+    with sqlite.IOConnection(filedesc) as conn:
+      # Query for old style and newstyle downloads storage.
+      rows = []
 
-    results = []
-    for timestamp, url, path, received_bytes, total_bytes in query_iter:
-      timestamp = self.ConvertTimestamp(timestamp)
-      results.append((timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
-                      total_bytes))
+      try:
+        rows.extend(conn.Query(self.DOWNLOADS_QUERY))
+      except sqlite3.Error as error:
+        logging.warning("Chrome history database error: %s", error)
 
-    for timestamp, url, title, typed_count in self.Query(self.VISITS_QUERY):
-      timestamp = self.ConvertTimestamp(timestamp)
-      results.append((timestamp, "CHROME_VISIT", url, title, typed_count, ""))
+      try:
+        rows.extend(conn.Query(self.DOWNLOADS_QUERY_2))
+      except sqlite3.Error as error:
+        logging.warning("Chrome history database error: %s", error)
+
+      results = []
+      for timestamp, url, path, received_bytes, total_bytes in rows:
+        timestamp = self.ConvertTimestamp(timestamp)
+        results.append((timestamp, "CHROME_DOWNLOAD", url, path, received_bytes,
+                        total_bytes))
+
+      for timestamp, url, title, typed_count in conn.Query(self.VISITS_QUERY):
+        timestamp = self.ConvertTimestamp(timestamp)
+        results.append((timestamp, "CHROME_VISIT", url, title, typed_count, ""))
 
     results.sort(key=lambda it: it[0])
     for it in results:

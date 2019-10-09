@@ -91,20 +91,20 @@ class RDFValueTestMixin(object):
 
     # Serializing to data store must produce something the data store can
     # handle.
-    serialized = sample.SerializeToDataStore()
+    serialized = sample.SerializeToWireFormat()
 
-    if self.rdfvalue_class.data_store_type == "bytes":
+    if self.rdfvalue_class.protobuf_type == "bytes":
       self.assertIsInstance(serialized, bytes)
-    elif self.rdfvalue_class.data_store_type == "string":
+    elif self.rdfvalue_class.protobuf_type == "string":
       self.assertIsInstance(serialized, Text)
-    elif self.rdfvalue_class.data_store_type in ["unsigned_integer", "integer"]:
+    elif self.rdfvalue_class.protobuf_type in ["unsigned_integer", "integer"]:
       # TODO(hanuszczak): Import `future.builtins.int`.
       self.assertIsInstance(serialized, (int, long))
     else:
-      self.fail("%s has no valid data_store_type" % self.rdfvalue_class)
+      self.fail("%s has no valid protobuf_type" % self.rdfvalue_class)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class.FromDatastoreValue(serialized)
+    rdfvalue_object = self.rdfvalue_class.FromWireFormat(serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
 

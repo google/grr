@@ -5,8 +5,6 @@ from __future__ import unicode_literals
 
 import functools
 import io
-import platform
-import unittest
 
 from absl.testing import absltest
 from future.builtins import map
@@ -46,9 +44,6 @@ class MultiContextTest(absltest.TestCase):
     with context.MultiContext([foo, bar, baz]) as names:
       self.assertEqual(names, ["foo", "bar", "baz"])
 
-  # TODO: Fix test, which fails on Windows with WindowsError 32.
-  @unittest.skipIf(platform.system() == "Windows",
-                   "Fails due to Windows file locking issues.")
   def testWithFiles(self):
     foo = temp.AutoTempFilePath(suffix="foo")
     bar = temp.AutoTempFilePath(suffix="bar")
@@ -61,7 +56,7 @@ class MultiContextTest(absltest.TestCase):
       self.assertEndsWith(filepaths[2], "baz")
 
       wbopen = functools.partial(io.open, mode="wb")
-      with context.MultiContext(map(wbopen, filepaths)) as filedescs:
+      with context.MultiContext(list(map(wbopen, filepaths))) as filedescs:
         self.assertLen(filedescs, 3)
         filedescs[0].write(b"FOO")
         filedescs[1].write(b"BAR")
@@ -71,7 +66,7 @@ class MultiContextTest(absltest.TestCase):
       # ready for reading.
 
       rbopen = functools.partial(io.open, mode="rb")
-      with context.MultiContext(map(rbopen, filepaths)) as filedescs:
+      with context.MultiContext(list(map(rbopen, filepaths))) as filedescs:
         self.assertLen(filedescs, 3)
         self.assertEqual(filedescs[0].read(), b"FOO")
         self.assertEqual(filedescs[1].read(), b"BAR")

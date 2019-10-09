@@ -1,0 +1,17 @@
+<mat-toolbar color="primary" class="toolbar">
+  <mat-toolbar-row>
+    <button aria-label="Open sidenav"
+      mat-icon-button class="menu-icon" (click)="sidenav.toggle()">
+
+      <mat-icon>menu</mat-icon>
+    </button>
+    <span>GRR</span>
+  </mat-toolbar-row>
+</mat-toolbar>
+
+<mat-sidenav-container class="container">
+  <mat-sidenav opened mode="side" class="sidenav-container mat-elevation-z2" #sidenav>
+  </mat-sidenav>
+  <mat-sidenav-content class="main-container">
+  </mat-sidenav-content>
+</mat-sidenav-container>

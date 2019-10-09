@@ -23,5 +23,12 @@
 	<string>/dev/null</string>
 	<key>StandardErrorPath</key>
 	<string>/dev/null</string>
+        <key>EnvironmentVariables</key>
+        <dict>
+		<key>var1</key>
+		<string>some string</string>
+		<key>var2</key>
+		<integer>42</integer>
+	</dict>
 </dict>
 </plist>

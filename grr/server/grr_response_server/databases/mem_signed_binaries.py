@@ -17,7 +17,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 def _SignedBinaryKeyFromID(binary_id
                           ):
   """Converts a binary id to an equivalent dict key (tuple)."""
-  return binary_id.binary_type.SerializeToDataStore(), binary_id.path
+  return binary_id.binary_type.SerializeToWireFormat(), binary_id.path
 
 
 def _SignedBinaryIDFromKey(binary_key

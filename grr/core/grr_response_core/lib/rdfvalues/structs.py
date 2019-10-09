@@ -1110,10 +1110,10 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     # If one of the protobuf library wrapper classes is used, unwrap the value.
     if result.type_url.startswith("type.googleapis.com/google.protobuf."):
       wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
-          converted_value.data_store_type]
+          converted_value.protobuf_type]
       wrapper_value = wrapper_cls()
       wrapper_value.ParseFromString(result.value)
-      return converted_value.FromDatastoreValue(wrapper_value.value)
+      return converted_value.FromWireFormat(wrapper_value.value)
     else:
       # TODO(user): Type stored in type_url is currently ignored when value
       # is decoded. We should use it to deserialize the value and then check
@@ -1142,11 +1142,11 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
         type_name = value.__class__.__name__
       data = value.SerializeToBytes()
     # Is it a primitive value?
-    elif hasattr(value.__class__, "data_store_type"):
+    elif hasattr(value.__class__, "protobuf_type"):
       wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
-          value.__class__.data_store_type]
+          value.__class__.protobuf_type]
       wrapped_data = wrapper_cls()
-      wrapped_data.value = value.SerializeToDataStore()
+      wrapped_data.value = value.SerializeToWireFormat()
 
       type_name = ("type.googleapis.com/google.protobuf.%s" %
                    wrapper_cls.__name__)
@@ -1440,19 +1440,19 @@ class ProtoRDFValue(ProtoType):
   """Serialize arbitrary rdfvalue members.
 
   RDFValue members can be serialized in a number of different ways according to
-  their preferred data_store_type member. We map the descriptions in
-  data_store_type into a suitable protobuf serialization for optimal
+  their preferred protobuf_type member. We map the descriptions in
+  protobuf_type into a suitable protobuf serialization for optimal
   serialization. We therefore use a delegate type descriptor to best convert
   from the RDFValue to the wire type. For example, an RDFDatetime is best
   represented as an integer (number of microseconds since the epoch). Hence
-  RDFDatetime.SerializeToDataStore() will return an integer, and the delegate
+  RDFDatetime.SerializeToWireFormat() will return an integer, and the delegate
   will be ProtoUnsignedInteger().
 
   To convert from the RDFValue python type to the delegate's wire type we
   therefore need to make two conversions:
 
   1) Our python format is the RDFValue -> intermediate data store format using
-  RDFValue.SerializeToDataStore(). This will produce a python object which is
+  RDFValue.SerializeToWireFormat(). This will produce a python object which is
   the correct python format for the delegate primitive type descriptor.
 
   2) Use the delegate to obtain the wire format of its own python type
@@ -1465,7 +1465,7 @@ class ProtoRDFValue(ProtoType):
   """
 
   # We delegate encoding/decoding to a primitive field descriptor based on the
-  # semantic type's data_store_type attribute.
+  # semantic type's protobuf_type attribute.
   primitive_desc = None
 
   # We store our args here so we can use the same args to initialize the
@@ -1526,10 +1526,10 @@ class ProtoRDFValue(ProtoType):
     self.owner.AddDescriptor(self)
 
   def _GetPrimitiveEncoder(self):
-    """Finds the primitive encoder according to the type's data_store_type."""
+    """Finds the primitive encoder according to the type's protobuf_type."""
     # Decide what should the primitive type be for packing the target rdfvalue
     # into the protobuf and create a delegate descriptor to control that.
-    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[self.type.data_store_type]
+    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[self.type.protobuf_type]
     self.primitive_desc = primitive_cls(**self._kwargs)
 
     # Our wiretype is the same as the delegate's.
@@ -1567,7 +1567,7 @@ class ProtoRDFValue(ProtoType):
     return value
 
   def ConvertFromWireFormat(self, value, container=None):
-    # Wire format should be compatible with the data_store_type for the
+    # Wire format should be compatible with the protobuf_type for the
     # rdfvalue. We use the delegate primitive descriptor to perform the
     # conversion.
     value = self.primitive_desc.ConvertFromWireFormat(
@@ -1578,7 +1578,8 @@ class ProtoRDFValue(ProtoType):
     return result
 
   def ConvertToWireFormat(self, value):
-    return self.primitive_desc.ConvertToWireFormat(value.SerializeToDataStore())
+    return self.primitive_desc.ConvertToWireFormat(
+        value.SerializeToWireFormat())
 
   def Copy(self, field_number=None):
     """Returns descriptor copy, optionally changing field number."""
@@ -1631,7 +1632,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
 
     # Build the class by parsing an existing protobuf class.
     if cls.protobuf is not None:
-      rdf_proto2.DefineFromProtobuf(cls, cls.protobuf)
+      rdf_proto2.DefineFromWireFormat(cls, cls.protobuf)
 
     # Pre-populate the class using the type_infos class member.
     if cls.type_description is not None:
@@ -1681,7 +1682,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   definition = None
 
   # This class can be defined in terms of an existing annotated regular
-  # protobuf. See RDFProtoStruct.DefineFromProtobuf().
+  # protobuf. See RDFProtoStruct.DefineFromWireFormat().
   protobuf = None
 
   # This is where the type infos are constructed.
@@ -1826,7 +1827,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     return instance
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls.FromSerializedBytes(value)
 

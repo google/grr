@@ -220,7 +220,7 @@ def VFSMultiOpen(pathspecs, progress_callback=None):
   precondition.AssertIterableType(pathspecs, rdf_paths.PathSpec)
 
   vfs_open = functools.partial(VFSOpen, progress_callback=progress_callback)
-  return context.MultiContext(map(vfs_open, pathspecs))
+  return context.MultiContext(list(map(vfs_open, pathspecs)))
 
 
 def ReadVFS(pathspec, offset, length, progress_callback=None):

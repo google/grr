@@ -88,6 +88,8 @@ class YaraProcessScan(actions.ActionPlugin):
       if not chunk.data:
         break
 
+      self.Progress()
+
       time_left = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
           rdfvalue.SECONDS)
 
@@ -403,6 +405,7 @@ class YaraProcessDump(actions.ActionPlugin):
 
       with tempfiles.TemporaryDirectory(cleanup=False) as tmp_dir:
         for region in regions:
+          self.Progress()
           pathspec = self._SaveRegionToDirectory(psutil_process, process,
                                                  region, tmp_dir, streamer)
           if pathspec is not None:

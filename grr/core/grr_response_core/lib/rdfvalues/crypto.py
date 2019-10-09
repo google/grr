@@ -123,7 +123,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     return cls.FromSerializedBytes(string.encode("ascii"))
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls.FromSerializedBytes(value)
 
@@ -245,7 +245,7 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls.FromSerializedBytes(value)
 
@@ -323,7 +323,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls.FromSerializedBytes(value)
 
@@ -504,7 +504,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -636,7 +636,7 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
 class EncryptionKey(rdfvalue.RDFPrimitive):
   """Base class for encryption keys."""
 
-  data_store_type = "bytes"
+  protobuf_type = "bytes"
 
   def __init__(self, initializer=None):
     if initializer is None:
@@ -657,7 +657,7 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
       raise CipherError("Key too short (%d): %s" % (self.length, initializer))
 
   @classmethod
-  def FromDatastoreValue(cls, value):
+  def FromWireFormat(cls, value):
     precondition.AssertType(value, bytes)
     return cls(value)
 

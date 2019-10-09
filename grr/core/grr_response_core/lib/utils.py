@@ -504,12 +504,7 @@ def SmartUnicode(string):
   if isinstance(string, bytes):
     return string.decode("utf-8", "ignore")
 
-  # TODO: We need to call `__native__` because otherwise one of the
-  # Selenium tests becomes flaky. This should be investigated.
-  if compatibility.PY2:
-    return str(string).__native__()
-  else:
-    return str(string)
+  return str(string)
 
 
 def Xor(bytestr, key):

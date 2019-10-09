@@ -50,7 +50,7 @@ RUN pip install --upgrade --no-cache-dir pip virtualenv && \
     virtualenv --system-site-packages $GRR_VENV
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
-    $GRR_VENV/bin/nodeenv -p --prebuilt --node=10.12.0 && \
+    $GRR_VENV/bin/nodeenv -p --prebuilt --node=12.11.1 && \
     echo '{ "allow_root": true }' > /root/.bowerrc
 
 # Copy the GRR code over.

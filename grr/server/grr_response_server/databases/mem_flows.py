@@ -244,6 +244,7 @@ class InMemoryDBFlowMixin(object):
     except KeyError:
       raise db.UnknownFlowError(client_id, flow_id)
 
+  @utils.Synchronized
   def ReadAllFlowObjects(
       self,
       client_id = None,

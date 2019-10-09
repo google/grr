@@ -329,6 +329,7 @@ class Interrogate(flow_base.FlowBase):
     summary = self.state.client.GetSummary()
     summary.client_id = self.client_id
     summary.timestamp = rdfvalue.RDFDatetime.Now()
+    summary.last_ping = summary.timestamp
 
     events.Events.PublishEvent("Discovery", summary, token=self.token)
 

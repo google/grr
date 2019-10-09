@@ -183,22 +183,22 @@ setup_args = dict(
         ]
     },
     install_requires=[
-        "google-api-python-client==1.6.2",
-        "google-auth==1.2.1",
-        "google-cloud-bigquery==0.22.1",
+        "google-api-python-client==1.7.11",
+        "google-auth==1.6.3",
+        "google-cloud-bigquery==1.20.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client-builder==%s" %
         VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "Jinja2==2.10.1",
-        "pexpect==4.6.0",
-        "portpicker==1.1.1",
-        "prometheus_client==0.5.0",
+        "Jinja2==2.10.3",
+        "pexpect==4.7.0",
+        "portpicker==1.3.1",
+        "prometheus_client==0.7.1",
         "pyjwt==1.7.1",
         "pyopenssl==19.0.0",  # https://github.com/google/grr/issues/704
-        "python-crontab==2.0.1",
-        "python-debian==0.1.31",
-        "Werkzeug==0.15.3",
+        "python-crontab==2.3.9",
+        "python-debian==0.1.36",
+        "Werkzeug==0.16.0",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data

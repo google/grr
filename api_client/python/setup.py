@@ -73,12 +73,12 @@ setup_args = dict(
         "console_scripts": ["grr_api_shell = grr_api_client.api_shell:main",]
     },
     install_requires=[
-        "future==0.17.0",
+        "future==0.17.1",
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        "cryptography==2.4.2",
+        "cryptography==2.7",
         "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
-        "requests==2.21.0",
-        "Werkzeug==0.15.3",
+        "requests==2.22.0",
+        "Werkzeug==0.16.0",
     ],
     data=["version.ini"])
 
