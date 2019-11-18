@@ -29,9 +29,9 @@ matrix:
       env:
         - GCS_TAG=ubuntu_64bit
       before_install:
-        - python3 -m venv "${HOME}/GCS_VENV"
+        - python -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
-        - python3 -m venv "${HOME}/INSTALL"
+        - python -m venv "${HOME}/INSTALL"
       install:
         - travis/install_client_builder.sh
       script:
@@ -69,6 +69,8 @@ matrix:
     # 64-bit Centos 7 docker container inside an Ubuntu host, for rpm builds
     - os: linux
       dist: xenial
+      language: python
+      python: 3.6
       services:
         - docker
       env:
@@ -77,7 +79,7 @@ matrix:
         - DOCKER_CONTAINER=centos_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - python3 -m venv "${HOME}/GCS_VENV"
+        - python -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
@@ -114,6 +116,8 @@ matrix:
     # installed on Centos 6.
     - os: linux
       dist: xenial
+      language: python
+      python: 3.6
       services:
         - docker
       env:
@@ -122,7 +126,7 @@ matrix:
         - DOCKER_CONTAINER=centos6_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - python3 -m venv "${HOME}/GCS_VENV"
+        - python -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
@@ -163,6 +167,8 @@ matrix:
     # unavailable' after a bunch of file-copy operations. That doesn't happen
     # inside the container.
     - os: linux
+      language: python
+      python: 3.6
       dist: xenial
       services:
         - docker
@@ -172,7 +178,7 @@ matrix:
         - DOCKER_CONTAINER=xenial_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - python3 -m venv "${HOME}/GCS_VENV"
+        - python -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - >-
           sudo docker run -dit
