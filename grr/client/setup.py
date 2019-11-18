@@ -11,6 +11,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import configparser
 import os
 import platform
 import shutil
@@ -19,14 +20,6 @@ import sys
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
-
-# TODO: Fix this import once support for Python 2 is dropped.
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major == 2:
-  import ConfigParser as configparser
-else:
-  import configparser
-# pylint: enable=g-import-not-at-top
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
@@ -83,12 +76,10 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     packages=find_packages(),
     include_package_data=True,
+    python_requires=">=3.6.8",
     install_requires=[
         "absl-py==0.8.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        # TODO: This is a backport of Python 3.2+ API, should be
-        # removed once support for Python 2 is dropped.
-        "subprocess32==3.5.4",
         "pyinstaller==3.5",
     ],
     extras_require={
