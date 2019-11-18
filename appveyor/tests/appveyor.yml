@@ -20,7 +20,7 @@ install:
 # Ignore failures due to broken packages, e.g
 # https://ci.appveyor.com/project/grr/grr-ia94e/builds/21637886
 - sudo apt update -qq || true
-- sudo apt install -y libmysqlclient-dev
+- sudo apt install -y libmysqlclient-dev python3-venv
 # Install chrome if absent.
 - >-
   if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
