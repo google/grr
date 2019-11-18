@@ -23,7 +23,7 @@ install:
 
 build_script:
   - >-
-    C:\Python27-x64\python.exe
+    C:\Python36-x64\python.exe
     C:\grr_src\appveyor\windows_templates\build_windows_templates.py
     --grr_src=C:\grr_src
     --output_dir=C:\grr_src\output

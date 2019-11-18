@@ -16,7 +16,7 @@ matrix:
     - os: linux
       dist: xenial
       language: python
-      python: 2.7
+      python: 3.6
       addons:
         apt:
           packages:
@@ -29,10 +29,9 @@ matrix:
       env:
         - GCS_TAG=ubuntu_64bit
       before_install:
-        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - python3 -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
-        - pip install --upgrade virtualenv
-        - virtualenv "${HOME}/INSTALL"
+        - python3 -m venv "${HOME}/INSTALL"
       install:
         - travis/install_client_builder.sh
       script:
@@ -54,7 +53,7 @@ matrix:
         - source terryfy/travis_tools.sh
         - get_python_environment macpython 3.7.3 "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
-        - get_python_environment macpython 2.7.15 "${HOME}/INSTALL"
+        - get_python_environment macpython 3.6.8 "${HOME}/INSTALL"
       install:
         - travis/install_client_builder.sh
       script:
@@ -78,7 +77,7 @@ matrix:
         - DOCKER_CONTAINER=centos_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - python3 -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
@@ -93,7 +92,7 @@ matrix:
         - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          virtualenv "/home/${DOCKER_USER}/INSTALL"
+          python3 -m venv "/home/${DOCKER_USER}/INSTALL"
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
@@ -123,7 +122,7 @@ matrix:
         - DOCKER_CONTAINER=centos6_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - python3 -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
@@ -138,7 +137,7 @@ matrix:
         - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          virtualenv "/home/${DOCKER_USER}/INSTALL"
+          python3 -m venv "/home/${DOCKER_USER}/INSTALL"
         - >-
           sudo docker exec "${DOCKER_CONTAINER}"
           yum remove -y sqlite-devel || true
@@ -150,97 +149,6 @@ matrix:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           travis/build_templates.sh
-        - >-
-          ${HOME}/GCS_VENV/bin/python
-          travis/upload_build_results_to_gcs.py
-          --alsologtostderr
-          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
-          --build_results_dir="${PWD}/gcs_upload_dir/"
-
-    # 32-bit Ubuntu docker container inside a 64-bit host, for 32-bit deb builds
-    - os: linux
-      dist: xenial
-      services:
-        - docker
-      env:
-        - GCS_TAG=ubuntu_32bit
-        - DOCKER_IMG=grrdocker/ubuntu_i386:xenial
-        - DOCKER_CONTAINER=ubuntu_32bit_container
-        - DOCKER_USER=grrbot
-      before_install:
-        - virtualenv "${HOME}/GCS_VENV" --python=python3
-        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
-        # Create a Docker container which mounts the GRR repo in the
-        # /mnt directory
-        - >-
-          sudo docker run -dit
-          --volume "${PWD}:/mnt/grr"
-          --workdir /mnt/grr
-          --env DOCKER_USER="${DOCKER_USER}"
-          --env TRAVIS_OS_NAME="${TRAVIS_OS_NAME}"
-          --name "${DOCKER_CONTAINER}"
-          "${DOCKER_IMG}"
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          linux32 travis/set_up_test_user.sh
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 virtualenv "/home/${DOCKER_USER}/INSTALL"
-      install:
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 travis/install_client_builder.sh
-      script:
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 travis/build_templates.sh
-        - >-
-          ${HOME}/GCS_VENV/bin/python
-          travis/upload_build_results_to_gcs.py
-          --alsologtostderr
-          --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
-          --build_results_dir="${PWD}/gcs_upload_dir/"
-
-    # 32-bit Centos docker container inside a 64-bit host, for 32-bit rpm builds
-    - os: linux
-      dist: xenial
-      services:
-        - docker
-      env:
-        - GCS_TAG=centos_32bit
-        - DOCKER_IMG=grrdocker/centos_i686:7
-        - DOCKER_CONTAINER=centos_32bit_container
-        - DOCKER_USER=grrbot
-      before_install:
-        - virtualenv "${HOME}/GCS_VENV" --python=python3
-        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
-        # Create a Docker container which mounts the GRR repo in the
-        # /mnt directory
-        - >-
-          sudo docker run -dit
-          --volume "${PWD}:/mnt/grr"
-          --workdir /mnt/grr
-          --env DOCKER_USER="${DOCKER_USER}"
-          --env TRAVIS_OS_NAME="${TRAVIS_OS_NAME}"
-          --name "${DOCKER_CONTAINER}"
-          "${DOCKER_IMG}"
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          linux32 travis/set_up_test_user.sh
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 virtualenv "/home/${DOCKER_USER}/INSTALL"
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          rm /usr/include/sqlite3.h /usr/include/sqlite3ext.h || true
-      install:
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 travis/install_client_builder.sh
-      script:
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          linux32 travis/build_templates.sh
         - >-
           ${HOME}/GCS_VENV/bin/python
           travis/upload_build_results_to_gcs.py
@@ -264,7 +172,7 @@ matrix:
         - DOCKER_CONTAINER=xenial_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - virtualenv "${HOME}/GCS_VENV" --python=python3
+        - python3 -m venv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - >-
           sudo docker run -dit
@@ -282,13 +190,10 @@ matrix:
           apt-get install -y fakeroot debhelper libffi-dev libssl-dev python-dev
           python-pip wget openjdk-8-jdk zip git devscripts dh-systemd
           libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          pip install --upgrade pip virtualenv
         - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          virtualenv "/home/${DOCKER_USER}/INSTALL"
+          python3 -m venv "/home/${DOCKER_USER}/INSTALL"
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
