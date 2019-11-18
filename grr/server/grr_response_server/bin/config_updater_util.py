@@ -676,7 +676,7 @@ def UploadSignedBinary(source_path,
       upload_subdirectory,
       os.path.basename(source_path),
   ])
-  binary = root_api.GrrBinary(binary_type, binary_path)
+  binary = root_api.GrrBinary(int(binary_type), binary_path)
 
   with open(source_path, "rb") as fd:
     binary.Upload(

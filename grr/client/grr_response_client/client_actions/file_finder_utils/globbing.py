@@ -7,18 +7,25 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import abc
-import fnmatch
 import itertools
 import os
 import platform
 import re
+import stat
 
 from future.utils import with_metaclass
-from typing import Iterator, Optional, Text
+import psutil
+from typing import Callable, Iterator, Optional, Text
 
 from grr_response_client import vfs
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util.compat import fnmatch
+
+
+def _NoOp():
+  """Does nothing. This function is to be used as default heartbeat callback."""
 
 
 class PathOpts(object):
@@ -29,23 +36,22 @@ class PathOpts(object):
 
   Args:
     follow_links: Whether glob expansion mechanism should follow symlinks.
-    recursion_blacklist: List of folders that the glob expansion should not
-      recur to.
+    xdev: Xdev flag as specified in the FileFinderArgs protobuf. If unset,
+      defaults to ALWAYS.
     pathtype: The pathtype to use.
   """
 
-  def __init__(self,
-               follow_links=False,
-               recursion_blacklist=None,
-               pathtype=None):
+  def __init__(self, follow_links=False, xdev=None, pathtype=None):
     self.follow_links = follow_links
-    self.recursion_blacklist = set(recursion_blacklist or [])
     self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS
+    if xdev is None:
+      self.xdev = rdf_file_finder.FileFinderArgs.XDev.ALWAYS
+    else:
+      self.xdev = xdev
 
   def __repr__(self):
-    raw = "PathOpts(follow_links={}, recursion_blacklist={!r}, pathtype={})"
-    return raw.format(
-        bool(self.follow_links), self.recursion_blacklist, self.pathtype)
+    raw = "PathOpts(follow_links={}, xdev={}, pathtype={})"
+    return raw.format(bool(self.follow_links), self.xdev, self.pathtype)
 
 
 class PathComponent(with_metaclass(abc.ABCMeta, object)):
@@ -78,6 +84,7 @@ class RecursiveComponent(PathComponent):
     self.opts = opts or PathOpts()
 
   def Generate(self, dirpath):
+    self.allowed_devices = _GetAllowedDevices(self.opts.xdev, dirpath)
     return self._Generate(dirpath, 1)
 
   def _Generate(self, dirpath, depth):
@@ -86,18 +93,32 @@ class RecursiveComponent(PathComponent):
 
     for item in _ListDir(dirpath, self.opts.pathtype):
       itempath = os.path.join(dirpath, item)
+
       yield itempath
 
-      if itempath in self.opts.recursion_blacklist:
-        continue
       for childpath in self._Recurse(itempath, depth):
         yield childpath
 
   def _Recurse(self, path, depth):
     if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
-      if not os.path.isdir(path) or (not self.opts.follow_links and
-                                     os.path.islink(path)):
+      try:
+        stat_entry = os.stat(path)
+      except OSError:
+        # Can happen for links pointing to non existent files/directories.
         return
+
+      if (self.allowed_devices is not _XDEV_ALL_ALLOWED and
+          stat_entry.st_dev not in self.allowed_devices):
+        return
+
+      if not stat.S_ISDIR(stat_entry.st_mode):
+        return
+
+      # Cannot use S_ISLNK here because we uses os.stat above which resolves
+      # links.
+      if not self.opts.follow_links and os.path.islink(path):
+        return
+
     elif self.opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       pathspec = rdf_paths.PathSpec(
           path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
@@ -137,14 +158,39 @@ class GlobComponent(PathComponent):
     """
     super(GlobComponent, self).__init__()
     self._glob = glob
+    self._is_literal = PATH_GLOB_REGEX.search(self._glob) is None
     self.regex = re.compile(fnmatch.translate(glob), re.I)
     self.opts = opts or PathOpts()
 
-  def _GenerateLiteralMatch(self, dirpath):
-    if PATH_GLOB_REGEX.search(self._glob) is not None:
+  def _GenerateLiteralMatchOS(self, dirpath):
+    if not os.path.exists(os.path.join(dirpath, self._glob)):
       return None
 
+    if platform.system() != "Windows":
+      return self._glob
+
+    # On Windows, we are able to open the path even if the casing does not match
+    # so we need to perform an additional case correction step.  TODO(amoser):
+    # The best way to do this is probably using Python3's pathlib:
+    # https://stackoverflow.com/questions/3692261/in-python-how-can-i-get-the-correctly-cased-path-for-a-file/14742779
+    # but that solution is Python3 only. For now do this the slow way, once we
+    # drop Python2 support for good, we can switch to pathlib instead.
+
+    lower_glob = self._glob.lower()
+    for fname in os.listdir(dirpath):
+      if fname.lower() == lower_glob:
+        return fname
+    return None
+
+  def _GenerateLiteralMatch(self, dirpath):
+    if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
+      return self._GenerateLiteralMatchOS(dirpath)
+
     new_path = os.path.join(dirpath, self._glob)
+    # TODO(amoser): This pathspec should have path_options CASE_LITERAL set such
+    # that the VFSOpen call below becomes much faster. Tests show that there is
+    # an unicode issue with CASE_LITERAL that we need to fix before adding that
+    # option.
     pathspec = rdf_paths.PathSpec(path=new_path, pathtype=self.opts.pathtype)
     try:
       with vfs.VFSOpen(pathspec) as filedesc:
@@ -165,12 +211,15 @@ class GlobComponent(PathComponent):
     # the root path of mounted disks. To make VfsFileFinder work with TSK,
     # we try the literal match to allow VfsFileFinder to traverse into disk
     # images.
-    literal_match = self._GenerateLiteralMatch(dirpath)
-    if literal_match is not None:
-      yield os.path.join(dirpath, literal_match)
+
+    if self._is_literal:
+      literal_match = self._GenerateLiteralMatch(dirpath)
+      if literal_match is not None:
+        yield os.path.join(dirpath, literal_match)
+        return
 
     for item in _ListDir(dirpath, self.opts.pathtype):
-      if self.regex.match(item) and item != literal_match:
+      if self.regex.match(item):
         yield os.path.join(dirpath, item)
 
   def __repr__(self):
@@ -276,12 +325,15 @@ def ParsePath(path,
     yield component
 
 
-def ExpandPath(path, opts=None):
+def ExpandPath(path,
+               opts = None,
+               heartbeat_cb = _NoOp):
   """Applies all expansion mechanisms to the given path.
 
   Args:
     path: A path to expand.
     opts: A `PathOpts` object.
+    heartbeat_cb: A function to be called regularly to send heartbeats.
 
   Yields:
     All paths possible to obtain from a given path by performing expansions.
@@ -289,7 +341,7 @@ def ExpandPath(path, opts=None):
   precondition.AssertType(path, Text)
 
   for grouped_path in ExpandGroups(path):
-    for globbed_path in ExpandGlobs(grouped_path, opts):
+    for globbed_path in ExpandGlobs(grouped_path, opts, heartbeat_cb):
       yield globbed_path
 
 
@@ -321,7 +373,9 @@ def ExpandGroups(path):
     yield "".join(prod)
 
 
-def ExpandGlobs(path, opts = None):
+def ExpandGlobs(path,
+                opts = None,
+                heartbeat_cb = _NoOp):
   """Performs glob expansion on a given path.
 
   Path can contain regular glob elements (such as `**`, `*`, `?`, `[a-z]`). For
@@ -331,6 +385,7 @@ def ExpandGlobs(path, opts = None):
   Args:
     path: A path to expand.
     opts: A `PathOpts` object.
+    heartbeat_cb: A function to be called regularly to send heartbeats.
 
   Returns:
     Generator over all possible glob expansions of a given path.
@@ -354,7 +409,7 @@ def ExpandGlobs(path, opts = None):
     root_dir = os.path.join(drive, os.path.sep).upper()
     components = list(ParsePath(tail[1:], opts=opts))
 
-  return _ExpandComponents(root_dir, components)
+  return _ExpandComponents(root_dir, components, heartbeat_cb=heartbeat_cb)
 
 
 def _IsAbsolutePath(path, opts = None):
@@ -368,12 +423,15 @@ def _IsAbsolutePath(path, opts = None):
   return bool(tail) and tail[0] == os.path.sep
 
 
-def _ExpandComponents(basepath, components, index=0):
+def _ExpandComponents(basepath, components, index=0, heartbeat_cb=_NoOp):
+  heartbeat_cb()
+
   if index == len(components):
     yield basepath
     return
   for childpath in components[index].Generate(basepath):
-    for path in _ExpandComponents(childpath, components, index + 1):
+    for path in _ExpandComponents(childpath, components, index + 1,
+                                  heartbeat_cb):
       yield path
 
 
@@ -391,6 +449,12 @@ def _ListDir(dirpath, pathtype):
   Raises:
     ValueError: in case of unsupported path types.
   """
+  if pathtype == rdf_paths.PathSpec.PathType.OS:
+    try:
+      return os.listdir(dirpath)
+    except OSError:
+      return []
+
   pathspec = rdf_paths.PathSpec(path=dirpath, pathtype=pathtype)
   childpaths = []
   try:
@@ -406,3 +470,57 @@ def _ListDir(dirpath, pathtype):
     pass
 
   return childpaths
+
+
+def _GetMountpoints(only_physical=True):
+  """Fetches a list of mountpoints.
+
+  Args:
+    only_physical: Determines whether only mountpoints for physical devices
+      (e.g. hard disks) should be listed. If false, mountpoints for things such
+      as memory partitions or `/dev/shm` will be returned as well.
+
+  Returns:
+    A set of mountpoints.
+  """
+  partitions = psutil.disk_partitions(all=not only_physical)
+  return set(partition.mountpoint for partition in partitions)
+
+
+_XDEV_ALL_ALLOWED = object()
+
+
+def _GetAllowedDevices(xdev, path):
+  """Builds a list of allowed device IDs we are allowed to recurse into.
+
+  Args:
+    xdev: A `XDev` value that determines policy for crossing device boundaries.
+    path: The starting path for the recursion.
+
+  Returns:
+    A set of allowed device ids or None if there are no restrictions.
+
+  Raises:
+    ValueError: If `xdev` value is invalid.
+  """
+  if xdev == rdf_file_finder.FileFinderArgs.XDev.ALWAYS:
+    # Never stop at any device boundary.
+    return _XDEV_ALL_ALLOWED
+
+  elif xdev == rdf_file_finder.FileFinderArgs.XDev.NEVER:
+    # Never cross device boundaries, stop at all mount points.
+    return {os.stat(path).st_dev}
+
+  elif xdev == rdf_file_finder.FileFinderArgs.XDev.LOCAL:
+    # Descend into file systems on physical devices only.
+    mount_points = _GetMountpoints(only_physical=True)
+    res = {os.stat(path).st_dev}
+    for mp in mount_points:
+      try:
+        res.add(os.stat(mp).st_dev)
+      except OSError:
+        pass
+    return res
+
+  else:
+    raise ValueError("Incorrect `xdev` value: %s" % xdev)

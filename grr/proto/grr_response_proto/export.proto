@@ -356,6 +356,7 @@ message ExportedArtifactFilesDownloaderResult {
 }
 
 // Protobuf for YaraProcessScan flow results export.
+// Next field id: 8
 message ExportedYaraProcessScanMatch {
   optional ExportedMetadata metadata = 1;
 
@@ -363,14 +364,23 @@ message ExportedYaraProcessScanMatch {
       [(sem_type) = { description: "Matching process details." }];
 
   optional string rule_name = 3 [(sem_type) = {
-    description: "The name of the rule that triggered.",
+    description: "The name of the rule that triggered",
   }];
 
-  optional uint64 scan_time_us = 4 [(sem_type) = {
-    description: "Time in microseconds taken to perform the scan.",
+  optional uint64 process_scan_time_us = 4 [(sem_type) = {
+    description: "Time in microseconds taken scan the whole process. This time "
+                 "includes all Yara rules, not only the one of this match.",
   }];
 
   reserved 5;
+
+  optional string string_id = 6 [(sem_type) = {
+    description: "The name of the string that matched.",
+  }];
+
+  optional uint64 offset = 7 [(sem_type) = {
+    description: "The offset of the Yara match.",
+  }];
 }
 
 message ExportedSoftwarePackage {

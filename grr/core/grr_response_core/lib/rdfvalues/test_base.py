@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from past.builtins import long
 from typing import Text
 
+from grr_response_core.lib import serialization
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 # pylint:mode=test
@@ -82,29 +83,32 @@ class RDFValueTestMixin(object):
       sample = self.GenerateSample()
 
     # Serializing to a string must produce a string.
-    serialized = sample.SerializeToBytes()
+    serialized = serialization.ToBytes(sample)
     self.assertIsInstance(serialized, bytes)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class.FromSerializedBytes(serialized)
+
+    rdfvalue_object = serialization.FromBytes(self.rdfvalue_class, serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
     # Serializing to data store must produce something the data store can
     # handle.
-    serialized = sample.SerializeToWireFormat()
+    serialized = serialization.ToWireFormat(sample)
+    protobuf_type = serialization.GetProtobufType(type(sample))
 
-    if self.rdfvalue_class.protobuf_type == "bytes":
+    if protobuf_type == "bytes":
       self.assertIsInstance(serialized, bytes)
-    elif self.rdfvalue_class.protobuf_type == "string":
+    elif protobuf_type == "string":
       self.assertIsInstance(serialized, Text)
-    elif self.rdfvalue_class.protobuf_type in ["unsigned_integer", "integer"]:
+    elif protobuf_type in ["unsigned_integer", "integer"]:
       # TODO(hanuszczak): Import `future.builtins.int`.
       self.assertIsInstance(serialized, (int, long))
     else:
       self.fail("%s has no valid protobuf_type" % self.rdfvalue_class)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class.FromWireFormat(serialized)
+    rdfvalue_object = serialization.FromWireFormat(self.rdfvalue_class,
+                                                   serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
 

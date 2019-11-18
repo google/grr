@@ -32,7 +32,7 @@ class DatabaseTestPathsMixin(object):
 
   def testWritePathInfosValidatesPathType(self):
     path = ["usr", "local"]
-    client_id = "C.bbbbbbbbbbbbbbbb"
+    client_id = db_test_utils.InitializeClient(self.db)
 
     with self.assertRaises(ValueError):
       self.db.WritePathInfos(client_id, [rdf_objects.PathInfo(components=path)])

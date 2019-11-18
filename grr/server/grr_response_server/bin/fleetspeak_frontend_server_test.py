@@ -17,7 +17,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import fleetspeak_utils
-from grr_response_server.bin import fleetspeak_frontend as fs_frontend_tool
+from grr_response_server.bin import fleetspeak_frontend_server
 from grr_response_server.flows.general import processes as flow_processes
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
@@ -31,7 +31,7 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
   """Tests the Fleetspeak based GRRFEServer."""
 
   def testReceiveMessages(self):
-    fs_server = fs_frontend_tool.GRRFSServer()
+    fs_server = fleetspeak_frontend_server.GRRFSServer()
     client_id = "C.1234567890123456"
     flow_id = "12345678"
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
@@ -79,7 +79,7 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(flow_responses, 9)
 
   def testReceiveMessageList(self):
-    fs_server = fs_frontend_tool.GRRFSServer()
+    fs_server = fleetspeak_frontend_server.GRRFSServer()
     client_id = "C.1234567890123456"
     flow_id = "12345678"
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
@@ -129,7 +129,7 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(flow_responses, 9)
 
   def testWriteLastPingForNewClients(self):
-    fs_server = fs_frontend_tool.GRRFSServer()
+    fs_server = fleetspeak_frontend_server.GRRFSServer()
     client_id = "C.1234567890123456"
     flow_id = "12345678"
     session_id = "%s/%s" % (client_id, flow_id)

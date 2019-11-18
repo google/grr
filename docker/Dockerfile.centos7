@@ -23,7 +23,7 @@ RUN yum update -y && yum install -y make zlib-devel bzip2-devel ncurses-devel \
   libffi-devel openssl-devel zip git gcc gcc-c++ redhat-rpm-config rpm-build \
   rpm-sign
 
-# Build a recent version of Python from source (Centos 7 has Python 2.7.5
+# Build a recent version of Python 2 from source (Centos 7 has Python 2.7.5
 # installed in /bin). The custom Python version is installed in
 # /usr/local/bin
 RUN wget https://www.python.org/ftp/python/2.7.14/Python-2.7.14.tgz && \
@@ -34,10 +34,19 @@ RUN wget https://www.python.org/ftp/python/2.7.14/Python-2.7.14.tgz && \
   make && \
   make altinstall
 
-# Install pip and virtualenv.
+# Install Python 2 pip and virtualenv.
 RUN wget https://bootstrap.pypa.io/get-pip.py && \
   /usr/local/bin/python2.7 get-pip.py && \
   pip install --upgrade pip virtualenv
+
+# Build Python 3 from source.
+RUN wget https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz && \
+  tar xzvf Python-3.6.9.tgz && \
+  cd Python-3.6.9 && \
+  ./configure --enable-shared --enable-ipv6 --prefix=/usr/local \
+    LDFLAGS="-Wl,-rpath /usr/local/lib" && \
+  make && \
+  make altinstall
 
 WORKDIR /
 

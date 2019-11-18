@@ -253,7 +253,7 @@ class GRRArtifactTest(ArtifactTest):
           "args:\\s*- --list",
           "cmd: /usr/bin/dpkg",
       ]:
-        self.assertRegexpMatches(yaml_data, snippet)
+        self.assertRegex(yaml_data, snippet)
     finally:
       artifact.LoadArtifactsOnce()
 

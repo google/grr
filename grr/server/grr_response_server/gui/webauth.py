@@ -156,7 +156,8 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
   def SecurityCheck(self, func, request, *args, **kwargs):
     if request.remote_addr not in self.trusted_ips:
       return self.AuthError("Request sent from an IP not in "
-                            "AdminUI.remote_user_trusted_ips.")
+                            "AdminUI.remote_user_trusted_ips. "
+                            "Source was %s" % request.remote_addr)
 
     try:
       username = request.headers[self.remote_user_header]

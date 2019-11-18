@@ -110,7 +110,7 @@ class TestProcessDump(test_base.AbstractFileTransferTest):
     process_name = GetProcessName(self.platform)
     args.process_regex = GetProcessNameRegex(self.platform)
     args.ignore_grr_process = False
-    args.size_limit = 1024 * 1024
+    args.size_limit = 20 * 1024 * 1024
 
     f = self.RunFlowAndWait("DumpProcessMemory", args=args)
 

@@ -21,6 +21,7 @@ from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib import serialization
 from grr_response_core.lib.util import precondition
 
 
@@ -155,7 +156,7 @@ class RDFValueType(TypeInfoObject):
     return value
 
   def FromString(self, string):
-    return self.rdfclass.FromHumanReadable(string)
+    return serialization.FromHumanReadable(self.rdfclass, string)
 
 
 class RDFStructDictType(TypeInfoObject):

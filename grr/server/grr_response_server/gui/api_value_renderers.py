@@ -42,13 +42,17 @@ class ApiRDFAllowedEnumValueDescriptor(rdf_structs.RDFProtoStruct):
 
 
 class ApiRDFValueFieldDescriptor(rdf_structs.RDFProtoStruct):
+  """Descriptor for an RDFValue Field."""
   protobuf = reflection_pb2.ApiRDFValueFieldDescriptor
   rdf_deps = [
       ApiRDFAllowedEnumValueDescriptor,
   ]
 
   def GetDefaultValueClass(self):
-    return rdfvalue.RDFValue.classes.get(self.type)
+    if self.type == "bool":
+      return bool
+    else:
+      return rdfvalue.RDFValue.classes.get(self.type)
 
 
 class ApiRDFValueDescriptor(rdf_structs.RDFProtoStruct):
@@ -288,13 +292,13 @@ class ApiRDFValueArrayRenderer(ApiListRenderer):
   value_class = rdf_protodict.RDFValueArray
 
 
-class ApiRDFBoolRenderer(ApiValueRenderer):
-  """Renderer for RDFBool."""
+class ApiBoolRenderer(ApiValueRenderer):
+  """Renderer for bool."""
 
-  value_class = rdfvalue.RDFBool
+  value_class = bool
 
   def RenderValue(self, value):
-    return self._IncludeTypeInfo(value != 0, value)
+    return dict(type="bool", value=bool(value))
 
 
 class ApiBytesRenderer(ApiValueRenderer):
@@ -494,7 +498,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
       if field_type is not None:
         field.type = field_type.__name__
 
-        if field_type.context_help_url:
+        if getattr(field_type, "context_help_url", None) is not None:
           # Class attribute context_help_url masks similarly named protobuf
           # attribute. Using the Set method to set the right attribute.
           field.Set("context_help_url", field_type.context_help_url)
@@ -517,7 +521,8 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
       if (field_desc.default is not None and
           not issubclass(field_type, rdf_structs.RDFStruct) and
           hasattr(field_desc, "GetDefault")):
-        field.default = field.GetDefaultValueClass()(field_desc.GetDefault())
+        default_val = field_desc.GetDefault()
+        field.default = field.GetDefaultValueClass()(default_val)
 
       if field_desc.description:
         field.doc = field_desc.description

@@ -25,6 +25,7 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import hunt as hunt_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -218,6 +219,28 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
             description_contains="bar", active_within="1d", offset=3),
         token=self.token)
     self.assertEmpty(result.items)
+
+
+class ApiGetHuntHandlerTest(hunt_test_lib.StandardHuntTestMixin,
+                            api_test_lib.ApiCallHandlerTest):
+
+  def setUp(self):
+    super(ApiGetHuntHandlerTest, self).setUp()
+    self.handler = hunt_plugin.ApiGetHuntHandler()
+
+  def testHuntDuration(self):
+    duration = rdfvalue.Duration.From(42, rdfvalue.MINUTES)
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = "12345678"
+    hunt_obj.duration = duration
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    args = hunt_plugin.ApiGetHuntArgs()
+    args.hunt_id = "12345678"
+
+    hunt_api_obj = self.handler.Handle(args, token=self.token)
+    self.assertEqual(hunt_api_obj.duration, duration)
+    self.assertEqual(hunt_api_obj.hunt_runner_args.expiry_time, duration)
 
 
 class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,

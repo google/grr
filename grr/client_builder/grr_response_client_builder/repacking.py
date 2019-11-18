@@ -16,7 +16,11 @@ import zipfile
 from future.utils import iterkeys
 
 from grr_response_client_builder import build
-from grr_response_client_builder.builders import signing
+from grr_response_client_builder import build_helpers
+from grr_response_client_builder import signing
+from grr_response_client_builder.repackers import linux as linux_repackers
+from grr_response_client_builder.repackers import osx as osx_repackers
+from grr_response_client_builder.repackers import windows as windows_repackers
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
@@ -26,7 +30,7 @@ class RepackConfig(object):
 
   def Validate(self, config_data, template_path):
     config_keys = set(iterkeys(config_data))
-    required_keys = build.ClientBuilder.REQUIRED_BUILD_YAML_KEYS
+    required_keys = build.REQUIRED_BUILD_YAML_KEYS
     if config_keys != required_keys:
       raise RuntimeError("Bad build.yaml from %s: expected %s, got %s" %
                          (template_path, required_keys, config_keys))
@@ -57,13 +61,13 @@ class TemplateRepacker(object):
   def GetRepacker(self, context, signer=None):
     """Get the appropriate client deployer based on the selected flags."""
     if "Target:Darwin" in context:
-      deployer_class = build.DarwinClientRepacker
+      deployer_class = osx_repackers.DarwinClientRepacker
     elif "Target:Windows" in context:
-      deployer_class = build.WindowsClientRepacker
+      deployer_class = windows_repackers.WindowsClientRepacker
     elif "Target:LinuxDeb" in context:
-      deployer_class = build.LinuxClientRepacker
+      deployer_class = linux_repackers.LinuxClientRepacker
     elif "Target:LinuxRpm" in context:
-      deployer_class = build.CentosClientRepacker
+      deployer_class = linux_repackers.CentosClientRepacker
     else:
       raise RuntimeError("Bad build context: %s" % context)
 
@@ -113,7 +117,9 @@ class TemplateRepacker(object):
       passwd = self.GetSigningPassword()
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
 
-  def SignTemplate(self, template_path, output_file, context=None):
+  def SignTemplate(self, template_path, output_path, context=None):
+    """Signs a given template and writes it to a given path."""
+
     if not template_path.endswith(".exe.zip"):
       raise RuntimeError(
           "Signing templates is only worthwhile for windows, rpms are signed "
@@ -129,8 +135,8 @@ class TemplateRepacker(object):
     signer = self.GetSigner(signing_context)
     z_in = zipfile.ZipFile(open(template_path, "rb"))
     with zipfile.ZipFile(
-        output_file, mode="w", compression=zipfile.ZIP_DEFLATED) as z_out:
-      build.CreateNewZipWithSignedLibs(
+        output_path, mode="w", compression=zipfile.ZIP_DEFLATED) as z_out:
+      build_helpers.CreateNewZipWithSignedLibs(
           z_in, z_out, skip_signing_files=[], signer=signer)
 
   def RepackTemplate(self,

@@ -97,57 +97,6 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     TestAnd(True, True, True)
 
 
-class RDFBoolTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
-  rdfvalue_class = rdfvalue.RDFBool
-
-  def GenerateSample(self, number=0):
-    return rdfvalue.RDFBool(number % 2)
-
-  def testComparableToPrimitiveBooleans(self):
-    self.assertEqual(rdfvalue.RDFBool(True), True)
-    self.assertNotEqual(rdfvalue.RDFBool(True), False)
-    self.assertEqual(rdfvalue.RDFBool(False), False)
-    self.assertNotEqual(rdfvalue.RDFBool(False), True)
-
-  def testUsableInBitwiseOr(self):
-
-    def TestOr(val1, val2, expected):
-      self.assertEqual(rdfvalue.RDFBool(val1) | val2, expected)
-      self.assertEqual(val1 | rdfvalue.RDFBool(val2), expected)
-
-      value = rdfvalue.RDFBool(val1)
-      value |= val2
-      self.assertEqual(value, expected)
-
-      value = val1
-      value |= rdfvalue.RDFBool(val2)
-      self.assertEqual(value, expected)
-
-    TestOr(True, False, True)
-    TestOr(False, True, True)
-    TestOr(False, False, False)
-    TestOr(True, True, True)
-
-  def testUsableInBitwiseAnd(self):
-
-    def TestAnd(val1, val2, expected):
-      self.assertEqual(rdfvalue.RDFBool(val1) & val2, expected)
-      self.assertEqual(val1 & rdfvalue.RDFBool(val2), expected)
-
-      value = rdfvalue.RDFBool(val1)
-      value &= val2
-      self.assertEqual(value, expected)
-
-      value = val1
-      value &= rdfvalue.RDFBool(val2)
-      self.assertEqual(value, expected)
-
-    TestAnd(True, False, False)
-    TestAnd(False, True, False)
-    TestAnd(False, False, False)
-    TestAnd(True, True, True)
-
-
 class DurationSecondsTest(rdf_test_base.RDFValueTestMixin,
                           test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.DurationSeconds
@@ -186,7 +135,9 @@ class ByteSizeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
         ("10kib", 10 * 1024),
         ("2.5kb", 2500),
         ("3.25MiB", 3.25 * 1024**2),
+        ("3.25 MiB", 3.25 * 1024**2),
         ("12B", 12),
+        ("12 B", 12),
     ]
 
     for string, expected in cases:

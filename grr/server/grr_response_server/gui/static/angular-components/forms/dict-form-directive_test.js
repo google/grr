@@ -224,7 +224,7 @@ describe('dict form directive', () => {
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFBool', value: true}},
+      value: {'': {type: 'bool', value: true}},
     });
   });
 
@@ -240,7 +240,7 @@ describe('dict form directive', () => {
 
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFBool', value: false}},
+      value: {'': {type: 'bool', value: false}},
     });
   });
 
@@ -261,7 +261,7 @@ describe('dict form directive', () => {
     setFormValue(element, 'true');
     expect(model).toEqual({
       type: 'Dict',
-      value: {'': {type: 'RDFBool', value: true}},
+      value: {'': {type: 'bool', value: true}},
     });
 
     setFormValue(element, 'truea');

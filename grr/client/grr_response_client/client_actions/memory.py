@@ -30,7 +30,8 @@ from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
-def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
+def ProcessIterator(pids, process_regex_string, cmdline_regex_string,
+                    ignore_grr_process, error_list):
   """Yields all (psutil-) processes that match certain criteria.
 
   Args:
@@ -38,6 +39,8 @@ def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
       returned.
     process_regex_string: If given, only processes whose name matches the regex
       are returned.
+    cmdline_regex_string: If given, only processes whose cmdline matches the
+      regex are returned.
     ignore_grr_process: If True, the grr process itself will not be returned.
     error_list: All errors while handling processes are appended to this list.
       Type is repeated ProcessMemoryError.
@@ -56,6 +59,11 @@ def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
   else:
     process_regex = None
 
+  if cmdline_regex_string:
+    cmdline_regex = re.compile(cmdline_regex_string)
+  else:
+    cmdline_regex = None
+
   if pids:
     process_iterator = []
     for pid in pids:
@@ -70,6 +78,9 @@ def ProcessIterator(pids, process_regex_string, ignore_grr_process, error_list):
 
   for p in process_iterator:
     if process_regex and not process_regex.search(p.name()):
+      continue
+
+    if cmdline_regex and not cmdline_regex.search(" ".join(p.cmdline())):
       continue
 
     if p.pid == grr_pid:
@@ -235,6 +246,7 @@ class YaraProcessScan(actions.ActionPlugin):
     scan_request.yara_signature = yara_signature
     scan_response = rdf_memory.YaraProcessScanResponse()
     processes = ProcessIterator(scan_request.pids, scan_request.process_regex,
+                                scan_request.cmdline_regex,
                                 scan_request.ignore_grr_process,
                                 scan_response.errors)
 
@@ -423,7 +435,7 @@ class YaraProcessDump(actions.ActionPlugin):
 
     result = rdf_memory.YaraProcessDumpResponse()
 
-    for p in ProcessIterator(args.pids, args.process_regex,
+    for p in ProcessIterator(args.pids, args.process_regex, None,
                              args.ignore_grr_process, result.errors):
       self.Progress()
       start = rdfvalue.RDFDatetime.Now()

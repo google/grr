@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import gc
 import logging
 import pdb
-import time
 import traceback
 
 from absl import flags
@@ -19,6 +18,7 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import compatibility
 
 # Our first response in the session is this:
 INITIAL_RESPONSE_ID = 1
@@ -34,6 +34,10 @@ class CPUExceededError(Error):
 
 class NetworkBytesExceededError(Error):
   """Exceeded the maximum number of bytes allowed to be sent for this action."""
+
+
+class RuntimeExceededError(Error):
+  """Exceeded the maximum allowed runtime."""
 
 
 class ActionPlugin(object):
@@ -69,7 +73,7 @@ class ActionPlugin(object):
 
   require_fastpoll = True
 
-  last_progress_time = 0
+  _PROGRESS_THROTTLE_INTERVAL = rdfvalue.Duration.From(2, rdfvalue.SECONDS)
 
   def __init__(self, grr_worker=None):
     """Initializes the action plugin.
@@ -90,6 +94,9 @@ class ActionPlugin(object):
     self.proc = psutil.Process()
     self.cpu_start = self.proc.cpu_times()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit
+    self.last_progress_time = rdfvalue.RDFDatetime.Now()
+    self.start_time = None
+    self.runtime_limit = None
 
   def Execute(self, message):
     """This function parses the RDFValue from the server.
@@ -137,6 +144,9 @@ class ActionPlugin(object):
       if getattr(flags.FLAGS, "debug_client_actions", False):
         pdb.set_trace()
 
+      self.start_time = rdfvalue.RDFDatetime.Now()
+      self.runtime_limit = self.message.runtime_limit_us
+
       try:
         self.Run(args)
 
@@ -147,7 +157,18 @@ class ActionPlugin(object):
                          used.system - self.cpu_start.system)
 
     except NetworkBytesExceededError as e:
+      self.grr_worker.SendClientAlert("Network limit exceeded.")
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
+                     "%r: %s" % (e, e), traceback.format_exc())
+
+    except RuntimeExceededError as e:
+      self.grr_worker.SendClientAlert("Runtime limit exceeded.")
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.RUNTIME_LIMIT_EXCEEDED,
+                     "%r: %s" % (e, e), traceback.format_exc())
+
+    except CPUExceededError as e:
+      self.grr_worker.SendClientAlert("Cpu limit exceeded.")
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.CPU_LIMIT_EXCEEDED,
                      "%r: %s" % (e, e), traceback.format_exc())
 
     # We want to report back all errors and map Python exceptions to
@@ -264,10 +285,16 @@ class ActionPlugin(object):
 
     Raises:
       CPUExceededError: CPU limit exceeded.
+      RuntimeExceededError: Runtime limit exceeded.
     """
-    now = time.time()
-    if now - self.last_progress_time <= 2:
+    now = rdfvalue.RDFDatetime.Now()
+
+    if now - self.last_progress_time <= self._PROGRESS_THROTTLE_INTERVAL:
       return
+
+    if self.runtime_limit and now - self.start_time > self.runtime_limit:
+      raise RuntimeExceededError("{} exceeded runtime limit of {}.".format(
+          compatibility.GetName(type(self)), self.runtime_limit))
 
     self.last_progress_time = now
 
@@ -285,7 +312,6 @@ class ActionPlugin(object):
     used_cpu = user_end - user_start + system_end - system_start
 
     if used_cpu > self.cpu_limit:
-      self.grr_worker.SendClientAlert("Cpu limit exceeded.")
       raise CPUExceededError("Action exceeded cpu limit.")
 
   def SyncTransactionLog(self):

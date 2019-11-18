@@ -292,7 +292,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     msgs = []
     for e in self.GetHttpErrors():
-      msg = "[http]: {!r}".format(e)
+      try:
+        msg = e["data"]["traceBack"]
+      except (TypeError, KeyError):
+        msg = "[http]: {!r}".format(e)
+
       logging.error(msg)
       msgs.append(msg)
 

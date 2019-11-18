@@ -34,6 +34,8 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
+ONE_MIB = 1024 * 1024
+
 _TEST_YARA_SIGNATURE = """
 rule test_rule {
   meta:
@@ -146,7 +148,12 @@ class FakeMemoryProcess(object):
           FakeRegion(0, b"A" * 100),
           FakeRegion(100, b"B"),
           FakeRegion(101, b"X" * 50 + b"1234" + b"X" * 50)
-      ]
+      ],
+      110: [
+          FakeRegion(0, b"A" * 100),
+          FakeRegion(1000, b"X" * ONE_MIB + b"1234" + b"X" * ONE_MIB),
+          FakeRegion(2000000, b"A" * 100),
+      ],
   }
 
   def __init__(self, pid=None):
@@ -192,6 +199,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
   NO_MATCH_PIDS = (101, 103, 105, 106)
   MATCH_PID_1_REGION = 102
   MATCH_PID_2_REGIONS = 108
+  MATCH_BIG_REGIONS = 110
 
   def process(self, processes, pid=None):
     if not pid:
@@ -252,6 +260,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
             pid=106, name="proc106.exe", ppid=104),
         client_test_lib.MockWindowsProcess(pid=108, name="proc108.exe"),
         client_test_lib.MockWindowsProcess(pid=109, name="proc109.exe"),
+        client_test_lib.MockWindowsProcess(pid=110, name="proc110.exe"),
     ]
 
 
@@ -648,6 +657,11 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         self.assertIn("limit exceeded", result.dumped_processes[0].error)
       else:
         self.fail("Unexpected result type %s" % type(result))
+
+  def testProcessDumpSendsReplyWithNoRegions(self):
+    results = self._RunProcessDump(size_limit=1)
+    self.assertLen(results, 1)
+    self.assertIsInstance(results[0], rdf_memory.YaraProcessDumpResponse)
 
   def testProcessDumpByDefaultErrors(self):
     # This tests that not specifying any restrictions on the processes

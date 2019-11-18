@@ -14,7 +14,18 @@ WORKDIR /tmp/grrdocker-scratch
 RUN apt update -qq && \
   apt install -y locales fakeroot debhelper libffi-dev git attr \
   libssl-dev python-dev python-pip wget openjdk-8-jdk zip devscripts \
-  dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
+  dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1 \
+  zlib1g-dev libncurses5-dev libncursesw5-dev libreadline-dev libsqlite3-dev \
+  libbz2-dev libexpat1-dev liblzma-dev libffi-dev uuid-dev
+
+# Build Python 3 from source.
+RUN wget https://www.python.org/ftp/python/3.6.9/Python-3.6.9.tgz && \
+  tar xzvf Python-3.6.9.tgz && \
+  cd Python-3.6.9 && \
+  ./configure --enable-shared --enable-ipv6 --prefix=/usr/local \
+    LDFLAGS="-Wl,-rpath /usr/local/lib" && \
+  make && \
+  make altinstall
 
 # Dependencies and environment variables required to build CHIPSEC from source.
 ENV LINUX_HEADERS_VERSION="4.15.0-46-generic"

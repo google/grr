@@ -840,6 +840,36 @@ Section1.int: 3
           parser=config_lib.YamlParser,
           data=one)
 
+  def testConfigFileInclusionCanBeTurnedOff(self):
+    one = r"""
+Config.includes:
+  - 2.yaml
+
+Section1.int: 1
+"""
+    two = r"""
+SecondaryFileIncluded: true
+Section1.int: 2
+"""
+
+    with utils.TempDirectory() as temp_dir:
+      configone = os.path.join(temp_dir, "1.yaml")
+      configtwo = os.path.join(temp_dir, "2.yaml")
+      with io.open(configone, "w") as fd:
+        fd.write(one)
+      with io.open(configtwo, "w") as fd:
+        fd.write(two)
+
+      # Using filename
+      conf = self._GetNewConf()
+      conf.Initialize(
+          parser=config_lib.YamlParser,
+          filename=configone,
+          process_includes=False)
+
+      self.assertFalse(conf.Get("SecondaryFileIncluded"))
+      self.assertEqual(conf.Get("Section1.int"), 1)
+
   def testConfigFileIncludeAbsolutePaths(self):
     one = r"""
 Section1.int: 1

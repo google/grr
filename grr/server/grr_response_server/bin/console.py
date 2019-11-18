@@ -20,6 +20,14 @@ from grr_response_server import server_plugins
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
+
+# This is a frequently used module. We import it here so it doesn't have
+# to be manually imported when using the console.
+#
+# pylint: disable=unused-import
+from grr_response_server import data_store
+# pylint: enable=unused-import
+
 from grr_response_server import fleetspeak_connector
 from grr_response_server import ipshell
 from grr_response_server import server_startup

@@ -26,7 +26,7 @@ message HttpRequest {
 }
 
 // This message is sent between the client and the server.
-// Next field: 23
+// Next field: 24
 message GrrMessage {
   optional string session_id = 1 [(sem_type) = {
     type: "FlowSessionID",
@@ -155,6 +155,12 @@ message GrrMessage {
   optional uint64 timestamp = 22 [(sem_type) = {
     type: "RDFDatetime",
     description: "An optional timestamp when this message was stored.",
+  }];
+
+  optional uint64 runtime_limit_us = 23 [(sem_type) = {
+    type: "Duration",
+    description: "The maximum execution time of the client action in "
+                 "microseconds.",
   }];
 }
 
@@ -294,6 +300,8 @@ message GrrStatus {
     RETRANSMISSION_DETECTED = 2;
     CLIENT_KILLED = 3;
     NETWORK_LIMIT_EXCEEDED = 4;
+    RUNTIME_LIMIT_EXCEEDED = 5;
+    CPU_LIMIT_EXCEEDED = 6;
 
     WORKER_STUCK = 9;
     GENERIC_ERROR = 10;

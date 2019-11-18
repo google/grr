@@ -116,7 +116,7 @@ class TestDateTimeInput(gui_test_lib.GRRSeleniumTest):
     datetime_input = self.WaitUntil(self.GetVisibleElement,
                                     "css=grr-form-datetime input")
     value = datetime_input.get_attribute("value")
-    self.assertRegexpMatches(value, r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
+    self.assertRegex(value, r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
     self.assertStartsWith(value, "20")
 
     datetime_input.send_keys(keys.Keys.BACKSPACE)

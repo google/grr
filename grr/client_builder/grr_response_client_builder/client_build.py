@@ -19,12 +19,13 @@ from absl import flags
 from absl.flags import argparse_flags
 import distro
 
-from grr_response_client_builder import build
+from grr_response_client_builder import build_helpers
 from grr_response_client_builder import builders
 from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
+from grr_response_core.lib import utils
 
 # pylint: disable=unused-import
 # Required for google_config_validator
@@ -179,7 +180,7 @@ class TemplateBuilder(object):
       elif "Target:Windows" in context:
         return builders.WindowsClientBuilder(context=context)
       elif "Target:LinuxDeb" in context:
-        return builders.LinuxClientBuilder(context=context)
+        return builders.DebianClientBuilder(context=context)
       elif "Target:LinuxRpm" in context:
         return builders.CentosClientBuilder(context=context)
       else:
@@ -217,14 +218,21 @@ class TemplateBuilder(object):
       context.append(self.GetPackageFormat())
 
     template_path = None
+    # If output is specified, place the built template file there, otherwise
+    # use the default location prescribed by the config.
     if output:
       template_path = os.path.join(
           output,
           grr_config.CONFIG.Get(
               "PyInstaller.template_filename", context=context))
+    else:
+      template_path = grr_config.CONFIG.Get(
+          "ClientBuilder.template_path", context=context)
+
+    utils.EnsureDirExists(os.path.dirname(template_path))
 
     builder_obj = self.GetBuilder(context)
-    builder_obj.MakeExecutableTemplate(output_file=template_path)
+    builder_obj.MakeExecutableTemplate(template_path)
 
 
 def SpawnProcess(popen_args, passwd=None):
@@ -381,14 +389,12 @@ def GetClientConfig(filename):
   config_lib.ParseConfigCommandLine()
   context = list(grr_config.CONFIG.context)
   context.append("Client Context")
-  deployer = build.ClientRepacker()
   # Disable timestamping so we can get a reproducible and cachable config file.
-  config_data = deployer.GetClientConfig(
+  config_data = build_helpers.GetClientConfig(
       context, validate=True, deploy_timestamp=False)
-  builder = build.ClientBuilder()
   with open(filename, "w") as fd:
     fd.write(config_data)
-    builder.WriteBuildYaml(fd, build_timestamp=False)
+    build_helpers.WriteBuildYaml(fd, build_timestamp=False, context=context)
 
 
 def main(args):

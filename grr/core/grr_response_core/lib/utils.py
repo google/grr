@@ -681,7 +681,7 @@ def PassphraseCallback(verify=False,
         break
     except KeyboardInterrupt:
       return None
-  return p1
+  return p1.encode("utf-8")
 
 
 def FormatNumberAsString(num):

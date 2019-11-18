@@ -10,7 +10,7 @@ import platform
 
 if platform.system() == "Linux":
   from grr_response_client_builder.builders import linux
-  LinuxClientBuilder = linux.LinuxClientBuilder
+  DebianClientBuilder = linux.DebianClientBuilder
   CentosClientBuilder = linux.CentosClientBuilder
 
 elif platform.system() == "Windows":

@@ -13,11 +13,13 @@ import unittest
 
 from absl import app
 from future.builtins import range
+import mock
 import psutil
 
 from grr_response_client import actions
 from grr_response_client import client_utils
 from grr_response_client.client_actions import standard
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -36,7 +38,7 @@ class ProgressAction(actions.ActionPlugin):
   time = 100
 
   def Run(self, message):
-    _ = message
+    del message  # Unused.
     for _ in range(3):
       self.time += 5
       with test_lib.FakeTime(self.time):
@@ -106,8 +108,53 @@ class ActionTest(client_test_lib.EmptyActionTest):
       self.assertEqual(result.memory_percent, 10.0)
       self.assertEqual(result.nice, 10)
 
-  def testCPULimit(self):
+  def testRaisesWhenRuntimeLimitIsExceeded(self):
+    message = rdf_flows.GrrMessage(
+        name="ProgressAction",
+        runtime_limit_us=rdfvalue.Duration.From(9, rdfvalue.SECONDS))
+    worker = mock.MagicMock()
+    with test_lib.FakeTime(100):
+      action = ProgressAction(worker)
+      action.SendReply = mock.MagicMock()  # pylint: disable=invalid-name
+      action.Execute(message)
 
+    self.assertEqual(action.SendReply.call_count, 1)
+    self.assertEqual(action.SendReply.call_args[0][0].status,
+                     "RUNTIME_LIMIT_EXCEEDED")
+
+    self.assertEqual(worker.Heartbeat.call_count, 1)
+
+    self.assertEqual(worker.SendClientAlert.call_count, 1)
+    self.assertEqual(worker.SendClientAlert.call_args[0][0],
+                     "Runtime limit exceeded.")
+
+  def testDoesNotRaiseWhenFasterThanRuntimeLimit(self):
+    message = rdf_flows.GrrMessage(
+        name="ProgressAction",
+        runtime_limit_us=rdfvalue.Duration.From(16, rdfvalue.SECONDS))
+    worker = mock.MagicMock()
+    with test_lib.FakeTime(100):
+      action = ProgressAction(worker)
+      action.SendReply = mock.MagicMock()  # pylint: disable=invalid-name
+      action.Execute(message)
+
+    self.assertEqual(worker.Heartbeat.call_count, 3)
+    self.assertEqual(action.SendReply.call_count, 1)
+    self.assertEqual(action.SendReply.call_args[0][0].status, "OK")
+
+  def testDoesNotRaiseForZeroRuntimeLimit(self):
+    message = rdf_flows.GrrMessage(name="ProgressAction", runtime_limit_us=0)
+    worker = mock.MagicMock()
+    with test_lib.FakeTime(100):
+      action = ProgressAction(worker)
+      action.SendReply = mock.MagicMock()
+      action.Execute(message)
+
+    self.assertEqual(worker.Heartbeat.call_count, 3)
+    self.assertEqual(action.SendReply.call_count, 1)
+    self.assertEqual(action.SendReply.call_args[0][0].status, "OK")
+
+  def testCPULimit(self):
     received_messages = []
 
     class MockWorker(object):
@@ -145,6 +192,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
       self.assertIn("Action exceeded cpu limit.", results[0].error_message)
       self.assertIn("CPUExceededError", results[0].error_message)
+      self.assertEqual("CPU_LIMIT_EXCEEDED", results[0].status)
 
       self.assertLen(received_messages, 1)
       self.assertEqual(received_messages[0], "Cpu limit exceeded.")

@@ -15,9 +15,10 @@ import stat
 import zlib
 
 from absl import app
-import psutil
+import mock
 
 from grr_response_client.client_actions import file_finder as client_file_finder
+from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -27,7 +28,6 @@ from grr.test_lib import client_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
-
 
 # TODO(hanuszczak): This test suite is very bad, it needs to be rewritten.
 
@@ -74,6 +74,26 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertEqual(
         self._GetRelativeResults(results, base_path=profiles_path),
         os.listdir(profiles_path))
+
+  def testNonExistentPath(self):
+    paths = [self.base_path + "/does/not/exist/**"]
+    results = self._RunFileFinder(paths, self.stat_action)
+    self.assertEmpty(results)
+
+  def testRecursiveGlobCallsProgressWithoutMatches(self):
+    paths = [self.base_path + "/**4/nonexistent"]
+
+    progress = mock.MagicMock()
+
+    with mock.patch.object(client_file_finder.FileFinderOS, "Progress",
+                           progress):
+      results = self._RunFileFinder(paths, self.stat_action)
+    self.assertEmpty(results)
+
+    # progress.call_count should rise linearly to the number of files and
+    # folders in the test data folder. At the time of writing test data contains
+    # 140 files and folders. progress is called 135 times.
+    self.assertGreater(progress.call_count, 100)
 
   def testRecursiveGlob(self):
     paths = [self.base_path + "/**3"]
@@ -801,17 +821,43 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     with io.open(net_file, "wb") as fd:
       fd.write(b"net_data")
 
-    all_mountpoints = [local_dev_dir, net_dev_dir, "/some/other/dir"]
-    local_mountpoints = [local_dev_dir]
+    def MyGetAllowedDevices(xdev, path):
+      if xdev == rdf_file_finder.FileFinderArgs.XDev.ALWAYS:
+        # Never stop at any device boundary.
+        return globbing._XDEV_ALL_ALLOWED
 
-    def MyDiskPartitions(all=False):  # pylint: disable=redefined-builtin
-      mp = collections.namedtuple("MountPoint", ["mountpoint"])
-      if all:
-        return [mp(mountpoint=m) for m in all_mountpoints]
+      elif xdev == rdf_file_finder.FileFinderArgs.XDev.NEVER:
+        base_dev = os.stat(path).st_dev
+        return set([base_dev])
+
+      elif xdev == rdf_file_finder.FileFinderArgs.XDev.LOCAL:
+        base_dev = os.stat(path).st_dev
+        # The fake device numbers are base + 5 for local and base + 15 for net.
+        return set([base_dev, base_dev + 5])
+
       else:
-        return [mp(mountpoint=m) for m in local_mountpoints]
+        raise ValueError("Incorrect `xdev` value: %s" % xdev)
 
-    with utils.Stubber(psutil, "disk_partitions", MyDiskPartitions):
+    def MyStat(path):
+      stat_entry = MyStat.old_target(path)
+
+      if "local_dev" in path or "net_dev" in path:
+        stat_entry_list = list(stat_entry)
+        old_dev = stat_entry.st_dev
+        # Make sure we are modifying the right field.
+        self.assertEqual(old_dev, stat_entry_list[2])
+        if "local_dev" in path:
+          stat_entry_list[2] = old_dev + 5
+        else:
+          stat_entry_list[2] = old_dev + 15
+
+        return type(stat_entry)(stat_entry_list)
+
+      return stat_entry
+
+    with utils.MultiStubber(
+        (os, "stat", MyStat),
+        (globbing, "_GetAllowedDevices", MyGetAllowedDevices)):
       paths = [test_dir + "/**5"]
       self.RunAndCheck(
           paths,

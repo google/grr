@@ -6,15 +6,18 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import logging
 
 from future.builtins import str
 from future.utils import iteritems
+from future.utils import iterkeys
 from future.utils import itervalues
 from future.utils import python_2_unicode_compatible
 from past.builtins import long
 from typing import cast, List, Text, Union
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import serialization
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import jobs_pb2
@@ -50,12 +53,13 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
 
         return value
     except TypeError:
+      logging.exception("Error during decoding %s", self)
       return None
 
   @payload.setter
   def payload(self, payload):
     self.name = payload.__class__.__name__
-    self.data = payload.SerializeToBytes()
+    self.data = serialization.ToBytes(payload)
 
 
 class DataBlob(rdf_structs.RDFProtoStruct):
@@ -111,14 +115,18 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
           return self
 
-      message = "Unsupported type for ProtoDict: %s" % type(value)
+      message = "Unsupported type for ProtoDict: %s of type %s" % (value,
+                                                                   type(value))
       if raise_on_error:
         raise TypeError(message)
 
+      logging.error(message)
       setattr(self, "string", message)
 
     return self
 
+  # TODO: Defaulting to ignoring errors is unexpected and
+  #  problematic.
   def GetValue(self, ignore_error=True):
     """Extracts and returns a single value from a DataBlob."""
     if self.HasField("none"):
@@ -141,9 +149,10 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     if self.HasField("rdf_value"):
       try:
         rdf_class = rdfvalue.RDFValue.classes[self.rdf_value.name]
-        return rdf_class.FromSerializedBytes(self.rdf_value.data)
+        return serialization.FromBytes(rdf_class, self.rdf_value.data)
       except (ValueError, KeyError) as e:
         if ignore_error:
+          logging.exception("Error during GetValue() of %s", self)
           return e
 
         raise
@@ -201,17 +210,15 @@ class Dict(rdf_structs.RDFProtoStruct):
       raise rdfvalue.InitializeError("Invalid initializer for ProtoDict.")
 
   def ToDict(self):
-    result = {}
-    for x in itervalues(self._values):
-      key = x.k.GetValue()
-      result[key] = x.v.GetValue()
-      try:
-        # Try to unpack nested AttributedDicts
-        result[key] = result[key].ToDict()
-      except AttributeError:
-        pass
 
-    return result
+    def _Convert(obj):
+      if isinstance(obj, Dict):
+        return {key: _Convert(value) for key, value in obj.items()}
+      if isinstance(obj, list):
+        return [_Convert(item) for item in obj]
+      return obj
+
+    return _Convert(self)
 
   def FromDict(self, dictionary, raise_on_error=True):
     # First clear and then set the dictionary.
@@ -348,6 +355,14 @@ class AttributedDict(Dict):
       KeyValue,
   ]
 
+  def __init__(self, *args, **kwargs):
+    super(AttributedDict, self).__init__(*args, **kwargs)
+    self._StringifyKeys()
+
+  def SetRawData(self, raw_data):
+    super(AttributedDict, self).SetRawData(raw_data)
+    self._StringifyKeys()
+
   def __getattr__(self, item):
     # Pickle is checking for the presence of overrides for various builtins.
     # Without this check we swallow the error and return None, which confuses
@@ -362,6 +377,56 @@ class AttributedDict(Dict):
       object.__setattr__(self, item, value)
     else:
       self.SetItem(item, value)
+
+  def __setitem__(self, key, value):
+    # TODO: This behavior should be removed once migration is done.
+    if isinstance(key, bytes):
+      key = key.decode("utf-8")
+
+    if isinstance(key, Text):
+      return super(AttributedDict, self).__setitem__(key, value)
+
+    raise TypeError("Non-string key: {!r}".format(key))
+
+  def __getitem__(self, key):
+    # TODO: This behavior should be removed once migration is done.
+    if isinstance(key, bytes):
+      key = key.decode("utf-8")
+
+    if isinstance(key, Text):
+      return super(AttributedDict, self).__getitem__(key)
+
+    raise TypeError("Non-string key: {!r}".format(key))
+
+  # TODO: This behavior should be removed once migration is done.
+  # Because of Python 3 migration and incompatibilities between Pythons in how
+  # attributed dicts are serialized, we are forced to have this dirty hack in
+  # here. Once migration is done and we are sure that the old serialized data
+  # that is stored in the database does not need to be read anymore, these can
+  # be removed.
+  def _StringifyKeys(self):
+    """Turns byte string keys into unicode string keys."""
+    byte_keys = set()
+
+    for key in iterkeys(self._values):
+      if isinstance(key, bytes):
+        byte_keys.add(key)
+      elif not isinstance(key, Text):
+        raise TypeError("Non-string key: {!r}".format(key))
+
+    for byte_key in byte_keys:
+      value = self._values[byte_key].v
+      del self._values[byte_key]
+
+      string_key = byte_key.decode("utf-8")
+
+      entry = KeyValue(k=DataBlob().SetValue(string_key), v=value)
+      self._values[string_key] = entry
+
+    # If we made any changes, update `self.dat` (whatever it is, but other
+    # methods seem to do the same in case of modifying the internal state).
+    if byte_keys:
+      self.dat = list(itervalues(self._values))
 
 
 class BlobArray(rdf_structs.RDFProtoStruct):

@@ -29,7 +29,6 @@ const ApiQuerySpecController = function(
   /** @export {Object.<string, string>} */
   this.typeHints = {
     'RDFDatetime': 'Time since epoch in microseconds.',
-    'RDFBool': 'Either 1 or 0.',
     'RDFURN': 'Path string with components separated by "/", i.e. ' +
         '"foo/bar/blah".'
   };

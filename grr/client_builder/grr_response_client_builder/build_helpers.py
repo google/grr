@@ -1,0 +1,399 @@
+#!/usr/bin/env python
+"""Helper functions used by client building/repacking process."""
+
+from __future__ import absolute_import
+from __future__ import division
+
+from __future__ import unicode_literals
+
+import io
+import logging
+import os
+import shutil
+import struct
+import tempfile
+
+from future.builtins import str
+from future.utils import iteritems
+from future.utils import iterkeys
+from future.utils import itervalues
+
+from typing import Optional, Sequence, Text, Tuple
+
+from grr_response_client_builder import build
+from grr_response_core import config
+from grr_response_core import version
+from grr_response_core.config import contexts
+from grr_response_core.lib import config_validator_base
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import utils
+# pylint: disable=unused-import
+# Pull in local config validators.
+from grr_response_core.lib.local import plugins
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.util.compat import yaml
+# pylint: enable=unused-import
+
+# pylint: disable=g-import-not-at-top,unused-import
+# This is a workaround so we don't need to maintain the whole PyInstaller
+# codebase as a full-fledged dependency.
+try:
+  # pytype: disable=import-error
+  from PyInstaller import __main__ as PyInstallerMain
+  # pytype: enable=import-error
+except ImportError:
+  # We ignore this failure since most people running the code don't build their
+  # own clients and printing an error message causes confusion.  Those building
+  # their own clients will need PyInstaller installed.
+  pass
+# pylint: enable=g-import-not-at-top,unused-import
+
+Context = Sequence[Text]
+
+
+def GenerateDirectory(input_dir = None,
+                      output_dir = None,
+                      replacements = None,
+                      context = None):
+  """Copies an a directory rewriting file names according to spec."""
+  if context is None:
+    raise ValueError("context must be provided")
+
+  input_dir = utils.NormalizePath(input_dir)
+  output_dir = utils.NormalizePath(output_dir)
+  replacements = replacements or []
+
+  for (root, _, files) in os.walk(input_dir):
+    for filename in files:
+      in_file = utils.JoinPath(root, filename)
+      out_file = in_file.replace(input_dir, output_dir)
+      for (s, replacement) in replacements:
+        out_file = out_file.replace(s, replacement)
+      utils.EnsureDirExists(os.path.dirname(out_file))
+      GenerateFile(in_file, out_file, context=context)
+
+
+def GenerateFile(input_filename = None,
+                 output_filename = None,
+                 context = None):
+  """Generates a file from a template, interpolating config values."""
+  if context is None:
+    raise ValueError("context must be provided.")
+
+  if input_filename is None:
+    input_filename = output_filename + ".in"
+  if output_filename[-3:] == ".in":
+    output_filename = output_filename[:-3]
+  logging.debug("Generating file %s from %s", output_filename, input_filename)
+
+  with io.open(input_filename, "r") as fd:
+    data = fd.read()
+
+  with io.open(output_filename, "w") as fd:
+    fd.write(config.CONFIG.InterpolateValue(data, context=context))
+
+
+def CleanDirectory(directory):
+  logging.info("Clearing directory %s", directory)
+  try:
+    shutil.rmtree(directory)
+  except OSError:
+    pass
+
+  utils.EnsureDirExists(directory)
+
+
+def MakeBuildDirectory(context=None):
+  """Prepares the build and work directories."""
+  if context is None:
+    raise ValueError("context can't be None")
+
+  build_dir = config.CONFIG.Get("PyInstaller.build_dir", context=context)
+  work_path = config.CONFIG.Get("PyInstaller.workpath_dir", context=context)
+
+  CleanDirectory(build_dir)
+  CleanDirectory(work_path)
+
+
+def BuildWithPyInstaller(context=None):
+  """Use pyinstaller to build a client package."""
+  if context is None:
+    raise ValueError("context has to be specified")
+
+  CleanDirectory(config.CONFIG.Get("PyInstaller.distpath", context=context))
+
+  logging.info("Copying pyinstaller support files")
+
+  build_dir = config.CONFIG.Get("PyInstaller.build_dir", context=context)
+  spec_file = os.path.join(build_dir, "grr.spec")
+
+  with io.open(spec_file, "w") as fd:
+    fd.write(config.CONFIG.Get("PyInstaller.spec", context=context))
+
+  with io.open(os.path.join(build_dir, "version.txt"), "w") as fd:
+    fd.write(config.CONFIG.Get("PyInstaller.version", context=context))
+
+  shutil.copy(
+      src=config.CONFIG.Get("PyInstaller.icon_path", context=context),
+      dst=os.path.join(build_dir, "grr.ico"))
+
+  # We expect the onedir (a one-folder bundle containing an executable) output
+  # at this location.
+  output_dir = os.path.join(
+      config.CONFIG.Get("PyInstaller.distpath", context=context), "grr-client")
+
+  args = [
+      "--distpath",
+      config.CONFIG.Get("PyInstaller.distpath", context=context),
+      "--workpath",
+      config.CONFIG.Get("PyInstaller.workpath_dir", context=context),
+      spec_file,
+  ]
+  logging.info("Running pyinstaller: %s", args)
+  PyInstallerMain.run(pyi_args=args)
+
+  # Clear out some crud that pyinstaller includes.
+  for path in ["tcl", "tk", "pytz"]:
+    dir_path = os.path.join(output_dir, path)
+    try:
+      shutil.rmtree(dir_path)
+    except OSError:
+      logging.error("Unable to remove directory: %s", dir_path)
+
+    try:
+      os.mkdir(dir_path)
+    except OSError:
+      logging.error("Unable to create directory: %s", dir_path)
+
+    file_path = os.path.join(dir_path, path)
+    try:
+      # Create an empty file so the directories get put in the installers.
+      with io.open(file_path, "wb"):
+        pass
+    except IOError:
+      logging.error("Unable to create file: %s", file_path)
+
+  version_ini = version.VersionPath()
+  shutil.copy(version_ini, os.path.join(output_dir, "version.ini"))
+
+  with io.open(os.path.join(output_dir, "build.yaml"), "wb") as fd:
+    WriteBuildYaml(fd, context=context)
+
+  return output_dir
+
+
+def WriteBuildYaml(fd, build_timestamp=True, context=None):
+  """Write build spec to fd."""
+  if context is None:
+    raise ValueError("context has to be specified")
+
+  output = {
+      "Client.build_environment":
+          rdf_client.Uname.FromCurrentSystem().signature(),
+      "Template.build_type":
+          config.CONFIG.Get("ClientBuilder.build_type", context=context),
+      "Template.version_major":
+          config.CONFIG.Get("Source.version_major", context=context),
+      "Template.version_minor":
+          config.CONFIG.Get("Source.version_minor", context=context),
+      "Template.version_revision":
+          config.CONFIG.Get("Source.version_revision", context=context),
+      "Template.version_release":
+          config.CONFIG.Get("Source.version_release", context=context),
+      "Template.arch":
+          config.CONFIG.Get("Client.arch", context=context)
+  }
+
+  yaml_keys = set(build.REQUIRED_BUILD_YAML_KEYS)
+  if build_timestamp:
+    output["Client.build_time"] = rdfvalue.RDFDatetime.Now()
+  else:
+    yaml_keys.remove("Client.build_time")
+
+  for key, value in iteritems(output):
+    output[key] = str(value)
+
+  output["Template.build_context"] = context
+
+  output_keys = set(iterkeys(output))
+  if output_keys != yaml_keys:
+    raise RuntimeError("Bad build.yaml: expected %s, got %s" %
+                       (yaml_keys, output_keys))
+
+  for k, v in output.items():
+    if v is None:
+      raise RuntimeError("Bad build.yaml: expected %s to be not None" % k)
+
+  fd.write(yaml.Dump(output).encode("utf-8"))
+
+
+def ValidateEndConfig(config_obj, errors_fatal=True, context=None):
+  """Given a generated client config, attempt to check for common errors."""
+  if context is None:
+    raise ValueError("context can't be None")
+
+  errors = []
+
+  if not config.CONFIG["Client.fleetspeak_enabled"]:
+    location = config_obj.Get("Client.server_urls", context=context)
+    if not location:
+      errors.append("Empty Client.server_urls")
+
+    for url in location:
+      if not url.startswith("http"):
+        errors.append("Bad Client.server_urls specified %s" % url)
+
+    certificate = config_obj.GetRaw(
+        "CA.certificate", default=None, context=context)
+    if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
+      errors.append("CA certificate missing from config.")
+
+  key_data = config_obj.GetRaw(
+      "Client.executable_signing_public_key", default=None, context=context)
+  if key_data is None:
+    errors.append("Missing Client.executable_signing_public_key.")
+  elif not key_data.startswith("-----BEGIN PUBLIC"):
+    errors.append("Invalid Client.executable_signing_public_key: %s" % key_data)
+  else:
+    rdf_crypto.RSAPublicKey.FromHumanReadable(key_data)
+
+  for bad_opt in ["Client.private_key"]:
+    if config_obj.Get(bad_opt, context=context, default=""):
+      errors.append("Client cert in conf, this should be empty at deployment"
+                    " %s" % bad_opt)
+
+  if errors_fatal and errors:
+    for error in errors:
+      logging.error("Build Config Error: %s", error)
+    raise RuntimeError("Bad configuration generated. Terminating.")
+  else:
+    return errors
+
+
+# Config options that have to make it to a deployable binary.
+_CONFIG_SECTIONS = [
+    "CA", "Client", "ClientRepacker", "Logging", "Config", "Nanny", "Osquery",
+    "Installer", "Template"
+]
+
+# Config options that should never make it to a deployable binary.
+_SKIP_OPTION_LIST = ["Client.private_key"]
+
+
+def GetClientConfig(context, validate=True, deploy_timestamp=True):
+  """Generates the client config file for inclusion in deployable binaries."""
+  with utils.TempDirectory() as tmp_dir:
+    # Make sure we write the file in yaml format.
+    filename = os.path.join(
+        tmp_dir,
+        config.CONFIG.Get("ClientBuilder.config_filename", context=context))
+
+    new_config = config.CONFIG.MakeNewConfig()
+    new_config.Initialize(reset=True, data="")
+    new_config.SetWriteBack(filename)
+
+    # Only copy certain sections to the client. We enumerate all
+    # defined options and then resolve those from the config in the
+    # client's context. The result is the raw option as if the
+    # client read our config file.
+    client_context = context[:]
+    while contexts.CLIENT_BUILD_CONTEXT in client_context:
+      client_context.remove(contexts.CLIENT_BUILD_CONTEXT)
+    for descriptor in sorted(config.CONFIG.type_infos, key=lambda x: x.name):
+      if descriptor.name in _SKIP_OPTION_LIST:
+        continue
+
+      if descriptor.section in _CONFIG_SECTIONS:
+        value = config.CONFIG.GetRaw(
+            descriptor.name, context=client_context, default=None)
+
+        if value is not None:
+          logging.debug("Copying config option to client: %s", descriptor.name)
+
+          new_config.SetRaw(descriptor.name, value)
+
+    if deploy_timestamp:
+      deploy_time_string = str(rdfvalue.RDFDatetime.Now())
+      new_config.Set("Client.deploy_time", deploy_time_string)
+    new_config.Write()
+
+    if validate:
+      ValidateEndConfig(new_config, context=context)
+
+    private_validator = config.CONFIG.Get(
+        "ClientBuilder.private_config_validator_class", context=context)
+    if private_validator:
+      try:
+        validator = config_validator_base.PrivateConfigValidator.classes[
+            private_validator]()
+      except KeyError:
+        logging.error("Couldn't find config validator class %s",
+                      private_validator)
+        raise
+      validator.ValidateEndConfig(new_config, context)
+
+    return io.open(filename, "r").read()
+
+
+def CopyFileInZip(from_zip, from_name, to_zip, to_name=None, signer=None):
+  """Read a file from a ZipFile and write it to a new ZipFile."""
+  data = from_zip.read(from_name)
+  if to_name is None:
+    to_name = from_name
+  if signer:
+    logging.debug("Signing %s", from_name)
+    data = signer.SignBuffer(data)
+  to_zip.writestr(to_name, data)
+
+
+def CreateNewZipWithSignedLibs(z_in,
+                               z_out,
+                               ignore_files=None,
+                               signer=None,
+                               skip_signing_files=None):
+  """Copies files from one zip to another, signing all qualifying files."""
+  ignore_files = ignore_files or []
+  skip_signing_files = skip_signing_files or []
+  extensions_to_sign = [".sys", ".exe", ".dll", ".pyd"]
+  to_sign = []
+  for template_file in z_in.namelist():
+    if template_file not in ignore_files:
+      extension = os.path.splitext(template_file)[1].lower()
+      if (signer and template_file not in skip_signing_files and
+          extension in extensions_to_sign):
+        to_sign.append(template_file)
+      else:
+        CopyFileInZip(z_in, template_file, z_out)
+
+  temp_files = {}
+  for filename in to_sign:
+    fd, path = tempfile.mkstemp()
+    with os.fdopen(fd, "wb") as temp_fd:
+      temp_fd.write(z_in.read(filename))
+    temp_files[filename] = path
+
+  try:
+    signer.SignFiles(itervalues(temp_files))
+  except AttributeError:
+    for f in itervalues(temp_files):
+      signer.SignFile(f)
+
+  for filename, tempfile_path in iteritems(temp_files):
+    with io.open(tempfile_path, "rb") as fd:
+      z_out.writestr(filename, fd.read())
+
+
+def SetPeSubsystem(fd, console=True):
+  """Takes file like obj and returns (offset, value) for the PE subsystem."""
+  current_pos = fd.tell()
+  fd.seek(0x3c)  # _IMAGE_DOS_HEADER.e_lfanew
+  header_offset = struct.unpack("<I", fd.read(4))[0]
+  # _IMAGE_NT_HEADERS.OptionalHeader.Subsystem ( 0x18 + 0x44)
+  subsystem_offset = header_offset + 0x5c
+  fd.seek(subsystem_offset)
+  if console:
+    fd.write(b"\x03")
+  else:
+    fd.write(b"\x02")
+  fd.seek(current_pos)

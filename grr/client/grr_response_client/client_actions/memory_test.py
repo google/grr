@@ -8,6 +8,8 @@ import os
 
 from absl import app
 from absl.testing import absltest
+import mock
+import psutil
 
 from grr_response_client.client_actions import memory
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -129,6 +131,82 @@ class PrioritizeRegionsTest(absltest.TestCase):
     r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
     self.assertEqual(
         memory._PrioritizeRegions([r0, r1, r2], [5, 15, 25]), [r0, r1, r2])
+
+
+def Process(pid, *cmdline):
+  p = mock.MagicMock()
+  p.pid = pid
+  p.cmdline.return_value = list(cmdline)
+  p.name.return_value = cmdline[0]
+
+  p.ppid = 0
+  p.uids.return_value = (0, 0, 0)
+  p.gids.return_value = (0, 0, 0)
+  p.cpu_times().user = 0.
+  p.cpu_times().system = 0.
+  p.memory_info().rss = 0
+  p.memory_info().vms = 0
+  p.memory_percent.return_value = 0.
+
+  return p
+
+
+def GetProcessIteratorPids(pids=(),
+                           process_regex_string=None,
+                           cmdline_regex_string=None,
+                           ignore_grr_process=False):
+  return [
+      p.pid for p in
+      memory.ProcessIterator(pids, process_regex_string, cmdline_regex_string,
+                             ignore_grr_process, [])
+  ]
+
+
+class ProcessFilteringTest(client_test_lib.EmptyActionTest):
+
+  def setUp(self):
+    super(ProcessFilteringTest, self).setUp()
+    patcher = mock.patch.object(
+        psutil,
+        "process_iter",
+        return_value=[
+            Process(0, "svchost.exe", "-k", "abc"),
+            Process(1, "svchost.exe", "-k", "def"),
+            Process(2, "svchost.exe"),
+            Process(3, "foo"),
+        ])
+    patcher.start()
+    self.addCleanup(patcher.stop)
+
+  def testCmdlineRegexFilter(self):
+    self.assertCountEqual(
+        [1], GetProcessIteratorPids(cmdline_regex_string=r"svchost.exe -k def"))
+
+    self.assertCountEqual([0, 1],
+                          GetProcessIteratorPids(
+                              cmdline_regex_string=r"svchost.exe -k (abc|def)"))
+
+    self.assertCountEqual(
+        [0, 1, 2],
+        GetProcessIteratorPids(cmdline_regex_string=r"svchost.exe.*"))
+
+    self.assertCountEqual(
+        [2], GetProcessIteratorPids(cmdline_regex_string=r"^svchost.exe$"))
+
+  def testCmdlineRegex(self):
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        cmdline_regex="svchost.exe -k def")
+
+    with mock.patch.object(
+        memory.YaraProcessScan,
+        "_GetMatches",
+        return_value=[rdf_memory.YaraMatch()]):
+      results = self.ExecuteAction(memory.YaraProcessScan, arg=scan_request)
+    self.assertLen(results, 2)
+    self.assertLen(results[0].matches, 1)
+    self.assertEqual(results[0].matches[0].process.pid, 1)
 
 
 if __name__ == "__main__":

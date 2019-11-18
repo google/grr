@@ -102,16 +102,16 @@ if platform.system\(\).lower\(\) == 'linux':
   # Note: the order here is important. Chipsec's linux.helper module expects
   # chipsec.helper.oshelper to be partially loaded by the time it gets imported,
   # otherwise a circular dependency is triggered: chipsec.helper.oshelper
-  # tries to import chipsec.helper.linux.helper which itself imports
+  # tries to import chipsec.helper.linux.linuxhelper which itself imports
   # chipsec.helper.oshelper \(see
   # https://github.com/chipsec/chipsec/blob/5102229c6aca6ac0323b6cf8cf4c4fbcce9259a9/chipsec/helper/oshelper.py#L93
   # and
   # https://github.com/chipsec/chipsec/blob/0ad817d479bf51c0a883bb02bbb39464a5fb00a8/chipsec/helper/linux/helper.py#L54\).
   # The only reason Chipsec's code works is because classes imported by
-  # chipsec.helper.linux.helper are defined before
+  # chipsec.helper.linux.linuxhelper are defined before
   # "import chipsec.helper.helpers" statement, which makes chipsec's helper
   # code seem pretty fragile and somewhat horrible.
-  CHIPSEC_IMPORTS = ["chipsec.helper.oshelper", "chipsec.helper.linux.helper"]
+  CHIPSEC_IMPORTS = ["chipsec.helper.oshelper", "chipsec.helper.linux.linuxhelper"]
 
 a = Analysis\(
     [client_path],

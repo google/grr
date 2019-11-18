@@ -85,7 +85,7 @@ describe('report directive', () => {
                       'value': 'FOO_TYPE',
                     },
                     'requires_time_range': {
-                      'type': 'RDFBool',
+                      'type': 'bool',
                       'value': false,
                     },
                     'title': {'type': 'unicode', 'value': 'Foo Report'},
@@ -112,7 +112,7 @@ describe('report directive', () => {
                       'value': 'BAR_TYPE',
                     },
                     'requires_time_range': {
-                      'type': 'RDFBool',
+                      'type': 'bool',
                       'value': false,
                     },
                     'title': {'type': 'unicode', 'value': 'Bar Report'},

@@ -19,6 +19,7 @@ from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
 from typing import Any
+from typing import Iterator
 from typing import Type
 
 from grr_response_core.lib import rdfvalue
@@ -1291,27 +1292,30 @@ class SoftwarePackagesConverter(ExportConverter):
         yield r
 
 
-class YaraProcessScanResponseConverter(ExportConverter):
+class YaraProcessScanMatchConverter(ExportConverter):
+  """Converter for YaraProcessScanMatch."""
   input_rdf_type = rdf_memory.YaraProcessScanMatch
 
-  def Convert(self, metadata, yara_match, token=None):
-    """Convert a single YaraProcessScanMatch."""
+  def Convert(self,
+              metadata,
+              value,
+              token=None):
+    """See base class."""
 
     conv = ProcessToExportedProcessConverter(options=self.options)
-    process = list(
-        conv.Convert(ExportedMetadata(), yara_match.process, token=token))[0]
+    process = list(conv.Convert(metadata, value.process, token=token))[0]
 
-    seen_rules = set()
-    for m in yara_match.match:
-      if m.rule_name in seen_rules:
-        continue
-
-      seen_rules.add(m.rule_name)
-      yield ExportedYaraProcessScanMatch(
-          metadata=metadata,
-          process=process,
-          rule_name=m.rule_name,
-          scan_time_us=yara_match.scan_time_us)
+    yara_matches = value.match or [rdf_memory.YaraMatch()]
+    for yara_match in yara_matches:
+      sm = yara_match.string_matches or [rdf_memory.YaraStringMatch()]
+      for yara_string_match in sm:
+        yield ExportedYaraProcessScanMatch(
+            metadata=metadata,
+            process=process,
+            rule_name=yara_match.rule_name,
+            process_scan_time_us=value.scan_time_us,
+            string_id=yara_string_match.string_id,
+            offset=yara_string_match.offset)
 
 
 class OsqueryExportConverter(ExportConverter):

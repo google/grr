@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import base64
 import collections
 import copy
+import functools
 import struct
 
 from future.builtins import chr
@@ -35,6 +36,7 @@ from google.protobuf import wrappers_pb2
 from google.protobuf import text_format
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import serialization
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
@@ -572,7 +574,7 @@ class ProtoBinary(ProtoType):
 
   def Validate(self, value, **_):
     if not isinstance(value, bytes):
-      raise type_info.TypeValueError("%s not a valid string" % value)
+      raise type_info.TypeValueError("Required bytes, got %r" % value)
 
     return value
 
@@ -728,47 +730,114 @@ class ProtoDouble(ProtoFixed64):
 
 
 @python_2_unicode_compatible
-class EnumNamedValue(rdfvalue.RDFInteger):
+@functools.total_ordering
+class EnumNamedValue(rdfvalue.RDFPrimitive):
   """A class that wraps enums.
 
   Enums are just integers, except when printed they have a name.
   """
+
+  protobuf_type = "integer"
 
   def __init__(self,
                initializer=None,
                name=None,
                description=None,
                labels=None):
-    super(EnumNamedValue, self).__init__(initializer)
+
+    if initializer is None:
+      initializer = 0
 
     if name is None:
       name = str(initializer)
+
     if labels is None:
-      labels = []
+      labels = ()
 
     precondition.AssertType(name, Text)
     precondition.AssertOptionalType(description, Text)
     precondition.AssertIterableType(labels, int)
 
-    self.name = name
-    self.description = description
-    self.labels = labels
+    super(EnumNamedValue, self).__init__(
+        (int(initializer), name, description, tuple(labels)))
+
+  @property
+  def id(self):
+    return self._value[0]
+
+  @property
+  def name(self):
+    return self._value[1]
+
+  @property
+  def description(self):
+    return self._value[2]
+
+  @property
+  def labels(self):
+    return self._value[3]
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
-  __hash__ = rdfvalue.RDFInteger.__hash__
+  def __hash__(self):
+    return hash(self.id)
 
   def __eq__(self, other):
-    return int(self) == other or self.name == other
+    # `other` needs to be LHS, because future newstr does not properly return
+    # NotImplemented on type mismatch.
+    return other == self.id or other == self.name
+
+  def __lt__(self, other):
+    if isinstance(other, EnumNamedValue):
+      return (self.id, self.name) < (other.id, other.name)
+    return NotImplemented
 
   def __str__(self):
     return self.name
 
+  def __repr__(self):
+    return "{}(initializer={!r}, name={!r})".format(
+        compatibility.GetName(type(self)), self.id, self.name)
+
+  def __int__(self):
+    return self.id
+
+  def __bool__(self):
+    return bool(self.id)
+
+  __nonzero__ = __bool__
+
   def Copy(self):
-    v = super(EnumNamedValue, self).Copy()
-    v.name = self.name
-    v.description = self.description
-    v.labels = self.labels
-    return v
+    return type(self)(self.id, self.name, self.description, self.labels)
+
+  def SerializeToBytes(self):
+    return str(self.id).encode("ascii")
+
+  @classmethod
+  def FromSerializedBytes(cls, value):
+    precondition.AssertType(value, bytes)
+
+    if value:
+      return cls(compatibility.builtins.int(value))
+    else:
+      return cls(0)
+
+  @classmethod
+  def FromHumanReadable(cls, string):
+    precondition.AssertType(string, Text)
+
+    try:
+      num = compatibility.builtins.int(string)
+    except ValueError:
+      num = 0
+
+    return cls(num, name=string)
+
+  @classmethod
+  def FromWireFormat(cls, value):
+    return cls(initializer=value)
+
+  def SerializeToWireFormat(self):
+    return self.id
 
 
 class ProtoEnum(ProtoSignedInteger):
@@ -864,7 +933,7 @@ class ProtoEnum(ProtoSignedInteger):
 class ProtoBoolean(ProtoEnum):
   """A Boolean."""
 
-  type = rdfvalue.RDFBool
+  type = bool
 
   def __init__(self, **kwargs):
     super(ProtoBoolean, self).__init__(
@@ -877,20 +946,23 @@ class ProtoBoolean(ProtoEnum):
 
   def GetDefault(self, container=None):
     """Return boolean value."""
-    return rdfvalue.RDFBool(
-        super(ProtoBoolean, self).GetDefault(container=container))
+    return bool(int(super(ProtoBoolean, self).GetDefault(container=container)))
 
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
     if value is None:
       return
 
-    return rdfvalue.RDFBool(super(ProtoBoolean, self).Validate(value))
+    return bool(int(super(ProtoBoolean, self).Validate(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
-    return rdfvalue.RDFBool(
-        super(ProtoBoolean,
-              self).ConvertFromWireFormat(value, container=container))
+    return bool(
+        int(
+            super(ProtoBoolean,
+                  self).ConvertFromWireFormat(value, container=container)))
+
+  def ConvertToWireFormat(self, value):
+    return super(ProtoBoolean, self).ConvertToWireFormat(bool(value))
 
 
 class ProtoEmbedded(ProtoType):
@@ -1043,11 +1115,11 @@ class ProtoDynamicEmbedded(ProtoType):
 
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is simply a string."""
-    return self._type(container).FromSerializedBytes(value[2])
+    return serialization.FromBytes(self._type(container), value[2])
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    data = value.SerializeToBytes()
+    data = serialization.ToBytes(value)
     return (self.encoded_tag, VarintEncode(len(data)), data)
 
   def Validate(self, value, container=None):
@@ -1133,6 +1205,12 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
+
+    try:
+      primitive_protobuf_type = serialization.GetProtobufType(type(value))
+    except ValueError:
+      primitive_protobuf_type = None
+
     # Is it a protobuf-based value?
     if hasattr(value.__class__, "protobuf"):
       if value.__class__.protobuf:
@@ -1142,11 +1220,10 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
         type_name = value.__class__.__name__
       data = value.SerializeToBytes()
     # Is it a primitive value?
-    elif hasattr(value.__class__, "protobuf_type"):
-      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
-          value.__class__.protobuf_type]
+    elif primitive_protobuf_type is not None:
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[primitive_protobuf_type]
       wrapped_data = wrapper_cls()
-      wrapped_data.value = value.SerializeToWireFormat()
+      wrapped_data.value = serialization.ToWireFormat(value)
 
       type_name = ("type.googleapis.com/google.protobuf.%s" %
                    wrapper_cls.__name__)
@@ -1529,7 +1606,8 @@ class ProtoRDFValue(ProtoType):
     """Finds the primitive encoder according to the type's protobuf_type."""
     # Decide what should the primitive type be for packing the target rdfvalue
     # into the protobuf and create a delegate descriptor to control that.
-    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[self.type.protobuf_type]
+    primitive_cls = self._PROTO_DATA_STORE_LOOKUP[serialization.GetProtobufType(
+        self.type)]
     self.primitive_desc = primitive_cls(**self._kwargs)
 
     # Our wiretype is the same as the delegate's.

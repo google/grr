@@ -11,7 +11,7 @@ from absl import app
 from absl import flags
 import portpicker
 
-from grr_response_client_builder import build
+from grr_response_client_builder import build_helpers
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
@@ -84,8 +84,7 @@ def main(argv):
   config_lib.SetPlatformArchContext()
   context = list(config.CONFIG.context)
   context.append("Client Context")
-  deployer = build.ClientRepacker()
-  config_data = deployer.GetClientConfig(
+  config_data = build_helpers.GetClientConfig(
       context, validate=False, deploy_timestamp=False)
   with io.open(flags.FLAGS.dest_client_config_path, "w") as fd:
     fd.write(config_data)

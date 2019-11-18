@@ -38,8 +38,16 @@ class YaraProcessScan(flow_base.FlowBase):
       raise flow_base.FlowError(
           "No rules found in the signature specification.")
 
+    if self.args.process_regex and self.args.cmdline_regex:
+      raise flow_base.FlowError(
+          "Use either process_regex to match process names"
+          "or cmdline_regex to match the process cmdline.")
+
     if self.args.process_regex:
       re.compile(self.args.process_regex)
+
+    if self.args.cmdline_regex:
+      re.compile(self.args.cmdline_regex)
 
   def Start(self):
     """See base class."""
@@ -223,6 +231,7 @@ class DumpProcessMemory(flow_base.FlowBase):
         dump_files_to_get.append(region.file)
 
     if not dump_files_to_get:
+      self.SendReply(response)
       self.Log("No memory dumped, exiting.")
       return
 

@@ -194,5 +194,76 @@ class EnvironTest(absltest.TestCase):
     self.assertEqual(compatibility.Environ(variable, default="foo"), "foo")
 
 
+class UnicodeJsonTest(absltest.TestCase):
+
+  def testString(self):
+    self.assertEqual(compatibility.UnicodeJson("foo"), "foo")
+
+  def testBytes(self):
+    self.assertEqual(compatibility.UnicodeJson(b"foo"), "foo")
+
+  def testPrimitive(self):
+    self.assertEqual(compatibility.UnicodeJson(42), 42)
+    self.assertEqual(compatibility.UnicodeJson(3.14), 3.14)
+    self.assertEqual(compatibility.UnicodeJson(True), True)
+
+  def testSimpleList(self):
+    result = compatibility.UnicodeJson(["foo", 4, 8, 15, 16, 23, 42, b"bar"])
+    self.assertEqual(result, ["foo", 4, 8, 15, 16, 23, 42, "bar"])
+
+  def testSimpleDict(self):
+    result = compatibility.UnicodeJson({b"foo": 42, "bar": b"baz"})
+    self.assertEqual(result, {"foo": 42, "bar": "baz"})
+
+  def testNested(self):
+    json = {
+        b"foo": [
+            {
+                b"bar": [b"quux"],
+                "baz": [b"norf"],
+            },
+            {
+                "thud": b"blargh",
+            },
+        ],
+        b"ztesch": [[4, 8], ["foo", b"bar"]],
+    }
+
+    unicode_json = {
+        "foo": [{
+            "bar": ["quux"],
+            "baz": ["norf"],
+        }, {
+            "thud": "blargh",
+        }],
+        "ztesch": [[4, 8], ["foo", "bar"]],
+    }
+
+    self.assertEqual(compatibility.UnicodeJson(json), unicode_json)
+
+  def testUnicode(self):
+    json = {
+        "foo": ["🛹", "🚲", "🛴"],
+        b"bar": ["❄", "🔥", "💧"],
+        b"\xf0\x9f\x8e\x83": [
+            b"\xf0\x9f\xa5\x87",
+            b"\xf0\x9f\xa5\x88",
+            b"\xf0\x9f\xa5\x89",
+        ],
+    }
+
+    unicode_json = {
+        "foo": ["🛹", "🚲", "🛴"],
+        "bar": ["❄", "🔥", "💧"],
+        "🎃": ["🥇", "🥈", "🥉"],
+    }
+
+    self.assertEqual(compatibility.UnicodeJson(json), unicode_json)
+
+  def testTypeError(self):
+    with self.assertRaises(TypeError):
+      compatibility.UnicodeJson({"foo": (42, 1337)})
+
+
 if __name__ == "__main__":
   absltest.main()

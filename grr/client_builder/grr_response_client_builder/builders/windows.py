@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import ctypes
+import io
 import logging
 import os
 import re
@@ -15,7 +16,9 @@ import sys
 import win32process
 
 from grr_response_client_builder import build
+from grr_response_client_builder import build_helpers
 from grr_response_core import config
+
 
 MODULE_PATTERNS = [
     # Visual Studio runtime libs.
@@ -28,14 +31,17 @@ MODULE_PATTERNS = [
 # part of the VC90 manifest.
 FILES_FROM_VIRTUALENV = [
     r"Lib\site-packages\pythonwin\mfc90.dll",
-    r"Lib\site-packages\pythonwin\mfc90u.dll"
+    r"Lib\site-packages\pythonwin\mfc90u.dll",
+    # TODO(user): check if building/repacking works without lines below.
+    r"Lib\site-packages\pythonwin\mfc140.dll",
+    r"Lib\site-packages\pythonwin\mfcm140u.dll"
 ]
 
 PROCESS_QUERY_INFORMATION = 0x400
 PROCESS_VM_READ = 0x10
 
 
-def EnumMissingModules():
+def _EnumMissingModules():
   """Enumerate all modules which match the patterns MODULE_PATTERNS.
 
   PyInstaller often fails to locate all dlls which are required at
@@ -78,33 +84,48 @@ def EnumMissingModules():
         yield module_filename
 
   for venv_file in FILES_FROM_VIRTUALENV:
-    yield os.path.join(sys.prefix, venv_file)
+    path = os.path.join(sys.prefix, venv_file)
+    if os.path.exists(path):
+      yield path
+
+
+def _MakeZip(input_dir, output_path):
+  """Creates a ZIP archive of the files in the input directory.
+
+  Args:
+    input_dir: the name of the input directory.
+    output_path: path to the output ZIP archive without extension.
+  """
+  logging.info("Generating zip template file at %s", output_path)
+  basename, _ = os.path.splitext(output_path)
+  # TODO(user):pytype: incorrect make_archive() definition in typeshed.
+  # pytype: disable=wrong-arg-types
+  shutil.make_archive(
+      basename, "zip", base_dir=".", root_dir=input_dir, verbose=True)
+  # pytype: enable=wrong-arg-types
 
 
 class WindowsClientBuilder(build.ClientBuilder):
   """Builder class for the Windows client."""
 
-  def __init__(self, context=None):
-    super(WindowsClientBuilder, self).__init__(context=context)
-    self.context.append("Target:Windows")
+  BUILDER_CONTEXT = "Target:Windows"
 
-  def BuildNanny(self):
+  def BuildNanny(self, build_dir):
     """Use VS2010 to build the windows Nanny service."""
     # When running under cygwin, the following environment variables are not set
     # (since they contain invalid chars). Visual Studio requires these or it
     # will fail.
     os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
-    self.nanny_dir = os.path.join(self.build_dir, "grr", "client",
-                                  "grr_response_client", "nanny")
+    nanny_dir = os.path.join(build_dir, "grr", "client", "grr_response_client",
+                             "nanny")
     nanny_src_dir = config.CONFIG.Get(
         "ClientBuilder.nanny_source_dir", context=self.context)
     logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
-                 self.nanny_dir)
+                 nanny_dir)
 
     shutil.copytree(
         config.CONFIG.Get(
-            "ClientBuilder.nanny_source_dir", context=self.context),
-        self.nanny_dir)
+            "ClientBuilder.nanny_source_dir", context=self.context), nanny_dir)
 
     build_type = config.CONFIG.Get(
         "ClientBuilder.build_type", context=self.context)
@@ -130,60 +151,49 @@ class WindowsClientBuilder(build.ClientBuilder):
 
       shutil.copy(
           os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),
-          os.path.join(self.output_dir, "GRRservice.exe"))
+          os.path.join(build_dir, "GRRservice.exe"))
 
     else:
       # Lets build the nanny with the VS env script.
       subprocess.check_call(
           "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" %
           (env_script, build_type, vs_arch),
-          cwd=self.nanny_dir)
+          cwd=nanny_dir)
 
       # The templates always contain the same filenames - the repack step might
       # rename them later.
       shutil.copy(
-          os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
-          os.path.join(self.output_dir, "GRRservice.exe"))
+          os.path.join(nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
+          os.path.join(build_dir, "GRRservice.exe"))
 
-  def MakeExecutableTemplate(self, output_file=None):
+  def MakeExecutableTemplate(self, output_path):
     """Windows templates also include the nanny."""
-    super(WindowsClientBuilder,
-          self).MakeExecutableTemplate(output_file=output_file)
-
-    self.MakeBuildDirectory()
-    self.BuildWithPyInstaller()
+    build_helpers.MakeBuildDirectory(context=self.context)
+    output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
 
     # Get any dll's that pyinstaller forgot:
-    for module in EnumMissingModules():
+    for module in _EnumMissingModules():
       logging.info("Copying additional dll %s.", module)
-      shutil.copy(module, self.output_dir)
+      shutil.copy(module, output_dir)
 
-    self.BuildNanny()
+    self.BuildNanny(output_dir)
 
     # Generate a prod and a debug version of nanny executable.
     shutil.copy(
-        os.path.join(self.output_dir, "GRRservice.exe"),
-        os.path.join(self.output_dir, "dbg_GRRservice.exe"))
-    with open(os.path.join(self.output_dir, "GRRservice.exe"), "r+") as fd:
-      build.SetPeSubsystem(fd, console=False)
-    with open(os.path.join(self.output_dir, "dbg_GRRservice.exe"), "r+") as fd:
-      build.SetPeSubsystem(fd, console=True)
+        os.path.join(output_dir, "GRRservice.exe"),
+        os.path.join(output_dir, "dbg_GRRservice.exe"))
+    with io.open(os.path.join(output_dir, "GRRservice.exe"), "rb+") as fd:
+      build_helpers.SetPeSubsystem(fd, console=False)
+    with io.open(os.path.join(output_dir, "dbg_GRRservice.exe"), "rb+") as fd:
+      build_helpers.SetPeSubsystem(fd, console=True)
 
     # Generate a prod and a debug version of client executable.
     shutil.copy(
-        os.path.join(self.output_dir, "grr-client.exe"),
-        os.path.join(self.output_dir, "dbg_grr-client.exe"))
-    with open(os.path.join(self.output_dir, "grr-client.exe"), "r+") as fd:
-      build.SetPeSubsystem(fd, console=False)
-    with open(os.path.join(self.output_dir, "dbg_grr-client.exe"), "r+") as fd:
-      build.SetPeSubsystem(fd, console=True)
+        os.path.join(output_dir, "grr-client.exe"),
+        os.path.join(output_dir, "dbg_grr-client.exe"))
+    with io.open(os.path.join(output_dir, "grr-client.exe"), "rb+") as fd:
+      build_helpers.SetPeSubsystem(fd, console=False)
+    with io.open(os.path.join(output_dir, "dbg_grr-client.exe"), "rb+") as fd:
+      build_helpers.SetPeSubsystem(fd, console=True)
 
-    self.MakeZip(self.output_dir, self.template_file)
-
-
-def CopyFileInZip(from_zip, from_name, to_zip, to_name=None):
-  """Read a file from a ZipFile and write it to a new ZipFile."""
-  data = from_zip.read(from_name)
-  if to_name is None:
-    to_name = from_name
-  to_zip.writestr(to_name, data)
+    _MakeZip(output_dir, output_path)

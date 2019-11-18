@@ -23,6 +23,7 @@ from google.protobuf import json_format
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import serialization
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
@@ -123,9 +124,9 @@ class RouterMatcher(object):
       except KeyError:
         # A bool is an enum but serializes to "1" / "0" which are both not in
         # enum or reverse_enum.
-        coerced_obj = type_info.type.FromHumanReadable(value)
+        coerced_obj = serialization.FromHumanReadable(type_info.type, value)
     else:
-      coerced_obj = type_info.type.FromHumanReadable(value)
+      coerced_obj = serialization.FromHumanReadable(type_info.type, value)
     args.Set(type_info.name, coerced_obj)
 
   def _GetArgsFromRequest(self, request, method_metadata, route_args):
@@ -215,7 +216,7 @@ class JSONEncoderWithRDFPrimitivesSupport(json.Encoder):
   Custom encoder is required to facilitate usage of primitive values -
   booleans, integers and strings - in handlers responses.
 
-  If handler references an RDFString, RDFInteger or and RDFBOol when building a
+  If handler references an RDFString or RDFInteger when building a
   response, it will lead to JSON encoding failure when response encoded,
   unless this custom encoder is used. Another way to solve this issue would be
   to explicitly call api_value_renderers.RenderValue on every value returned
@@ -225,9 +226,6 @@ class JSONEncoderWithRDFPrimitivesSupport(json.Encoder):
   def default(self, obj):
     if isinstance(obj, rdfvalue.RDFInteger):
       return int(obj)
-
-    if isinstance(obj, rdfvalue.RDFBool):
-      return bool(obj)
 
     if isinstance(obj, rdfvalue.RDFString):
       # TODO: Since we want to this to be a JSON-compatible type,

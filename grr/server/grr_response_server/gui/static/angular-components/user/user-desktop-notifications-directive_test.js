@@ -55,7 +55,7 @@ describe('User desktop notifications directive', () => {
        mockApiServiceResponse([{
          'type': 'ApiNotification',
          'value': {
-           'is_pending': {'type': 'RDFBool', 'value': true},
+           'is_pending': {'type': 'bool', 'value': true},
            'message': {
              'type': 'unicode',
              'value': 'Host-0: <some message>',
@@ -101,7 +101,7 @@ describe('User desktop notifications directive', () => {
        mockApiServiceResponse([{
          'type': 'ApiNotification',
          'value': {
-           'is_pending': {'type': 'RDFBool', 'value': true},
+           'is_pending': {'type': 'bool', 'value': true},
            'message': {
              'type': 'unicode',
              'value': 'Host-0: <some message>',
@@ -149,7 +149,7 @@ describe('User desktop notifications directive', () => {
          {
            'type': 'ApiNotification',
            'value': {
-             'is_pending': {'type': 'RDFBool', 'value': true},
+             'is_pending': {'type': 'bool', 'value': true},
              'message':
                  {'type': 'unicode', 'value': 'Host-0: <another message>'},
              'reference': {
@@ -177,7 +177,7 @@ describe('User desktop notifications directive', () => {
          {
            'type': 'ApiNotification',
            'value': {
-             'is_pending': {'type': 'RDFBool', 'value': true},
+             'is_pending': {'type': 'bool', 'value': true},
              'message': {
                'type': 'unicode',
                'value': 'Host-0: <some message>',
@@ -206,7 +206,7 @@ describe('User desktop notifications directive', () => {
          {
            'type': 'ApiNotification',
            'value': {
-             'is_pending': {'type': 'RDFBool', 'value': true},
+             'is_pending': {'type': 'bool', 'value': true},
              'message':
                  {'type': 'unicode', 'value': 'Host-0: <some other message>'},
              'reference': {

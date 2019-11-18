@@ -12,7 +12,7 @@ from absl import app
 from future.builtins import str
 import mock
 
-from grr_response_client_builder import build
+from grr_response_client_builder import build_helpers
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -35,7 +35,8 @@ class BuildTests(test_lib.GRRBaseTest):
             "2016-05-24 20:04:25",
         "Template.build_type":
             "Release",
-        "Template.build_context": ["ClientBuilder Context"] + context,
+        "Template.build_context":
+            context,
         "Template.version_major":
             str(config.CONFIG.Get("Source.version_major")),
         "Template.version_minor":
@@ -50,12 +51,11 @@ class BuildTests(test_lib.GRRBaseTest):
 
     # TODO(hanuszczak): YAML, consider using `StringIO` instead.
     fd = io.BytesIO()
-    builder = build.ClientBuilder(context=context)
 
     with mock.patch.object(rdf_client.Uname, "FromCurrentSystem") as fcs:
       fcs.return_value.signature.return_value = "cp27-cp27mu-linux_x86_64"
       with test_lib.FakeTime(1464120265):
-        builder.WriteBuildYaml(fd)
+        build_helpers.WriteBuildYaml(fd, context=context)
 
     fd.seek(0)
     self.assertEqual(yaml.Parse(fd.getvalue().decode("utf-8")), expected)
@@ -63,8 +63,7 @@ class BuildTests(test_lib.GRRBaseTest):
   def testGenClientConfig(self):
     with test_lib.ConfigOverrider({"Client.build_environment": "test_env"}):
 
-      deployer = build.ClientRepacker()
-      data = deployer.GetClientConfig(["Client Context"], validate=True)
+      data = build_helpers.GetClientConfig(["Client Context"], validate=True)
 
       parser = config_lib.YamlParser(data=data)
       raw_data = parser.RawData()
@@ -86,9 +85,9 @@ class BuildTests(test_lib.GRRBaseTest):
       # Sanity-check that the secondary config was merged into the global
       # config.
       self.assertEqual(config.CONFIG["Client.labels"], ["label0", "label1"])
-      repacker = build.ClientRepacker()
+
       context = ["Test Context", "ClientBuilder Context", "Client Context"]
-      str_client_config = repacker.GetClientConfig(context)
+      str_client_config = build_helpers.GetClientConfig(context)
       client_config = config_lib.YamlParser(data=str_client_config).RawData()
       # Settings particular to the ClientBuilder context should not carry over
       # into the generated client config.
@@ -104,7 +103,8 @@ class BuildTests(test_lib.GRRBaseTest):
     new_config.Initialize()
     new_config.LoadSecondaryConfig(
         os.path.join(config.CONFIG["Test.data_dir"], "dummyconfig.yaml"))
-    build.ClientRepacker().ValidateEndConfig(new_config)
+    context = ["Test Context", "ClientBuilder Context", "Client Context"]
+    build_helpers.ValidateEndConfig(new_config, context=context)
 
 
 def main(argv):

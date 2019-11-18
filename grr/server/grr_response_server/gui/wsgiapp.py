@@ -210,6 +210,13 @@ class AdminUIApp(object):
             methods=["HEAD", "GET"],
             endpoint=EndpointWrapper(self._HandleHelp)))
 
+    for v2_route in ["/v2", "/v2/", "/v2/<path:path>"]:
+      self.routing_map.add(
+          werkzeug_routing.Rule(
+              v2_route,
+              methods=["HEAD", "GET"],
+              endpoint=EndpointWrapper(self._HandleHomepageV2)))
+
   def _BuildRequest(self, environ):
     return HttpRequest(environ)
 
@@ -269,6 +276,20 @@ class AdminUIApp(object):
       StoreCSRFCookie(request.user, response)
     except RequestHasNoUser:
       pass
+
+    return response
+
+  def _HandleHomepageV2(self, request):
+    """Renders GRR home page for the next-get UI (v2)."""
+
+    _ = request
+
+    env = jinja2.Environment(
+        loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
+        autoescape=True)
+    template = env.get_template("base-v2.html")
+    response = werkzeug_wrappers.Response(
+        template.render({}), mimetype="text/html")
 
     return response
 

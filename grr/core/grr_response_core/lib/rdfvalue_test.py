@@ -34,14 +34,14 @@ class RDFValueTest(absltest.TestCase):
 
   def testStr(self):
     """Test RDFValue.__str__."""
-    self.assertEqual(str(rdfvalue.RDFBool(True)), "1")
+    self.assertEqual(str(rdfvalue.RDFInteger(1)), "1")
     self.assertEqual(str(rdfvalue.RDFString(long_string)), long_string)
 
   # TODO(hanuszczak): Current implementation of `repr` for RDF values is broken
   # and not in line with Python guidelines. For example, `repr` should be
   # unambiguous whereas current implementation will trim long representations
   # with `...`. Moreover, the representation for most types is questionable at
-  # best (true booleans as presented as `<RDFBool('1')>`).
+  # best.
   #
   # The implementation should be fixed and proper tests should be written.
 
@@ -108,29 +108,6 @@ class RDFIntegerTest(absltest.TestCase):
   def testFromHumanReadableRaisesOnNonDecimal(self):
     with self.assertRaises(ValueError):
       rdfvalue.RDFInteger.FromHumanReadable(u"12A")
-
-
-class RDFBool(absltest.TestCase):
-
-  def testFromHumanReadableTrue(self):
-    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"true"))
-    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"True"))
-    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"TRUE"))
-    self.assertTrue(rdfvalue.RDFBool.FromHumanReadable(u"1"))
-
-  def testFromHumanReadableFalse(self):
-    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"false"))
-    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"False"))
-    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"FALSE"))
-    self.assertFalse(rdfvalue.RDFBool.FromHumanReadable(u"0"))
-
-  def testFromHumanReadableRaisesOnIncorrectInteger(self):
-    with self.assertRaises(ValueError):
-      rdfvalue.RDFBool.FromHumanReadable(u"2")
-
-  def testFromHumanReadableRaisesOnWeirdInput(self):
-    with self.assertRaises(ValueError):
-      rdfvalue.RDFBool.FromHumanReadable(u"yes")
 
 
 class RDFDateTimeTest(absltest.TestCase):

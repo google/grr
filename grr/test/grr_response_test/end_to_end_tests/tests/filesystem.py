@@ -130,7 +130,7 @@ class TestFindOSLinuxDarwin(test_base.EndToEndTest):
 
   def runTest(self):
     args = self.grr_api.types.CreateFlowArgs("FindFiles")
-    args.findspec.path_regex = "."
+    args.findspec.path_regex = "^l"
     args.findspec.pathspec.path = "/bin"
     args.findspec.pathspec.pathtype = args.findspec.pathspec.OS
 

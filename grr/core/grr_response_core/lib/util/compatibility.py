@@ -5,6 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import collections
 import os
 import shlex
 import sys
@@ -12,6 +13,7 @@ import time
 import types
 
 from future.builtins import str
+from future.utils import iteritems
 from typing import Any
 from typing import Dict
 from typing import List
@@ -269,3 +271,40 @@ def Environ(variable, default):
     # TODO(hanuszczak): https://github.com/google/pytype/issues/127
     value = value.decode("utf-8")  # pytype: disable=attribute-error
   return value
+
+
+def UnicodeJson(json):
+  """Converts given JSON-like Python object to one without byte strings.
+
+  In some cases when a dictionary is deserialized from some Python 2-specific
+  source, it will contain byte strings. This function fixes such cases by making
+  sure that string objects insite are unicode strings.
+
+  Note that this function will perform a deep copy of the given object.
+
+  Args:
+    json: A JSON-like object.
+
+  Returns:
+    A JSON object with all byte-strings interpreted as unicode strings.
+
+  Raises:
+    TypeError: If given value is not a JSON-like object.
+  """
+  if isinstance(json, list):
+    return list(map(UnicodeJson, json))
+
+  if isinstance(json, dict):
+    result = {}
+    for key, value in iteritems(json):
+      result[UnicodeJson(key)] = UnicodeJson(value)
+    return result
+
+  if isinstance(json, bytes):
+    return json.decode("utf-8")
+
+  # Only allowed iterables are dictionaries, list and strings.
+  if isinstance(json, collections.Iterable) and not isinstance(json, Text):
+    raise TypeError("Incorrect JSON object: {!r}".format(json))
+
+  return json

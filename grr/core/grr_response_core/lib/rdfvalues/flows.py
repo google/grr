@@ -26,6 +26,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       rdf_protodict.EmbeddedRDFValue,
       rdfvalue.FlowSessionID,
       rdfvalue.RDFDatetime,
+      rdfvalue.Duration,
       rdfvalue.RDFURN,
   ]
 

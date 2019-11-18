@@ -2783,14 +2783,36 @@ class DatabaseValidationWrapper(Database):
 
   def ReadArtifact(self, name):
     precondition.AssertType(name, Text)
-    return self.delegate.ReadArtifact(name)
+    return self._PatchArtifact(self.delegate.ReadArtifact(name))
 
   def ReadAllArtifacts(self):
-    return self.delegate.ReadAllArtifacts()
+    return list(map(self._PatchArtifact, self.delegate.ReadAllArtifacts()))
 
   def DeleteArtifact(self, name):
     precondition.AssertType(name, Text)
     return self.delegate.DeleteArtifact(name)
+
+  # TODO: This patching behaviour can be removed once we are sure
+  # that all artifacts have been properly migrated to use Python 3 serialized
+  # representation.
+  def _PatchArtifact(
+      self, artifact):
+    """Patches artifact to not contain byte-string source attributes."""
+    patched = False
+
+    for source in artifact.sources:
+      attributes = source.attributes.ToDict()
+      unicode_attributes = compatibility.UnicodeJson(attributes)
+
+      if attributes != unicode_attributes:
+        source.attributes = unicode_attributes
+        patched = True
+
+    if patched:
+      self.DeleteArtifact(str(artifact.name))
+      self.WriteArtifact(artifact)
+
+    return artifact
 
   def WriteClientMetadata(self,
                           client_id,

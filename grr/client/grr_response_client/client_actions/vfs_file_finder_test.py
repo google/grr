@@ -376,6 +376,21 @@ class RegistryTest(absltest.TestCase):
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1/2/3/4/aba",
     ])
 
+  def testRecursiveGlobCallsProgressWithoutMatches(self):
+    progress = mock.MagicMock()
+
+    with mock.patch.object(vfs_file_finder.VfsFileFinder, "Progress", progress):
+      results = self.RunFileFinder(
+          rdf_file_finder.FileFinderArgs(
+              paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/**4/nonexistent"],
+              pathtype="REGISTRY",
+              action=rdf_file_finder.FileFinderAction(action_type="STAT")))
+    self.assertEmpty(results)
+
+    # progress.call_count should rise linearly to the number of keys and
+    # values in the test registry data.
+    self.assertGreater(progress.call_count, 10)
+
   def testMetadataConditionMatch(self):
     results = self.RunFileFinder(
         rdf_file_finder.FileFinderArgs(

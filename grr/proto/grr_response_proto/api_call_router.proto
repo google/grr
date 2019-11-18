@@ -182,4 +182,6 @@ message ApiYaraHuntCallRouterParams {
   optional bool include_misses_in_results = 15;
   optional uint64 per_process_scan_seconds_limit = 16;
   optional uint64 per_process_results_limit = 17;
+  optional uint64 per_process_dump_size_limit = 18
+      [(sem_type) = { type: "ByteSize" }];
 }

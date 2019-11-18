@@ -431,6 +431,9 @@ class HTTPManager(object):
     """Wait for the specified timeout."""
     time.sleep(timeout - int(timeout))
 
+    if self.heart_beat_cb:
+      self.heart_beat_cb()
+
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
     for _ in range(int(timeout)):
       time.sleep(1)
@@ -677,7 +680,6 @@ class GRRClientWorker(threading.Thread):
     # even though we don't send those bytes.  This makes sure flow_runner will
     # die on the flow.
     if limit and self.sent_bytes_per_flow[session_id] > limit:
-      self.SendClientAlert("Network limit exceeded.")
       raise actions.NetworkBytesExceededError(
           "Action exceeded network send limit.")
 
@@ -1272,6 +1274,7 @@ class GRRHTTPClient(object):
         sys.exit(-1)
 
       self.timer.Wait()
+      self.client_worker.Heartbeat()
 
   def InitiateEnrolment(self):
     """Initiate the enrollment process.

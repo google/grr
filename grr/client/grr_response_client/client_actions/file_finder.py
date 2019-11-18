@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import io
+
 from future.builtins import str
-import psutil
-from typing import Text, Generator, List
+from typing import Callable, Iterator, Text, List
 
 from grr_response_client import actions
 from grr_response_client import client_utils
@@ -19,6 +19,10 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
+
+
+def _NoOp():
+  """Does nothing. This function is to be used as default heartbeat callback."""
 
 
 class _SkipFileException(Exception):
@@ -46,8 +50,7 @@ def FileFinderOSFromClient(args):
           result = list(content_condition.Search(fd))
         if not result:
           raise _SkipFileException()
-      # TODO: `opts.resolve_links` has type `RDFBool`, not `bool`.
-      stat = stat_cache.Get(path, follow_symlink=bool(opts.resolve_links))
+      stat = stat_cache.Get(path, follow_symlink=opts.resolve_links)
       stat_entry = client_utils.StatEntryFromStatPathSpec(
           stat, ext_attrs=opts.collect_ext_attrs)
       yield stat_entry
@@ -75,7 +78,7 @@ class FileFinderOS(actions.ActionPlugin):
     self._content_conditions = list(
         conditions.ContentCondition.Parse(args.conditions))
 
-    for path in GetExpandedPaths(args):
+    for path in GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
       try:
         matches = self._Validate(args, path)
@@ -138,12 +141,14 @@ class FileFinderOS(actions.ActionPlugin):
 
 
 def GetExpandedPaths(
-    args):
+    args,
+    heartbeat_cb = _NoOp):
   """Expands given path patterns.
 
   Args:
     args: A `FileFinderArgs` instance that dictates the behaviour of the path
       expansion.
+    heartbeat_cb: A function to be called regularly to send heartbeats.
 
   Yields:
     Absolute paths (as string objects) derived from input patterns.
@@ -157,53 +162,8 @@ def GetExpandedPaths(
     raise ValueError("Unsupported path type: ", args.pathtype)
 
   opts = globbing.PathOpts(
-      follow_links=args.follow_links,
-      recursion_blacklist=_GetMountpointBlacklist(args.xdev),
-      pathtype=pathtype)
+      follow_links=args.follow_links, xdev=args.xdev, pathtype=pathtype)
 
   for path in args.paths:
-    for expanded_path in globbing.ExpandPath(str(path), opts):
+    for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):
       yield expanded_path
-
-
-def _GetMountpoints(only_physical=True):
-  """Fetches a list of mountpoints.
-
-  Args:
-    only_physical: Determines whether only mountpoints for physical devices
-      (e.g. hard disks) should be listed. If false, mountpoints for things such
-      as memory partitions or `/dev/shm` will be returned as well.
-
-  Returns:
-    A set of mountpoints.
-  """
-  partitions = psutil.disk_partitions(all=not only_physical)
-  return set(partition.mountpoint for partition in partitions)
-
-
-def _GetMountpointBlacklist(xdev):
-  """Builds a list of mountpoints to ignore during recursive searches.
-
-  Args:
-    xdev: A `XDev` value that determines policy for crossing device boundaries.
-
-  Returns:
-    A set of mountpoints to ignore.
-
-  Raises:
-    ValueError: If `xdev` value is invalid.
-  """
-  if xdev == rdf_file_finder.FileFinderArgs.XDev.NEVER:
-    # Never cross device boundaries, stop at all mount points.
-    return _GetMountpoints(only_physical=False)
-
-  if xdev == rdf_file_finder.FileFinderArgs.XDev.LOCAL:
-    # Descend into file systems on physical devices only.
-    physical = _GetMountpoints(only_physical=True)
-    return _GetMountpoints(only_physical=False) - physical
-
-  if xdev == rdf_file_finder.FileFinderArgs.XDev.ALWAYS:
-    # Never stop at any device boundary.
-    return set()
-
-  raise ValueError("Incorrect `xdev` value: %s" % xdev)

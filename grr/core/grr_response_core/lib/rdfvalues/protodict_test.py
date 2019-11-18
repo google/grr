@@ -17,6 +17,7 @@ from __future__ import unicode_literals
 import collections
 
 from absl import app
+from absl.testing import absltest
 from future.builtins import zip
 from future.utils import iteritems
 from typing import Text
@@ -161,10 +162,29 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual("b", sample["key6"][2])
 
   def testBool(self):
+    sample = rdf_protodict.Dict(a=False)
+    self.assertIs(sample["a"], False)
+
     sample = rdf_protodict.Dict(a=True)
-    self.assertIsInstance(sample["a"], bool)
+    self.assertIs(sample["a"], True)
+
+    sample = rdf_protodict.Dict(sample)
+    self.assertIs(sample["a"], True)
+
     sample = rdf_protodict.Dict(a="true")
     self.assertEqual(sample["a"], "true")
+
+  def testLegacyRDFBoolCanBeDeserialized(self):
+    kv = rdf_protodict.KeyValue()
+    kv.k.data = b"t"
+    kv.v.rdf_value.name = b"RDFBool"
+    kv.v.rdf_value.data = b"1"
+
+    sample = rdf_protodict.Dict()
+    sample._values[b"t"] = kv
+
+    sample = rdf_protodict.Dict.FromSerializedBytes(sample.SerializeToBytes())
+    self.assertIs(sample[b"t"], True)
 
   def testOverwriting(self):
     req = rdf_client_action.Iterator(client_state=rdf_protodict.Dict({"A": 1}))
@@ -179,6 +199,47 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
     # And now it's gone.
     self.assertEmpty(list(iteritems(req.client_state)))
+
+
+class DictSimpleTest(absltest.TestCase):
+
+  def testToDictSimple(self):
+    dct = {
+        "foo": b"bar",
+        b"baz": "quux",
+    }
+    self.assertEqual(rdf_protodict.Dict(dct).ToDict(), dct)
+
+  def testToDictNestedDicts(self):
+    dct = {
+        "foo": {
+            "bar": 42,
+            "baz": 1337,
+        },
+        "quux": {
+            "norf": 3.14,
+            "thud": [4, 8, 15, 16, 23, 42],
+        },
+    }
+    self.assertEqual(rdf_protodict.Dict(dct).ToDict(), dct)
+
+  def testToDictNestedLists(self):
+    dct = {
+        "foo": [
+            [42],
+            [1, 3, 3, 7],
+        ],
+        "bar": [
+            {
+                "quux": [4, 8, 15],
+                "thud": [16, 23],
+            },
+            {
+                "norf": [42],
+            },
+        ],
+    }
+    self.assertEqual(rdf_protodict.Dict(dct).ToDict(), dct)
 
 
 class AttributedDictTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -206,6 +267,135 @@ class AttributedDictTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     terminator = rdf_protodict.AttributedDict(t800)
     self.assertEqual(terminator.target, "Sarah Connor")
     self.assertEqual(terminator.mission, "Terminate")
+
+
+class AttributedDictSimpleTest(absltest.TestCase):
+
+  def testInitFromStringKeyedDict(self):
+    adict = rdf_protodict.AttributedDict({
+        "foo": 42,
+        "bar": b"quux",
+        "baz": [4, 8, 15, 16, 23, 42],
+    })
+
+    self.assertEqual(adict.foo, 42)
+    self.assertEqual(adict.bar, b"quux")
+    self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
+
+  # TODO: This behaviour should be removed once migration is done.
+  def testInitFromBytestringKeyedDict(self):
+    adict = rdf_protodict.AttributedDict({
+        b"foo": 42,
+        b"bar": b"quux",
+        b"baz": [4, 8, 15, 16, 23, 42],
+    })
+
+    self.assertEqual(adict.foo, 42)
+    self.assertEqual(adict.bar, b"quux")
+    self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
+
+  def testInitFromNonStringKeyedDictRaises(self):
+    with self.assertRaises(TypeError):
+      rdf_protodict.AttributedDict({
+          1: "foo",
+          2: "bar",
+          3: "baz",
+      })
+
+  def testSetStringItem(self):
+    adict = rdf_protodict.AttributedDict()
+    adict["foo"] = 42
+    adict["bar"] = b"quux"
+    adict["baz"] = [4, 8, 15, 16, 23, 42]
+
+    self.assertEqual(adict.foo, 42)
+    self.assertEqual(adict.bar, b"quux")
+    self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
+
+  # TODO: This behaviour should be removed once migration is done.
+  def testSetBytestringItem(self):
+    adict = rdf_protodict.AttributedDict()
+    adict[b"foo"] = 42
+    adict[b"bar"] = b"quux"
+    adict[b"baz"] = [4, 8, 15, 16, 23, 42]
+
+    self.assertEqual(adict.foo, 42)
+    self.assertEqual(adict.bar, b"quux")
+    self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
+
+  def testSetNonStringItemRaises(self):
+    adict = rdf_protodict.AttributedDict()
+    with self.assertRaises(TypeError):
+      adict[42] = "foo"
+
+  def testGetStringItem(self):
+    adict = rdf_protodict.AttributedDict()
+    adict.foo = 42
+    adict.bar = b"quux"
+    adict.baz = [4, 8, 15, 16, 23, 42]
+
+    self.assertEqual(adict["foo"], 42)
+    self.assertEqual(adict["bar"], b"quux")
+    self.assertEqual(adict["baz"], [4, 8, 15, 16, 23, 42])
+
+  # TODO: This behaviour should be removed once migration is done.
+  def testGetBytestringItem(self):
+    adict = rdf_protodict.AttributedDict()
+    adict.foo = 42
+    adict.bar = b"quux"
+    adict.baz = [4, 8, 15, 16, 23, 42]
+
+    self.assertEqual(adict[b"foo"], 42)
+    self.assertEqual(adict[b"bar"], b"quux")
+    self.assertEqual(adict[b"baz"], [4, 8, 15, 16, 23, 42])
+
+  # TODO: This behaviour should be removed once migration is done.
+  def testFromSerializedProtoDict(self):
+    # In this test we use a non-attributed dict to force a serialization with
+    # byte keys and then we deserialize it as attributed dict that should have
+    # these attributes properly to unicode string keys.
+    pdict = rdf_protodict.Dict()
+    pdict[b"foo"] = 42
+    pdict[b"bar"] = b"quux"
+    pdict[b"baz"] = [4, 8, 15, 16, 23, 42]
+    serialized = pdict.SerializeToBytes()
+
+    adict = rdf_protodict.AttributedDict.FromSerializedBytes(serialized)
+    self.assertEqual(adict.foo, 42)
+    self.assertEqual(adict.bar, b"quux")
+    self.assertEqual(adict.baz, [4, 8, 15, 16, 23, 42])
+
+  # TODO: This behaviour should be removed once migration is done.
+  def testToPrimitiveDict(self):
+    # See rationale for using serialized non-attributed dict above.
+    pdict = rdf_protodict.Dict()
+    pdict[b"foo"] = 42
+    pdict[b"bar"] = b"quux"
+    pdict[b"baz"] = [4, 8, 15, 16, 23, 42]
+    serialized = pdict.SerializeToBytes()
+
+    adict = rdf_protodict.AttributedDict.FromSerializedBytes(serialized)
+
+    dct = adict.ToDict()
+    self.assertEqual(dct["foo"], 42)
+    self.assertEqual(dct["bar"], b"quux")
+    self.assertEqual(dct["baz"], [4, 8, 15, 16, 23, 42])
+
+  def testNestedAssignment(self):
+    adict = rdf_protodict.AttributedDict()
+
+    adict["foo"] = {}
+    adict["foo"]["bar"] = 42
+    adict["foo"][b"baz"] = "Lorem ipsum."
+
+    adict[b"quux"] = {}
+    adict[b"quux"]["norf"] = [4, 8, 15, 16, 23, 42]
+    adict[b"quux"][b"thud"] = 3.14
+
+    self.assertEqual(adict.foo["bar"], 42)
+    self.assertEqual(adict.foo[b"baz"], "Lorem ipsum.")
+    self.assertEqual(adict.quux["norf"], [4, 8, 15, 16, 23, 42])
+    self.assertEqual(adict.quux[b"thud"], 3.14)
 
 
 class RDFValueArrayTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):

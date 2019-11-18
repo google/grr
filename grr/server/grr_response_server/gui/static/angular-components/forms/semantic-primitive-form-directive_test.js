@@ -46,7 +46,7 @@ describe('semantic primitive form directive', () => {
     };
 
     boolValue = {
-      type: 'RDFBool',
+      type: 'bool',
       value: true,
     };
   }));
@@ -111,12 +111,12 @@ describe('semantic primitive form directive', () => {
     expect(intValue.value).toBe(84);
   });
 
-  it('prefills RDFBool value from a model', () => {
+  it('prefills bool value from a model', () => {
     const element = renderTestTemplate(boolValue);
     expect(element.find('input').prop('checked')).toBe(true);
   });
 
-  it('updates RDFBool value when model is updated', () => {
+  it('updates bool value when model is updated', () => {
     const element = renderTestTemplate(boolValue);
     expect(element.find('input').prop('checked')).toBe(true);
 
@@ -126,7 +126,7 @@ describe('semantic primitive form directive', () => {
     expect(element.find('input').prop('checked')).toBe(false);
   });
 
-  it('updates RDFBool model when user changes the input', () => {
+  it('updates bool model when user changes the input', () => {
     const element = renderTestTemplate(boolValue);
 
     browserTriggerEvent(element.find('input').prop('checked', false), 'change');

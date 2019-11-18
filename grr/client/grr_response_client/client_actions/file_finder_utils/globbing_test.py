@@ -95,45 +95,6 @@ class RecursiveComponentTest(absltest.TestCase):
       # Files at level bigger that 3 should not be included.
       self.assertNotIn(hierarchy(("foo", "bar", "baz", "0")), results)
 
-  def testIgnore(self):
-    filepaths = [
-        ("foo", "0"),
-        ("foo", "1"),
-        ("foo", "bar", "0"),
-        ("bar", "0"),
-        ("bar", "quux", "0"),
-        ("bar", "quux", "1"),
-        ("baz", "0"),
-        ("baz", "1"),
-        ("baz", "quux", "0"),
-    ]
-
-    with DirHierarchy(filepaths) as hierarchy:
-      opts = globbing.PathOpts(recursion_blacklist=[
-          hierarchy(("foo",)),
-          hierarchy(("bar", "quux")),
-      ])
-      component = globbing.RecursiveComponent(opts=opts)
-
-      results = list(component.Generate(hierarchy(())))
-
-      # Recursion should not visit into the blacklisted folders.
-      self.assertNotIn(hierarchy(("foo", "0")), results)
-      self.assertNotIn(hierarchy(("foo", "1")), results)
-      self.assertNotIn(hierarchy(("bar", "quux", "0")), results)
-      self.assertNotIn(hierarchy(("bar", "quux", "1")), results)
-
-      # Blacklisted folders themselves should appear in the results.
-      self.assertIn(hierarchy(("foo",)), results)
-      self.assertIn(hierarchy(("bar", "quux")), results)
-
-      # Recursion should visit not blacklisted folders.
-      self.assertIn(hierarchy(("baz",)), results)
-      self.assertIn(hierarchy(("baz", "0")), results)
-      self.assertIn(hierarchy(("baz", "1")), results)
-      self.assertIn(hierarchy(("baz", "quux")), results)
-      self.assertIn(hierarchy(("baz", "quux", "0")), results)
-
   @unittest.skipIf(
       platform.system() == "Windows",
       reason="Symlinks are not available on Windows")

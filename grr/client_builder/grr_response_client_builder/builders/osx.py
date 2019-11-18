@@ -2,6 +2,7 @@
 """An implementation of an OSX client builder."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -13,6 +14,7 @@ import subprocess
 import zipfile
 
 from grr_response_client_builder import build
+from grr_response_client_builder import build_helpers
 from grr_response_core import config
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
@@ -21,23 +23,11 @@ from grr_response_core.lib import utils
 class DarwinClientBuilder(build.ClientBuilder):
   """Builder class for the Mac OS X (Darwin) client."""
 
-  def __init__(self, context=None):
-    """Initialize the Mac OS X client builder."""
-    super(DarwinClientBuilder, self).__init__(context=context)
-    self.context.append("Target:Darwin")
+  BUILDER_CONTEXT = "Target:Darwin"
 
-  def MakeExecutableTemplate(self, output_file=None):
-    """Create the executable template."""
-    super(DarwinClientBuilder,
-          self).MakeExecutableTemplate(output_file=output_file)
-    self.SetBuildVars()
-    self.MakeBuildDirectory()
-    self.BuildWithPyInstaller()
-    self.CopyMissingModules()
-    self.BuildInstallerPkg(output_file)
-    self.MakeZip(output_file, self.template_file)
-
-  def SetBuildVars(self):
+  def _SetBuildVars(self):
+    self.build_dir = config.CONFIG.Get(
+        "PyInstaller.build_dir", context=self.context)
     self.fleetspeak_enabled = config.CONFIG.Get(
         "Client.fleetspeak_enabled", context=self.context)
     self.version = config.CONFIG.Get(
@@ -76,7 +66,16 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.prodbuild_out_binary = os.path.join(self.prodbuild_out_dir,
                                              self.pkg_name)
 
-  def MakeZip(self, xar_file, output_file):
+  def _MakeBuildDirectory(self):
+    build_helpers.MakeBuildDirectory(context=self.context)
+
+    build_helpers.CleanDirectory(self.pkg_root)
+    build_helpers.CleanDirectory(self.pkgbuild_out_dir)
+    build_helpers.CleanDirectory(self.prodbuild_out_dir)
+    self.script_dir = os.path.join(self.build_dir, "scripts")
+    build_helpers.CleanDirectory(self.script_dir)
+
+  def _MakeZip(self, output_path):
     """Add a zip to the end of the .xar containing build.yaml.
 
     The build.yaml is already inside the .xar file, but we can't easily open
@@ -86,27 +85,18 @@ class DarwinClientBuilder(build.ClientBuilder):
     tiny, so this doesn't matter.
 
     Args:
-      xar_file: the name of the xar file.
-      output_file: the name of the output ZIP archive.
+      output_path: the path to the XAR file to be modified.
     """
-    logging.info("Generating zip template file at %s", output_file)
-    with zipfile.ZipFile(output_file, mode="a") as zf:
+    logging.info("Generating zip template file at %s", output_path)
+    with zipfile.ZipFile(output_path, mode="a") as zf:
       # Get the build yaml
       # TODO(hanuszczak): YAML, consider using `StringIO` instead.
       build_yaml = io.BytesIO()
-      self.WriteBuildYaml(build_yaml)
+      build_helpers.WriteBuildYaml(build_yaml, context=self.context)
       build_yaml.seek(0)
       zf.writestr("build.yaml", build_yaml.read())
 
-  def MakeBuildDirectory(self):
-    super(DarwinClientBuilder, self).MakeBuildDirectory()
-    self.CleanDirectory(self.pkg_root)
-    self.CleanDirectory(self.pkgbuild_out_dir)
-    self.CleanDirectory(self.prodbuild_out_dir)
-    self.script_dir = os.path.join(self.build_dir, "scripts")
-    self.CleanDirectory(self.script_dir)
-
-  def InterpolateFiles(self):
+  def _InterpolateFiles(self):
     if self.fleetspeak_enabled:
       fleetspeak_template = config.CONFIG.Get(
           "ClientBuilder.fleetspeak_config_path", context=self.context)
@@ -114,31 +104,37 @@ class DarwinClientBuilder(build.ClientBuilder):
           self.pkg_fleetspeak_service_dir,
           config.CONFIG.Get(
               "Client.fleetspeak_unsigned_config_fname", context=self.context))
-      self.GenerateFile(
+      build_helpers.GenerateFile(
           input_filename=fleetspeak_template,
-          output_filename=dest_fleetspeak_config)
+          output_filename=dest_fleetspeak_config,
+          context=self.context)
       build_files_dir = package.ResourcePath(
           "grr-response-core", "install_data/macosx/client/fleetspeak")
     else:
       build_files_dir = package.ResourcePath("grr-response-core",
                                              "install_data/macosx/client")
-      self.GenerateFile(
+      build_helpers.GenerateFile(
           input_filename=os.path.join(build_files_dir, "grr.plist.in"),
           output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",
-                                       self.plist_name))
+                                       self.plist_name),
+          context=self.context)
+
     # We pass in scripts separately with --scripts so they don't go in pkg_root
-    self.GenerateFile(
+    build_helpers.GenerateFile(
         input_filename=os.path.join(build_files_dir, "preinstall.sh.in"),
-        output_filename=os.path.join(self.script_dir, "preinstall"))
+        output_filename=os.path.join(self.script_dir, "preinstall"),
+        context=self.context)
 
-    self.GenerateFile(
+    build_helpers.GenerateFile(
         input_filename=os.path.join(build_files_dir, "postinstall.sh.in"),
-        output_filename=os.path.join(self.script_dir, "postinstall"))
-    self.GenerateFile(
+        output_filename=os.path.join(self.script_dir, "postinstall"),
+        context=self.context)
+    build_helpers.GenerateFile(
         input_filename=os.path.join(build_files_dir, "Distribution.xml.in"),
-        output_filename=os.path.join(self.build_dir, "Distribution.xml"))
+        output_filename=os.path.join(self.build_dir, "Distribution.xml"),
+        context=self.context)
 
-  def RenameGRRPyinstallerBinaries(self):
+  def _RenameGRRPyinstallerBinaries(self):
     if self.template_binary_dir != self.target_binary_dir:
       shutil.move(self.template_binary_dir, self.target_binary_dir)
     shutil.move(
@@ -147,7 +143,7 @@ class DarwinClientBuilder(build.ClientBuilder):
             self.target_binary_dir,
             config.CONFIG.Get("Client.binary_name", context=self.context)))
 
-  def SignGRRPyinstallerBinaries(self):
+  def _SignGRRPyinstallerBinaries(self):
     cert_name = config.CONFIG.Get(
         "ClientBuilder.signing_cert_name", context=self.context)
     keychain_file = config.CONFIG.Get(
@@ -174,7 +170,7 @@ class DarwinClientBuilder(build.ClientBuilder):
       ])
       shutil.move(bundle_dir, self.target_binary_dir)
 
-  def CreateInstallDirs(self):
+  def _CreateInstallDirs(self):
     utils.EnsureDirExists(self.build_dir)
     utils.EnsureDirExists(self.script_dir)
     utils.EnsureDirExists(self.pkg_root)
@@ -187,32 +183,29 @@ class DarwinClientBuilder(build.ClientBuilder):
     utils.EnsureDirExists(self.pkgbuild_out_dir)
     utils.EnsureDirExists(self.prodbuild_out_dir)
 
-  def WriteClientConfig(self):
-    repacker = build.ClientRepacker(context=self.context)
-    repacker.context = self.context
-
+  def _WriteClientConfig(self):
     # Generate a config file.
-    with open(
+    with io.open(
         os.path.join(
             self.target_binary_dir,
             config.CONFIG.Get(
                 "ClientBuilder.config_filename", context=self.context)),
-        "wb") as fd:
+        "w") as fd:
       fd.write(
-          repacker.GetClientConfig(
+          build_helpers.GetClientConfig(
               ["Client Context"] + self.context, validate=False))
 
-  def RunCmd(self, command):
+  def _RunCmd(self, command):
     print("Running: %s" % " ".join(command))
     subprocess.check_call(command)
 
-  def Set755Permissions(self):
+  def _Set755Permissions(self):
     command = ["/bin/chmod", "-R", "755", self.script_dir]
-    self.RunCmd(command)
+    self._RunCmd(command)
     command = ["/bin/chmod", "-R", "755", self.pkg_root]
-    self.RunCmd(command)
+    self._RunCmd(command)
 
-  def RunPkgBuild(self):
+  def _RunPkgBuild(self):
     pkg_id = "%s.%s.%s_%s" % (self.pkg_org, self.client_name, self.client_name,
                               self.version)
     command = [
@@ -220,30 +213,38 @@ class DarwinClientBuilder(build.ClientBuilder):
         "--root=%s" % self.pkg_root, "--identifier", pkg_id, "--scripts",
         self.script_dir, "--version", self.version, self.pkgbuild_out_binary
     ]
-    self.RunCmd(command)
+    self._RunCmd(command)
 
-  def RunProductBuild(self):
+  def _RunProductBuild(self):
     command = [
         "productbuild", "--distribution",
         os.path.join(self.build_dir, "distribution.xml"), "--package-path",
         self.pkgbuild_out_dir, self.prodbuild_out_binary
     ]
-    self.RunCmd(command)
+    self._RunCmd(command)
 
-  def RenamePkgToTemplate(self, output_file):
+  def _RenamePkgToTemplate(self, output_path):
     print("Copying output to templates location: %s -> %s" %
-          (self.prodbuild_out_binary, output_file))
-    utils.EnsureDirExists(os.path.dirname(output_file))
-    shutil.copyfile(self.prodbuild_out_binary, output_file)
+          (self.prodbuild_out_binary, output_path))
+    utils.EnsureDirExists(os.path.dirname(output_path))
+    shutil.copyfile(self.prodbuild_out_binary, output_path)
 
-  def BuildInstallerPkg(self, output_file):
+  def _BuildInstallerPkg(self, output_path):
     """Builds a package (.pkg) using PackageMaker."""
-    self.CreateInstallDirs()
-    self.InterpolateFiles()
-    self.RenameGRRPyinstallerBinaries()
-    self.SignGRRPyinstallerBinaries()
-    self.WriteClientConfig()
-    self.Set755Permissions()
-    self.RunPkgBuild()
-    self.RunProductBuild()
-    self.RenamePkgToTemplate(output_file)
+    self._CreateInstallDirs()
+    self._InterpolateFiles()
+    self._RenameGRRPyinstallerBinaries()
+    self._SignGRRPyinstallerBinaries()
+    self._WriteClientConfig()
+    self._Set755Permissions()
+    self._RunPkgBuild()
+    self._RunProductBuild()
+    self._RenamePkgToTemplate(output_path)
+
+  def MakeExecutableTemplate(self, output_path):
+    """Create the executable template."""
+    self._SetBuildVars()
+    self._MakeBuildDirectory()
+    build_helpers.BuildWithPyInstaller(context=self.context)
+    self._BuildInstallerPkg(output_path)
+    self._MakeZip(output_path)

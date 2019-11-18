@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from future.builtins import str
-from typing import Text, Iterator
+from typing import Callable, Text, Iterator
 
 from grr_response_client import actions
 from grr_response_client import client_utils
@@ -17,6 +17,10 @@ from grr_response_client.client_actions.file_finder_utils import vfs_subactions
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
+
+
+def _NoOp():
+  """Does nothing. This function is to be used as default heartbeat callback."""
 
 
 class VfsFileFinder(actions.ActionPlugin):
@@ -32,7 +36,7 @@ class VfsFileFinder(actions.ActionPlugin):
     metadata_conditions = list(
         conditions.MetadataCondition.Parse(args.conditions))
 
-    for path in _GetExpandedPaths(args):
+    for path in _GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
       pathspec = rdf_paths.PathSpec(path=path, pathtype=args.pathtype)
 
@@ -78,13 +82,16 @@ def _CheckConditionsShortCircuit(content_conditions, pathspec):
   return matches
 
 
-def _GetExpandedPaths(args):
+def _GetExpandedPaths(
+    args,
+    heartbeat_cb = _NoOp,
+):
   """Yields all possible expansions from given path patterns."""
   opts = globbing.PathOpts(
       follow_links=args.follow_links, pathtype=args.pathtype)
 
   for path in args.paths:
-    for expanded_path in globbing.ExpandPath(str(path), opts):
+    for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):
       yield expanded_path
 
 

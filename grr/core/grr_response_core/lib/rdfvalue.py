@@ -177,6 +177,11 @@ class RDFValue(with_metaclass(RDFValueMetaclass, object)):
     return "<%s(%r)>" % (compatibility.GetName(self.__class__), content)
 
 
+# TODO(user): Replace `RDFValue.classes` with a function in serialization.py.
+RDFValue.classes["bool"] = bool
+RDFValue.classes["RDFBool"] = bool
+
+
 class RDFPrimitive(RDFValue):
   """An immutable RDFValue that wraps a primitive value (e.g. int)."""
 
@@ -501,77 +506,6 @@ class RDFInteger(RDFPrimitive):
 
   def __hash__(self):
     return hash(self._value)
-
-
-@functools.total_ordering
-@python_2_unicode_compatible
-class RDFBool(RDFPrimitive):
-  """Boolean value."""
-  protobuf_type = "unsigned_integer"
-
-  def __init__(self, initializer=None):
-    if initializer is None:
-      super(RDFBool, self).__init__(0)
-    else:
-      super(RDFBool, self).__init__(int(initializer))
-
-  @classmethod
-  def FromSerializedBytes(cls, value):
-    precondition.AssertType(value, bytes)
-    return cls(int(value))
-
-  def SerializeToBytes(self):
-    return str(self._value).encode("ascii")
-
-  @classmethod
-  def FromWireFormat(cls, value):
-    precondition.AssertType(value, int)
-    return cls(value)
-
-  def SerializeToWireFormat(self):
-    return self._value
-
-  @classmethod
-  def FromHumanReadable(cls, string):
-    precondition.AssertType(string, Text)
-
-    upper_string = string.upper()
-    if upper_string == u"TRUE" or string == u"1":
-      return cls(1)
-    elif upper_string == u"FALSE" or string == u"0":
-      return cls(0)
-    else:
-      raise ValueError("Unparsable boolean string: `%s`" % string)
-
-  def __bool__(self):
-    return bool(self._value)
-
-  def __int__(self):
-    return int(self._value)
-
-  def __and__(self, other):
-    return self._value & other
-
-  def __rand__(self, other):
-    return other & self._value
-
-  def __or__(self, other):
-    return self._value | other
-
-  def __ror__(self, other):
-    return other | self._value
-
-  def __str__(self):
-    return str(self._value)
-
-  def __hash__(self):
-    return hash(self._value)
-
-  def __eq__(self, other):
-    return self._value == other
-
-  def __lt__(self, other):
-    return self._value < other
 
 
 @python_2_unicode_compatible
@@ -1080,7 +1014,7 @@ class ByteSize(RDFInteger):
       ("gi", 1024**3),
   ))
 
-  REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$", re.I)
+  REGEX = re.compile("^([0-9.]+) ?([kmgi]*)b?$", re.I)
 
   def __init__(self, initializer=None):
     if isinstance(initializer, ByteSize):

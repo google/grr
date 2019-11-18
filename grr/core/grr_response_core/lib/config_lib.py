@@ -1091,7 +1091,10 @@ class GrrConfigManager(object):
 
     return ConfigFileParser
 
-  def LoadSecondaryConfig(self, filename=None, parser=None):
+  def LoadSecondaryConfig(self,
+                          filename=None,
+                          parser=None,
+                          process_includes=True):
     """Loads an additional configuration file.
 
     The configuration system has the concept of a single Primary configuration
@@ -1107,6 +1110,8 @@ class GrrConfigManager(object):
            file:///etc/grr.conf or reg://HKEY_LOCAL_MACHINE/Software/GRR.
       parser: An optional parser can be given. In this case, the parser's data
         will be loaded directly.
+      process_includes: If false, do not process any files listed in
+        Config.includes configuration option.
 
     Returns:
       The parser used to parse this configuration source.
@@ -1131,24 +1136,25 @@ class GrrConfigManager(object):
     clone.MergeData(parser.RawData())
     clone.initialized = True
 
-    for file_to_load in clone["Config.includes"]:
-      # We can not include a relative file from a config which does not have
-      # path.
-      if not os.path.isabs(file_to_load):
-        if not filename:
-          raise ConfigFileNotFound(
-              "While loading %s: Unable to include a relative path (%s) "
-              "from a config without a filename" % (filename, file_to_load))
+    if process_includes:
+      for file_to_load in clone["Config.includes"]:
+        # We can not include a relative file from a config which does not have
+        # path.
+        if not os.path.isabs(file_to_load):
+          if not filename:
+            raise ConfigFileNotFound(
+                "While loading %s: Unable to include a relative path (%s) "
+                "from a config without a filename" % (filename, file_to_load))
 
-        # If the included path is relative, we take it as relative to the
-        # current path of the config.
-        file_to_load = os.path.join(os.path.dirname(filename), file_to_load)
+          # If the included path is relative, we take it as relative to the
+          # current path of the config.
+          file_to_load = os.path.join(os.path.dirname(filename), file_to_load)
 
-      clone_parser = clone.LoadSecondaryConfig(file_to_load)
-      # If an include file is specified but it was not found, raise an error.
-      if not clone_parser.parsed:
-        raise ConfigFileNotFound(
-            "Unable to load include file %s" % file_to_load)
+        clone_parser = clone.LoadSecondaryConfig(file_to_load)
+        # If an include file is specified but it was not found, raise an error.
+        if not clone_parser.parsed:
+          raise ConfigFileNotFound("Unable to load include file %s" %
+                                   file_to_load)
 
     self.MergeData(clone.raw_data)
     self.files.extend(clone.files)
@@ -1163,6 +1169,7 @@ class GrrConfigManager(object):
                  fd=None,
                  reset=True,
                  must_exist=False,
+                 process_includes=True,
                  parser=ConfigFileParser):
     """Initializes the config manager.
 
@@ -1176,6 +1183,8 @@ class GrrConfigManager(object):
       reset: If true, the previous configuration will be erased.
       must_exist: If true the data source must exist and be a valid
         configuration file, or we raise an exception.
+      process_includes: If false, do not process any files listed in
+        Config.includes configuration option.
       parser: The parser class to use (i.e. the format of the file). If not
         specified guess from the filename.
 
@@ -1194,15 +1203,18 @@ class GrrConfigManager(object):
       self.initialized = False
 
     if fd is not None:
-      self.parser = self.LoadSecondaryConfig(parser=parser(fd=fd))
+      self.parser = self.LoadSecondaryConfig(
+          parser=parser(fd=fd), process_includes=process_includes)
 
     elif filename is not None:
-      self.parser = self.LoadSecondaryConfig(filename)
+      self.parser = self.LoadSecondaryConfig(
+          filename, process_includes=process_includes)
       if must_exist and not self.parser.parsed:
         raise ConfigFormatError("Unable to parse config file %s" % filename)
 
     elif data is not None:
-      self.parser = self.LoadSecondaryConfig(parser=parser(data=data))
+      self.parser = self.LoadSecondaryConfig(
+          parser=parser(data=data), process_includes=process_includes)
 
     elif must_exist:
       raise RuntimeError("Registry path not provided.")

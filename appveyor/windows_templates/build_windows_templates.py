@@ -291,7 +291,8 @@ class WindowsTemplateBuilder(object):
       raise RuntimeError("Install failed, no files at: %s" % self.install_path)
 
     try:
-      output = subprocess.check_output(["sc", "query", self.service_name])
+      output = subprocess.check_output(["sc", "query", self.service_name],
+                                       encoding="utf-8")
       service_running = "RUNNING" in output
     except subprocess.CalledProcessError as e:
       if e.returncode == 1060:

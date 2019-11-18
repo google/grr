@@ -200,7 +200,7 @@ class HttpConnector(connector.Connector):
     try:
       # TODO(hanuszczak): `json` package should not be used.
       parsed_json = json.loads(json_str)
-      message = parsed_json["message"]
+      message = parsed_json["message"] + "\n" + parsed_json.get("traceBack", "")
     except (ValueError, KeyError):
       message = content
 

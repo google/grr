@@ -13,6 +13,7 @@ import zipfile
 from absl import app
 
 from grr_response_client_builder import build
+from grr_response_client_builder import build_helpers
 from grr_response_client_builder import repacking
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -72,8 +73,7 @@ class RepackingTests(test_lib.GRRBaseTest):
       data = yaml.Dump(loaded)
       packaged_config.Initialize(parser=config_lib.YamlParser, data=data)
       packaged_config.Validate(sections=build.ClientRepacker.CONFIG_SECTIONS)
-      repacker = build.ClientRepacker()
-      repacker.ValidateEndConfig(packaged_config)
+      build_helpers.ValidateEndConfig(packaged_config)
 
 
 def main(argv):

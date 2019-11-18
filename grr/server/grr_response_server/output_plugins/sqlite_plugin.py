@@ -48,7 +48,7 @@ class Rdf2SqliteAdapter(object):
           BYTES_CONVERTER,
       rdfvalue.RDFInteger:
           INT_CONVERTER,
-      rdfvalue.RDFBool:
+      bool:
           INT_CONVERTER,  # Sqlite does not have a bool type.
       rdfvalue.RDFDatetime:
           Converter("INTEGER", lambda x: x.AsMicrosecondsSinceEpoch()),

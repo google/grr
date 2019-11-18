@@ -156,7 +156,7 @@ class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testStr(self):
     string = str(rdf_objects.PathID.FromComponents(["foo", "bar", "baz"]))
-    self.assertRegexpMatches(string, r"^PathID\(\'[0-9a-f]{64}\'\)$")
+    self.assertRegex(string, r"^PathID\(\'[0-9a-f]{64}\'\)$")
 
   def testStrEmpty(self):
     string = str(rdf_objects.PathID.FromComponents([]))
@@ -560,7 +560,7 @@ class BlobIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testStr(self):
     string = str(rdf_objects.BlobID.FromBlobData(b"foo"))
-    self.assertRegexpMatches(string, r"^BlobID\(\'[0-9a-f]{64}\'\)$")
+    self.assertRegex(string, r"^BlobID\(\'[0-9a-f]{64}\'\)$")
 
   def testDefaultsToNull(self):
     string = str(rdf_objects.BlobID())

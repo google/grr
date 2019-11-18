@@ -35,11 +35,12 @@ class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
       value = rdfvalue.RDFString(value)
     elif isinstance(value, bytes):
       value = rdfvalue.RDFBytes(value)
-    elif isinstance(value, bool):
-      value = rdfvalue.RDFBool(value)
 
     if isinstance(value, rdfvalue.RDFValue):
       self.type = value.__class__.__name__
+      self.value = value
+    elif isinstance(value, bool):
+      self.type = "bool"
       self.value = value
     else:
       self.invalid = True

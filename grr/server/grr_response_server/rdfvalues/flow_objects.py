@@ -182,6 +182,10 @@ status_map = {
         FlowStatus.Status.CLIENT_KILLED,
     rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED:
         FlowStatus.Status.NETWORK_LIMIT_EXCEEDED,
+    rdf_flows.GrrStatus.ReturnedStatus.RUNTIME_LIMIT_EXCEEDED:
+        FlowStatus.Status.RUNTIME_LIMIT_EXCEEDED,
+    rdf_flows.GrrStatus.ReturnedStatus.CPU_LIMIT_EXCEEDED:
+        FlowStatus.Status.CPU_LIMIT_EXCEEDED,
     rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR:
         FlowStatus.Status.ERROR,
 }

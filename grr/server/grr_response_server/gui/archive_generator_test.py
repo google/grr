@@ -144,7 +144,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         self.stat_entries,
         archive_format=archive_generator.CollectionArchiveGenerator.TAR_GZ)
 
-    with tarfile.open(fd_path) as tar_fd:
+    with tarfile.open(fd_path, encoding="utf-8") as tar_fd:
       manifest_fd = tar_fd.extractfile("test_prefix/MANIFEST")
       self.assertEqual(
           yaml.safe_load(manifest_fd.read()), {

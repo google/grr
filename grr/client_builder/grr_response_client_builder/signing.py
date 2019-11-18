@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Library for client code signing."""
-
 from __future__ import absolute_import
 from __future__ import division
 
@@ -28,10 +27,6 @@ class Error(Exception):
   pass
 
 
-class SigningError(Error):
-  pass
-
-
 class CodeSigner(object):
   pass
 
@@ -47,6 +42,8 @@ class WindowsSigntoolCodeSigner(CodeSigner):
     self._verification_cmdline = verification_cmdline
 
   def SignBuffer(self, in_buffer):
+    """Signs a given data buffer."""
+
     fd, path = tempfile.mkstemp()
     try:
       with os.fdopen(fd, "wb") as temp_in:
@@ -60,6 +57,7 @@ class WindowsSigntoolCodeSigner(CodeSigner):
 
   def SignFile(self, in_filename, out_filename=None):
     """Signs a file."""
+
     if out_filename:
       raise NotImplementedError(
           "WindowsSigntoolCodeSigner does not support out_filename.")
@@ -67,6 +65,7 @@ class WindowsSigntoolCodeSigner(CodeSigner):
 
   def SignFiles(self, filenames):
     """Signs multiple files at once."""
+
     file_list = " ".join(filenames)
     subprocess.check_call("%s %s" % (self._signing_cmdline, file_list))
     if self._verification_cmdline:
@@ -114,7 +113,7 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
       output filename string
     Raises:
       pexpect.ExceptionPexpect: if the expect invocation of osslsigncode fails.
-      SigningError: for signing failures.
+      Error: for signing failures.
     """
     if out_filename is None:
       out_filename = "%s.signed" % in_filename
@@ -139,13 +138,13 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
       raise
 
     if not os.path.exists(out_filename):
-      raise SigningError("Expected output %s not created" % out_filename)
+      raise Error("Expected output %s not created" % out_filename)
 
     try:
       subprocess.check_call(["osslsigncode", "verify", "-in", out_filename])
     except subprocess.CalledProcessError:
       logging.exception("Bad signature verification on %s", out_filename)
-      raise SigningError("Bad signature verification on %s" % out_filename)
+      raise Error("Bad signature verification on %s" % out_filename)
 
     return out_filename
 
@@ -160,7 +159,7 @@ class RPMCodeSigner(CodeSigner):
       subprocess.check_call(["rpm", "--import", public_key_file])
     except subprocess.CalledProcessError:
       logging.exception("Couldn't import public key %s", public_key_file)
-      raise SigningError("Couldn't import public key %s" % public_key_file)
+      raise Error("Couldn't import public key %s" % public_key_file)
 
   def AddSignatureToRPMs(self, rpm_filenames):
     """Sign RPM with rpmsign."""
@@ -196,7 +195,7 @@ class RPMCodeSigner(CodeSigner):
         # Expected output is: filename.rpm: rsa sha1 (md5) pgp md5 OK
         output = subprocess.check_output(["rpm", "--checksig", rpm_filename])
         if "pgp" not in output:
-          raise SigningError("PGP missing checksig %s" % rpm_filename)
+          raise Error("PGP missing checksig %s" % rpm_filename)
       except subprocess.CalledProcessError:
         logging.exception("Bad signature verification on %s", rpm_filename)
-        raise SigningError("Bad signature verification on %s" % rpm_filename)
+        raise Error("Bad signature verification on %s" % rpm_filename)

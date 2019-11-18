@@ -21,15 +21,15 @@ from grr_response_core.lib.util import precondition
 FLAGS = flags.FLAGS
 
 
-def _TempRootPath():
-  """Returns a default root path for storing temporary files."""
-  # `FLAGS.test_tmpdir` is defined only in test environment, so we can't expect
-  # for it to be always defined.
-  test_tmpdir = (
-      compatibility.Environ("TEST_TMPDIR", default=None) or
-      FLAGS.get_flag_value("test_tmpdir", default=None))
+def _TestTempRootPath():
+  """Returns a default root path for storing temporary files during tests."""
+  # `TEST_TMPDIR` and `FLAGS.test_tmpdir` are only defined only for test
+  # environments. For non-test code, we use the default temporary directory.
+  test_tmpdir = compatibility.Environ("TEST_TMPDIR", default=None)
+  if test_tmpdir is None and hasattr(FLAGS, "test_tmpdir"):
+    test_tmpdir = FLAGS.test_tmpdir
 
-  if not os.path.exists(test_tmpdir):
+  if test_tmpdir is not None and not os.path.exists(test_tmpdir):
     # TODO: We add a try-catch block to avoid rare race condition.
     # In Python 3 the exception being thrown is way more specific
     # (`FileExistsError`) but in Python 2 `OSError` is the best we can do. Once
@@ -51,8 +51,8 @@ def TempDirPath(suffix = "", prefix = "tmp"):
   """Creates a temporary directory based on the environment configuration.
 
   The directory will be placed in folder as specified by the `TEST_TMPDIR`
-  environment variable if available or fallback to `Test.tmpdir` of the current
-  configuration if not.
+  environment variable if available or fallback to `FLAGS.test_tmpdir` if
+  provided or just use Python's default.
 
   Args:
     suffix: A suffix to end the directory name with.
@@ -64,7 +64,7 @@ def TempDirPath(suffix = "", prefix = "tmp"):
   precondition.AssertType(suffix, Text)
   precondition.AssertType(prefix, Text)
 
-  return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=_TempRootPath())
+  return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=_TestTempRootPath())
 
 
 def TempFilePath(suffix = "", prefix = "tmp",
@@ -73,7 +73,7 @@ def TempFilePath(suffix = "", prefix = "tmp",
 
   If no directory is specified the file will be placed in folder as specified by
   the `TEST_TMPDIR` environment variable if available or fallback to
-  `Test.tmpdir` of the current configuration if not.
+  `FLAGS.test_tmpdir` if provided or just use Python's default.
 
   If directory is specified it must be part of the default test temporary
   directory.
@@ -94,7 +94,7 @@ def TempFilePath(suffix = "", prefix = "tmp",
   precondition.AssertType(prefix, Text)
   precondition.AssertOptionalType(dir, Text)
 
-  root = _TempRootPath()
+  root = _TestTempRootPath()
   if not dir:
     dir = root
   elif root and not os.path.commonprefix([dir, root]):
@@ -112,8 +112,8 @@ class AutoTempDirPath(object):
   """Creates a temporary directory based on the environment configuration.
 
   The directory will be placed in folder as specified by the `TEST_TMPDIR`
-  environment variable if available or fallback to `Test.tmpdir` of the current
-  configuration if not.
+  environment variable if available or fallback to `FLAGS.test_tmpdir` if
+  provided or just use Python's default.
 
   This object is a context manager and the directory is automatically removed
   when it goes out of scope.
@@ -160,7 +160,7 @@ class AutoTempFilePath(object):
 
   If no directory is specified the file will be placed in folder as specified by
   the `TEST_TMPDIR` environment variable if available or fallback to
-  `Test.tmpdir` of the current configuration if not.
+  `FLAGS.test_tmpdir` if provided or just default to Python's default.
 
   If directory is specified it must be part of the default test temporary
   directory.

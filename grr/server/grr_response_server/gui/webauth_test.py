@@ -52,9 +52,10 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     request = wsgiapp.HttpRequest(environ)
 
     response = self.manager.SecurityCheck(self.HandlerStub, request)
-    self.assertEqual(
+    self.assertRegex(
         response.get_data(as_text=True),
-        "Request sent from an IP not in AdminUI.remote_user_trusted_ips.")
+        "Request sent from an IP not in AdminUI.remote_user_trusted_ips. "
+        "Source was .+")
 
   def testRejectsRequestWithEmptyUsername(self):
     environ = werkzeug_test.EnvironBuilder(environ_base={

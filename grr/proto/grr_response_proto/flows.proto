@@ -2046,7 +2046,7 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 20
+// Next field ID: 21
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
@@ -2069,6 +2069,13 @@ message YaraProcessScanRequest {
   optional string process_regex = 3 [(sem_type) = {
     description: "A regex to match against the process name. Only matching "
                  "names will be scanned.",
+  }];
+  optional string cmdline_regex = 20 [(sem_type) = {
+    description: "A regex to match against the process cmdline. Only processes "
+                 "whose cmdline matches will be scanned. The cmdline is a "
+                 "space-separated string of the command-line arguments and may "
+                 "miss quotes, e.g. 'python -c print 5;' or 'C:\\Program Files "
+                 "(x86)\\Foo.exe /port 123'.",
   }];
   optional bool include_errors_in_results = 14 [
     (sem_type) = {
@@ -2478,6 +2485,7 @@ message FlowStatus {
     CLIENT_KILLED = 4;
     NETWORK_LIMIT_EXCEEDED = 5;
     CPU_LIMIT_EXCEEDED = 6;
+    RUNTIME_LIMIT_EXCEEDED = 7;
   }
 
   optional Status status = 5 [default = OK];

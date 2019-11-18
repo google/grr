@@ -231,6 +231,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
           description=hunt_obj.description,
           client_rule_set=hunt_obj.client_rule_set,
           crash_limit=hunt_obj.crash_limit,
+          expiry_time=hunt_obj.duration,
           avg_results_per_client_limit=hunt_obj.avg_results_per_client_limit,
           avg_cpu_seconds_per_client_limit=hunt_obj
           .avg_cpu_seconds_per_client_limit,

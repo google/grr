@@ -67,10 +67,10 @@ DictFormController.prototype.convertFromRDFString = function(value) {
     value['type'] = 'RDFInteger';
   } else if (s.toLowerCase() == 'true') {
     value['value'] = true;
-    value['type'] = 'RDFBool';
+    value['type'] = 'bool';
   } else if (s.toLowerCase() == 'false') {
     value['value'] = false;
-    value['type'] = 'RDFBool';
+    value['type'] = 'bool';
   }
 
   return value;
@@ -133,7 +133,7 @@ DictFormController.prototype.onValueChange_ = function(newValue) {
           // To avoid infinite loop of change notifications we only update the
           // external representation if it has actually changed. This is why
           // the check is here. We say: "ok, if we take current value and
-          // convert it to a proper type (RDFInteger or RDFBool), will it be
+          // convert it to a proper type (RDFInteger), will it be
           // equal to the object in the data model? If yes - then don't touch
           // it, so that new change notification is not generated"
           if (!angular.equals(this.convertFromRDFString(pair['value']),

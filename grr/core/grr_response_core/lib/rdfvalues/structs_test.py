@@ -10,6 +10,8 @@ import base64
 import random
 
 from absl import app
+from absl.testing import absltest
+
 from future.builtins import range
 from future.builtins import str
 from typing import Text
@@ -903,6 +905,52 @@ class GenericRDFProtoTest(test_lib.GRRBaseTest):
     """Check that enums are wrapped in a descriptor class."""
     sample = rdf_flows.GrrStatus()
     self.assertEqual(sample.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
+
+
+class EnumNamedValueTest(absltest.TestCase):
+
+  def testInitialization(self):
+    a = rdf_structs.EnumNamedValue(initializer=5, name="A", description="B")
+    self.assertEqual(a.id, 5)
+    self.assertEqual(a.name, "A")
+    self.assertEqual(a.description, "B")
+
+    b = rdf_structs.EnumNamedValue()
+    self.assertEqual(b.id, 0)
+    self.assertEqual(b.name, "0")
+    self.assertIsNone(b.description)
+
+  def testComparison(self):
+    a = rdf_structs.EnumNamedValue(initializer=0, name="A")
+    b = rdf_structs.EnumNamedValue(initializer=1, name="B")
+
+    self.assertEqual(a, rdf_structs.EnumNamedValue(0, name="A"))
+    self.assertNotEqual(a, b)
+    self.assertLess(a, b)
+    self.assertGreater(b, a)
+
+    self.assertEqual(b, 1)
+    self.assertEqual(b, "B")
+
+  def testSerialization(self):
+    # Current EnumNamedValue implementation only persists the ID.
+    a = rdf_structs.EnumNamedValue(initializer=3)
+    a2 = rdf_structs.EnumNamedValue.FromSerializedBytes(a.SerializeToBytes())
+
+    self.assertEqual(a2.id, 3)
+    self.assertEqual(a, a2)
+
+    a2 = rdf_structs.EnumNamedValue.FromWireFormat(a.SerializeToWireFormat())
+    self.assertEqual(a2.id, 3)
+    self.assertEqual(a, a2)
+
+  def testHumanReadable(self):
+    a = rdf_structs.EnumNamedValue(initializer=5, name="A")
+    self.assertEqual(str(a), "A")
+
+    a2 = rdf_structs.EnumNamedValue.FromHumanReadable(str(a))
+    self.assertEqual(a2.name, "A")
+    self.assertEqual(a2, a)
 
 
 def main(argv):
