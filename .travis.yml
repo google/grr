@@ -29,11 +29,9 @@ matrix:
       env:
         - GCS_TAG=ubuntu_64bit
       before_install:
-        - python -m venv "${HOME}/GCS_VENV"
-        - ls -l "${HOME}/GCS_VENV"
-        - ls -l "${HOME}/GCS_VENV/bin"
+        - virtualenv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
-        - python -m venv "${HOME}/INSTALL"
+        - virtualenv "${HOME}/INSTALL"
       install:
         - travis/install_client_builder.sh
       script:
@@ -81,7 +79,7 @@ matrix:
         - DOCKER_CONTAINER=centos_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - python -m venv "${HOME}/GCS_VENV"
+        - virtualenv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
@@ -128,7 +126,7 @@ matrix:
         - DOCKER_CONTAINER=centos6_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - python -m venv "${HOME}/GCS_VENV"
+        - virtualenv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         # Create a Docker container which mounts the GRR repo in the
         # /mnt directory
@@ -180,7 +178,7 @@ matrix:
         - DOCKER_CONTAINER=xenial_64bit_container
         - DOCKER_USER=grrbot
       before_install:
-        - python -m venv "${HOME}/GCS_VENV"
+        - virtualenv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - >-
           sudo docker run -dit

@@ -1,6 +1,7 @@
 branches:
   only:
     - master
+    - py3-fix
 
 image: ubuntu
 

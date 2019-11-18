@@ -1,6 +1,7 @@
 branches:
   only:
     - master
+    - py3-fix
 
 environment:
   GCS_BUCKET: autobuilds.grr-response.com
