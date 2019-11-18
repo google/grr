@@ -11,7 +11,7 @@ environment:
 clone_folder: C:\grr_src
 
 cache:
-  - '%LOCALAPPDATA%\pip\Cache -> **\install_for_build.bat'
+#  - '%LOCALAPPDATA%\pip\Cache -> **\install_for_build.bat'
 
 install:
   - C:\grr_src\appveyor\windows_templates\install_for_build.bat
