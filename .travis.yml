@@ -30,6 +30,8 @@ matrix:
         - GCS_TAG=ubuntu_64bit
       before_install:
         - python -m venv "${HOME}/GCS_VENV"
+        - ls -l "${HOME}/GCS_VENV"
+        - ls -l "${HOME}/GCS_VENV/bin"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - python -m venv "${HOME}/INSTALL"
       install:
