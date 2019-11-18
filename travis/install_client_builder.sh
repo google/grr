@@ -8,6 +8,9 @@ set -e
 source "${HOME}/INSTALL/bin/activate"
 pip install --upgrade pip wheel six setuptools
 
+# Skipping the driver build, since we expect the driver to be shipped separately from GRR.
+pip install https://github.com/chipsec/chipsec/archive/6e35771cea2640e6367bd44c6f624f8292c58320.zip --install-option="--skip-driver"
+
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS
 
