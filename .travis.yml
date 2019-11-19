@@ -169,12 +169,12 @@ matrix:
     - os: linux
       language: python
       python: 3.6
-      dist: xenial
+      dist: bionic
       services:
         - docker
       env:
         - GCS_TAG=server_deb
-        - DOCKER_IMG=grrdocker/xenial
+        - DOCKER_IMG=ubuntu:bionic
         - DOCKER_CONTAINER=xenial_64bit_container
         - DOCKER_USER=grrbot
       before_install:
@@ -189,13 +189,16 @@ matrix:
           --env TRAVIS_COMMIT="${TRAVIS_COMMIT}"
           --name "${DOCKER_CONTAINER}"
           "${DOCKER_IMG}"
-        - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
+        - sudo docker exec "${DOCKER_CONTAINER}" apt-get update
         - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          ln -s /usr/local/bin/python3.6 /usr/local/bin/python3
+          sudo docker exec "${DOCKER_CONTAINER}" apt-get install -y fakeroot
+          debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv
+          wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev
+          dh-virtualenv dh-make libc6-i386 lib32z1
         - >-
           sudo docker exec "${DOCKER_CONTAINER}"
           python3 -m pip install --upgrade pip setuptools
+        - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           python3 -m venv "/home/${DOCKER_USER}/INSTALL"
