@@ -42,12 +42,9 @@ class Sdist(sdist):
 
   REQUIRED_TEMPLATES = [
       "GRR_maj.minor_amd64.exe.zip",
-      "GRR_maj.minor_i386.exe.zip",
       "grr_maj.minor_amd64.deb.zip",
       "grr_maj.minor_amd64.xar.zip",
       "grr_maj.minor_amd64.rpm.zip",
-      "grr_maj.minor_i386.deb.zip",
-      "grr_maj.minor_i386.rpm.zip",
   ]
 
   def CheckTemplates(self, base_dir, version):
