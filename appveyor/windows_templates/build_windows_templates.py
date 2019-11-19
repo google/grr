@@ -42,7 +42,7 @@ parser.add_argument(
 parser.add_argument(
     "--build_32",
     dest="build_32",
-    default=True,
+    default=False,
     action="store_true",
     help="Enable building the 32 bit version.")
 parser.add_argument("--no_build_32", dest="build_32", action="store_false")
