@@ -3,7 +3,7 @@ branches:
     - master
     - py3-fix
 
-image: ubuntu
+image: Ubuntu1804
 
 services:
 - mysql

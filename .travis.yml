@@ -160,18 +160,10 @@ matrix:
           --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
           --build_results_dir="${PWD}/gcs_upload_dir/"
 
-    # 64-bit xenial Docker container, for building server debs.
-    #
-    # Building a server deb in the trusty host did not work out so well -
-    # The build would fail with 'error: [Errno 11] Resource temporarily
-    # unavailable' after a bunch of file-copy operations. That doesn't happen
-    # inside the container.
     - os: linux
       language: python
       python: 3.6
       dist: bionic
-      services:
-        - docker
       env:
         - GCS_TAG=server_deb
         - DOCKER_IMG=ubuntu:bionic
@@ -181,39 +173,19 @@ matrix:
         - virtualenv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - >-
-          sudo docker run -dit
-          --volume "${PWD}:/mnt/grr"
-          --workdir /mnt/grr
-          --env DOCKER_USER="${DOCKER_USER}"
-          --env TRAVIS_OS_NAME="${TRAVIS_OS_NAME}"
-          --env TRAVIS_COMMIT="${TRAVIS_COMMIT}"
-          --name "${DOCKER_CONTAINER}"
-          "${DOCKER_IMG}"
-        - sudo docker exec "${DOCKER_CONTAINER}" apt-get update
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}" apt-get install -y fakeroot
-          debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv
-          wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev
-          dh-virtualenv dh-make libc6-i386 lib32z1
-        - >-
-          sudo docker exec "${DOCKER_CONTAINER}"
-          python3 -m pip install --upgrade pip setuptools
-        - sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          python3 -m venv "/home/${DOCKER_USER}/INSTALL"
+          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev
+          python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git
+          devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make
+          libc6-i386 lib32z1
+        - sudo -i python3 -m pip install --upgrade pip
+        - sudo -i python3 -m pip install --upgrade setuptools
+        - python3 -m venv "${HOME}/INSTALL"
       install:
-        - >-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          travis/install.sh
+        - travis/install.sh
       script:
         - >-
           travis/fetch_client_templates.sh &&
-
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
           travis/build_local_pyindex.sh &&
-
-          sudo docker exec "${DOCKER_CONTAINER}"
           travis/build_server_deb.sh
         - >-
           ${HOME}/GCS_VENV/bin/python

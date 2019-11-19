@@ -14,7 +14,7 @@
 #    -p 0.0.0.0:8080:8080 \
 #    grrdocker/grr
 
-FROM ubuntu:xenial
+FROM ubuntu:bionic
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
@@ -38,16 +38,16 @@ RUN apt-get update && \
   git \
   libffi-dev \
   libssl-dev \
-  python-dev \
-  python-pip \
+  python3-dev \
+  python3-pip \
+  python3-venv \
   rpm \
   wget \
   zip \
   mysql-server \
-  python-mysqldb
+  python3-mysqldb
 
-RUN pip install --upgrade --no-cache-dir pip virtualenv && \
-    virtualenv --system-site-packages $GRR_VENV
+RUN python3 -m venv --system-site-packages $GRR_VENV
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
     $GRR_VENV/bin/nodeenv -p --prebuilt --node=12.11.1 && \
