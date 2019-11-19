@@ -17,7 +17,7 @@ print('%s.%s.%s-%s' % (
     config.get('Version', 'revision'),
     config.get('Version', 'release')))
 "
-  deb_version="$(/usr/local/bin/python3.6 -c "${pyscript}")"
+  deb_version="$(python3 -c "${pyscript}")"
   debchange --create \
       --newversion "${deb_version}" \
       --package grr-server \
