@@ -76,7 +76,7 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.6.8",
+    python_requires=">=3.6",
     install_requires=[
         "absl-py==0.8.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),

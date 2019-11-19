@@ -66,7 +66,7 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.6.8",
+    python_requires=">=3.6",
     install_requires=[
         "distro==1.4.0",
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

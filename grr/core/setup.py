@@ -119,7 +119,7 @@ setup_args = dict(
     url="https://github.com/google/grr",
     maintainer="GRR Development Team",
     maintainer_email="grr-dev@googlegroups.com",
-    python_requires=">=2.7.11",
+    python_requires=">=3.6",
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
