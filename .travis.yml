@@ -180,6 +180,8 @@ matrix:
         - sudo -i python3 -m pip install --upgrade pip
         - sudo -i python3 -m pip install --upgrade setuptools
         - python3 -m venv "${HOME}/INSTALL"
+        - ${HOME}/INSTALL/bin/python -m pip install --upgrade pip
+        - ${HOME}/INSTALL/bin/python -m pip install --upgrade setuptools
       install:
         - travis/install.sh
       script:

@@ -60,6 +60,8 @@ override_dh_strip:
 
 override_dh_virtualenv:
 	dh_virtualenv --python python3 \
+		--builtin-venv \
+		--setuptools \
 		--use-system-packages \
 		--extra-pip-arg "--ignore-installed" \
 		--extra-pip-arg "--no-index" \
