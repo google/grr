@@ -92,7 +92,9 @@ setup_args = dict(
 )
 
 if platform.system() == "Linux":
-  setup_args["install_requires"].append("chipsec==1.4.3")
+  # TODO(mbushkov): change 'extras_require' to 'install_requires' if/when
+  # chipsec driver-less PIP package shows up on PyPI.
+  setup_args["extras_require"].append("chipsec==1.4.3")
 
 if platform.system() != "Windows":
   setup_args["install_requires"].append("xattr==0.9.6")
