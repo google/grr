@@ -82,13 +82,17 @@ class HashAction(Action):
       return result
 
     policy = self._opts.oversized_file_policy
-    max_size = self._opts.max_size
 
     if stat_entry.st_size <= self._opts.max_size:
       result.hash_entry = _HashEntry(stat_entry, fd, self._action.Progress)
     elif policy == self._opts.OversizedFilePolicy.HASH_TRUNCATED:
+      # self._opts.max_size has a type ByteSize - hence we have to convert it
+      # an int before passing to _HashEntry.
       result.hash_entry = _HashEntry(
-          stat_entry, fd, max_size=max_size, progress=self._action.Progress)
+          stat_entry,
+          fd,
+          max_size=int(self._opts.max_size),
+          progress=self._action.Progress)
     # else: Skip due to OversizedFilePolicy.SKIP.
 
     return result

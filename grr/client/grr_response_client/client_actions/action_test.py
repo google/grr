@@ -35,13 +35,20 @@ class ProgressAction(actions.ActionPlugin):
   in_rdfvalue = rdf_client.LogMessage
   out_rdfvalues = [rdf_client.LogMessage]
 
-  time = 100
+  def __init__(self, *args, **kwargs):
+    super(ProgressAction, self).__init__(*args, **kwargs)
+    # A number of tests below call action's Execute() method that
+    # accepts a GrrMessage and checks whether it has passed the
+    # authentication. Turning this off in order to not complicate
+    # the testing code.
+    self._authentication_required = False
 
   def Run(self, message):
     del message  # Unused.
+    time = 100
     for _ in range(3):
-      self.time += 5
-      with test_lib.FakeTime(self.time):
+      time += 5
+      with test_lib.FakeTime(time):
         self.Progress()
 
 
@@ -186,7 +193,6 @@ class ActionTest(client_test_lib.EmptyActionTest):
     with utils.MultiStubber((psutil, "Process", FakeProcess),
                             (action_cls, "SendReply", MockSendReply)):
 
-      action_cls._authentication_required = False
       action = action_cls(grr_worker=MockWorker())
       action.Execute(message)
 

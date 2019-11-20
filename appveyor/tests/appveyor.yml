@@ -12,20 +12,20 @@ cache:
 
 install:
 - lsb_release -a
-- python --version
+- python3.6 --version
 - echo "${PATH}"
 - free -hmw
 - lscpu
 # Ignore failures due to broken packages, e.g
 # https://ci.appveyor.com/project/grr/grr-ia94e/builds/21637886
 - sudo apt update -qq || true
-- sudo apt install -y libmysqlclient-dev
+- sudo apt install -y libmysqlclient-dev python3-venv python3-dev
 # Install chrome if absent.
 - >-
   if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
   wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
   fi
-- virtualenv "${HOME}/INSTALL"
+- python3.6 -m venv "${HOME}/INSTALL"
 - ${HOME}/INSTALL/bin/pip install pytest-xdist
 - travis/install.sh
 

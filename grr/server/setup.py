@@ -218,7 +218,7 @@ setup_args = dict(
         #
         # TODO(user): Find a way to use the latest mysqlclient version
         # in GRR server DEB.
-        "mysqldatastore": ["mysqlclient==1.3.7"],
+        "mysqldatastore": ["mysqlclient==1.3.10"],
     },
     data_files=data_files)
 

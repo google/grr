@@ -132,6 +132,8 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
       return b""
     return self._value.public_bytes(encoding=serialization.Encoding.PEM)
 
+  # TODO(user): this should return a string, since PEM format
+  # base64-encodes data and thus is ascii-compatible.
   def AsPEM(self):
     return self.SerializeToBytes()
 
@@ -254,6 +256,8 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
       return b""
     return self._value.public_bytes(serialization.Encoding.PEM)
 
+  # TODO(user): this should return a string, since PEM format
+  # base64-encodes data and thus is ascii-compatible.
   def AsPEM(self):
     return self.SerializeToBytes()
 
@@ -345,6 +349,8 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
   def __str__(self):
     return self.SerializeToBytes().decode("ascii")
 
+  # TODO(user): this should return a string, since PEM format
+  # base64-encodes data and thus is ascii-compatible.
   def AsPEM(self):
     return self.SerializeToBytes()
 
@@ -527,6 +533,8 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
 
     return "%s (%s)" % (compatibility.GetName(self.__class__), digest)
 
+  # TODO(user): this should return a string, since PEM format
+  # base64-encodes data and thus is ascii-compatible.
   def AsPEM(self):
     return self.SerializeToBytes()
 

@@ -59,7 +59,7 @@ override_dh_strip:
 	dh_strip --exclude=ffi
 
 override_dh_virtualenv:
-	dh_virtualenv --python python2.7 \
+	dh_virtualenv --python python3 \
 		--use-system-packages \
 		--extra-pip-arg "--ignore-installed" \
 		--extra-pip-arg "--no-index" \
@@ -69,3 +69,6 @@ override_dh_virtualenv:
 		--preinstall "${LOCAL_DEB_PYINDEX}/${TEMPLATES_SDIST}" \
 		--preinstall "${LOCAL_DEB_PYINDEX}/${CLIENT_BUILDER_SDIST}" \
 		--preinstall "${LOCAL_DEB_PYINDEX}/${SERVER_SDIST}" \
+
+override_dh_shlibdeps:
+	dh_shlibdeps -Xcygrpc.cpython

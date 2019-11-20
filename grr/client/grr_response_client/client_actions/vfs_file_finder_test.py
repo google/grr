@@ -247,11 +247,11 @@ class RegistryTest(absltest.TestCase):
     self.assertLen(results, 1)
     self.assertEqual(results[0].hash_entry.num_bytes, 6)
     self.assertEqual(results[0].hash_entry.md5.HexDigest(),
-                     hashlib.md5("lolcat").hexdigest())
+                     hashlib.md5(b"lolcat").hexdigest())
     self.assertEqual(results[0].hash_entry.sha1.HexDigest(),
-                     hashlib.sha1("lolcat").hexdigest())
+                     hashlib.sha1(b"lolcat").hexdigest())
     self.assertEqual(results[0].hash_entry.sha256.HexDigest(),
-                     hashlib.sha256("lolcat").hexdigest())
+                     hashlib.sha256(b"lolcat").hexdigest())
 
   def testHashSkipExactPath(self):
     results = self.RunFileFinder(
@@ -273,11 +273,11 @@ class RegistryTest(absltest.TestCase):
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].hash_entry.md5.HexDigest(),
-                     hashlib.md5("lolca").hexdigest())
+                     hashlib.md5(b"lolca").hexdigest())
     self.assertEqual(results[0].hash_entry.sha1.HexDigest(),
-                     hashlib.sha1("lolca").hexdigest())
+                     hashlib.sha1(b"lolca").hexdigest())
     self.assertEqual(results[0].hash_entry.sha256.HexDigest(),
-                     hashlib.sha256("lolca").hexdigest())
+                     hashlib.sha256(b"lolca").hexdigest())
 
   def testStatSingleGlob(self):
     results = self.RunFileFinder(

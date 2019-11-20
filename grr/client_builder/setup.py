@@ -6,19 +6,11 @@ from __future__ import unicode_literals
 
 import os
 import shutil
-import sys
 
+import configparser
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
-
-# TODO: Fix this import once support for Python 2 is dropped.
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major == 2:
-  import ConfigParser as configparser
-else:
-  import configparser
-# pylint: enable=g-import-not-at-top
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
@@ -73,7 +65,7 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=2.7.11",
+    python_requires=">=3.6",
     install_requires=[
         "distro==1.4.0",
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

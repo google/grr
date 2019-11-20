@@ -17,6 +17,7 @@ import time
 
 from absl import app
 from absl import flags
+from future.builtins import str
 import portpicker
 import psutil
 import requests
@@ -210,6 +211,16 @@ def WaitForClientToEnroll(admin_ui_port):
   raise ClientEnrollmentTimeout("Client didn't enroll.")
 
 
+def KillClient(admin_ui_port, client_id):
+  """Kills a given client."""
+
+  api_endpoint = "http://localhost:%d" % admin_ui_port
+  api_client = api.InitHttp(api_endpoint=api_endpoint)
+
+  f = api_client.Client(client_id).CreateFlow("Kill")
+  f.WaitUntilDone(timeout=60)
+
+
 def GetRunEndToEndTestsArgs(client_id, server_config):
   """Returns arguments needed to configure run_end_to_end_tests process.
 
@@ -232,8 +243,6 @@ def GetRunEndToEndTestsArgs(client_id, server_config):
       client_id,
       "--ignore_test_context",
       "True",
-      "-p",
-      "Client.binary_name=%s" % psutil.Process(os.getpid()).name(),
   ]
   if flags.FLAGS.tests:
     args += ["--whitelisted_tests", ",".join(flags.FLAGS.tests)]
@@ -298,8 +307,13 @@ def main(argv):
   server_config = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(),
                                         built_server_config_path)
 
+  # Start the client.
+  preliminary_client_p = StartComponent(
+      "grr_response_client.client",
+      ["--config", built_client_config_path])
+
   # Start all remaining server components.
-  processes = [
+  server_processes = [
       StartComponent(
           "grr_response_server.gui.admin_ui",
           GetServerComponentArgs(built_server_config_path)),
@@ -309,20 +323,39 @@ def main(argv):
       StartComponent(
           "grr_response_server.bin.worker",
           GetServerComponentArgs(built_server_config_path)),
-      StartComponent(
-          "grr_response_client.client",
-          ["--config", built_client_config_path, "--verbose"]),
   ]
 
   # Start a background thread that kills the main process if one of the
-  # subprocesses dies.
-  t = threading.Thread(target=DieIfSubProcessDies, args=(processes,))
+  # server subprocesses dies.
+  t = threading.Thread(target=DieIfSubProcessDies, args=(server_processes,))
   t.daemon = True
   t.start()
 
   # Wait for the client to enroll and get its id.
   client_id = WaitForClientToEnroll(server_config["AdminUI.port"])
   print("Found client id: %s" % client_id)
+
+  # Python doesn't guarantee the process name of processes started by the Python
+  # interpreter. They may vary from platform to platform. In order to ensure
+  # that Client.binary_name config setting matches the actual process name,
+  # let's get the name via psutil, kill the client and set the
+  # Config.binary_name explicitly.
+  client_binary_name = str(psutil.Process(preliminary_client_p.pid).name())
+  KillClient(server_config["AdminUI.port"], client_id)
+  preliminary_client_p.wait()
+
+  print("Starting the client with Client.binary_name=%s" % client_binary_name)
+  client_p = StartComponent(
+      "grr_response_client.client", [
+          "--config", built_client_config_path, "-p",
+          "Client.binary_name=%s" % client_binary_name
+      ])
+
+  # Start a background thread that kills the main process if
+  # client subprocess dies.
+  t = threading.Thread(target=DieIfSubProcessDies, args=([client_p],))
+  t.daemon = True
+  t.start()
 
   # Run the test suite against the enrolled client.
   p = StartComponent(

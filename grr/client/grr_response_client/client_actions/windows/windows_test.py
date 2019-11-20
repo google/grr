@@ -62,7 +62,7 @@ class WindowsActionTests(absltest.TestCase):
     drive = result_list[0]
     self.assertIsInstance(drive, rdf_protodict.Dict)
     self.assertNotEmpty(drive["DeviceID"])
-    self.assertGreater(drive["Size"], 0)
+    self.assertGreater(int(drive["Size"]), 0)
 
   def testRunWMIMocked(self):
     with mock.patch.object(windows, "win32com") as win32com:

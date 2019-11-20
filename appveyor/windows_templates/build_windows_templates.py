@@ -42,19 +42,19 @@ parser.add_argument(
 parser.add_argument(
     "--build_32",
     dest="build_32",
-    default=True,
+    default=False,
     action="store_true",
     help="Enable building the 32 bit version.")
 parser.add_argument("--no_build_32", dest="build_32", action="store_false")
 
 parser.add_argument(
     "--python32_dir",
-    default=r"C:\Python27",
+    default=r"C:\Python36",
     help="Path to the 32 bit Python installation.")
 
 parser.add_argument(
     "--python64_dir",
-    default=r"C:\Python27-x64",
+    default=r"C:\Python36-x64",
     help="Path to the 64 bit Python installation.")
 
 parser.add_argument(

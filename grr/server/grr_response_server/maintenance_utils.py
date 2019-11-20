@@ -120,8 +120,9 @@ def RotateServerKey(cn=u"grr", keylength=4096):
       serial_number=serial_number)
 
   EPrint("Updating configuration.")
-  config.CONFIG.Set("Frontend.certificate", server_cert.AsPEM())
-  config.CONFIG.Set("PrivateKeys.server_key", server_private_key.AsPEM())
+  config.CONFIG.Set("Frontend.certificate", server_cert.AsPEM().decode("ascii"))
+  config.CONFIG.Set("PrivateKeys.server_key",
+                    server_private_key.AsPEM().decode("ascii"))
   config.CONFIG.Write()
 
   EPrint("Server key rotated, please restart the GRR Frontends.")

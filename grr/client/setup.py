@@ -14,19 +14,11 @@ from __future__ import unicode_literals
 import os
 import platform
 import shutil
-import sys
 
+import configparser
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
-
-# TODO: Fix this import once support for Python 2 is dropped.
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major == 2:
-  import ConfigParser as configparser
-else:
-  import configparser
-# pylint: enable=g-import-not-at-top
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
@@ -83,12 +75,10 @@ setup_args = dict(
     cmdclass={"sdist": Sdist},
     packages=find_packages(),
     include_package_data=True,
+    python_requires=">=3.6",
     install_requires=[
         "absl-py==0.8.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        # TODO: This is a backport of Python 3.2+ API, should be
-        # removed once support for Python 2 is dropped.
-        "subprocess32==3.5.4",
         "pyinstaller==3.5",
     ],
     extras_require={
@@ -101,11 +91,9 @@ setup_args = dict(
 )
 
 if platform.system() == "Linux":
-  # TODO: 1.3.6 is a beta branch that has to be installed from
-  # source. For now we only care about it for Python 3 compatibility, so it is
-  # fine to use older one in normal circumstances.
-  chipsec_version = "1.2.4" if sys.version_info < (3, 0) else "1.4.3"
-  setup_args["install_requires"].append("chipsec=={}".format(chipsec_version))
+  # TODO(user): change 'extras_require' to 'install_requires' if/when
+  # chipsec driver-less PIP package shows up on PyPI.
+  setup_args["extras_require"]["chipsec"] = ["chipsec==1.4.3"]
 
 if platform.system() != "Windows":
   setup_args["install_requires"].append("xattr==0.9.6")

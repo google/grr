@@ -24,11 +24,8 @@ COMMIT_DIR="gs://${GCS_BUCKET}/${commit_timestamp}_${TRAVIS_COMMIT}"
 
 declare -A remote_templates
 remote_templates['windows_64bit_template']='appveyor_build_*_job_1/GRR_*_amd64.exe.zip'
-remote_templates['windows_32bit_template']='appveyor_build_*_job_1/GRR_*_i386.exe.zip'
 remote_templates['debian_64bit_template']='travis_job_*_ubuntu_64bit/grr_*_amd64.deb.zip'
-remote_templates['debian_32bit_template']='travis_job_*_ubuntu_32bit/grr_*_i386.deb.zip'
 remote_templates['centos_64bit_template']='travis_job_*_centos_64bit/grr_*_amd64.rpm.zip'
-remote_templates['centos_32bit_template']='travis_job_*_centos_32bit/grr_*_i386.rpm.zip'
 remote_templates['osx_template']='travis_job_*_osx/grr_*_amd64.xar.zip'
 
 if [[ ! -d "${LOCAL_TEMPLATE_DIR}" ]]; then

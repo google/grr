@@ -190,7 +190,7 @@ class LinuxClientRepacker(build.ClientRepacker):
         try:
           subprocess.check_output(command, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
-          if "Failed to sign" not in e.output:
+          if b"Failed to sign" not in e.output:
             logging.error("Error calling %s.", command)
             logging.error(e.output)
             raise

@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 
+import configparser
 from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
@@ -18,13 +19,6 @@ from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
-# TODO: Fix this import once support for Python 2 is dropped.
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major == 2:
-  import ConfigParser as configparser
-else:
-  import configparser
-# pylint: enable=g-import-not-at-top
 
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
@@ -125,7 +119,7 @@ setup_args = dict(
     url="https://github.com/google/grr",
     maintainer="GRR Development Team",
     maintainer_email="grr-dev@googlegroups.com",
-    python_requires=">=2.7.11",
+    python_requires=">=3.6",
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
@@ -152,7 +146,7 @@ setup_args = dict(
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipaddress==1.0.22",
-        "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
+        "ipython==7.2.0",
         "pexpect==4.7.0",
         "pip>=8.1.1",
         "psutil==5.6.3",

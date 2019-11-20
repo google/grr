@@ -6,41 +6,20 @@ from __future__ import unicode_literals
 
 import re
 
-from grr_response_core import config
 from grr_response_test.end_to_end_tests import test_base
 
 
-def GetProcessName(platform):
-  """Gets the process name for the different platforms.
+def _GetBinaryName(client):
+  """Gets the GRR binary name on the client."""
 
-  By default, this function will return:
-    Windows: GRRservice.exe
-    Linux: grrd
-    Darwin: grr
-
-  Args:
-    platform: The platform the client under test is running on.
-
-  Returns:
-     The process name the test should use.
-
-  Raises:
-    ValueError: An unknown platform was passed.
-  """
-  if platform == test_base.EndToEndTest.Platform.WINDOWS:
-    return config.CONFIG.Get("Client.binary_name", context=["Platform:Windows"])
-  elif platform == test_base.EndToEndTest.Platform.LINUX:
-    return config.CONFIG.Get("Client.binary_name", context=["Platform:Linux"])
-  elif platform == test_base.EndToEndTest.Platform.DARWIN:
-    return config.CONFIG.Get("Client.binary_name", context=["Platform:Darwin"])
-  else:
-    raise ValueError("Platform %s unknown" % platform)
+  client_data = client.Get().data
+  return client_data.agent_info.client_binary_name
 
 
-def GetProcessNameRegex(platform):
+def _GetProcessNameRegex(client):
   """Returns a regex that matches a process on the client under test."""
 
-  return "^%s$" % GetProcessName(platform)
+  return "^%s$" % _GetBinaryName(client)
 
 
 class TestYaraScan(test_base.EndToEndTest):
@@ -63,7 +42,7 @@ rule test_rule {
 
     args = self.grr_api.types.CreateFlowArgs(flow_name="YaraProcessScan")
     args.yara_signature = signature
-    args.process_regex = GetProcessNameRegex(self.platform)
+    args.process_regex = _GetProcessNameRegex(self.client)
     args.max_results_per_process = 2
     args.ignore_grr_process = False
 
@@ -107,8 +86,8 @@ class TestProcessDump(test_base.AbstractFileTransferTest):
 
   def runTest(self):
     args = self.grr_api.types.CreateFlowArgs(flow_name="DumpProcessMemory")
-    process_name = GetProcessName(self.platform)
-    args.process_regex = GetProcessNameRegex(self.platform)
+    process_name = _GetBinaryName(self.client)
+    args.process_regex = _GetProcessNameRegex(self.client)
     args.ignore_grr_process = False
     args.size_limit = 20 * 1024 * 1024
 

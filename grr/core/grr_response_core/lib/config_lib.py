@@ -942,6 +942,10 @@ class GrrConfigManager(object):
       if isinstance(value, Text):
         value = self.EscapeString(value)
 
+      if not compatibility.PY2 and isinstance(value, bytes):
+        raise ValueError("Setting config option %s to bytes is not allowed" %
+                         name)
+
     writeback_data[name] = value
     self.FlushCache()
 

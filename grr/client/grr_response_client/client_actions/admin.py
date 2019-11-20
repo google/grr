@@ -276,6 +276,7 @@ class UpdateConfiguration(actions.ActionPlugin):
 def GetClientInformation():
   return rdf_client.ClientInformation(
       client_name=config.CONFIG["Client.name"],
+      client_binary_name=config.CONFIG["Client.binary_name"],
       client_description=config.CONFIG["Client.description"],
       client_version=int(config.CONFIG["Source.version_numeric"]),
       build_time=config.CONFIG["Client.build_time"],

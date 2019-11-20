@@ -5,11 +5,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import ConfigParser
 import glob
 import os
 import re
 import shutil
+
+import configparser
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
@@ -29,7 +30,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = ConfigParser.SafeConfigParser()
+  config = configparser.SafeConfigParser()
   config.read(ini_path)
   return config
 
@@ -42,12 +43,9 @@ class Sdist(sdist):
 
   REQUIRED_TEMPLATES = [
       "GRR_maj.minor_amd64.exe.zip",
-      "GRR_maj.minor_i386.exe.zip",
       "grr_maj.minor_amd64.deb.zip",
       "grr_maj.minor_amd64.xar.zip",
       "grr_maj.minor_amd64.rpm.zip",
-      "grr_maj.minor_i386.deb.zip",
-      "grr_maj.minor_i386.rpm.zip",
   ]
 
   def CheckTemplates(self, base_dir, version):
