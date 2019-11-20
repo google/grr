@@ -143,15 +143,18 @@ class MySQLDBPathMixin(object):
             client_paths.path_type = client_path_hash_entries.path_type AND
             client_paths.path_id = client_path_hash_entries.path_id AND
             client_paths.last_hash_entry_timestamp = client_path_hash_entries.timestamp)
-     WHERE client_paths.client_id = %(client_id)s
-       AND client_paths.path_type = %(path_type)s
-       AND client_paths.path_id IN %(path_ids)s
-    """
-    values = {
-        "client_id": db_utils.ClientIDToInt(client_id),
-        "path_type": int(path_type),
-        "path_ids": [path_id.AsBytes() for path_id in path_ids]
-    }
+     WHERE client_paths.client_id = %s
+       AND client_paths.path_type = %s
+       AND client_paths.path_id IN ({})
+    """.format(", ".join(['%s' * len(path_ids)]))
+    # Note, passing tuples as cursor.execute arguments is broken in
+    # mysqldbclient==1.3.10
+    # (see https://github.com/PyMySQL/mysqlclient-python/issues/145)
+    # and is considered unmaintained.
+    values = [
+        db_utils.ClientIDToInt(client_id),
+        int(path_type),
+    ] + [path_id.AsBytes() for path_id in path_ids]
 
     cursor.execute(query, values)
     for row in cursor.fetchall():
@@ -501,8 +504,10 @@ class MySQLDBPathMixin(object):
     params = {
         "client_id": db_utils.ClientIDToInt(client_id),
         "path_type": int(path_type),
-        "path_ids": [path_id.AsBytes() for path_id in path_id_components]
     }
+    for path_id in path_id_components:
+      params["path_id_%s" % path_id.AsHexString()] = path_id.AsBytes()
+    path_id_format_string = ", ".join(["%(path_id_{})s".format(path_id.AsHexString()) for path_id in path_id_components])
 
     if cutoff is not None:
       stat_entry_timestamp_condition = """
@@ -528,7 +533,7 @@ class MySQLDBPathMixin(object):
        AND s.timestamp = h.timestamp
      WHERE s.client_id = %(client_id)s
        AND s.path_type = %(path_type)s
-       AND s.path_id IN %(path_ids)s
+       AND s.path_id IN ({path_id_format_string})
        {stat_entry_timestamp_condition}
      UNION
     SELECT s.path_id, s.stat_entry, UNIX_TIMESTAMP(s.timestamp),
@@ -541,11 +546,12 @@ class MySQLDBPathMixin(object):
        AND h.timestamp = s.timestamp
      WHERE h.client_id = %(client_id)s
        AND h.path_type = %(path_type)s
-       AND h.path_id IN %(path_ids)s
+       AND h.path_id IN ({path_id_format_string})
        {hash_entry_timestamp_condition}
     """.format(
         stat_entry_timestamp_condition=stat_entry_timestamp_condition,
-        hash_entry_timestamp_condition=hash_entry_timestamp_condition)
+        hash_entry_timestamp_condition=hash_entry_timestamp_condition,
+        path_id_format_string=path_id_format_string)
 
     cursor.execute(query, params)
     for row in cursor.fetchall():

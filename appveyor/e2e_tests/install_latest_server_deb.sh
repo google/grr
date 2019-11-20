@@ -17,8 +17,8 @@ mkdir "${DEB_TEMPDIR}"
 cd "${DEB_TEMPDIR}"
 
 pyscript="
-import ConfigParser
-config = ConfigParser.SafeConfigParser()
+import configparser
+config = configparser.SafeConfigParser()
 config.read('${APPVEYOR_BUILD_FOLDER}/version.ini')
 print('%s.%s.%s-%s' % (
     config.get('Version', 'major'),
@@ -26,7 +26,7 @@ print('%s.%s.%s-%s' % (
     config.get('Version', 'revision'),
     config.get('Version', 'release')))
 "
-readonly DEB_VERSION="$(python -c "${pyscript}")"
+readonly DEB_VERSION="$(python3 -c "${pyscript}")"
 readonly GCS_DEB_DIR="https://storage.googleapis.com/autobuilds.grr-response.com/_latest_server_deb"
 wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.deb"
 wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.changes"

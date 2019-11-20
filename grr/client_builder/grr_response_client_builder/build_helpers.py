@@ -246,17 +246,18 @@ def ValidateEndConfig(config_obj, errors_fatal=True, context=None):
 
     certificate = config_obj.GetRaw(
         "CA.certificate", default=None, context=context)
-    if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
+    if certificate is None or not certificate.startswith(b"-----BEGIN CERTIF"):
       errors.append("CA certificate missing from config.")
 
   key_data = config_obj.GetRaw(
       "Client.executable_signing_public_key", default=None, context=context)
   if key_data is None:
     errors.append("Missing Client.executable_signing_public_key.")
-  elif not key_data.startswith("-----BEGIN PUBLIC"):
+  elif not key_data.startswith(b"-----BEGIN PUBLIC"):
     errors.append("Invalid Client.executable_signing_public_key: %s" % key_data)
   else:
-    rdf_crypto.RSAPublicKey.FromHumanReadable(key_data)
+    # Key data is supposed to be ascii-only.
+    rdf_crypto.RSAPublicKey.FromHumanReadable(key_data.decode("ascii"))
 
   for bad_opt in ["Client.private_key"]:
     if config_obj.Get(bad_opt, context=context, default=""):
