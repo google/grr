@@ -50,21 +50,21 @@ def GenerateKeys(config, overwrite_keys=False):
   print("Generating executable signing key")
   executable_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
   config.Set("PrivateKeys.executable_signing_private_key",
-             executable_key.AsPEM())
+             executable_key.AsPEM().decode("ascii"))
   config.Set("Client.executable_signing_public_key",
-             executable_key.GetPublicKey().AsPEM())
+             executable_key.GetPublicKey().AsPEM().decode("ascii"))
 
   print("Generating CA keys")
   ca_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
   ca_cert = key_utils.MakeCACert(ca_key)
-  config.Set("CA.certificate", ca_cert.AsPEM())
-  config.Set("PrivateKeys.ca_key", ca_key.AsPEM())
+  config.Set("CA.certificate", ca_cert.AsPEM().decode("ascii"))
+  config.Set("PrivateKeys.ca_key", ca_key.AsPEM().decode("ascii"))
 
   print("Generating Server keys")
   server_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
   server_cert = key_utils.MakeCASignedCert(u"grr", server_key, ca_cert, ca_key)
-  config.Set("Frontend.certificate", server_cert.AsPEM())
-  config.Set("PrivateKeys.server_key", server_key.AsPEM())
+  config.Set("Frontend.certificate", server_cert.AsPEM().decode("ascii"))
+  config.Set("PrivateKeys.server_key", server_key.AsPEM().decode("ascii"))
 
   print("Generating secret key for csrf protection.")
   _GenerateCSRFKey(config)
