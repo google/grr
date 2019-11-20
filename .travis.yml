@@ -161,8 +161,6 @@ matrix:
           --build_results_dir="${PWD}/gcs_upload_dir/"
 
     - os: linux
-      language: python
-      python: 3.6
       dist: bionic
       env:
         - GCS_TAG=server_deb
