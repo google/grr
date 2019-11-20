@@ -166,9 +166,6 @@ matrix:
       dist: bionic
       env:
         - GCS_TAG=server_deb
-        - DOCKER_IMG=ubuntu:bionic
-        - DOCKER_CONTAINER=xenial_64bit_container
-        - DOCKER_USER=grrbot
       before_install:
         - virtualenv "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
@@ -177,11 +174,9 @@ matrix:
           python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git
           devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make
           libc6-i386 lib32z1
-        - sudo -i python3 -m pip install --upgrade pip
-        - sudo -i python3 -m pip install --upgrade setuptools
+        - sudo -i pip3 install --upgrade setuptools
         - python3 -m venv "${HOME}/INSTALL"
-        - ${HOME}/INSTALL/bin/python -m pip install --upgrade pip
-        - ${HOME}/INSTALL/bin/python -m pip install --upgrade setuptools
+        - ${HOME}/INSTALL/bin/python -m pip install --upgrade pip setuptools
       install:
         - travis/install.sh
       script:
