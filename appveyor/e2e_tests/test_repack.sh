@@ -20,8 +20,6 @@ grr_client_build --verbose \
 declare -A client_installers
 client_installers['Windows_64bit']='GRR_*_amd64.exe'
 client_installers['Windows_64bit_debug']='dbg_GRR_*_amd64.exe'
-client_installers['Windows_32bit']='GRR_*_i386.exe'
-client_installers['Windows_32bit_debug']='dbg_GRR_*_i386.exe'
 client_installers['Ubuntu_64bit']='grr_*_amd64.deb'
 client_installers['MacOS']='grr_*_amd64.pkg'
 
