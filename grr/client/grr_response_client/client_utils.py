@@ -9,6 +9,8 @@ import logging
 import os
 import sys
 
+from typing import Text
+
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
@@ -38,19 +40,25 @@ VerifyFileOwner = _client_utils.VerifyFileOwner
 # pylint: enable=g-bad-name
 
 
-def StatEntryFromPath(path, pathspec, ext_attrs=True):
+def StatEntryFromPath(
+    path,
+    pathspec,
+    ext_attrs = True,
+    follow_symlink = True,
+):
   """Builds a stat entry object from a given path.
 
   Args:
     path: A path (string value) to stat.
     pathspec: A `PathSpec` corresponding to the `path`.
     ext_attrs: Whether to include extended file attributes in the result.
+    follow_symlink: Whether links should be followed.
 
   Returns:
     `StatEntry` object.
   """
   try:
-    stat = filesystem.Stat.FromPath(path)
+    stat = filesystem.Stat.FromPath(path, follow_symlink=follow_symlink)
   except (IOError, OSError) as error:
     logging.error("Failed to obtain stat for '%s': %s", pathspec, error)
     return rdf_client_fs.StatEntry(pathspec=pathspec)

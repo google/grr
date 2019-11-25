@@ -891,15 +891,8 @@ def DirHierarchy(
     try:
       yield hierarchy
     finally:
-      # TODO: Globbing uses VFS handlers which cache file handles
-      # causing the files to get locked. Because of that, at least on Windows,
-      # it is not possible to remove the directory with locked files, causing
-      # issues during test clean-up. Once this terrible caching is removed (as
-      # it should be), this can be removed but for now, we have to empty the
-      # cache manually.
-      for _, [_, filedesc] in files.FILE_HANDLE_CACHE:
-        filedesc.Close()
-      files.FILE_HANDLE_CACHE.Flush()
+      # TODO: Required to clean-up the temp directory.
+      files.FlushHandleCache()
 
 
 def main(argv):

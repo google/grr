@@ -53,11 +53,16 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
     database = "test-{}".format(builtins.str(uuid.uuid4())[-10])
 
     conn = mysql.MysqlDB(
-        host=host, port=port, user=user, password=password, database=database)
+        host=host,
+        port=int(port),
+        user=user,
+        password=password,
+        database=database)
     logging.info("Created test database: %s", database)
 
-    def _Drop(cursor):
-      cursor.execute("DROP DATABASE `{}`".format(database))
+    def _Drop(conn):
+      with contextlib.closing(conn.cursor()) as cursor:
+        cursor.execute("DROP DATABASE `{}`".format(database))
 
     def Fin():
       conn._RunInTransaction(_Drop)

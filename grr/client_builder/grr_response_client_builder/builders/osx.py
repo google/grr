@@ -206,8 +206,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     self._RunCmd(command)
 
   def _RunPkgBuild(self):
-    pkg_id = "%s.%s.%s_%s" % (self.pkg_org, self.client_name, self.client_name,
-                              self.version)
+    pkg_id = "%s.%s" % (self.pkg_org, self.client_name)
     command = [
         "pkgbuild",
         "--root=%s" % self.pkg_root, "--identifier", pkg_id, "--scripts",

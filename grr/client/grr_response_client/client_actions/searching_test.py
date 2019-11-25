@@ -3,6 +3,7 @@
 """Test client vfs."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import functools
@@ -119,8 +120,12 @@ class MockVFSHandlerFind(vfs.VFSHandler):
   def IsDirectory(self):
     return bool(self.content)
 
-  def Stat(self, path=None, ext_attrs=None):
-    del path, ext_attrs  # Unused.
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
+    del ext_attrs, follow_symlink  # Unused.
 
     result = self.DoStat(self.path)
     result.pathspec = self.pathspec

@@ -2,6 +2,7 @@
 """Implements VFSHandlers for files on the client."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
@@ -11,9 +12,12 @@ import re
 import sys
 import threading
 
+from typing import Text
+
 from grr_response_client import client_utils
 from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import filesystem
 
@@ -25,6 +29,18 @@ from grr_response_core.lib.util import filesystem
 # hard to determine when the file can be freed again, thus this caching is hard
 # to remove.
 FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=30)
+
+
+# TODO: Globbing uses VFS handlers which cache file handles causing
+# the files to get locked. Because of that, at least on Windows, it is not
+# possible to remove the directory with locked files, causing issues e.g. during
+# test clean-up. Once this terrible caching is removed (as it should be), this
+# method can be removed but for now, we have to empty the cache manually.
+def FlushHandleCache():
+  """Flushes the handle cache closing all cached files and releasing locks."""
+  for _, [_, filedesc] in FILE_HANDLE_CACHE:
+    filedesc.Close()
+  FILE_HANDLE_CACHE.Flush()
 
 
 class LockedFileHandle(object):
@@ -237,15 +253,26 @@ class File(vfs_base.VFSHandler):
 
       return data[pre_padding:]
 
-  def Stat(self, ext_attrs=False):
-    return self._Stat(self.path, ext_attrs=ext_attrs)
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
+    return self._Stat(
+        self.path, ext_attrs=ext_attrs, follow_symlink=follow_symlink)
 
-  def _Stat(self, path, ext_attrs=False):
+  def _Stat(
+      self,
+      path,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
     """Returns stat information of a specific path.
 
     Args:
       path: A unicode string containing the path.
       ext_attrs: Whether the call should also collect extended attributes.
+      follow_symlink: Whether links should be resolved.
 
     Returns:
       a StatResponse proto
@@ -256,7 +283,10 @@ class File(vfs_base.VFSHandler):
     # Note that the encoding of local path is system specific
     local_path = client_utils.CanonicalPathToLocalPath(path)
     result = client_utils.StatEntryFromPath(
-        local_path, self.pathspec, ext_attrs=ext_attrs)
+        local_path,
+        self.pathspec,
+        ext_attrs=ext_attrs,
+        follow_symlink=follow_symlink)
 
     # Is this a symlink? If so we need to note the real location of the file.
     try:

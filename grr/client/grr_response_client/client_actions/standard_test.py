@@ -9,12 +9,14 @@ import hashlib
 import io
 import os
 import platform
+import stat
 import unittest
 
 from absl import app
 import mock
 
 from grr_response_client.client_actions import standard
+from grr_response_client.vfs_handlers import files
 from grr_response_core import config
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -266,6 +268,53 @@ class GetFileStatTest(client_test_lib.EmptyActionTest):
 
       self.assertLen(results, 1)
       self.assertEmpty(results[0].ext_attrs)
+
+  def testFollowSymlinkEnabled(self):
+    data = b"quux" * 1024
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      target_filepath = os.path.join(temp_dirpath, "target")
+      symlink_filepath = os.path.join(temp_dirpath, "symlink")
+
+      filesystem_test_lib.CreateFile(target_filepath, data)
+      os.symlink(target_filepath, symlink_filepath)
+
+      request = rdf_client_action.GetFileStatRequest()
+      request.pathspec = rdf_paths.PathSpec.OS(path=symlink_filepath)
+      request.follow_symlink = True
+
+      results = self.RunAction(standard.GetFileStat, request)
+
+      self.assertLen(results, 1)
+      self.assertFalse(stat.S_ISLNK(int(results[0].st_mode)))
+      self.assertEqual(results[0].st_size, len(data))
+
+      # TODO: Required to clean-up the temp directory.
+      files.FlushHandleCache()
+
+  def testFollowSymlinkDisable(self):
+    data = b"thud" * 1024
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+      target_filepath = os.path.join(temp_dirpath, "target")
+      symlink_filepath = os.path.join(temp_dirpath, "symlink")
+
+      filesystem_test_lib.CreateFile(target_filepath, data)
+      os.symlink(target_filepath, symlink_filepath)
+
+      request = rdf_client_action.GetFileStatRequest()
+      request.pathspec = rdf_paths.PathSpec.OS(path=symlink_filepath)
+      request.follow_symlink = False
+
+      results = self.RunAction(standard.GetFileStat, request)
+
+      self.assertLen(results, 1)
+      self.assertTrue(stat.S_ISLNK(int(results[0].st_mode)))
+      self.assertLess(results[0].st_size, len(data))
+      self.assertEqual(results[0].symlink, target_filepath)
+
+      # TODO: Required to clean-up the temp directory.
+      files.FlushHandleCache()
 
 
 class TestNetworkByteLimits(client_test_lib.EmptyActionTest):

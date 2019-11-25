@@ -682,6 +682,7 @@ message ListDirRequest {
 message GetFileStatRequest {
   optional PathSpec pathspec = 1;
   optional bool collect_ext_attrs = 2 [default = false];
+  optional bool follow_symlink = 3;
 }
 
 // StatFS client action request

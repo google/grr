@@ -2,6 +2,7 @@
 """Implement low level disk access using the sleuthkit."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import logging
@@ -335,9 +336,13 @@ class TSKFile(vfs_base.VFSHandler):
       return data
     return b""
 
-  def Stat(self, ext_attrs=None):
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
     """Return a stat of the file."""
-    del ext_attrs  # Unused.
+    del ext_attrs, follow_symlink  # Unused.
     return self.MakeStatResponse(self.fd, tsk_attribute=self.tsk_attribute)
 
   def ListFiles(self, ext_attrs=None):

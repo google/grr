@@ -2,6 +2,7 @@
 """Implement access to the windows registry."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import ctypes
@@ -369,8 +370,12 @@ class RegistryFile(vfs_base.VFSHandler):
       except OSError:
         raise IOError("Unable to open key %s" % self.key_name)
 
-  def Stat(self, ext_attrs=None):
-    del ext_attrs  # Unused.
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
+    del ext_attrs, follow_symlink  # Unused.
     # mtime is only available for keys, not values. Also special-casing root
     # entry (it's not going to have a hive defined).
     if self.is_directory and self.hive and not self.last_modified:

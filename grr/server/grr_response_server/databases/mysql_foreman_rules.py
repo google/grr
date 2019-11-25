@@ -15,15 +15,22 @@ class MySQLDBForemanRulesMixin(object):
   @mysql_utils.WithTransaction()
   def WriteForemanRule(self, rule, cursor=None):
     """Writes a foreman rule to the database."""
-    query = ("INSERT INTO foreman_rules "
-             "  (hunt_id, expiration_time, rule) "
-             "VALUES (%s, FROM_UNIXTIME(%s), %s) "
-             "ON DUPLICATE KEY UPDATE "
-             "  expiration_time=FROM_UNIXTIME(%s), rule=%s")
+    query = (
+        "INSERT INTO foreman_rules "
+        "  (hunt_id, expiration_time, rule) "
+        "VALUES (%(hunt_id)s, FROM_UNIXTIME(%(exp_time)s), %(rule_bytes)s) "
+        "ON DUPLICATE KEY UPDATE "
+        "  expiration_time=FROM_UNIXTIME(%(exp_time)s), rule=%(rule_bytes)s")
 
-    exp_str = mysql_utils.RDFDatetimeToTimestamp(rule.expiration_time),
-    rule_str = rule.SerializeToBytes()
-    cursor.execute(query, [rule.hunt_id, exp_str, rule_str, exp_str, rule_str])
+    cursor.execute(
+        query, {
+            "hunt_id":
+                rule.hunt_id,
+            "exp_time":
+                mysql_utils.RDFDatetimeToTimestamp(rule.expiration_time),
+            "rule_bytes":
+                rule.SerializeToBytes()
+        })
 
   @mysql_utils.WithTransaction()
   def RemoveForemanRule(self, hunt_id, cursor=None):

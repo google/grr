@@ -121,7 +121,7 @@ class ListDirectory(flow_base.FlowBase):
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(
-          pathspec=self.args.pathspec)
+          pathspec=self.args.pathspec, follow_symlink=True)
     else:
       stub = server_stubs.StatFile
       request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
@@ -612,7 +612,8 @@ class GlobLogic(object):
                 stub = server_stubs.GetFileStat
                 request = rdf_client_action.GetFileStatRequest(
                     pathspec=pathspec,
-                    collect_ext_attrs=self.state.collect_ext_attrs)
+                    collect_ext_attrs=self.state.collect_ext_attrs,
+                    follow_symlink=True)
               else:
                 stub = server_stubs.StatFile
                 request = rdf_client_action.ListDirRequest(pathspec=pathspec)

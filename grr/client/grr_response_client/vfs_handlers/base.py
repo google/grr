@@ -10,7 +10,6 @@ import os
 
 from future.builtins import filter
 from future.utils import with_metaclass
-from typing import Optional
 
 from grr_response_client import client_utils
 from grr_response_core.lib import utils
@@ -102,8 +101,24 @@ class VFSHandler(with_metaclass(abc.ABCMeta, object)):
     raise NotImplementedError
 
   @abc.abstractmethod
-  def Stat(self, ext_attrs = False):
-    """Returns a StatEntry about this file."""
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
+    """Collects stat information about the file.
+
+    If links resolving is enabled, if called on a symlink, the function will
+    return information about the file the symlink is pointing to. Otherwise,
+    information about the link itself is going to be returned.
+
+    Args:
+      ext_attrs: Whether to collect extended attributes of the file as well.
+      follow_symlink: Whether links should be resolved.
+
+    Returns:
+      A stat entry corresponding to the file.
+    """
     raise NotImplementedError
 
   @abc.abstractmethod

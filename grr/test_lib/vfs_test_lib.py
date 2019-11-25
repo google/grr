@@ -237,9 +237,13 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     self.offset += len(data)
     return data
 
-  def Stat(self, path=None, ext_attrs=None):
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
     """Get Stat for self.path."""
-    del path, ext_attrs  # Unused.
+    del ext_attrs, follow_symlink  # Unused.
     stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
     if (not stat_data and
         self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY):
@@ -313,9 +317,14 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     self.offset += len(data)
     return data
 
-  def Stat(self, path=None, ext_attrs=None):
+  def Stat(
+      self,
+      ext_attrs = False,
+      follow_symlink = True,
+  ):
     """Get Stat for self.path."""
-    del path  # Unused.
+    del follow_symlink  # Unused.
+
     return client_utils.StatEntryFromPath(
         self._AbsPath(), self.pathspec, ext_attrs=ext_attrs)
 

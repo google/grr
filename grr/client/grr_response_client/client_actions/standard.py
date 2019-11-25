@@ -192,7 +192,10 @@ class GetFileStat(actions.ActionPlugin):
   def Run(self, args):
     try:
       fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
-      stat_entry = fd.Stat(ext_attrs=args.collect_ext_attrs)
+
+      stat_entry = fd.Stat(
+          ext_attrs=args.collect_ext_attrs, follow_symlink=args.follow_symlink)
+
       self.SendReply(stat_entry)
     except (IOError, OSError) as error:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, error)

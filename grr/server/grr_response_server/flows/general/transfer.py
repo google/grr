@@ -85,7 +85,7 @@ class GetFile(flow_base.FlowBase):
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(
-          pathspec=self.args.pathspec)
+          pathspec=self.args.pathspec, follow_symlink=True)
     else:
       stub = server_stubs.StatFile
       request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
@@ -334,6 +334,7 @@ class MultiGetFileLogic(object):
     if self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
+      request.follow_symlink = True
       request_name = "GetFileStat"
     else:
       stub = server_stubs.StatFile

@@ -111,7 +111,7 @@ def ReadTag(buf, pos):
 
 # This function is HOT.
 def VarintEncode(value):
-  """Convert an integer to a varint and write it using the write function."""
+  """Convert an integer to a varint."""
   result = b""
   if value < 0:
     raise ValueError("Varint can not encode a negative number.")
@@ -307,7 +307,8 @@ def ReadIntoObject(buff, index, value_obj, length=0):
       # not really accessible using Get() and does not have a python format
       # representation. It will be written back using the same wire format it
       # was read with, therefore does not require a type descriptor at all.
-      raw_data[count] = (None, wire_format, None)
+      field_nr = VarintReader(encoded_tag, 0)[0] >> 3
+      raw_data["_unknown_field_%d" % field_nr] = (None, wire_format, None)
 
       count += 1
 
@@ -2284,8 +2285,9 @@ class RDFProtoStruct(RDFStruct):
       # This is much faster than __setattr__/__getattr__
       setattr(
           cls, field_desc.name,
-          property(lambda self: self.Get(field_desc.name), lambda self, x: self.
-                   _Set(x, field_desc), None, field_desc.description))
+          property(lambda self: self.Get(field_desc.name),
+                   lambda self, x: self._Set(x, field_desc), None,
+                   field_desc.description))
 
   def UnionCast(self):
     union_field = getattr(self, self.union_field)
