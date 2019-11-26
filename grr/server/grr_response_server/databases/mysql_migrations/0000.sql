@@ -29,7 +29,10 @@ CREATE TABLE clients(
     first_seen TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     last_version_string VARCHAR(128),
     last_platform VARCHAR(128),
-    last_platform_release VARCHAR(256)
+    last_platform_release VARCHAR(256),
+    KEY client_id(client_id, last_snapshot_timestamp),
+    KEY client_id_2(client_id, last_startup_timestamp),
+    KEY client_id_3(client_id, last_crash_timestamp)
 );
 
 CREATE TABLE client_labels(
@@ -39,7 +42,8 @@ CREATE TABLE client_labels(
     owner_username VARCHAR(254),
     PRIMARY KEY (client_id, owner_username_hash, label),
     -- TODO: Add FOREIGN KEY when owner does not use `GRR` anymore.
-    FOREIGN KEY (client_id)
+    CONSTRAINT client_labels_ibfk_1
+        FOREIGN KEY client_labels_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
@@ -52,7 +56,8 @@ CREATE TABLE client_snapshot_history(
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     client_snapshot MEDIUMBLOB,
     PRIMARY KEY (client_id, timestamp),
-    FOREIGN KEY (client_id)
+    CONSTRAINT client_snapshot_history_ibfk_1
+        FOREIGN KEY client_snapshot_history_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
@@ -62,7 +67,8 @@ CREATE TABLE client_startup_history(
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     startup_info MEDIUMBLOB,
     PRIMARY KEY (client_id, timestamp),
-    FOREIGN KEY (client_id)
+    CONSTRAINT client_startup_history_ibfk_1
+        FOREIGN KEY client_startup_history_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
@@ -72,21 +78,25 @@ CREATE TABLE client_crash_history(
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     crash_info MEDIUMBLOB,
     PRIMARY KEY (client_id, timestamp),
-    FOREIGN KEY (client_id)
+    CONSTRAINT client_crash_history_ibfk_1
+        FOREIGN KEY client_crash_history_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
 
 ALTER TABLE clients
-    ADD FOREIGN KEY (client_id, last_snapshot_timestamp)
+    ADD CONSTRAINT clients_ibfk_1
+    FOREIGN KEY client_id(client_id, last_snapshot_timestamp)
     REFERENCES client_snapshot_history(client_id, timestamp);
 
 ALTER TABLE clients
-    ADD FOREIGN KEY (client_id, last_startup_timestamp)
+    ADD CONSTRAINT clients_ibfk_2
+    FOREIGN KEY client_id_2(client_id, last_startup_timestamp)
     REFERENCES client_startup_history(client_id, timestamp);
 
 ALTER TABLE clients
-    ADD FOREIGN KEY (client_id, last_crash_timestamp)
+    ADD CONSTRAINT clients_ibfk_3
+    FOREIGN KEY client_id_3(client_id, last_crash_timestamp)
     REFERENCES client_crash_history(client_id, timestamp);
 
 CREATE TABLE client_keywords(
@@ -95,7 +105,8 @@ CREATE TABLE client_keywords(
     keyword VARCHAR(255),
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     PRIMARY KEY (client_id, keyword_hash),
-    FOREIGN KEY (client_id)
+    CONSTRAINT client_keywords_ibfk_1
+        FOREIGN KEY client_keywords_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
@@ -111,7 +122,9 @@ CREATE TABLE client_stats(
     -- ReadClientStats and DeleteOldClientStats filter by timestamp, but only
     -- ReadClientStats filters by client_id.
     PRIMARY KEY (timestamp, client_id),
-    FOREIGN KEY (client_id)
+    KEY client_id(client_id),
+    CONSTRAINT client_stats_ibfk_1
+        FOREIGN KEY client_id(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
@@ -144,7 +157,8 @@ CREATE TABLE approval_request(
     expiration_time TIMESTAMP(6) NOT NULL DEFAULT 0,
     approval_request MEDIUMBLOB,
     PRIMARY KEY (username_hash, approval_id),
-    FOREIGN KEY (username_hash)
+    CONSTRAINT approval_request_ibfk_1
+        FOREIGN KEY approval_request_ibfk_1(username_hash)
         REFERENCES grr_users (username_hash)
         ON DELETE CASCADE
 );
@@ -158,13 +172,17 @@ CREATE TABLE approval_grant(
     grantor_username_hash BINARY(32),
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     PRIMARY KEY (username_hash, approval_id, grantor_username_hash, timestamp),
-    FOREIGN KEY (username_hash, approval_id)
+    KEY grantor_username_hash(grantor_username_hash),
+    CONSTRAINT approval_grant_ibfk_1
+        FOREIGN KEY approval_grant_ibfk_1(username_hash, approval_id)
         REFERENCES approval_request (username_hash, approval_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (username_hash)
+    CONSTRAINT approval_grant_ibfk_2
+        FOREIGN KEY approval_grant_ibfk_2(username_hash)
         REFERENCES grr_users (username_hash)
         ON DELETE CASCADE,
-    FOREIGN KEY (grantor_username_hash)
+    CONSTRAINT approval_grant_ibfk_3
+        FOREIGN KEY grantor_username_hash(grantor_username_hash)
         REFERENCES grr_users (username_hash)
         ON DELETE CASCADE
 );
@@ -175,7 +193,8 @@ CREATE TABLE user_notification(
     notification_state INT UNSIGNED,
     notification MEDIUMBLOB,
     PRIMARY KEY (username_hash, timestamp),
-    FOREIGN KEY (username_hash)
+    CONSTRAINT user_notification_ibfk_1
+        FOREIGN KEY user_notification_ibfk_1(username_hash)
         REFERENCES grr_users (username_hash)
         ON DELETE CASCADE
 );
@@ -244,7 +263,10 @@ CREATE TABLE cron_job_runs(
     write_time TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     run MEDIUMBLOB,
     PRIMARY KEY (job_id, run_id),
-    FOREIGN KEY (job_id) REFERENCES cron_jobs (job_id) ON DELETE CASCADE
+    CONSTRAINT cron_job_runs_ibfk_1
+        FOREIGN KEY cron_job_runs_ibfk_1(job_id)
+        REFERENCES cron_jobs (job_id)
+        ON DELETE CASCADE
 );
 
 CREATE TABLE flows(
@@ -268,7 +290,8 @@ CREATE TABLE flows(
     num_replies_sent BIGINT UNSIGNED,
     last_update TIMESTAMP(6) NOT NULL DEFAULT NOW(6) ON UPDATE NOW(6),
     PRIMARY KEY (client_id, flow_id),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flows_ibfk_1
+        FOREIGN KEY flows_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE
 );
@@ -286,10 +309,12 @@ CREATE TABLE flow_requests(
     request MEDIUMBLOB,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     PRIMARY KEY (client_id, flow_id, request_id),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flow_requests_ibfk_1
+        FOREIGN KEY flow_requests_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (client_id, flow_id)
+    CONSTRAINT flow_requests_ibfk_2
+        FOREIGN KEY flow_requests_ibfk_2(client_id, flow_id)
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 );
@@ -304,10 +329,12 @@ CREATE TABLE flow_responses(
     iterator MEDIUMBLOB,
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     PRIMARY KEY (client_id, flow_id, request_id, response_id),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flow_responses_ibfk_1
+        FOREIGN KEY flow_responses_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (client_id, flow_id, request_id)
+    CONSTRAINT flow_responses_ibfk_2
+        FOREIGN KEY flow_responses_ibfk_2(client_id, flow_id, request_id)
         REFERENCES flow_requests(client_id, flow_id, request_id)
         ON DELETE CASCADE
 );
@@ -322,7 +349,8 @@ CREATE TABLE client_action_requests(
     leased_by VARCHAR(128),
     leased_count INT DEFAULT 0,
     PRIMARY KEY (client_id, flow_id, request_id),
-    FOREIGN KEY (client_id, flow_id, request_id)
+    CONSTRAINT client_action_requests_ibfk_1
+        FOREIGN KEY client_action_requests_ibfk_1(client_id, flow_id, request_id)
         REFERENCES flow_requests (client_id, flow_id, request_id)
         ON DELETE CASCADE
 );
@@ -336,10 +364,12 @@ CREATE TABLE flow_processing_requests(
     leased_until TIMESTAMP(6) NULL DEFAULT NULL,
     leased_by VARCHAR(128),
     PRIMARY KEY (client_id, flow_id, timestamp),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flow_processing_requests_ibfk_1
+        FOREIGN KEY flow_processing_requests_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (client_id, flow_id)
+     CONSTRAINT flow_processing_requests_ibfk_2
+        FOREIGN KEY flow_processing_requests_ibfk_2(client_id, flow_id)
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 );
@@ -357,10 +387,12 @@ CREATE TABLE flow_results(
     type VARCHAR(128),
     tag VARCHAR(128),
     PRIMARY KEY (result_id),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flow_results_ibfk_1
+        FOREIGN KEY flow_results_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (client_id, flow_id)
+    CONSTRAINT flow_results_ibfk_2
+        FOREIGN KEY flow_results_ibfk_2(client_id, flow_id)
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 );
@@ -382,10 +414,12 @@ CREATE TABLE flow_log_entries(
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     message MEDIUMBLOB,
     PRIMARY KEY (log_id),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flow_log_entries_ibfk_1
+        FOREIGN KEY flow_log_entries_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (client_id, flow_id)
+    CONSTRAINT flow_log_entries_ibfk_2
+        FOREIGN KEY flow_log_entries_ibfk_2(client_id, flow_id)
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 );
@@ -406,10 +440,12 @@ CREATE TABLE flow_output_plugin_log_entries(
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     message MEDIUMBLOB,
     PRIMARY KEY (log_id),
-    FOREIGN KEY (client_id)
+    CONSTRAINT flow_output_plugin_log_entries_ibfk_1
+        FOREIGN KEY flow_output_plugin_log_entries_ibfk_1(client_id)
         REFERENCES clients(client_id)
         ON DELETE CASCADE,
-    FOREIGN KEY (client_id, flow_id)
+    CONSTRAINT flow_output_plugin_log_entries_ibfk_2
+        FOREIGN KEY flow_output_plugin_log_entries_ibfk_2(client_id, flow_id)
         REFERENCES flows(client_id, flow_id)
         ON DELETE CASCADE
 );
@@ -442,12 +478,21 @@ CREATE TABLE client_paths(
     directory BOOLEAN NOT NULL DEFAULT FALSE,
     depth INT UNSIGNED NOT NULL,
     PRIMARY KEY (client_id, path_type, path_id),
-    FOREIGN KEY (client_id) REFERENCES clients(client_id) ON DELETE CASCADE,
+    CONSTRAINT client_paths_ibfk_1
+        FOREIGN KEY client_paths_ibfk_1(client_id)
+        REFERENCES clients(client_id)
+        ON DELETE CASCADE,
     CHECK (depth = length(path) - length(replace(path, '/', '')))
 );
 
 CREATE INDEX client_paths_idx
     ON client_paths(client_id, path_type, path(128));
+
+CREATE INDEX client_id
+    ON client_paths(client_id, path_type, path_id, last_stat_entry_timestamp);
+
+CREATE INDEX client_id_2
+    ON client_paths(client_id, path_type, path_id, last_hash_entry_timestamp);
 
 CREATE TABLE client_path_stat_entries(
     id BIGINT NOT NULL AUTO_INCREMENT,
@@ -457,8 +502,10 @@ CREATE TABLE client_path_stat_entries(
     timestamp TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
     stat_entry MEDIUMBLOB NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (client_id, path_type, path_id)
-    REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
+    CONSTRAINT client_path_stat_entries_ibfk_1
+        FOREIGN KEY client_path_stat_entries_ibfk_1(client_id, path_type, path_id)
+        REFERENCES client_paths(client_id, path_type, path_id)
+        ON DELETE CASCADE
 );
 
 CREATE INDEX client_path_stat_entries_idx
@@ -473,19 +520,23 @@ CREATE TABLE client_path_hash_entries(
     hash_entry MEDIUMBLOB NOT NULL,
     sha256 BINARY(32) NOT NULL,
     PRIMARY KEY (id),
-    FOREIGN KEY (client_id, path_type, path_id)
-    REFERENCES client_paths(client_id, path_type, path_id) ON DELETE CASCADE
+    CONSTRAINT client_path_hash_entries_ibfk_1
+        FOREIGN KEY client_path_hash_entries_ibfk_1(client_id, path_type, path_id)
+        REFERENCES client_paths(client_id, path_type, path_id)
+        ON DELETE CASCADE
 );
 
 CREATE INDEX client_path_hash_entries_idx
     ON client_path_hash_entries(client_id, path_type, path_id, timestamp);
 
 ALTER TABLE client_paths
-    ADD FOREIGN KEY (client_id, path_type, path_id, last_stat_entry_timestamp)
+    ADD CONSTRAINT client_paths_ibfk_2
+    FOREIGN KEY client_id(client_id, path_type, path_id, last_stat_entry_timestamp)
     REFERENCES client_path_stat_entries(client_id, path_type, path_id, timestamp);
 
 ALTER TABLE client_paths
-    ADD FOREIGN KEY (client_id, path_type, path_id, last_hash_entry_timestamp)
+    ADD CONSTRAINT client_paths_ibfk_3
+    FOREIGN KEY client_id_2(client_id, path_type, path_id, last_hash_entry_timestamp)
     REFERENCES client_path_hash_entries(client_id, path_type, path_id, timestamp);
 
 CREATE TABLE hunts(
@@ -513,7 +564,8 @@ CREATE TABLE hunt_output_plugins_states(
     plugin_args MEDIUMBLOB,
     plugin_state MEDIUMBLOB,
     PRIMARY KEY (hunt_id, plugin_id),
-    FOREIGN KEY (hunt_id)
+    CONSTRAINT hunt_output_plugins_states_ibfk_1
+        FOREIGN KEY hunt_output_plugins_states_ibfk_1(hunt_id)
         REFERENCES hunts(hunt_id)
         ON DELETE CASCADE
 );

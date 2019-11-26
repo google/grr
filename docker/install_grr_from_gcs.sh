@@ -26,7 +26,7 @@ cd "${WORK_DIR}"
 wget --quiet https://storage.googleapis.com/pub/gsutil.tar.gz
 tar xzf gsutil.tar.gz
 
-gsutil/gsutil cp "gs://${GCS_BUCKET}/*_${GRR_COMMIT}/travis_job_*server_deb/grr-server_*.tar.gz" .
+python3 gsutil/gsutil cp "gs://${GCS_BUCKET}/*_${GRR_COMMIT}/travis_job_*server_deb/grr-server_*.tar.gz" .
 
 tar xzf grr-server_*.tar.gz
 

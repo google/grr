@@ -35,7 +35,21 @@ APPLICATION=$1;
 VIRTUALENV="/usr/share/grr-server/"
 if [[ ${APPLICATION} = 'grr' ]]; then
   if [[ "${DISABLE_INTERNAL_MYSQL}" != 'true' ]]; then
-    service mysql start
+    # Start the "inherited" mariadb:bionic entrypoint.
+    # See: https://github.com/docker-library/mariadb/blob/master/10.1/Dockerfile
+    gosu mysql bash -x <<EOF
+    export MYSQL_ALLOW_EMPTY_PASSWORD=1
+    source docker-entrypoint.sh
+
+    mysql_check_config mysqld
+    docker_setup_env mysqld
+    docker_create_db_directories
+    docker_verify_minimum_env
+    docker_init_database_dir mysqld
+    docker_temp_server_start mysqld
+    docker_setup_db
+    docker_process_init_files /docker-entrypoint-initdb.d/*
+EOF
   fi
   source "${VIRTUALENV}/bin/activate"
 

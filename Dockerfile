@@ -14,7 +14,7 @@
 #    -p 0.0.0.0:8080:8080 \
 #    grrdocker/grr
 
-FROM ubuntu:xenial
+FROM mariadb:bionic
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
@@ -38,25 +38,25 @@ RUN apt-get update && \
   git \
   libffi-dev \
   libssl-dev \
-  python-dev \
-  python-pip \
+  python3-dev \
+  python3-pip \
+  python3-venv \
   rpm \
   wget \
   zip \
-  mysql-server \
-  python-mysqldb
+  python3-mysqldb
 
-RUN pip install --upgrade --no-cache-dir pip virtualenv && \
-    virtualenv --system-site-packages $GRR_VENV
+RUN pip3 install --upgrade setuptools && \
+    python3 -m venv --system-site-packages $GRR_VENV
 
-RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir wheel six setuptools nodeenv && \
+RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir pip wheel six setuptools nodeenv && \
     $GRR_VENV/bin/nodeenv -p --prebuilt --node=12.11.1 && \
     echo '{ "allow_root": true }' > /root/.bowerrc
 
 # Copy the GRR code over.
 ADD . /usr/src/grr
 
-RUN cd /usr/src/grr && /usr/src/grr/docker/install_grr_from_gcs.sh
+RUN cd /usr/src/grr && bash -x /usr/src/grr/docker/install_grr_from_gcs.sh
 
 ENTRYPOINT ["/usr/src/grr/docker/docker-entrypoint.sh"]
 

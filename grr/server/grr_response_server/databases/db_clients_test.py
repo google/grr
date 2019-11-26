@@ -1814,5 +1814,53 @@ class DatabaseTestClientsMixin(object):
     with self.assertRaises(db.UnknownClientError):
       self.db.ReadClientMetadata(client_id)
 
+  def testDeleteClientWithAssociatedMetadata(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.os_version = "3.14"
+    snapshot.arch = "i686"
+    snapshot.knowledge_base.os = "redox"
+    snapshot.knowledge_base.os_major_version = 3
+    snapshot.knowledge_base.os_minor_version = 14
+    self.db.WriteClientSnapshot(snapshot)
+
+    startup = rdf_client.StartupInfo()
+    startup.boot_time = rdfvalue.RDFDatetime.Now()
+    startup.client_info.client_version = 1337
+    self.db.WriteClientStartupInfo(client_id, startup)
+
+    crash = rdf_client.ClientCrash()
+    crash.client_id = client_id
+    crash.client_info.client_version = 1337
+    crash.timestamp = rdfvalue.RDFDatetime.Now()
+    self.db.WriteClientCrashInfo(client_id, crash)
+
+    self.db.DeleteClient(client_id)
+
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientFullInfo(client_id)
+
+  def testDeleteClientWithPaths(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    path_info_0 = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
+    path_info_0.stat_entry.st_size = 42
+
+    path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar", "quux"))
+    path_info_1.hash_entry.sha256 = b"quux"
+
+    path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "norf", "thud"))
+    path_info_2.stat_entry.st_size = 1337
+    path_info_2.hash_entry.sha256 = b"norf"
+
+    self.db.WritePathInfos(client_id, [path_info_0, path_info_1, path_info_2])
+
+    self.db.DeleteClient(client_id)
+
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientFullInfo(client_id)
+
 
 # This file is a test library and thus does not require a __main__ block.
