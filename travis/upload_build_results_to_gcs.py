@@ -176,6 +176,8 @@ def _TriggerAppveyorBuild(project_slug_var_name):
 def _UpdateLatestServerDebDirectory(gcs_bucket,
                                     gcs_build_results_dir):
   """Updates the '_latest_server_deb' GCS directory with the latest results."""
+  logging.info("Updating latest server deb directory.")
+
   old_build_results = list(
       gcs_bucket.list_blobs(prefix=_LATEST_SERVER_DEB_GCS_DIR))
   new_build_results = list(gcs_bucket.list_blobs(prefix=gcs_build_results_dir))
@@ -184,12 +186,15 @@ def _UpdateLatestServerDebDirectory(gcs_bucket,
         "Failed to find build results for the server-deb Travis job.")
 
   for gcs_blob in old_build_results:
+    logging.info("Deleting previous blob: %s", gcs_blob)
     gcs_blob.delete()
 
   for gcs_blob in new_build_results:
     build_result_filename = gcs_blob.name.split("/")[-1]
     latest_build_result_path = "{}/{}".format(_LATEST_SERVER_DEB_GCS_DIR,
                                               build_result_filename)
+    logging.info("Copying blob %s (%s) -> %s", gcs_blob, gcs_bucket,
+        latest_build_result_path)
     gcs_bucket.copy_blob(
         gcs_blob, gcs_bucket, new_name=latest_build_result_path)
 
