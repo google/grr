@@ -300,7 +300,8 @@ class HttpRequestHandler(object):
       return dict(status="OK")
 
     if format_mode == JsonMode.PROTO3_JSON_MODE:
-      json_data = json_format.MessageToJson(result.AsPrimitiveProto())
+      json_data = json_format.MessageToJson(
+          result.AsPrimitiveProto(), float_precision=8)
       if compatibility.PY2:
         json_data = json_data.decode("utf-8")
       return json.Parse(json_data)

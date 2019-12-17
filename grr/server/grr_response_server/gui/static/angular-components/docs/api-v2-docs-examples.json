@@ -2258,23 +2258,23 @@
               ]
             },
             "num": "1",
-            "sum": 3.0,
-            "sumSq": 9.0
+            "stddev": 0.0,
+            "sum": 3.0
           },
           "systemCpuStats": {
             "histogram": {
               "bins": [
                 {
-                  "rangeMaxValue": 0.10000000149011612
+                  "rangeMaxValue": 0.1
                 },
                 {
-                  "rangeMaxValue": 0.20000000298023224
+                  "rangeMaxValue": 0.2
                 },
                 {
-                  "rangeMaxValue": 0.30000001192092896
+                  "rangeMaxValue": 0.30000001
                 },
                 {
-                  "rangeMaxValue": 0.4000000059604645
+                  "rangeMaxValue": 0.40000001
                 },
                 {
                   "rangeMaxValue": 0.5
@@ -2328,23 +2328,23 @@
               ]
             },
             "num": "1",
-            "sum": 2.0,
-            "sumSq": 4.0
+            "stddev": 0.0,
+            "sum": 2.0
           },
           "userCpuStats": {
             "histogram": {
               "bins": [
                 {
-                  "rangeMaxValue": 0.10000000149011612
+                  "rangeMaxValue": 0.1
                 },
                 {
-                  "rangeMaxValue": 0.20000000298023224
+                  "rangeMaxValue": 0.2
                 },
                 {
-                  "rangeMaxValue": 0.30000001192092896
+                  "rangeMaxValue": 0.30000001
                 },
                 {
-                  "rangeMaxValue": 0.4000000059604645
+                  "rangeMaxValue": 0.40000001
                 },
                 {
                   "rangeMaxValue": 0.5
@@ -2398,8 +2398,8 @@
               ]
             },
             "num": "1",
-            "sum": 1.0,
-            "sumSq": 1.0
+            "stddev": 0.0,
+            "sum": 1.0
           },
           "worstPerformers": [
             {

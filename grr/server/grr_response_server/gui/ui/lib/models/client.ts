@@ -41,3 +41,40 @@ export interface Client {
   /** List of ClientLabels */
   readonly labels: ReadonlyArray<ClientLabel>;
 }
+
+/** Approval Request. */
+export interface ApprovalRequest {
+  readonly clientId: string;
+  readonly approvers: string[];
+  readonly reason: string;
+  readonly cc: string[];
+}
+
+/** Configuration for Client Approvals. */
+export interface ApprovalConfig {
+  readonly optionalCcEmail?: string;
+}
+
+/** Indicates that a ClientApproval has been granted and is valid. */
+export interface Valid {
+  readonly valid: true;
+}
+
+/** Indicates that a ClientApproval is invalid for a specific reason. */
+export interface Invalid {
+  readonly valid: false;
+  readonly reason: string;
+}
+
+/** Status of a ClientApproval. */
+export type ClientApprovalStatus = Valid|Invalid;
+
+/** Approval for Client access. */
+export interface ClientApproval {
+  readonly approvalId: string;
+  readonly clientId: string;
+  readonly reason: string;
+  readonly status: ClientApprovalStatus;
+  readonly requestedApprovers: ReadonlyArray<string>;
+  readonly approvers: ReadonlyArray<string>;
+}

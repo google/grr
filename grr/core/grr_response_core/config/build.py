@@ -64,6 +64,12 @@ config_lib.DEFINE_string(
     "grr_service_config.txt.in@grr-response-core|resource)",
     "Path to GRR's Fleetspeak service configuration.")
 
+config_lib.DEFINE_string(
+    "ClientBuilder.version_ini_path", None,
+    "Path to the version.ini file to be used when building a client template. "
+    "If not specified, version.ini packaged with grr-response-core package "
+    "will be used.")
+
 
 class PathTypeInfo(type_info.String):
   """A path to a file or a directory."""

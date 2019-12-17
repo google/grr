@@ -148,7 +148,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
           upload_subdirectory="test")
       python_hack_urn = rdfvalue.RDFURN(
           "aff4:/config/python_hacks/linux/test/hello_world.py")
-      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
           python_hack_urn)
       uploaded_blobs = list(
           signed_binary_utils.StreamSignedBinaryContents(blob_iterator))
@@ -168,7 +168,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
       executable_urn = rdfvalue.RDFURN(
           "aff4:/config/executables/windows/anti-malware/registry-tools/"
           "foo.exe")
-      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
           executable_urn)
       uploaded_blobs = list(
           signed_binary_utils.StreamSignedBinaryContents(blob_iterator))

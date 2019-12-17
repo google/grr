@@ -237,7 +237,6 @@ def Query(args):
     TimeoutError: If a call to the osquery executable times out.
     Error: If anything else goes wrong with the subprocess call.
   """
-  query = args.query.encode("utf-8")
   timeout = args.timeout_millis / 1000  # `subprocess.run` uses seconds.
   # TODO: pytype is not aware of the backport.
   # pytype: disable=module-attr
@@ -254,7 +253,7 @@ def Query(args):
         "--logger_min_status=3",  # Disable status logs.
         "--logger_min_stderr=2",  # Only ERROR-level logs to stderr.
         "--json",  # Set output format to JSON.
-        query,
+        args.query,
     ]
     proc = subprocess.run(
         command,

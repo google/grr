@@ -109,16 +109,21 @@ class StatsHistogram(rdf_structs.RDFProtoStruct):
 
 
 class RunningStats(rdf_structs.RDFProtoStruct):
-  """Class for collecting running stats: mean, stdev and histogram data."""
+  """Class for collecting running stats: mean, stddev and histogram data."""
   protobuf = jobs_pb2.RunningStats
   rdf_deps = [
       StatsHistogram,
   ]
 
+  def __init__(self, *args, **kwargs):
+    super(RunningStats, self).__init__(*args, **kwargs)
+    self._sum_sq = 0
+
   def RegisterValue(self, value):
     self.num += 1
     self.sum += value
-    self.sum_sq += value**2
+    self._sum_sq += value**2
+    self.stddev = math.sqrt(self._sum_sq / self.num - self.mean**2)
 
     self.histogram.RegisterValue(value)
 
@@ -128,13 +133,6 @@ class RunningStats(rdf_structs.RDFProtoStruct):
       return 0
     else:
       return self.sum / self.num
-
-  @property
-  def std(self):
-    if self.num == 0:
-      return 0
-    else:
-      return math.sqrt(self.sum_sq / self.num - self.mean**2)
 
 
 class ClientResourcesStats(rdf_structs.RDFProtoStruct):

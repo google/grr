@@ -1,0 +1,59 @@
+syntax = "proto2";
+
+
+// A message describing input arguments for the timeline action.
+message TimelineArgs {
+  // A path to the root folder in which the recursive timeline extraction should
+  // start. It is specified as `bytes` rather than `string` to support paths
+  // that contain non-unicode characters (which is allowed in most filesystems).
+  optional bytes root = 1;
+
+  // TODO(hanuszczak): Add support for limits (e.g. max depth).
+}
+
+// A message describing the result of the timeline action.
+message TimelineResult {
+  // A list of blob ids that refer to batches of serialized and gzipped timeline
+  // entries. Because the entire timeline can have millions of entries, it could
+  // easily exceed the maximum allowed size for a message. This is why entries
+  // are batched, gzipped and then send as blobs to the blobstore and relevant
+  // ids are returned here for reference.
+  repeated bytes entry_batch_blob_ids = 1;
+}
+
+// A message describing single entry of the timeline for particular file. It
+// corresponds to the result of stating the file. It is based on the POSIX
+// definition of stat [1].
+//
+// [1]: https://pubs.opengroup.org/onlinepubs/007908799/xsh/sysstat.h.html
+message TimelineEntry {
+  // An absolute path to the file this entry corresponds to.
+  optional bytes path = 1;
+
+  // A mode of the file defined as standard POSIX bitmask.
+  optional uint32 mode = 2;
+
+  // A size of the file in bytes.
+  optional uint64 size = 3;
+
+  // An identifier of the device containing the file.
+  optional uint64 dev = 4;
+
+  // A serial number of the file.
+  optional uint64 ino = 5;
+
+  // A user identifier of the file.
+  optional int64 uid = 6;
+
+  // A group identifier of the file.
+  optional int64 gid = 7;
+
+  // A time of the last access of the file in nanoseconds since epoch.
+  optional uint64 atime_ns = 8;
+
+  // A time of the last data change of the file in nanoseconds since epoch.
+  optional uint64 mtime_ns = 9;
+
+  // A time of the last status change of the file in nanoseconds since epoch.
+  optional uint64 ctime_ns = 10;
+}

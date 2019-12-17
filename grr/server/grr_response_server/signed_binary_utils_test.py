@@ -31,10 +31,10 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         private_key=self._private_key,
         public_key=self._public_key,
         chunk_size=3)
-    blobs_iterator, timestamp = signed_binary_utils.FetchBlobsForSignedBinary(
+    blobs_iter, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
         test_urn)
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
-    self.assertIsInstance(blobs_iterator, collections.Iterator)
+    self.assertIsInstance(blobs_iter, collections.Iterator)
     # We expect blobs to have at most 3 contiguous bytes of data.
     expected_blobs = [
         rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
@@ -42,7 +42,7 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         rdf_crypto.SignedBlob().Sign(b"\x66\x77\x88", self._private_key),
         rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key)
     ]
-    self.assertCountEqual(list(blobs_iterator), expected_blobs)
+    self.assertCountEqual(list(blobs_iter), expected_blobs)
 
   def testWriteSignedBinaryBlobs(self):
     test_urn = rdfvalue.RDFURN("aff4:/config/executables/foo")
@@ -53,10 +53,10 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key)
     ]
     signed_binary_utils.WriteSignedBinaryBlobs(test_urn, test_blobs)
-    blobs_iterator, timestamp = signed_binary_utils.FetchBlobsForSignedBinary(
+    blobs_iter, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
         test_urn)
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
-    self.assertCountEqual(list(blobs_iterator), test_blobs)
+    self.assertCountEqual(list(blobs_iter), test_blobs)
 
   def testFetchSizeOfSignedBinary(self):
     binary1_urn = rdfvalue.RDFURN("aff4:/config/executables/foo1")
@@ -96,7 +96,7 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     with self.assertRaises(signed_binary_utils.SignedBinaryNotFoundError):
       signed_binary_utils.DeleteSignedBinary(missing_urn)
     with self.assertRaises(signed_binary_utils.SignedBinaryNotFoundError):
-      signed_binary_utils.FetchBlobsForSignedBinary(missing_urn)
+      signed_binary_utils.FetchBlobsForSignedBinaryByURN(missing_urn)
     with self.assertRaises(signed_binary_utils.SignedBinaryNotFoundError):
       signed_binary_utils.FetchSizeOfSignedBinary(missing_urn)
 
@@ -108,7 +108,8 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         private_key=self._private_key,
         public_key=self._public_key,
         chunk_size=chunk_size)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        binary_urn)
     return blob_iterator
 
   def testStreamSignedBinary_SmallBlobs(self):

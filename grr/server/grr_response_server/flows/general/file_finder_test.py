@@ -9,6 +9,7 @@ import glob
 import hashlib
 import io
 import os
+import stat
 import struct
 
 from absl import app
@@ -865,6 +866,48 @@ class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       self.assertLen(results, 1)
 
       self.assertEqual(efs.call_count, 1)
+
+  def testFollowLinks(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      path = os.path.join(tempdir, "foo")
+      lnk_path = os.path.join(tempdir, "foo_lnk")
+      path_glob = os.path.join(tempdir, "*")
+      with io.open(path, "w") as fd:
+        fd.write("some content")
+
+      os.symlink(path, lnk_path)
+
+      results = self.RunFlow(
+          action=rdf_file_finder.FileFinderAction.Stat(resolve_links=False),
+          paths=[path_glob])
+
+      self.assertLen(results, 2)
+
+      lnk_stats = [
+          r.stat_entry
+          for r in results
+          if stat.S_ISLNK(int(r.stat_entry.st_mode))
+      ]
+      self.assertNotEmpty(lnk_stats, "No stat entry containing a link found.")
+
+      self.assertNotEqual(results[0].stat_entry.st_ino,
+                          results[1].stat_entry.st_ino)
+
+      results = self.RunFlow(
+          action=rdf_file_finder.FileFinderAction.Stat(resolve_links=True),
+          paths=[path_glob])
+
+      self.assertLen(results, 2)
+
+      lnk_stats = [
+          r.stat_entry
+          for r in results
+          if stat.S_ISLNK(int(r.stat_entry.st_mode))
+      ]
+      self.assertEmpty(lnk_stats, "Stat entry containing a link found.")
+
+      self.assertEqual(results[0].stat_entry.st_ino,
+                       results[1].stat_entry.st_ino)
 
 
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):

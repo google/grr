@@ -39,7 +39,7 @@ export declare interface ApiClient {
   readonly lastSeenAt?: string;
   readonly lastBootedAt?: string;
   readonly lastClock?: string;
-  readonly labels: ReadonlyArray<ApiClientLabel>;
+  readonly labels?: ReadonlyArray<ApiClientLabel>;
 }
 
 /**
@@ -56,4 +56,27 @@ export declare interface ApiSearchClientArgs {
  */
 export declare interface ApiSearchClientResult {
   readonly items: ReadonlyArray<ApiClient>;
+}
+
+/** /config/Email.approval_optional_cc_address proto mapping. */
+export declare interface ApiApprovalOptionalCcAddressResult {
+  readonly value?: {
+    value?: string,
+  };
+}
+
+/** ApiClientApproval proto mapping */
+export declare interface ApiClientApproval {
+  readonly subject?: ApiClient;
+  readonly id?: string;
+  readonly reason?: string;
+  readonly isValid?: boolean;
+  readonly isValidMessage?: string;
+  readonly notifiedUsers?: string[];
+  readonly approvers?: string[];
+}
+
+/** ApiListClientApprovalsResult proto mapping */
+export declare interface ApiListClientApprovalsResult {
+  readonly items: ApiClientApproval[];
 }

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
 import subprocess
 import sys
 
@@ -274,7 +275,8 @@ sys.test_code_ran_here = True
     maintenance_utils.UploadSignedConfigBlob(code, aff4_path=upload_path)
 
     binary_urn = rdfvalue.RDFURN(upload_path)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        binary_urn)
 
     # There should be only a single part to this binary.
     self.assertLen(list(blob_iterator), 1)
@@ -318,7 +320,8 @@ sys.test_code_ran_here = True
 
     binary_urn = rdfvalue.RDFURN(upload_path)
     binary_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_urn)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        binary_urn)
 
     # Total size is 2400.
     self.assertEqual(binary_size, 2400)
@@ -388,7 +391,8 @@ sys.test_code_ran_here = True
     maintenance_utils.UploadSignedConfigBlob(
         fake_installer, aff4_path=upload_path, limit=100)
 
-    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(upload_path)
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        upload_path)
     self.assertLen(list(blob_list), 4)
 
     acl_test_lib.CreateAdminUser(self.token.username)
@@ -397,7 +401,7 @@ sys.test_code_ran_here = True
         administrative.UpdateClient.__name__,
         client_mock,
         client_id=self.SetupClient(0, system=""),
-        blob_path=upload_path,
+        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
         token=self.token)
     self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
 
@@ -409,7 +413,8 @@ sys.test_code_ran_here = True
     maintenance_utils.UploadSignedConfigBlob(
         fake_installer, aff4_path=upload_path, limit=1000)
 
-    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinary(upload_path)
+    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        upload_path)
     self.assertLen(list(blob_list), 1)
 
     acl_test_lib.CreateAdminUser(self.token.username)
@@ -418,7 +423,7 @@ sys.test_code_ran_here = True
         compatibility.GetName(administrative.UpdateClient),
         client_mock,
         client_id=self.SetupClient(0, system=""),
-        blob_path=upload_path,
+        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
         token=self.token)
     self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
 

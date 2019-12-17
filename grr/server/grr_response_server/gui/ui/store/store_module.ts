@@ -4,7 +4,7 @@ import {Action, StoreModule, StoreRootModule} from '@ngrx/store';
 
 import {ApiModule} from '../lib/api/module';
 import {ClientEffects} from './client/client_effects';
-import {clientFetchReducer} from './client/client_reducers';
+import {clientReducer} from './client/client_reducers';
 import {CLIENT_FEATURE} from './client/client_selectors';
 import {ClientFacade} from './client_facade';
 import {ClientSearchEffects} from './client_search/client_search_effects';
@@ -31,7 +31,7 @@ export function clientSearchReducerWrapper(
       },
     }),
     StoreModule.forFeature('clientSearch', clientSearchReducerWrapper),
-    StoreModule.forFeature(CLIENT_FEATURE, clientFetchReducer),
+    StoreModule.forFeature(CLIENT_FEATURE, clientReducer),
     EffectsModule.forRoot([ClientSearchEffects, ClientEffects]),
   ],
   providers: [

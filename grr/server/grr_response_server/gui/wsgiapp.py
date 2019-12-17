@@ -130,6 +130,9 @@ class RequestHasNoUser(AttributeError):
 class HttpRequest(werkzeug_wrappers.Request):
   """HTTP request object to be used in GRR."""
 
+  charset = "utf-8"
+  encoding_errors = "strict"
+
   def __init__(self, *args, **kwargs):
     super(HttpRequest, self).__init__(*args, **kwargs)
 

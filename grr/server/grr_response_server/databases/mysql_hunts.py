@@ -744,11 +744,11 @@ class MySQLDBHuntMixin(object):
       SELECT
         COUNT(*),
         SUM(user_cpu_time_used_micros),
-        SUM((user_cpu_time_used_micros) * (user_cpu_time_used_micros)),
+        STDDEV_POP(user_cpu_time_used_micros),
         SUM(system_cpu_time_used_micros),
-        SUM((system_cpu_time_used_micros) * (system_cpu_time_used_micros)),
+        STDDEV_POP(system_cpu_time_used_micros),
         SUM(network_bytes_sent),
-        SUM(network_bytes_sent * network_bytes_sent),
+        STDDEV_POP(network_bytes_sent),
     """
 
     scaled_bins = [
@@ -769,24 +769,24 @@ class MySQLDBHuntMixin(object):
     cursor.execute(query, [hunt_id_int])
 
     response = cursor.fetchone()
-    (count, user_sum, user_sq_sum, system_sum, system_sq_sum, network_sum,
-     network_sq_sum) = response[:7]
+    (count, user_sum, user_stddev, system_sum, system_stddev, network_sum,
+     network_stddev) = response[:7]
 
     stats = rdf_stats.ClientResourcesStats(
         user_cpu_stats=rdf_stats.RunningStats(
             num=count,
             sum=db_utils.MicrosToSeconds(int(user_sum or 0)),
-            sum_sq=int(user_sq_sum or 0) / 1e12,
+            stddev=int(user_stddev or 0) / 1e6,
         ),
         system_cpu_stats=rdf_stats.RunningStats(
             num=count,
             sum=db_utils.MicrosToSeconds(int(system_sum or 0)),
-            sum_sq=int(system_sq_sum or 0) / 1e12,
+            stddev=int(system_stddev or 0) / 1e6,
         ),
         network_bytes_sent_stats=rdf_stats.RunningStats(
             num=count,
             sum=float(network_sum or 0),
-            sum_sq=float(network_sq_sum or 0),
+            stddev=float(network_stddev or 0),
         ),
     )
 

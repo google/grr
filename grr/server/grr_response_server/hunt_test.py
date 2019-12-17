@@ -855,19 +855,20 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     # Values below are calculated based on SampleHuntMock's behavior.
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)
     self.assertAlmostEqual(usage_stats.user_cpu_stats.mean, 5.5)
-    self.assertAlmostEqual(usage_stats.user_cpu_stats.std, 2.8722813)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.stddev, 2.8722813)
 
     self.assertEqual(usage_stats.system_cpu_stats.num, 10)
     self.assertAlmostEqual(usage_stats.system_cpu_stats.mean, 11)
-    self.assertAlmostEqual(usage_stats.system_cpu_stats.std, 5.7445626)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.stddev, 5.7445626)
 
     self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
     self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean, 16.5)
-    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.std, 8.61684396)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.stddev,
+                           8.61684396)
 
     # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
     # standard deviation and histograms are calculated correctly. Therefore
-    # if mean/stdev values are correct histograms should be ok as well.
+    # if mean/stddev values are correct histograms should be ok as well.
 
     self.assertLen(usage_stats.worst_performers, 10)
 

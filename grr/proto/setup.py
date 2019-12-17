@@ -21,7 +21,7 @@ THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
 
 GRPCIO_TOOLS = "grpcio-tools==1.24.1"
-PROTOBUF = "protobuf==3.10.0"
+PROTOBUF = "protobuf==3.11.1"
 
 
 def get_config():

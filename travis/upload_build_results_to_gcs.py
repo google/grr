@@ -131,13 +131,16 @@ def _UploadBuildResults(gcs_bucket, gcs_build_results_dir):
                os.environ[_GCS_BUCKET], gcs_build_results_dir)
 
   for build_result in os.listdir(flags.FLAGS.build_results_dir):
-    if not os.path.isfile(
-        os.path.join(flags.FLAGS.build_results_dir, build_result)):
+    path = os.path.join(flags.FLAGS.build_results_dir, build_result)
+    if not os.path.isfile(path):
+      logging.info("Skipping %s as it's not a file.", path)
       continue
+    logging.info("Uploading: %s", path)
     gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_build_results_dir,
                                               build_result))
-    gcs_blob.upload_from_filename(
-        os.path.join(flags.FLAGS.build_results_dir, build_result))
+    gcs_blob.upload_from_filename(path)
+
+  logging.info("GCS upload done.")
 
 
 def _TriggerAppveyorBuild(project_slug_var_name):
@@ -173,6 +176,8 @@ def _TriggerAppveyorBuild(project_slug_var_name):
 def _UpdateLatestServerDebDirectory(gcs_bucket,
                                     gcs_build_results_dir):
   """Updates the '_latest_server_deb' GCS directory with the latest results."""
+  logging.info("Updating latest server deb directory.")
+
   old_build_results = list(
       gcs_bucket.list_blobs(prefix=_LATEST_SERVER_DEB_GCS_DIR))
   new_build_results = list(gcs_bucket.list_blobs(prefix=gcs_build_results_dir))
@@ -181,12 +186,15 @@ def _UpdateLatestServerDebDirectory(gcs_bucket,
         "Failed to find build results for the server-deb Travis job.")
 
   for gcs_blob in old_build_results:
+    logging.info("Deleting previous blob: %s", gcs_blob)
     gcs_blob.delete()
 
   for gcs_blob in new_build_results:
     build_result_filename = gcs_blob.name.split("/")[-1]
     latest_build_result_path = "{}/{}".format(_LATEST_SERVER_DEB_GCS_DIR,
                                               build_result_filename)
+    logging.info("Copying blob %s (%s) -> %s", gcs_blob, gcs_bucket,
+                 latest_build_result_path)
     gcs_bucket.copy_blob(
         gcs_blob, gcs_bucket, new_name=latest_build_result_path)
 

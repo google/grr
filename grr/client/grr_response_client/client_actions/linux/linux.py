@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Linux specific actions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -17,7 +18,6 @@ from future.builtins import range
 from future.utils import iteritems
 
 from grr_response_client import actions
-from grr_response_client import client_utils_common
 from grr_response_client.client_actions import standard
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -352,21 +352,32 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
       raise ValueError("Unknown suffix for file %s." % path)
 
   def _InstallDeb(self, path, args):
-    cmd = "/usr/bin/dpkg"
-    cmd_args = ["-i", path]
-    time_limit = args.time_limit
+    pid = os.fork()
+    if pid == 0:
+      # This is the child that will become the installer process.
 
-    client_utils_common.Execute(
-        cmd,
-        cmd_args,
-        time_limit=time_limit,
-        bypass_whitelist=True,
-        daemon=True)
+      # We call os.setsid here to become the session leader of this new session
+      # and the process group leader of the new process group so we don't get
+      # killed when the main process exits.
+      try:
+        os.setsid()
+      except OSError:
+        # This only works if the process is running as root.
+        pass
 
-    # The installer will run in the background and kill the main process
-    # so we just wait. If something goes wrong, the nanny will restart the
-    # service after a short while and the client will come back to life.
-    time.sleep(1000)
+      env = os.environ.copy()
+      env.pop("LD_LIBRARY_PATH", None)
+      env.pop("PYTHON_PATH", None)
+
+      cmd = "/usr/bin/dpkg"
+      cmd_args = [cmd, "-i", path]
+
+      os.execve(cmd, cmd_args, env)
+    else:
+      # The installer will run in the background and kill the main process
+      # so we just wait. If something goes wrong, the nanny will restart the
+      # service after a short while and the client will come back to life.
+      time.sleep(1000)
 
   def _InstallRpm(self, path):
     """Client update for rpm based distros.

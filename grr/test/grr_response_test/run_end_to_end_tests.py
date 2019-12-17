@@ -41,6 +41,12 @@ flags.DEFINE_list(
     "(Optional) comma-separated list of tests to skip. Trumps "
     "--whitelisted_tests if there are any conflicts.")
 
+flags.DEFINE_list(
+    name="manual_tests",
+    default=[],
+    help="(optional) A comma-separated list of manual tests to run.",
+)
+
 # We use a logging Filter to exclude noisy unwanted log output.
 flags.DEFINE_list("filenames_excluded_from_log", ["connectionpool.py"],
                   "Files whose log messages won't get printed.")
@@ -79,6 +85,7 @@ def main(argv):
       api_password=flags.FLAGS.api_password,
       whitelisted_tests=flags.FLAGS.whitelisted_tests,
       blacklisted_tests=flags.FLAGS.blacklisted_tests,
+      manual_tests=flags.FLAGS.manual_tests,
       upload_test_binaries=flags.FLAGS.upload_test_binaries)
   test_runner.Initialize()
 

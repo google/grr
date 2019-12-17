@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import os
 import shlex
 import time
 
@@ -37,6 +38,7 @@ from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 GRR_CLIENT_CRASHES = metrics.Counter("grr_client_crashes")
 
@@ -335,7 +337,7 @@ class ExecutePythonHack(flow_base.FlowBase):
         self.args.hack_name)
 
     try:
-      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
           python_hack_urn)
     except signed_binary_utils.SignedBinaryNotFoundError:
       raise flow_base.FlowError("Python hack %s not found." %
@@ -488,9 +490,7 @@ class OnlineNotification(flow_base.FlowBase):
 
 class UpdateClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.UpdateClientArgs
-  rdf_deps = [
-      rdfvalue.RDFURN,
-  ]
+  rdf_deps = []
 
 
 class UpdateClient(flow_base.FlowBase):
@@ -499,35 +499,41 @@ class UpdateClient(flow_base.FlowBase):
   This will execute the specified installer on the client and then run
   an Interrogate flow.
 
-  The new installer needs to be loaded into the database, generally in
-  /config/executables/<platform>/installers and must be signed using the
-  exec signing key.
+  The new installer's binary has to be uploaded to GRR (as a binary, not as
+  a Python hack) and must be signed using the exec signing key.
 
-  Signing and upload of the file is done with config_updater.
+  Signing and upload of the file is done with grr_config_updater or through
+  the API.
   """
 
   category = "/Administrative/"
 
   args_type = UpdateClientArgs
 
-  def _BlobIterator(self, binary_urn):
+  def _BlobIterator(self, binary_id):
     try:
-      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
-          binary_urn)
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByID(
+          binary_id)
     except signed_binary_utils.SignedBinaryNotFoundError:
       raise flow_base.FlowError("%s is not a valid signed binary." %
-                                self.args.blob_path)
+                                self.args.binary_path)
     return blob_iterator
+
+  @property
+  def _binary_id(self):
+    return rdf_objects.SignedBinaryID(
+        binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+        path=self.args.binary_path)
 
   def Start(self):
     """Start."""
-    if not self.args.blob_path:
+    if not self.args.binary_path:
       raise flow_base.FlowError("Installer binary path is not specified.")
 
-    binary_urn = rdfvalue.RDFURN(self.args.blob_path)
-    self.state.write_path = "%d_%s" % (int(time.time()), binary_urn.Basename())
+    self.state.write_path = "%d_%s" % (int(
+        time.time()), os.path.basename(self.args.binary_path))
 
-    blob_iterator = self._BlobIterator(binary_urn)
+    blob_iterator = self._BlobIterator(self._binary_id)
     try:
       first_blob = next(blob_iterator)
     except StopIteration:
@@ -563,8 +569,7 @@ class UpdateClient(flow_base.FlowBase):
       raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
                                 responses.status)
 
-    binary_urn = rdfvalue.RDFURN(self.args.blob_path)
-    blobs = list(self._BlobIterator(binary_urn))
+    blobs = list(self._BlobIterator(self._binary_id))
     to_send = blobs[1:-1]
 
     if not to_send:
@@ -594,8 +599,7 @@ class UpdateClient(flow_base.FlowBase):
       raise flow_base.FlowError("Error while calling UpdateAgent: %s" %
                                 responses.status)
 
-    binary_urn = rdfvalue.RDFURN(self.args.blob_path)
-    blobs = list(self._BlobIterator(binary_urn))
+    blobs = list(self._BlobIterator(self._binary_id))
     offset = 0
     for b in blobs[:-1]:
       offset += len(b.data)
@@ -829,7 +833,7 @@ class LaunchBinary(flow_base.FlowBase):
 
   def _BlobIterator(self, binary_urn):
     try:
-      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(
+      blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
           binary_urn)
     except signed_binary_utils.SignedBinaryNotFoundError:
       raise flow_base.FlowError("Executable binary %s not found." %

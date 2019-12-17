@@ -82,7 +82,7 @@ HuntStatsController.prototype.convertHistogramToComparisonChart_ = function(
     data, labelFormatFn) {
   const series = [];
   let mean = undefined;
-  let stdev = undefined;
+  let stddev = undefined;
 
   if (data !== undefined) {
     const bins = data['value']['histogram']['value']['bins'];
@@ -108,13 +108,11 @@ HuntStatsController.prototype.convertHistogramToComparisonChart_ = function(
 
     if (data['value']['num']) {
       mean = data['value']['sum']['value'] / data['value']['num']['value'];
-      stdev = Math.sqrt(
-          data['value']['sum_sq']['value'] / data['value']['num']['value'] -
-          Math.pow(mean, 2));
+      stddev = data['value']['stddev']['value'];
     }
   }
 
-  return {mean, stdev, value: {data: series}};
+  return {mean, stddev, value: {data: series}};
 };
 
 /**

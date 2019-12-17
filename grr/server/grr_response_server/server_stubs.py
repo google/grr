@@ -28,6 +28,7 @@ from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 
 
 class ClientActionStub(with_metaclass(registry.MetaclassRegistry, object)):
@@ -426,3 +427,10 @@ class Osquery(ClientActionStub):
 
   in_rdfvalue = rdf_osquery.OsqueryArgs
   out_rdfvalues = [rdf_osquery.OsqueryResult]
+
+
+class Timeline(ClientActionStub):
+  """A stub class for the timeline client action."""
+
+  in_rdfvalue = rdf_timeline.TimelineArgs
+  out_rdfvalues = [rdf_timeline.TimelineResult]

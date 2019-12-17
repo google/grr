@@ -1641,7 +1641,8 @@ message RunningStats {
 
   optional uint64 num = 2;
   optional double sum = 3;
-  optional double sum_sq = 4;
+  reserved 4;
+  optional double stddev = 5;
 }
 
 message ClientResourcesStats {

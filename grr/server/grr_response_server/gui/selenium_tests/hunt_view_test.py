@@ -288,19 +288,19 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "User CPU mean")
     self.WaitUntil(self.IsTextPresent, "5.5")
 
-    self.WaitUntil(self.IsTextPresent, "User CPU stdev")
+    self.WaitUntil(self.IsTextPresent, "User CPU stddev")
     self.WaitUntil(self.IsTextPresent, "2.9")
 
     self.WaitUntil(self.IsTextPresent, "System CPU mean")
     self.WaitUntil(self.IsTextPresent, "11")
 
-    self.WaitUntil(self.IsTextPresent, "System CPU stdev")
+    self.WaitUntil(self.IsTextPresent, "System CPU stddev")
     self.WaitUntil(self.IsTextPresent, "5.7")
 
     self.WaitUntil(self.IsTextPresent, "Network bytes sent mean")
     self.WaitUntil(self.IsTextPresent, "16.5")
 
-    self.WaitUntil(self.IsTextPresent, "Network bytes sent stdev")
+    self.WaitUntil(self.IsTextPresent, "Network bytes sent stddev")
     self.WaitUntil(self.IsTextPresent, "8.6")
 
   def testHuntNotificationIsShownAndClickable(self):

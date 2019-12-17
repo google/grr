@@ -10,6 +10,7 @@ import collections
 import hashlib
 import io
 import os
+import platform
 import socket
 import time
 
@@ -104,6 +105,9 @@ class OsqueryTest(absltest.TestCase):
           ])
       self.assertEqual(list(table.Column("size")), ["3", "6", "4"])
 
+  # TODO(hanuszczak): https://github.com/osquery/osquery/issues/4150
+  @skip.If(platform.system() == "Windows",
+           "osquery ignores files with unicode characters.")
   def testFileUnicode(self):
     with temp.AutoTempFilePath(prefix="zółć", suffix="💰") as filepath:
       with io.open(filepath, "wb") as filedesc:
@@ -156,12 +160,14 @@ class OsqueryTest(absltest.TestCase):
     results = _Query("SELECT hostname FROM system_info;")
     self.assertLen(results, 1)
 
-    # Apparently osquery returns FQDN in "hostname" column.
-    hostname = socket.getfqdn()
-
     table = results[0].table
     self.assertLen(table.rows, 1)
-    self.assertEqual(list(table.Column("hostname")), [hostname])
+
+    # osquery sometimes returns FQDN and sometimes real hostname as the result
+    # and it is unclear what determines this. This is why instead of precise
+    # equality we test for either of them.
+    hostname = list(table.Column("hostname"))[0]
+    self.assertIn(hostname, [socket.gethostname(), socket.getfqdn()])
 
   def testMultipleResults(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:

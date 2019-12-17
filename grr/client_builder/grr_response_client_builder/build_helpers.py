@@ -174,7 +174,8 @@ def BuildWithPyInstaller(context=None):
     except IOError:
       logging.error("Unable to create file: %s", file_path)
 
-  version_ini = version.VersionPath()
+  version_ini = config.CONFIG.Get(
+      "ClientBuilder.version_ini_path", default=version.VersionPath())
   shutil.copy(version_ini, os.path.join(output_dir, "version.ini"))
 
   with io.open(os.path.join(output_dir, "build.yaml"), "wb") as fd:

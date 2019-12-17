@@ -11,6 +11,7 @@ from future.utils import iteritems
 from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -247,10 +248,29 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     action = self.args.action.action_type
 
     if action == rdf_file_finder.FileFinderAction.Action.STAT:
-      # If action is STAT, we already have all the data we need to send the
-      # response.
-      self.state.files_found += 1
-      self.SendReply(response)
+      # If we are dealing with the operating system file api, the stat action
+      # might need to collect extended attributes or gather information about
+      # links instead of their targets. In those cases, we need to issue more
+      # GetFileStatRequest client requests. In all other cases, we already have
+      # all the data we need to send the response.
+      s = self.args.action.stat
+      if (self.args.pathtype != rdf_paths.PathSpec.PathType.OS or
+          (s.resolve_links and not s.collect_ext_attrs)):
+        self.state.files_found += 1
+        self.SendReply(response)
+      else:
+        if self.client_version < 3221:
+          self.Error("Client is too old to get requested stat information.")
+        request = rdf_client_action.GetFileStatRequest(
+            pathspec=response.stat_entry.pathspec,
+            collect_ext_attrs=s.collect_ext_attrs,
+            follow_symlink=s.resolve_links)
+        self.CallClient(
+            server_stubs.GetFileStat,
+            request,
+            next_state=compatibility.GetName(self.ReceiveFileStat),
+            request_data=dict(original_result=response))
+
     elif (self.args.process_non_regular_files or
           stat.S_ISREG(int(response.stat_entry.st_mode))):
       # Hashing and downloading are only safe for regular files. User has to
@@ -322,15 +342,25 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
               response.stat_entry.pathspec,
               request_data=dict(original_result=response))
 
+  def ReceiveFileStat(self, responses):
+    if "original_result" not in responses.request_data:
+      raise RuntimeError("Got stat information, but original result "
+                         "is missing")
+
+    for response in responses:
+      result = responses.request_data["original_result"]
+      result.stat_entry = response
+      self.SendReply(result)
+
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """Handle hash results from the FingerprintFileLogic."""
-    if "original_result" in request_data:
-      result = request_data["original_result"]
-      result.hash_entry = hash_obj
-      self.SendReply(result)
-    else:
+    if "original_result" not in request_data:
       raise RuntimeError("Got a fingerprintfileresult, but original result "
                          "is missing")
+
+    result = request_data["original_result"]
+    result.hash_entry = hash_obj
+    self.SendReply(result)
 
   def ReceiveFetchedFile(self, unused_stat_entry, file_hash, request_data=None):
     """Handle downloaded file from MultiGetFileLogic."""

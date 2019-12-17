@@ -144,7 +144,36 @@ def FetchURNsForAllSignedBinaries():
   ]
 
 
-def FetchBlobsForSignedBinary(
+def FetchBlobsForSignedBinaryByID(
+    binary_id
+):
+  """Retrieves blobs for the given binary from the datastore.
+
+  Args:
+    binary_id: An ID of the binary to be fetched.
+
+  Returns:
+    A tuple containing an iterator for all the binary's blobs and an
+    RDFDatetime representing when the binary's contents were saved
+    to the datastore.
+
+  Raises:
+    SignedBinaryNotFoundError: If no signed binary with the given URN exists.
+  """
+  try:
+    references, timestamp = data_store.REL_DB.ReadSignedBinaryReferences(
+        binary_id)
+  except db.UnknownSignedBinaryError:
+    raise SignedBinaryNotFoundError(_SignedBinaryURNFromID(binary_id))
+  blob_ids = [r.blob_id for r in references.items]
+  raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
+  blobs = (
+      rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
+      for raw_blob in raw_blobs)
+  return blobs, timestamp
+
+
+def FetchBlobsForSignedBinaryByURN(
     binary_urn
 ):
   """Retrieves blobs for the given binary from the datastore.
@@ -160,17 +189,7 @@ def FetchBlobsForSignedBinary(
   Raises:
     SignedBinaryNotFoundError: If no signed binary with the given URN exists.
   """
-  try:
-    references, timestamp = data_store.REL_DB.ReadSignedBinaryReferences(
-        _SignedBinaryIDFromURN(binary_urn))
-  except db.UnknownSignedBinaryError:
-    raise SignedBinaryNotFoundError(binary_urn)
-  blob_ids = [r.blob_id for r in references.items]
-  raw_blobs = (data_store.BLOBS.ReadBlob(blob_id) for blob_id in blob_ids)
-  blobs = (
-      rdf_crypto.SignedBlob.FromSerializedBytes(raw_blob)
-      for raw_blob in raw_blobs)
-  return blobs, timestamp
+  return FetchBlobsForSignedBinaryByID(_SignedBinaryIDFromURN(binary_urn))
 
 
 def FetchSizeOfSignedBinary(binary_urn):

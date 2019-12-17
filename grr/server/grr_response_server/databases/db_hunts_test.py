@@ -1322,7 +1322,7 @@ class DatabaseTestHuntMixin(object):
 
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)
     self.assertAlmostEqual(usage_stats.user_cpu_stats.mean, 9)
-    self.assertAlmostEqual(usage_stats.user_cpu_stats.std, 2.8722813232690143)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.stddev, 2.87228, 5)
     self.assertLen(usage_stats.user_cpu_stats.histogram.bins,
                    len(expected_user_cpu_histogram.bins))
     for b, model_b in zip(usage_stats.user_cpu_stats.histogram.bins,
@@ -1332,7 +1332,7 @@ class DatabaseTestHuntMixin(object):
 
     self.assertEqual(usage_stats.system_cpu_stats.num, 10)
     self.assertAlmostEqual(usage_stats.system_cpu_stats.mean, 19)
-    self.assertAlmostEqual(usage_stats.system_cpu_stats.std, 5.744562646538029)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.stddev, 5.74456, 5)
     self.assertLen(usage_stats.system_cpu_stats.histogram.bins,
                    len(expected_system_cpu_histogram.bins))
     for b, model_b in zip(usage_stats.system_cpu_stats.histogram.bins,
@@ -1342,8 +1342,8 @@ class DatabaseTestHuntMixin(object):
 
     self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
     self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean, 55.5)
-    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.std,
-                           8.616843969807043)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.stddev, 8.6168,
+                           4)
     self.assertLen(usage_stats.network_bytes_sent_stats.histogram.bins,
                    len(expected_network_histogram.bins))
     for b, model_b in zip(usage_stats.network_bytes_sent_stats.histogram.bins,
@@ -1364,6 +1364,35 @@ class DatabaseTestHuntMixin(object):
       self.assertEqual(worst_performer.network_bytes_sent, network_bytes_sent)
       self.assertEqual(worst_performer.session_id.Path(),
                        "/%s/%s" % (client_id, flow_id))
+
+  def testReadHuntClientResourcesStatsCorrectlyAggregatesVeryLargeNumbers(self):
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteHuntObject(hunt_obj)
+
+    self._SetupHuntClientAndFlow(
+        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        cpu_time_used=rdf_client_stats.CpuSeconds(
+            user_cpu_time=3810072130, system_cpu_time=3810072130),
+        network_bytes_sent=3810072130,
+        hunt_id=hunt_obj.hunt_id)
+    self._SetupHuntClientAndFlow(
+        flow_state=rdf_flow_objects.Flow.FlowState.FINISHED,
+        cpu_time_used=rdf_client_stats.CpuSeconds(
+            user_cpu_time=2143939532, system_cpu_time=2143939532),
+        network_bytes_sent=2143939532,
+        hunt_id=hunt_obj.hunt_id)
+
+    usage_stats = self.db.ReadHuntClientResourcesStats(hunt_obj.hunt_id)
+
+    self.assertEqual(usage_stats.user_cpu_stats.num, 2)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.mean, 2977005831, 5)
+    self.assertAlmostEqual(usage_stats.user_cpu_stats.stddev, 833066299, 5)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.mean, 2977005831, 5)
+    self.assertAlmostEqual(usage_stats.system_cpu_stats.stddev, 833066299, 5)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.mean,
+                           2977005831, 5)
+    self.assertAlmostEqual(usage_stats.network_bytes_sent_stats.stddev,
+                           833066299, 5)
 
   def testReadHuntFlowsStatesAndTimestampsWorksCorrectlyForMultipleFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")

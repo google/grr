@@ -56,6 +56,7 @@ ACTION_STUB_BY_ID = {
     "StatFS": server_stubs.StatFS,
     "StatFile": server_stubs.StatFile,
     "TransferBuffer": server_stubs.TransferBuffer,
+    "Timeline": server_stubs.Timeline,
     "Uninstall": server_stubs.Uninstall,
     "UpdateAgent": server_stubs.UpdateAgent,
     "UpdateConfiguration": server_stubs.UpdateConfiguration,

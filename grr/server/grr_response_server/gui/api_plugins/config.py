@@ -182,7 +182,7 @@ def _GetSignedBinaryMetadata(binary_type, relative_path):
   """
   root_urn = _GetSignedBlobsRoots()[binary_type]
   binary_urn = root_urn.Add(relative_path)
-  blob_iterator, timestamp = signed_binary_utils.FetchBlobsForSignedBinary(
+  blob_iterator, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
       binary_urn)
   binary_size = 0
   has_valid_signature = True
@@ -256,7 +256,8 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
     root_urn = _GetSignedBlobsRoots()[args.type]
     binary_urn = root_urn.Add(args.path)
     binary_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_urn)
-    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinary(binary_urn)
+    blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
+        binary_urn)
     chunk_iterator = signed_binary_utils.StreamSignedBinaryContents(
         blob_iterator, chunk_size=self.CHUNK_SIZE)
     return api_call_handler_base.ApiBinaryStream(

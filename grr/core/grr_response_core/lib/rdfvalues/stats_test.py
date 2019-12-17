@@ -42,7 +42,7 @@ class RunningStatsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
       stats.RegisterValue(v)
 
     # Compare calculated standard deviation with a precalculated value.
-    self.assertAlmostEqual(stats.std, 28.86607004)
+    self.assertAlmostEqual(stats.stddev, 28.86607004)
 
   def testHistogramIsCalculatedCorrectly(self):
     stats = rdf_stats.RunningStats()

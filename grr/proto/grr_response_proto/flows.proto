@@ -600,11 +600,12 @@ message OnlineNotificationArgs {
   }];
 }
 
-// Next field ID: 2
+// Next field ID: 3
 message UpdateClientArgs {
-  optional string blob_path = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "An aff4 path to a GRRSignedBlob of a new client version.",
+  reserved 1;
+  optional string binary_path = 2 [(sem_type) = {
+    description: "Identifies the binary uploaded to GRR server that has "
+                 "to be run on the client to perform the update.",
   }];
 }
 

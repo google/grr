@@ -37,6 +37,12 @@ flags.DEFINE_string("config_mysql_password", None, "MySQL password to use.")
 flags.DEFINE_string("config_logging_path", None,
                     "Base logging path for server components to use.")
 
+flags.DEFINE_string(
+    name="config_osquery_path",
+    default="",
+    help="A path to the osquery executable.",
+)
+
 
 def main(argv):
   del argv  # Unused.
@@ -78,6 +84,9 @@ def main(argv):
   if flags.FLAGS.config_logging_path is not None:
     config.CONFIG.Set("Logging.path", flags.FLAGS.config_logging_path)
   config.CONFIG.Set("Logging.verbose", False)
+
+  if flags.FLAGS.config_osquery_path:
+    config.CONFIG.Set("Osquery.path", flags.FLAGS.config_osquery_path)
 
   config_updater_keys_util.GenerateKeys(config.CONFIG)
   config.CONFIG.Write()

@@ -5,7 +5,7 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-from typing import Iterable, Optional, TypeVar
+from typing import Iterable, Iterator, Optional, TypeVar
 
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 

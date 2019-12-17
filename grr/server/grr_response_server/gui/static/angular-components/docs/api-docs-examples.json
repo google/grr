@@ -7290,13 +7290,13 @@
                   "type": "long",
                   "value": 1
                 },
+                "stddev": {
+                  "type": "float",
+                  "value": 0.0
+                },
                 "sum": {
                   "type": "float",
                   "value": 3.0
-                },
-                "sum_sq": {
-                  "type": "float",
-                  "value": 9.0
                 }
               }
             },
@@ -7498,13 +7498,13 @@
                   "type": "long",
                   "value": 1
                 },
+                "stddev": {
+                  "type": "float",
+                  "value": 0.0
+                },
                 "sum": {
                   "type": "float",
                   "value": 2.0
-                },
-                "sum_sq": {
-                  "type": "float",
-                  "value": 4.0
                 }
               }
             },
@@ -7706,11 +7706,11 @@
                   "type": "long",
                   "value": 1
                 },
-                "sum": {
+                "stddev": {
                   "type": "float",
-                  "value": 1.0
+                  "value": 0.0
                 },
-                "sum_sq": {
+                "sum": {
                   "type": "float",
                   "value": 1.0
                 }
@@ -7815,8 +7815,8 @@
               ]
             },
             "num": 1,
-            "sum": 3.0,
-            "sum_sq": 9.0
+            "stddev": 0.0,
+            "sum": 3.0
           },
           "system_cpu_stats": {
             "histogram": {
@@ -7885,8 +7885,8 @@
               ]
             },
             "num": 1,
-            "sum": 2.0,
-            "sum_sq": 4.0
+            "stddev": 0.0,
+            "sum": 2.0
           },
           "user_cpu_stats": {
             "histogram": {
@@ -7955,8 +7955,8 @@
               ]
             },
             "num": 1,
-            "sum": 1.0,
-            "sum_sq": 1.0
+            "stddev": 0.0,
+            "sum": 1.0
           },
           "worst_performers": [
             {

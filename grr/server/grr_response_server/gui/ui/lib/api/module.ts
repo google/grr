@@ -1,4 +1,4 @@
-import {HttpClientModule} from '@angular/common/http';
+import {HttpClientModule, HttpClientXsrfModule} from '@angular/common/http';
 import {NgModule} from '@angular/core';
 
 import {ClientApiService} from './client_api_service';
@@ -12,6 +12,10 @@ import {ClientApiService} from './client_api_service';
   ],
   imports: [
     HttpClientModule,
+    HttpClientXsrfModule.withOptions({
+      cookieName: 'csrftoken',
+      headerName: 'X-CSRFToken',
+    }),
   ],
 })
 export class ApiModule {

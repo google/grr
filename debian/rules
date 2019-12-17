@@ -62,6 +62,7 @@ override_dh_virtualenv:
 	dh_virtualenv --python python3 \
 		--use-system-packages \
 		--extra-pip-arg "--ignore-installed" \
+		--extra-pip-arg "--no-cache-dir" \
 		--extra-pip-arg "--no-index" \
 		--extra-pip-arg "--find-links=${LOCAL_DEB_PYINDEX}" \
 		--skip-install \
