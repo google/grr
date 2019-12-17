@@ -131,13 +131,16 @@ def _UploadBuildResults(gcs_bucket, gcs_build_results_dir):
                os.environ[_GCS_BUCKET], gcs_build_results_dir)
 
   for build_result in os.listdir(flags.FLAGS.build_results_dir):
-    if not os.path.isfile(
-        os.path.join(flags.FLAGS.build_results_dir, build_result)):
+    path = os.path.join(flags.FLAGS.build_results_dir, build_result)
+    if not os.path.isfile(path):
+      logging.info("Skipping %s as it's not a file.", path)
       continue
+    logging.info("Uploading %s.", path)
     gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_build_results_dir,
                                               build_result))
-    gcs_blob.upload_from_filename(
-        os.path.join(flags.FLAGS.build_results_dir, build_result))
+    gcs_blob.upload_from_filename(path)
+
+  logging.info("GCS upload done.")
 
 
 def _TriggerAppveyorBuild(project_slug_var_name):
