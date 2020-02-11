@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import user_management_pb2
 from grr_response_server import data_store
@@ -29,10 +30,20 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if args.user_type != args.UserType.USER_TYPE_ADMIN:
       args.user_type = args.UserType.USER_TYPE_STANDARD
 
+    if args.email:
+      if config.CONFIG["Email.enable_custom_email_address"]:
+        email = args.email
+      else:
+        raise ValueError("email can't be set if the config option "
+                         "Email.enable_custom_email_address is not enabled.")
+    else:
+      email = None
+
     data_store.REL_DB.WriteGRRUser(
         username=args.username,
         password=args.password if args.HasField("password") else None,
         user_type=args.user_type,
+        email=email,
     )
     user = data_store.REL_DB.ReadGRRUser(args.username)
     return api_user.ApiGrrUser().InitFromDatabaseObject(user)
@@ -88,8 +99,20 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
     else:
       user_type = None
 
+    if args.HasField("email"):
+      if config.CONFIG["Email.enable_custom_email_address"]:
+        email = args.email
+      else:
+        raise ValueError("email can't be set if the config option "
+                         "Email.enable_custom_email_address is not enabled.")
+    else:
+      email = None
+
     data_store.REL_DB.WriteGRRUser(
-        username=args.username, password=password, user_type=user_type)
+        username=args.username,
+        password=password,
+        user_type=user_type,
+        email=email)
 
     user = data_store.REL_DB.ReadGRRUser(args.username)
     return api_user.ApiGrrUser().InitFromDatabaseObject(user)

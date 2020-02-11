@@ -450,7 +450,7 @@ class OnlineNotification(flow_base.FlowBase):
     """Returns an args rdfvalue prefilled with sensible default values."""
     args = cls.args_type()
     try:
-      args.email = "%s@%s" % (username, config.CONFIG.Get("Logging.domain"))
+      args.email = data_store.REL_DB.ReadGRRUser(username).GetEmail()
     except ValueError:
       # Just set no default if the email is not well-formed. Example: when
       # username contains '@' character.

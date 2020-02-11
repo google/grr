@@ -26,6 +26,7 @@ from grr_response_client.components.chipsec_support import actions  # pylint: di
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class MockUnknownChipsetError(RuntimeError):
@@ -87,7 +88,7 @@ class GRRChipsecTest(client_test_lib.EmptyActionTest):
     self.grr_chipsec_module.logger = self.chipsec_mock.logger
 
 
-class TestChipsecDumpFlashImage(GRRChipsecTest):
+class TestChipsecDumpFlashImage(vfs_test_lib.VfsTestCase, GRRChipsecTest):
   """Test the client dump flash image action."""
 
   def setUp(self):

@@ -31,6 +31,10 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     super(TimelineTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
+  def testRaisesOnEmptyRoot(self):
+    with self.assertRaisesRegex(RuntimeError, "root directory not specified"):
+      self._Collect(b"")
+
   def testSingleFile(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
       filepath = os.path.join(dirpath, "foo")

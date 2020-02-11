@@ -202,7 +202,7 @@ message User {
   }];
 }
 
-// Next ID: 34
+// Next ID: 39
 message KnowledgeBase {
   repeated User users = 32;
 
@@ -249,18 +249,51 @@ message KnowledgeBase {
   //
   // Windows specific system level parameters.
   //
-  optional string environ_systemroot = 20 [(sem_type) = {
-    description: "The value of the %SystemRoot% parameter, E.g. c:\\Windows",
+
+  optional string environ_allusersappdata = 27 [(sem_type) = {
+    description: "The value of the %AllUsersAppData% parameter. As returned "
+                 "by the system, e.g. c:\\Documents and Settings\\All Users\\Application"
+                 " Data.",
   }];
 
-  optional string environ_windir = 21 [(sem_type) = {
-    description: "The value of the %WINDIR% parameter. As returned by "
-                 "the system, e.g. C:",
+  optional string environ_allusersprofile = 26 [(sem_type) = {
+    description: "The value of the %AllUsersProfile% parameter. As returned "
+                 "by the system, e.g. c:\\Documents and Settings\\All Users",
+  }];
+
+  optional string environ_commonprogramfiles = 34 [(sem_type) = {
+    description: "The value of the `%COMMONPROGRAMFILES%` variable as returned "
+                 "the system, e.g. `C:\\Program Files\\Common Files`.",
+  }];
+
+  optional string environ_commonprogramfilesx86 = 35 [(sem_type) = {
+    description: "The value of the `%COMMONPROGRAMFILES(X86)` variable as "
+                 "returned by the system, e.g. `C:\\Program Files (x86)\\Common Files`.",
+  }];
+
+  optional string environ_comspec = 36 [(sem_type) = {
+    description: "A path to the command line interpreter as returned by the "
+                 "system.",
+  }];
+
+  optional string environ_driverdata = 37 [(sem_type) = {
+    description: "A directory for temporary state files related to user-mode "
+                 "drivers.",
+  }];
+
+  optional string environ_profilesdirectory = 33 [(sem_type) = {
+    description: "Folder that typically contains users' profile directories; "
+                 "e.g '%SystemDrive%\\Users'",
   }];
 
   optional string environ_programfiles = 22 [(sem_type) = {
     description: "The value of the %PROGRAMFILES% parameter as returned by "
                  "the system, e.g. C:\\Program Files",
+  }];
+
+  optional string environ_programdata = 38 [(sem_type) = {
+    description: "A directory for temporary state files and intermediate "
+                 "operations for programs.",
   }];
 
   optional string environ_programfilesx86 = 23 [(sem_type) = {
@@ -273,20 +306,13 @@ message KnowledgeBase {
                  "the system, e.g. C:",
   }];
 
-  optional string environ_profilesdirectory = 33 [(sem_type) = {
-    description: "Folder that typically contains users' profile directories; "
-                 "e.g '%SystemDrive%\\Users'",
+  optional string environ_systemroot = 20 [(sem_type) = {
+    description: "The value of the %SystemRoot% parameter, E.g. c:\\Windows",
   }];
 
-  optional string environ_allusersprofile = 26 [(sem_type) = {
-    description: "The value of the %AllUsersProfile% parameter. As returned "
-                 "by the system, e.g. c:\\Documents and Settings\\All Users",
-  }];
-
-  optional string environ_allusersappdata = 27 [(sem_type) = {
-    description: "The value of the %AllUsersAppData% parameter. As returned "
-                 "by the system, e.g. c:\\Documents and Settings\\All Users\\Application"
-                 " Data.",
+  optional string environ_windir = 21 [(sem_type) = {
+    description: "The value of the %WINDIR% parameter. As returned by "
+                 "the system, e.g. C:",
   }];
 
   optional string current_control_set = 28 [(sem_type) = {

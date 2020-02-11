@@ -269,12 +269,13 @@ class ActionTest(client_test_lib.EmptyActionTest):
       def Heartbeat(self):
         pass
 
-    action = ProgressAction(grr_worker=MockWorker())
+    worker = MockWorker()
 
     with test_lib.Instrument(client_utils, "KeepAlive") as instrument:
       for time, expected_count in [(100, 1), (101, 1), (102, 1), (103, 2),
                                    (104, 2), (105, 2), (106, 3)]:
         with test_lib.FakeTime(time):
+          action = ProgressAction(grr_worker=worker)
           action.Progress()
           self.assertEqual(instrument.call_count, expected_count)
 

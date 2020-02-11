@@ -14,6 +14,7 @@ from grr_response_client import vfs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 _LONG_KEY = "🚀a🚀b🚀" * 51  # 255 characters.
 _LONG_STRING_VALUE = _LONG_KEY * 10  # 2550 characters.
@@ -47,7 +48,7 @@ REG_TEARDOWN = r"""Windows Registry Editor Version 5.00
 
 
 @unittest.skipIf(platform.system() != "Windows", "Registry is Windows-only.")
-class RegistryFileTest(absltest.TestCase):
+class RegistryFileTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
 
   @classmethod
   def setUpClass(cls):

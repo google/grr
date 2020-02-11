@@ -15,6 +15,7 @@ from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 
@@ -171,6 +172,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def ListFlowLogs(self, args, token=None):
     return api_flow.ApiListFlowLogsHandler()
+
+  def GetCollectedTimeline(self, args, token=None):
+    return api_timeline.ApiGetCollectedTimelineHandler()
 
   # Cron jobs methods.
   # =================

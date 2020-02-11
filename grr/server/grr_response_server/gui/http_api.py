@@ -481,7 +481,7 @@ class HttpRequestHandler(object):
     # TODO(user): increase token expiry time.
     token = self.BuildToken(request, 60).SetUID()
 
-    data_store.REL_DB.WriteGRRUser(request.user)
+    data_store.REL_DB.WriteGRRUser(request.user, email=request.email)
 
     handler = None
     try:

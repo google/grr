@@ -323,6 +323,16 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
             "Network limit exceeded for {} {}.".format(
                 self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
+    runtime_limit_us = self.rdf_flow.runtime_limit_us
+
+    if runtime_limit_us and self.rdf_flow.runtime_us:
+      if self.rdf_flow.runtime_us < runtime_limit_us:
+        runtime_limit_us -= self.rdf_flow.runtime_us
+      else:
+        raise flow.FlowResourcesExceededError(
+            "Runtime limit exceeded for {} {}.".format(
+                self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
+
     client_action_request = rdf_flows.ClientActionRequest(
         client_id=self.rdf_flow.client_id,
         flow_id=self.rdf_flow.flow_id,
@@ -330,7 +340,8 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
         action_identifier=action_identifier,
         action_args=request,
         cpu_limit_ms=cpu_limit_ms,
-        network_bytes_limit=network_bytes_limit)
+        network_bytes_limit=network_bytes_limit,
+        runtime_limit_us=runtime_limit_us)
 
     self.flow_requests.append(flow_request)
     self.client_action_requests.append(client_action_request)
@@ -438,11 +449,17 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     self.rdf_flow.network_bytes_sent += status.network_bytes_sent
 
+    if not self.rdf_flow.runtime_us:
+      self.rdf_flow.runtime_us = rdfvalue.Duration(0)
+
+    if status.runtime_us:
+      self.rdf_flow.runtime_us += status.runtime_us
+
     if self.rdf_flow.cpu_limit:
       user_cpu_total = self.rdf_flow.cpu_time_used.user_cpu_time
       system_cpu_total = self.rdf_flow.cpu_time_used.system_cpu_time
       if self.rdf_flow.cpu_limit < (user_cpu_total + system_cpu_total):
-        # We have exceeded our limit, stop this flow.
+        # We have exceeded our CPU time limit, stop this flow.
         raise flow.FlowResourcesExceededError(
             "CPU limit exceeded for {} {}.".format(
                 self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
@@ -453,6 +470,12 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       raise flow.FlowResourcesExceededError(
           "Network bytes limit exceeded {} {}.".format(
               self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
+
+    if (self.rdf_flow.runtime_limit_us and
+        self.rdf_flow.runtime_limit_us < self.rdf_flow.runtime_us):
+      raise flow.FlowResourcesExceededError(
+          "Runtime limit exceeded {} {}.".format(self.rdf_flow.flow_class_name,
+                                                 self.rdf_flow.flow_id))
 
   def Error(self, error_message=None, backtrace=None, status=None):
     """Terminates this flow with an error."""
@@ -475,6 +498,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           response_id=self.GetNextResponseId(),
           cpu_time_used=self.rdf_flow.cpu_time_used,
           network_bytes_sent=self.rdf_flow.network_bytes_sent,
+          runtime_us=self.rdf_flow.runtime_us,
           error_message=error_message,
           flow_id=self.rdf_flow.parent_flow_id,
           backtrace=backtrace)
@@ -553,6 +577,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
           status=rdf_flow_objects.FlowStatus.Status.OK,
           cpu_time_used=self.rdf_flow.cpu_time_used,
           network_bytes_sent=self.rdf_flow.network_bytes_sent,
+          runtime_us=self.rdf_flow.runtime_us,
           flow_id=self.rdf_flow.parent_flow_id)
       if self.rdf_flow.parent_flow_id:
         self.flow_responses.append(status)

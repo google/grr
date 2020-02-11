@@ -295,7 +295,8 @@ class ApiCreateApprovalHandlerTestMixin(
 
     self.assertLen(addresses, 1)
     self.assertEqual(addresses[0],
-                     (u"approver", self.token.username, "test@example.com"))
+                     (u"approver@localhost", "{}@localhost".format(
+                         self.token.username), "test@example.com"))
 
 
 class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,

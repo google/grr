@@ -5,8 +5,8 @@
 import {Injectable} from '@angular/core';
 import {Actions, Effect, ofType} from '@ngrx/effects';
 import {Action} from '@ngrx/store';
-import {ApiSearchClientResult} from '@app/lib/api/client_api';
-import {ClientApiService} from '@app/lib/api/client_api_service';
+import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
+import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateClient} from '@app/lib/api_translation/client';
 import {Observable, of} from 'rxjs';
 import {map, switchMap} from 'rxjs/operators';
@@ -20,7 +20,7 @@ import * as actions from './client_search_actions';
 export class ClientSearchEffects {
   constructor(
       private readonly actions$: Actions,
-      private readonly clientApiService: ClientApiService,
+      private readonly clientApiService: HttpApiService,
   ) {}
 
   /**

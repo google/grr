@@ -14,6 +14,7 @@ from __future__ import unicode_literals
 
 import abc
 import collections
+import re
 
 from future.builtins import int
 from future.builtins import str
@@ -74,6 +75,9 @@ _MAX_CLIENT_PLATFORM_RELEASE_LENGTH = 200
 MAX_COUNT = 1024**3
 
 CLIENT_IDS_BATCH_SIZE = 500000
+
+_EMAIL_REGEX = re.compile(r"[^@]+@([^@]+)$")
+MAX_EMAIL_LENGTH = 255
 
 
 class Error(Exception):
@@ -1148,7 +1152,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
                    password=None,
                    ui_mode=None,
                    canary_mode=None,
-                   user_type=None):
+                   user_type=None,
+                   email=None):
     """Writes user object for a user with a given name.
 
     If a user with the given username exists, it is overwritten.
@@ -1161,6 +1166,8 @@ class Database(with_metaclass(abc.ABCMeta, object)):
         canary mode setting.
       user_type: GRRUser.UserType enum describing user type (unset, standard or
         admin).
+      email: If set, E-Mail address overriding the default
+        <username>@<Logging.domain>.
     """
 
   @abc.abstractmethod
@@ -2706,14 +2713,16 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     """Returns ids for all signed binaries in the DB."""
 
   @abc.abstractmethod
-  def DeleteSignedBinaryReferences(self, binary_id):
+  def DeleteSignedBinaryReferences(
+      self,
+      binary_id,
+  ):
     """Deletes blob references for the given signed binary from the DB.
 
     Does nothing if no entry with the given id exists in the DB.
 
     Args:
-      binary_id: rdf_objects.SignedBinaryID for the signed binary reference to
-        delete.
+      binary_id: An id of the signed binary to delete.
     """
 
   @abc.abstractmethod
@@ -3099,7 +3108,8 @@ class DatabaseValidationWrapper(Database):
                    password=None,
                    ui_mode=None,
                    canary_mode=None,
-                   user_type=None):
+                   user_type=None,
+                   email=None):
     _ValidateUsername(username)
 
     if password is not None and not isinstance(password, rdf_crypto.Password):
@@ -3107,12 +3117,16 @@ class DatabaseValidationWrapper(Database):
       password = rdf_crypto.Password()
       password.SetPassword(password_str)
 
+    if email is not None:
+      _ValidateEmail(email)
+
     return self.delegate.WriteGRRUser(
         username,
         password=password,
         ui_mode=ui_mode,
         canary_mode=canary_mode,
-        user_type=user_type)
+        user_type=user_type,
+        email=email)
 
   def ReadGRRUser(self, username):
     _ValidateUsername(username)
@@ -4022,7 +4036,10 @@ class DatabaseValidationWrapper(Database):
   def ReadIDsForAllSignedBinaries(self):
     return self.delegate.ReadIDsForAllSignedBinaries()
 
-  def DeleteSignedBinaryReferences(self, binary_id):
+  def DeleteSignedBinaryReferences(
+      self,
+      binary_id,
+  ):
     precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
     return self.delegate.DeleteSignedBinaryReferences(binary_id)
 
@@ -4246,3 +4263,9 @@ def _ValidateClientActivityBuckets(buckets):
   precondition.AssertIterableType(buckets, int)
   if not buckets:
     raise ValueError("At least one bucket must be provided.")
+
+
+def _ValidateEmail(email):
+  _ValidateStringLength("email", email, MAX_EMAIL_LENGTH)
+  if email and not _EMAIL_REGEX.match(email):
+    raise ValueError("Invalid E-Mail address: {}".format(email))

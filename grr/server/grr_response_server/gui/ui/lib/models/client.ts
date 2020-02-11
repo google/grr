@@ -55,19 +55,31 @@ export interface ApprovalConfig {
   readonly optionalCcEmail?: string;
 }
 
-/** Indicates that a ClientApproval has been granted and is valid. */
+/** Indicates that a ClientApproval has been granted and is currently valid. */
 export interface Valid {
-  readonly valid: true;
+  readonly type: 'valid';
 }
 
-/** Indicates that a ClientApproval is invalid for a specific reason. */
+/** Indicates that a ClientApproval is pending approval from an approver. */
+export interface Pending {
+  readonly type: 'pending';
+  readonly reason: string;
+}
+
+/** Indicates that a ClientApproval had been granted, but is expired. */
+export interface Expired {
+  readonly type: 'expired';
+  readonly reason: string;
+}
+
+/** Indicates that a ClientApproval is invalid for other reasons. */
 export interface Invalid {
-  readonly valid: false;
+  readonly type: 'invalid';
   readonly reason: string;
 }
 
 /** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid|Invalid;
+export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
 
 /** Approval for Client access. */
 export interface ClientApproval {

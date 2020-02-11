@@ -72,6 +72,7 @@ class FlowStatus(FlowMessage, rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowStatus
   rdf_deps = [
       rdf_client_stats.CpuSeconds,
+      rdfvalue.Duration,
   ]
 
   def AsLegacyGrrMessage(self):
@@ -84,6 +85,8 @@ class FlowStatus(FlowMessage, rdf_structs.RDFProtoStruct):
       payload.cpu_time_used = self.cpu_time_used
     if self.network_bytes_sent:
       payload.network_bytes_sent = self.network_bytes_sent
+    if self.runtime_us:
+      payload.runtime_us = self.runtime_us
 
     return rdf_flows.GrrMessage(
         session_id="%s/flows/%s" % (self.client_id, self.flow_id),
@@ -149,6 +152,7 @@ class Flow(rdf_structs.RDFProtoStruct):
       rdf_objects.FlowReference,
       rdf_protodict.AttributedDict,
       rdfvalue.RDFDatetime,
+      rdfvalue.Duration,
   ]
 
   def __init__(self, *args, **kwargs):
@@ -160,6 +164,9 @@ class Flow(rdf_structs.RDFProtoStruct):
 
     if not self.HasField("network_bytes_sent"):
       self.network_bytes_sent = 0
+
+    if not self.HasField("runtime_us"):
+      self.runtime_us = rdfvalue.Duration(0)
 
 
 def _ClientIDFromSessionID(session_id):
@@ -216,7 +223,8 @@ def FlowResponseForLegacyResponse(legacy_msg):
         error_message=legacy_status.error_message,
         backtrace=legacy_status.backtrace,
         cpu_time_used=legacy_status.cpu_time_used,
-        network_bytes_sent=legacy_status.network_bytes_sent)
+        network_bytes_sent=legacy_status.network_bytes_sent,
+        runtime_us=legacy_status.runtime_us)
   elif legacy_msg.type == legacy_msg.Type.ITERATOR:
     response = FlowIterator(
         client_id=_ClientIDFromSessionID(legacy_msg.session_id),
@@ -241,6 +249,7 @@ def GRRMessageFromClientActionRequest(request):
       payload=request.action_args,
       cpu_limit=request.cpu_limit_ms / 1000.0,
       network_bytes_limit=request.network_bytes_limit,
+      runtime_limit_us=request.runtime_limit_us,
       # Legacy clients will fail if the task id is not set.
       # TODO(amoser): Remove task ids after April 2021.
       generate_task_id=True)

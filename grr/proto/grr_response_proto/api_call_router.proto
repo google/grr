@@ -185,3 +185,7 @@ message ApiYaraHuntCallRouterParams {
   optional uint64 per_process_dump_size_limit = 18
       [(sem_type) = { type: "ByteSize" }];
 }
+
+message ApiInterrogateRouterParams {
+  optional uint64 daily_limit_per_client_and_user = 1;
+}

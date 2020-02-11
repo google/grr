@@ -38,6 +38,12 @@ config_lib.DEFINE_string(
     "AdminUI.remote_user_header", "X-Remote-User",
     "Header containing authenticated user's username. "
     "Used by RemoteUserWebAuthManager.")
+config_lib.DEFINE_string(
+    "AdminUI.remote_email_header", "X-Remote-Extra-Email",
+    "Header containing authenticated user's e-mail address. "
+    "If present, the e-mail address of a newly created GRR user will be set "
+    "to the header's value. "
+    "Used by RemoteUserWebAuthManager.")
 config_lib.DEFINE_list(
     "AdminUI.remote_user_trusted_ips", ["127.0.0.1"],
     "Only requests coming from these IPs will be processed "

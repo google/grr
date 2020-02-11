@@ -60,6 +60,14 @@ class YaraProcessScan(flow_base.FlowBase):
           next_state=compatibility.GetName(self.ProcessScanResults))
       return
 
+    if self.args.scan_runtime_limit_us:
+      # Back up original runtime limit. Override it for YaraProcessScan action
+      # only.
+      request_data = {"runtime_limit_us": self.rdf_flow.runtime_limit_us}
+      self.rdf_flow.runtime_limit_us = self.args.scan_runtime_limit_us
+    else:
+      request_data = None
+
     signature_bytes = self.args.yara_signature.SerializeToBytes()
     offsets = range(0, len(signature_bytes), _YARA_SIGNATURE_SHARD_SIZE)
     for i, offset in enumerate(offsets):
@@ -74,6 +82,7 @@ class YaraProcessScan(flow_base.FlowBase):
       self.CallClient(
           server_stubs.YaraProcessScan,
           request=client_request,
+          request_data=request_data,
           next_state=compatibility.GetName(self.ProcessScanResults))
 
   def ProcessScanResults(
@@ -87,6 +96,11 @@ class YaraProcessScan(flow_base.FlowBase):
       # Clients (versions 3306 and above) only send back responses when
       # the full signature has been received.
       return
+
+    # Restore original runtime limit in case it was overridden.
+    if "runtime_limit_us" in responses.request_data:
+      self.rdf_flow.runtime_limit_us = responses.request_data[
+          "runtime_limit_us"]
 
     regions_to_dump = collections.defaultdict(set)
 

@@ -6,8 +6,11 @@ import {createFeatureSelector, createSelector} from '@ngrx/store';
 
 import {clientSearchAdapter, ClientSearchState} from './client_search_reducers';
 
+/** Feature name of the ClientSearch feature. */
+export const CLIENT_SEARCH_FEATURE = 'clientSearch';
+
 const featureSelector =
-    createFeatureSelector<ClientSearchState>('clientSearch');
+    createFeatureSelector<ClientSearchState>(CLIENT_SEARCH_FEATURE);
 
 /**
  * Selector for the current search query.

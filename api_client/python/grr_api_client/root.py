@@ -41,7 +41,7 @@ class GrrUserBase(object):
     args = user_management_pb2.ApiDeleteGrrUserArgs(username=self.username)
     self._context.SendRequest("DeleteGrrUser", args)
 
-  def Modify(self, user_type=None, password=None):
+  def Modify(self, user_type=None, password=None, email=None):
     """Modifies user's type and/or password."""
 
     args = user_management_pb2.ApiModifyGrrUserArgs(
@@ -52,6 +52,9 @@ class GrrUserBase(object):
 
     if password is not None:
       args.password = password
+
+    if email is not None:
+      args.email = email
 
     data = self._context.SendRequest("ModifyGrrUser", args)
     return GrrUser(data=data, context=self._context)
@@ -141,7 +144,11 @@ class RootGrrApi(object):
     super(RootGrrApi, self).__init__()
     self._context = context
 
-  def CreateGrrUser(self, username=None, user_type=None, password=None):
+  def CreateGrrUser(self,
+                    username=None,
+                    user_type=None,
+                    password=None,
+                    email=None):
     """Creates a new GRR user of a given type with a given username/password."""
 
     if not username:
@@ -154,6 +161,9 @@ class RootGrrApi(object):
 
     if password is not None:
       args.password = password
+
+    if email is not None:
+      args.email = email
 
     data = self._context.SendRequest("CreateGrrUser", args)
     return GrrUser(data=data, context=self._context)

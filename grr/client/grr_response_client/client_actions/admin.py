@@ -8,18 +8,17 @@ import logging
 import os
 import platform
 import socket
-import time
 import traceback
 
 import cryptography
 from cryptography.hazmat.backends import openssl
 from future.builtins import map
-from future.builtins import range
 from future.builtins import str
 from future.utils import iteritems
 import pkg_resources
 import psutil
 import pytsk3
+import yara
 
 from grr_response_client import actions
 from grr_response_client.client_actions import tempfiles
@@ -91,47 +90,6 @@ class Kill(actions.ActionPlugin):
     os._exit(242)  # pylint: disable=protected-access
 
 
-class Hang(actions.ActionPlugin):
-  """A client action for simulating the client becoming unresponsive (hanging).
-
-  Used for testing nanny terminating the client.
-  """
-  in_rdfvalue = rdf_protodict.DataBlob
-
-  def Run(self, arg):
-    # Sleep a really long time.
-    time.sleep(arg.integer or 6000)
-
-
-class BusyHang(actions.ActionPlugin):
-  """A client action that burns cpu cycles. Used for testing cpu limits."""
-  in_rdfvalue = rdf_protodict.DataBlob
-
-  def Run(self, arg):
-    duration = 5
-    if arg and arg.integer:
-      duration = arg.integer
-    end = time.time() + duration
-    while time.time() < end:
-      pass
-
-
-class Bloat(actions.ActionPlugin):
-  """A client action that uses lots of memory for testing."""
-  in_rdfvalue = rdf_protodict.DataBlob
-
-  def Run(self, arg):
-
-    iterations = arg.integer or 1024  # Gives 1 gb.
-
-    l = []
-
-    for _ in range(iterations):
-      l.append("X" * 1048576)  # 1 mb.
-
-    time.sleep(60)
-
-
 class GetConfiguration(actions.ActionPlugin):
   """Retrieves the running configuration parameters."""
   in_rdfvalue = None
@@ -182,12 +140,16 @@ class GetLibraryVersions(actions.ActionPlugin):
   def GetPyTSKVersion(self):
     return pytsk3.get_version()
 
+  def GetYaraVersion(self):
+    return yara.YARA_VERSION
+
   library_map = {
       "pytsk": GetPyTSKVersion,
       "TSK": GetTSKVersion,
       "cryptography": GetCryptographyVersion,
       "SSL": GetSSLVersion,
       "psutil": GetPSUtilVersion,
+      "yara": GetYaraVersion,
   }
 
   error_str = "Unable to determine library version: %s"

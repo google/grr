@@ -31,13 +31,13 @@ class DuplicateFlowError(Error):
 class FlowThrottler(object):
   """Checks for excessive or repetitive flow requests."""
 
-  def __init__(self, daily_req_limit=None, dup_interval=None):
+  def __init__(self, daily_req_limit=0, dup_interval=rdfvalue.Duration(0)):
     """Create flow throttler object.
 
     Args:
       daily_req_limit: Number of flows allow per user per client. Integer.
-      dup_interval: rdfvalue.Duration time during which duplicate flows
-        will be blocked.
+      dup_interval: rdfvalue.Duration time during which duplicate flows will be
+        blocked.
     """
     self.daily_req_limit = daily_req_limit
     self.dup_interval = dup_interval
@@ -57,7 +57,7 @@ class FlowThrottler(object):
     for flow_obj in flow_list:
       yield flow_obj
 
-  def EnforceLimits(self, client_id, user, flow_name, flow_args):
+  def EnforceLimits(self, client_id, user, flow_name, flow_args=None):
     """Enforce DailyFlowRequestLimit and FlowDuplicateInterval.
 
     Look at the flows that have run on this client recently and check
@@ -67,7 +67,7 @@ class FlowThrottler(object):
     Args:
       client_id: client URN
       user: username string
-      flow_name: flow name string
+      flow_name: name of the Flow. Only used for FlowDuplicateInterval.
       flow_args: flow args rdfvalue for the flow being launched
 
     Raises:

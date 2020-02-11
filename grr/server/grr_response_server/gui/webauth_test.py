@@ -78,6 +78,34 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     response = self.manager.SecurityCheck(self.HandlerStub, request)
     self.assertEqual(response, self.success_response)
 
+  def testProcessesRequestWithEmail_configDisabled(self):
+    environ = werkzeug_test.EnvironBuilder(
+        environ_base={
+            "REMOTE_ADDR": "127.0.0.1",
+            "HTTP_X_REMOTE_USER": "foo",
+            "HTTP_X_REMOTE_EXTRA_EMAIL": "foo@bar.org",
+        }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    response = self.manager.SecurityCheck(self.HandlerStub, request)
+    self.assertIsNone(request.email)
+    self.assertEqual(response, self.success_response)
+
+  def testProcessesRequestWithEmail_configEnabled(self):
+    environ = werkzeug_test.EnvironBuilder(
+        environ_base={
+            "REMOTE_ADDR": "127.0.0.1",
+            "HTTP_X_REMOTE_USER": "foo",
+            "HTTP_X_REMOTE_EXTRA_EMAIL": "foo@bar.org",
+        }).get_environ()
+    request = wsgiapp.HttpRequest(environ)
+
+    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
+      response = self.manager.SecurityCheck(self.HandlerStub, request)
+
+    self.assertEqual(request.email, "foo@bar.org")
+    self.assertEqual(response, self.success_response)
+
 
 class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 

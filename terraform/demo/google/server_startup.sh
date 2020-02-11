@@ -4,8 +4,8 @@ set -e
 WINDOWS_INSTALLER_UPLOAD_URL=$(curl http://metadata.google.internal/computeMetadata/v1/project/attributes//windows_installer_upload_url -H "Metadata-Flavor: Google")
 LINUX_INSTALLER_UPLOAD_URL=$(curl http://metadata.google.internal/computeMetadata/v1/project/attributes//linux_installer_upload_url -H "Metadata-Flavor: Google")
 if [[ "${grr_version}" = "latest" ]]; then
-  wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-241.0.0-linux-x86_64.tar.gz"
-  tar -xzf ./google-cloud-sdk-241.0.0-linux-x86_64.tar.gz -C .
+  wget "https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-273.0.0-linux-x86_64.tar.gz"
+  tar -xzf ./google-cloud-sdk-273.0.0-linux-x86_64.tar.gz -C .
   ./google-cloud-sdk/bin/gsutil cp gs://autobuilds.grr-response.com/_latest_server_deb/*.deb .
   GRR_VERSION=$(ls *.deb | sed 's/.*\([0-9]\+\)\.\([0-9]\+\)\.\([0-9]\+\)\-\([0-9]\+\).*/\1.\2.\3.\4/')
 else
@@ -92,7 +92,7 @@ EOF
 grr_config_updater generate_keys
 grr_config_updater repack_clients
 
-grr_config_updater add_user --password admin admin
+grr_config_updater add_user --password "${grr_admin_password}" admin
 
 service grr-server start
 

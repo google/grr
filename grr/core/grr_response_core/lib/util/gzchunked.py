@@ -11,7 +11,7 @@ import struct
 
 from typing import Iterator
 
-DEFAULT_CHUNK_SIZE = 4 * 1024 * 1024  # 4 MiB.
+DEFAULT_CHUNK_SIZE = 1 * 1024 * 1024  # 1 MiB.
 
 
 def Serialize(

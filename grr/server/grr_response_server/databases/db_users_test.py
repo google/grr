@@ -12,6 +12,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Username with UTF-8 characters and maximum length.
 EXAMPLE_NAME = "x" + "🧙" * (db.MAX_USERNAME_LENGTH - 2) + "x"
+EXAMPLE_EMAIL = "foo@bar.org"
 
 
 class DatabaseTestUsersMixin(object):
@@ -28,7 +29,8 @@ class DatabaseTestUsersMixin(object):
         username=EXAMPLE_NAME,
         ui_mode="ADVANCED",
         canary_mode=True,
-        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN,
+        email=EXAMPLE_EMAIL)
     # TODO(hanuszczak): Passwords should be required to be unicode strings.
     u_expected.password.SetPassword(b"blah")
     d.WriteGRRUser(
@@ -36,7 +38,8 @@ class DatabaseTestUsersMixin(object):
         password=u_expected.password,
         ui_mode=u_expected.ui_mode,
         canary_mode=u_expected.canary_mode,
-        user_type=u_expected.user_type)
+        user_type=u_expected.user_type,
+        email=EXAMPLE_EMAIL)
 
     u = d.ReadGRRUser(EXAMPLE_NAME)
     self.assertEqual(u_expected, u)
@@ -1076,5 +1079,27 @@ class DatabaseTestUsersMixin(object):
     d.DeleteGRRUser(username)
     self.assertEmpty(d.ReadUserNotifications(username, timerange=(None, None)))
 
+  def testMaxEmailLength(self):
+    d = self.db
+    long_email = "a@{}".format("b" * (db.MAX_EMAIL_LENGTH - 1))
+    with self.assertRaises(db.StringTooLongError):
+      d.WriteGRRUser(EXAMPLE_NAME, email=long_email)
+
+  def testWriteEmptyEmail(self):
+    d = self.db
+    d.WriteGRRUser(EXAMPLE_NAME, email="")
+    u = d.ReadGRRUser(EXAMPLE_NAME)
+    self.assertEqual("", u.email)
+
+  def testEmailIsOptional(self):
+    d = self.db
+    d.WriteGRRUser(EXAMPLE_NAME)
+    u = d.ReadGRRUser(EXAMPLE_NAME)
+    self.assertEqual("", u.email)
+
+  def testWriteInvalidEmail(self):
+    d = self.db
+    with self.assertRaises(ValueError):
+      d.WriteGRRUser(EXAMPLE_NAME, email="invalid")
 
 # This file is a test library and thus does not require a __main__ block.

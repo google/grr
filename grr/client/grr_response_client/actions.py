@@ -75,6 +75,8 @@ class ActionPlugin(object):
 
   _PROGRESS_THROTTLE_INTERVAL = rdfvalue.Duration.From(2, rdfvalue.SECONDS)
 
+  last_progress_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
+
   def __init__(self, grr_worker=None):
     """Initializes the action plugin.
 
@@ -94,7 +96,6 @@ class ActionPlugin(object):
     self.proc = psutil.Process()
     self.cpu_start = self.proc.cpu_times()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit
-    self.last_progress_time = rdfvalue.RDFDatetime.Now()
     self.start_time = None
     self.runtime_limit = None
 
@@ -155,6 +156,7 @@ class ActionPlugin(object):
         used = self.proc.cpu_times()
         self.cpu_used = (used.user - self.cpu_start.user,
                          used.system - self.cpu_start.system)
+        self.status.runtime_us = rdfvalue.RDFDatetime.Now() - self.start_time
 
     except NetworkBytesExceededError as e:
       self.grr_worker.SendClientAlert("Network limit exceeded.")
@@ -288,15 +290,16 @@ class ActionPlugin(object):
       RuntimeExceededError: Runtime limit exceeded.
     """
     now = rdfvalue.RDFDatetime.Now()
+    time_since_last_progress = now - ActionPlugin.last_progress_time
 
-    if now - self.last_progress_time <= self._PROGRESS_THROTTLE_INTERVAL:
+    if time_since_last_progress <= self._PROGRESS_THROTTLE_INTERVAL:
       return
 
     if self.runtime_limit and now - self.start_time > self.runtime_limit:
       raise RuntimeExceededError("{} exceeded runtime limit of {}.".format(
           compatibility.GetName(type(self)), self.runtime_limit))
 
-    self.last_progress_time = now
+    ActionPlugin.last_progress_time = now
 
     # Prevent the machine from sleeping while the action is running.
     client_utils.KeepAlive()

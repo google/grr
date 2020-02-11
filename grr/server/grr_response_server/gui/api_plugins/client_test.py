@@ -280,6 +280,7 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
     results = data_store.REL_DB.ReadAllFlowObjects(self.client_id)
     self.assertLen(results, 1)
     self.assertEqual(result.operation_id, results[0].flow_id)
+    self.assertEqual(results[0].creator, "api_test_user")
 
 
 class ApiGetClientVersionTimesTestMixin(object):

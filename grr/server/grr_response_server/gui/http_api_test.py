@@ -148,6 +148,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = u"test"
+    request.email = None
     request.args = query_parameters or {}
     request.headers = {}
     request.get_data = lambda as_text=False: ""
@@ -204,6 +205,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = username
+    request.email = None
     request.args = query_parameters or {}
     request.content_type = "application/json; charset=utf-8"
     request.headers = {}
@@ -442,6 +444,18 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
 
     data_store.REL_DB.ReadGRRUser(request.user)
+
+  def testGrrUserEmailIsSetOnMethodCall(self):
+    request = self._CreateRequest("HEAD", "/test_sample/some/path")
+    request.email = "foo@bar.org"
+
+    with self.assertRaises(db.UnknownGRRUserError):
+      data_store.REL_DB.ReadGRRUser(request.user)
+
+    self._RenderResponse(request)
+
+    u = data_store.REL_DB.ReadGRRUser(request.user)
+    self.assertEqual(u.email, "foo@bar.org")
 
 
 def main(argv):

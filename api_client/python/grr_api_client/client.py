@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from grr_api_client import flow
 from grr_api_client import utils
 from grr_api_client import vfs
+from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import user_pb2
@@ -158,6 +159,13 @@ class ClientBase(object):
     data = self._context.SendRequest("CreateFlow", request)
     return flow.Flow(data=data, context=self._context)
 
+  def Interrogate(self):
+    """Run an Interrogate Flow on this client."""
+    request = client_pb2.ApiInterrogateClientArgs(client_id=self.client_id)
+    data = self._context.SendRequest("InterrogateClient", request)
+    # Return a populated Flow, similar to the behavior of CreateFlow().
+    return self.Flow(data.operation_id).Get()
+
   def ListFlows(self):
     """List flows that ran on this client."""
 
@@ -250,6 +258,9 @@ class ClientBase(object):
 class ClientRef(ClientBase):
   """Ref to the client."""
 
+  def __repr__(self):
+    return "ClientRef(client_id={!r})".format(self.client_id)
+
 
 class Client(ClientBase):
   """Client object with fetched data."""
@@ -263,6 +274,10 @@ class Client(ClientBase):
         client_id=utils.UrnStringToClientId(data.urn), context=context)
 
     self.data = data
+
+  def __repr__(self):
+    return "Client(data=<{} client_id={!r}>, ...)".format(
+        compatibility.GetName(type(self.data)), self.data.client_id)
 
 
 def SearchClients(query=None, context=None):

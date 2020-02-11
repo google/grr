@@ -34,11 +34,13 @@ from grr.test_lib import action_mocks
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 # pylint:mode=test
 
 
-class TestFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
+class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
+                         flow_test_lib.FlowTestsBaseclass):
   """Test the FileFinder flow."""
 
   def FileNameToURN(self, fname):

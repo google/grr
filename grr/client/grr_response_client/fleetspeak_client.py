@@ -20,8 +20,8 @@ from future.utils import iteritems
 from future.utils import itervalues
 import queue
 
-from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.client_connector import connector as fs_client
 from grr_response_client import comms
 from grr_response_core import config
 from grr_response_core.lib import communicator

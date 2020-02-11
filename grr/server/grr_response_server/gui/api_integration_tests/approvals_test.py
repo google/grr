@@ -37,6 +37,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
 
   def testCreateClientApproval(self):
     client_id = self.SetupClient(0)
+    self.CreateUser("foo")
 
     approval = self.api.Client(client_id).CreateApproval(
         reason="blah", notified_users=[u"foo"])
@@ -47,6 +48,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
 
   def testWaitUntilClientApprovalValid(self):
     client_id = self.SetupClient(0)
+    self.CreateUser("foo")
 
     approval = self.api.Client(client_id).CreateApproval(
         reason="blah", notified_users=[u"foo"])
@@ -70,6 +72,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
 
   def testCreateHuntApproval(self):
     h_id = self.StartHunt()
+    self.CreateUser("foo")
 
     approval = self.api.Hunt(h_id).CreateApproval(
         reason="blah", notified_users=[u"foo"])
@@ -79,6 +82,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     self.assertFalse(approval.data.is_valid)
 
   def testWaitUntilHuntApprovalValid(self):
+    self.CreateUser("approver")
     h_id = self.StartHunt()
 
     approval = self.api.Hunt(h_id).CreateApproval(

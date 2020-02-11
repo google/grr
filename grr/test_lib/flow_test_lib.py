@@ -413,8 +413,9 @@ def StartAndRunFlow(flow_cls,
       rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
       if rdf_flow.flow_state == rdf_flow.FlowState.ERROR:
         raise RuntimeError(
-            "Flow %s on %s raised an error in state %s (error message: %s)" %
-            (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message))
+            "Flow %s on %s raised an error in state %s. \nError message: %s\n%s"
+            % (flow_id, client_id, rdf_flow.flow_state, rdf_flow.error_message,
+               rdf_flow.backtrace))
 
     RunFlow(
         client_id,

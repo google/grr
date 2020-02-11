@@ -80,3 +80,29 @@ export declare interface ApiClientApproval {
 export declare interface ApiListClientApprovalsResult {
   readonly items: ApiClientApproval[];
 }
+
+/** ApiFlowDescriptor proto mapping. */
+export declare interface ApiFlowDescriptor {
+  readonly name?: string;
+  readonly friendlyName?: string;
+  readonly category?: string;
+}
+
+/** ApiListClientFlowDescriptorsResult proto mapping. */
+export declare interface ApiListClientFlowDescriptorsResult {
+  readonly items: ReadonlyArray<ApiFlowDescriptor>;
+}
+
+/** ApiFlow proto mapping. */
+export declare interface ApiFlow {
+  readonly flowId?: string;
+  readonly lastActiveAt?: string;
+  readonly startedAt?: string;
+  readonly name?: string;
+  readonly creator?: string;
+}
+
+/** ApiListFlowsResult proto mapping. */
+export declare interface ApiListFlowsResult {
+  readonly items: ReadonlyArray<ApiFlow>;
+}

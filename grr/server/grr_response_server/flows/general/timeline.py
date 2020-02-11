@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 from typing import Iterator
 from typing import Text
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_server import data_store
 from grr_response_server import flow_base
@@ -27,6 +28,10 @@ class TimelineFlow(flow_base.FlowBase):
 
   def Start(self):
     super(TimelineFlow, self).Start()
+
+    if not self.args.root:
+      raise ValueError("The timeline root directory not specified")
+
     self.CallClient(
         action_cls=server_stubs.Timeline,
         request=self.args,
@@ -38,6 +43,13 @@ class TimelineFlow(flow_base.FlowBase):
   ):
     if not responses.success:
       raise flow_base.FlowError(responses.status)
+
+    blob_ids = []
+    for response in responses:
+      for blob_id in response.entry_batch_blob_ids:
+        blob_ids.append(rdf_objects.BlobID(blob_id))
+
+    data_store.BLOBS.WaitForBlobs(blob_ids, timeout=_BLOB_STORE_TIMEOUT)
 
     for response in responses:
       self.SendReply(response)
@@ -102,3 +114,9 @@ def Blobs(
 # blobs). Just to be on the safe side, we use a number two orders of magnitude
 # bigger.
 _READ_FLOW_RESULTS_COUNT = 1024
+
+# An amount of time to wait for the blobs with timeline entries to appear in the
+# blob store. This is needed, because blobs are not guaranteed to be processed
+# before the flow receives results from the client. This delay should usually be
+# very quick, so the timeout used here should be more than enough.
+_BLOB_STORE_TIMEOUT = rdfvalue.Duration.From(30, rdfvalue.SECONDS)

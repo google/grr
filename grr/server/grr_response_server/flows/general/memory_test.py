@@ -687,6 +687,38 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     self.assertLen(results[0].dumped_processes, 1)
     self.assertGreater(results[0].dumped_processes[0].dump_time_us, 0)
 
+  def testSucceedsWhenUnderRuntimeLimit(self):
+    procs = [p for p in self.procs if p.pid in [102]]
+    matches, _, _ = self._RunYaraProcessScan(
+        procs, runtime_limit=rdfvalue.Duration.From(20, rdfvalue.SECONDS))
+    self.assertLen(matches, 1)
+
+  def testPropagatesScanRuntimeLimit(self):
+    procs = [p for p in self.procs if p.pid in [102]]
+    runtime_limits = []
+
+    def Run(yps, args):
+      del args  # Unused.
+      runtime_limits.append(yps.message.runtime_limit_us)
+
+    with mock.patch.object(memory_actions.YaraProcessScan, "Run", Run):
+      self._RunYaraProcessScan(
+          procs,
+          scan_runtime_limit_us=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
+
+      self.assertLen(runtime_limits, 1)
+      self.assertEqual(runtime_limits[0],
+                       rdfvalue.Duration.From(5, rdfvalue.SECONDS))
+
+  def testFailsWithExceededScanRuntimeLimit(self):
+    procs = [p for p in self.procs if p.pid in [102]]
+
+    with self.assertRaisesRegex(RuntimeError, r"Runtime limit exceeded"):
+      self._RunYaraProcessScan(
+          procs,
+          scan_runtime_limit_us=rdfvalue.Duration.From(1,
+                                                       rdfvalue.MICROSECONDS))
+
   def testScanAndDump(self):
     client_mock = action_mocks.MultiGetFileClientMock(
         memory_actions.YaraProcessScan, memory_actions.YaraProcessDump,

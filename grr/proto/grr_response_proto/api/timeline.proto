@@ -1,0 +1,46 @@
+syntax = "proto2";
+
+
+import "grr_response_proto/semantic.proto";
+
+// A message representing arguments for the API method that exports timeline
+// entries.
+message ApiGetCollectedTimelineArgs {
+  // A enumeration representing all possible output formats that timeline
+  // entries can be exported into.
+  enum Format {
+    // Unspecified format.
+    UNSPECIFIED = 0;
+
+    // The Sleuthkit's body file format [1].
+    //
+    // Note that file hashes are not collected, so the MD5 column will be set to
+    // 0 when exported to this format. Similarly, the rdev information is not
+    // gathered either so this column will be set to 0 as well.
+    //
+    // [1]: https://wiki.sleuthkit.org/index.php?title=Body_file
+    BODY = 1;
+
+    // Raw timeline protobufs as stored in the database.
+    //
+    // Timeline in this formats simply follows the internal GRR representation
+    // and might be useful in cases where e.g. other format are too verbose. In
+    // order to open files in this format some additional tooling is required,
+    // so it is best suited for consumption by scripts and alike.
+    //
+    // The stream of timeline entry protobufs in sent in the gzchunked format.
+    // GRR provides a module for working files stored in this format and the
+    // implementation should be used as a reference for porting it to different
+    // languages.
+    RAW_GZCHUNKED = 2;
+  }
+
+  // An identifier of the client for which to retrieve results.
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
+
+  // An identifier of the timeline flow for which to retrieve results.
+  optional string flow_id = 2 [(sem_type) = { type: "ApiFlowId" }];
+
+  // A format in which to retrieve timeline entries.
+  optional Format format = 3;
+}

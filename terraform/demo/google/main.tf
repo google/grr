@@ -30,20 +30,51 @@ provider "google" {
   region  = var.gce_region
 }
 
+provider "google-beta" {
+  project = var.gce_project
+  region  = var.gce_region
+}
+
+resource "google_compute_network" "private_network" {
+  provider = google-beta
+
+  name = "private-network"
+}
+
+resource "google_compute_global_address" "private_ip_address" {
+  provider = google-beta
+
+  name          = "private-ip-address"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.private_network.self_link
+}
+
+resource "google_service_networking_connection" "private_vpc_connection" {
+  provider = google-beta
+
+  network                 = google_compute_network.private_network.self_link
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+}
+
+resource "random_id" "db_name_suffix" {
+  byte_length = 4
+}
+
 resource "google_sql_database_instance" "grr-db" {
-  name   = "grr-db-instance"
+  name   = "grr-db-instance-${random_id.db_name_suffix.hex}"
   region = var.gce_region
+
+  depends_on = [google_service_networking_connection.private_vpc_connection]
 
   settings {
     tier = "db-n1-standard-1"
 
     ip_configuration {
-      ipv4_enabled = true
-
-      authorized_networks {
-        name  = "grr-server"
-        value = google_compute_address.grr-address.address
-      }
+      ipv4_enabled    = false
+      private_network = google_compute_network.private_network.self_link
     }
 
     location_preference {
@@ -70,7 +101,6 @@ resource "google_sql_database_instance" "grr-db" {
 resource "google_sql_user" "users" {
   name     = "grr"
   instance = google_sql_database_instance.grr-db.name
-  host     = google_compute_address.grr-address.address
   password = "grrpassword"
 }
 
@@ -85,10 +115,15 @@ resource "google_compute_address" "grr-address" {
   name = "grr-address"
 }
 
+resource "random_id" "admin_password" {
+  byte_length = 12
+}
+
 data "template_file" "grr-startup" {
   template = file("${path.module}/server_startup.sh")
 
   vars = {
+    grr_admin_password = random_id.admin_password.hex
     grr_version = var.grr_version
     server_host = google_compute_address.grr-address.address
     mysql_host  = google_sql_database_instance.grr-db.ip_address[0].ip_address
@@ -150,9 +185,22 @@ data "google_storage_object_signed_url" "linux-installer-get" {
   http_method = "GET"
 }
 
+resource "google_compute_firewall" "allow-ssh" {
+  name    = "allow-ssh"
+  network = google_compute_network.private_network.self_link
+
+  allow {
+    protocol = "tcp"
+    ports    = ["22"]
+  }
+
+  source_ranges = ["0.0.0.0/0"]
+  target_tags   = ["ssh"]
+}
+
 resource "google_compute_firewall" "allow-admin-ui" {
   name    = "allow-admin-ui"
-  network = "default"
+  network = google_compute_network.private_network.self_link
 
   allow {
     protocol = "tcp"
@@ -165,7 +213,7 @@ resource "google_compute_firewall" "allow-admin-ui" {
 
 resource "google_compute_firewall" "allow-frontend" {
   name    = "allow-frontend"
-  network = "default"
+  network = google_compute_network.private_network.self_link
 
   allow {
     protocol = "tcp"
@@ -190,16 +238,16 @@ resource "google_compute_instance" "grr-server" {
   machine_type = "n1-standard-8"
   zone         = "${var.gce_region}-b"
 
-  tags = ["admin-ui", "frontend"]
+  tags = ["admin-ui", "frontend", "ssh"]
 
   boot_disk {
     initialize_params {
-      image = "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-1604-xenial-v20180126"
+      image = "ubuntu-1804-lts"
     }
   }
 
   network_interface {
-    network = "default"
+    network = google_compute_network.private_network.self_link
 
     access_config {
       nat_ip = google_compute_address.grr-address.address
@@ -304,5 +352,8 @@ resource "google_compute_instance" "linux-poolclient" {
 
 output "grr_ui_url" {
   value = "https://${google_compute_address.grr-address.address}"
+}
+output "grr_ui_admin_password" {
+  value = random_id.admin_password.hex
 }
 

@@ -323,6 +323,10 @@ message GrrStatus {
   optional uint64 network_bytes_sent = 6;
 
   optional string nanny_status = 7;
+
+  optional uint64 runtime_us = 8 [(sem_type) = {
+    type: "Duration",
+  }];
 }
 
 message ClientCrash {

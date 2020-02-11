@@ -17,4 +17,5 @@ from grr_response_test.end_to_end_tests.tests import network
 from grr_response_test.end_to_end_tests.tests import osquery
 from grr_response_test.end_to_end_tests.tests import processes
 from grr_response_test.end_to_end_tests.tests import registry
+from grr_response_test.end_to_end_tests.tests import timeline
 from grr_response_test.end_to_end_tests.tests import transfer

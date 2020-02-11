@@ -296,17 +296,27 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
   def testLimitPropagation(self):
     """This tests that client actions are limited properly."""
     client_mock = action_mocks.CPULimitClientMock(
-        user_cpu_usage=[10], system_cpu_usage=[10], network_usage=[1000])
+        user_cpu_usage=[10],
+        system_cpu_usage=[10],
+        network_usage=[1000],
+        runtime_us=[rdfvalue.Duration.From(1, rdfvalue.SECONDS)])
 
     flow_test_lib.StartAndRunFlow(
         flow_test_lib.CPULimitFlow,
         client_mock=client_mock,
         client_id=self.client_id,
         cpu_limit=1000,
-        network_bytes_limit=10000)
+        network_bytes_limit=10000,
+        runtime_limit=rdfvalue.Duration.From(5, rdfvalue.SECONDS))
 
     self.assertEqual(client_mock.storage["cpulimit"], [1000, 980, 960])
     self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
+    self.assertEqual(client_mock.storage["networklimit"], [10000, 9000, 8000])
+    self.assertEqual(client_mock.storage["runtimelimit"], [
+        rdfvalue.Duration.From(5, rdfvalue.SECONDS),
+        rdfvalue.Duration.From(4, rdfvalue.SECONDS),
+        rdfvalue.Duration.From(3, rdfvalue.SECONDS),
+    ])
 
   def testCPULimitExceeded(self):
     """This tests that the cpu limit for flows is working."""
@@ -343,6 +353,25 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(rdf_flow.flow_state, "ERROR")
     self.assertIn("bytes limit exceeded", rdf_flow.backtrace)
+
+  def testRuntimeLimitExceeded(self):
+    client_mock = action_mocks.CPULimitClientMock(
+        user_cpu_usage=[1],
+        system_cpu_usage=[1],
+        network_usage=[1],
+        runtime_us=[rdfvalue.Duration.From(4, rdfvalue.SECONDS)])
+
+    with test_lib.SuppressLogs():
+      flow_id = flow_test_lib.StartAndRunFlow(
+          flow_test_lib.CPULimitFlow,
+          client_mock=client_mock,
+          client_id=self.client_id,
+          runtime_limit=rdfvalue.Duration.From(9, rdfvalue.SECONDS),
+          check_flow_errors=False)
+
+    rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(rdf_flow.flow_state, "ERROR")
+    self.assertIn("Runtime limit exceeded", rdf_flow.backtrace)
 
   def testUserGetsNotificationWithNumberOfResults(self):
     username = "notification_test_user"

@@ -20,6 +20,7 @@ from grr_response_client.client_actions import plist
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
+from grr_response_client.client_actions import timeline
 from grr_response_client.client_actions import vfs_file_finder
 
 
@@ -28,7 +29,6 @@ def RegisterClientActions():
 
   client_actions.Register("ArtifactCollector",
                           artifact_collector.ArtifactCollector)
-  client_actions.Register("Bloat", admin.Bloat)
   client_actions.Register("CheckFreeGRRTempSpace",
                           tempfiles.CheckFreeGRRTempSpace)
   client_actions.Register("DeleteGRRTempFiles", tempfiles.DeleteGRRTempFiles)
@@ -49,7 +49,6 @@ def RegisterClientActions():
   client_actions.Register("GetMemorySize", standard.GetMemorySize)
   client_actions.Register("GetPlatformInfo", admin.GetPlatformInfo)
   client_actions.Register("Grep", searching.Grep)
-  client_actions.Register("Hang", admin.Hang)
   client_actions.Register("HashBuffer", standard.HashBuffer)
   client_actions.Register("HashFile", standard.HashFile)
   client_actions.Register("Kill", admin.Kill)
@@ -64,6 +63,7 @@ def RegisterClientActions():
   client_actions.Register("SendFile", standard.SendFile)
   client_actions.Register("SendStartupInfo", admin.SendStartupInfo)
   client_actions.Register("StatFS", standard.StatFS)
+  client_actions.Register("Timeline", timeline.Timeline)
   client_actions.Register("TransferBuffer", standard.TransferBuffer)
   client_actions.Register("UpdateConfiguration", admin.UpdateConfiguration)
   client_actions.Register("VfsFileFinder", vfs_file_finder.VfsFileFinder)

@@ -24,7 +24,8 @@ class InMemoryDBUsersMixin(object):
                    password=None,
                    ui_mode=None,
                    canary_mode=None,
-                   user_type=None):
+                   user_type=None,
+                   email=None):
     """Writes user object for a user with a given name."""
     u = self.users.setdefault(username, rdf_objects.GRRUser(username=username))
     if password is not None:
@@ -35,6 +36,8 @@ class InMemoryDBUsersMixin(object):
       u.canary_mode = canary_mode
     if user_type is not None:
       u.user_type = user_type
+    if email is not None:
+      u.email = email
 
   @utils.Synchronized
   def ReadGRRUser(self, username):

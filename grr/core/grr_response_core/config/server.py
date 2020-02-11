@@ -169,6 +169,11 @@ config_lib.DEFINE_string(
     "If you feel like it, you can add a funny cat picture to approval mails. "
     "Needs full html: <img src=\"https://imgur.com/path/to/cat.jpg\">.")
 
+config_lib.DEFINE_bool(
+    "Email.enable_custom_email_address", False,
+    "If true, it's possible to set a custom E-Mail address for GRR users, "
+    "overriding the default <username>@<Logging.domain>.")
+
 config_lib.DEFINE_string(
     "StatsStore.process_id", default="", help="Unused, Deprecated.")
 

@@ -1,14 +1,18 @@
-import {HttpClientModule, HttpClientXsrfModule} from '@angular/common/http';
+import {HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule} from '@angular/common/http';
 import {NgModule} from '@angular/core';
 
-import {ClientApiService} from './client_api_service';
+import {HttpApiService, WithCredentialsInterceptor} from './http_api_service';
 
 /**
  * Module containing services for GRR API requests.
  */
 @NgModule({
   providers: [
-    ClientApiService,
+    HttpApiService, {
+      provide: HTTP_INTERCEPTORS,
+      useClass: WithCredentialsInterceptor,
+      multi: true
+    }
   ],
   imports: [
     HttpClientModule,
@@ -17,6 +21,7 @@ import {ClientApiService} from './client_api_service';
       headerName: 'X-CSRFToken',
     }),
   ],
+
 })
 export class ApiModule {
 }

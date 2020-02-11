@@ -30,6 +30,10 @@ BLOB_STORE_POLL_HIT_ITERATION = metrics.Event(
     "blob_store_poll_hit_iteration", bins=[1, 2, 5, 10, 20, 50])
 
 
+class BlobStoreTimeoutError(Exception):
+  """An exception class raised when certain blob store operation times out."""
+
+
 class BlobStore(with_metaclass(abc.ABCMeta, object)):
   """The blob store base class."""
 
@@ -166,6 +170,54 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
       time.sleep(sleep_dur.ToFractional(rdfvalue.SECONDS))
 
     return results
+
+  def WaitForBlobs(
+      self,
+      blob_ids,
+      timeout,
+  ):
+    """Waits for specified blobs to appear in the database.
+
+    Args:
+      blob_ids: A collection of blob ids to await for.
+      timeout: A duration specifying the maximum amount of time to wait.
+
+    Raises:
+      BlobStoreTimeoutError: If the blobs are still not in the database after
+        the specified timeout duration has elapsed.
+    """
+    remaining_blob_ids = set(blob_ids)
+
+    # TODO: See a TODO comment in `RunAndWaitForBlobs`.
+    sleep_duration = rdfvalue.Duration.From(1, rdfvalue.SECONDS)
+
+    start_time = rdfvalue.RDFDatetime.Now()
+    ticks = 0
+
+    while True:
+      blob_id_exists = self.CheckBlobsExist(remaining_blob_ids)
+
+      elapsed = start_time - rdfvalue.RDFDatetime.Now()
+      elapsed_secs = elapsed.ToFractional(rdfvalue.SECONDS)
+      ticks += 1
+
+      for blob_id, exists in iteritems(blob_id_exists):
+        if not exists:
+          continue
+
+        remaining_blob_ids.remove(blob_id)
+
+        BLOB_STORE_POLL_HIT_LATENCY.RecordEvent(elapsed_secs)
+        BLOB_STORE_POLL_HIT_ITERATION.RecordEvent(ticks)
+
+      if not remaining_blob_ids:
+        break
+
+      if elapsed + sleep_duration >= timeout:
+        raise BlobStoreTimeoutError()
+
+      sleep_duration_secs = sleep_duration.ToFractional(rdfvalue.SECONDS)
+      time.sleep(sleep_duration_secs)
 
 
 class BlobStoreValidationWrapper(BlobStore):

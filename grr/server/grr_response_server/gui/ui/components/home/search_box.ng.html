@@ -1,4 +1,21 @@
 <mat-form-field hideRequiredMarker="true" appearance="outline">
   <mat-label>Search for a client...</mat-label>
-  <input #input placeholder="Search for a client..." matInput [formControl]="inputFormControl">
+  <input #input placeholder="Search for a client..."
+         matInput
+         [formControl]="inputFormControl"
+         [matAutocomplete]="auto">
+  <mat-autocomplete #auto="matAutocomplete"
+                    (optionSelected)="selectClient($event.option.value)">
+    <div class="search-results">
+      <mat-option *ngFor="let client of clients | async"
+                  [value]="client.knowledgeBase.fqdn">
+        <mat-icon *ngIf="isOnline(client.lastSeenAt)"
+                  class="online-icon">check_circle_outline</mat-icon>
+        <mat-icon *ngIf="!isOnline(client.lastSeenAt)"
+                  class="offline-icon">highlight_off</mat-icon>
+        <span>{{ client.knowledgeBase.fqdn }}</span> |
+        <small>{{ client.lastSeenAt ? (client.lastSeenAt | date:'short':'UTC') : '-' }}</small>
+      </mat-option>
+    </div>
+  </mat-autocomplete>
 </mat-form-field>

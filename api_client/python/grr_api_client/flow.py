@@ -6,7 +6,9 @@ from __future__ import unicode_literals
 
 from grr_api_client import errors
 from grr_api_client import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
+from grr_response_proto.api import timeline_pb2
 
 
 class FlowResult(object):
@@ -82,6 +84,11 @@ class FlowBase(object):
         client_id=self.client_id, flow_id=self.flow_id)
     return self._context.SendStreamingRequest("GetFlowFilesArchive", args)
 
+  def GetCollectedTimeline(self, fmt):
+    args = timeline_pb2.ApiGetCollectedTimelineArgs(
+        client_id=self.client_id, flow_id=self.flow_id, format=fmt)
+    return self._context.SendStreamingRequest("GetCollectedTimeline", args)
+
   def Get(self):
     """Fetch flow's data and return proper Flow object."""
 
@@ -118,6 +125,10 @@ class FlowBase(object):
 class FlowRef(FlowBase):
   """Flow reference (points to the flow, but has no data)."""
 
+  def __repr__(self):
+    return "FlowRef(client_id={!r}, flow_id={!r})".format(
+        self.client_id, self.flow_id)
+
 
 class Flow(FlowBase):
   """Flow object with fetched data."""
@@ -137,3 +148,10 @@ class Flow(FlowBase):
   @property
   def args(self):
     return utils.UnpackAny(self.data.args)
+
+  def __repr__(self):
+    return ("Flow(data=<{} client_id={!r}, flow_id={!r}, name={!r}, "
+            "state={}, ...>)").format(
+                compatibility.GetName(type(self.data)), self.data.client_id,
+                self.data.flow_id, self.data.name,
+                flow_pb2.ApiFlow.State.Name(self.data.state))

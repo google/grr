@@ -23,6 +23,7 @@ from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 
 from grr_response_server.gui.api_plugins import vfs as api_vfs
@@ -647,6 +648,14 @@ class ApiCallRouterStub(ApiCallRouter):
   def ListFlowLogs(self, args, token=None):
     """List logs of the flow."""
 
+    raise NotImplementedError()
+
+  @Category("Flows")
+  @ArgsType(api_timeline.ApiGetCollectedTimelineArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/timeline/<format>")
+  def GetCollectedTimeline(self, args, token=None):
+    """Exports results of a timeline flow to the specific format."""
     raise NotImplementedError()
 
   # Cron jobs methods.

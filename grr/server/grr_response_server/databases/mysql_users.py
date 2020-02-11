@@ -63,6 +63,7 @@ class MySQLDBUsersMixin(object):
                    ui_mode=None,
                    canary_mode=None,
                    user_type=None,
+                   email=None,
                    cursor=None):
     """Writes user object for a user with a given name."""
 
@@ -79,6 +80,8 @@ class MySQLDBUsersMixin(object):
       values["canary_mode"] = int(bool(canary_mode))
     if user_type is not None:
       values["user_type"] = int(user_type)
+    if email is not None:
+      values["email"] = email
 
     query = "INSERT INTO grr_users {cols} VALUES {vals}".format(
         cols=mysql_utils.Columns(values),
@@ -91,12 +94,13 @@ class MySQLDBUsersMixin(object):
 
   def _RowToGRRUser(self, row):
     """Creates a GRR user object from a database result row."""
-    username, password, ui_mode, canary_mode, user_type = row
+    username, password, ui_mode, canary_mode, user_type, email = row
     result = rdf_objects.GRRUser(
         username=username,
         ui_mode=ui_mode,
         canary_mode=canary_mode,
-        user_type=user_type)
+        user_type=user_type,
+        email=email)
 
     if password:
       result.password = rdf_crypto.Password.FromSerializedBytes(password)
@@ -107,7 +111,7 @@ class MySQLDBUsersMixin(object):
   def ReadGRRUser(self, username, cursor=None):
     """Reads a user object corresponding to a given name."""
     cursor.execute(
-        "SELECT username, password, ui_mode, canary_mode, user_type "
+        "SELECT username, password, ui_mode, canary_mode, user_type, email "
         "FROM grr_users WHERE username_hash = %s", [mysql_utils.Hash(username)])
 
     row = cursor.fetchone()
@@ -123,7 +127,7 @@ class MySQLDBUsersMixin(object):
       count = 18446744073709551615  # 2^64-1, as suggested by MySQL docs
 
     cursor.execute(
-        "SELECT username, password, ui_mode, canary_mode, user_type "
+        "SELECT username, password, ui_mode, canary_mode, user_type, email "
         "FROM grr_users ORDER BY username ASC "
         "LIMIT %s OFFSET %s", [count, offset])
     return [self._RowToGRRUser(row) for row in cursor.fetchall()]

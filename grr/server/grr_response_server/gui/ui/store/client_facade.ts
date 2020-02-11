@@ -1,5 +1,6 @@
 import {Injectable} from '@angular/core';
 import {Store} from '@ngrx/store';
+import {Flow} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
@@ -28,8 +29,8 @@ export class ClientFacade {
     this.store.dispatch(actions.select({clientId}));
   }
 
-  requestApproval(args: ApprovalRequest): void {
-    this.store.dispatch(actions.requestApproval(args));
+  requestApproval(request: ApprovalRequest): void {
+    this.store.dispatch(actions.requestApproval({request}));
   }
 
   readonly approvalConfig$: Observable<ApprovalConfig|undefined> =
@@ -45,10 +46,14 @@ export class ClientFacade {
           .pipe(
               withLatestFrom(this.selectedClient$),
               map(([approvals, client]) => approvals.find(
-                      approval => approval.clientId === client.clientId)),
+                      approval => approval.clientId === client.clientId &&
+                          approval.status.type !== 'expired')),
           );
 
   listClientApprovals(clientId: string) {
     this.store.dispatch(actions.listApprovals({clientId}));
   }
+
+  readonly flows$: Observable<ReadonlyArray<Flow>> =
+      this.store.select(selectors.flows);
 }

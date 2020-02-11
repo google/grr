@@ -148,6 +148,7 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
     super(RemoteUserWebAuthManager, self).__init__(*args, **kwargs)
 
     self.remote_user_header = config.CONFIG["AdminUI.remote_user_header"]
+    self.remote_email_header = config.CONFIG["AdminUI.remote_email_header"]
     self.trusted_ips = config.CONFIG["AdminUI.remote_user_trusted_ips"]
 
   def AuthError(self, message):
@@ -168,6 +169,13 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
       return self.AuthError("Empty username is not allowed.")
 
     request.user = username
+
+    if config.CONFIG["Email.enable_custom_email_address"]:
+      try:
+        request.email = request.headers[self.remote_email_header]
+      except KeyError:
+        pass
+
     return func(request, *args, **kwargs)
 
 
@@ -255,8 +263,7 @@ def SecurityCheck(func):
   return Wrapper
 
 
-@utils.RunOnce
-def InitializeWebAuthOnce():
+def InitializeWebAuth():
   """Initializes WebAuth."""
   global WEBAUTH_MANAGER  # pylint: disable=global-statement
 
@@ -266,3 +273,9 @@ def InitializeWebAuthOnce():
 
   # pylint: enable=g-bad-name
   logging.info("Using webauth manager %s", WEBAUTH_MANAGER)
+
+
+@utils.RunOnce
+def InitializeWebAuthOnce():
+  """Initializes WebAuth once only."""
+  InitializeWebAuth()

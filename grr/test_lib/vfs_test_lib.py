@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import os
 import time
 
+from absl.testing import absltest
 from future.builtins import str
 from future.utils import iteritems
 import mock
@@ -600,3 +601,12 @@ def CreateFileWithBlobRefsAndData(
       path_type=client_path.path_type, components=client_path.components)
   path_info.hash_entry.sha256 = hash_id.AsBytes()
   data_store.REL_DB.WritePathInfos(client_path.client_id, [path_info])
+
+
+class VfsTestCase(absltest.TestCase):
+  """Mixin that resets VFS caches after tests."""
+
+  def tearDown(self):
+    super(VfsTestCase, self).tearDown()
+    vfs.files.FlushHandleCache()
+    vfs.sleuthkit.DEVICE_CACHE.Flush()

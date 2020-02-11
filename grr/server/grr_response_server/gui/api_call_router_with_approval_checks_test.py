@@ -192,6 +192,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "ListFlowOutputPluginLogs",
       "ListFlowOutputPluginErrors",
       "ListFlowLogs",
+      "GetCollectedTimeline",
   ])
 
   def testAllClientFlowsMethodsAreAccessChecked(self):

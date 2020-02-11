@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-from fleetspeak.src.server.grpcservice.client import client as fs_client
+from fleetspeak.server_connector import connector as fs_client
 from grr_response_core import config
 
 # The singleton instance of the Fleetspeak connector.

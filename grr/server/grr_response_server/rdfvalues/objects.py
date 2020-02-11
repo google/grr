@@ -19,6 +19,7 @@ from future.builtins import str
 from future.utils import python_2_unicode_compatible
 from typing import Text
 
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -181,10 +182,18 @@ class ClientFullInfo(rdf_structs.RDFProtoStruct):
 
 
 class GRRUser(rdf_structs.RDFProtoStruct):
+  """GRRUser object."""
   protobuf = objects_pb2.GRRUser
   rdf_deps = [
       rdf_crypto.Password,
   ]
+
+  def GetEmail(self):
+    """Returns the E-Mail address for the user."""
+    if config.CONFIG.Get("Email.enable_custom_email_address") and self.email:
+      return self.email
+
+    return "{}@{}".format(self.username, config.CONFIG.Get("Logging.domain"))
 
 
 class ApprovalGrant(rdf_structs.RDFProtoStruct):

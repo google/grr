@@ -138,6 +138,7 @@ class HttpRequest(werkzeug_wrappers.Request):
 
     self._user = None
     self.token = None
+    self.email = None
 
     self.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
 

@@ -65,7 +65,10 @@ class InMemoryDBSignedBinariesMixin(object):
     """See db.Database."""
     return [_SignedBinaryIDFromKey(k) for k in self.signed_binary_references]
 
-  def DeleteSignedBinaryReferences(self, binary_id):
+  def DeleteSignedBinaryReferences(
+      self,
+      binary_id,
+  ):
     """See db.Database."""
     try:
       del self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)]

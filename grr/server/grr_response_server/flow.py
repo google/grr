@@ -123,6 +123,7 @@ def StartFlow(client_id=None,
               start_at=None,
               parent_flow_obj=None,
               parent_hunt_id=None,
+              runtime_limit=None,
               **kwargs):
   """The main factory function for creating and executing a new flow.
 
@@ -143,6 +144,7 @@ def StartFlow(client_id=None,
     parent_flow_obj: A parent flow object. None if this is a top level flow.
     parent_hunt_id: String identifying parent hunt. Can't be passed together
       with parent_flow_obj.
+    runtime_limit: Runtime limit as Duration for all ClientActions.
     **kwargs: If args or runner_args are not specified, we construct these
       protobufs from these keywords.
 
@@ -228,6 +230,8 @@ def StartFlow(client_id=None,
     rdf_flow.network_bytes_limit = network_bytes_limit
   if cpu_limit is not None:
     rdf_flow.cpu_limit = cpu_limit
+  if runtime_limit is not None:
+    rdf_flow.runtime_limit_us = runtime_limit
 
   logging.info(u"Scheduling %s(%s) on %s (%s)", rdf_flow.long_flow_id,
                rdf_flow.flow_class_name, client_id, start_at or "now")

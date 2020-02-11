@@ -141,7 +141,8 @@ class CPULimitClientMock(ActionMock):
                storage=None,
                user_cpu_usage=None,
                system_cpu_usage=None,
-               network_usage=None):
+               network_usage=None,
+               runtime_us=None):
     super(CPULimitClientMock, self).__init__()
     if storage is not None:
       self.storage = storage
@@ -151,11 +152,13 @@ class CPULimitClientMock(ActionMock):
     self.user_cpu_usage = itertools.cycle(user_cpu_usage or [None])
     self.system_cpu_usage = itertools.cycle(system_cpu_usage or [None])
     self.network_usage = itertools.cycle(network_usage or [None])
+    self.runtime_us = itertools.cycle(runtime_us or [None])
 
   def HandleMessage(self, message):
     self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
     self.storage.setdefault("networklimit",
                             []).append(message.network_bytes_limit)
+    self.storage.setdefault("runtimelimit", []).append(message.runtime_limit_us)
     return [self.GenerateStatusMessage(message)]
 
   def GenerateStatusMessage(self, message, response_id=1):
@@ -163,6 +166,7 @@ class CPULimitClientMock(ActionMock):
         user_cpu_time=next(self.user_cpu_usage),
         system_cpu_time=next(self.system_cpu_usage))
     network_bytes_sent = next(self.network_usage)
+    runtime_us = next(self.runtime_us)
 
     return rdf_flows.GrrMessage(
         session_id=message.session_id,
@@ -172,7 +176,8 @@ class CPULimitClientMock(ActionMock):
         payload=rdf_flows.GrrStatus(
             status=rdf_flows.GrrStatus.ReturnedStatus.OK,
             cpu_time_used=cpu_time_used,
-            network_bytes_sent=network_bytes_sent),
+            network_bytes_sent=network_bytes_sent,
+            runtime_us=runtime_us),
         type=rdf_flows.GrrMessage.Type.STATUS)
 
 

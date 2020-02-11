@@ -99,6 +99,39 @@ class RootApiUserManagementTest(api_integration_test_lib.RootApiIntegrationTest
     with self.assertRaises(grr_api_errors.ResourceNotFoundError):
       self.api.root.GrrUser("user_foo").Get()
 
+  def testCreateUserWithEmail_configOff(self):
+    with self.assertRaises(grr_api_errors.InvalidArgumentError):
+      self.api.root.CreateGrrUser(username="user_foo", email="foo@bar.org")
+
+  def testModifyUserSetEmail_configOff(self):
+    user = self.api.root.CreateGrrUser(username="user_foo")
+    with self.assertRaises(grr_api_errors.InvalidArgumentError):
+      user = user.Modify(email="foo@bar.org")
+
+  def testCreateUserWithEmail_configOn(self):
+    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
+      user = self.api.root.CreateGrrUser(
+          username="user_foo", email="foo@bar.org")
+      self.assertEqual(user.data.email, "foo@bar.org")
+
+  def testModifyUserSetEmail_configOn(self):
+    user = self.api.root.CreateGrrUser(username="user_foo")
+    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
+      user = user.Modify(email="foo@bar.org")
+      self.assertEqual(user.data.email, "foo@bar.org")
+
+  def testGetUser_configOff(self):
+    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
+      self.api.root.CreateGrrUser(username="user_foo", email="foo@bar.org")
+    user = self.api.root.GrrUser("user_foo").Get()
+    self.assertEqual(user.data.email, "")
+
+  def testGetUser_configOn(self):
+    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
+      self.api.root.CreateGrrUser(username="user_foo", email="foo@bar.org")
+      user = self.api.root.GrrUser("user_foo").Get()
+      self.assertEqual(user.data.email, "foo@bar.org")
+
 
 def main(argv):
   test_lib.main(argv)

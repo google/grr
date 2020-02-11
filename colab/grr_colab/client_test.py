@@ -345,6 +345,7 @@ class ClientTest(testing.ColabE2ETest):
   def testRequestApproval(self):
     data_store.REL_DB.WriteClientMetadata(
         client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteGRRUser('foo')
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.request_approval(reason='test', approvers=['foo'])
@@ -361,6 +362,7 @@ class ClientTest(testing.ColabE2ETest):
   def testRequestApprovalAndWait(self):
     data_store.REL_DB.WriteClientMetadata(
         client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteGRRUser('foo')
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 

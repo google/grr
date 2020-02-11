@@ -123,6 +123,18 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertLen(flows, 1)
     self.assertEqual(flows[0].args, args)
 
+  def testRunInterrogateFlow(self):
+    client_id = self.SetupClient(0)
+    client_ref = self.api.Client(client_id=client_id)
+    result_flow = client_ref.Interrogate()
+
+    self.assertEqual(result_flow.data.client_id, client_id)
+    self.assertEqual(result_flow.data.name, "Interrogate")
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
+    self.assertLen(flows, 1)
+    self.assertEqual(flows[0].flow_class_name, "Interrogate")
+
   def testListResultsForListProcessesFlow(self):
     process = rdf_client.Process(
         pid=2,
@@ -294,6 +306,27 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
                      client_id)
     self.assertEqual(pending_notifications[0].data.reference.flow.flow_id,
                      flow_id)
+
+  # TODO(user): These unit tests should be moved to a dedicated GrrApi test.
+  def testClientReprContainsClientId(self):
+    client_id = self.SetupClient(0)
+    client_ref = self.api.Client(client_id=client_id)
+    self.assertIn(client_id, repr(client_ref))
+    self.assertIn(client_id, repr(client_ref.Get()))
+
+  def testFlowReprContainsMetadata(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow_test_lib.StartFlow(
+        processes.ListProcesses, client_id=client_id)
+
+    flow_ref = self.api.Client(client_id=client_id).Flow(flow_id)
+    self.assertIn(client_id, repr(flow_ref))
+    self.assertIn(flow_id, repr(flow_ref))
+
+    flow = flow_ref.Get()
+    self.assertIn(client_id, repr(flow))
+    self.assertIn(flow_id, repr(flow))
+    self.assertIn("ListProcesses", repr(flow))
 
 
 def main(argv):

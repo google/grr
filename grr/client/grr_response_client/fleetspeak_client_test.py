@@ -11,8 +11,8 @@ from grr_response_client import fleetspeak_client
 from grr_response_core.lib import communicator
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
-from fleetspeak.src.client.daemonservice.client import client as fs_client
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.client_connector import connector as fs_client
 
 
 class FleetspeakClientTest(test_lib.GRRBaseTest):

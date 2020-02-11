@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import threading
 import time
 
 from future.utils import with_metaclass
@@ -222,3 +223,118 @@ class BlobStoreTestMixin(
           self.blob_store.ReadAndWaitForBlobs([a_id, b_id],
                                               timeout=rdfvalue.Duration.From(
                                                   10, rdfvalue.SECONDS))
+
+  def testWaitForBlobsDoesNotWaitIfBlobsAreAlreadyPresent(self):
+    timeout = rdfvalue.Duration.From(0, rdfvalue.SECONDS)
+
+    blobs = [b"foo", b"bar", b"baz"]
+    blob_ids = self.blob_store.WriteBlobsWithUnknownHashes(blobs)
+
+    # This should not throw anything.
+    self.blob_store.WaitForBlobs(blob_ids, timeout=timeout)
+
+    self.assertCountEqual(self.blob_store.ReadBlobs(blob_ids).values(), blobs)
+
+  def testWaitForBlobsRaisesIfTimeoutIsZeroAndBlobsAreNotPresent(self):
+    timeout = rdfvalue.Duration.From(0, rdfvalue.SECONDS)
+
+    blob_ids = [
+        rdf_objects.BlobID.FromBlobData(b"foo"),
+        rdf_objects.BlobID.FromBlobData(b"bar"),
+        rdf_objects.BlobID.FromBlobData(b"baz"),
+    ]
+
+    with self.assertRaises(blob_store.BlobStoreTimeoutError):
+      self.blob_store.WaitForBlobs(blob_ids, timeout=timeout)
+
+  def testWaitForBlobsWaitsIfBlobsAreNotAvailableImmediately(self):
+    timeout = rdfvalue.Duration.From(5, rdfvalue.SECONDS)
+
+    foo_blob = b"foo"
+    bar_blob = b"bar"
+
+    blob_ids = [
+        rdf_objects.BlobID.FromBlobData(foo_blob),
+        rdf_objects.BlobID.FromBlobData(bar_blob),
+    ]
+
+    wait = lambda: self.blob_store.WaitForBlobs(blob_ids, timeout=timeout)
+
+    with test_lib.FakeTimeline(threading.Thread(target=wait)) as timeline:
+      # No blobs are in the database, should wait.
+      timeline.Run(rdfvalue.Duration.From(1, rdfvalue.SECONDS))
+
+      self.blob_store.WriteBlobWithUnknownHash(foo_blob)
+
+      # Only one blob is in the database, should wait.
+      timeline.Run(rdfvalue.Duration.From(1, rdfvalue.SECONDS))
+
+      self.blob_store.WriteBlobWithUnknownHash(bar_blob)
+
+      # All requested blobs are in the database, should finish.
+      timeline.Run(rdfvalue.Duration.From(5, rdfvalue.SECONDS))
+
+    blobs = self.blob_store.ReadBlobs(blob_ids).values()
+    self.assertCountEqual(blobs, [foo_blob, bar_blob])
+
+  def testWaitForBlobsRaisesIfNonZeroTimeoutIsReached(self):
+    timeout = rdfvalue.Duration.From(5, rdfvalue.SECONDS)
+
+    foo_blob = b"foo"
+    bar_blob = b"bar"
+
+    blob_ids = [
+        rdf_objects.BlobID.FromBlobData(foo_blob),
+        rdf_objects.BlobID.FromBlobData(bar_blob),
+    ]
+
+    wait = lambda: self.blob_store.WaitForBlobs(blob_ids, timeout=timeout)
+
+    with test_lib.FakeTimeline(threading.Thread(target=wait)) as timeline:
+      # No blobs are in the database, should wait.
+      timeline.Run(rdfvalue.Duration.From(1, rdfvalue.SECONDS))
+
+      self.blob_store.WriteBlobWithUnknownHash(foo_blob)
+
+      # There is still one blob missing, if should raise if we run for 1 minute.
+      with self.assertRaises(blob_store.BlobStoreTimeoutError):
+        timeline.Run(rdfvalue.Duration.From(1, rdfvalue.MINUTES))
+
+  def testWaitForBlobsUpdatesStats(self):
+    latency = blob_store.BLOB_STORE_POLL_HIT_LATENCY
+    iteration = blob_store.BLOB_STORE_POLL_HIT_ITERATION
+
+    timeout = rdfvalue.Duration.From(10, rdfvalue.SECONDS)
+
+    foo_blob = b"foo"
+    bar_blob = b"bar"
+    baz_blob = b"baz"
+
+    blob_ids = [
+        rdf_objects.BlobID.FromBlobData(foo_blob),
+        rdf_objects.BlobID.FromBlobData(bar_blob),
+        rdf_objects.BlobID.FromBlobData(baz_blob),
+    ]
+
+    wait = lambda: self.blob_store.WaitForBlobs(blob_ids, timeout=timeout)
+
+    with test_lib.FakeTimeline(threading.Thread(target=wait)) as timeline:
+      # No blobs at the beginning, so no events should be recorded.
+      with self.assertStatsCounterDelta(0, latency):
+        with self.assertStatsCounterDelta(0, iteration):
+          timeline.Run(rdfvalue.Duration.From(2, rdfvalue.SECONDS))
+
+      self.blob_store.WriteBlobWithUnknownHash(foo_blob)
+      self.blob_store.WriteBlobWithUnknownHash(bar_blob)
+
+      # Two blobs are written and should be picked up.
+      with self.assertStatsCounterDelta(2, latency):
+        with self.assertStatsCounterDelta(2, iteration):
+          timeline.Run(rdfvalue.Duration.From(3, rdfvalue.SECONDS))
+
+      self.blob_store.WriteBlobWithUnknownHash(baz_blob)
+
+      # Last blob is written and should be picked up.
+      with self.assertStatsCounterDelta(1, latency):
+        with self.assertStatsCounterDelta(1, iteration):
+          timeline.Run(rdfvalue.Duration.From(1, rdfvalue.SECONDS))

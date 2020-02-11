@@ -11,8 +11,6 @@ from grr_response_server import server_stubs
 
 ACTION_STUB_BY_ID = {
     "ArtifactCollector": server_stubs.ArtifactCollector,
-    "Bloat": server_stubs.Bloat,
-    "BusyHang": server_stubs.BusyHang,
     "CheckFreeGRRTempSpace": server_stubs.CheckFreeGRRTempSpace,
     "DeleteGRRTempFiles": server_stubs.DeleteGRRTempFiles,
     "DumpACPITable": server_stubs.DumpACPITable,
@@ -39,7 +37,6 @@ ACTION_STUB_BY_ID = {
     "GetMemorySize": server_stubs.GetMemorySize,
     "GetPlatformInfo": server_stubs.GetPlatformInfo,
     "Grep": server_stubs.Grep,
-    "Hang": server_stubs.Hang,
     "HashBuffer": server_stubs.HashBuffer,
     "HashFile": server_stubs.HashFile,
     "Kill": server_stubs.Kill,

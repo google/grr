@@ -462,7 +462,9 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     flow_id = flow.StartFlow(
-        flow_cls=discovery.Interrogate, client_id=str(args.client_id))
+        flow_cls=discovery.Interrogate,
+        client_id=str(args.client_id),
+        creator=token.username)
 
     # TODO(user): don't encode client_id inside the operation_id, but
     # rather have it as a separate field.

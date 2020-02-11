@@ -17,6 +17,7 @@ import pytest
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -31,6 +32,11 @@ from grr.test_lib import worker_mocks
 @pytest.mark.small
 class EmptyActionTest(test_lib.GRRBaseTest):
   """Test the client Actions."""
+
+  def tearDown(self):
+    # Reset the global last progress time to prevent order-dependent tests.
+    actions.ActionPlugin.last_progress_time = (
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
   def RunAction(self, action_cls, arg=None, grr_worker=None):
     if arg is None:

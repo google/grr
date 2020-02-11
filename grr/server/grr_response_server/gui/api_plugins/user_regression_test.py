@@ -112,7 +112,8 @@ class ApiCreateClientApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateUser(u"approver")
+      self.CreateUser(u"approver1")
+      self.CreateUser(u"approver2")
       client_id = self.SetupClient(0)
 
     def ReplaceApprovalId():
@@ -355,7 +356,8 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateUser(u"approver")
+      self.CreateUser(u"approver1")
+      self.CreateUser(u"approver2")
       hunt_id = self.StartHunt(
           description="foo", paused=True, creator=self.token.username)
 
@@ -503,7 +505,8 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self.CreateUser(u"approver")
+      self.CreateUser(u"approver1")
+      self.CreateUser(u"approver2")
 
     cron_manager = cronjobs.CronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(

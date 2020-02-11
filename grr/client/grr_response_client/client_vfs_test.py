@@ -33,7 +33,7 @@ from grr.test_lib import vfs_test_lib
 # pylint: mode=test
 
 
-class VFSTest(test_lib.GRRBaseTest):
+class VFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
   """Test the client VFS switch."""
 
   def GetNumbers(self):

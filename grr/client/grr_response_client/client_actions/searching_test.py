@@ -433,7 +433,7 @@ class FindExtAttrsTest(client_test_lib.EmptyActionTest):
       self.assertCountEqual(values, [b"foo", b"bar", b"baz"])
 
 
-class GrepTest(client_test_lib.EmptyActionTest):
+class GrepTest(vfs_test_lib.VfsTestCase, client_test_lib.EmptyActionTest):
   """Test the find client Actions."""
 
   XOR_IN_KEY = 0

@@ -567,6 +567,22 @@ class BlobIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(string, "BlobID('{}')".format("0" * 64))
 
 
+class GRRUserTest(absltest.TestCase):
+
+  def testGetEmail(self):
+    u = rdf_objects.GRRUser(username="foo")
+    self.assertEqual("foo@localhost", u.GetEmail())
+
+  def testGetEmail_customEmailDisabled(self):
+    u = rdf_objects.GRRUser(username="foo", email="bar@baz.org")
+    self.assertEqual("foo@localhost", u.GetEmail())
+
+  def testGetEmail_customEmailEnabled(self):
+    u = rdf_objects.GRRUser(username="foo", email="bar@baz.org")
+    with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
+      self.assertEqual("bar@baz.org", u.GetEmail())
+
+
 def main(argv):
   # Run the full test suite
   test_lib.main(argv)

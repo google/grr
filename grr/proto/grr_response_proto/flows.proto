@@ -2047,7 +2047,7 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 21
+// Next field ID: 22
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
@@ -2184,6 +2184,12 @@ message YaraProcessScanRequest {
     },
     default = 0
   ];
+  optional uint64 scan_runtime_limit_us = 21 [(sem_type) = {
+    description: "Runtime limit for the whole scan including all processes "
+                 "in microseconds. This limit is for the scan only and is not "
+                 "applied to the dumping."
+    type: "Duration",
+  }];
 }
 
 message ProcessMemoryError {
@@ -2470,7 +2476,7 @@ message FlowLogEntry {
   optional string message = 2;
 }
 
-// Next id: 11
+// Next id: 12
 message FlowStatus {
   optional string client_id = 1;
   optional string flow_id = 2;
@@ -2494,6 +2500,9 @@ message FlowStatus {
   optional string backtrace = 7;
   optional CpuSeconds cpu_time_used = 8;
   optional uint64 network_bytes_sent = 9;
+  optional uint64 runtime_us = 11 [(sem_type) = {
+    type: "Duration",
+  }];
 }
 
 // Next id: 6
@@ -2505,7 +2514,7 @@ message FlowIterator {
   optional uint64 response_id = 4;
 }
 
-// Next id: 52
+// Next id: 53
 message ClientActionRequest {
   optional string client_id = 1;
   optional string flow_id = 2;
@@ -2514,9 +2523,12 @@ message ClientActionRequest {
   optional google.protobuf.Any action_args = 5;
   optional uint64 cpu_limit_ms = 6;
   optional uint64 network_bytes_limit = 7;
+  optional uint64 runtime_limit_us = 52 [(sem_type) = {
+    type: "Duration",
+  }];
 }
 
-// Next id: 33
+// Next id: 35
 message Flow {
   optional string flow_id = 1;
   optional string client_id = 2;
@@ -2584,6 +2596,14 @@ message Flow {
   }];
   optional uint64 last_update_time = 30 [(sem_type) = {
     type: "RDFDatetime",
+  }];
+  optional uint64 runtime_limit_us = 33 [(sem_type) = {
+    description: "A limit on the total execution time of Client Actions.",
+    label: ADVANCED,
+    type: "Duration",
+  }];
+  optional uint64 runtime_us = 34 [(sem_type) = {
+    type: "Duration",
   }];
 }
 

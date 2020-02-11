@@ -381,6 +381,10 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ListFlowLogs(args, token=token)
 
+  def GetCollectedTimeline(self, args, token=None):
+    self.access_checker.CheckClientAccess(token.username, args.client_id)
+    return self.delegate.GetCollectedTimeline(args, token=token)
+
   # Cron jobs methods.
   # =================
   #

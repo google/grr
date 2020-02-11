@@ -3,7 +3,7 @@
  */
 
 import {createEntityAdapter, EntityAdapter, EntityState} from '@ngrx/entity';
-import {createReducer, on} from '@ngrx/store';
+import {Action, createReducer, on} from '@ngrx/store';
 import {Client} from '@app/lib/models/client';
 
 import * as actions from './client_search_actions';
@@ -41,10 +41,7 @@ export const INITIAL_CLIENT_SEARCH_STATE = {
   ...clientSearchAdapter.getInitialState()
 };
 
-/**
- * Client search feature reducer.
- */
-export const clientSearchReducer = createReducer(
+const reducer = createReducer(
     INITIAL_CLIENT_SEARCH_STATE,
     // Sets current query when fetch is started with "fetch" action.
     on(actions.fetch,
@@ -57,3 +54,12 @@ export const clientSearchReducer = createReducer(
          return clientSearchAdapter.upsertMany(items, state);
        }),
 );
+
+/**
+ * Reducer for the ClientSearch feature. This function is needed for AoT, see
+ * https://github.com/ngrx/platform/pull/2089.
+ */
+export function clientSearchReducer(
+    state: ClientSearchState|undefined, action: Action) {
+  return reducer(state, action);
+}

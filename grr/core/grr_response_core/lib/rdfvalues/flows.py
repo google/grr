@@ -128,6 +128,7 @@ class GrrStatus(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_client_stats.CpuSeconds,
       rdfvalue.SessionID,
+      rdfvalue.Duration,
   ]
 
 
@@ -253,7 +254,9 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
 class ClientActionRequest(rdf_structs.RDFProtoStruct):
   """The request that gets sent to the client."""
   protobuf = flows_pb2.ClientActionRequest
-  rdf_deps = []
+  rdf_deps = [
+      rdfvalue.Duration,
+  ]
 
   def __init__(self, *args, **kwargs):
     super(ClientActionRequest, self).__init__(*args, **kwargs)

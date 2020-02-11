@@ -5,6 +5,8 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
+import MySQLdb
+
 from typing import cast, Sequence, Tuple
 
 from grr_response_core.lib import rdfvalue
@@ -78,9 +80,11 @@ class MySQLDBSignedBinariesMixin(object):
     ]
 
   @mysql_utils.WithTransaction()
-  def DeleteSignedBinaryReferences(self,
-                                   binary_id,
-                                   cursor=None):
+  def DeleteSignedBinaryReferences(
+      self,
+      binary_id,
+      cursor,
+  ):
     """Deletes blob references for the given signed binary from the DB."""
     cursor.execute(
         """

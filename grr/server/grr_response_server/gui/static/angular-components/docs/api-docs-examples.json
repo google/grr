@@ -14949,11 +14949,31 @@
           },
           {
             "type": "unicode",
+            "value": "environ_commonprogramfiles"
+          },
+          {
+            "type": "unicode",
+            "value": "environ_commonprogramfilesx86"
+          },
+          {
+            "type": "unicode",
+            "value": "environ_comspec"
+          },
+          {
+            "type": "unicode",
+            "value": "environ_driverdata"
+          },
+          {
+            "type": "unicode",
             "value": "environ_path"
           },
           {
             "type": "unicode",
             "value": "environ_profilesdirectory"
+          },
+          {
+            "type": "unicode",
+            "value": "environ_programdata"
           },
           {
             "type": "unicode",
@@ -15105,8 +15125,13 @@
           "domain",
           "environ_allusersappdata",
           "environ_allusersprofile",
+          "environ_commonprogramfiles",
+          "environ_commonprogramfilesx86",
+          "environ_comspec",
+          "environ_driverdata",
           "environ_path",
           "environ_profilesdirectory",
+          "environ_programdata",
           "environ_programfiles",
           "environ_programfilesx86",
           "environ_systemdrive",

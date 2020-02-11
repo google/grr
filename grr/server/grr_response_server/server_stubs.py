@@ -136,24 +136,6 @@ class Kill(ClientActionStub):
   out_rdfvalues = [rdf_flows.GrrMessage]
 
 
-class Hang(ClientActionStub):
-  """A client action for simulating the client becoming unresponsive."""
-
-  in_rdfvalue = rdf_protodict.DataBlob
-
-
-class BusyHang(ClientActionStub):
-  """A client action that burns cpu cycles. Used for testing cpu limits."""
-
-  in_rdfvalue = rdf_protodict.DataBlob
-
-
-class Bloat(ClientActionStub):
-  """A client action that uses lots of memory for testing."""
-
-  in_rdfvalue = rdf_protodict.DataBlob
-
-
 class GetConfiguration(ClientActionStub):
   """Retrieves the running configuration parameters."""
 

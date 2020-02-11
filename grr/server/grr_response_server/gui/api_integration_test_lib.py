@@ -35,7 +35,12 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     api_auth_manager.InitializeApiAuthManager()
     self.token.username = "api_test_robot_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+    try:
+      webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+    except AttributeError:
+      # Only the NullWebAuthManager supports SetUserName
+      pass
+
     self.CreateUser(self.token.username)
 
     self.port = ApiIntegrationTest.server_port

@@ -94,6 +94,10 @@ class YaraProcessScan(actions.ActionPlugin):
   in_rdfvalue = rdf_memory.YaraProcessScanRequest
   out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
 
+  def __init__(self, grr_worker=None):
+    super(YaraProcessScan, self).__init__(grr_worker=grr_worker)
+    self._rules = None
+
   def _ScanRegion(self, rules, chunks, deadline):
     for chunk in chunks:
       if not chunk.data:
@@ -127,7 +131,8 @@ class YaraProcessScan(actions.ActionPlugin):
       deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
           1, rdfvalue.WEEKS)
 
-    rules = scan_request.yara_signature.GetRules()
+    if self._rules is None:
+      self._rules = scan_request.yara_signature.GetRules()
 
     process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
     with process:
@@ -140,7 +145,7 @@ class YaraProcessScan(actions.ActionPlugin):
         for region in client_utils.MemoryRegions(process, scan_request):
           chunks = streamer.StreamMemory(
               process, offset=region.start, amount=region.size)
-          for m in self._ScanRegion(rules, chunks, deadline):
+          for m in self._ScanRegion(self._rules, chunks, deadline):
             matches.append(m)
             if 0 < scan_request.max_results_per_process <= len(matches):
               return matches

@@ -15,10 +15,11 @@ from grr_response_client import vfs
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 @unittest.skipIf(platform.system() != "Windows", "This test is Windows-only.")
-class TSKWindowsGlobbingTest(absltest.TestCase):
+class TSKWindowsGlobbingTest(vfs_test_lib.VfsTestCase, absltest.TestCase):
 
   def testGlobComponentGenerateWorksWithTSK(self):
     opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.TSK)

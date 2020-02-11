@@ -207,6 +207,7 @@ message ApiGrrUser {
     USER_TYPE_ADMIN = 2;
   }
   optional UserType user_type = 4;
+  optional string email = 5;
 }
 
 message ApiNotificationReference {

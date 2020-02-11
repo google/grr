@@ -363,6 +363,8 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
 
     self.settings.mode = db_obj.ui_mode
     self.settings.canary_mode = db_obj.canary_mode
+    if config.CONFIG.Get("Email.enable_custom_email_address") and db_obj.email:
+      self.email = db_obj.email
 
     return self
 
@@ -591,9 +593,16 @@ here
         image=utils.SmartUnicode(config.CONFIG["Email.approval_signature"]),
         signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
+    requestor_email = data_store.REL_DB.ReadGRRUser(
+        approval.requestor).GetEmail()
+    notified_emails = [
+        data_store.REL_DB.ReadGRRUser(user).GetEmail()
+        for user in approval.notified_users
+    ]
+
     email_alerts.EMAIL_ALERTER.SendEmail(
-        ",".join(approval.notified_users),
-        approval.requestor,
+        ",".join(notified_emails),
+        requestor_email,
         subject,
         body,
         is_html=True,
@@ -736,9 +745,14 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
         "In-Reply-To": approval.email_message_id,
         "References": approval.email_message_id
     }
+
+    requestor_email = data_store.REL_DB.ReadGRRUser(
+        approval.requestor).GetEmail()
+    username_email = data_store.REL_DB.ReadGRRUser(token.username).GetEmail()
+
     email_alerts.EMAIL_ALERTER.SendEmail(
-        approval.requestor,
-        token.username,
+        requestor_email,
+        username_email,
         subject,
         body,
         is_html=True,

@@ -3802,6 +3802,22 @@ pathspec {
   path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/StandardName"
 }
 registry_data {
+  string: "@tzres.dll,-220"
+}
+"""
+    })),
+    (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/TimeZoneKeyName", ("File", {
+        "stat":
+          """
+st_mode: 32768
+st_size: 12
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/TimeZoneInformation/TimeZoneKeyName"
+}
+registry_data {
   string: "AlaskanStandardTime"
 }
 """
