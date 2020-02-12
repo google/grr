@@ -2773,6 +2773,33 @@ class Database(with_metaclass(abc.ABCMeta, object)):
       exist.
     """
 
+  @abc.abstractmethod
+  def WriteYaraSignatureReference(
+      self,
+      blob_id,
+      username,
+  ):
+    """Marks the specified blob id as a YARA signature.
+
+    Args:
+      blob_id: An identifier of a blob that is to be marked as YARA signature.
+      username: An name of the GRR user that uploaded the signature.
+    """
+
+  @abc.abstractmethod
+  def VerifyYaraSignatureReference(
+      self,
+      blob_id,
+  ):
+    """Verifies whether the specified blob is a YARA signature.
+
+    Args:
+      blob_id: An identifier of a blob to verify.
+
+    Returns:
+      `True` if the blob identifier refers to a YARA signature.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -4079,6 +4106,22 @@ class DatabaseValidationWrapper(Database):
       raise ValueError("Invalid report type given: %s" % report_type)
     return self.delegate.ReadMostRecentClientGraphSeries(
         client_label, report_type)
+
+  def WriteYaraSignatureReference(
+      self,
+      blob_id,
+      username,
+  ):
+    _ValidateBlobID(blob_id)
+    _ValidateUsername(username)
+    return self.delegate.WriteYaraSignatureReference(blob_id, username)
+
+  def VerifyYaraSignatureReference(
+      self,
+      blob_id,
+  ):
+    _ValidateBlobID(blob_id)
+    return self.delegate.VerifyYaraSignatureReference(blob_id)
 
 
 def _ValidateEnumType(value, expected_enum_type):

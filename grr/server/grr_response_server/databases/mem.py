@@ -24,6 +24,7 @@ from grr_response_server.databases import mem_hunts
 from grr_response_server.databases import mem_paths
 from grr_response_server.databases import mem_signed_binaries
 from grr_response_server.databases import mem_users
+from grr_response_server.databases import mem_yara
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -40,6 +41,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  mem_paths.InMemoryDBPathMixin,
                  mem_signed_binaries.InMemoryDBSignedBinariesMixin,
                  mem_users.InMemoryDBUsersMixin,
+                 mem_yara.InMemoryDBYaraMixin,
                  db.Database):
   """An in memory database implementation used for testing."""
   # pyformat: enable

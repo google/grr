@@ -41,6 +41,7 @@ from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_signed_binaries
 from grr_response_server.databases import mysql_users
+from grr_response_server.databases import mysql_yara
 
 # Maximum size of one SQL statement, including blob and protobuf data.
 MAX_PACKET_SIZE = 20 << 21
@@ -436,6 +437,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_paths.MySQLDBPathMixin,
               mysql_signed_binaries.MySQLDBSignedBinariesMixin,
               mysql_users.MySQLDBUsersMixin,
+              mysql_yara.MySQLDBYaraMixin,
               db_module.Database):
   # pyformat: enable
   """Implements db.Database and blob_store.BlobStore using MySQL."""
