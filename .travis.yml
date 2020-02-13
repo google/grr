@@ -54,8 +54,6 @@ matrix:
         - get_python_environment macpython 3.7.3 "${HOME}/GCS_VENV"
         - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - get_python_environment macpython 3.6.8 "${HOME}/INSTALL"
-        # Workaround for https://github.com/pypa/setuptools/issues/1963
-        - ${HOME}/INSTALL/bin/pip install --upgrade --force-reinstall "setuptools<45.0.0"
       install:
         - travis/install_client_builder.sh
       script:
