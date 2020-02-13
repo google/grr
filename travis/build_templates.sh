@@ -22,5 +22,5 @@ grr_client_build \
 # just waits for the installer to be available in a cloud storage bucket for the
 # build, then installs it.
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-  sudo installer -pkg gcs_upload_dir/*.pkg -target /
+  sudo installer -verbose -pkg gcs_upload_dir/*.pkg -target /
 fi
