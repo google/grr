@@ -2,9 +2,11 @@
 """Implementation of a router class that has approvals-based ACL checks."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 from future.builtins import str
+from typing import Optional
 from typing import Text
 
 from grr_response_core.lib import registry
@@ -20,6 +22,7 @@ from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import yara as api_yara
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -384,6 +387,13 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   def GetCollectedTimeline(self, args, token=None):
     self.access_checker.CheckClientAccess(token.username, args.client_id)
     return self.delegate.GetCollectedTimeline(args, token=token)
+
+  def UploadYaraSignature(
+      self,
+      args,
+      token = None,
+  ):
+    return self.delegate.UploadYaraSignature(args, token=token)
 
   # Cron jobs methods.
   # =================

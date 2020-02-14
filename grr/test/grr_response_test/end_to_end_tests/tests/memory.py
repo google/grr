@@ -4,7 +4,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
+import random
 import re
+import string
 
 from grr_response_test.end_to_end_tests import test_base
 
@@ -27,7 +30,7 @@ class TestYaraScan(test_base.EndToEndTest):
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
-  def runTest(self):
+  def testYaraSignature(self):
 
     signature = """
 rule test_rule {
@@ -77,6 +80,28 @@ rule test_rule {
 
       # Ten seconds seems reasonable here, actual values are 0.5s.
       self.assertLess(process_scan_match.scan_time_us, 10 * 1e6)
+
+  def testYaraSignatureReference(self):
+    text = "".join(random.choice(string.ascii_letters) for _ in range(256))
+
+    signature = """\
+rule foo {{
+  strings:
+    $test = "{}"
+  condition:
+    $test
+}}
+""".format(text)
+
+    args = self.grr_api.types.CreateFlowArgs(flow_name="YaraProcessScan")
+    args.yara_signature_blob_id = self.grr_api.UploadYaraSignature(signature)
+    args.pids.append(os.getpid())
+    args.ignore_grr_process = False
+
+    flow = self.RunFlowAndWait("YaraProcessScan", args=args)
+    results = list(flow.ListResults())
+
+    self.assertNotEmpty(results)
 
 
 class TestProcessDump(test_base.AbstractFileTransferTest):

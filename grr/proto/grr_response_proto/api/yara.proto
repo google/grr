@@ -1,0 +1,24 @@
+syntax = "proto2";
+
+
+import "grr_response_proto/semantic.proto";
+
+// Arguments for the API method for uploading YARA scan signatures (to be later
+// used when creating the YARA scan flow).
+message ApiUploadYaraSignatureArgs {
+  // A YARA signature to upload. Refer to the YARA documentation for more
+  // details [1].
+  //
+  // Note that the uploaded YARA signatures are not validated, so the server is
+  // going to accept any valid UTF-8 encoded string.
+  //
+  // [1]: https://yara.readthedocs.io/en/latest/
+  optional string signature = 1;
+}
+
+// Results of the API method for uploading YARA scan signatures.
+message ApiUploadYaraSignatureResult {
+  // A reference to the blob containing the signature. This blob identifier can
+  // be then used as input to the YARA scan flow.
+  optional bytes blob_id = 1 [(sem_type) = { type: "BlobID" }];
+}

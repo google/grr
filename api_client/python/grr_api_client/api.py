@@ -2,7 +2,10 @@
 """Main file of GRR API client library."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
+
+from typing import Text
 
 from grr_api_client import artifact
 from grr_api_client import client
@@ -12,6 +15,7 @@ from grr_api_client import hunt
 from grr_api_client import root
 from grr_api_client import types
 from grr_api_client import user
+from grr_api_client import yara
 from grr_api_client.connectors import http_connector
 
 
@@ -59,6 +63,17 @@ class GrrApi(object):
 
   def GrrUser(self):
     return user.GrrUser(context=self._context)
+
+  def UploadYaraSignature(self, signature):
+    """Uploads the specified YARA signature.
+
+    Args:
+      signature: A YARA signature to upload.
+
+    Returns:
+      A reference to the uploaded blob.
+    """
+    return yara.UploadYaraSignature(signature, context=self._context)
 
   @property
   def username(self):

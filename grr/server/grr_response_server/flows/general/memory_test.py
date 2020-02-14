@@ -2,15 +2,19 @@
 """Tests for Yara flows."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import functools
+import os
 import string
 
 from absl import app
 from future.builtins import range
 import mock
 import psutil
+from typing import Iterable
+from typing import Optional
 import yara
 
 from grr_response_client import client_utils
@@ -32,6 +36,7 @@ from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import testing_startup
 
 
 ONE_MIB = 1024 * 1024
@@ -934,6 +939,96 @@ class YaraFlowsTest(BaseYaraFlowsTest):
                     file=rdf_paths.PathSpec.Temp(path="/C:/Grr/x_1_1_2.tmp"))
             ])
         ]))
+
+
+class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
+
+  @classmethod
+  def setUpClass(cls):
+    super(YaraProcessScanTest, cls).setUpClass()
+    testing_startup.TestInit()
+
+  def setUp(self):
+    super(YaraProcessScanTest, self).setUp()
+    self.client_id = self.SetupClient(0)
+
+  def testYaraSignatureReferenceDeliversFullSignatureToClient(self):
+    signature = "rule foo { condition: true };"
+
+    blob = signature.encode("utf-8")
+    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob)
+
+    data_store.REL_DB.WriteGRRUser(username="foobarski")
+    data_store.REL_DB.WriteYaraSignatureReference(blob_id, username="foobarski")
+
+    args = rdf_memory.YaraProcessScanRequest()
+    args.yara_signature_blob_id = blob_id.AsBytes()
+
+    shards = []
+
+    class FakeYaraProcessScan(action_mocks.ActionMock):
+
+      def YaraProcessScan(
+          self,
+          args,
+      ):
+        shards.append(args.signature_shard)
+        return []
+
+    self._YaraProcessScan(args, action_mock=FakeYaraProcessScan())
+
+    payloads = [_.payload for _ in sorted(shards, key=lambda _: _.index)]
+    self.assertEqual(b"".join(payloads).decode("utf-8"), signature)
+
+  def testYaraSignatureReferenceIncorrect(self):
+    data = "This is very confidential and should not leak to the client."
+    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(data.encode("utf-8"))
+
+    args = rdf_memory.YaraProcessScanRequest()
+    args.yara_signature_blob_id = blob_id.AsBytes()
+
+    with self.assertRaisesRegex(RuntimeError, "signature reference"):
+      self._YaraProcessScan(args)
+
+  def testYaraSignatureReferenceNotExisting(self):
+    args = rdf_memory.YaraProcessScanRequest()
+    args.yara_signature_blob_id = os.urandom(32)
+
+    with self.assertRaisesRegex(RuntimeError, "signature reference"):
+      self._YaraProcessScan(args)
+
+  def testYaraSignatureAndSignatureReference(self):
+    signature = "rule foo { condition: true };"
+
+    blob = signature.encode("utf-8")
+    blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob)
+
+    data_store.REL_DB.WriteGRRUser(username="foobarski")
+    data_store.REL_DB.WriteYaraSignatureReference(blob_id, username="foobarski")
+
+    args = rdf_memory.YaraProcessScanRequest()
+    args.yara_signature = signature
+    args.yara_signature_blob_id = blob_id.AsBytes()
+
+    with self.assertRaisesRegex(RuntimeError, "can't be used together"):
+      self._YaraProcessScan(args)
+
+  def _YaraProcessScan(
+      self,
+      args,
+      action_mock = None,
+  ):
+    if action_mock is None:
+      action_mock = action_mocks.ActionMock()
+
+    flow_test_lib.TestFlowHelper(
+        memory.YaraProcessScan.__name__,
+        action_mock,
+        client_id=self.client_id,
+        token=self.token,
+        args=args)
+
+    flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
 
 def main(argv):

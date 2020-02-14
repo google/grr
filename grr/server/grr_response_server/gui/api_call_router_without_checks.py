@@ -2,8 +2,12 @@
 """Implementation of a router class that does no ACL checks."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
+from typing import Optional
+
+from grr_response_server import access_control
 from grr_response_server.gui import api_call_router
 
 from grr_response_server.gui.api_plugins import artifact as api_artifact
@@ -18,6 +22,7 @@ from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.gui.api_plugins import yara as api_yara
 
 
 class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
@@ -175,6 +180,14 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def GetCollectedTimeline(self, args, token=None):
     return api_timeline.ApiGetCollectedTimelineHandler()
+
+  def UploadYaraSignature(
+      self,
+      args,
+      token = None,
+  ):
+    del args, token  # Unused.
+    return api_yara.ApiUploadYaraSignatureHandler()
 
   # Cron jobs methods.
   # =================

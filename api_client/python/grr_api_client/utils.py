@@ -32,6 +32,7 @@ from grr_response_proto.api import reflection_pb2
 from grr_response_proto.api import stats_pb2
 from grr_response_proto.api import user_pb2
 from grr_response_proto.api import vfs_pb2
+from grr_response_proto.api import yara_pb2
 
 
 class ProtobufTypeNotFound(errors.Error):
@@ -229,6 +230,7 @@ def RegisterProtoDescriptors(db, *additional_descriptors):
   db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(yara_pb2.DESCRIPTOR)
 
   db.RegisterFileDescriptor(checks_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(deprecated_pb2.DESCRIPTOR)

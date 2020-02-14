@@ -15,10 +15,12 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
+from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 _YARA_SIGNATURE_SHARD_SIZE = 500 << 10  # 500 KiB
 
@@ -33,10 +35,22 @@ class YaraProcessScan(flow_base.FlowBase):
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def _ValidateFlowArgs(self):
-    rules = self.args.yara_signature.GetRules()
-    if not list(rules):
-      raise flow_base.FlowError(
-          "No rules found in the signature specification.")
+    if self.args.yara_signature and self.args.yara_signature_blob_id:
+      message = ("`yara_signature` can't be used together with "
+                 "`yara_signature_blob_id")
+      raise flow_base.FlowError(message)
+
+    if self.args.yara_signature:
+      rules = self.args.yara_signature.GetRules()
+      if not list(rules):
+        raise flow_base.FlowError(
+            "No rules found in the signature specification.")
+
+    if self.args.yara_signature_blob_id:
+      blob_id = rdf_objects.BlobID(self.args.yara_signature_blob_id)
+      if not data_store.REL_DB.VerifyYaraSignatureReference(blob_id):
+        message = "Incorrect YARA signature reference: {}".format(blob_id)
+        raise flow_base.FlowError(message)
 
     if self.args.process_regex and self.args.cmdline_regex:
       raise flow_base.FlowError(
@@ -68,7 +82,12 @@ class YaraProcessScan(flow_base.FlowBase):
     else:
       request_data = None
 
-    signature_bytes = self.args.yara_signature.SerializeToBytes()
+    if self.args.yara_signature:
+      signature_bytes = str(self.args.yara_signature).encode("utf-8")
+    elif self.args.yara_signature_blob_id:
+      blob_id = rdf_objects.BlobID(self.args.yara_signature_blob_id)
+      signature_bytes = data_store.BLOBS.ReadBlob(blob_id)
+
     offsets = range(0, len(signature_bytes), _YARA_SIGNATURE_SHARD_SIZE)
     for i, offset in enumerate(offsets):
       client_request = self.args.Copy()

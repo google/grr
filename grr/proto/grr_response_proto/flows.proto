@@ -2047,11 +2047,16 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 22
+// Next field ID: 23
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
     description: "The yara signature(s) to use for scanning.",
+  }];
+  optional bytes yara_signature_blob_id = 22 [(sem_type) = {
+    description: "A reference to the YARA signature stored in the blob store. "
+                 "Should not be used with the `yara_signature` field.",
+    label: HIDDEN,
   }];
   optional YaraSignatureShard signature_shard = 17 [(sem_type) = {
     description: "A segment of a Yara signature used for process-scanning. "

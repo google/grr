@@ -2,17 +2,20 @@
 """Router classes route API requests to particular handlers."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import inspect
 import re
 
 from future.utils import with_metaclass
+from typing import Optional
 from typing import Text
 
 from grr_response_core.lib import registry
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_server import access_control
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui.api_plugins import artifact as api_artifact
 from grr_response_server.gui.api_plugins import client as api_client
@@ -25,8 +28,8 @@ from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
-
 from grr_response_server.gui.api_plugins import vfs as api_vfs
+from grr_response_server.gui.api_plugins import yara as api_yara
 
 
 class Http(object):
@@ -656,6 +659,17 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/timeline/<format>")
   def GetCollectedTimeline(self, args, token=None):
     """Exports results of a timeline flow to the specific format."""
+    raise NotImplementedError()
+
+  @Category("Flows")
+  @ArgsType(api_yara.ApiUploadYaraSignatureArgs)
+  @ResultType(api_yara.ApiUploadYaraSignatureResult)
+  @Http("POST", "/api/yara-signatures")
+  def UploadYaraSignature(
+      self,
+      args,
+      token = None,
+  ):
     raise NotImplementedError()
 
   # Cron jobs methods.
