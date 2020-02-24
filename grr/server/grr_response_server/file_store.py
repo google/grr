@@ -18,6 +18,7 @@ from future.utils import with_metaclass
 from typing import Dict
 from typing import Iterable
 from typing import NamedTuple
+from typing import Optional
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -387,11 +388,14 @@ def GetLastCollectionPathInfo(client_path, max_timestamp=None):
                                     max_timestamp=max_timestamp)[client_path]
 
 
-def OpenFile(client_path, max_timestamp=None):
+def OpenFile(
+    client_path,
+    max_timestamp = None,
+):
   """Opens latest content of a given file for reading.
 
   Args:
-    client_path: A db.ClientPath object describing path to a file.
+    client_path: A path to a file.
     max_timestamp: If specified, will open the last collected version with a
       timestamp equal or lower than max_timestamp. If not specified, will simply
       open the latest version.

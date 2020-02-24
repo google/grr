@@ -37,3 +37,29 @@ config_lib.DEFINE_integer("BigQuery.retry_multiplier", 2,
 config_lib.DEFINE_integer_list("BigQuery.retry_status_codes",
                                [404, 500, 502, 503, 504],
                                "HTTP status codes on which we should retry.")
+
+# SplunkOutputPlugin
+config_lib.DEFINE_string(
+    "Splunk.url", None, "Absolute URL of the Splunk installation, e.g. "
+    "'https://mysplunkserver.example.com:8088'")
+
+config_lib.DEFINE_bool(
+    "Splunk.verify_https", True,
+    "Verify the certificate for HTTPS connections. Setting this to False comes "
+    "with big security risks. Instead, when using self-signed certificates, "
+    "set REQUESTS_CA_BUNDLE environment variable to the path of the cert file. "
+    "See https://requests.readthedocs.io/en/master/user/advanced/.")
+
+config_lib.DEFINE_string(
+    "Splunk.token", None,
+    "Token used to authenticate with Splunk HTTP Event Collector.")
+
+config_lib.DEFINE_string("Splunk.source", "grr",
+                         "The source value assigned to all submitted events.")
+
+config_lib.DEFINE_string(
+    "Splunk.sourcetype", "grr_flow_result",
+    "The sourcetype value assigned to all submitted events.")
+
+config_lib.DEFINE_string("Splunk.index", None,
+                         "The index assigned to all submitted events.")

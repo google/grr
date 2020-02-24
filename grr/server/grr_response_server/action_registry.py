@@ -16,6 +16,8 @@ ACTION_STUB_BY_ID = {
     "DumpACPITable": server_stubs.DumpACPITable,
     "DumpFlashImage": server_stubs.DumpFlashImage,
     "Echo": server_stubs.Echo,
+    "EficheckCollectHashes": server_stubs.EficheckCollectHashes,
+    "EficheckDumpImage": server_stubs.EficheckDumpImage,
     "EnumerateFilesystems": server_stubs.EnumerateFilesystems,
     "EnumerateInterfaces": server_stubs.EnumerateInterfaces,
     "EnumerateRunningServices": server_stubs.EnumerateRunningServices,
@@ -61,7 +63,6 @@ ACTION_STUB_BY_ID = {
     "WmiQuery": server_stubs.WmiQuery,
     "YaraProcessDump": server_stubs.YaraProcessDump,
     "YaraProcessScan": server_stubs.YaraProcessScan,
-
 }
 
 ID_BY_ACTION_STUB = {

@@ -129,3 +129,17 @@ message DummyAuthManagerTestConfigurableApiRouterParams {
   optional string foo = 1;
   optional uint64 bar = 2;
 }
+
+message BoolMessage {
+  optional bool foo = 1;
+}
+
+message EnumMessage {
+  enum NestedEnum {
+    // NULL instead of ZERO to conform to default value naming convention.
+    NULL = 0;
+    ONE = 1;
+    TWO = 2;
+  }
+  optional NestedEnum foo = 1;
+}

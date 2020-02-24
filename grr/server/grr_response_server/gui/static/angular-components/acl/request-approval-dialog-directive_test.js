@@ -33,11 +33,12 @@ describe('request approval dialog', () => {
   }));
 
   const renderTestTemplate =
-      ((approvalType, createUrl, createArgs, description) => {
+      ((approvalType, createUrl, createArgs, description, reason) => {
         $rootScope.approvalType = approvalType;
         $rootScope.createUrl = createUrl;
         $rootScope.createArgs = createArgs;
         $rootScope.description = description;
+        $rootScope.reason = reason;
 
         $rootScope.$close = closeSpy;
         $rootScope.$dismiss = dismissSpy;
@@ -46,7 +47,8 @@ describe('request approval dialog', () => {
             'approval-type="approvalType" ' +
             'create-request-url="createUrl" ' +
             'create-request-args="createArgs" ' +
-            'access-error-description="description" />';
+            'access-error-description="description" ' +
+            'reason="reason" />';
 
         const element = $compile(template)($rootScope);
         $rootScope.$apply();
@@ -245,6 +247,17 @@ describe('request approval dialog', () => {
       keep_client_alive: true,
     });
   });
+
+  it('uses empty reason when reason is not supplied', () => {
+    const element = renderTestTemplate('client');
+    expect($('input[name=acl_reason]', element).val()).toEqual('');
+  });
+
+  it('suggests a reason from the scope', () => {
+    const element = renderTestTemplate('client', '', '', '', 'foobar');
+    expect($('input[name=acl_reason]', element).val()).toEqual('foobar');
+  });
+
 });
 
 

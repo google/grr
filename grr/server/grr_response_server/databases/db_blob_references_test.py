@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Mixin that tests hash blob references."""
-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+
+import os
+import random
 
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -71,6 +73,25 @@ class DatabaseTestBlobReferencesMixin(object):
 
     results = self.db.ReadHashBlobReferences([hash_id_2])
     self.assertEqual(results, {hash_id_2: data[hash_id_2]})
+
+  def testWriteHashBlobHandlesLargeAmountsOfData(self):
+    hash_id_blob_refs = {}
+
+    for _ in range(50000):
+      hash_id = rdf_objects.SHA256HashID(os.urandom(32))
+
+      blob_ref = rdf_objects.BlobReference()
+      blob_ref.blob_id = rdf_objects.BlobID(os.urandom(32))
+      blob_ref.offset = random.randint(0, 1024 * 1024 * 1024)
+      blob_ref.size = random.randint(128, 256)
+
+      hash_id_blob_refs[hash_id] = [blob_ref]
+
+    self.db.WriteHashBlobReferences(hash_id_blob_refs)
+
+    hash_ids = list(hash_id_blob_refs.keys())
+    read_hash_id_blob_refs = self.db.ReadHashBlobReferences(hash_ids)
+    self.assertEqual(read_hash_id_blob_refs, hash_id_blob_refs)
 
 
 # This file is a test library and thus does not require a __main__ block.

@@ -2,13 +2,16 @@
 """FS GRR server side integration utility functions."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import binascii
 
 from future.builtins import str
+from typing import Text
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core import config
@@ -42,6 +45,30 @@ def SendGrrMessageThroughFleetspeak(grr_id, grr_msg):
   if grr_msg.request_id is not None:
     annotation = fs_msg.annotations.entries.add()
     annotation.key, annotation.value = "request_id", str(grr_msg.request_id)
+  fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
+
+
+def KillFleetspeak(grr_id, force):
+  """Kills Fleespeak on the given client."""
+  die_req = fs_system_pb2.DieRequest(force=force)
+  fs_msg = fs_common_pb2.Message()
+  fs_msg.message_type = "Die"
+  fs_msg.destination.client_id = GRRIDToFleetspeakID(grr_id)
+  fs_msg.destination.service_name = "system"
+  fs_msg.data.Pack(die_req)
+
+  fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
+
+
+def RestartFleetspeakGrrService(grr_id):
+  """Restarts the GRR service on the given client."""
+  restart_req = fs_system_pb2.RestartServiceRequest(name="GRR")
+  fs_msg = fs_common_pb2.Message()
+  fs_msg.message_type = "RestartService"
+  fs_msg.destination.client_id = GRRIDToFleetspeakID(grr_id)
+  fs_msg.destination.service_name = "system"
+  fs_msg.data.Pack(restart_req)
+
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 

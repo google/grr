@@ -214,49 +214,6 @@ def GetRawDevice(path):
       mount_point = os.path.dirname(mount_point)
 
 
-def InstallDriver(kext_path):
-  """Calls into the IOKit to load a kext by file-system path.
-
-  Apple kext API doco here:
-    http://developer.apple.com/library/mac/#documentation/IOKit/Reference/
-      KextManager_header_reference/Reference/reference.html
-
-  Args:
-    kext_path: Absolute or relative POSIX path to the kext.
-
-  Raises:
-    OSError: On failure to load the kext.
-  """
-  km = objc.KextManager()
-
-  cf_kext_path = km.PyStringToCFString(kext_path)
-  kext_url = km.dll.CFURLCreateWithFileSystemPath(
-      objc.CF_DEFAULT_ALLOCATOR, cf_kext_path, objc.POSIX_PATH_STYLE, True)
-  status = km.iokit.KextManagerLoadKextWithURL(kext_url, None)
-
-  km.dll.CFRelease(kext_url)
-  km.dll.CFRelease(cf_kext_path)
-  if status is not objc.OS_SUCCESS:
-    raise OSError("Failed to load kext at {0}: {1}".format(kext_path, status))
-
-
-def UninstallDriver(bundle_name):
-  """Calls into the IOKit to unload a kext by its name.
-
-  Args:
-    bundle_name: The bundle identifier of the kernel extension as defined in
-                 Info.plist field CFBundleIdentifier.
-  Returns:
-    The error code from the library call. objc.OS_SUCCESS if successfull.
-  """
-  km = objc.KextManager()
-
-  cf_bundle_name = km.PyStringToCFString(bundle_name)
-  status = km.iokit.KextManagerUnloadKextWithIdentifier(cf_bundle_name)
-  km.dll.CFRelease(cf_bundle_name)
-  return status
-
-
 class OSXVersion(object):
   """Convenience functions for working with OSX versions."""
 

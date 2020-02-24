@@ -136,8 +136,8 @@ class YaraProcessScan(flow_base.FlowBase):
             for string_match in process_match.string_matches:
               regions_to_dump[match.process.pid].add(string_match.offset)
 
-      if self.args.include_errors_in_results:
-        for error in response.errors:
+      for error in response.errors:
+        if self._ShouldIncludeError(error):
           self.SendReply(error)
 
       if self.args.include_misses_in_results:
@@ -163,6 +163,20 @@ class YaraProcessScan(flow_base.FlowBase):
 
     for response in responses:
       self.SendReply(response)
+
+  def _ShouldIncludeError(self, error):
+    ErrorPolicy = self.args.ErrorPolicy  # pylint: disable=invalid-name
+
+    if self.args.include_errors_in_results == ErrorPolicy.NO_ERRORS:
+      return False
+
+    if self.args.include_errors_in_results == ErrorPolicy.CRITICAL_ERRORS:
+      msg = error.error.lower()
+      return ("failed to open process" not in msg and
+              "access denied" not in msg)
+
+    # Fall back to including all errors.
+    return True
 
 
 def _CanonicalizeLegacyWindowsPathSpec(ps):

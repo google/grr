@@ -67,6 +67,12 @@ const HostInfoController = function(
   /** @private {!angular.$q.Promise} */
   this.interrogateOperationInterval_;
 
+  /**
+   * A suggested approval reason, to be forwarded to the approval form.
+   * @private {string}
+   */
+  this.suggestedReason;
+
   // clientId may be inferred from the URL or passed explicitly as
   // a parameter.
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
@@ -78,6 +84,10 @@ const HostInfoController = function(
   // TODO(user): use grrApiService.poll for polling.
   this.scope_.$on('$destroy',
       this.stopMonitorInterrogateOperation_.bind(this));
+
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'reason', (reason) => {
+    this.suggestedReason = reason;
+  });
 };
 
 
@@ -147,7 +157,8 @@ HostInfoController.prototype.fetchClientDetails_ = function() {
  * @export
  */
 HostInfoController.prototype.requestApproval = function() {
-  this.grrAclDialogService_.openRequestClientApprovalDialog(this.clientId);
+  this.grrAclDialogService_.openRequestClientApprovalDialog(
+      this.clientId, undefined, this.suggestedReason);
 };
 
 /**

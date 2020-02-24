@@ -2083,13 +2083,20 @@ message YaraProcessScanRequest {
                  "miss quotes, e.g. 'python -c print 5;' or 'C:\\Program Files "
                  "(x86)\\Foo.exe /port 123'.",
   }];
-  optional bool include_errors_in_results = 14 [
+  enum ErrorPolicy {
+    NO_ERRORS = 0;
+    ALL_ERRORS = 1;
+    CRITICAL_ERRORS = 2
+        [(description) = "All errors, except privilege issues when reading "
+                         "process memory."];
+  }
+  optional ErrorPolicy include_errors_in_results = 14 [
     (sem_type) = {
       description: "Include processes that we failed to scan into returned "
                    "results."
       label: ADVANCED,
     },
-    default = false
+    default = NO_ERRORS
   ];
   optional bool include_misses_in_results = 15 [
     (sem_type) = {

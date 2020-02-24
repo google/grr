@@ -47,8 +47,18 @@ const ClientsListController = function(
   /** @export {string} */
   this.query;
 
+  /**
+   * A suggested approval reason, to be included in links to clients.
+   * @private {string}
+   */
+  this.suggestedReason;
+
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'q',
       this.onQueryChange_.bind(this));
+
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'reason', (reason) => {
+    this.suggestedReason = reason;
+  });
 };
 
 
@@ -74,7 +84,10 @@ ClientsListController.prototype.onQueryChange_ = function(query) {
  */
 ClientsListController.prototype.onClientClick = function(client) {
   var clientId = client['value']['client_id']['value'];
-  this.grrRoutingService_.go('client', {clientId: clientId});
+  this.grrRoutingService_.go('client.hostInfo', {
+    clientId: clientId,
+    reason: this.suggestedReason,
+  });
 };
 
 

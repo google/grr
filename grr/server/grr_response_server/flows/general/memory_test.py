@@ -218,7 +218,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
                           procs,
                           action_mock=None,
                           ignore_grr_process=False,
-                          include_errors_in_results=False,
+                          include_errors_in_results="NO_ERRORS",
                           include_misses_in_results=False,
                           max_results_per_process=0,
                           **kw):
@@ -272,6 +272,28 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
 class YaraFlowsTest(BaseYaraFlowsTest):
   """Tests the Yara flows."""
 
+  def testIncludePrivilegedErrors(self):
+    procs = [p for p in self.procs if p.pid in [101, 106]]
+    matches, errors, misses = self._RunYaraProcessScan(
+        procs,
+        include_misses_in_results=True,
+        include_errors_in_results="ALL_ERRORS")
+
+    self.assertLen(matches, 0)
+    self.assertLen(errors, 2)
+    self.assertLen(misses, 0)
+
+  def testIgnorePrivilegedErrors(self):
+    procs = [p for p in self.procs if p.pid in [101, 106]]
+    matches, errors, misses = self._RunYaraProcessScan(
+        procs,
+        include_misses_in_results=True,
+        include_errors_in_results="CRITICAL_ERRORS")
+
+    self.assertLen(matches, 0)
+    self.assertLen(errors, 0)
+    self.assertLen(misses, 0)
+
   def testYaraProcessScanWithMissesAndErrors(self):
     procs = [
         p for p in self.procs if p.pid in [101, 102, 103, 104, 105, 106, 107]
@@ -279,7 +301,9 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     with test_lib.FakeTime(
         rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(123456789)):
       matches, errors, misses = self._RunYaraProcessScan(
-          procs, include_misses_in_results=True, include_errors_in_results=True)
+          procs,
+          include_misses_in_results=True,
+          include_errors_in_results="ALL_ERRORS")
 
     self.assertLen(matches, 2)
     self.assertLen(errors, 2)
@@ -302,7 +326,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     ]
     scan_params = {
         "include_misses_in_results": True,
-        "include_errors_in_results": True,
+        "include_errors_in_results": "ALL_ERRORS",
         "max_results_per_process": 0,
         "ignore_grr_process": False,
     }
@@ -340,7 +364,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     ]
     scan_params = {
         "include_misses_in_results": True,
-        "include_errors_in_results": True,
+        "include_errors_in_results": "ALL_ERRORS",
         "max_results_per_process": 0,
         "ignore_grr_process": False,
     }
@@ -412,7 +436,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         p for p in self.procs if p.pid in [101, 102, 103, 104, 105, 106, 107]
     ]
     matches, errors, misses = self._RunYaraProcessScan(
-        procs, include_errors_in_results=True)
+        procs, include_errors_in_results="ALL_ERRORS")
 
     self.assertLen(matches, 2)
     self.assertLen(errors, 2)
@@ -452,7 +476,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         matches, errors, misses = self._RunYaraProcessScan(
             procs,
             include_misses_in_results=True,
-            include_errors_in_results=True)
+            include_errors_in_results="ALL_ERRORS")
         # 6 results, 2 results per message -> 3 messages. The fourth message is
         # the status.
         self.assertEqual(sr.call_count, 4)
@@ -465,7 +489,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     matches, errors, misses = self._RunYaraProcessScan(
         self.procs,
         pids=[101, 104, 105],
-        include_errors_in_results=True,
+        include_errors_in_results="ALL_ERRORS",
         include_misses_in_results=True)
 
     self.assertLen(matches, 1)
@@ -476,7 +500,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     matches, errors, misses = self._RunYaraProcessScan(
         self.procs,
         process_regex="10(3|6)",
-        include_errors_in_results=True,
+        include_errors_in_results="ALL_ERRORS",
         include_misses_in_results=True)
 
     self.assertEmpty(matches)
@@ -506,7 +530,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
       matches, errors, misses = self._RunYaraProcessScan(
           procs,
           per_process_timeout=50,
-          include_errors_in_results=True,
+          include_errors_in_results="ALL_ERRORS",
           include_misses_in_results=True)
 
     self.assertEmpty(matches)
@@ -525,7 +549,9 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     ]
     with utils.Stubber(rdf_memory.YaraSignature, "GetRules", TooManyHitsRules):
       matches, errors, misses = self._RunYaraProcessScan(
-          procs, include_errors_in_results=True, include_misses_in_results=True)
+          procs,
+          include_errors_in_results="ALL_ERRORS",
+          include_misses_in_results=True)
 
     # The third invocation raises too many hits, make sure we get the
     # first two matches anyways.
@@ -556,7 +582,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           chunk_size=chunk_size,
           overlap_size=10,
           pids=[102],
-          include_errors_in_results=True,
+          include_errors_in_results="ALL_ERRORS",
           include_misses_in_results=True)
 
       self.assertLen(matches, 1)
@@ -743,7 +769,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
             yara_signature=_TEST_YARA_SIGNATURE,
             client_id=self.client_id,
             token=self.token,
-            include_errors_in_results=True,
+            include_errors_in_results="ALL_ERRORS",
             include_misses_in_results=True,
             dump_process_on_match=True)
 
@@ -792,7 +818,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           yara_signature=_TEST_YARA_SIGNATURE,
           client_id=self.client_id,
           token=self.token,
-          include_errors_in_results=True,
+          include_errors_in_results="ALL_ERRORS",
           include_misses_in_results=True,
           dump_process_on_match=True)
 
@@ -835,7 +861,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           yara_signature=_TEST_YARA_SIGNATURE,
           client_id=self.client_id,
           token=self.token,
-          include_errors_in_results=True,
+          include_errors_in_results="ALL_ERRORS",
           include_misses_in_results=True,
           dump_process_on_match=True,
           process_dump_size_limit=100 + 104)  # size of first and third region.

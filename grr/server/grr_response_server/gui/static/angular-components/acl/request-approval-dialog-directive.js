@@ -41,7 +41,7 @@ const RequestApprovalDialogController =
   this.approversList;
 
   /** @export {string} */
-  this.reason;
+  this.reason = $scope.reason || '';
 
   /** @export {boolean} */
   this.useCcAddresses = true;
@@ -165,7 +165,8 @@ exports.RequestApprovalDialogDirective = function() {
       approvalType: '=',
       createRequestUrl: '=',
       createRequestArgs: '=',
-      accessErrorDescription: '='
+      accessErrorDescription: '=',
+      reason: '=',
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/acl/' +

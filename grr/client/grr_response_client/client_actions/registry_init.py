@@ -106,3 +106,7 @@ def RegisterClientActions():
     client_actions.Register("Uninstall", osx.Uninstall)
     client_actions.Register("UpdateAgent", osx.UpdateAgent)
 
+    from grr_response_client.client_actions.osx import firmware  # pylint: disable=g-import-not-at-top
+    client_actions.Register("EficheckCollectHashes",
+                            firmware.EficheckCollectHashes)
+    client_actions.Register("EficheckDumpImage", firmware.EficheckDumpImage)

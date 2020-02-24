@@ -48,14 +48,14 @@ AclDialogService.service_name = 'grrAclDialogService';
  * @param {string=} opt_accessErrorDescription If provided this description
  *     will be shown to the user. Its goal is to explain while the user
  *     doesn't have access to the resource.
+ * @param {string=} reason If provided, pre-populates the reason field.
  *
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
 AclDialogService.prototype.openRequestApprovalDialog = function(
     approvalType, createRequestUrl, createRequestArgs,
-    opt_accessErrorDescription) {
-
+    opt_accessErrorDescription, reason) {
   // TODO(user): get rid of jQuery here and reimplement in cleaner fashion
   // (all modals should run through our own service, so that we can control
   // their stacking behavior).
@@ -70,7 +70,8 @@ AclDialogService.prototype.openRequestApprovalDialog = function(
     approvalType: approvalType,
     createRequestUrl: createRequestUrl,
     createRequestArgs: createRequestArgs,
-    accessErrorDescription: opt_accessErrorDescription
+    accessErrorDescription: opt_accessErrorDescription,
+    reason: reason,
   });
 };
 
@@ -82,21 +83,16 @@ AclDialogService.prototype.openRequestApprovalDialog = function(
  * @param {string=} opt_accessErrorDescription If provided this description
  *     will be shown to the user. Its goal is to explain while the user
  *     doesn't have access to the resource.
+ * @param {string=} reason If provided, pre-populates the reason field.
  *
  * @return {angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
 AclDialogService.prototype.openRequestClientApprovalDialog = function(
-    clientId, opt_accessErrorDescription) {
+    clientId, opt_accessErrorDescription, reason) {
   return this.openRequestApprovalDialog(
-      'client',
-      '/users/me/approvals/client/' + clientId,
-      {
-        client_id: clientId,
-        approval: {
-        }
-      },
-      opt_accessErrorDescription);
+      'client', '/users/me/approvals/client/' + clientId,
+      {client_id: clientId, approval: {}}, opt_accessErrorDescription, reason);
 };
 
 /**

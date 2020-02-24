@@ -2,6 +2,7 @@
 """Root (i.e. administrative) actions support in GRR API client library."""
 from __future__ import absolute_import
 from __future__ import division
+
 from __future__ import unicode_literals
 
 import hashlib
@@ -9,10 +10,13 @@ import hashlib
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
+from typing import Text
 
+from grr_api_client import context as api_context
 from grr_api_client import utils
 from grr_response_proto.api import user_pb2
 from grr_response_proto.api.root import binary_management_pb2
+from grr_response_proto.api.root import client_management_pb2
 from grr_response_proto.api.root import user_management_pb2
 
 
@@ -137,6 +141,31 @@ class GrrBinaryRef(object):
     self._context.SendRequest("DeleteGrrBinary", args)
 
 
+class ClientRef(object):
+  """Reference class pointing to a GRR client."""
+
+  def __init__(self, client_id,
+               context):
+    self.client_id = client_id
+    self._context = context
+
+  def KillFleetspeak(self, force):
+    """Kills fleetspeak on the given client."""
+    args = client_management_pb2.ApiKillFleetspeakArgs()
+    args.client_id = self.client_id
+    args.force = force
+    self._context.SendRequest("KillFleetspeak", args)
+
+  def RestartFleetspeakGrrService(self):
+    """Restarts the GRR fleetspeak service on the given client."""
+    args = client_management_pb2.ApiRestartFleetspeakGrrServiceArgs()
+    args.client_id = self.client_id
+    self._context.SendRequest("RestartFleetspeakGrrService", args)
+
+  def __repr__(self):
+    return "<{} client_id={}>".format(self.__class__.__name__, self.client_id)
+
+
 class RootGrrApi(object):
   """Object providing access to root-level access GRR methods."""
 
@@ -185,3 +214,7 @@ class RootGrrApi(object):
   def GrrBinary(self, binary_type, path):
     return GrrBinaryRef(
         binary_type=binary_type, path=path, context=self._context)
+
+  def Client(self, client_id):
+    """Returns a reference to a GRR client."""
+    return ClientRef(client_id, self._context)

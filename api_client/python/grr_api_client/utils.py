@@ -14,6 +14,7 @@ from google.protobuf import symbol_database
 
 from grr_api_client import errors
 
+from grr_response_proto import apple_firmware_pb2
 from grr_response_proto import checks_pb2
 from grr_response_proto import deprecated_pb2
 from grr_response_proto import flows_pb2
@@ -219,6 +220,7 @@ def UnpackAny(proto_any):
 
 def RegisterProtoDescriptors(db, *additional_descriptors):
   """Registers all API-releated descriptors in a given symbol DB."""
+  db.RegisterFileDescriptor(apple_firmware_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(artifact_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(client_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(config_pb2.DESCRIPTOR)

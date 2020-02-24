@@ -187,6 +187,11 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/kextstat", []),
         ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
+        ("/usr/libexec/firmwarecheckers/eficheck/eficheck", ["--version"]),
+        ("/usr/libexec/firmwarecheckers/eficheck/eficheck",
+         ["--generate-hashes"]),
+        ("/usr/libexec/firmwarecheckers/eficheck/eficheck",
+         ["--save", "-b", "firmware.bin"]),
         ("/usr/libexec/firmwarecheckers/ethcheck/ethcheck", ["--show-hashes"]),
     ]
   else:

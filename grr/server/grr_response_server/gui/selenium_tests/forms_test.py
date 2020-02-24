@@ -146,6 +146,15 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     self.assertLen(res.items[0].notified_users, 1)
     self.assertEqual(res.items[0].notified_users[0], "sanchezrick")
 
+  def testSuggestedReasonIsPropagatedFromHostInfoToApproval(self):
+    client_id = self.SetupClient(0)
+
+    self.Open("/#/clients/{}/host-info?reason=t123".format(client_id))
+
+    self.Click("css=button[name=requestApproval]")
+
+    self.WaitUntilEqual("t123", self.GetValue, "css=input[name=acl_reason]")
+
 
 class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
   """Tests forms validation in different workflows ."""

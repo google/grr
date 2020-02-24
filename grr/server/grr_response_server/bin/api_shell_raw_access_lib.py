@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils
+from grr_response_core.lib.util import compatibility
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router_without_checks
@@ -75,8 +76,10 @@ class RawConnector(connector.Connector):
       raise errors.AccessForbiddenError(e)
     except api_call_handler_base.ResourceNotFoundError as e:
       raise errors.ResourceNotFoundError(e)
-    except NotImplementedError as e:
-      raise errors.ApiNotImplementedError(e)
+    except NotImplementedError:
+      raise errors.ApiNotImplementedError(
+          "Method {} is not implemented in {}.".format(
+              method_name, compatibility.GetName(type(router))))
     except Exception as e:  # pylint: disable=broad-except
       raise errors.UnknownError(e)
 

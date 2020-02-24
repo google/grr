@@ -577,7 +577,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
       time.sleep(self.sleep_time)
 
-    self.fail("condition %s(%s) not met (expected=%s, got_last_time=%s)" %
+    self.fail("condition %s(%s) not met (expected=%r, got_last_time=%r)" %
               (condition_cb, args, target, condition_value))
 
   def WaitUntilContains(self, target, condition_cb, *args):

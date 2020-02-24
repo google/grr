@@ -525,7 +525,9 @@ class ProtoString(ProtoType):
     if isinstance(value, bytes):
       return value.decode("utf-8")
 
-    raise type_info.TypeValueError("Not a valid unicode string: %r" % value)
+    raise type_info.TypeValueError(
+        "Not a valid unicode string: {!r} of type {}".format(
+            value, compatibility.GetName(type(value))))
 
   def ConvertFromWireFormat(self, value, container=None):
     """Internally strings are utf8 encoded."""

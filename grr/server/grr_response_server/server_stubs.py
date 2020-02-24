@@ -13,6 +13,7 @@ from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import apple_firmware as rdf_apple_firmware
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -416,3 +417,17 @@ class Timeline(ClientActionStub):
 
   in_rdfvalue = rdf_timeline.TimelineArgs
   out_rdfvalues = [rdf_timeline.TimelineResult]
+
+
+class EficheckDumpImage(ClientActionStub):
+  """Stub client action to collect the full EFI image via Apple eficheck."""
+
+  in_rdfvalue = rdf_apple_firmware.EficheckConfig
+  out_rdfvalues = [rdf_apple_firmware.DumpEfiImageResponse]
+
+
+class EficheckCollectHashes(ClientActionStub):
+  """A stub client action to collect the EFI hashes via eficheck."""
+
+  in_rdfvalue = rdf_apple_firmware.EficheckConfig
+  out_rdfvalues = [rdf_apple_firmware.CollectEfiHashesResponse]

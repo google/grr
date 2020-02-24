@@ -484,9 +484,13 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
 
+    # backtrace is set for unexpected failures caught in a wildcard except
+    # branch, thus these should be logged as error. backtrace is None for
+    # faults that are anticipated in flows, thus should only be logged as
+    # warning.
     if backtrace:
-      logging.warning("Error in flow %s on %s: %s, %s", flow_id, client_id,
-                      error_message, backtrace)
+      logging.error("Error in flow %s on %s: %s, %s", flow_id, client_id,
+                    error_message, backtrace)
     else:
       logging.warning("Error in flow %s on %s: %s:", flow_id, client_id,
                       error_message)
@@ -669,7 +673,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
       logging.info("Flow %s on %s exceeded resource limits: %s.",
                    self.rdf_flow.flow_id, client_id, str(e))
-      self.Error(error_message=str(e), backtrace=traceback.format_exc())
+      self.Error(error_message=str(e))
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
     except Exception as e:  # pylint: disable=broad-except

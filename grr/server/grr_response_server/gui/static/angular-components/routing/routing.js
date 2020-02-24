@@ -55,7 +55,7 @@ exports.routingModule
             title: 'Home',
           })
           .state('search', {
-            url: '/search?q',
+            url: '/search?q&reason',
             template: '<grr-clients-list />',
             title: function(params) {
               if (params['q']) {
@@ -173,7 +173,7 @@ exports.routingModule
             }
           })
           .state('client.hostInfo', {
-            url: '/host-info',
+            url: '/host-info?reason',
             template: '<grr-host-info />',
             title: 'Host Information'
           })

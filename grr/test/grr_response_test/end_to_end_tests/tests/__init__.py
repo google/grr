@@ -5,6 +5,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_test.end_to_end_tests.tests import administrative
+# apple_firmware would ideally be executed here, but CI environments don't
+# allow this level of access.
 from grr_response_test.end_to_end_tests.tests import artifacts
 from grr_response_test.end_to_end_tests.tests import checks
 from grr_response_test.end_to_end_tests.tests import discovery

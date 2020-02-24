@@ -72,3 +72,14 @@ message BigQueryOutputPluginArgs {
     default = true
   ];
 }
+
+message SplunkOutputPluginArgs {
+  repeated string annotations = 1 [(sem_type) = {
+    description: "Annotations to add to exported data. This field can be "
+                 "used to differentiate sets of exported data inside a "
+                 "particular exported type. e.g. data collected by users "
+                 "vs. data collected by cronjob."
+  }];
+  optional string index = 2
+      [(sem_type) = { description: "The Splunk Index to assign to events." }];
+}

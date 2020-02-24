@@ -4,8 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import platform
-
 
 def IsExecutionWhitelisted(cmd, args):
   """Check if a binary and args is whitelisted.
@@ -21,5 +19,5 @@ def IsExecutionWhitelisted(cmd, args):
   detect site-specific binaries that are allowed to run.
   """
 
-
+  del cmd, args  # Unused.
   return False

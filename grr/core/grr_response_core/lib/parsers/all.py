@@ -8,6 +8,7 @@ from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import chrome_history
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.parsers import cron_file_parser
+from grr_response_core.lib.parsers import eficheck_parser
 from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.parsers import ie_history
 from grr_response_core.lib.parsers import linux_cmd_parser
@@ -33,6 +34,8 @@ def Register():
       "Dpkg", linux_cmd_parser.DpkgCmdParser)
   parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
       "Dmidecode", linux_cmd_parser.DmidecodeCmdParser)
+  parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+      "Eficheck", eficheck_parser.EficheckCmdParser)
   parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
       "Mount", config_file.MountCmdParser)
   parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(

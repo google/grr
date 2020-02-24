@@ -242,6 +242,18 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.WaitUntil(self.IsElementPresent,
                    "css=.active > a[grrtarget='client.launchFlows']")
 
+  def testSuggestedReasonIsPropagatedFromSearchToApproval(self):
+    client_id = self.SetupClient(0)
+
+    self.Open("/#/search?q=.&reason=t123")
+    self.WaitUntilEqual("GRR | Search for \".\"", self.GetPageTitle)
+
+    self.Click("css=tr:contains('{}')".format(client_id))
+
+    self.Click("css=button[name=requestApproval]")
+
+    self.WaitUntilEqual("t123", self.GetValue, "css=input[name=acl_reason]")
+
 
 class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
 

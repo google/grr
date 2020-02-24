@@ -104,6 +104,33 @@ TestStruct.AddDescriptor(
             name="repeat_nested", field_number=5, nested=TestStruct)),)
 
 
+class TestStructWithBool(rdf_structs.RDFProtoStruct):
+  """A test struct object."""
+
+  type_description = type_info.TypeDescriptorSet(
+      rdf_structs.ProtoBoolean(
+          name="foo",
+          field_number=1,
+          default=False,
+      ))
+
+
+class TestStructWithEnum(rdf_structs.RDFProtoStruct):
+  """A test struct object."""
+
+  type_description = type_info.TypeDescriptorSet(
+      rdf_structs.ProtoEnum(
+          name="foo",
+          field_number=1,
+          enum_name="Foo",
+          enum={
+              "ZERO": 0,
+              "ONE": 1,
+              "TWO": 2
+          },
+          default=0))
+
+
 class PartialTest1(rdf_structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
   type_description = type_info.TypeDescriptorSet(
@@ -794,6 +821,40 @@ message DynamicTypeTest {{
   def testUnsetFieldsHaveSymmetricEqualityWithDefaultValues(self):
     self.assertEqual(TestStruct(repeated=[]), TestStruct())
     self.assertEqual(TestStruct(), TestStruct(repeated=[]))
+
+
+class BooleanToEnumMigrationTest(test_lib.GRRBaseTest):
+
+  def testBooleansAreParsedAsEnums(self):
+    a = TestStructWithBool()
+    b = TestStructWithEnum.FromSerializedBytes(a.SerializeToBytes())
+    self.assertEqual(b.foo, "ZERO")
+
+    a = TestStructWithBool(foo=False)
+    b = TestStructWithEnum.FromSerializedBytes(a.SerializeToBytes())
+    self.assertEqual(b.foo, "ZERO")
+
+    a = TestStructWithBool(foo=True)
+    b = TestStructWithEnum.FromSerializedBytes(a.SerializeToBytes())
+    self.assertEqual(b.foo, "ONE")
+
+  def testEnumsAreParsedAsBooleans(self):
+    a = TestStructWithEnum()
+    b = TestStructWithBool.FromSerializedBytes(a.SerializeToBytes())
+    self.assertIs(b.foo, False)
+
+    a = TestStructWithEnum(foo="ZERO")
+    b = TestStructWithBool.FromSerializedBytes(a.SerializeToBytes())
+    self.assertIs(b.foo, False)
+
+    a = TestStructWithEnum(foo="ONE")
+    b = TestStructWithBool.FromSerializedBytes(a.SerializeToBytes())
+    self.assertIs(b.foo, True)
+
+  def testNewEnumOptionIsBackwardsCompatibleToTrue(self):
+    a = TestStructWithEnum(foo="TWO")
+    b = TestStructWithBool.FromSerializedBytes(a.SerializeToBytes())
+    self.assertIs(b.foo, True)
 
 
 class GenericRDFProtoTest(test_lib.GRRBaseTest):

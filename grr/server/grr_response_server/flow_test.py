@@ -334,7 +334,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(rdf_flow.flow_state, "ERROR")
-    self.assertIn("CPU limit exceeded", rdf_flow.backtrace)
+    self.assertIn("CPU limit exceeded", rdf_flow.error_message)
 
   def testNetworkLimitExceeded(self):
     """This tests that the network limit for flows is working."""
@@ -352,7 +352,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(rdf_flow.flow_state, "ERROR")
-    self.assertIn("bytes limit exceeded", rdf_flow.backtrace)
+    self.assertIn("bytes limit exceeded", rdf_flow.error_message)
 
   def testRuntimeLimitExceeded(self):
     client_mock = action_mocks.CPULimitClientMock(
@@ -371,7 +371,7 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
 
     rdf_flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(rdf_flow.flow_state, "ERROR")
-    self.assertIn("Runtime limit exceeded", rdf_flow.backtrace)
+    self.assertIn("Runtime limit exceeded", rdf_flow.error_message)
 
   def testUserGetsNotificationWithNumberOfResults(self):
     username = "notification_test_user"

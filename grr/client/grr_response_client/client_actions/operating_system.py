@@ -18,9 +18,9 @@ elif platform.system() == "Windows":
   submodule = windows
 elif platform.system() == "Darwin":
   from grr_response_client.client_actions.osx import osx
-  import grr_response_client.client_actions.osx.local  # pylint: disable=unused-import
-
   submodule = osx
+else:
+  raise RuntimeError("Unknown platform.system() {!r}".format(platform.system()))
 
 # pylint: enable=g-import-not-at-top
 # pylint: enable=g-wrong-blank-lines

@@ -14,5 +14,6 @@ except ImportError:
 
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.output_plugins import email_plugin
+from grr_response_server.output_plugins import splunk_plugin
 from grr_response_server.output_plugins import sqlite_plugin
 from grr_response_server.output_plugins import yaml_plugin

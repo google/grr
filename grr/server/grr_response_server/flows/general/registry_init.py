@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 # pylint: disable=unused-import
 # These imports populate the Flow registry
 from grr_response_server.flows.general import administrative
+from grr_response_server.flows.general import apple_firmware
 from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import ca_enroller
 from grr_response_server.flows.general import checks

@@ -13,6 +13,7 @@ from grr_response_server import fleetspeak_utils
 from grr.test_lib import test_lib
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
+from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 _TEST_CLIENT_ID = "C.0000000000000001"
@@ -102,6 +103,34 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     fs_message.data.Unpack(unpacked_message)
     self.assertEqual(fs_message.annotations, expected_annotations)
     self.assertEqual(grr_message.AsPrimitiveProto(), unpacked_message)
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testKillFleetspeak(self, mock_conn):
+    fleetspeak_utils.KillFleetspeak("C.1000000000000000", True)
+    mock_conn.outgoing.InsertMessage.assert_called_once()
+    insert_args, _ = mock_conn.outgoing.InsertMessage.call_args
+    fs_message = insert_args[0]
+    self.assertEqual(fs_message.message_type, "Die")
+    self.assertEqual(fs_message.destination.client_id,
+                     b"\x10\x00\x00\x00\x00\x00\x00\x00")
+    self.assertEqual(fs_message.destination.service_name, "system")
+    die_req = fs_system_pb2.DieRequest()
+    fs_message.data.Unpack(die_req)
+    self.assertTrue(die_req.force)
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testRestartFleetspeakGrrService(self, mock_conn):
+    fleetspeak_utils.RestartFleetspeakGrrService("C.2000000000000000")
+    mock_conn.outgoing.InsertMessage.assert_called_once()
+    insert_args, _ = mock_conn.outgoing.InsertMessage.call_args
+    fs_message = insert_args[0]
+    self.assertEqual(fs_message.message_type, "RestartService")
+    self.assertEqual(fs_message.destination.client_id,
+                     b"\x20\x00\x00\x00\x00\x00\x00\x00")
+    self.assertEqual(fs_message.destination.service_name, "system")
+    restart_req = fs_system_pb2.RestartServiceRequest()
+    fs_message.data.Unpack(restart_req)
+    self.assertEqual(restart_req.name, "GRR")
 
 
 def main(argv):

@@ -14,6 +14,7 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.root.api_plugins import binary_management as api_binary_management
+from grr_response_server.gui.root.api_plugins import client_management as api_client_management
 from grr_response_server.gui.root.api_plugins import user_management as api_user_management
 
 
@@ -72,6 +73,23 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http("DELETE", "/api/root/grr-binaries/<type>/<path:path>")
   def DeleteGrrBinary(self, args, token=None):
     return api_binary_management.ApiDeleteGrrBinaryHandler()
+
+  # Client management.
+  # ====================
+  #
+  @api_call_router.Category("Client management")
+  @api_call_router.ArgsType(api_client_management.ApiKillFleetspeakArgs)
+  @api_call_router.Http("PATCH", "/api/root/client/<client_id>/fleetspeak/kill")
+  def KillFleetspeak(self, args, token=None):
+    return api_client_management.ApiKillFleetspeakHandler()
+
+  @api_call_router.Category("Client management")
+  @api_call_router.ArgsType(
+      api_client_management.ApiRestartFleetspeakGrrServiceArgs)
+  @api_call_router.Http("PATCH",
+                        "/api/root/client/<client_id>/fleetspeak/grr/restart")
+  def RestartFleetspeakGrrService(self, args, token=None):
+    return api_client_management.ApiRestartFleetspeakGrrServiceHandler()
 
   # Reflection methiods (needed for client libraries to work).
   # ===========================================================
