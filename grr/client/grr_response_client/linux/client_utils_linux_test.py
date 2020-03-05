@@ -11,7 +11,6 @@ import unittest
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import range
 import mock
 
 from grr_response_client import client_utils_linux

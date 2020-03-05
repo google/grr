@@ -7,7 +7,6 @@ import functools
 import io
 
 from absl.testing import absltest
-from future.builtins import map
 
 from grr_response_core.lib.util import context
 from grr_response_core.lib.util import temp

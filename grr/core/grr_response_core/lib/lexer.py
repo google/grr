@@ -8,9 +8,6 @@ from __future__ import unicode_literals
 import logging
 import re
 
-from future.builtins import filter
-from future.builtins import range
-from future.builtins import str
 from future.utils import python_2_unicode_compatible
 
 from typing import Text

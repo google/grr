@@ -10,7 +10,6 @@ import logging
 import os
 import re
 
-from future.builtins import zip
 from future.utils import iteritems
 from future.utils import itervalues
 from typing import Optional

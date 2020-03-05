@@ -10,7 +10,6 @@ import os
 import string
 
 from absl import app
-from future.builtins import range
 import mock
 import psutil
 from typing import Iterable
@@ -669,7 +668,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         self.fail("Unexpected result type %s" % type(result))
 
   def testProcessDumpWithLimit(self):
-    results = self._RunProcessDump(size_limit=150)
+    results = self._RunProcessDump(size_limit=100)
 
     # Now we should only get one block (+ the YaraProcessDumpResponse), the
     # second is over the limit.
@@ -689,10 +688,14 @@ class YaraFlowsTest(BaseYaraFlowsTest):
       else:
         self.fail("Unexpected result type %s" % type(result))
 
-  def testProcessDumpSendsReplyWithNoRegions(self):
-    results = self._RunProcessDump(size_limit=1)
-    self.assertLen(results, 1)
-    self.assertIsInstance(results[0], rdf_memory.YaraProcessDumpResponse)
+  def testProcessDumpPartiallyDumpsMemory(self):
+    results = self._RunProcessDump(size_limit=20)
+    self.assertLen(results, 2)
+    process = results[0].dumped_processes[0]
+    self.assertLen(process.memory_regions, 1)
+    self.assertEqual(process.memory_regions[0].size, 100)
+    self.assertEqual(process.memory_regions[0].dumped_size, 20)
+    self.assertEqual(results[1].st_size, 20)
 
   def testProcessDumpByDefaultErrors(self):
     # This tests that not specifying any restrictions on the processes
@@ -834,11 +837,13 @@ class YaraFlowsTest(BaseYaraFlowsTest):
 
     self.assertEqual(regions[0].start, 0)
     self.assertEqual(regions[0].size, 100)
+    self.assertEqual(regions[0].dumped_size, 100)
     self.assertEqual(regions[0].is_executable, True)
     self.assertEqual(regions[0].is_writable, True)
     self.assertIsNotNone(regions[0].file)
     self.assertEqual(regions[1].start, 1000)
     self.assertEqual(regions[1].size, 104)
+    self.assertEqual(regions[1].dumped_size, 104)
     self.assertEqual(regions[1].is_executable, False)
     self.assertEqual(regions[1].is_writable, False)
     self.assertIsNotNone(regions[1].file)
@@ -879,10 +884,10 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     # Dump should skip the second region, because the first and third fill the
     # size limit.
     self.assertEqual(regions[0].start, 0)
-    self.assertEqual(regions[0].size, 100)
+    self.assertEqual(regions[0].dumped_size, 100)
     self.assertIsNotNone(regions[0].file)
     self.assertEqual(regions[1].start, 101)
-    self.assertEqual(regions[1].size, 104)
+    self.assertEqual(regions[1].dumped_size, 104)
     self.assertIsNotNone(regions[1].file)
 
   def testLegacyDataMigration(self):

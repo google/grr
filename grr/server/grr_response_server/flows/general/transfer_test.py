@@ -12,7 +12,6 @@ import struct
 import unittest
 
 from absl import app
-from future.builtins import range
 from future.utils import iterkeys
 import mock
 

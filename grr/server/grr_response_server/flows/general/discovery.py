@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.builtins import str
 from future.utils import iteritems
 
 from grr_response_core import config

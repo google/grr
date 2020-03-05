@@ -9,7 +9,6 @@ import collections
 import logging
 import re
 
-from future.builtins import zip
 from future.utils import iteritems
 from future.utils import string_types
 from typing import Text

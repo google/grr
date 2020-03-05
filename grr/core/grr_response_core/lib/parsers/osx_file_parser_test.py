@@ -58,7 +58,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     response.exit_status = 0
 
     with self.assertRaises(parsers.ParseError) as context:
-      list(parser.ParseResponse(None, response, rdf_paths.PathSpec.PathType.OS))
+      list(parser.ParseResponse(None, response))
 
     exception = context.exception
     self.assertIsInstance(exception.cause, biplist.InvalidPlistException)

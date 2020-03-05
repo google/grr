@@ -11,7 +11,6 @@ import os
 import re
 import shutil
 
-from future.builtins import str
 
 import psutil
 
@@ -337,10 +336,11 @@ def _ApplySizeLimit(regions,
   total_size = 0
   regions_in_limit = []
   for region in regions:
-    total_size += region.size
-    if total_size > size_limit:
+    if total_size >= size_limit:
       break
+    region.dumped_size = min(region.size, size_limit - total_size)
     regions_in_limit.append(region)
+    total_size += region.dumped_size
   return regions_in_limit
 
 
@@ -386,7 +386,7 @@ class YaraProcessDump(actions.ActionPlugin):
     filepath = os.path.join(tmp_dir.path, filename)
 
     chunks = streamer.StreamMemory(
-        process, offset=region.start, amount=region.size)
+        process, offset=region.start, amount=region.dumped_size)
     bytes_written = self._SaveMemDumpToFilePath(filepath, chunks)
 
     if not bytes_written:
@@ -417,6 +417,9 @@ class YaraProcessDump(actions.ActionPlugin):
         if len(regions) < total_regions:
           response.error = ("Byte limit exceeded. Writing {} of {} "
                             "regions.").format(len(regions), total_regions)
+      else:
+        for region in regions:
+          region.dumped_size = region.size
 
       regions = sorted(regions, key=lambda r: r.start)
 

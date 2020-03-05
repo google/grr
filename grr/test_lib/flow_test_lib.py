@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 import sys
 
-from future.builtins import range
 from future.utils import iteritems
 import mock
 from typing import Text

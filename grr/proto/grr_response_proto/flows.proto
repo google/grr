@@ -1059,6 +1059,14 @@ message ChromeHistoryArgs {
   }];
 }
 
+message BrowserHistoryFlowArgs {
+  optional bool collect_chrome = 1;
+  optional bool collect_firefox = 2;
+  optional bool collect_internet_explorer = 3;
+  optional bool collect_opera = 4;
+  optional bool collect_safari = 5;
+}
+
 // The following messages are for SUID flows which are designed to control
 // access to the datastore.
 
@@ -2296,8 +2304,9 @@ message YaraProcessDumpArgs {
   optional uint64 size_limit = 5 [
     (sem_type) = {
       description: "Maximum amount of raw process memory to dump. Applies to "
-                   "all requested processes together. The first memory block going over the "
-                   "limit will not be written anymore. 0 indicates no limit.",
+                   "all requested processes together. The first memory region "
+                   "exceeding the limit will be dumped partially. No "
+                   "following regions will be dumped. 0 indicates no limit.",
       type: "ByteSize",
       label: ADVANCED,
     },
@@ -2377,6 +2386,13 @@ message ProcessMemoryRegion {
     description: "True, if the memory region is marked as readable. "
                  "Currently, GRR only collects readable memory regions, so "
                  "this flag is either unset or true.",
+  }];
+  optional uint64 dumped_size = 7 [(sem_type) = {
+    description: "Amount of bytes that have been dumped from the memory "
+                 "region. Can be lower than `size` when a region is dumped "
+                 "partially, because size_limit has been reached. For "
+                 "compatibility, 0 indicates that the full region has been "
+                 "dumped."
   }];
 }
 

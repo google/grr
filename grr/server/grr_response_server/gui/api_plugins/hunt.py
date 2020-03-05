@@ -9,8 +9,6 @@ import functools
 import os
 import re
 
-from future.builtins import str
-from future.builtins import zip
 from future.utils import itervalues
 
 from grr_response_core import config

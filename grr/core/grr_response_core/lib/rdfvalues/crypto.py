@@ -26,7 +26,6 @@ from cryptography.hazmat.primitives.ciphers import modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
 from cryptography.x509 import oid
 
-from future.builtins import str
 from future.utils import python_2_unicode_compatible
 from typing import Text
 

@@ -18,7 +18,6 @@ import collections
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import zip
 from future.utils import iteritems
 from typing import Text
 

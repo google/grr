@@ -12,8 +12,6 @@ import random
 from absl import app
 from absl.testing import absltest
 
-from future.builtins import range
-from future.builtins import str
 from typing import Text
 
 from grr_response_core.lib import rdfvalue

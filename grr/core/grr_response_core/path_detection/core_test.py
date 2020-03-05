@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.builtins import range
 
 from grr_response_core.path_detection import core
 from grr.test_lib import test_lib

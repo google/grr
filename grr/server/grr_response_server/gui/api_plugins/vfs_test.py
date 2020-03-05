@@ -10,8 +10,6 @@ import io
 import zipfile
 
 from absl import app
-from future.builtins import range
-from future.builtins import zip
 from future.utils import iteritems
 import mock
 

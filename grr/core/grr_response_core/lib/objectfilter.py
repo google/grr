@@ -96,9 +96,6 @@ import binascii
 import collections
 import re
 
-from future.builtins import filter
-from future.builtins import range
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import python_2_unicode_compatible
 from future.utils import string_types

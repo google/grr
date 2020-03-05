@@ -9,7 +9,6 @@ import logging
 import threading
 import time
 
-from future.builtins import str
 from future.moves import queue
 from typing import Callable, Dict, Iterable, Optional, Text, TypeVar
 

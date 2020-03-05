@@ -10,8 +10,6 @@ import time
 
 from absl.testing import absltest
 
-from future.builtins import range
-from future.builtins import str
 from future.utils import with_metaclass
 import mock
 

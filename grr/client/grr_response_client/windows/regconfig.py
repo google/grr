@@ -14,7 +14,6 @@ from __future__ import unicode_literals
 import collections
 import logging
 
-from future.builtins import str
 from future.moves import winreg
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems

@@ -11,7 +11,6 @@ import socket
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import str
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
@@ -1327,6 +1326,33 @@ class YaraProcessScanMatchConverterTest(ExportTestBase):
     self.assertEqual(converted[2].process.pid, 2)
     self.assertEqual(converted[2].string_id, "bar3")
     self.assertEqual(converted[2].offset, 15)
+
+
+class YaraProcessMemoryErrorConverterTest(ExportTestBase):
+  """Tests for ProcessMemoryError."""
+
+  def _GenerateSample(self, **kwargs):
+    process = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=1333718907167083)
+    return rdf_memory.ProcessMemoryError(process=process, **kwargs)
+
+  def testExportsErrorCorrectly(self):
+    sample = self._GenerateSample(error="foo bar")
+
+    converter = export.ProcessMemoryErrorConverter()
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(self.metadata), sample, token=self.token))
+
+    self.assertLen(converted, 1)
+    self.assertIsInstance(converted[0], export.ExportedProcessMemoryError)
+    self.assertEqual(converted[0].metadata, self.metadata)
+    self.assertEqual(converted[0].process.cmdline, "cmd.exe")
+    self.assertEqual(converted[0].error, "foo bar")
 
 
 class DataAgnosticExportConverterTest(ExportTestBase):

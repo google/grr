@@ -9,7 +9,6 @@ import functools
 import logging
 import time
 
-from future.builtins import str
 from typing import Text
 
 from grr_response_core.lib import utils

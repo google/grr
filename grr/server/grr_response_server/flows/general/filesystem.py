@@ -8,7 +8,6 @@ import os
 import re
 import stat
 
-from future.builtins import map
 from future.utils import iteritems
 from future.utils import iterkeys
 

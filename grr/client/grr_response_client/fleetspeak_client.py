@@ -209,7 +209,7 @@ class GRRFleetspeakClient(object):
       raise
 
     received_type = fs_msg.data.TypeName()
-    if not received_type.endswith("grr.GrrMessage"):
+    if not received_type.endswith("GrrMessage"):
       raise ValueError(
           "Unexpected proto type received through Fleetspeak: %r; expected "
           "grr.GrrMessage." % received_type)

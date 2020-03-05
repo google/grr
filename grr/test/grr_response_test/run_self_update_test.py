@@ -43,7 +43,7 @@ def main(argv):
     raise ValueError("--mysql_username has to be specified.")
 
   # Generate server and client configs.
-  server_conf_path, _ = self_contained_components.InitConfigs(
+  grr_configs = self_contained_components.InitGRRConfigs(
       flags.FLAGS.mysql_database,
       mysql_username=flags.FLAGS.mysql_username,
       mysql_password=flags.FLAGS.mysql_password,
@@ -51,11 +51,11 @@ def main(argv):
 
   print("Building the template.")
   template_path = self_contained_components.RunBuildTemplate(
-      server_conf_path, component_options={"Logging.verbose": True})
+      grr_configs.server_config, component_options={"Logging.verbose": True})
 
   print("Repack %s." % template_path)
   installer_path = self_contained_components.RunRepackTemplate(
-      server_conf_path, template_path)
+      grr_configs.server_config, template_path)
 
   version_overrides = {
       "Source.version_major": 9,
@@ -74,13 +74,13 @@ def main(argv):
 
   print("Building next ver. template.")
   next_ver_template_path = self_contained_components.RunBuildTemplate(
-      server_conf_path,
+      grr_configs.server_config,
       component_options=version_overrides,
       version_ini=_HIGHEST_VERSION_INI)
 
   print("Repack next ver. %s." % template_path)
   next_ver_installer_path = self_contained_components.RunRepackTemplate(
-      server_conf_path,
+      grr_configs.server_config,
       next_ver_template_path,
       component_options=version_overrides)
 
@@ -91,11 +91,10 @@ def main(argv):
   # Start all remaining server components.
   # Start a background thread that kills the main process if one of the
   # server subprocesses dies.
-  server_processes = self_contained_components.StartServerProcesses(
-      server_conf_path)
+  server_processes = self_contained_components.StartServerProcesses(grr_configs)
   self_contained_components.DieIfSubProcessDies(server_processes)
 
-  api_port = api_helpers.GetAdminUIPortFromConfig(server_conf_path)
+  api_port = api_helpers.GetAdminUIPortFromConfig(grr_configs.server_config)
   grrapi = api_helpers.WaitForAPIEndpoint(api_port)
 
   print("Installing the client.")
@@ -125,7 +124,7 @@ def main(argv):
   prev_version = api_helpers.WaitForClientVersionGreaterThan(
       grrapi.Client(client_id), 0)
 
-  binary_id = self_contained_components.RunUploadExe(server_conf_path,
+  binary_id = self_contained_components.RunUploadExe(grr_configs.server_config,
                                                      next_ver_installer_path,
                                                      system)
 

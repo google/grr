@@ -9,7 +9,6 @@ import logging
 import socket
 import threading
 
-from future.builtins import range
 from http import server as http_server
 
 import prometheus_client

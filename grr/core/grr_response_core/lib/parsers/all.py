@@ -162,7 +162,6 @@ def Register():
   except ImportError:
     pass
 
-
   # File multi-parsers.
   parsers.MULTI_FILE_PARSER_FACTORY.Register(
       "LinuxBaseShadow", linux_file_parser.LinuxBaseShadowParser)

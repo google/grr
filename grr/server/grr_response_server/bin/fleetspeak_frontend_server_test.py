@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.builtins import range
 import mock
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2

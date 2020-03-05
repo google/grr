@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import contextlib
 import logging
 
-from future.builtins import str
 from future.utils import iteritems
 
 from grr_response_core import config
@@ -349,8 +348,7 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
       for parser in parser_factory.SingleResponseParsers():
         with ParseErrorHandler():
           parsed_responses.extend(
-              parser.ParseResponse(knowledge_base, response,
-                                   flow_obj.args.path_type))
+              parser.ParseResponse(knowledge_base, response))
 
   for parser in parser_factory.MultiResponseParsers():
     with ParseErrorHandler():

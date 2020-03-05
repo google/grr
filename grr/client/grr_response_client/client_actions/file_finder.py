@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import io
 
-from future.builtins import str
 from typing import Callable, Iterator, Text, List
 
 from grr_response_client import actions

@@ -9,9 +9,6 @@ import gzip
 import os
 
 from absl import app
-from future.builtins import range
-from future.builtins import str
-from future.builtins import zip
 import mock
 
 from grr_response_core import config

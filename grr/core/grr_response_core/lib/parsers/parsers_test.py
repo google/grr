@@ -4,7 +4,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
-from future.builtins import map
 
 import mock
 
@@ -22,21 +21,21 @@ class ArtifactParserFactoryTest(absltest.TestCase):
 
       supported_artifacts = ["Quux", "Norf"]
 
-      def ParseResponse(self, knowledge_base, response, path_type):
+      def ParseResponse(self, knowledge_base, response):
         raise NotImplementedError()
 
     class BarParser(parsers.SingleResponseParser):
 
       supported_artifacts = ["Norf", "Thud"]
 
-      def ParseResponse(self, knowledge_base, response, path_type):
+      def ParseResponse(self, knowledge_base, response):
         raise NotImplementedError()
 
     class BazParser(parsers.SingleResponseParser):
 
       supported_artifacts = ["Thud", "Quux"]
 
-      def ParseResponse(self, knowledge_base, response, path_type):
+      def ParseResponse(self, knowledge_base, response):
         raise NotImplementedError()
 
     parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("Foo", FooParser)

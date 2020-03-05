@@ -6,7 +6,7 @@
 *.pb.cc
 *.pb.h
 *~
-.idea
+.idea/
 build/
 dist/
 artifacts/*.yaml
@@ -14,3 +14,10 @@ grr.egg-info/
 get-pip.py
 grr/core/grr_response_core/artifacts/*.yaml
 *.egg-info/
+.eggs/
+node_modules/
+tmp/
+grr/server/grr_response_server/gui/static/fonts/
+installers/
+GRRlog.txt
+*.log

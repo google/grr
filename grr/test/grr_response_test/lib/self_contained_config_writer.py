@@ -43,6 +43,9 @@ flags.DEFINE_string(
     help="A path to the osquery executable.",
 )
 
+flags.DEFINE_bool("config_with_fleetspeak", False,
+                  "If set, configure GRR to run behind Fleetspeak.")
+
 
 def main(argv):
   del argv  # Unused.
@@ -54,7 +57,6 @@ def main(argv):
     raise ValueError("dest_client_config_path flag has to be provided.")
 
   admin_ui_port = portpicker.pick_unused_port()
-  frontend_port = portpicker.pick_unused_port()
 
   source_server_config_path = package.ResourcePath(
       "grr-response-core", "install_data/etc/grr-server.yaml")
@@ -73,17 +75,31 @@ def main(argv):
     config.CONFIG.Set("Mysql.password", flags.FLAGS.config_mysql_password)
   config.CONFIG.Set("AdminUI.port", admin_ui_port)
   config.CONFIG.Set("AdminUI.headless", True)
-  config.CONFIG.Set("Frontend.bind_address", "127.0.0.1")
-  config.CONFIG.Set("Frontend.bind_port", frontend_port)
+
   config.CONFIG.Set("Server.initialized", True)
   config.CONFIG.Set("Cron.active", False)
-  config.CONFIG.Set("Client.poll_max", 1)
-  config.CONFIG.Set("Client.server_urls",
-                    ["http://localhost:%d/" % frontend_port])
+  if flags.FLAGS.config_with_fleetspeak:
+    fleetspeak_frontend_port = portpicker.pick_unused_port()
+    fleetspeak_admin_port = portpicker.pick_unused_port()
+
+    config.CONFIG.Set("Client.fleetspeak_enabled", True)
+    config.CONFIG.Set("Server.fleetspeak_message_listen_address",
+                      "localhost:%d" % fleetspeak_frontend_port)
+    config.CONFIG.Set("Server.fleetspeak_server",
+                      "localhost:%d" % fleetspeak_admin_port)
+  else:
+    frontend_port = portpicker.pick_unused_port()
+
+    config.CONFIG.Set("Frontend.bind_address", "127.0.0.1")
+    config.CONFIG.Set("Frontend.bind_port", frontend_port)
+    config.CONFIG.Set("Client.poll_max", 1)
+    config.CONFIG.Set("Client.server_urls",
+                      ["http://localhost:%d/" % frontend_port])
 
   if flags.FLAGS.config_logging_path is not None:
     config.CONFIG.Set("Logging.path", flags.FLAGS.config_logging_path)
   config.CONFIG.Set("Logging.verbose", False)
+  config.CONFIG.Set("Logging.engines", "file,stderr")
 
   if flags.FLAGS.config_osquery_path:
     config.CONFIG.Set("Osquery.path", flags.FLAGS.config_osquery_path)

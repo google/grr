@@ -11,7 +11,6 @@ import re
 import sys
 import time
 
-from future.builtins import range
 from future.moves import winreg
 import ntsecuritycon
 import pywintypes

@@ -69,17 +69,19 @@ class DarwinPersistenceMechanismsParser(parser.ArtifactFilesParser):
   output_types = [rdf_standard.PersistenceFile]
   supported_artifacts = ["DarwinPersistenceMechanisms"]
 
-  def Parse(self, persistence, knowledge_base, download_pathtype):
+  def Parse(self, persistence, knowledge_base):
     """Convert persistence collector output to downloadable rdfvalues."""
-    pathspecs = []
+    pathspec = None
 
     if isinstance(persistence, rdf_client.OSXServiceInformation):
       if persistence.program:
-        pathspecs = rdf_paths.PathSpec(
-            path=persistence.program, pathtype=download_pathtype)
+        pathspec = rdf_paths.PathSpec(
+            path=persistence.program,
+            pathtype=rdf_paths.PathSpec.PathType.UNSET)
       elif persistence.args:
-        pathspecs = rdf_paths.PathSpec(
-            path=persistence.args[0], pathtype=download_pathtype)
+        pathspec = rdf_paths.PathSpec(
+            path=persistence.args[0],
+            pathtype=rdf_paths.PathSpec.PathType.UNSET)
 
-    for pathspec in pathspecs:
+    if pathspec is not None:
       yield rdf_standard.PersistenceFile(pathspec=pathspec)

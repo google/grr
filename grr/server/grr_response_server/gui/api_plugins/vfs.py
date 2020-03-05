@@ -9,10 +9,6 @@ import os
 import re
 import zipfile
 
-from future.builtins import filter
-from future.builtins import int
-from future.builtins import range
-from future.builtins import str
 from future.utils import iterkeys
 from future.utils import itervalues
 

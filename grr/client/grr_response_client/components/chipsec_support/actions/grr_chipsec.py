@@ -10,8 +10,6 @@ from logging import handlers
 import os
 import platform
 
-from future.builtins import bytes
-from future.builtins import range
 
 # pylint: disable=g-bad-import-order, g-import-not-at-top
 # Import Chipsec configuration first so we can hook onto its internal path

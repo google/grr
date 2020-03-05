@@ -69,17 +69,13 @@ class Parser(with_metaclass(abc.ABCMeta)):
 class SingleResponseParser(Parser):
   """An abstract class for parsers that are able to parse individual replies."""
 
-  # TODO(hanuszczak): `path_type` is part of the signature only because one of
-  # the parser classes needs that (`ArtifactFilesParser`). This is a very poor
-  # design and some other way to avoid having this parameter should be devised.
   @abc.abstractmethod
-  def ParseResponse(self, knowledge_base, response, path_type):
+  def ParseResponse(self, knowledge_base, response):
     """Parse a single response from the client.
 
     Args:
       knowledge_base: A knowledgebase for the client that provided the response.
       response: An RDF value representing the result of artifact collection.
-      path_type: A path type information used by the `ArtifactFilesParser`.
 
     Raises:
       ParseError: If parser is not able to parse the response.

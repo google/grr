@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import binascii
 
-from future.builtins import str
 from typing import Text
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2

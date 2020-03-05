@@ -16,8 +16,6 @@ from wsgiref import simple_server
 
 from cryptography.hazmat.primitives import constant_time
 
-from future.builtins import int
-from future.builtins import str
 
 import ipaddress
 import jinja2
@@ -286,14 +284,18 @@ class AdminUIApp(object):
   def _HandleHomepageV2(self, request):
     """Renders GRR home page for the next-get UI (v2)."""
 
-    _ = request
+    del request  # Unused.
+
+    context = {
+        "is_development": "Debug Context" in config.CONFIG.context,
+    }
 
     env = jinja2.Environment(
         loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
         autoescape=True)
     template = env.get_template("base-v2.html")
     response = werkzeug_wrappers.Response(
-        template.render({}), mimetype="text/html")
+        template.render(context), mimetype="text/html")
 
     return response
 

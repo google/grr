@@ -11,7 +11,6 @@ import os
 import subprocess
 
 from absl import app
-from future.builtins import str
 
 import mock
 
@@ -141,8 +140,8 @@ class RaisingParser(parsers.SingleResponseParser):
   output_types = [None]
   supported_artifacts = ["RaisingArtifact"]
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del knowledge_base, response, path_type  # Unused.
+  def ParseResponse(self, knowledge_base, response):
+    del knowledge_base, response  # Unused.
     raise parsers.ParseError("It was bound to happen.")
 
 

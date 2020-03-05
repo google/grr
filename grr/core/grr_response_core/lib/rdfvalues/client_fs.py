@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import stat
 
-from future.builtins import range
 from future.utils import python_2_unicode_compatible
 from typing import Text
 

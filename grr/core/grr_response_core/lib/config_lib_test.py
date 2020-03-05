@@ -12,7 +12,6 @@ import stat
 
 from absl import app
 from absl.testing import flagsaver
-from future.builtins import str
 from past.builtins import long
 
 from grr_response_core import config

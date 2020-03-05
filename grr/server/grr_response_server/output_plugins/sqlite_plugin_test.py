@@ -10,7 +10,6 @@ import os
 import zipfile
 
 from absl import app
-from future.builtins import range
 from future.utils import iteritems
 from future.utils import iterkeys
 import sqlite3

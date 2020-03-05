@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.builtins import str
 from future.utils import iteritems
 from typing import Iterable
 from typing import Sequence
@@ -119,10 +118,9 @@ class ArtifactCollector(actions.ActionPlugin):
     """Iterates through sources yielding action responses."""
     for source in sources:
       for action, request in self._ParseSourceType(source):
-        yield self._RunClientAction(action, request, parser_factory,
-                                    source.path_type)
+        yield self._RunClientAction(action, request, parser_factory)
 
-  def _RunClientAction(self, action, request, parser_factory, path_type):
+  def _RunClientAction(self, action, request, parser_factory):
     """Runs the client action  with the request and parses the result."""
     responses = list(action(request))
 
@@ -135,7 +133,7 @@ class ArtifactCollector(actions.ActionPlugin):
     for response in responses:
       for parser in parser_factory.SingleResponseParsers():
         parsed_responses.extend(
-            parser.ParseResponse(self.knowledge_base, response, path_type))
+            parser.ParseResponse(self.knowledge_base, response))
 
       for parser in parser_factory.SingleFileParsers():
         precondition.AssertType(response, rdf_client_fs.StatEntry)

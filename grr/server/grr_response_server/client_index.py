@@ -10,8 +10,6 @@ from __future__ import unicode_literals
 import functools
 import operator
 
-from future.builtins import map
-from future.builtins import range
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types

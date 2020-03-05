@@ -3,6 +3,7 @@
 """Functions to run individual GRR components during self-contained testing."""
 
 import atexit
+import collections
 import os
 import shutil
 import signal
@@ -12,12 +13,21 @@ import tempfile
 import threading
 import time
 
-from typing import Dict, Iterable, List, Optional, Tuple, Union
+from typing import Dict, Iterable, List, Optional, Union
 
 import portpicker
 
+from google.protobuf import text_format
 from grr_response_core.lib import package
 from grr_response_test.lib import api_helpers
+
+from fleetspeak.src.client.daemonservice.proto.fleetspeak_daemonservice import config_pb2 as daemonservice_config_pb2
+from fleetspeak.src.client.generic.proto.fleetspeak_client_generic import config_pb2 as client_config_pb2
+from fleetspeak.src.common.proto.fleetspeak import system_pb2
+from fleetspeak.src.config.proto.fleetspeak_config import config_pb2
+from fleetspeak.src.server.grpcservice.proto.fleetspeak_grpcservice import grpcservice_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import server_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import services_pb2
 
 ComponentOptions = Dict[str, Union[int, str]]
 
@@ -106,6 +116,34 @@ def _GetRunEndToEndTestsArgs(
   return args
 
 
+def _StartBinary(binary_path, args):
+  """Starts a new process with a given binary and args.
+
+  Started subprocess will be killed automatically on exit.
+
+  Args:
+    binary_path: A binary to run.
+    args: An iterable with program arguments (not containing the program
+      executable).
+
+  Returns:
+    Popen object corresponding to a started process.
+  """
+
+  popen_args = [binary_path] + args
+  print("Starting binary: " + " ".join(popen_args))
+  process = subprocess.Popen(popen_args)
+
+  def KillOnExit():
+    if process.poll() is None:
+      process.kill()
+      process.wait()
+
+  atexit.register(KillOnExit)
+
+  return process
+
+
 def _StartComponent(main_package, args):
   """Starts a new process with a given component.
 
@@ -137,11 +175,18 @@ def _StartComponent(main_package, args):
   return process
 
 
-def InitConfigs(mysql_database,
-                mysql_username = None,
-                mysql_password = None,
-                logging_path = None,
-                osquery_path = None):
+GRRConfigs = collections.namedtuple("GRRConfigs", [
+    "server_config",
+    "client_config",
+])
+
+
+def InitGRRConfigs(mysql_database,
+                   mysql_username = None,
+                   mysql_password = None,
+                   logging_path = None,
+                   osquery_path = None,
+                   with_fleetspeak = False):
   """Initializes server and client config files."""
 
   # Create 2 temporary files to contain server and client configuration files
@@ -184,6 +229,9 @@ def InitConfigs(mysql_database,
   if osquery_path is not None:
     config_writer_flags.extend(["--config_osquery_path", osquery_path])
 
+  if with_fleetspeak:
+    config_writer_flags.extend(["--config_with_fleetspeak"])
+
   p = _StartComponent(
       "grr_response_test.lib.self_contained_config_writer",
       config_writer_flags)
@@ -191,38 +239,169 @@ def InitConfigs(mysql_database,
     raise ConfigInitializationError("ConfigWriter execution failed: {}".format(
         p.returncode))
 
-  return (built_server_config_path, built_client_config_path)
+  return GRRConfigs(built_server_config_path, built_client_config_path)
+
+
+FleetspeakConfigs = collections.namedtuple("FleetspeakConfigs", [
+    "server_components_config",
+    "server_services_config",
+    "client_config",
+])
+
+
+def InitFleetspeakConfigs(
+    grr_configs,
+    mysql_database,
+    mysql_username = None,
+    mysql_password = None):
+  """Initializes Fleetspeak server and client configs."""
+
+  fs_frontend_port, fs_admin_port = api_helpers.GetFleetspeakPortsFromConfig(
+      grr_configs.server_config)
+
+  mysql_username = mysql_username or ""
+  mysql_password = mysql_password or ""
+
+  temp_root = tempfile.mkdtemp(suffix="_fleetspeak")
+
+  def TempPath(*args):
+    return os.path.join(temp_root, *args)
+
+  cp = config_pb2.Config(configuration_name="Self-contained testing")
+  cp.components_config.mysql_data_source_name = "%s:%s@tcp(127.0.0.1:3306)/%s" % (
+      mysql_username, mysql_password, mysql_database)
+  cp.components_config.https_config.listen_address = "localhost:%d" % portpicker.pick_unused_port(
+  )
+  # TODO(user): Use streaming connections by default. At the moment
+  # a few tests are failing with MySQL errors when streaming is used.
+  cp.components_config.https_config.disable_streaming = True
+  cp.components_config.admin_config.listen_address = ("localhost:%d" %
+                                                      fs_admin_port)
+  cp.public_host_port.append(cp.components_config.https_config.listen_address)
+  cp.server_component_configuration_file = TempPath("server.config")
+  cp.trusted_cert_file = TempPath("trusted_cert.pem")
+  cp.trusted_cert_key_file = TempPath("trusted_cert_key.pem")
+  cp.server_cert_file = TempPath("server_cert.pem")
+  cp.server_cert_key_file = TempPath("server_cert_key.pem")
+  cp.linux_client_configuration_file = TempPath("linux_client.config")
+  cp.windows_client_configuration_file = TempPath("windows_client.config")
+  cp.darwin_client_configuration_file = TempPath("darwin_client.config")
+
+  built_configurator_config_path = TempPath("configurator.config")
+  with open(built_configurator_config_path, mode="w", encoding="utf-8") as fd:
+    fd.write(text_format.MessageToString(cp))
+
+  p = _StartBinary(
+      "fleetspeak-config",
+      ["--logtostderr", "--config", built_configurator_config_path])
+  if p.wait() != 0:
+    raise ConfigInitializationError(
+        "fleetspeak-config execution failed: {}".format(p.returncode))
+
+  # Adjust client config.
+  with open(
+      cp.linux_client_configuration_file, mode="r", encoding="utf-8") as fd:
+    conf_content = fd.read()
+  conf = text_format.Parse(conf_content, client_config_pb2.Config())
+  conf.filesystem_handler.configuration_directory = temp_root
+  conf.filesystem_handler.state_file = TempPath("client.state")
+  with open(
+      cp.linux_client_configuration_file, mode="w", encoding="utf-8") as fd:
+    fd.write(text_format.MessageToString(conf))
+
+  # Write client services configuration.
+  service_conf = system_pb2.ClientServiceConfig(name="GRR", factory="Daemon")
+  payload = daemonservice_config_pb2.Config()
+  payload.argv.extend([
+      sys.executable, "-m",
+      "grr_response_client.grr_fs_client",
+      "--config", grr_configs.client_config
+  ])
+  service_conf.config.Pack(payload)
+
+  os.mkdir(TempPath("textservices"))
+  with open(
+      TempPath("textservices", "GRR.textproto"), mode="w",
+      encoding="utf-8") as fd:
+    fd.write(text_format.MessageToString(service_conf))
+
+  # Server services configuration.
+  service_config = services_pb2.ServiceConfig(name="GRR", factory="GRPC")
+  grpc_config = grpcservice_pb2.Config(
+      target="localhost:%d" % fs_frontend_port, insecure=True)
+  service_config.config.Pack(grpc_config)
+  server_conf = server_pb2.ServerConfig(services=[service_config])
+  server_conf.broadcast_poll_time.seconds = 1
+
+  built_server_services_config_path = TempPath("server.services.config")
+  with open(
+      built_server_services_config_path, mode="w", encoding="utf-8") as fd:
+    fd.write(text_format.MessageToString(server_conf))
+
+  return FleetspeakConfigs(cp.server_component_configuration_file,
+                           built_server_services_config_path,
+                           cp.linux_client_configuration_file)
 
 
 def StartServerProcesses(
-    server_config_path,
-    component_options = None
+    grr_configs,
+    fleetspeak_configs = None,
 ):
+  """Starts GRR server processes (optionally behind Fleetspeak frontend)."""
 
   def Args():
-    return _GetServerComponentArgs(
-        server_config_path) + _ComponentOptionsToArgs(component_options)
+    return _GetServerComponentArgs(grr_configs.server_config)
 
-  return [
-      _StartComponent(
-          "grr_response_server.gui.admin_ui",
-          Args()),
-      _StartComponent(
-          "grr_response_server.bin.frontend",
-          Args()),
-      _StartComponent(
-          "grr_response_server.bin.worker",
-          Args()),
-  ]
+  if fleetspeak_configs is None:
+    return [
+        _StartComponent(
+            "grr_response_server.gui.admin_ui",
+            Args()),
+        _StartComponent(
+            "grr_response_server.bin.frontend",
+            Args()),
+        _StartComponent(
+            "grr_response_server.bin.worker",
+            Args()),
+    ]
+  else:
+    return [
+        _StartBinary("fleetspeak-server", [
+            "-logtostderr",
+            "-components_config",
+            fleetspeak_configs.server_components_config,
+            "-services_config",
+            fleetspeak_configs.server_services_config,
+        ]),
+        _StartComponent(
+            "grr_response_server.bin.fleetspeak_frontend",
+            Args()),
+        _StartComponent(
+            "grr_response_server.gui.admin_ui",
+            Args()),
+        _StartComponent(
+            "grr_response_server.bin.worker",
+            Args()),
+    ]
 
 
-def StartClientProcess(client_config_path,
-                       component_options = None,
+def StartClientProcess(grr_configs,
+                       fleetspeak_configs = None,
                        verbose = False):
-  return _StartComponent(
-      "grr_response_client.client",
-      ["--config", client_config_path] + (["--verbose"] if verbose else []) +
-      _ComponentOptionsToArgs(component_options))
+  """Starts a GRR client or Fleetspeak client configured to run GRR."""
+
+  if fleetspeak_configs is None:
+    return _StartComponent(
+        "grr_response_client.client",
+        ["--config", grr_configs.client_config] +
+        (["--verbose"] if verbose else []))
+  else:
+    return _StartBinary("fleetspeak-client", [
+        "-logtostderr",
+        "-std_forward",
+        "-config",
+        fleetspeak_configs.client_config,
+    ])
 
 
 def RunEndToEndTests(client_id,

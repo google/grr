@@ -17,20 +17,21 @@ namespace grr {
 
 class MockChildProcess : public ChildProcess {
  public:
-  MOCK_METHOD0(CreateChildProcess, bool());
-  MOCK_METHOD0(GetHeartbeat, time_t());
-  MOCK_METHOD0(ClearHeartbeat, void());
-  MOCK_METHOD1(SetHeartbeat, void(unsigned int));
-  MOCK_METHOD0(Heartbeat, void());
-  MOCK_METHOD1(KillChild, void(const std::string &msg));
-  MOCK_METHOD0(GetCurrentTime, time_t());
-  MOCK_METHOD0(IsAlive, bool());
-  MOCK_METHOD0(Started, bool());
-  MOCK_METHOD0(GetMemoryUsage, size_t());
-  MOCK_METHOD1(SetNannyMessage, void(const std::string &msg));
-  MOCK_METHOD1(SetNannyStatus, void(const std::string &msg));
-  MOCK_METHOD1(SetPendingNannyMessage, void(const std::string &msg));
-  MOCK_METHOD1(ChildSleep, void(unsigned int));
+  MOCK_METHOD(bool, CreateChildProcess, (), (override));
+  MOCK_METHOD(time_t, GetHeartbeat, (), (override));
+  MOCK_METHOD(void, ClearHeartbeat, (), (override));
+  MOCK_METHOD(void, SetHeartbeat, (unsigned int), (override));
+  MOCK_METHOD(void, Heartbeat, (), (override));
+  MOCK_METHOD(void, KillChild, (const std::string &msg), (override));
+  MOCK_METHOD(time_t, GetCurrentTime, (), (override));
+  MOCK_METHOD(bool, IsAlive, (), (override));
+  MOCK_METHOD(bool, Started, (), (override));
+  MOCK_METHOD(size_t, GetMemoryUsage, (), (override));
+  MOCK_METHOD(void, SetNannyMessage, (const std::string &msg), (override));
+  MOCK_METHOD(void, SetNannyStatus, (const std::string &msg), (override));
+  MOCK_METHOD(void, SetPendingNannyMessage, (const std::string &msg),
+              (override));
+  MOCK_METHOD(void, ChildSleep, (unsigned int), (override));
 };
 
 class ChildTest : public ::testing::Test {};

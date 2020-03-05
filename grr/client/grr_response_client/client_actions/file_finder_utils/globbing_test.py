@@ -13,7 +13,6 @@ import unittest
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import zip
 from typing import Iterator
 from typing import Sequence
 from typing import Text

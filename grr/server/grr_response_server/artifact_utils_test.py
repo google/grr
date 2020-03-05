@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import os
 
 from absl import app
-from future.builtins import str
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
@@ -374,7 +373,7 @@ class Parser1(parsers.SingleResponseParser):
   supported_artifacts = ["artifact"]
   knowledgebase_dependencies = ["appdata", "sid"]
 
-  def ParseResponse(self, knowledge_base, response, path_type):
+  def ParseResponse(self, knowledge_base, response):
     raise NotImplementedError()
 
 

@@ -10,7 +10,6 @@ import inspect
 import logging
 import numbers
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass

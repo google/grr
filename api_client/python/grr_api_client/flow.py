@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 from grr_api_client import errors
 from grr_api_client import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import timeline_pb2
 
@@ -152,6 +151,6 @@ class Flow(FlowBase):
   def __repr__(self):
     return ("Flow(data=<{} client_id={!r}, flow_id={!r}, name={!r}, "
             "state={}, ...>)").format(
-                compatibility.GetName(type(self.data)), self.data.client_id,
+                type(self.data).__name__, self.data.client_id,
                 self.data.flow_id, self.data.name,
                 flow_pb2.ApiFlow.State.Name(self.data.state))

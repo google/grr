@@ -10,7 +10,6 @@ from absl import app
 
 from grr_response_core.lib.parsers import osx_launchd
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib
@@ -47,8 +46,7 @@ class DarwinPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
     parser = osx_launchd.DarwinPersistenceMechanismsParser()
     serv_info = rdf_client.OSXServiceInformation(
         label="blah", args=["/blah/test", "-v"])
-    results = list(
-        parser.Parse(serv_info, None, rdf_paths.PathSpec.PathType.OS))
+    results = list(parser.Parse(serv_info, None))
     self.assertEqual(results[0].pathspec.path, "/blah/test")
 
 

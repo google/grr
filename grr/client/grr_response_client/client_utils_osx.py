@@ -10,7 +10,6 @@ import logging
 import os
 import platform
 
-from future.builtins import range
 
 from grr_response_client import client_utils_osx_linux
 from grr_response_client.osx import objc

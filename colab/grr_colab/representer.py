@@ -11,7 +11,6 @@ from __future__ import unicode_literals
 import os
 import sys
 
-from future.builtins import str
 from future.utils import python_2_unicode_compatible
 import humanize
 import ipaddress

@@ -19,7 +19,6 @@ import struct
 import sys
 
 import distro
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import string_types
 from past.builtins import long

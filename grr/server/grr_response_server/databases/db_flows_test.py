@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import random
 import time
 
-from future.builtins import range
 from future.utils import iteritems
 import mock
 import queue

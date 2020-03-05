@@ -10,7 +10,6 @@ import tarfile
 import zipfile
 
 from absl import app
-from future.builtins import range
 import yaml
 
 from grr_response_core.lib import rdfvalue

@@ -9,7 +9,6 @@ import io
 import os
 
 from absl import app
-from future.builtins import str
 import mock
 
 from grr_response_client_builder import build_helpers
@@ -49,16 +48,14 @@ class BuildTests(test_lib.GRRBaseTest):
             u"amd64"
     }
 
-    # TODO(hanuszczak): YAML, consider using `StringIO` instead.
-    fd = io.BytesIO()
+    fd = io.StringIO()
 
     with mock.patch.object(rdf_client.Uname, "FromCurrentSystem") as fcs:
       fcs.return_value.signature.return_value = "cp27-cp27mu-linux_x86_64"
       with test_lib.FakeTime(1464120265):
         build_helpers.WriteBuildYaml(fd, context=context)
 
-    fd.seek(0)
-    self.assertEqual(yaml.Parse(fd.getvalue().decode("utf-8")), expected)
+    self.assertEqual(yaml.Parse(fd.getvalue()), expected)
 
   def testGenClientConfig(self):
     with test_lib.ConfigOverrider({"Client.build_environment": "test_env"}):

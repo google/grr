@@ -8,7 +8,6 @@ import io
 import os
 import zipfile
 
-from future.builtins import str
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

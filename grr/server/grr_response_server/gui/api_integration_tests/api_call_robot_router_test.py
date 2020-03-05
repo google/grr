@@ -9,7 +9,6 @@ import os
 import zipfile
 
 from absl import app
-from future.builtins import range
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.util import compatibility

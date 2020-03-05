@@ -24,8 +24,7 @@ class CommandParser(abstract.SingleResponseParser):
   def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     """Take the output of the command run, and yield RDFValues."""
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del path_type  # Unused.
+  def ParseResponse(self, knowledge_base, response):
     precondition.AssertType(response, rdf_client_action.ExecuteResponse)
 
     return self.Parse(
@@ -81,8 +80,7 @@ class RegistryValueParser(abstract.SingleResponseParser):
   def Parse(self, stat, knowledge_base):
     """Take the stat, and yield RDFValues."""
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del path_type  # Unused.
+  def ParseResponse(self, knowledge_base, response):
     # TODO(hanuszczak): Why some of the registry value parsers anticipate string
     # response? This is stupid.
     precondition.AssertType(response,
@@ -99,8 +97,7 @@ class RegistryParser(abstract.SingleResponseParser):
   def Parse(self, stat, knowledge_base):
     """Take the stat, and yield RDFValues."""
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del path_type  # Unused.
+  def ParseResponse(self, knowledge_base, response):
     precondition.AssertType(response, rdf_client_fs.StatEntry)
 
     return self.Parse(response, knowledge_base)
@@ -127,8 +124,7 @@ class GrepParser(abstract.SingleResponseParser):
   def Parse(self, response, knowledge_base):
     """Parse the FileFinderResult.matches."""
 
-  def ParseResponse(self, knowledge_base, response, path_type):
-    del path_type  # Unused.
+  def ParseResponse(self, knowledge_base, response):
     precondition.AssertType(response, rdf_file_finder.FileFinderResult)
 
     return self.Parse(response, knowledge_base)
@@ -138,12 +134,12 @@ class ArtifactFilesParser(abstract.SingleResponseParser):
   """Abstract parser for processing artifact files."""
 
   # TODO(hanuszczak): Make this abstract.
-  def Parse(self, persistence, knowledge_base, download_pathtype):
+  def Parse(self, persistence, knowledge_base):
     """Parse artifact files."""
 
-  def ParseResponse(self, knowledge_base, response, path_type):
+  def ParseResponse(self, knowledge_base, response):
     # TODO(hanuszczak): What is the expected type of `response` here?
-    return self.Parse(response, knowledge_base, path_type)
+    return self.Parse(response, knowledge_base)
 
 
 class ArtifactFilesMultiParser(abstract.MultiResponseParser):

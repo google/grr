@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 
 import biplist
-from future.builtins import str
 
 from grr_response_client import actions
 from grr_response_client import vfs

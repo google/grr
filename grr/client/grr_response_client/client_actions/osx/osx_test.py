@@ -11,7 +11,6 @@ import socket
 import struct
 
 from absl import app
-from future.builtins import bytes
 import mock
 
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network

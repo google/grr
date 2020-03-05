@@ -13,7 +13,6 @@ import traceback
 
 from future import utils as future_utils
 # Shadow builtin `str` to enforce consistent behavior during Py3 migration.
-from future.builtins import str
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue

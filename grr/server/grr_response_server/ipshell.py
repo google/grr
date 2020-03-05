@@ -5,8 +5,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from future.builtins import str
-
 
 # pylint: disable=g-import-not-at-top
 def IPShell(argv=None, user_ns=None, banner=None):

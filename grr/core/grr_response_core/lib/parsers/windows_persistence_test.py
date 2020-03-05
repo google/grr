@@ -56,8 +56,7 @@ class WindowsPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
     ]
 
     for index, item in enumerate(persistence):
-      results = list(
-          parser.Parse(item, knowledge_base, rdf_paths.PathSpec.PathType.OS))
+      results = list(parser.Parse(item, knowledge_base))
       self.assertEqual(results[0].pathspec.path, expected[index])
       self.assertLen(results, 1)
 

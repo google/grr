@@ -383,6 +383,12 @@ message ExportedYaraProcessScanMatch {
   }];
 }
 
+message ExportedProcessMemoryError {
+  optional ExportedMetadata metadata = 1;
+  optional ExportedProcess process = 2;
+  optional string error = 3;
+}
+
 message ExportedSoftwarePackage {
   optional ExportedMetadata metadata = 1;
   optional string name = 2;

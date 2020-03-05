@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import time
 
 from absl import app
-from future.builtins import range
 import mock
 import queue
 import requests

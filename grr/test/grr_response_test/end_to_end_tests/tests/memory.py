@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import os
 import random
 import re
 import string
@@ -95,7 +94,7 @@ rule foo {{
 
     args = self.grr_api.types.CreateFlowArgs(flow_name="YaraProcessScan")
     args.yara_signature_blob_id = self.grr_api.UploadYaraSignature(signature)
-    args.pids.append(os.getpid())
+    args.process_regex = _GetProcessNameRegex(self.client)
     args.ignore_grr_process = False
 
     flow = self.RunFlowAndWait("YaraProcessScan", args=args)
@@ -114,7 +113,7 @@ class TestProcessDump(test_base.AbstractFileTransferTest):
     process_name = _GetBinaryName(self.client)
     args.process_regex = _GetProcessNameRegex(self.client)
     args.ignore_grr_process = False
-    args.size_limit = 20 * 1024 * 1024
+    args.size_limit = 1024 * 1024
 
     f = self.RunFlowAndWait("DumpProcessMemory", args=args)
 

@@ -13,8 +13,6 @@ import os
 import pwd
 import time
 
-from future.builtins import bytes
-from future.builtins import range
 from future.utils import iteritems
 
 from grr_response_client import actions

@@ -9,7 +9,6 @@ import logging
 import time
 import traceback
 
-from future.builtins import str
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 import http.client

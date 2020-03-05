@@ -5,8 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
-from future.builtins import int
-from future.builtins import str
 
 from grr_response_core.lib.util import precondition
 

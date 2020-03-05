@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 import sys
 
-from future.builtins import str
 
 from grr_api_client import api
 from grr_response_core import config

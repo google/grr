@@ -16,8 +16,6 @@ import abc
 import collections
 import re
 
-from future.builtins import int
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues

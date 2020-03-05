@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import itertools
 import random
 
-from future.builtins import range
 from typing import Any, Callable, Dict, Iterable, Optional, Text
 
 from grr_response_server.databases import db

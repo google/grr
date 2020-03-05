@@ -32,7 +32,6 @@ import hashlib
 import os
 import struct
 
-from future.builtins import str
 
 # pylint: disable=g-bad-name
 # Two classes given named tupes for ranges and relative ranges.

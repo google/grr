@@ -10,7 +10,6 @@ import sys
 
 from absl import app
 from absl.flags import argparse_flags
-from future.builtins import input
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts

@@ -8,7 +8,6 @@ import collections
 import math
 import re
 
-from future.builtins import range
 from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue

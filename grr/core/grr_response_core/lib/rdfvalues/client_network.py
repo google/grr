@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import binascii
 import logging
 
-from future.builtins import str
 
 import ipaddress
 

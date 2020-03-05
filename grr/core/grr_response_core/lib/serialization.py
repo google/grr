@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import abc
 
-from future.builtins import int
 from future.utils import with_metaclass
 
 from typing import Text

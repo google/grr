@@ -12,8 +12,6 @@ import traceback
 
 import cryptography
 from cryptography.hazmat.backends import openssl
-from future.builtins import map
-from future.builtins import str
 from future.utils import iteritems
 import pkg_resources
 import psutil
@@ -238,7 +236,7 @@ class UpdateConfiguration(actions.ActionPlugin):
 def GetClientInformation():
   return rdf_client.ClientInformation(
       client_name=config.CONFIG["Client.name"],
-      client_binary_name=config.CONFIG["Client.binary_name"],
+      client_binary_name=psutil.Process().name(),
       client_description=config.CONFIG["Client.description"],
       client_version=int(config.CONFIG["Source.version_numeric"]),
       build_time=config.CONFIG["Client.build_time"],

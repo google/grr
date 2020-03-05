@@ -12,7 +12,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.builtins import str
 from future.utils import itervalues
 from future.utils import string_types
 from future.utils import with_metaclass

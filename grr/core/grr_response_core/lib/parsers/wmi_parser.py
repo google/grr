@@ -10,10 +10,6 @@ import calendar
 import struct
 import time
 
-from future.builtins import bytes
-from future.builtins import map
-from future.builtins import range
-from future.builtins import str
 from future.utils import iteritems
 
 from grr_response_core.lib import parser

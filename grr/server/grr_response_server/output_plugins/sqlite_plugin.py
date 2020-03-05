@@ -9,7 +9,6 @@ import io
 import os
 import zipfile
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues

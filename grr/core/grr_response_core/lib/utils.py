@@ -25,9 +25,6 @@ import weakref
 import zipfile
 import zlib
 
-from future.builtins import map
-from future.builtins import range
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import python_2_unicode_compatible

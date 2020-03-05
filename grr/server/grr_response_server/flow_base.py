@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import logging
 import traceback
 
-from future.builtins import str
 from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue

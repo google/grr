@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import collections
 import logging
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues

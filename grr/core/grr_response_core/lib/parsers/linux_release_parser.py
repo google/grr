@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import collections
 import re
 
-from future.builtins import zip
 from typing import Text
 
 from grr_response_core.lib import parsers

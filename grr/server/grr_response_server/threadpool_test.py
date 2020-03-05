@@ -9,7 +9,6 @@ import threading
 import time
 
 from absl import app
-from future.builtins import range
 import queue
 
 from grr_response_core.lib import utils

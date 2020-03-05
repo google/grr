@@ -25,7 +25,6 @@ import subprocess
 import sys
 import time
 
-from future.builtins import range
 from future.moves import winreg
 import pywintypes
 import win32process

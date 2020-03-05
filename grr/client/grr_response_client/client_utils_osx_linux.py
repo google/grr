@@ -11,7 +11,6 @@ import os
 import threading
 import time
 
-from future.builtins import range
 import psutil
 from typing import Text
 import xattr

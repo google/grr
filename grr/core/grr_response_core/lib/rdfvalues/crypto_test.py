@@ -11,8 +11,6 @@ import hashlib
 import os
 
 from absl import app
-from future.builtins import bytes
-from future.builtins import str
 from future.utils import iterkeys
 
 from grr_response_core import config

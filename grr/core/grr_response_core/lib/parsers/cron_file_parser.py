@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import crontab
 
-from future.builtins import str
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import cronjobs as rdf_cronjobs

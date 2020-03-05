@@ -10,7 +10,6 @@ import functools
 import os
 
 from absl import app
-from future.builtins import range
 
 from grr_response_client import vfs
 from grr_response_client.client_actions import searching

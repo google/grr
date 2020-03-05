@@ -11,7 +11,6 @@ import unittest
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib

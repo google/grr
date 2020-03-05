@@ -11,8 +11,6 @@ import os
 import zipfile
 
 from absl import app
-from future.builtins import range
-from future.builtins import str
 import yaml
 
 from grr_response_core.lib.rdfvalues import client as rdf_client

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 
-from future.builtins import map
 from typing import Iterator
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

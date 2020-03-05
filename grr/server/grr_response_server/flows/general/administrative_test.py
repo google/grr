@@ -10,7 +10,6 @@ import subprocess
 import sys
 
 from absl import app
-from future.builtins import range
 import mock
 import psutil
 

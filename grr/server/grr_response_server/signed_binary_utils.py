@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 import io
 
-from future.builtins import int
 
 from typing import Iterable, Iterator, Generator, Optional, Sequence, Tuple
 

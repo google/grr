@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import ctypes
 import ctypes.util
 
-from future.builtins import range
 from future.utils import iteritems
 from future.utils import python_2_unicode_compatible
 from future.utils import string_types

@@ -9,7 +9,6 @@ import logging
 import os
 import threading
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 

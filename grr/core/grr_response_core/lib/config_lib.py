@@ -22,7 +22,6 @@ import traceback
 
 from absl import flags
 import configparser
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import string_types

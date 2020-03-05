@@ -16,7 +16,6 @@ from __future__ import unicode_literals
 import inspect
 import logging
 
-from future.builtins import str
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info

@@ -13,7 +13,6 @@ import threading
 import time
 
 from absl import flags
-from future.builtins import range
 from future.moves.urllib import parse as urlparse
 import portpicker
 from selenium import webdriver

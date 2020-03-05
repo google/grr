@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handlers for dealing with flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,12 +9,10 @@ from __future__ import unicode_literals
 import collections
 import itertools
 import re
+from typing import Iterable
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
-
-from typing import Iterable
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue

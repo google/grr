@@ -12,11 +12,6 @@ import zlib
 
 from absl import app
 from absl import flags
-from future.builtins import bytes
-from future.builtins import chr
-from future.builtins import range
-from future.builtins import str
-from future.builtins import zip
 import mock
 import requests
 

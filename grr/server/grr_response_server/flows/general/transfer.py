@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import stat
 import zlib
 
-from future.builtins import range
 from future.utils import iteritems
 from future.utils import itervalues
 

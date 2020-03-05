@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.builtins import range
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue

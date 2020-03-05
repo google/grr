@@ -90,11 +90,9 @@ class DarwinClientBuilder(build.ClientBuilder):
     logging.info("Generating zip template file at %s", output_path)
     with zipfile.ZipFile(output_path, mode="a") as zf:
       # Get the build yaml
-      # TODO(hanuszczak): YAML, consider using `StringIO` instead.
-      build_yaml = io.BytesIO()
+      build_yaml = io.StringIO()
       build_helpers.WriteBuildYaml(build_yaml, context=self.context)
-      build_yaml.seek(0)
-      zf.writestr("build.yaml", build_yaml.read())
+      zf.writestr("build.yaml", build_yaml.getvalue())
 
   def _InterpolateFiles(self):
     if self.fleetspeak_enabled:

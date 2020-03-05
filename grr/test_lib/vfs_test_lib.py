@@ -9,7 +9,6 @@ import os
 import time
 
 from absl.testing import absltest
-from future.builtins import str
 from future.utils import iteritems
 import mock
 

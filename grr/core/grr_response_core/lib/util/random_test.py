@@ -7,7 +7,6 @@ import io
 import os
 
 from absl.testing import absltest
-from future.builtins import range
 import mock
 
 from grr_response_core.lib.util import random

@@ -10,7 +10,6 @@ import logging
 import os
 import time
 
-from future.builtins import int
 
 from MySQLdb.connections import Connection
 from MySQLdb.cursors import Cursor

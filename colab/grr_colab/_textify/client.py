@@ -10,7 +10,6 @@ from __future__ import unicode_literals
 
 import time
 
-from future.builtins import bytes as new_bytes
 from typing import Text
 
 
@@ -74,7 +73,4 @@ def mac(packed_bytes):
   if not packed_bytes:
     return ''
 
-  # TODO: In Python3 new_bytes call is noop but in Python2 it
-  #  will convert old bytes to future compatible interface. Remove as soon as
-  #  support for Python2 is dropped.
-  return ':'.join('{:02x}'.format(b) for b in new_bytes(packed_bytes))
+  return ':'.join('{:02x}'.format(b) for b in packed_bytes)

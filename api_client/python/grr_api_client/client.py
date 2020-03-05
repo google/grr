@@ -4,10 +4,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
+
 from grr_api_client import flow
 from grr_api_client import utils
 from grr_api_client import vfs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import user_pb2
@@ -225,9 +226,30 @@ class ClientBase(object):
     args = client_pb2.ApiVerifyAccessArgs(client_id=self.client_id)
     self._context.SendRequest("VerifyAccess", args)
 
+  def _ProcessLabels(self, labels):
+    """Checks that 'labels' arguments for AddLabels/RemoveLabels is correct."""
+
+    if isinstance(labels, (str, bytes)):
+      raise TypeError("'labels' argument is expected to be an "
+                      "iterable of strings, not {!r}.".format(labels))
+
+    if not isinstance(labels, collections.Iterable):
+      raise TypeError(
+          "Expected iterable container, but got {!r} instead.".format(labels))
+
+    labels_list = list(labels)
+    if not labels_list:
+      raise ValueError("Labels iterable can't be empty.")
+
+    for l in labels_list:
+      if not isinstance(l, str):
+        raise TypeError(
+            "Expected labels as strings, got {!r} instead.".format(l))
+
+    return labels_list
+
   def AddLabels(self, labels):
-    if not labels:
-      raise ValueError("labels list can't be empty")
+    labels = self._ProcessLabels(labels)
 
     args = client_pb2.ApiAddClientsLabelsArgs(
         client_ids=[self.client_id], labels=labels)
@@ -237,8 +259,7 @@ class ClientBase(object):
     return self.AddLabels([label])
 
   def RemoveLabels(self, labels):
-    if not labels:
-      raise ValueError("labels list can't be empty")
+    labels = self._ProcessLabels(labels)
 
     args = client_pb2.ApiRemoveClientsLabelsArgs(
         client_ids=[self.client_id], labels=labels)
@@ -277,7 +298,7 @@ class Client(ClientBase):
 
   def __repr__(self):
     return "Client(data=<{} client_id={!r}>, ...)".format(
-        compatibility.GetName(type(self.data)), self.data.client_id)
+        type(self.data).__name__, self.data.client_id)
 
 
 def SearchClients(query=None, context=None):

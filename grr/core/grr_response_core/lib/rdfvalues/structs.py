@@ -11,10 +11,6 @@ import copy
 import functools
 import struct
 
-from future.builtins import chr
-from future.builtins import range
-from future.builtins import str
-from future.builtins import zip
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues

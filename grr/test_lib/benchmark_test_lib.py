@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import logging
 import time
 
-from future.builtins import range
 import pytest
 
 from grr.test_lib import test_lib

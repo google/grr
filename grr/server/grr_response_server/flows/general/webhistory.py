@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# python3
 """Flow to recover history files."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,6 +13,7 @@ import os
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import chrome_history
 from grr_response_core.lib.parsers import firefox3_history
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
@@ -19,8 +21,10 @@ from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import flow_utils
 from grr_response_server.databases import db
+from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 
 
@@ -343,3 +347,81 @@ class CacheGrep(flow_base.FlowBase):
     # exist, e.g. Chromium on most machines, so we don't check for success.
     for response in responses:
       self.SendReply(response.stat_entry)
+
+
+class BrowserHistoryFlowArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for BrowserHistoryFlow."""
+  protobuf = flows_pb2.BrowserHistoryFlowArgs
+
+
+class BrowserHistoryFlow(flow_base.FlowBase):
+  """Convenience Flow to collect brower history artifacts."""
+
+  friendly_name = "Browser History"
+  category = "/Browser/"
+  args_type = BrowserHistoryFlowArgs
+  behaviours = flow_base.BEHAVIOUR_BASIC
+
+  def Start(self):
+    super(BrowserHistoryFlow, self).Start()
+
+    if not (self.args.collect_chrome or self.args.collect_firefox or
+            self.args.collect_internet_explorer or self.args.collect_opera or
+            self.args.collect_safari):
+      raise flow_base.FlowError("Need to collect at least one type of history.")
+
+    # Start a sub-flow for every browser to split results and progress in
+    # the user interface more cleanly.
+
+    if self.args.collect_chrome:
+      self.CallFlow(
+          collectors.ArtifactCollectorFlow.__name__,
+          artifact_list=["ChromeHistory"],
+          apply_parsers=False,
+          next_state=self.ProcessArtifactResponses.__name__)
+
+    if self.args.collect_firefox:
+      self.CallFlow(
+          collectors.ArtifactCollectorFlow.__name__,
+          artifact_list=["FirefoxHistory"],
+          apply_parsers=False,
+          next_state=self.ProcessArtifactResponses.__name__)
+
+    if self.args.collect_internet_explorer:
+      self.CallFlow(
+          collectors.ArtifactCollectorFlow.__name__,
+          artifact_list=["InternetExplorerHistory"],
+          apply_parsers=False,
+          next_state=self.ProcessArtifactResponses.__name__)
+
+    if self.args.collect_opera:
+      self.CallFlow(
+          collectors.ArtifactCollectorFlow.__name__,
+          artifact_list=["OperaHistory"],
+          apply_parsers=False,
+          next_state=self.ProcessArtifactResponses.__name__)
+
+    if self.args.collect_safari:
+      self.CallFlow(
+          collectors.ArtifactCollectorFlow.__name__,
+          artifact_list=["SafariHistory"],
+          apply_parsers=False,
+          next_state=self.ProcessArtifactResponses.__name__)
+
+  def ProcessArtifactResponses(
+      self,
+      responses):
+    for response in responses:
+      self.SendReply(response)
+
+    if not responses.success:
+      raise flow_base.FlowError(responses.status)
+
+  @classmethod
+  def GetDefaultArgs(cls, username=None):
+    return BrowserHistoryFlowArgs(
+        collect_chrome=True,
+        collect_firefox=True,
+        collect_internet_explorer=True,
+        collect_opera=True,
+        collect_safari=True)

@@ -13,8 +13,8 @@ namespace grr {
 
 class MockLogger : public EventLogger {
  public:
-  MOCK_METHOD0(GetCurrentTime, time_t());
-  MOCK_METHOD1(WriteLog, void(std::string));
+  MOCK_METHOD(time_t, GetCurrentTime, (), (override));
+  MOCK_METHOD(void, WriteLog, (std::string), (override));
 };
 
 

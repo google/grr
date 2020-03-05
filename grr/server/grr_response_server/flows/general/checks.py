@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.builtins import str
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly

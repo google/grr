@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import functools
 import re
 
-from future.builtins import zip
 from future.utils import itervalues
 from future.utils import with_metaclass
 

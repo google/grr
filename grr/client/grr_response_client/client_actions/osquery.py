@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import collections
 import os
 
-from future.builtins import map
 from future.utils import iterkeys
 from typing import Any
 from typing import Iterator

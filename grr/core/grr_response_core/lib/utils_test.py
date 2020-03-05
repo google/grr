@@ -12,8 +12,6 @@ import zipfile
 from absl import app
 from absl.testing import absltest
 
-from future.builtins import int
-from future.builtins import range
 
 import mock
 

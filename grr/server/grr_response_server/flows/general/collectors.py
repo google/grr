@@ -7,8 +7,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.builtins import map
-from future.builtins import str
 from future.utils import iteritems
 from typing import Optional
 from typing import Sequence
@@ -795,9 +793,13 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
       path_type = rdf_paths.PathSpec.PathType.OS
 
     p = windows_persistence.WindowsPersistenceMechanismsParser()
-    parsed_items = p.Parse(response, knowledge_base, path_type)
+    parsed_items = p.Parse(response, knowledge_base)
+    parsed_pathspecs = [item.pathspec for item in parsed_items]
 
-    return [item.pathspec for item in parsed_items]
+    for pathspec in parsed_pathspecs:
+      pathspec.pathtype = path_type
+
+    return parsed_pathspecs
 
   def Start(self):
     super(ArtifactFilesDownloaderFlow, self).Start()

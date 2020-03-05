@@ -9,7 +9,6 @@ import functools
 import itertools
 import logging
 
-from future.builtins import str
 from future.utils import itervalues
 import jinja2
 

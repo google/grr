@@ -15,7 +15,6 @@ import itertools
 import os
 import stat
 
-from future.builtins import str
 from future.utils import python_2_unicode_compatible
 from typing import Text
 

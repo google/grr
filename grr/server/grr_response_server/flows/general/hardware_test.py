@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.builtins import str
 
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles

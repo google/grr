@@ -9,7 +9,6 @@ import io
 import os
 
 from absl import app
-from future.builtins import filter
 import mock
 import psutil
 

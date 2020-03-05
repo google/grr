@@ -14,7 +14,6 @@ import hashlib
 import logging
 import time
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import itervalues
 from future.utils import with_metaclass
@@ -207,6 +206,11 @@ class ExportedSoftwarePackage(rdf_structs.RDFProtoStruct):
 
 class ExportedYaraProcessScanMatch(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedYaraProcessScanMatch
+  rdf_deps = [ExportedProcess, ExportedMetadata]
+
+
+class ExportedProcessMemoryError(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedProcessMemoryError
   rdf_deps = [ExportedProcess, ExportedMetadata]
 
 
@@ -1316,6 +1320,22 @@ class YaraProcessScanMatchConverter(ExportConverter):
             process_scan_time_us=value.scan_time_us,
             string_id=yara_string_match.string_id,
             offset=yara_string_match.offset)
+
+
+class ProcessMemoryErrorConverter(ExportConverter):
+  """Converter for ProcessMemoryError."""
+  input_rdf_type = rdf_memory.ProcessMemoryError
+
+  def Convert(self,
+              metadata,
+              value,
+              token=None):
+    """See base class."""
+
+    conv = ProcessToExportedProcessConverter(options=self.options)
+    process = next(iter(conv.Convert(metadata, value.process, token=token)))
+    yield ExportedProcessMemoryError(
+        metadata=metadata, process=process, error=value.error)
 
 
 class OsqueryExportConverter(ExportConverter):

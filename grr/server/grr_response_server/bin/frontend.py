@@ -13,7 +13,6 @@ import threading
 
 from absl import app
 from absl import flags
-from future.builtins import range
 from future.moves.urllib import parse as urlparse
 from future.utils import iteritems
 from http import server as http_server

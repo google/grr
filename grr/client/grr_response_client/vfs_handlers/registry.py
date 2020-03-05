@@ -10,9 +10,6 @@ import ctypes.wintypes
 import io
 import os
 import stat
-from future.builtins import filter
-from future.builtins import range
-from future.builtins import str
 
 from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils

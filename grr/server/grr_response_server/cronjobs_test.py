@@ -7,7 +7,6 @@ import functools
 import threading
 
 from absl import app
-from future.builtins import range
 import mock
 
 from grr_response_core.lib import rdfvalue

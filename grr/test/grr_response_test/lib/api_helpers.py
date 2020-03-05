@@ -3,6 +3,8 @@
 """Helper API-client-based functions for self-contained tests."""
 import time
 
+from typing import Tuple
+
 import requests
 
 from grr_api_client import api
@@ -24,6 +26,15 @@ class ClientEnrollmentTimeoutError(Error):
 
 class ClientVersionTimeoutError(Error):
   """Raised then a client doesn't report a specific version in time."""
+
+
+def GetFleetspeakPortsFromConfig(config_path):
+  """Gets Fleetspeak frontend and admin ports from GRR config."""
+  conf = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(), config_path)
+  frontend_port = int(
+      conf["Server.fleetspeak_message_listen_address"].rsplit(":")[-1])
+  admin_port = int(conf["Server.fleetspeak_server"].rsplit(":")[-1])
+  return frontend_port, admin_port
 
 
 def GetAdminUIPortFromConfig(config_path):

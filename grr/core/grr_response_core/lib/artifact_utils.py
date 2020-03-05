@@ -12,7 +12,6 @@ from __future__ import unicode_literals
 
 import re
 
-from future.builtins import str
 from future.utils import string_types
 from typing import Iterable
 from typing import Text

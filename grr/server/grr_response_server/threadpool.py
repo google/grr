@@ -30,8 +30,6 @@ import logging
 import threading
 import time
 
-from future.builtins import range
-from future.builtins import str
 from future.utils import itervalues
 import psutil
 import queue

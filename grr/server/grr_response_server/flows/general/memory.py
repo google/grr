@@ -158,11 +158,13 @@ class YaraProcessScan(flow_base.FlowBase):
           next_state=compatibility.GetName(self.CheckDumpProcessMemoryResults))
 
   def CheckDumpProcessMemoryResults(self, responses):
-    if not responses.success:
-      raise flow_base.FlowError(responses.status)
-
+    # First send responses to parent Flow, then indicate potential errors, to
+    # increase robustness.
     for response in responses:
       self.SendReply(response)
+
+    if not responses.success:
+      raise flow_base.FlowError(responses.status)
 
   def _ShouldIncludeError(self, error):
     ErrorPolicy = self.args.ErrorPolicy  # pylint: disable=invalid-name

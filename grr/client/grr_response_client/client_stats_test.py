@@ -8,7 +8,6 @@ import itertools
 
 from absl import app
 from absl.testing import absltest
-from future.builtins import range
 import mock
 import psutil
 

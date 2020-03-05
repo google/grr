@@ -13,6 +13,7 @@ from absl import flags
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
+from grr_response_server import fleetspeak_connector
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server.gui import local
@@ -40,6 +41,8 @@ def main(_):
       contexts.ADMIN_UI_CONTEXT,
       "Context applied when running the admin user interface GUI.")
   server_startup.Init()
+
+  fleetspeak_connector.Init()
 
   if not config.CONFIG["AdminUI.headless"] and (not os.path.exists(
       os.path.join(config.CONFIG["AdminUI.document_root"],

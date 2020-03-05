@@ -21,7 +21,7 @@ class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
   # Required for environment variable expansion
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
 
-  def _GetFilePaths(self, path, pathtype, kb):
+  def _GetFilePaths(self, path, kb):
     """Guess windows filenames from a commandline string."""
 
     environ_vars = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
@@ -33,11 +33,12 @@ class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
       return []
 
     return [
-        rdf_paths.PathSpec(path=path, pathtype=pathtype)
+        rdf_paths.PathSpec(
+            path=path, pathtype=rdf_paths.PathSpec.PathType.UNSET)
         for path in path_guesses
     ]
 
-  def Parse(self, persistence, knowledge_base, download_pathtype):
+  def Parse(self, persistence, knowledge_base):
     """Convert persistence collector output to downloadable rdfvalues."""
     pathspecs = []
 
@@ -45,14 +46,13 @@ class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
       if persistence.HasField("binary"):
         pathspecs.append(persistence.binary.pathspec)
       elif persistence.HasField("image_path"):
-        pathspecs = self._GetFilePaths(persistence.image_path,
-                                       download_pathtype, knowledge_base)
+        pathspecs = self._GetFilePaths(persistence.image_path, knowledge_base)
 
     if isinstance(
         persistence,
         rdf_client_fs.StatEntry) and persistence.HasField("registry_type"):
       pathspecs = self._GetFilePaths(persistence.registry_data.string,
-                                     download_pathtype, knowledge_base)
+                                     knowledge_base)
 
     for pathspec in pathspecs:
       yield rdf_standard.PersistenceFile(pathspec=pathspec)

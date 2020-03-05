@@ -12,7 +12,6 @@ import os
 import shutil
 
 from absl import app
-from future.builtins import filter
 import mock
 import psutil
 

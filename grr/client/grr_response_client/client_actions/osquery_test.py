@@ -16,7 +16,6 @@ import time
 
 from absl import flags
 from absl.testing import absltest
-from future.builtins import str
 from typing import List
 from typing import Text
 

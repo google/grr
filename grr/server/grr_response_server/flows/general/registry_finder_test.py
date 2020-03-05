@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.builtins import str
 
 from grr_response_server.flows.general import registry as flow_registry
 from grr.test_lib import action_mocks

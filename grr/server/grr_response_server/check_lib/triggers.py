@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-from future.builtins import map
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import checks_pb2

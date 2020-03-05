@@ -13,7 +13,6 @@ import shutil
 import struct
 import tempfile
 
-from future.builtins import str
 from future.utils import iteritems
 from future.utils import iterkeys
 from future.utils import itervalues
@@ -178,7 +177,8 @@ def BuildWithPyInstaller(context=None):
       "ClientBuilder.version_ini_path", default=version.VersionPath())
   shutil.copy(version_ini, os.path.join(output_dir, "version.ini"))
 
-  with io.open(os.path.join(output_dir, "build.yaml"), "wb") as fd:
+  build_yaml_path = os.path.join(output_dir, "build.yaml")
+  with io.open(build_yaml_path, mode="w", encoding="utf-8") as fd:
     WriteBuildYaml(fd, context=context)
 
   return output_dir
@@ -226,7 +226,7 @@ def WriteBuildYaml(fd, build_timestamp=True, context=None):
     if v is None:
       raise RuntimeError("Bad build.yaml: expected %s to be not None" % k)
 
-  fd.write(yaml.Dump(output).encode("utf-8"))
+  fd.write(yaml.Dump(output))
 
 
 def ValidateEndConfig(config_obj, errors_fatal=True, context=None):

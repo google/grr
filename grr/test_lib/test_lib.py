@@ -18,7 +18,6 @@ import time
 import unittest
 
 from absl.testing import absltest
-from future.builtins import range
 import mock
 import pkg_resources
 

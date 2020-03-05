@@ -133,6 +133,41 @@ class PrioritizeRegionsTest(absltest.TestCase):
         memory._PrioritizeRegions([r0, r1, r2], [5, 15, 25]), [r0, r1, r2])
 
 
+def _GetStartAndDumpedSize(regions):
+  return [(r.start, r.dumped_size) for r in regions]
+
+
+class ApplySizeLimitTest(absltest.TestCase):
+
+  def testDumpsRegionsFullyInSizeLimit(self):
+    r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
+    self.assertEqual(
+        _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 30)),
+        [(0, 10), (20, 10), (40, 10)])
+
+  def testExcludesFollowingRegionsAfterLimit(self):
+    r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
+    self.assertEqual(
+        _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 20)),
+        [(0, 10), (20, 10)])
+
+  def testDumpsLastRegionPartiallyWhenSizeLimitIsReached(self):
+    r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
+    self.assertEqual(
+        _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 19)),
+        [(0, 10), (20, 9)])
+
+    r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
+    self.assertEqual(
+        _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 11)),
+        [(0, 10), (20, 1)])
+
+    r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
+    self.assertEqual(
+        _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 1)),
+        [(0, 1)])
+
+
 def Process(pid, *cmdline):
   p = mock.MagicMock()
   p.pid = pid

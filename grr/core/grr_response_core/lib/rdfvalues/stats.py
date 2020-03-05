@@ -8,7 +8,6 @@ import bisect
 import math
 import threading
 
-from future.builtins import zip
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats

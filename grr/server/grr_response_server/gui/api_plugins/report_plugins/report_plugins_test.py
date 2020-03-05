@@ -7,8 +7,6 @@ from __future__ import unicode_literals
 import math
 
 from absl import app
-from future.builtins import range
-from future.builtins import zip
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue

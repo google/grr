@@ -9,7 +9,6 @@ import os
 import time
 
 from absl import app
-from future.builtins import range
 
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config

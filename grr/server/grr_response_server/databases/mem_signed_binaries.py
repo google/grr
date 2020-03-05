@@ -5,7 +5,6 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.builtins import int
 from typing import Sequence, Text, Tuple
 
 from grr_response_core.lib import rdfvalue

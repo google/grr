@@ -11,7 +11,6 @@ import tarfile
 import zipfile
 
 from absl import app
-from future.builtins import str
 
 import mock
 import yaml

@@ -5,7 +5,6 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.builtins import filter
 from future.utils import iteritems
 from future.utils import iterkeys
 from typing import Dict

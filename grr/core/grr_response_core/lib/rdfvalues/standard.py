@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 
 import re
 
-from future.builtins import str
 from future.moves.urllib import parse as urlparse
 from typing import Text
 

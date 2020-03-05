@@ -11,7 +11,6 @@ import operator
 import os
 
 from absl import app
-from future.builtins import zip
 from future.utils import iteritems
 
 from grr_response_core.lib import parsers

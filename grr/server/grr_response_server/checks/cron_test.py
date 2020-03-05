@@ -6,7 +6,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.builtins import zip
 
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
