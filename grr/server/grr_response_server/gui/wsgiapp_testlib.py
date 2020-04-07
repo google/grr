@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Test helper classes to test GRR WSGI app."""
 from __future__ import absolute_import
 from __future__ import division
@@ -17,7 +18,7 @@ class ServerThread(threading.Thread):
   daemon = True
 
   def __init__(self, port, **kwargs):
-    super(ServerThread, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     self.ready_to_serve = threading.Event()
     self.done_serving = threading.Event()
     self.port = port

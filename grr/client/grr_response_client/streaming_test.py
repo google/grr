@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the streaming utility classes."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,7 +12,6 @@ import os
 
 from absl import app
 from absl.testing import absltest
-from future.utils import with_metaclass
 
 from grr_response_client import streaming
 from grr_response_client.client_actions.file_finder_utils import conditions
@@ -19,7 +19,7 @@ from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 
-class StreamerTestMixin(with_metaclass(abc.ABCMeta, object)):
+class StreamerTestMixin(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def Stream(self, streamer, data):
@@ -167,7 +167,7 @@ class StreamMemoryTest(StreamerTestMixin, absltest.TestCase):
     return functools.partial(streamer.StreamMemory, process)
 
 
-class ReaderTestMixin(with_metaclass(abc.ABCMeta, object)):
+class ReaderTestMixin(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def Prepare(self, data, callback, offset=0):

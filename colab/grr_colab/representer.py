@@ -11,7 +11,6 @@ from __future__ import unicode_literals
 import os
 import sys
 
-from future.utils import python_2_unicode_compatible
 import humanize
 import ipaddress
 import IPython
@@ -282,7 +281,6 @@ class ProcessList(_RepresenterList):
       p.breakable()
 
 
-@python_2_unicode_compatible
 class _StatEntryData(object):
   """Class that encapsulates stat entry data displayed in IPython."""
 
@@ -302,7 +300,6 @@ class _StatEntryData(object):
         mode=self.mode)
 
 
-@python_2_unicode_compatible
 class _BufferReferenceData(object):
   """Class that encapsulates buffer reference data displayed in IPython."""
 
@@ -357,7 +354,6 @@ class _InterfaceData(object):
       p.breakable()
 
 
-@python_2_unicode_compatible
 class _NetworkAddressData(object):
   """Class that encapsulates network address data displayed in IPython."""
 
@@ -373,7 +369,6 @@ class _NetworkAddressData(object):
     return '{type} {address}'.format(type=self.type, address=self.address)
 
 
-@python_2_unicode_compatible
 class _ProcessData(object):
   """Class that encapsulates process data displayed in IPython."""
 

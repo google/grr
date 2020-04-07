@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The MySQL database methods for blobs handling."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
 
 from grr_response_core.lib.util import precondition
 from grr_response_server import blob_store
@@ -91,7 +91,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   def WriteBlobs(self, blob_id_data_map):
     """Writes given blobs."""
     chunks = []
-    for blob_id, blob in iteritems(blob_id_data_map):
+    for blob_id, blob in blob_id_data_map.items():
       chunks.extend(_BlobToChunks(blob_id.AsBytes(), blob))
     for values in _PartitionChunks(chunks):
       self._WriteBlobsBatch(values)
@@ -139,7 +139,7 @@ class MySQLDBBlobsMixin(blob_store.BlobStore):
   def WriteHashBlobReferences(self, references_by_hash, cursor):
     """Writes blob references for a given set of hashes."""
     values = []
-    for hash_id, blob_refs in iteritems(references_by_hash):
+    for hash_id, blob_refs in references_by_hash.items():
       refs = rdf_objects.BlobReferences(items=blob_refs).SerializeToBytes()
       values.append({
           "hash_id": hash_id.AsBytes(),

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A flow to enrol new clients."""
 from __future__ import absolute_import
 from __future__ import division

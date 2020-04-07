@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The main data store abstraction.
 
 The data store is responsible for storing AFF4 objects permanently. This file
@@ -41,10 +42,9 @@ from __future__ import unicode_literals
 
 import logging
 import sys
+from typing import Optional
 
 from absl import flags
-from future.utils import iteritems
-from typing import Optional
 
 from grr_response_core import config
 from grr_response_server import blob_store
@@ -64,7 +64,7 @@ BLOBS = None  # type: Optional[blob_store.BlobStore]
 
 
 def _ListStorageOptions():
-  for name, cls in iteritems(registry_init.REGISTRY):
+  for name, cls in registry_init.REGISTRY.items():
     print("%s\t\t%s" % (name, cls.__doc__))
 
 

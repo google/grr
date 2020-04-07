@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Base test classes for API handlers tests."""
 from __future__ import absolute_import
 from __future__ import division

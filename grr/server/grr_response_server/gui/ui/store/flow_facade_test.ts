@@ -46,10 +46,12 @@ describe('FlowFacade', () => {
         name: 'ClientSideFileFinder',
         friendlyName: 'Get a file',
         category: 'Filesystem',
+        defaultArgs: {'@type': 'test-type'}
       },
       {
         name: 'KeepAlive',
         category: 'Misc',
+        defaultArgs: {'@type': 'test-type'}
       },
     ]);
 
@@ -59,6 +61,7 @@ describe('FlowFacade', () => {
           name: 'ClientSideFileFinder',
           friendlyName: 'Get a file',
           category: 'Filesystem',
+          defaultArgs: {},
         }
       ],
       [
@@ -66,6 +69,7 @@ describe('FlowFacade', () => {
           name: 'KeepAlive',
           friendlyName: 'KeepAlive',
           category: 'Misc',
+          defaultArgs: {},
         }
       ],
     ]);
@@ -90,15 +94,35 @@ describe('FlowFacade', () => {
         name: 'ClientSideFileFinder',
         friendlyName: 'Get a file',
         category: 'Filesystem',
+        defaultArgs: {'@type': 'test-type'}
       },
       {
         name: 'KeepAlive',
         category: 'Misc',
+        defaultArgs: {'@type': 'test-type', foo: 1}
       },
     ]);
     flowFacade.selectFlow('KeepAlive');
     flowFacade.selectedFlow$.subscribe(flow => {
       expect(flow!.name).toEqual('KeepAlive');
+      expect(flow!.defaultArgs).toEqual({foo: 1});
+      done();
+    });
+  });
+
+  it('emits the supplied args in selectedFlow$', done => {
+    flowFacade.listFlowDescriptors();
+    apiListFlowDescriptors$.next([
+      {
+        name: 'KeepAlive',
+        category: 'Misc',
+        defaultArgs: {'@type': 'test-type', foo: 1}
+      },
+    ]);
+    flowFacade.selectFlow('KeepAlive', {foo: 42});
+    flowFacade.selectedFlow$.subscribe(flow => {
+      expect(flow!.name).toEqual('KeepAlive');
+      expect(flow!.defaultArgs).toEqual({foo: 42});
       done();
     });
   });
@@ -109,6 +133,7 @@ describe('FlowFacade', () => {
       {
         name: 'KeepAlive',
         category: 'Misc',
+        defaultArgs: {'@type': 'test-type'}
       },
     ]);
 
@@ -125,10 +150,12 @@ describe('FlowFacade', () => {
         name: 'ClientSideFileFinder',
         friendlyName: 'Get a file',
         category: 'Filesystem',
+        defaultArgs: {'@type': 'test-type'},
       },
       {
         name: 'KeepAlive',
         category: 'Misc',
+        defaultArgs: {'@type': 'test-type'}
       },
     ]);
 

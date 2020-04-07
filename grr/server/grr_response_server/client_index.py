@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A keyword index of client machines.
 
 An index of client machines, associating likely identifiers to client IDs.
@@ -9,12 +10,8 @@ from __future__ import unicode_literals
 
 import functools
 import operator
-
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import string_types
-
 from typing import Text
+
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -42,7 +39,7 @@ def GetClientIDsForHostnames(hostnames):
   results = index.ReadClientPostingLists(keywords)
 
   result = {}
-  for keyword, hits in iteritems(results):
+  for keyword, hits in results.items():
     result[keyword[len("host:"):]] = hits
   return result
 
@@ -89,7 +86,7 @@ class ClientIndex(object):
     Raises:
       ValueError: A string (single keyword) was passed instead of an iterable.
     """
-    if isinstance(keywords, string_types):
+    if isinstance(keywords, str):
       raise ValueError(
           "Keywords should be an iterable, not a string (got %s)." % keywords)
 
@@ -99,8 +96,8 @@ class ClientIndex(object):
         list(map(self._NormalizeKeyword, filtered_keywords)),
         start_time=start_time)
 
-    relevant_set = functools.reduce(operator.and_,
-                                    map(set, itervalues(keyword_map)))
+    relevant_set = functools.reduce(operator.and_, map(set,
+                                                       keyword_map.values()))
     return sorted(relevant_set)
 
   def ReadClientPostingLists(self, keywords):

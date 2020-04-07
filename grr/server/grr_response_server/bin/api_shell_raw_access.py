@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Raw access server-side only API shell."""
 from __future__ import absolute_import
 from __future__ import division
@@ -86,7 +87,7 @@ def main(argv=None):
     sys.exit(1)
   elif flags.FLAGS.exec_code:
     # pylint: disable=exec-used
-    exec (flags.FLAGS.exec_code, dict(grrapi=grrapi))
+    exec(flags.FLAGS.exec_code, dict(grrapi=grrapi))
     # pylint: enable=exec-used
   elif flags.FLAGS.exec_file:
     api_shell_lib.ExecFile(flags.FLAGS.exec_file, grrapi)

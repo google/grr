@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Rdfvalues for flows."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import re
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -156,7 +156,7 @@ class Flow(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(Flow, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("cpu_time_used"):
       self.cpu_time_used.user_cpu_time = 0
@@ -197,7 +197,7 @@ status_map = {
         FlowStatus.Status.ERROR,
 }
 
-inv_status_map = {v: k for k, v in iteritems(status_map)}
+inv_status_map = {v: k for k, v in status_map.items()}
 
 
 def FlowResponseForLegacyResponse(legacy_msg):

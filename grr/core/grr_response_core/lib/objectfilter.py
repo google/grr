@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Classes to perform filtering of objects based on their data members.
 
@@ -95,13 +96,8 @@ import abc
 import binascii
 import collections
 import re
-
-from future.utils import iteritems
-from future.utils import python_2_unicode_compatible
-from future.utils import string_types
-from future.utils import with_metaclass
-
 from typing import Text
+
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import utils
@@ -125,8 +121,7 @@ class InvalidNumberOfOperands(Error):
   """The number of operands provided to this operator is wrong."""
 
 
-@python_2_unicode_compatible
-class Filter(with_metaclass(abc.ABCMeta, object)):
+class Filter(metaclass=abc.ABCMeta):
   """Base class for every filter."""
 
   def __init__(self, arguments=None, value_expander=None):
@@ -207,7 +202,7 @@ class UnaryOperator(Operator):
   def __init__(self, operand, **kwargs):
     """Constructor."""
 
-    super(UnaryOperator, self).__init__(arguments=[operand], **kwargs)
+    super().__init__(arguments=[operand], **kwargs)
     if len(self.args) != 1:
       raise InvalidNumberOfOperands(
           "Only one operand is accepted by %s. "
@@ -223,7 +218,7 @@ class BinaryOperator(Operator):
   """
 
   def __init__(self, arguments=None, **kwargs):
-    super(BinaryOperator, self).__init__(arguments=arguments, **kwargs)
+    super().__init__(arguments=arguments, **kwargs)
     if len(self.args) != 2:
       raise InvalidNumberOfOperands(
           "Only two operands are accepted by %s. "
@@ -334,7 +329,7 @@ class InSet(GenericBinaryOperator):
 
     # x might be an iterable
     # first we need to skip strings or we'll do silly things
-    if isinstance(x, string_types) or isinstance(x, bytes):
+    if isinstance(x, str) or isinstance(x, bytes):
       return False
 
     try:
@@ -359,7 +354,7 @@ class Regexp(GenericBinaryOperator):
   """Whether the value matches the regexp in the right operand."""
 
   def __init__(self, *children, **kwargs):
-    super(Regexp, self).__init__(*children, **kwargs)
+    super().__init__(*children, **kwargs)
     try:
       self.compiled_re = re.compile(utils.SmartUnicode(self.right_operand))
     except re.error:
@@ -438,7 +433,7 @@ class Context(Operator):
   def __init__(self, arguments=None, **kwargs):
     if len(arguments) != 2:
       raise InvalidNumberOfOperands("Context accepts only 2 operands.")
-    super(Context, self).__init__(arguments=arguments, **kwargs)
+    super().__init__(arguments=arguments, **kwargs)
     self.context, self.condition = self.args
 
   def Matches(self, obj):
@@ -489,7 +484,7 @@ class ValueExpander(object):
     """Called when at a leaf value. Should yield a value."""
     if isinstance(attr_value, collections.Mapping):
       # If the result is a dict, return each key/value pair as a new dict.
-      for k, v in iteritems(attr_value):
+      for k, v in attr_value.items():
         yield {k: v}
     else:
       yield attr_value
@@ -503,12 +498,12 @@ class ValueExpander(object):
         if len(path) > 2:
           # Expand any additional elements underneath the key.
           sub_obj = self.Expand(sub_obj, path[2:])
-        if isinstance(sub_obj, string_types):
+        if isinstance(sub_obj, str):
           # If it is a string, stop here
           yield sub_obj
         elif isinstance(sub_obj, collections.Mapping):
           # If the result is a dict, return each key/value pair as a new dict.
-          for k, v in iteritems(sub_obj):
+          for k, v in sub_obj.items():
             yield {k: v}
         else:
           for value in sub_obj:
@@ -540,7 +535,7 @@ class ValueExpander(object):
     Yields:
       The values once the object is traversed.
     """
-    if isinstance(path, string_types):
+    if isinstance(path, str):
       path = path.split(self.FIELD_SEPARATOR)
 
     attr_name = self._GetAttributeName(path)
@@ -593,7 +588,6 @@ class BasicExpression(lexer.Expression):
     return operator(arguments=arguments, value_expander=expander)
 
 
-@python_2_unicode_compatible
 class ContextExpression(lexer.Expression):
   """Represents the context operator."""
 
@@ -602,7 +596,7 @@ class ContextExpression(lexer.Expression):
     self.args = []
     if part:
       self.args.append(part)
-    super(ContextExpression, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return "Context(%s %s)" % (self.attribute, [str(x) for x in self.args])

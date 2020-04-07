@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Flows for exporting data out of GRR."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import string_types
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -22,8 +22,7 @@ class Error(Exception):
 class ItemNotExportableError(Error):
 
   def __init__(self, item):
-    super(ItemNotExportableError,
-          self).__init__("%r is not exportable" % (item,))
+    super().__init__("%r is not exportable" % (item,))
 
 
 def CollectionItemToAff4Path(item, client_id=None):
@@ -37,7 +36,7 @@ def CollectionItemToAff4Path(item, client_id=None):
 
   if not client_id:
     raise ValueError("Could not determine client_id.")
-  elif isinstance(client_id, string_types):
+  elif isinstance(client_id, str):
     client_id = rdf_client.ClientURN(client_id)
 
   if isinstance(item, rdf_client_fs.StatEntry):

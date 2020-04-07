@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for the output of WMI queries."""
 
 from __future__ import absolute_import
@@ -10,7 +11,6 @@ import calendar
 import struct
 import time
 
-from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import rdfvalue
@@ -110,7 +110,7 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
         anomalies = []
 
         output = rdfvalue.RDFValue.classes[output_type.__name__]()
-        for k, v in iteritems(wmi_dict):
+        for k, v in wmi_dict.items():
           try:
             output.Set(k, v)
           except AttributeError as e:
@@ -228,7 +228,7 @@ class WMIUserParser(parser.WMIQueryParser):
     """Parse the WMI Win32_UserAccount output."""
     for result_dict in result_dicts:
       kb_user = rdf_client.User()
-      for wmi_key, kb_key in iteritems(self.account_mapping):
+      for wmi_key, kb_key in self.account_mapping.items():
         try:
           kb_user.Set(kb_key, result_dict[wmi_key])
         except KeyError:

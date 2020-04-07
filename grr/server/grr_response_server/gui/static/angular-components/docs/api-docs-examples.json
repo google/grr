@@ -4,9 +4,53 @@
       "api_method": "CancelFlow",
       "method": "POST",
       "response": {
-        "status": "OK"
+        "args": {
+          "type": "ListProcessesArgs",
+          "value": {}
+        },
+        "client_id": "C.1000000000000000",
+        "creator": "",
+        "flow_id": "W:ABCDEF",
+        "last_active_at": 4242000000,
+        "name": "ListProcesses",
+        "runner_args": {
+          "type": "FlowRunnerArgs",
+          "value": {
+            "client_id": {
+              "type": "ClientURN",
+              "value": "aff4:/C.1000000000000000"
+            },
+            "flow_name": {
+              "type": "unicode",
+              "value": "ListProcesses"
+            },
+            "notify_to_user": {
+              "type": "bool",
+              "value": false
+            }
+          }
+        },
+        "started_at": 42000000,
+        "state": "ERROR",
+        "urn": "aff4:/C.1000000000000000/W:ABCDEF"
       },
       "test_class": "ApiCancelFlowHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "args": {},
+        "client_id": "C.1000000000000000",
+        "creator": "",
+        "flow_id": "W:ABCDEF",
+        "last_active_at": 4242000000,
+        "name": "ListProcesses",
+        "runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "ListProcesses",
+          "notify_to_user": false
+        },
+        "started_at": 42000000,
+        "state": "ERROR",
+        "urn": "aff4:/C.1000000000000000/W:ABCDEF"
+      },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
     }
   ],
@@ -8349,6 +8393,14 @@
             "repeated": false
           },
           {
+            "doc": "Flow progress info.",
+            "dynamic": true,
+            "friendly_name": "Progress",
+            "index": 16,
+            "name": "progress",
+            "repeated": false
+          },
+          {
             "doc": "Flow runner arguments.",
             "dynamic": false,
             "friendly_name": "Runner args",
@@ -8538,6 +8590,14 @@
             "friendly_name": "Args",
             "index": 3,
             "name": "args",
+            "repeated": false
+          },
+          {
+            "doc": "Flow progress info.",
+            "dynamic": true,
+            "friendly_name": "Progress",
+            "index": 16,
+            "name": "progress",
             "repeated": false
           },
           {
@@ -13072,6 +13132,344 @@
         ]
       },
       "url": "/api/clients/C.1000000000000000/flows"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "type": "ListProcessesArgs",
+                "value": {}
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF11"
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "ListProcesses"
+                  },
+                  "notify_to_user": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+              }
+            }
+          },
+          {
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "type": "InterrogateArgs",
+                "value": {}
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF10"
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "Interrogate"
+                  },
+                  "notify_to_user": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "args": {},
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF11",
+            "last_active_at": 44000000,
+            "name": "ListProcesses",
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "ListProcesses",
+              "notify_to_user": true
+            },
+            "started_at": 44000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          },
+          {
+            "args": {},
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF10",
+            "last_active_at": 43000000,
+            "name": "Interrogate",
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "Interrogate",
+              "notify_to_user": true
+            },
+            "started_at": 43000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/flows?top_flows_only=1"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "type": "ListProcessesArgs",
+                "value": {}
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF11"
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "ListProcesses"
+                  },
+                  "notify_to_user": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "args": {},
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF11",
+            "last_active_at": 44000000,
+            "name": "ListProcesses",
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "ListProcesses",
+              "notify_to_user": true
+            },
+            "started_at": 44000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/flows?min_started_at=44000000&top_flows_only=1"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "type": "InterrogateArgs",
+                "value": {}
+              },
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF10"
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "Interrogate"
+                  },
+                  "notify_to_user": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "args": {},
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF10",
+            "last_active_at": 43000000,
+            "name": "Interrogate",
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "Interrogate",
+              "notify_to_user": true
+            },
+            "started_at": 43000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/flows?max_started_at=43000000&top_flows_only=1"
     }
   ],
   "ApiListGrrBinariesHandler": [

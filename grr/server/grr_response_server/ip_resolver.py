@@ -1,18 +1,17 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A resolver for ip addresses to hostnames."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import ipaddress
 import logging
 import socket
 
-from future.utils import with_metaclass
-import ipaddress
-
 from grr_response_core import config
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import precondition
 
 
@@ -23,7 +22,7 @@ class IPInfo(object):
   VPN = 3
 
 
-class IPResolverBase(with_metaclass(registry.MetaclassRegistry, object)):
+class IPResolverBase(metaclass=MetaclassRegistry):
 
   def RetrieveIPInfo(self, ip):
     raise NotImplementedError()
@@ -33,7 +32,7 @@ class IPResolver(IPResolverBase):
   """Resolves IP addresses to hostnames."""
 
   def __init__(self):
-    super(IPResolver, self).__init__()
+    super().__init__()
     self.cache = utils.FastStore(max_size=100)
 
   def RetrieveIPInfo(self, ip):

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
@@ -6,9 +7,9 @@ from __future__ import unicode_literals
 
 import datetime
 import platform
+from typing import Text
 
 from absl.testing import absltest
-from typing import Text
 
 from grr_response_core.lib.util import compatibility
 

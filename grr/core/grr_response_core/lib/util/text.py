@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utility functions for working with text representation of objects."""
 from __future__ import absolute_import
 from __future__ import division

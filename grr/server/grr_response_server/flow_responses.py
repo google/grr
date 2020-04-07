@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The class encapsulating flow responses."""
 from __future__ import absolute_import
 from __future__ import division
@@ -67,7 +68,7 @@ class FakeResponses(Responses):
   """
 
   def __init__(self, messages, request_data):
-    super(FakeResponses, self).__init__()
+    super().__init__()
     self.success = True
     self.responses = messages or []
     self.request_data = request_data

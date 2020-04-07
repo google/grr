@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test RDFStruct implementations."""
 
@@ -8,11 +9,10 @@ from __future__ import unicode_literals
 
 import base64
 import random
+from typing import Text
 
 from absl import app
 from absl.testing import absltest
-
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info

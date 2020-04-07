@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr_response_server.flows.general.filetypes."""
 from __future__ import absolute_import
 from __future__ import division

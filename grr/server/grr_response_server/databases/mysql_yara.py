@@ -1,13 +1,14 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with MySQL implementation of YARA-related database methods."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-import MySQLdb
-
 from typing import Text
+
+import MySQLdb
 
 from grr_response_server.databases import db
 from grr_response_server.databases import mysql_utils

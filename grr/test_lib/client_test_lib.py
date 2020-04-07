@@ -12,8 +12,6 @@ import subprocess
 import tempfile
 import types
 
-import pytest
-
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
 
@@ -29,7 +27,6 @@ from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
 
 
-@pytest.mark.small
 class EmptyActionTest(test_lib.GRRBaseTest):
   """Test the client Actions."""
 

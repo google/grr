@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr_response_server.checks.filters."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 import collections
 
 from absl import app
-from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -259,10 +258,10 @@ class StatFilterTests(test_lib.GRRBaseTest):
         "SymLink": self._GenStat(st_mode=0o120777),
     }
     filt = filters.StatFilter()
-    for file_type, expected in iteritems(all_types):
+    for file_type, expected in all_types.items():
       filt._Flush()
       results = filt.Parse(
-          list(itervalues(all_types)), u"file_type:%s" % file_type)
+          list(all_types.values()), u"file_type:%s" % file_type)
       self.assertLen(results, 1, "Expected exactly 1 %s" % file_type)
       self.assertEqual(expected, results[0],
                        "Expected stat %s, got %s" % (expected, results[0]))

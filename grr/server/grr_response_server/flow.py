@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file defines the base classes for Flows.
 
 A Flow is a state machine which executes actions on the
@@ -52,7 +53,7 @@ class CanNotStartFlowWithExistingIdError(Error):
   def __init__(self, client_id, flow_id):
     message = ("Flow %s already exists on the client %s." %
                (client_id, flow_id))
-    super(CanNotStartFlowWithExistingIdError, self).__init__(message)
+    super().__init__(message)
 
     self.client_id = client_id
     self.flow_id = flow_id
@@ -71,7 +72,7 @@ class FlowResourcesExceededError(Error):
 class AttributedDict(dict):
 
   def __init__(self, *args, **kwargs):
-    super(AttributedDict, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.__dict__ = self
 
 

@@ -12,7 +12,7 @@ var AFF4_PREFIXES = {
 
 /**
  * @param {Object} pathspec
- * @return {Array}
+ * @return {!Array}
  */
 var splitPathspec = function(pathspec) {
   var result = [];

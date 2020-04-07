@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Stats-related client rdfvalues."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 
@@ -124,7 +124,7 @@ class ClientStats(rdf_structs.RDFProtoStruct):
       bucket = buckets.setdefault(sample.timestamp.Floor(interval), [])
       bucket.append(sample)
 
-    for _, bucket in sorted(iteritems(buckets)):
+    for _, bucket in sorted(buckets.items()):
       yield kind.FromMany(bucket)
 
 

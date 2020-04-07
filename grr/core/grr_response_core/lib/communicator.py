@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Abstracts encryption and authentication."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,8 +9,6 @@ import abc
 import struct
 import time
 import zlib
-
-from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -44,7 +43,7 @@ class DecodingError(Error):
 
   @GRR_DECODING_ERROR.Counted()
   def __init__(self, message):
-    super(DecodingError, self).__init__(message)
+    super().__init__(message)
 
 
 class DecryptionError(DecodingError):
@@ -52,7 +51,7 @@ class DecryptionError(DecodingError):
 
   @GRR_DECRYPTION_ERROR.Counted()
   def __init__(self, message):
-    super(DecryptionError, self).__init__(message)
+    super().__init__(message)
 
 
 class LegacyClientDecryptionError(DecryptionError):
@@ -60,7 +59,7 @@ class LegacyClientDecryptionError(DecryptionError):
 
   @GRR_LEGACY_CLIENT_DECRYPTION_ERROR.Counted()
   def __init__(self, message):
-    super(LegacyClientDecryptionError, self).__init__(message)
+    super().__init__(message)
 
 
 class UnknownClientCertError(DecodingError):
@@ -68,7 +67,7 @@ class UnknownClientCertError(DecodingError):
 
   @GRR_CLIENT_UNKNOWN.Counted()
   def __init__(self, message):
-    super(UnknownClientCertError, self).__init__(message)
+    super().__init__(message)
 
 
 class Cipher(object):
@@ -278,7 +277,7 @@ class ReceivedCipher(Cipher):
       return True
 
 
-class Communicator(with_metaclass(abc.ABCMeta, object)):
+class Communicator(metaclass=abc.ABCMeta):
   """A class responsible for encoding and decoding comms."""
   server_name = None
   common_name = None

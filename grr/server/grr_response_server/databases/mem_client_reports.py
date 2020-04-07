@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """In-memory implementation of DB methods for handling client report data."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.utils import iteritems
 from typing import Dict, Optional, Text
 
 from grr_response_core.lib import rdfvalue
@@ -45,7 +45,7 @@ class InMemoryDBClientReportsMixin(object):
   ):
     """See db.Database."""
     series_with_timestamps = {}
-    for series_key, series in iteritems(self.client_graph_series):
+    for series_key, series in self.client_graph_series.items():
       series_label, series_type, timestamp = series_key
       if series_label == client_label and series_type == report_type:
         if time_range is not None and not time_range.Includes(timestamp):
@@ -62,7 +62,7 @@ class InMemoryDBClientReportsMixin(object):
         client_label, report_type)
     if not series_with_timestamps:
       return None
-    _, latest_series = list(sorted(iteritems(series_with_timestamps)))[-1]
+    _, latest_series = list(sorted(series_with_timestamps.items()))[-1]
     return latest_series
 
 

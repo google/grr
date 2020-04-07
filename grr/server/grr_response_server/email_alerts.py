@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A simple wrapper to send email alerts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -14,21 +15,18 @@ import re
 import smtplib
 import socket
 
-from future.utils import iteritems
-from future.utils import string_types
-from future.utils import with_metaclass
 
 from grr_response_core import config
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
+from grr_response_core.lib.registry import MetaclassRegistry
 
 
 class EmailNotSentError(Exception):
   """Exception raised when we fail to send an email."""
 
 
-class EmailAlerterBase(with_metaclass(registry.MetaclassRegistry, object)):
+class EmailAlerterBase(metaclass=MetaclassRegistry):
   """The email alerter base class."""
 
   def RemoveHtmlTags(self, data):
@@ -49,7 +47,7 @@ class EmailAlerterBase(with_metaclass(registry.MetaclassRegistry, object)):
     # Process email addresses, and build up a list.
     if isinstance(address_list, rdf_standard.DomainEmailAddress):
       address_list = [str(address_list)]
-    elif isinstance(address_list, string_types):
+    elif isinstance(address_list, str):
       address_list = [address for address in address_list.split(",") if address]
     for address in address_list:
       result.append(self.AddEmailDomain(address))
@@ -65,6 +63,7 @@ class EmailAlerterBase(with_metaclass(registry.MetaclassRegistry, object)):
                 cc_addresses=None,
                 message_id=None,
                 headers=None):
+    """Sends an email."""
     raise NotImplementedError()
 
 
@@ -111,7 +110,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
       msg.attach(part1)
 
     if attachments:
-      for file_name, file_data in iteritems(attachments):
+      for file_name, file_data in attachments.items():
         part = MIMEBase("application", "octet-stream")
         part.set_payload(file_data)
         encoders.encode_base64(part)
@@ -133,7 +132,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
     if message_id:
       msg.add_header("Message-ID", message_id)
 
-    for header, value in iteritems(headers):
+    for header, value in headers.items():
       msg.add_header(header, value)
 
     try:

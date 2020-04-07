@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests email links."""
 from __future__ import absolute_import
@@ -6,9 +7,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import re
+from urllib import parse as urlparse
 
 from absl import app
-from future.moves.urllib import parse as urlparse
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility

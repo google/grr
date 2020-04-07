@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Fallback flows for artifacts that couldn't be collected normally.
 
 These flows subclass lib.artifact.ArtifactFallbackCollector.
@@ -51,6 +52,7 @@ class SystemRootSystemDriveFallbackFlow(flow_base.FlowBase):
   """
 
   args_type = ArtifactFallbackCollectorArgs
+  result_types = (rdf_client_fs.StatEntry,)
 
   def Start(self):
     self.state.success = False

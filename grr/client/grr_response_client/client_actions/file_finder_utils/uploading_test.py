@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -151,7 +152,7 @@ class FakeAction(mock.MagicMock):
   Message = collections.namedtuple("Message", ("item", "session_id"))  # pylint: disable=invalid-name
 
   def __init__(self, **kwargs):
-    super(FakeAction, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     self.charged_bytes = 0
     self.messages = []
 

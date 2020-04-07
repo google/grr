@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """The MySQL database methods for client handling."""
 from __future__ import absolute_import
@@ -8,14 +9,10 @@ from __future__ import unicode_literals
 
 import collections
 import itertools
-
-from future.utils import iterkeys
-from future.utils import itervalues
+from typing import Generator, List, Text
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
-
-from typing import Generator, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -73,7 +70,7 @@ class MySQLDBClientMixin(object):
       values["last_foreman"] = mysql_utils.RDFDatetimeToTimestamp(last_foreman)
 
     updates = []
-    for column in iterkeys(values):
+    for column in values.keys():
       updates.append("{column} = VALUES({column})".format(column=column))
 
     query = """
@@ -81,7 +78,7 @@ class MySQLDBClientMixin(object):
     VALUES ({placeholders})
     ON DUPLICATE KEY UPDATE {updates}
     """.format(
-        columns=", ".join(iterkeys(values)),
+        columns=", ".join(values.keys()),
         placeholders=", ".join(placeholders),
         updates=", ".join(updates))
 
@@ -588,7 +585,7 @@ class MySQLDBClientMixin(object):
       FORCE INDEX (client_index_by_keyword_hash)
       WHERE keyword_hash IN ({})
     """.format(", ".join(["%s"] * len(result)))
-    args = list(iterkeys(hash_to_kw))
+    args = list(hash_to_kw.keys())
     if start_time:
       query += " AND timestamp >= FROM_UNIXTIME(%s)"
       args.append(mysql_utils.RDFDatetimeToTimestamp(start_time))
@@ -632,7 +629,7 @@ class MySQLDBClientMixin(object):
       ret[db_utils.IntToClientID(client_id)].append(
           rdf_objects.ClientLabel(name=label, owner=owner))
 
-    for r in itervalues(ret):
+    for r in ret.values():
       r.sort(key=lambda label: (label.owner, label.name))
     return ret
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """These are flows designed to discover information about the host."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -44,6 +44,7 @@ class Interrogate(flow_base.FlowBase):
   category = "/Administrative/"
   client = None
   args_type = InterrogateArgs
+  result_types = (rdf_client.ClientSummary,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
@@ -295,7 +296,7 @@ class Interrogate(flow_base.FlowBase):
 
     response = responses.First()
 
-    for k, v in iteritems(response):
+    for k, v in response.items():
       self.state.client.grr_configuration.Append(key=k, value=str(v))
 
   def ClientLibraries(self, responses):
@@ -304,7 +305,7 @@ class Interrogate(flow_base.FlowBase):
       return
 
     response = responses.First()
-    for k, v in iteritems(response):
+    for k, v in response.items():
       self.state.client.library_versions.Append(key=k, value=str(v))
 
   def NotifyAboutEnd(self):

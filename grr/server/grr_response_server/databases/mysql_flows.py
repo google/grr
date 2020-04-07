@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The MySQL database methods for flow handling."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,11 +9,10 @@ from __future__ import unicode_literals
 import logging
 import threading
 import time
+from typing import List, Optional, Text
 
-from future.utils import iteritems
 import MySQLdb
 from MySQLdb.constants import ER as mysql_errors
-from typing import List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -707,7 +707,7 @@ class MySQLDBFlowMixin(object):
         for r in responses:
           self._WriteResponses([r], cursor)
       else:
-        logging.warn("Response for unknown request: %s", responses[0])
+        logging.warning("Response for unknown request: %s", responses[0])
 
   @mysql_utils.WithTransaction()
   def _DeleteClientActionRequest(self, to_delete, cursor=None):
@@ -886,7 +886,7 @@ class MySQLDBFlowMixin(object):
       return completed_requests
 
     fprs_to_write = []
-    for request_key, r in iteritems(completed_requests):
+    for request_key, r in completed_requests.items():
       client_id, flow_id, request_id = request_key
       if next_requests[(client_id, flow_id)] == request_id:
         fprs_to_write.append(

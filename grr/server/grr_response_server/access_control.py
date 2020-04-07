@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The access control classes and user management classes for the data_store.
 
 An AccessControlManager has the following responsibilities:
@@ -16,11 +17,9 @@ from __future__ import unicode_literals
 import logging
 import time
 
-from future.utils import with_metaclass
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 
@@ -55,7 +54,7 @@ class UnauthorizedAccess(Error):
   def __init__(self, message, subject=None, requested_access="?"):
     self.subject = subject
     self.requested_access = requested_access
-    super(UnauthorizedAccess, self).__init__(message)
+    super().__init__(message)
 
 
 class ExpiryError(Error):
@@ -63,7 +62,7 @@ class ExpiryError(Error):
   counter = "grr_expired_tokens"
 
 
-class AccessControlManager(with_metaclass(registry.MetaclassRegistry, object)):
+class AccessControlManager(metaclass=MetaclassRegistry):
   """A class for managing access to data resources.
 
   This class is responsible for determining which users have access to each

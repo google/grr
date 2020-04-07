@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Administrative flows for managing the clients state."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,14 +10,15 @@ import logging
 import os
 import shlex
 import time
+from typing import Text
 
 import jinja2
-from typing import Text
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -170,6 +172,7 @@ class GetClientStats(flow_base.FlowBase, GetClientStatsProcessResponseMixin):
   """This flow retrieves information about the GRR client process."""
 
   category = "/Administrative/"
+  result_types = (rdf_client_stats.ClientStats,)
 
   def Start(self):
     self.CallClient(
@@ -330,6 +333,7 @@ class ExecutePythonHack(flow_base.FlowBase):
 
   category = "/Administrative/"
   args_type = ExecutePythonHackArgs
+  result_types = (rdfvalue.RDFString,)
 
   def Start(self):
     """The start method."""
@@ -830,6 +834,7 @@ class LaunchBinary(flow_base.FlowBase):
   category = "/Administrative/"
 
   args_type = LaunchBinaryArgs
+  result_types = (rdf_client_action.ExecuteBinaryResponse,)
 
   def _BlobIterator(self, binary_urn):
     try:

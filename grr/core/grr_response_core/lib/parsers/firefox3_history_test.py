@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # Copyright 2011 Google Inc. All Rights Reserved.
 """Tests for grr.parsers.firefox3_history."""
 

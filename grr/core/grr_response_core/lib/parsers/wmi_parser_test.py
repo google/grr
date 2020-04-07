@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr.parsers.wmi_parser."""
 
 from __future__ import absolute_import
@@ -9,7 +10,6 @@ import platform
 import unittest
 
 from absl import app
-from future.utils import iteritems
 
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -31,7 +31,7 @@ class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
     parser = wmi_parser.WMIInterfacesParser()
     rdf_dict = rdf_protodict.Dict()
     mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-    wmi_properties = iteritems(mock_config.__dict__)
+    wmi_properties = mock_config.__dict__.items()
     for key, value in wmi_properties:
       if not key.startswith("__"):
         try:

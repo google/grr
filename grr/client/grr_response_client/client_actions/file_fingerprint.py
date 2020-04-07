@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Action to fingerprint files on the client."""
 from __future__ import absolute_import
 from __future__ import division
@@ -16,7 +17,7 @@ class Fingerprinter(fingerprint.Fingerprinter):
   """A fingerprinter with heartbeat."""
 
   def __init__(self, progress_cb, file_obj):
-    super(Fingerprinter, self).__init__(file_obj)
+    super().__init__(file_obj)
     self.progress_cb = progress_cb
 
   def _GetNextInterval(self):

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Simple parsers for Linux Release files."""
 from __future__ import absolute_import
@@ -106,7 +107,7 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
   RH_RE = re.compile(r'release (\d[\d]*)\.(\d[\d]*)')
 
   def __init__(self, name):
-    super(ReleaseFileParseHandler, self).__init__(None)
+    super().__init__(None)
 
     self.name = name
 

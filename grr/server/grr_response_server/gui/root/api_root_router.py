@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API root router definition and default implementation.
 
 Root router provides root-level access to GRR. It is not externally accessible

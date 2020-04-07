@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Email live output plugin."""
 from __future__ import absolute_import
 from __future__ import division
@@ -56,7 +57,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
                         "sending of emails will be disabled now. </p>")
 
   def __init__(self, *args, **kwargs):
-    super(EmailOutputPlugin, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.emails_sent = 0
 
   def InitializeState(self, state):

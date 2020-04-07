@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implements VFSHandlers for files on the client."""
 from __future__ import absolute_import
 from __future__ import division
@@ -103,7 +104,7 @@ class File(vfs_base.VFSHandler):
   file_offset = 0
 
   def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
-    super(File, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,

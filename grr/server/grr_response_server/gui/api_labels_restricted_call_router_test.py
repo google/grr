@@ -1,12 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for an ApiLabelsRestrictedCallRouter."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.utils import iteritems
-from future.utils import iterkeys
 
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -133,7 +132,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
   def RunChecks(self, router):
     result = {}
 
-    for method_name, args in iteritems(self.checks):
+    for method_name, args in self.checks.items():
       try:
         handler = getattr(router, method_name)(args, token=self.token)
         result[method_name] = (True, handler)
@@ -254,14 +253,14 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     self.CheckMethod(c.ListApiMethods)
 
     non_checked_methods = (
-        set(iterkeys(self.checks)) - set(iterkeys(c.GetAnnotatedMethods())))
+        set(self.checks.keys()) - set(c.GetAnnotatedMethods().keys()))
     if non_checked_methods:
       raise RuntimeError("Not all methods are covered with CheckMethod() "
                          "checks: " + ", ".join(non_checked_methods))
 
   def CheckOnlyFollowingMethodsArePermitted(self, router, method_names):
     result = self.RunChecks(router)
-    for method_name, (status, _) in iteritems(result):
+    for method_name, (status, _) in result.items():
       if method_name in method_names:
         self.assertTrue(status,
                         "%s must be permitted, but it's not" % method_name)
@@ -272,8 +271,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
   def testReturnsCustomHandlerForSearchClients(self):
     router = api_router.ApiLabelsRestrictedCallRouter()
     handler = router.SearchClients(None, token=self.token)
-    self.assertTrue(
-        isinstance(handler, api_client.ApiLabelsRestrictedSearchClientsHandler))
+    self.assertIsInstance(handler,
+                          api_client.ApiLabelsRestrictedSearchClientsHandler)
 
   # Check router with vfs/flows access turned off.
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithoutLabels(self):

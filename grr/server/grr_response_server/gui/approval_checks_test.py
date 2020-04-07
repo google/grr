@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for approval_checks module."""
 from __future__ import absolute_import
 from __future__ import division

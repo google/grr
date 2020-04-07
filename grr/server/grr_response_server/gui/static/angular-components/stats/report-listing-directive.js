@@ -11,7 +11,7 @@ const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
  *
  * @param {Object} reports The server response field response.data.reports,
  *                         type-stripped.
- * @return {Array} The report listing in a jsTree-compatible structure.
+ * @return {!Array} The report listing in a jsTree-compatible structure.
  */
 exports.parseStatsReportsApiResponse = function(reports) {
   var ret = [];

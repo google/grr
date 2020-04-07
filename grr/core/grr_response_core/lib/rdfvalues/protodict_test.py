@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test protodict implementation.
 
@@ -15,11 +16,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+from typing import Text
 
 from absl import app
 from absl.testing import absltest
-from future.utils import iteritems
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -48,7 +48,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(value.ToDict(), sample.ToDict())
 
   def CheckTestDict(self, test_dict, sample):
-    for k, v in iteritems(test_dict):
+    for k, v in test_dict.items():
       # Test access through getitem.
       self.assertEqual(sample[k], v)
 
@@ -143,7 +143,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertRaises(TypeError, rdf_protodict.Dict, **test_dict)
 
     sample = rdf_protodict.Dict()
-    for key, value in iteritems(test_dict):
+    for key, value in test_dict.items():
       sample.SetItem(key, value, raise_on_error=False)
 
     # Need to do some manual checking here since this is a lossy conversion.
@@ -188,16 +188,16 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
   def testOverwriting(self):
     req = rdf_client_action.Iterator(client_state=rdf_protodict.Dict({"A": 1}))
     # There should be one element now.
-    self.assertLen(list(iteritems(req.client_state)), 1)
+    self.assertLen(list(req.client_state.items()), 1)
 
     req.client_state = rdf_protodict.Dict({"B": 2})
     # Still one element.
-    self.assertLen(list(iteritems(req.client_state)), 1)
+    self.assertLen(list(req.client_state.items()), 1)
 
     req.client_state = rdf_protodict.Dict({})
 
     # And now it's gone.
-    self.assertEmpty(list(iteritems(req.client_state)))
+    self.assertEmpty(list(req.client_state.items()))
 
 
 class DictSimpleTest(absltest.TestCase):

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A library for check-specific tests."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,8 +9,6 @@ import collections
 import io
 import os
 
-from future.utils import iteritems
-from future.utils import iterkeys
 import yaml
 
 from grr_response_core import config
@@ -142,7 +141,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     rdfs = []
     stats = []
     files = []
-    for path, lines in iteritems(data):
+    for path, lines in data.items():
       stat = self.CreateStat(path)
       stats.append(stat)
       file_obj = io.BytesIO(lines.encode("utf-8"))
@@ -292,11 +291,11 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
   def assertRanChecks(self, check_ids, results):
     """Tests that the specified checks were run."""
-    self.assertContainsSubset(check_ids, iterkeys(results))
+    self.assertContainsSubset(check_ids, results.keys())
 
   def assertChecksNotRun(self, check_ids, results):
     """Tests that the specified checks were not run."""
-    self.assertNoCommonElements(check_ids, iterkeys(results))
+    self.assertNoCommonElements(check_ids, results.keys())
 
   def assertResultEqual(self, rslt1, rslt2):
     """Tests whether two check results are identical."""
@@ -318,7 +317,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     self.assertCountEqual(rslt1_anoms, rslt2_anoms)
 
     # Now check that the anomalies are the same, modulo newlines.
-    for symptom, findings in iteritems(rslt1_anoms):
+    for symptom, findings in rslt1_anoms.items():
       rslt1_found = [f.strip() for f in findings]
       rslt2_found = [f.strip() for f in rslt2_anoms[symptom]]
       self.assertCountEqual(rslt1_found, rslt2_found)
@@ -346,14 +345,14 @@ class HostCheckTest(test_lib.GRRBaseTest):
       self.fail("File %s could not be parsed: %s\n" % (relpath, e))
     # Otherwise, check all the configs and pass/fail at the end.
     errors = collections.OrderedDict()
-    for check_id, check_spec in iteritems(configs):
+    for check_id, check_spec in configs.items():
       check_errors = self.GetCheckErrors(check_spec)
       if check_errors:
         msg = errors.setdefault(relpath, ["check_id: %s" % check_id])
         msg.append(check_errors)
     if errors:
       message = ""
-      for k, v in iteritems(errors):
+      for k, v in errors.items():
         message += "File %s errors:\n" % k
         message += "  %s\n" % v[0]
         for err in v[1]:

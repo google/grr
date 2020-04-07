@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implement low level disk access using the sleuthkit."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,10 +8,9 @@ from __future__ import unicode_literals
 
 import logging
 import stat
+from typing import Text
 
 import pytsk3
-
-from typing import Text
 
 from grr_response_client import client_utils
 from grr_response_client.vfs_handlers import base as vfs_base
@@ -30,7 +30,7 @@ def _DecodeUTF8WithWarning(string):
     return string.decode("utf-8")
   except UnicodeDecodeError as e:
     result = string.decode("utf-8", "replace")
-    logging.warn("%s. Decoded %r to %r", e, string, result)
+    logging.warning("%s. Decoded %r to %r", e, string, result)
     return result
 
 
@@ -124,7 +124,7 @@ class TSKFile(vfs_base.VFSHandler):
     Raises:
       IOError: If the file can not be opened.
     """
-    super(TSKFile, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,

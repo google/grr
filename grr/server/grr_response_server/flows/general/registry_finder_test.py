@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the RegistryFinder flow."""
 from __future__ import absolute_import
 from __future__ import division
@@ -42,8 +43,8 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     results = self._RunRegistryFinder(
         ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
     self.assertLen(results, 2)
-    self.assertEqual(
-        sorted([x.stat_entry.registry_data.GetValue() for x in results]),
+    self.assertCountEqual(
+        [x.stat_entry.registry_data.GetValue() for x in results],
         ["Value1", "Value2"])
 
     # This is a key so we should get back the default value.

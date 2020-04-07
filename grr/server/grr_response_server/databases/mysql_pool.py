@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Connection pooling for MySQLdb connections."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 import logging
 import threading
 
-from future.utils import string_types
 
 import MySQLdb
 
@@ -217,7 +217,7 @@ class _CursorProxy(object):
       # TODO: check if newer versions of mysqlclient still report
       # the CONSTRAINT...FOREIGN KEY warning as a warning and not as an
       # integrity error.
-      if (isinstance(e.args[0], string_types) and "CONSTRAINT" in e.args[0] and
+      if (isinstance(e.args[0], str) and "CONSTRAINT" in e.args[0] and
           "FOREIGN KEY" in e.args[0]):
         raise MySQLdb.IntegrityError(str(e))
 

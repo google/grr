@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for cron type files."""
 
 from __future__ import absolute_import

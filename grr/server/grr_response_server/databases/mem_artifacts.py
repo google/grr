@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The in-memory database methods for handling artifacts."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import itervalues
 
 from grr_response_server.databases import db
 
@@ -34,7 +34,7 @@ class InMemoryDBArtifactsMixin(object):
     """Lists all artifacts that are stored in the database."""
     artifacts = []
 
-    for artifact in itervalues(self.artifacts):
+    for artifact in self.artifacts.values():
       artifacts.append(artifact.Copy())
 
     return artifacts

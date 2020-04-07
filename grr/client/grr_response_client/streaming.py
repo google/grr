@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utility classes for streaming files and memory."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 
 import abc
 import os
-from future.utils import with_metaclass
 
 
 class Streamer(object):
@@ -169,7 +169,7 @@ class Chunk(object):
       yield span
 
 
-class Reader(with_metaclass(abc.ABCMeta, object)):
+class Reader(metaclass=abc.ABCMeta):
   """A unified interface for reader-like objects."""
 
   @abc.abstractproperty
@@ -198,6 +198,8 @@ class FileReader(Reader):
       filedesc: A file descriptor object to read from.
       offset: An initial offset within the file.
     """
+    super().__init__()
+
     self._filedesc = filedesc
     self._offset = offset
     filedesc.seek(offset, os.SEEK_SET)
@@ -222,6 +224,8 @@ class MemoryReader(Reader):
       process: A platform-specific `Process` instance.
       offset: An initial offset within the memory.
     """
+    super().__init__()
+
     self._process = process
     self._offset = offset
 

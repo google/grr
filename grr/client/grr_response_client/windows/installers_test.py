@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -10,7 +11,7 @@ from absl.testing import absltest
 
 # pylint: disable=g-import-not-at-top
 try:
-  from future.moves import winreg
+  import winreg
 except ImportError:
   # The import is expected to fail on non-Windows platforms.
   winreg = None

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for API client and hunts-related API calls."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,12 +10,19 @@ import zipfile
 
 from absl import app
 
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
+from grr_response_core.lib.util import chunked
 from grr_response_server import data_store
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import processes as flows_processes
+from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -246,6 +254,66 @@ class ApiClientLibHuntTest(
 
     namelist = zip_fd.namelist()
     self.assertTrue(namelist)
+
+  def testGetCollectedTimelines(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    fqdn = "foo.bar.baz"
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = fqdn
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_id = "A0B1D2C3E4"
+    flow_id = "0A1B2D3C4E"
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.client_ids = [client_id]
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = timeline.TimelineFlow.__name__
+    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
+    flow_obj.parent_hunt_id = hunt_id
+    data_store.REL_DB.WriteFlowObject(flow_obj)
+
+    entry_1 = rdf_timeline.TimelineEntry()
+    entry_1.path = "/foo/bar".encode("utf-8")
+    entry_1.size = 4815162342
+    entry_1.mode = 0o664
+
+    entry_2 = rdf_timeline.TimelineEntry()
+    entry_2.path = "/foo/baz".encode("utf-8")
+    entry_2.size = 1337
+    entry_2.mode = 0o777
+
+    entries = [entry_1, entry_2]
+    blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))
+    blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
+
+    result = rdf_timeline.TimelineResult()
+    result.entry_batch_blob_ids = [blob_id.AsBytes() for blob_id in blob_ids]
+
+    flow_result = rdf_flow_objects.FlowResult()
+    flow_result.client_id = client_id
+    flow_result.flow_id = flow_id
+    flow_result.payload = result
+
+    data_store.REL_DB.WriteFlowResults([flow_result])
+
+    buffer = io.BytesIO()
+    self.api.Hunt(hunt_id).GetCollectedTimelines().WriteToStream(buffer)
+
+    with zipfile.ZipFile(buffer, mode="r") as archive:
+      with archive.open(f"{client_id}_{fqdn}.gzchunked", mode="r") as file:
+        chunks = chunked.ReadAll(file)
+        entries = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
+        self.assertEqual(entries, [entry_1, entry_2])
 
 
 def main(argv):

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for config_lib classes."""
 
 from __future__ import absolute_import
@@ -12,7 +13,6 @@ import stat
 
 from absl import app
 from absl.testing import flagsaver
-from past.builtins import long
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -762,7 +762,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
 
     conf.Validate("Section1")
-    self.assertEqual(type(conf.Get("Section1.int")), long)
+    self.assertEqual(type(conf.Get("Section1.int")), int)
 
     self.assertEqual(type(conf.Get("Section1.list")), list)
     self.assertEqual(conf.Get("Section1.list"), [])

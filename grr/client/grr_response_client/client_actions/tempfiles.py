@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Create and delete GRR temporary files.
 
 Utilities for working with GRR temp files.
@@ -13,9 +14,9 @@ import stat
 import sys
 import tempfile
 import threading
+from typing import Text
 
 import psutil
-from typing import Text
 
 from grr_response_client import actions
 from grr_response_client import client_utils

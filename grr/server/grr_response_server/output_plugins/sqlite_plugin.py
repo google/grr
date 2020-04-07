@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Plugin that exports results as SQLite db scripts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,9 +10,6 @@ import io
 import os
 import zipfile
 
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
 import sqlite3
 
 from grr_response_core.lib import rdfvalue
@@ -94,7 +92,7 @@ class SqliteInstantOutputPlugin(
   ROW_BATCH = 100
 
   def __init__(self, *args, **kwargs):
-    super(SqliteInstantOutputPlugin, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.archive_generator = None  # Created in Start()
     self.export_counts = {}
 
@@ -136,7 +134,7 @@ class SqliteInstantOutputPlugin(
     with db_connection:
       buf = io.StringIO()
       buf.write(u"CREATE TABLE \"%s\" (\n  " % table_name)
-      column_types = [(k, v.sqlite_type) for k, v in iteritems(schema)]
+      column_types = [(k, v.sqlite_type) for k, v in schema.items()]
       buf.write(u",\n  ".join([u"\"%s\" %s" % (k, v) for k, v in column_types]))
       buf.write(u"\n);")
       db_cursor.execute(buf.getvalue())
@@ -182,15 +180,15 @@ class SqliteInstantOutputPlugin(
     sql_dict = self._ConvertToCanonicalSqlDict(schema, value.ToPrimitiveDict())
     buf = io.StringIO()
     buf.write(u"INSERT INTO \"%s\" (\n  " % table_name)
-    buf.write(u",\n  ".join(["\"%s\"" % k for k in iterkeys(sql_dict)]))
+    buf.write(u",\n  ".join(["\"%s\"" % k for k in sql_dict.keys()]))
     buf.write(u"\n)")
     buf.write(u"VALUES (%s);" % u",".join([u"?"] * len(sql_dict)))
-    db_cursor.execute(buf.getvalue(), list(itervalues(sql_dict)))
+    db_cursor.execute(buf.getvalue(), list(sql_dict.values()))
 
   def _ConvertToCanonicalSqlDict(self, schema, raw_dict, prefix=""):
     """Converts a dict of RDF values into a SQL-ready form."""
     flattened_dict = {}
-    for k, v in iteritems(raw_dict):
+    for k, v in raw_dict.items():
       if isinstance(v, dict):
         flattened_dict.update(
             self._ConvertToCanonicalSqlDict(

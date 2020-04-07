@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the SimpleAPIAuthManager."""
 from __future__ import absolute_import
 from __future__ import division
@@ -40,8 +41,7 @@ class DummyAuthManagerTestConfigurableApiRouter(api_call_router.ApiCallRouter):
   params_type = DummyAuthManagerTestConfigurableApiRouterParams
 
   def __init__(self, params=None):
-    super(DummyAuthManagerTestConfigurableApiRouter, self).__init__(
-        params=params)
+    super().__init__(params=params)
     self.params = params
 
 

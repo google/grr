@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Plist related rdfvalues."""
 
 from __future__ import absolute_import
@@ -24,7 +25,7 @@ class FilterString(rdfvalue.RDFString):
   query_parser_cls = lexer.SearchParser
 
   def __init__(self, initializer=None):
-    super(FilterString, self).__init__(initializer)
+    super().__init__(initializer)
 
     if self._value:
       try:

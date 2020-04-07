@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for utility classes."""
 
@@ -6,6 +7,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import datetime
 import sys
 import unittest
 
@@ -164,27 +166,42 @@ class RDFDateTimeTest(absltest.TestCase):
       rdfvalue.RDFDatetime.Lerp(-0.5, start_time=start_time, end_time=end_time)
 
   def testFloorToMinutes(self):
-    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
+    dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     self.assertEqual(
-        datetime.Floor(rdfvalue.Duration.From(60, rdfvalue.SECONDS)), expected)
+        dt.Floor(rdfvalue.Duration.From(60, rdfvalue.SECONDS)), expected)
 
   def testFloorToHours(self):
-    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
+    dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:00")
     self.assertEqual(
-        datetime.Floor(rdfvalue.Duration.From(1, rdfvalue.HOURS)), expected)
+        dt.Floor(rdfvalue.Duration.From(1, rdfvalue.HOURS)), expected)
 
   def testFloorToDays(self):
-    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
+    dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34")
     expected = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11")
     self.assertEqual(
-        datetime.Floor(rdfvalue.Duration.From(1, rdfvalue.DAYS)), expected)
+        dt.Floor(rdfvalue.Duration.From(1, rdfvalue.DAYS)), expected)
 
   def testFloorExact(self):
-    datetime = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
+    dt = rdfvalue.RDFDatetime.FromHumanReadable("2011-11-11 12:34:56")
+    self.assertEqual(dt.Floor(rdfvalue.Duration.From(1, rdfvalue.SECONDS)), dt)
+
+
+class RDFDatetimeSecondsTest(absltest.TestCase):
+
+  def testFromDatetime_withMicroSeconds(self):
+    dt_with_micros = datetime.datetime(2000, 1, 1, microsecond=5000)
+    dt = datetime.datetime(2000, 1, 1)
     self.assertEqual(
-        datetime.Floor(rdfvalue.Duration.From(1, rdfvalue.SECONDS)), datetime)
+        rdfvalue.RDFDatetimeSeconds.FromDatetime(dt_with_micros),
+        rdfvalue.RDFDatetimeSeconds.FromDatetime(dt))
+
+  def testBug122716179(self):
+    d = rdfvalue.RDFDatetimeSeconds.FromSecondsSinceEpoch(1)
+    self.assertEqual(d.AsMicrosecondsSinceEpoch(), 1000000)
+    diff = rdfvalue.RDFDatetimeSeconds(10) - rdfvalue.Duration("3s")
+    self.assertEqual(diff.AsMicrosecondsSinceEpoch(), 7000000)
 
 
 class DurationSecondsTest(absltest.TestCase):

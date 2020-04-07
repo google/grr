@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Client actions related to administrating the client and its configuration."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,7 +13,6 @@ import traceback
 
 import cryptography
 from cryptography.hazmat.backends import openssl
-from future.utils import iteritems
 import pkg_resources
 import psutil
 import pytsk3
@@ -154,7 +154,7 @@ class GetLibraryVersions(actions.ActionPlugin):
 
   def Run(self, unused_arg):
     result = self.out_rdfvalues[0]()
-    for lib, f in iteritems(self.library_map):
+    for lib, f in self.library_map.items():
       try:
         result[lib] = f(self)
       except Exception:  # pylint: disable=broad-except
@@ -176,7 +176,7 @@ class UpdateConfiguration(actions.ActionPlugin):
                       "Client.rss_max"}  # pyformat: disable
 
   def _UpdateConfig(self, filtered_arg, config_obj):
-    for field, value in iteritems(filtered_arg):
+    for field, value in filtered_arg.items():
       config_obj.Set(field, value)
 
     try:
@@ -192,7 +192,7 @@ class UpdateConfiguration(actions.ActionPlugin):
     except AttributeError:
       pass
 
-    smart_arg = {str(field): value for field, value in iteritems(arg)}
+    smart_arg = {str(field): value for field, value in arg.items()}
 
     disallowed_fields = [
         field for field in smart_arg

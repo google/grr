@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Mixin that tests hash blob references."""
 from __future__ import absolute_import
 from __future__ import division

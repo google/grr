@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Plugins that produce results in YAML."""
 from __future__ import absolute_import
 from __future__ import division
@@ -40,8 +41,7 @@ class YamlInstantOutputPluginWithExportConversion(
   ROW_BATCH = 100
 
   def __init__(self, *args, **kwargs):
-    super(YamlInstantOutputPluginWithExportConversion, self).__init__(
-        *args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.archive_generator = None  # Created in Start()
     self.export_counts = {}
 

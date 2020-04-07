@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 
@@ -10,9 +11,9 @@ import os
 import platform
 import random
 import stat as stat_mode
+from typing import Text
 
 from absl.testing import absltest
-from typing import Text
 
 from grr_response_client.client_actions import timeline
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline

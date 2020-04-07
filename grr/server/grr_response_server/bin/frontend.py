@@ -1,23 +1,23 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR frontend HTTP Server."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+from http import server as http_server
 import io
+import ipaddress
 import logging
 import pdb
 import socket
+import socketserver
 import threading
+from urllib import parse as urlparse
 
 from absl import app
 from absl import flags
-from future.moves.urllib import parse as urlparse
-from future.utils import iteritems
-from http import server as http_server
-import ipaddress
-import socketserver
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
@@ -76,7 +76,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
     if additional_headers:
       additional_header_strings = [
           "%s: %s\r\n" % (name, val)
-          for name, val in iteritems(additional_headers)
+          for name, val in additional_headers.items()
       ]
     else:
       additional_header_strings = []
@@ -114,6 +114,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
   RECV_BLOCK_SIZE = 8192
 
   def _GetPOSTData(self, length):
+    """Returns a specified number of bytes of the POST data."""
     # During our tests we have encountered some issue with the socket library
     # that would stall for a long time when calling socket.recv(n) with a large
     # n. rfile.read() passes the length down to socket.recv() so it's much

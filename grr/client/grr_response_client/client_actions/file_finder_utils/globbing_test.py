@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
@@ -9,13 +10,13 @@ import contextlib
 import io
 import os
 import platform
+from typing import Iterator
+from typing import Sequence
+from typing import Text
 import unittest
 
 from absl import app
 from absl.testing import absltest
-from typing import Iterator
-from typing import Sequence
-from typing import Text
 
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.vfs_handlers import files

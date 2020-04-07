@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A flow to collect eficheck output."""
 from __future__ import absolute_import
 from __future__ import division
@@ -24,6 +25,7 @@ class CollectEfiHashes(flow_base.FlowBase):
 
   category = "/Collectors/"
   args_type = rdf_apple_firmware.EficheckFlowArgs
+  result_types = (rdf_apple_firmware.EfiCollection,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
@@ -68,6 +70,7 @@ class DumpEfiImage(flow_base.FlowBase):
 
   category = "/Collectors/"
   args_type = rdf_apple_firmware.EficheckFlowArgs
+  result_types = (rdf_apple_firmware.DumpEfiImageResponse,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):

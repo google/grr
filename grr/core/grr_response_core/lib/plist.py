@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Shared classes between the client and the server for plist parsing."""
 
 from __future__ import absolute_import
@@ -8,7 +9,6 @@ from __future__ import unicode_literals
 import calendar
 import datetime
 
-from future.utils import iteritems
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import objectfilter
@@ -135,7 +135,7 @@ def PlistValueToPlainValue(plist):
 
   if isinstance(plist, dict):
     ret_value = dict()
-    for key, value in iteritems(plist):
+    for key, value in plist.items():
       ret_value[key] = PlistValueToPlainValue(value)
     return ret_value
   elif isinstance(plist, list):

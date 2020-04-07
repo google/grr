@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of various cryptographic types."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,6 +10,7 @@ import binascii
 import hashlib
 import logging
 import os
+from typing import Text
 
 from cryptography import exceptions
 from cryptography import x509
@@ -25,9 +27,6 @@ from cryptography.hazmat.primitives.ciphers import algorithms
 from cryptography.hazmat.primitives.ciphers import modes
 from cryptography.hazmat.primitives.kdf import pbkdf2
 from cryptography.x509 import oid
-
-from future.utils import python_2_unicode_compatible
-from typing import Text
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
@@ -62,17 +61,16 @@ class Certificate(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.Certificate
 
 
-@python_2_unicode_compatible
 class RDFX509Cert(rdfvalue.RDFPrimitive):
   """X509 certificates used to communicate with this client."""
 
   def __init__(self, initializer=None):
     if initializer is None:
-      super(RDFX509Cert, self).__init__(None)
+      super().__init__(None)
     elif isinstance(initializer, RDFX509Cert):
-      super(RDFX509Cert, self).__init__(initializer._value)  # pylint: disable=protected-access
+      super().__init__(initializer._value)  # pylint: disable=protected-access
     elif isinstance(initializer, x509.Certificate):
-      super(RDFX509Cert, self).__init__(initializer)
+      super().__init__(initializer)
     elif isinstance(initializer, bytes):
       try:
         value = x509.load_pem_x509_certificate(
@@ -80,7 +78,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
       except (ValueError, TypeError) as e:
         raise rdfvalue.DecodeError("Invalid certificate %s: %s" %
                                    (initializer, e))
-      super(RDFX509Cert, self).__init__(value)
+      super().__init__(value)
     else:
       raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                      (self.__class__, initializer))
@@ -215,18 +213,17 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
             backend=openssl.backend))
 
 
-@python_2_unicode_compatible
 class CertificateSigningRequest(rdfvalue.RDFPrimitive):
   """A CSR Rdfvalue."""
 
   def __init__(self, initializer=None, common_name=None, private_key=None):
     if isinstance(initializer, CertificateSigningRequest):
-      super(CertificateSigningRequest, self).__init__(initializer._value)  # pylint: disable=protected-access
+      super().__init__(initializer._value)  # pylint: disable=protected-access
     if isinstance(initializer, x509.CertificateSigningRequest):
-      super(CertificateSigningRequest, self).__init__(initializer)
+      super().__init__(initializer)
     elif isinstance(initializer, bytes):
       value = x509.load_pem_x509_csr(initializer, backend=openssl.backend)
-      super(CertificateSigningRequest, self).__init__(value)
+      super().__init__(value)
     elif common_name and private_key:
       value = x509.CertificateSigningRequestBuilder().subject_name(
           x509.Name(
@@ -235,7 +232,7 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
                                       private_key.GetRawPrivateKey(),
                                       hashes.SHA256(),
                                       backend=openssl.backend)
-      super(CertificateSigningRequest, self).__init__(value)
+      super().__init__(value)
     elif initializer is not None:
       raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                      (self.__class__, initializer))
@@ -286,7 +283,6 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
     return True
 
 
-@python_2_unicode_compatible
 class RSAPublicKey(rdfvalue.RDFPrimitive):
   """An RSA public key."""
 
@@ -295,11 +291,11 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       initializer = initializer._value  # pylint: disable=protected-access
 
     if initializer is None:
-      super(RSAPublicKey, self).__init__(None)
+      super().__init__(None)
       return
 
     if isinstance(initializer, rsa.RSAPublicKey):
-      super(RSAPublicKey, self).__init__(initializer)
+      super().__init__(initializer)
       return
 
     if isinstance(initializer, Text):
@@ -309,7 +305,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
       try:
         value = serialization.load_pem_public_key(
             initializer, backend=openssl.backend)
-        super(RSAPublicKey, self).__init__(value)
+        super().__init__(value)
         return
       except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
         raise type_info.TypeValueError("Public key invalid: %s" % e)
@@ -398,7 +394,6 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     raise VerificationError(last_e)
 
 
-@python_2_unicode_compatible
 class RSAPrivateKey(rdfvalue.RDFPrimitive):
   """An RSA private key."""
 
@@ -408,11 +403,11 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       initializer = initializer._value  # pylint: disable=protected-access
 
     if initializer is None:
-      super(RSAPrivateKey, self).__init__(None)
+      super().__init__(None)
       return
 
     if isinstance(initializer, rsa.RSAPrivateKey):
-      super(RSAPrivateKey, self).__init__(initializer)
+      super().__init__(initializer)
       return
 
     if isinstance(initializer, Text):
@@ -425,7 +420,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     try:
       value = serialization.load_pem_private_key(
           initializer, password=None, backend=openssl.backend)
-      super(RSAPrivateKey, self).__init__(value)
+      super().__init__(value)
       return
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
 
@@ -455,7 +450,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       password = utils.PassphraseCallback()
       value = serialization.load_pem_private_key(
           initializer, password=password, backend=openssl.backend)
-      super(RSAPrivateKey, self).__init__(value)
+      super().__init__(value)
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
       raise type_info.TypeValueError("Unable to load private key: %s" % e)
 
@@ -639,7 +634,6 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     return self
 
 
-@python_2_unicode_compatible
 class EncryptionKey(rdfvalue.RDFPrimitive):
   """Base class for encryption keys."""
 
@@ -647,9 +641,9 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
 
   def __init__(self, initializer=None):
     if initializer is None:
-      super(EncryptionKey, self).__init__(b"")
+      super().__init__(b"")
     elif isinstance(initializer, EncryptionKey):
-      super(EncryptionKey, self).__init__(initializer.RawBytes())
+      super().__init__(initializer.RawBytes())
     else:
       precondition.AssertType(initializer, bytes)
 
@@ -657,7 +651,7 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
         raise CipherError("Invalid key length %d (%s)." %
                           (len(initializer) * 8, initializer))
 
-      super(EncryptionKey, self).__init__(initializer)
+      super().__init__(initializer)
 
     self.length = 8 * len(self._value)
     if 0 < self.length < 128:  # Check length if _value is not empty.
@@ -712,11 +706,9 @@ class AutoGeneratedAES128Key(AES128Key):
 
   def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, AES128Key):
-      super(AutoGeneratedAES128Key, self).__init__(
-          initializer=initializer.RawBytes(), **kwargs)
+      super().__init__(initializer=initializer.RawBytes(), **kwargs)
     else:
-      super(AutoGeneratedAES128Key, self).__init__(
-          initializer=initializer, **kwargs)
+      super().__init__(initializer=initializer, **kwargs)
 
 
 class StreamingCBCEncryptor(object):

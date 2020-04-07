@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """A module with client action for talking with osquery."""
 from __future__ import absolute_import
@@ -13,11 +14,11 @@ import os
 import platform
 import socket
 import time
+from typing import List
+from typing import Text
 
 from absl import flags
 from absl.testing import absltest
-from typing import List
-from typing import Text
 
 from grr_response_client.client_actions import osquery
 from grr_response_core import config

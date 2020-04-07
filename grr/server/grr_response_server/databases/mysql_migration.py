@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Incremental MySQL migrations implementation."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,12 +10,10 @@ import contextlib
 import logging
 import os
 import time
-
+from typing import Callable, Optional, Sequence, Text
 
 from MySQLdb.connections import Connection
 from MySQLdb.cursors import Cursor
-
-from typing import Callable, Optional, Sequence, Text
 
 
 def GetLatestMigrationNumber(cursor):

@@ -1,15 +1,19 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with API handlers related to the timeline colllection."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
+from typing import Iterator
 from typing import Optional
 from typing import Text
 
+from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import body
+from grr_response_core.lib.util import chunked
 from grr_response_proto.api import timeline_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -27,6 +31,13 @@ class ApiGetCollectedTimelineArgs(rdf_structs.RDFProtoStruct):
       api_client.ApiClientId,
       api_flow.ApiFlowId,
   ]
+
+
+class ApiGetCollectedHuntTimelinesArgs(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the arguments of time hunt timeline exporter."""
+
+  protobuf = timeline_pb2.ApiGetCollectedHuntTimelinesArgs
+  rdf_deps = []
 
 
 class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
@@ -73,6 +84,90 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
       flow_id,
   ):
     content = timeline.Blobs(client_id=client_id, flow_id=flow_id)
+    content = map(chunked.Encode, content)
 
     filename = "timeline_{}.gzchunked".format(flow_id)
     return api_call_handler_base.ApiBinaryStream(filename, content)
+
+
+class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
+  """An API handler for the hunt timelines exporter."""
+
+  args_type = ApiGetCollectedHuntTimelinesArgs
+
+  def __init__(self):
+    super().__init__()
+    self._handler = ApiGetCollectedTimelineHandler()
+
+  def Handle(
+      self,
+      args,
+      token = None,
+  ):
+    """Handles requests for the hunt timelines export API call."""
+    hunt_id = str(args.hunt_id)
+
+    hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
+    if hunt_obj.args.standard.flow_name != timeline.TimelineFlow.__name__:
+      message = f"Hunt '{hunt_id}' is not a timeline hunt"
+      raise ValueError(message)
+
+    filename = f"timelines_{hunt_id}.zip"
+    content = self._Generate(hunt_id)
+    return api_call_handler_base.ApiBinaryStream(filename, content)
+
+  def _Generate(self, hunt_id):
+    zipgen = utils.StreamingZipGenerator()
+    yield from self._GenerateTimelines(hunt_id, zipgen)
+    yield zipgen.Close()
+
+  def _GenerateTimelines(
+      self,
+      hunt_id,
+      zipgen,
+  ):
+    offset = 0
+    while True:
+      flows = data_store.REL_DB.ReadHuntFlows(hunt_id, offset, _FLOW_BATCH_SIZE)
+
+      client_ids = [flow.client_id for flow in flows]
+      client_snapshots = data_store.REL_DB.MultiReadClientSnapshot(client_ids)
+
+      client_fqdns = {
+          client_id: snapshot.knowledge_base.fqdn
+          for client_id, snapshot in client_snapshots.items()
+      }
+
+      for flow in flows:
+        client_id = flow.client_id
+        flow_id = flow.flow_id
+        fqdn = client_fqdns[client_id]
+
+        yield from self._GenerateTimeline(client_id, flow_id, fqdn, zipgen)
+
+      if len(flows) < _FLOW_BATCH_SIZE:
+        break
+
+  def _GenerateTimeline(
+      self,
+      client_id,
+      flow_id,
+      fqdn,
+      zipgen,
+  ):
+    args = ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    # TODO(hanuszczak): Add support for other formats.
+    args.format = ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED  # pytype: disable=attribute-error
+
+    filename = f"{client_id}_{fqdn}.gzchunked"
+    yield zipgen.WriteFileHeader(filename)
+
+    for chunk in self._handler.Handle(args).GenerateContent():
+      yield zipgen.WriteFileChunk(chunk)
+
+    yield zipgen.WriteFileFooter()
+
+
+_FLOW_BATCH_SIZE = 32_768  # A number of flows to fetch in a database call.

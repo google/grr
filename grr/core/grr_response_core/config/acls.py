@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Settings for ACLs/approvals system."""
 
 from __future__ import absolute_import

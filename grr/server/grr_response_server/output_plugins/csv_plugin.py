@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """CSV single-pass output plugin."""
 from __future__ import absolute_import
 from __future__ import division

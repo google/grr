@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with functions for working with GRR packages."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,9 +11,9 @@ import inspect
 import logging
 import os
 import sys
+from typing import Text
 
 import pkg_resources
-from typing import Text
 
 from grr_response_core.lib.util import compatibility
 

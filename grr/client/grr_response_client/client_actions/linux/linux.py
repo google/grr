@@ -13,7 +13,6 @@ import os
 import pwd
 import time
 
-from future.utils import iteritems
 
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
@@ -216,7 +215,7 @@ def EnumerateUsersFromClient(args):
   del args  # Unused
 
   users = _ParseWtmp()
-  for user, last_login in iteritems(users):
+  for user, last_login in users.items():
 
     # Lose the null termination
     username, _ = user.split(b"\x00", 1)

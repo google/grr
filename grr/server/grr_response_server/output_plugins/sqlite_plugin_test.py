@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for the SQLite instant output plugin."""
 from __future__ import absolute_import
@@ -10,8 +11,6 @@ import os
 import zipfile
 
 from absl import app
-from future.utils import iteritems
-from future.utils import iterkeys
 import sqlite3
 import yaml
 
@@ -101,7 +100,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
   def testColumnTypeInference(self):
     schema = self.plugin._GetSqliteSchema(SqliteTestStruct)
-    column_types = {k: v.sqlite_type for k, v in iteritems(schema)}
+    column_types = {k: v.sqlite_type for k, v in schema.items()}
     self.assertEqual(
         column_types, {
             "string_field": "TEXT",
@@ -196,8 +195,8 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.db_cursor.execute("PRAGMA table_info('ExportedFile.from_StatEntry');")
     columns = {row[1] for row in self.db_cursor.fetchall()}
     schema = self.plugin._GetSqliteSchema(export.ExportedFile)
-    column_types = {k: v.sqlite_type for k, v in iteritems(schema)}
-    self.assertEqual(columns, set(iterkeys(schema)))
+    column_types = {k: v.sqlite_type for k, v in schema.items()}
+    self.assertEqual(columns, set(schema.keys()))
     self.assertEqual(column_types["metadata.client_urn"], "TEXT")
     self.assertEqual(column_types["st_ino"], "INTEGER")
     self.assertEqual(column_types["st_atime"], "INTEGER")

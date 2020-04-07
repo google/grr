@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 
@@ -6,9 +7,9 @@ from __future__ import unicode_literals
 
 import os
 import stat as stat_mode
+from typing import Iterator
 
 from absl.testing import absltest
-from typing import Iterator
 
 from grr_response_client.client_actions import timeline as timeline_action
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline

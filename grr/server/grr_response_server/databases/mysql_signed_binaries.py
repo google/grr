@@ -1,13 +1,14 @@
 #!/usr/bin/env python
+# Lint as: python3
 """MySQL implementation of DB methods for handling signed binaries."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-import MySQLdb
+from typing import Sequence, Tuple, cast
 
-from typing import cast, Sequence, Tuple
+import MySQLdb
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server.databases import db

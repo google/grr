@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """A module with utility functions for working with collections."""
 from __future__ import absolute_import
@@ -7,8 +8,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
-from future.utils import iteritems
-
 from typing import Callable, Dict, Iterable, Iterator, List, Tuple, TypeVar
 
 T = TypeVar("T")
@@ -171,6 +170,6 @@ def DictProduct(dictionary):
     Dictionaries with values being a result of cartesian product of values of
     the input dictionary.
   """
-  keys, values = Unzip(iteritems(dictionary))
+  keys, values = Unzip(dictionary.items())
   for product_values in itertools.product(*values):
     yield dict(zip(keys, product_values))

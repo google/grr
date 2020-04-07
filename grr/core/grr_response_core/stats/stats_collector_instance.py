@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Contains a stats-collector singleton shared across a GRR process."""
 
 from __future__ import absolute_import
@@ -19,8 +20,7 @@ _metadatas = []
 class StatsNotInitializedError(Exception):
 
   def __init__(self):
-    super(StatsNotInitializedError,
-          self).__init__("No StatsCollector has been initialized yet.")
+    super().__init__("No StatsCollector has been initialized yet.")
 
 
 def Set(collector):

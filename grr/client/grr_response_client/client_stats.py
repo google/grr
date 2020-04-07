@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """CPU/IO stats collector."""
 from __future__ import absolute_import
 from __future__ import division
@@ -40,7 +41,7 @@ class ClientStatsCollector(threading.Thread):
     Args:
       worker: A `GRRClientWorker` instance that spawned this stat collector.
     """
-    super(ClientStatsCollector, self).__init__()
+    super().__init__()
     self.daemon = True
 
     self._worker = worker
@@ -92,6 +93,7 @@ class ClientStatsCollector(threading.Thread):
       time.sleep(self.SLEEP_DURATION.ToFractional(rdfvalue.SECONDS))
 
   def _Send(self):
+    """Send client stats if needed."""
     if not self._ShouldSend():
       return
 
@@ -124,6 +126,7 @@ class ClientStatsCollector(threading.Thread):
     self._CollectIOUsage()
 
   def _CollectCpuUsage(self):
+    """Collects CPU usage stats."""
     cpu_times = self._process.cpu_times()
     cpu_percent = self._process.cpu_percent()
 
@@ -139,6 +142,7 @@ class ClientStatsCollector(threading.Thread):
         end_time=rdfvalue.RDFDatetime.Now())
 
   def _CollectIOUsage(self):
+    """Collects I/O utilization stats."""
     # Not supported on MacOS.
     try:
       io_counters = self._process.io_counters()

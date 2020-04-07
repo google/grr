@@ -13,9 +13,6 @@ import shutil
 import struct
 import tempfile
 
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
 
 from typing import Optional, Sequence, Text, Tuple
 
@@ -212,12 +209,12 @@ def WriteBuildYaml(fd, build_timestamp=True, context=None):
   else:
     yaml_keys.remove("Client.build_time")
 
-  for key, value in iteritems(output):
+  for key, value in output.items():
     output[key] = str(value)
 
   output["Template.build_context"] = context
 
-  output_keys = set(iterkeys(output))
+  output_keys = set(output.keys())
   if output_keys != yaml_keys:
     raise RuntimeError("Bad build.yaml: expected %s, got %s" %
                        (yaml_keys, output_keys))
@@ -375,12 +372,12 @@ def CreateNewZipWithSignedLibs(z_in,
     temp_files[filename] = path
 
   try:
-    signer.SignFiles(itervalues(temp_files))
+    signer.SignFiles(temp_files.values())
   except AttributeError:
-    for f in itervalues(temp_files):
+    for f in temp_files.values():
       signer.SignFile(f)
 
-  for filename, tempfile_path in iteritems(temp_files):
+  for filename, tempfile_path in temp_files.items():
     with io.open(tempfile_path, "rb") as fd:
       z_out.writestr(filename, fd.read())
 

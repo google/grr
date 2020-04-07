@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Fleetspeak-facing client related functionality.
 
 This module contains glue code necessary for Fleetspeak and the GRR client
@@ -11,17 +12,13 @@ from __future__ import unicode_literals
 import logging
 import pdb
 import platform
+import queue
 import struct
 import threading
 import time
 
 from absl import flags
-from future.utils import iteritems
-from future.utils import itervalues
-import queue
 
-from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
-from fleetspeak.client_connector import connector as fs_client
 from grr_response_client import comms
 from grr_response_core import config
 from grr_response_core.lib import communicator
@@ -29,6 +26,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import jobs_pb2
+from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.client_connector import connector as fs_client
 
 # pyformat: disable
 
@@ -115,13 +114,13 @@ class GRRFleetspeakClient(object):
 
   def Run(self):
     """The main run method of the client."""
-    for thread in itervalues(self._threads):
+    for thread in self._threads.values():
       thread.start()
     logging.info(START_STRING)
 
     while True:
       dead_threads = [
-          tn for (tn, t) in iteritems(self._threads) if not t.isAlive()
+          tn for (tn, t) in self._threads.items() if not t.isAlive()
       ]
       if dead_threads:
         raise FatalError(

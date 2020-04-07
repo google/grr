@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Standard actions that happen on the client."""
 from __future__ import absolute_import
 from __future__ import division
@@ -14,11 +15,11 @@ import os
 import platform
 import socket
 import sys
+from typing import Text
 import zlib
 
 from absl import flags
 import psutil
-from typing import Text
 
 from grr_response_client import actions
 from grr_response_client import client_utils_common

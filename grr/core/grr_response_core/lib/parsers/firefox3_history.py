@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Parser for Mozilla Firefox3 3 History files."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,11 +7,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-from future.moves.urllib import parse as urlparse
-from past.builtins import long
 from typing import IO
 from typing import Iterator
 from typing import Tuple
+
+from urllib import parse as urlparse
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
@@ -53,7 +54,7 @@ class Firefox3History(object):
     """Iterator returning dict for each entry in history."""
     with sqlite.IOConnection(filedesc) as conn:
       for timestamp, url, title in conn.Query(self.VISITS_QUERY):
-        if not isinstance(timestamp, (long, int)):
+        if not isinstance(timestamp, int):
           timestamp = 0
 
         yield timestamp, "FIREFOX3_VISIT", url, title

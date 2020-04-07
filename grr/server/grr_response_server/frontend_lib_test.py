@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
 from __future__ import absolute_import
 from __future__ import division
@@ -211,7 +212,7 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     for m in msgs:
       m.task_id = 0
 
-    self.assertItemsEqual(res, msgs)
+    self.assertCountEqual(res, msgs)
 
 
 class FleetspeakFrontendTests(flow_test_lib.FlowTestsBaseclass):

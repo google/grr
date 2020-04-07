@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """MySQL implementation of DB methods for handling client-report data."""
 from __future__ import absolute_import
 from __future__ import division

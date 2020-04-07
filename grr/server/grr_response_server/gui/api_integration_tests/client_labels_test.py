@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for API client and labels-related API calls."""
 from __future__ import absolute_import
 from __future__ import division
@@ -37,11 +38,10 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
     with test_lib.FakeTime(42):
       client_ref.AddLabels(["foo", "bar"])
 
-    self.assertEqual(
-        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
-            objects_pb2.ClientLabel(name="bar", owner=self.token.username),
-            objects_pb2.ClientLabel(name="foo", owner=self.token.username)
-        ])
+    self.assertCountEqual(client_ref.Get().data.labels, [
+        objects_pb2.ClientLabel(name="bar", owner=self.token.username),
+        objects_pb2.ClientLabel(name="foo", owner=self.token.username)
+    ])
 
   def testAddLabelsWithGeneratorArg(self):
     client_ref = self.api.Client(client_id=self.client_id)
@@ -54,11 +54,10 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
     with test_lib.FakeTime(42):
       client_ref.AddLabels(Gen())
 
-    self.assertEqual(
-        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
-            objects_pb2.ClientLabel(name="bar", owner=self.token.username),
-            objects_pb2.ClientLabel(name="foo", owner=self.token.username)
-        ])
+    self.assertCountEqual(client_ref.Get().data.labels, [
+        objects_pb2.ClientLabel(name="bar", owner=self.token.username),
+        objects_pb2.ClientLabel(name="foo", owner=self.token.username)
+    ])
 
   def testRemoveLabelsRaisesOnIncorrectArgs(self):
     client_ref = self.api.Client(client_id=self.client_id)
@@ -77,15 +76,14 @@ class ApiClientLibLabelsTest(api_integration_test_lib.ApiIntegrationTest):
                                         ["bar", "foo"])
 
     client_ref = self.api.Client(client_id=self.client_id)
-    self.assertEqual(
-        sorted(client_ref.Get().data.labels, key=lambda l: l.name), [
-            objects_pb2.ClientLabel(name="bar", owner=self.token.username),
-            objects_pb2.ClientLabel(name="foo", owner=self.token.username)
-        ])
+    self.assertCountEqual(client_ref.Get().data.labels, [
+        objects_pb2.ClientLabel(name="bar", owner=self.token.username),
+        objects_pb2.ClientLabel(name="foo", owner=self.token.username)
+    ])
 
     client_ref.RemoveLabel("foo")
-    self.assertEqual(
-        sorted(client_ref.Get().data.labels, key=lambda l: l.name),
+    self.assertCountEqual(
+        client_ref.Get().data.labels,
         [objects_pb2.ClientLabel(name="bar", owner=self.token.username)])
 
   def testRemoveLabelsWithGeneratorArg(self):

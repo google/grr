@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValue instances related to the statistics collection."""
 from __future__ import absolute_import
 from __future__ import division
@@ -26,7 +27,7 @@ class Distribution(rdf_structs.RDFProtoStruct):
       raise ValueError("Either 'initializer' or 'bins' arguments can "
                        "be specified.")
 
-    super(Distribution, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
 
     if bins:
       self.bins = [-float("inf")] + bins
@@ -115,7 +116,7 @@ class RunningStats(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(RunningStats, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._sum_sq = 0
 
   def RegisterValue(self, value):
@@ -153,8 +154,7 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   NUM_WORST_PERFORMERS = 10
 
   def __init__(self, initializer=None, **kwargs):
-    super(ClientResourcesStats, self).__init__(
-        initializer=initializer, **kwargs)
+    super().__init__(initializer=initializer, **kwargs)
 
     self.user_cpu_stats.histogram = StatsHistogram.FromBins(self.CPU_STATS_BINS)
     self.system_cpu_stats.histogram = StatsHistogram.FromBins(

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -15,7 +16,6 @@ import warnings
 from absl import app
 from absl import flags
 from absl.testing import absltest
-from future import builtins
 import mock
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 from MySQLdb.constants import CR as mysql_conn_errors
@@ -50,7 +50,7 @@ class MySQLDatabaseProviderMixin(db_test_mixin.DatabaseSetupMixin):
     port = _GetEnvironOrSkip("MYSQL_TEST_PORT")
     password = _GetEnvironOrSkip("MYSQL_TEST_PASS")
     # Use dash character in database name to break queries that do not quote it.
-    database = "test-{}".format(builtins.str(uuid.uuid4())[-10])
+    database = "test-{}".format(str(uuid.uuid4())[-10])
 
     conn = mysql.MysqlDB(
         host=host,
@@ -232,7 +232,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     self.assertEqual(
         self.db.delegate._RunInTransaction(GetMaxAllowedPacket),
-        builtins.str(mysql.MAX_PACKET_SIZE))
+        str(mysql.MAX_PACKET_SIZE))
 
   def testMeaningfulErrorWhenNotEnoughPermissionsToOverrideGlobalVariable(self):
 
@@ -279,7 +279,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
     with mock.patch.object(self.db.delegate, "_max_pool_size", 6):
       with self.assertRaises(MySQLdb.OperationalError) as context:
         self.db.delegate._RunInTransaction(RaiseServerGoneError)
-      self.assertIn(expected_error_msg, builtins.str(context.exception))
+      self.assertIn(expected_error_msg, str(context.exception))
 
       self.assertFalse(sleep_with_backoff_fn.called)
       # We expect all connections in the pool to be removed.
@@ -308,7 +308,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     with self.assertRaises(MySQLdb.OperationalError) as context:
       self.db.delegate._RunInTransaction(RaisePermanentError)
-    self.assertIn(expected_error_msg, builtins.str(context.exception))
+    self.assertIn(expected_error_msg, str(context.exception))
 
     self.assertFalse(sleep_with_backoff_fn.called)
     self.assertLen(connections, 1)

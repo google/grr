@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with utility functions for working with SQLite databases."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,12 +8,12 @@ from __future__ import unicode_literals
 
 import contextlib
 import io
-import sqlite3
-
 from typing import IO
 from typing import Iterator
 from typing import Text
 from typing import Tuple
+
+import sqlite3
 
 from grr_response_core.lib.util import temp
 

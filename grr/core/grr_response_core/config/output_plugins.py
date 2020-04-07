@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Configuration parameters for server output plugins."""
 
 from __future__ import absolute_import

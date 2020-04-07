@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The various FileFinder rdfvalues."""
 
 from __future__ import absolute_import
@@ -44,7 +45,7 @@ class FileFinderExtFlagsCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderExtFlagsCondition
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderExtFlagsCondition, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.linux_bits_set = self.linux_bits_set or 0
     self.linux_bits_unset = self.linux_bits_unset or 0
     self.osx_bits_set = self.osx_bits_set or 0
@@ -126,7 +127,7 @@ class FileFinderStatActionOptions(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderStatActionOptions
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderStatActionOptions, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("collect_ext_attrs"):
       self.collect_ext_attrs = False
@@ -141,7 +142,7 @@ class FileFinderHashActionOptions(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderHashActionOptions, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("collect_ext_attrs"):
       self.collect_ext_attrs = False
@@ -156,7 +157,7 @@ class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderDownloadActionOptions, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("collect_ext_attrs"):
       self.collect_ext_attrs = False

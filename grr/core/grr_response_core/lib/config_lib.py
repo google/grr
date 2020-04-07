@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR config management code.
 
 This handles opening and parsing of config files.
@@ -10,6 +11,7 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import collections
+import configparser
 import copy
 import errno
 import io
@@ -19,22 +21,17 @@ import platform
 import re
 import sys
 import traceback
-
-from absl import flags
-import configparser
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import string_types
-from future.utils import with_metaclass
 from typing import cast
 from typing import Text
 
+from absl import flags
+
 from grr_response_core.lib import lexer
 from grr_response_core.lib import package
-from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import yaml
@@ -134,7 +131,7 @@ def SetPlatformArchContext():
   _CONFIG.AddContext("Arch:%s" % arch)
 
 
-class ConfigFilter(with_metaclass(registry.MetaclassRegistry, object)):
+class ConfigFilter(metaclass=MetaclassRegistry):
   """A configuration filter can transform a configuration parameter."""
 
   name = "identity"
@@ -307,7 +304,7 @@ class ModulePath(ConfigFilter):
       raise FilterError(message)
 
 
-class GRRConfigParser(with_metaclass(registry.MetaclassRegistry, object)):
+class GRRConfigParser(metaclass=MetaclassRegistry):
   """The base class for all GRR configuration parsers."""
 
   # Configuration parsers are named. This name is used to select the correct
@@ -360,7 +357,7 @@ class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
   """A parser for ini style config files."""
 
   def __init__(self, filename=None, data=None, fd=None):
-    super(ConfigFileParser, self).__init__()
+    super().__init__()
     self.optionxform = str
 
     if fd:
@@ -407,7 +404,7 @@ class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
 
   def SaveDataToFD(self, raw_data, fd):
     """Merge the raw data with the config file and store it."""
-    for key, value in iteritems(raw_data):
+    for key, value in raw_data.items():
       # TODO(hanuszczak): Incorrect type specification for `set`.
       # pytype: disable=wrong-arg-types
       self.set("", key, value=value)
@@ -432,7 +429,7 @@ class YamlParser(GRRConfigParser):
   # TODO(hanuszczak): This constructor has unnecessary complicated logic and too
   # much branching. It should be simplified.
   def __init__(self, filename=None, data=None, fd=None):
-    super(YamlParser, self).__init__()
+    super().__init__()
 
     if fd:
       self.fd = fd
@@ -455,8 +452,6 @@ class YamlParser(GRRConfigParser):
           raise IOError(e)
         else:
           self.parsed = collections.OrderedDict()
-      except OSError:
-        self.parsed = collections.OrderedDict()
 
     elif data is not None:
       self.filename = filename
@@ -516,7 +511,7 @@ class YamlParser(GRRConfigParser):
       return data
 
     result = collections.OrderedDict()
-    for k, v in iteritems(data):
+    for k, v in data.items():
       result[k] = self._RawData(v)
 
     return result
@@ -607,7 +602,7 @@ class StringInterpolator(lexer.Lexer):
     self.parameter = parameter
     self.config = config
     self.context = context
-    super(StringInterpolator, self).__init__(data)
+    super().__init__(data)
 
   def Escape(self, string="", **_):
     """Support standard string escaping."""
@@ -832,7 +827,7 @@ class GrrConfigManager(object):
     Returns:
       dict of {parameter: Exception}, where parameter is a section.name string.
     """
-    if isinstance(sections, string_types):
+    if isinstance(sections, str):
       sections = [sections]
 
     if sections is None:
@@ -1051,7 +1046,7 @@ class GrrConfigManager(object):
     if raw_data is None:
       raw_data = self.raw_data
 
-    for k, v in iteritems(merge_data):
+    for k, v in merge_data.items():
       # A context clause.
       if isinstance(v, dict) and k not in self.type_infos:
         if k not in self.valid_contexts:
@@ -1068,7 +1063,7 @@ class GrrConfigManager(object):
           if flags.FLAGS.disallow_missing_config_definitions:
             raise MissingConfigDefinitionError(msg)
 
-        if isinstance(v, string_types):
+        if isinstance(v, str):
           v = v.strip()
 
         # If we are already initialized and someone tries to modify a constant
@@ -1083,7 +1078,7 @@ class GrrConfigManager(object):
     """Returns the appropriate parser class from the filename."""
     # Find the configuration parser.
     handler_name = path.split("://")[0]
-    for parser_cls in itervalues(GRRConfigParser.classes):
+    for parser_cls in GRRConfigParser.classes.values():
       if parser_cls.name == handler_name:
         return parser_cls
 
@@ -1268,7 +1263,7 @@ class GrrConfigManager(object):
                            "Configuration hasn't been initialized yet." % name)
     if context:
       # Make sure it's not just a string and is iterable.
-      if (isinstance(context, string_types) or
+      if (isinstance(context, str) or
           not isinstance(context, collections.Iterable)):
         raise ValueError("context should be a list, got %r" % context)
 
@@ -1334,9 +1329,12 @@ class GrrConfigManager(object):
       if element in raw_data:
         context_raw_data = raw_data[element]
 
-        value = context_raw_data.get(name)
+        # TODO(hanuszczak): Investigate why pytype complains here (probably for
+        # valid reasons, because this code does not looks like something well-
+        # typed).
+        value = context_raw_data.get(name)  # pytype: disable=attribute-error
         if value is not None:
-          if isinstance(value, string_types):
+          if isinstance(value, str):
             value = value.strip()
 
           yield context_raw_data, value, path + [element]

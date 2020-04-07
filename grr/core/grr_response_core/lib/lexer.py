@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """An LL(1) lexer. This lexer is very tolerant of errors and can resync."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,10 +8,8 @@ from __future__ import unicode_literals
 
 import logging
 import re
-
-from future.utils import python_2_unicode_compatible
-
 from typing import Text
+
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
@@ -256,7 +255,6 @@ class Expression(object):
         "%s does not implement Compile." % self.__class__.__name__)
 
 
-@python_2_unicode_compatible
 class BinaryExpression(Expression):
   """An expression which takes two other expressions."""
 
@@ -265,7 +263,7 @@ class BinaryExpression(Expression):
     self.args = []
     if part:
       self.args.append(part)
-    super(BinaryExpression, self).__init__()
+    super().__init__()
 
   def __str__(self):
     return "Binary Expression: %s %s" % (self.operator,

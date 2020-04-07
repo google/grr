@@ -1,15 +1,16 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the ThreadPool class."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import queue
 import threading
 import time
 
 from absl import app
-import queue
 
 from grr_response_core.lib import utils
 from grr_response_server import threadpool
@@ -254,7 +255,7 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
     self.test_pool.Join()
 
     # Now the rest of the tasks should have been processed as well.
-    self.assertEqual(sorted(res[10:]), list(range(20)))
+    self.assertCountEqual(res[10:], list(range(20)))
 
   def testThreadsReaped(self):
     """Check that threads are reaped when too old."""
@@ -353,7 +354,7 @@ class DummyConverter(threadpool.BatchConverter):
   def __init__(self, **kwargs):
     self.sleep_time = kwargs.pop("sleep_time")
 
-    super(DummyConverter, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     self.batches = []
     self.threads = []

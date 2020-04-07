@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with YARA-related methods of the in-memory database."""
 from __future__ import absolute_import
 from __future__ import division
@@ -16,7 +17,7 @@ class InMemoryDBYaraMixin(object):
   """An in-memory database mixin with YARA-related methods."""
 
   def __init__(self):
-    super(InMemoryDBYaraMixin, self).__init__()
+    super().__init__()
     self.yara = {}  # type: Dict[bytes, Text]
     self.users = {}  # type: Dict[Text, rdf_objects.GRRUser]
 

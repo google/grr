@@ -249,7 +249,7 @@ PagedFilteredTableController.prototype.addBottomDirective_ = function() {
  * callback gets triggered.
  *
  * @param {Function} callback Promise callback to receive data.
- * @return {Function} Wrapped callback.
+ * @return {!Function} Wrapped callback.
  * @private
  */
 PagedFilteredTableController.prototype.wrapWithCounterCheck_ = function(

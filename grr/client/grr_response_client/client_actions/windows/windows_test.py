@@ -1,12 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl.testing import absltest
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import string_types
 import mock
 
 from grr_response_client.client_actions.windows import windows
@@ -70,7 +68,7 @@ class WindowsActionTests(absltest.TestCase):
       mock_query_result = mock.MagicMock()
       mock_query_result.Properties_ = []
       mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-      wmi_properties = iteritems(mock_config.__dict__)
+      wmi_properties = mock_config.__dict__.items()
       for key, value in wmi_properties:
         keyval = mock.MagicMock()
         keyval.Name, keyval.Value = key, value
@@ -93,10 +91,10 @@ class WindowsActionTests(absltest.TestCase):
     self.assertEqual(nest["five"], "astring")
     self.assertEqual(nest["six"], [None, None, ""])
     self.assertEqual(nest["seven"], None)
-    self.assertCountEqual(iterkeys(nest["rdfvalue"]), ["a"])
+    self.assertCountEqual(nest["rdfvalue"].keys(), ["a"])
 
     self.assertEqual(result["GatewayCostMetric"], [0, 256])
-    self.assertIsInstance(result["OpaqueObject"], string_types)
+    self.assertIsInstance(result["OpaqueObject"], str)
     self.assertIn("Unsupported type", result["OpaqueObject"])
 
 

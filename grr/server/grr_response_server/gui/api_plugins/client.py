@@ -1,19 +1,15 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handlers for accessing and searching clients and managing labels."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import ipaddress
 import re
 
-from future.moves.urllib import parse as urlparse
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
+from urllib import parse as urlparse
 
-import ipaddress
-
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -39,6 +35,7 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.rdfvalues import objects as rdf_objects
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
 def UpdateClientsFromFleetspeak(clients):
@@ -53,7 +50,7 @@ def UpdateClientsFromFleetspeak(clients):
   if not id_map:
     return
   res = fleetspeak_connector.CONN.outgoing.ListClients(
-      admin_pb2.ListClientsRequest(client_ids=list(iterkeys(id_map))))
+      admin_pb2.ListClientsRequest(client_ids=list(id_map.keys())))
   for read in res.clients:
     api_client = id_map[read.client_id]
     api_client.last_seen_at = fleetspeak_utils.TSToRDFDatetime(
@@ -75,7 +72,7 @@ class ApiClientId(rdfvalue.RDFString):
     if isinstance(initializer, rdf_client.ClientURN):
       initializer = initializer.Basename()
 
-    super(ApiClientId, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
 
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
@@ -237,7 +234,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     clients = index.LookupClients(keywords)[args.offset:args.offset + end]
 
     client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
-    for client_info in itervalues(client_infos):
+    for client_info in client_infos.values():
       api_clients.append(ApiClient().InitFromClientInfo(client_info))
 
     UpdateClientsFromFleetspeak(api_clients)
@@ -252,7 +249,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
   result_type = ApiSearchClientsResult
 
   def __init__(self, labels_whitelist=None, labels_owners_whitelist=None):
-    super(ApiLabelsRestrictedSearchClientsHandler, self).__init__()
+    super().__init__()
 
     self.labels_whitelist = set(labels_whitelist or [])
     self.labels_owners_whitelist = set(labels_owners_whitelist or [])
@@ -299,7 +296,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
     for cid_batch in collection.Batch(sorted(all_client_ids), batch_size):
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
-      for _, client_info in sorted(iteritems(client_infos)):
+      for _, client_info in sorted(client_infos.items()):
         if not self._VerifyLabels(client_info.labels):
           continue
         if index >= args.offset and index < end:

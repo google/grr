@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDF values related to events."""
 
 from __future__ import absolute_import
@@ -21,7 +22,7 @@ class AuditEvent(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, initializer=None, **kwargs):
-    super(AuditEvent, self).__init__(initializer=initializer, **kwargs)
+    super().__init__(initializer=initializer, **kwargs)
     if not self.id:
       self.id = random.UInt32()
     if not self.timestamp:

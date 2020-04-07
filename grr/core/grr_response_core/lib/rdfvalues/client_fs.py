@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Filesystem related client rdfvalues."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,18 +7,15 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import stat
-
-from future.utils import python_2_unicode_compatible
 from typing import Text
 
-from grr_response_core.lib import rdfvalue
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
@@ -107,7 +105,6 @@ class Volumes(rdf_protodict.RDFValueArray):
   rdf_type = Volume
 
 
-@python_2_unicode_compatible
 class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
   protobuf_type = "unsigned_integer"

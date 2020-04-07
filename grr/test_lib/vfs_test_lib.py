@@ -9,7 +9,6 @@ import os
 import time
 
 from absl.testing import absltest
-from future.utils import iteritems
 import mock
 
 from typing import Iterable, Tuple
@@ -192,7 +191,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     This avoids us having to put in useless intermediate directories to the
     client fixture.
     """
-    for dirname, (_, stat) in list(iteritems(self.paths)):
+    for dirname, (_, stat) in list(self.paths.items()):
       pathspec = stat.pathspec
       while 1:
         dirname = os.path.dirname(dirname)
@@ -215,7 +214,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     del ext_attrs  # Unused.
 
     # First return exact matches
-    for k, (_, stat) in iteritems(self.paths):
+    for k, (_, stat) in self.paths.items():
       dirname = os.path.dirname(k)
       if dirname == self._NormalizeCaseForPath(self.path, None):
         yield stat

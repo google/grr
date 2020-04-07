@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for OS X files."""
 
 from __future__ import absolute_import
@@ -12,7 +13,6 @@ import stat
 
 import biplist
 
-from future.utils import string_types
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -119,7 +119,7 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser):
     # does Apple so we check.
     for key in string_array_items:
       elements = plist.get(key)
-      if isinstance(elements, string_types):
+      if isinstance(elements, str):
         kwargs[key] = [elements]
       else:
         kwargs[key] = elements

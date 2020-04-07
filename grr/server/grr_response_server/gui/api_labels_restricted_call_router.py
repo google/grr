@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Router giving access only to clients with certain labels."""
 from __future__ import absolute_import
 from __future__ import division
@@ -52,7 +53,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   params_type = ApiLabelsRestrictedCallRouterParams
 
   def __init__(self, params=None, access_checker=None, delegate=None):
-    super(ApiLabelsRestrictedCallRouter, self).__init__(params=params)
+    super().__init__(params=params)
 
     self.params = params = params or self.__class__.params_type()
 

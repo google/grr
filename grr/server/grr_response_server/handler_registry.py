@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A registry of all new style well known flows."""
 from __future__ import absolute_import
 from __future__ import division

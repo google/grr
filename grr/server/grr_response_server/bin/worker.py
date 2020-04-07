@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is a backend analysis worker which will be deployed on the server.
 
 We basically pull a new task from the task master, and run the plugin

@@ -23,21 +23,22 @@ message TimelineResult {
 
 // A message describing single entry of the timeline for particular file. It
 // corresponds to the result of stating the file. It is based on the POSIX
-// definition of stat [1].
+// definition of stat [1], typed according to the POSIX standard [2].
 //
-// [1]: https://pubs.opengroup.org/onlinepubs/007908799/xsh/sysstat.h.html
+// [1]: http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/stat.h.html
+// [2]: http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/types.h.html
 message TimelineEntry {
   // An absolute path to the file this entry corresponds to.
   optional bytes path = 1;
 
   // A mode of the file defined as standard POSIX bitmask.
-  optional uint32 mode = 2;
+  optional int64 mode = 2;
 
   // A size of the file in bytes.
   optional uint64 size = 3;
 
   // An identifier of the device containing the file.
-  optional uint64 dev = 4;
+  optional int64 dev = 4;
 
   // A serial number of the file.
   optional uint64 ino = 5;
@@ -49,11 +50,11 @@ message TimelineEntry {
   optional int64 gid = 7;
 
   // A time of the last access of the file in nanoseconds since epoch.
-  optional uint64 atime_ns = 8;
+  optional int64 atime_ns = 8;
 
   // A time of the last data change of the file in nanoseconds since epoch.
-  optional uint64 mtime_ns = 9;
+  optional int64 mtime_ns = 9;
 
   // A time of the last status change of the file in nanoseconds since epoch.
-  optional uint64 ctime_ns = 10;
+  optional int64 ctime_ns = 10;
 }

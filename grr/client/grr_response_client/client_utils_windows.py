@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Windows specific utils."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,12 +12,12 @@ import re
 import sys
 import time
 
-from future.moves import winreg
 import ntsecuritycon
 import pywintypes
 import win32api
 import win32file
 import win32security
+import winreg
 
 from google.protobuf import message
 
@@ -421,7 +422,7 @@ class RtlOSVersionInfoExw(ctypes.Structure):
 
   def __init__(self, **kwargs):
     kwargs["dwOSVersionInfoSize"] = ctypes.sizeof(self)
-    super(RtlOSVersionInfoExw, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
 
 def KernelVersion():

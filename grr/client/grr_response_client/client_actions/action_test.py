@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test client actions."""
 from __future__ import absolute_import
@@ -35,7 +36,7 @@ class ProgressAction(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.LogMessage]
 
   def __init__(self, *args, **kwargs):
-    super(ProgressAction, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     # A number of tests below call action's Execute() method that
     # accepts a GrrMessage and checks whether it has passed the
     # authentication. Turning this off in order to not complicate

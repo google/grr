@@ -1,22 +1,20 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Base test classes for API handlers tests."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-# pylint:mode=test
-
 import logging
 import os
 import threading
+from typing import Text
 
 from absl import flags
 import portpicker
 import requests
-from typing import Text
 
 from google.protobuf import json_format
-
 from grr_api_client.connectors import http_connector
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
@@ -28,6 +26,8 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui import http_api
 from grr_response_server.gui import wsgiapp_testlib
+
+# pylint:mode=test
 
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 

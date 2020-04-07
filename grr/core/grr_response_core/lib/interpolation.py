@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with utilities for string interpolation."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,9 +8,6 @@ from __future__ import unicode_literals
 
 import collections
 import re
-
-from future.utils import iteritems
-from future.utils import iterkeys
 from typing import Any
 from typing import AnyStr
 from typing import Dict
@@ -43,12 +41,12 @@ class Substitution(object):
     self._var_config = var_config
     self._scope_config = scope_config
 
-    for var_id, var_value in iteritems(var_config):
+    for var_id, var_value in var_config.items():
       key = "%%{var}%%".format(var=var_id)
       self._substs[key] = str(var_value)
 
-    for scope_id, var_config in iteritems(scope_config):
-      for var_id, var_value in iteritems(var_config):
+    for scope_id, var_config in scope_config.items():
+      for var_id, var_value in var_config.items():
         key = "%%{scope}.{var}%%".format(scope=scope_id, var=var_id)
         self._substs[key] = str(var_value)
 
@@ -112,7 +110,7 @@ class Interpolator(Generic[AnyStr]):
       pattern: A string (either of unicode or byte characters) with placeholders
         to format.
     """
-    super(Interpolator, self).__init__()
+    super().__init__()
     self._pattern = pattern
 
     if isinstance(pattern, bytes):
@@ -185,7 +183,7 @@ class Interpolator(Generic[AnyStr]):
     if scope_id not in self._scopes:
       raise KeyError(scope_id)
 
-    keys = set(iterkeys(values))
+    keys = set(values.keys())
     if keys != self._scopes[scope_id]:
       raise KeyError(keys ^ self._scopes[scope_id])
 

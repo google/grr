@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """These flows are designed for high performance transfers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 import stat
 import zlib
 
-from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core.lib import constants
 from grr_response_core.lib import rdfvalue
@@ -257,7 +256,7 @@ class MultiGetFileLogic(object):
             maximum_pending_files=1000,
             use_external_stores=False):
     """Initialize our state."""
-    super(MultiGetFileLogic, self).Start()
+    super().Start()
 
     self.state.files_hashed = 0
     self.state.use_external_stores = use_external_stores
@@ -265,6 +264,7 @@ class MultiGetFileLogic(object):
     self.state.files_to_fetch = 0
     self.state.files_fetched = 0
     self.state.files_skipped = 0
+    self.state.files_failed = 0
 
     # Counter to batch up hash checking in the filestore
     self.state.files_hashed_since_check = 0
@@ -343,7 +343,7 @@ class MultiGetFileLogic(object):
     self.CallClient(
         stub,
         request,
-        next_state=compatibility.GetName(self.StoreStat),
+        next_state=compatibility.GetName(self._StoreStat),
         request_data=dict(index=index, request_name=request_name))
 
     request = rdf_client_action.FingerprintRequest(
@@ -359,7 +359,7 @@ class MultiGetFileLogic(object):
     self.CallClient(
         server_stubs.HashFile,
         request,
-        next_state=compatibility.GetName(self.ReceiveFileHash),
+        next_state=compatibility.GetName(self._ReceiveFileHash),
         request_data=dict(index=index))
 
   def _RemoveCompletedPathspec(self, index):
@@ -377,7 +377,7 @@ class MultiGetFileLogic(object):
     self._TryToStartNextPathspec()
     return pathspec, request_data
 
-  def _ReceiveFetchedFile(self, tracker):
+  def _ReceiveFetchedFile(self, tracker, is_duplicate=False):
     """Remove pathspec for this index and call the ReceiveFetchedFile method."""
     index = tracker["index"]
 
@@ -385,9 +385,16 @@ class MultiGetFileLogic(object):
 
     # Report the request_data for this flow's caller.
     self.ReceiveFetchedFile(
-        tracker["stat_entry"], tracker["hash_obj"], request_data=request_data)
+        tracker["stat_entry"],
+        tracker["hash_obj"],
+        request_data=request_data,
+        is_duplicate=is_duplicate)
 
-  def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False):
     """This method will be called for each new file successfully fetched.
 
     Args:
@@ -395,6 +402,8 @@ class MultiGetFileLogic(object):
       file_hash: rdf_crypto.Hash object with file hashes.
       request_data: Arbitrary dictionary that was passed to the corresponding
         StartFileFetch call.
+      is_duplicate: If True, the file wasn't actually collected as its hash was
+        found in the filestore.
     """
 
   def _FileFetchFailed(self, index):
@@ -404,6 +413,8 @@ class MultiGetFileLogic(object):
     if pathspec is None:
       # This was already reported as failed.
       return
+
+    self.state.files_failed += 1
 
     # Report the request_data for this flow's caller.
     self.FileFetchFailed(pathspec, request_data=request_data)
@@ -417,7 +428,7 @@ class MultiGetFileLogic(object):
         StartFileFetch call.
     """
 
-  def StoreStat(self, responses):
+  def _StoreStat(self, responses):
     """Stores stat entry in the flow's state."""
     index = responses.request_data["index"]
     if not responses.success:
@@ -429,7 +440,7 @@ class MultiGetFileLogic(object):
     tracker = self.state.pending_hashes[index]
     tracker["stat_entry"] = responses.First()
 
-  def ReceiveFileHash(self, responses):
+  def _ReceiveFileHash(self, responses):
     """Add hash digest to tracker and check with filestore."""
     index = responses.request_data["index"]
     if not responses.success:
@@ -498,7 +509,7 @@ class MultiGetFileLogic(object):
     # Store a mapping of hash to tracker. Keys are hashdigest objects,
     # values are arrays of tracker dicts.
     hash_to_tracker = {}
-    for index, tracker in iteritems(self.state.pending_hashes):
+    for index, tracker in self.state.pending_hashes.items():
       # We might not have gotten this hash yet
       if tracker.get("hash_obj") is None:
         continue
@@ -514,9 +525,9 @@ class MultiGetFileLogic(object):
 
     statuses = file_store.CheckHashes([
         rdf_objects.SHA256HashID.FromSerializedBytes(ho.sha256.AsBytes())
-        for ho in itervalues(file_hashes)
+        for ho in file_hashes.values()
     ])
-    for hash_id, status in iteritems(statuses):
+    for hash_id, status in statuses.items():
       self.HeartBeat()
 
       if not status:
@@ -544,7 +555,7 @@ class MultiGetFileLogic(object):
         data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
         # Report this hit to the flow's caller.
-        self._ReceiveFetchedFile(file_tracker)
+        self._ReceiveFetchedFile(file_tracker, is_duplicate=True)
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.
@@ -583,14 +594,14 @@ class MultiGetFileLogic(object):
             pathspec=file_tracker["stat_entry"].pathspec,
             offset=i * self.CHUNK_SIZE,
             length=length,
-            next_state=compatibility.GetName(self.CheckHash),
+            next_state=compatibility.GetName(self._CheckHash),
             request_data=dict(index=index))
 
     if self.state.files_hashed % 100 == 0:
       self.Log("Hashed %d files, skipped %s already stored.",
                self.state.files_hashed, self.state.files_skipped)
 
-  def CheckHash(self, responses):
+  def _CheckHash(self, responses):
     """Adds the block hash to the file tracker responsible for this vfs URN."""
     index = responses.request_data["index"]
 
@@ -613,9 +624,9 @@ class MultiGetFileLogic(object):
     self.state.blob_hashes_pending += 1
 
     if self.state.blob_hashes_pending > self.MIN_CALL_TO_FILE_STORE:
-      self.FetchFileContent()
+      self._FetchFileContent()
 
-  def FetchFileContent(self):
+  def _FetchFileContent(self):
     """Fetch as much as the file's content as possible.
 
     This drains the pending_files store by checking which blobs we already have
@@ -626,7 +637,7 @@ class MultiGetFileLogic(object):
 
     # Check what blobs we already have in the blob store.
     blob_hashes = []
-    for file_tracker in itervalues(self.state.pending_files):
+    for file_tracker in self.state.pending_files.values():
       for hash_response in file_tracker.get("hash_list", []):
         blob_hashes.append(
             rdf_objects.BlobID.FromSerializedBytes(hash_response.data))
@@ -648,17 +659,17 @@ class MultiGetFileLogic(object):
           # If we have the data we may call our state directly.
           self.CallStateInline(
               messages=[hash_response],
-              next_state=compatibility.GetName(self.WriteBuffer),
+              next_state=compatibility.GetName(self._WriteBuffer),
               request_data=dict(index=index, blob_index=i))
         else:
           # We dont have this blob - ask the client to transmit it.
           self.CallClient(
               server_stubs.TransferBuffer,
               hash_response,
-              next_state=compatibility.GetName(self.WriteBuffer),
+              next_state=compatibility.GetName(self._WriteBuffer),
               request_data=dict(index=index, blob_index=i))
 
-  def WriteBuffer(self, responses):
+  def _WriteBuffer(self, responses):
     """Write the hash received to the blob image."""
 
     index = responses.request_data["index"]
@@ -734,10 +745,10 @@ class MultiGetFileLogic(object):
     # There are some files still in flight.
     if self.state.pending_hashes or self.state.pending_files:
       self._CheckHashesWithFileStore()
-      self.FetchFileContent()
+      self._FetchFileContent()
 
     if not self.outstanding_requests:
-      super(MultiGetFileLogic, self).End(responses)
+      super().End(responses)
 
 
 class MultiGetFileArgs(rdf_structs.RDFProtoStruct):
@@ -748,10 +759,35 @@ class MultiGetFileArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
+class PathSpecProgress(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.PathSpecProgress
+  rdf_deps = [
+      rdf_paths.PathSpec,
+  ]
+
+
+class MultiGetFileProgress(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.MultiGetFileProgress
+  rdf_deps = [
+      PathSpecProgress,
+  ]
+
+
 class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
   """A flow to effectively retrieve a number of files."""
 
   args_type = MultiGetFileArgs
+  progress_type = MultiGetFileProgress
+  result_types = (rdf_client_fs.StatEntry,)
+
+  def GetProgress(self):
+    return MultiGetFileProgress(
+        num_pending_hashes=len(self.state.pending_hashes),
+        num_pending_files=len(self.state.pending_files),
+        num_skipped=self.state.files_skipped,
+        num_collected=self.state.files_fetched,
+        num_failed=self.state.files_failed,
+        pathspecs_progress=self.state.pathspecs_progress)
 
   def Start(self):
     """Start state of the flow."""
@@ -762,20 +798,39 @@ class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
 
     unique_paths = set()
 
-    for pathspec in self.args.pathspecs:
+    self.state.pathspecs_progress = [
+        PathSpecProgress(
+            pathspec=p, status=PathSpecProgress.Status.IN_PROGRESS)
+        for p in self.args.pathspecs
+    ]
 
+    for i, pathspec in enumerate(self.args.pathspecs):
       vfs_urn = pathspec.AFF4Path(self.client_urn)
 
       if vfs_urn not in unique_paths:
         # Only Stat/Hash each path once, input pathspecs can have dups.
         unique_paths.add(vfs_urn)
 
-        self.StartFileFetch(pathspec)
+        self.StartFileFetch(pathspec, request_data=i)
 
-  def ReceiveFetchedFile(self, stat_entry, unused_hash_obj, request_data=None):
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         unused_hash_obj,
+                         request_data=None,
+                         is_duplicate=False):
     """This method will be called for each new file successfully fetched."""
-    _ = request_data
+    if is_duplicate:
+      status = PathSpecProgress.Status.SKIPPED
+    else:
+      status = PathSpecProgress.Status.COLLECTED
+    self.state.pathspecs_progress[request_data].status = status
+
     self.SendReply(stat_entry)
+
+  def FileFetchFailed(self, pathspec, request_data=None):
+    """This method will be called when stat or hash requests fail."""
+    self.state.pathspecs_progress[
+        request_data].status = PathSpecProgress.Status.FAILED
 
 
 class GetMBRArgs(rdf_structs.RDFProtoStruct):

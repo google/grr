@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handlers for dealing with files in a client's virtual file system."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,8 +10,6 @@ import os
 import re
 import zipfile
 
-from future.utils import iterkeys
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -54,7 +53,8 @@ def ValidateVfsPath(path):
   return True
 
 
-class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):
+# TODO(hanuszczak): Fix the linter warning properly.
+class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):  # pylint: disable=redefined-builtin
   """Raised when a certain file is not found.
 
   Attributes:
@@ -73,7 +73,7 @@ class FileNotFoundError(api_call_handler_base.ResourceNotFoundError):
     message = "{path_type} path '{path}' for client '{client_id}' not found"
     message = message.format(
         client_id=client_id, path_type=path_type, path=path)
-    super(FileNotFoundError, self).__init__(message)
+    super().__init__(message)
 
 
 class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -102,7 +102,7 @@ class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
                  "client '{}' not found")
       message = message.format(path_type, path, timestamp, client_id)
 
-    super(FileContentNotFoundError, self).__init__(message)
+    super().__init__(message)
 
 
 class VfsRefreshOperationNotFoundError(
@@ -170,7 +170,7 @@ class ApiFile(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(ApiFile, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     try:
       self.age = kwargs["age"]
     except KeyError:
@@ -687,7 +687,7 @@ class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
 
-    encodings = sorted(iterkeys(ApiGetFileTextArgs.Encoding.enum_dict))
+    encodings = sorted(ApiGetFileTextArgs.Encoding.enum_dict.keys())
 
     return ApiListKnownEncodingsResult(encodings=encodings)
 
@@ -856,7 +856,7 @@ def _GetTimelineStatEntries(api_client_id, file_path, with_history=True):
   if with_history:
     hist_path_infos = data_store.REL_DB.ReadPathInfosHistories(
         client_id, path_type, [tuple(pi.components) for pi in path_infos])
-    for path_info in itertools.chain.from_iterable(itervalues(hist_path_infos)):
+    for path_info in itertools.chain.from_iterable(hist_path_infos.values()):
       categorized_path = rdf_objects.ToCategorizedPath(path_info.path_type,
                                                        path_info.components)
       yield categorized_path, path_info.stat_entry, path_info.hash_entry

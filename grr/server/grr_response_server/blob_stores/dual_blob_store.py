@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A BlobStore proxy that writes to two BlobStores."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,10 +7,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+import queue
 import threading
 import time
-
-from future.moves import queue
 from typing import Callable, Dict, Iterable, Optional, Text, TypeVar
 
 from grr_response_core import config

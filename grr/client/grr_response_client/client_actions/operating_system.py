@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A facade to operating system dependent client actions."""
 from __future__ import absolute_import
 from __future__ import division

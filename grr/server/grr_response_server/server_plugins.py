@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Centralized import point for server plugins in grr/server directory.
 
 This acts as a centralized point for modules that need to be loaded for

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """MySQL implementation of the GRR relational database abstraction.
 
 See grr/server/db.py for interface.
@@ -14,6 +15,7 @@ import logging
 import math
 import random
 import time
+from typing import Callable
 import warnings
 
 # Note: Please refer to server/setup.py for the MySQLdb version that is used.
@@ -21,8 +23,6 @@ import warnings
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as mysql_errors
-
-from typing import Callable
 
 from grr_response_core import config
 from grr_response_server import threadpool

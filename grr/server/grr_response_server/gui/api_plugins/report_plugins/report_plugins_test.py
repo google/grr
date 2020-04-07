@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for report plugins."""
 from __future__ import absolute_import
 from __future__ import division
@@ -44,8 +45,8 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
 
     with report_plugins_test_mocks.MockedReportPlugins():
       report_object = report_plugins.GetReportByName("BarReportPlugin")
-      self.assertTrue(
-          isinstance(report_object, report_plugins_test_mocks.BarReportPlugin))
+      self.assertIsInstance(report_object,
+                            report_plugins_test_mocks.BarReportPlugin)
 
   def testGetReportDescriptor(self):
     """Ensure GetReportDescriptor returns a correctly filled in proto."""

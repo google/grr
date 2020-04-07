@@ -1,13 +1,13 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
-from future.utils import iterkeys
-import mock
 from typing import Text
+
+import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1223,13 +1223,12 @@ class DatabaseTestClientsMixin(object):
                        "C.000000005000000%d" % i)
       self.assertEqual(full_info.metadata.certificate, CERT)
       self.assertEqual(full_info.last_startup_info.boot_time, i)
-      self.assertEqual(
-          sorted(full_info.labels, key=lambda l: l.name), [
-              rdf_objects.ClientLabel(
-                  owner="test_owner", name="test_label-a-%d" % i),
-              rdf_objects.ClientLabel(
-                  owner="test_owner", name="test_label-b-%d" % i)
-          ])
+      self.assertCountEqual(full_info.labels, [
+          rdf_objects.ClientLabel(
+              owner="test_owner", name="test_label-a-%d" % i),
+          rdf_objects.ClientLabel(
+              owner="test_owner", name="test_label-b-%d" % i)
+      ])
 
   def testIterateAllClientsFullInfo(self):
     self._SetupFullInfoClients()
@@ -1273,10 +1272,10 @@ class DatabaseTestClientsMixin(object):
     client_ids_to_ping = self._SetupLastPingClients(base_time)
 
     expected_client_ids = [
-        cid for cid, ping in iteritems(client_ids_to_ping) if ping == base_time
+        cid for cid, ping in client_ids_to_ping.items() if ping == base_time
     ]
     full_infos = d.MultiReadClientFullInfo(
-        list(iterkeys(client_ids_to_ping)), min_last_ping=cutoff_time)
+        list(client_ids_to_ping.keys()), min_last_ping=cutoff_time)
     self.assertCountEqual(expected_client_ids, full_infos)
 
   def testMultiReadClientsFullInfoWithEmptyList(self):
@@ -1295,7 +1294,7 @@ class DatabaseTestClientsMixin(object):
 
     full_infos = d.MultiReadClientFullInfo(
         [present_client_id, missing_client_id])
-    self.assertEqual(list(iterkeys(full_infos)), [present_client_id])
+    self.assertEqual(list(full_infos.keys()), [present_client_id])
 
   def testMultiReadClientsFullInfoNoSnapshot(self):
     d = self.db
@@ -1503,7 +1502,7 @@ class DatabaseTestClientsMixin(object):
               knowledge_base=rdf_client.KnowledgeBase(os=os),
               os_release=os_release,
               os_version=os_version))
-      for owner, labels in iteritems(labels_dict):
+      for owner, labels in labels_dict.items():
         self.db.AddClientLabels(client_id, owner=owner, labels=labels)
 
   def _WriteTestDataForFleetStatsTesting(self):

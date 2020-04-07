@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """An in memory database implementation used for testing."""
 from __future__ import absolute_import
 from __future__ import division
@@ -47,7 +48,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
   # pyformat: enable
 
   def __init__(self):
-    super(InMemoryDB, self).__init__()
+    super().__init__()
     self._Init()
     self.lock = threading.RLock()
 

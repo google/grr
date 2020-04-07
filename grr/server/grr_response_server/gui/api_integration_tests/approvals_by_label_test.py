@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for clients with special approval logic."""
 from __future__ import absolute_import
 from __future__ import division

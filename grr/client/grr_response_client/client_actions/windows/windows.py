@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Windows specific actions.
 
 Most of these actions share an interface (in/out rdfvalues) with linux actions
@@ -13,20 +14,19 @@ from __future__ import unicode_literals
 import binascii
 import ctypes
 import logging
-from future.moves import winreg
+from typing import Text
 
 import pythoncom
-from typing import Text
 import win32api
 import win32com.client
 import win32file
 import win32service
 import win32serviceutil
+import winreg
 import wmi
 
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action

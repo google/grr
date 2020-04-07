@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr_response_client.client_actions.tempfiles."""
 from __future__ import absolute_import
 from __future__ import division

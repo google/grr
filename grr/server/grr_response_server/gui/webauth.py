@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Web authentication classes for the GUI."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,22 +8,21 @@ from __future__ import unicode_literals
 import base64
 import logging
 
-from future.utils import with_metaclass
 from werkzeug import utils as werkzeug_utils
 from werkzeug import wrappers as werkzeug_wrappers
 
 from google.oauth2 import id_token
 
 from grr_response_core import config
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.gui import validate_iap
 
 
-class BaseWebAuthManager(with_metaclass(registry.MetaclassRegistry, object)):
+class BaseWebAuthManager(metaclass=MetaclassRegistry):
   """A class managing web authentication.
 
   This class is responsible for deciding if the user will have access to the web
@@ -64,7 +64,7 @@ class IAPWebAuthManager(BaseWebAuthManager):
   IAP_HEADER = "x-goog-iap-jwt-assertion"
 
   def __init__(self, *args, **kwargs):
-    super(IAPWebAuthManager, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if (config.CONFIG["AdminUI.google_cloud_project_id"] is None or
         config.CONFIG["AdminUI.google_cloud_backend_service_id"] is None):
@@ -145,7 +145,7 @@ class RemoteUserWebAuthManager(BaseWebAuthManager):
   """
 
   def __init__(self, *args, **kwargs):
-    super(RemoteUserWebAuthManager, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     self.remote_user_header = config.CONFIG["AdminUI.remote_user_header"]
     self.remote_email_header = config.CONFIG["AdminUI.remote_email_header"]
@@ -186,7 +186,7 @@ class FirebaseWebAuthManager(BaseWebAuthManager):
   SECURE_TOKEN_PREFIX = "https://securetoken.google.com/"
 
   def __init__(self, *args, **kwargs):
-    super(FirebaseWebAuthManager, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     def_router = config.CONFIG["API.DefaultRouter"]
     if def_router != "DisabledApiCallRouter":
@@ -233,7 +233,7 @@ class NullWebAuthManager(BaseWebAuthManager):
   """Null web auth manager always returns test user unless set."""
 
   def __init__(self, *args, **kwargs):
-    super(NullWebAuthManager, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.username = u"gui_user"
 
   def SetUserName(self, username):

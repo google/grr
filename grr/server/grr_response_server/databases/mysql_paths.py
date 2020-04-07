@@ -1,20 +1,18 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The MySQL database methods for path handling."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.utils import iteritems
-from future.utils import iterkeys
-
-import MySQLdb
-
 from typing import Dict
 from typing import Iterable
 from typing import Optional
 from typing import Sequence
 from typing import Text
+
+import MySQLdb
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -203,7 +201,7 @@ class MySQLDBPathMixin(object):
     try:
       self._MultiWritePathInfos(path_infos)
     except MySQLdb.IntegrityError as error:
-      client_ids = list(iterkeys(path_infos))
+      client_ids = list(path_infos.keys())
       raise db.AtLeastOneUnknownClientError(client_ids=client_ids, cause=error)
 
   @mysql_utils.WithTransaction()
@@ -220,7 +218,7 @@ class MySQLDBPathMixin(object):
     hash_entry_keys = []
     hash_entry_values = []
 
-    for client_id, client_path_infos in iteritems(path_infos):
+    for client_id, client_path_infos in path_infos.items():
       for path_info in client_path_infos:
         path = mysql_utils.ComponentsToPath(path_info.components)
 

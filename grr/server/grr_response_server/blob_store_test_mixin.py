@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Mixin class to be used in tests for BlobStore implementations."""
 
 from __future__ import absolute_import
@@ -9,7 +10,6 @@ import abc
 import threading
 import time
 
-from future.utils import with_metaclass
 import mock
 
 from grr_response_core.lib import rdfvalue
@@ -22,8 +22,7 @@ from grr.test_lib import test_lib
 POSITIONAL_ARGS = 0
 
 
-class BlobStoreTestMixin(
-    with_metaclass(abc.ABCMeta, stats_test_lib.StatsTestMixin)):
+class BlobStoreTestMixin(stats_test_lib.StatsTestMixin, metaclass=abc.ABCMeta):
   """Mixin providing tests shared by all blob store tests implementations."""
 
   @abc.abstractmethod

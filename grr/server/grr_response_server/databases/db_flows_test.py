@@ -1,16 +1,16 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for the flow database api."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import queue
 import random
 import time
 
-from future.utils import iteritems
 import mock
-import queue
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -852,7 +852,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_request, request)
     self.assertEqual(list(read_responses), [0, 1, 2])
 
-    for response_id, response in iteritems(read_responses):
+    for response_id, response in read_responses.items():
       self.assertEqual(response.response_id, response_id)
 
   def testResponseWritingForDuplicateResponses(self):
@@ -881,7 +881,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_request, request)
     self.assertEqual(list(read_responses), [0])
 
-    for response_id, response in iteritems(read_responses):
+    for response_id, response in read_responses.items():
       self.assertEqual(response.response_id, response_id)
 
   def testCompletingMultipleRequests(self):

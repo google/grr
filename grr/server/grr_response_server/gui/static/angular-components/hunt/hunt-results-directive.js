@@ -62,7 +62,7 @@ HuntResultsController.prototype.onHuntIdChange = function(huntId) {
  * set.
  *
  * @param {Array<Object>} items
- * @return {Array<Object>}
+ * @return {!Array<Object>}
  * @export
  */
 HuntResultsController.prototype.transformItems = function(items) {

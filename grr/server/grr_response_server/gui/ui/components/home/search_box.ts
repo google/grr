@@ -42,7 +42,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
    */
   @Output() querySubmitted = new EventEmitter<string>();
 
-  private readonly unsubscribe = new Subject<void>();
+  private readonly unsubscribe$ = new Subject<void>();
 
   clients = new BehaviorSubject<Client[]>([]);
 
@@ -59,23 +59,23 @@ export class SearchBox implements AfterViewInit, OnDestroy {
                 map(([event, query]) => query),
                 filter(query => query !== ''),
             );
-    enterPressed$.pipe(takeUntil(this.unsubscribe)).subscribe(query => {
+    enterPressed$.pipe(takeUntil(this.unsubscribe$)).subscribe(query => {
       this.querySubmitted.emit(query);
     });
 
     this.inputFormControl.valueChanges
         .pipe(
+            takeUntil(this.unsubscribe$),
             debounceTime(300),
             distinctUntilChanged(),
             switchMap(query => this.searchClients(query)),
-            takeUntil(this.unsubscribe),
             )
         .subscribe(this.clients);
   }
 
   ngOnDestroy() {
-    this.unsubscribe.next();
-    this.unsubscribe.complete();
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 
   private searchClients(query: string) {

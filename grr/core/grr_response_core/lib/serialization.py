@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """(De-)serialization to bytes, wire format, and human readable strings."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,16 +7,13 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-
-from future.utils import with_metaclass
-
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 
 
-class Converter(with_metaclass(abc.ABCMeta, object)):
+class Converter(metaclass=abc.ABCMeta):
   """Interface for (de-)serializing types to bytes, wire format, and strings."""
 
   @abc.abstractproperty
@@ -80,6 +78,7 @@ class RDFValueConverter(Converter):
   """Converter for rdfvalue.RDFValue."""
 
   def __init__(self, cls):
+    super().__init__()
     self._cls = cls
 
   @property

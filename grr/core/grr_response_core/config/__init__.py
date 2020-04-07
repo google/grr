@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module will load all the configuration parameters."""
 from __future__ import absolute_import
 from __future__ import division

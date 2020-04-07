@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Parser for Google chrome/chromium History files."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,13 +8,13 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import logging
-
-from future.moves.urllib import parse as urlparse
-from past.builtins import long
-import sqlite3
 from typing import IO
 from typing import Iterator
+from typing import Text
 from typing import Tuple
+
+from urllib import parse as urlparse
+import sqlite3
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
@@ -31,7 +32,8 @@ class ChromeHistoryParser(parsers.SingleFileParser):
 
     # TODO(user): Convert this to use the far more intelligent plaso parser.
     chrome = ChromeParser()
-    for timestamp, entry_type, url, data1, _, _ in chrome.Parse(filedesc):
+    path = pathspec.CollapsePath()
+    for timestamp, entry_type, url, data1, _, _ in chrome.Parse(path, filedesc):
       if entry_type == "CHROME_DOWNLOAD":
         yield rdf_webhistory.BrowserHistoryItem(
             url=url,
@@ -84,7 +86,7 @@ class ChromeParser(object):
   TIME_CONV_CONST = 11644473600000000
 
   def ConvertTimestamp(self, timestamp):
-    if not isinstance(timestamp, (long, int)):
+    if not isinstance(timestamp, int):
       timestamp = 0
     elif timestamp > 11644473600000000:
       timestamp -= self.TIME_CONV_CONST
@@ -95,7 +97,7 @@ class ChromeParser(object):
 
   # TODO(hanuszczak): This function should return a well-structured data instead
   # of a tuple of 6 elements (of which 2 of them are never used).
-  def Parse(self, filedesc):  # pylint: disable=g-bare-generic
+  def Parse(self, filepath, filedesc):  # pylint: disable=g-bare-generic
     """Iterator returning a list for each entry in history.
 
     We store all the download events in an array (choosing this over visits
@@ -103,12 +105,25 @@ class ChromeParser(object):
     visit events to get an overall correct time order.
 
     Args:
+      filepath: A path corresponding to the database file.
       filedesc: A file-like object
 
     Yields:
       a list of attributes for each entry
     """
     with sqlite.IOConnection(filedesc) as conn:
+      # The artifact may collect also not-database objects (e.g. journals). To
+      # prevent them from making the flow to fail we first check whether the
+      # file is really an SQLite database. If it is, then we make certain
+      # assumptions about its schema (to provide the user with visible error
+      # message that the parsing failed and maybe the format changed). If it is
+      # not, then we emit a warning but carry on without an error.
+      try:
+        list(conn.Query("SELECT * FROM sqlite_master LIMIT 0"))
+      except sqlite3.DatabaseError as error:
+        logging.warning("'%s' is not an SQLite database: %s", filepath, error)
+        return
+
       # Query for old style and newstyle downloads storage.
       rows = []
 

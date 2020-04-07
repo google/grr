@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handlers for user-related data and actions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,7 +10,6 @@ import functools
 import itertools
 import logging
 
-from future.utils import itervalues
 import jinja2
 
 from grr_response_core import config
@@ -266,7 +266,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       else:
         if notification.subject:
           path = notification.subject.Path()
-          for prefix in itervalues(rdf_paths.PathSpec.AFF4_PREFIXES):
+          for prefix in rdf_paths.PathSpec.AFF4_PREFIXES.values():
             part = "/%s%s" % (components[0], prefix)
             if path.startswith(part):
               self.reference.type = reference_type_enum.VFS
@@ -1161,7 +1161,7 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGrrUser
 
   def __init__(self, interface_traits=None):
-    super(ApiGetOwnGrrUserHandler, self).__init__()
+    super().__init__()
     self.interface_traits = interface_traits
 
   def Handle(self, unused_args, token=None):

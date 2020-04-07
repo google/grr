@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Parser for IE index.dat files.
 
 Note that this is a very naive and incomplete implementation and should be
@@ -17,7 +18,7 @@ from __future__ import unicode_literals
 import logging
 import operator
 import struct
-from future.moves.urllib import parse as urlparse
+from urllib import parse as urlparse
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory

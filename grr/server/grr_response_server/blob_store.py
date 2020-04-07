@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The blob store abstraction."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,9 +8,6 @@ from __future__ import unicode_literals
 
 import abc
 import time
-
-from future.utils import iteritems
-from future.utils import with_metaclass
 from typing import Dict, Iterable, List, Optional
 
 from grr_response_core.lib import rdfvalue
@@ -34,7 +32,7 @@ class BlobStoreTimeoutError(Exception):
   """An exception class raised when certain blob store operation times out."""
 
 
-class BlobStore(with_metaclass(abc.ABCMeta, object)):
+class BlobStore(metaclass=abc.ABCMeta):
   """The blob store base class."""
 
   def WriteBlobsWithUnknownHashes(
@@ -155,7 +153,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
       elapsed = now - start
       poll_num += 1
 
-      for blob_id, blob in iteritems(cur_blobs):
+      for blob_id, blob in cur_blobs.items():
         if blob is None:
           continue
         results[blob_id] = blob
@@ -201,7 +199,7 @@ class BlobStore(with_metaclass(abc.ABCMeta, object)):
       elapsed_secs = elapsed.ToFractional(rdfvalue.SECONDS)
       ticks += 1
 
-      for blob_id, exists in iteritems(blob_id_exists):
+      for blob_id, exists in blob_id_exists.items():
         if not exists:
           continue
 
@@ -224,7 +222,7 @@ class BlobStoreValidationWrapper(BlobStore):
   """BlobStore wrapper that validates calls arguments."""
 
   def __init__(self, delegate):
-    super(BlobStoreValidationWrapper, self).__init__()
+    super().__init__()
     self.delegate = delegate
 
   def WriteBlobsWithUnknownHashes(

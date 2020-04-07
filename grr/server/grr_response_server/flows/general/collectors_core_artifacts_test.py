@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr.server.flows.general.collectors.
 
 These tests ensure some key artifacts are working, particularly those used for

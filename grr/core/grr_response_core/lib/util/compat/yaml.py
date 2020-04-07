@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with compatibility wrappers for YAML processing."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,14 +8,12 @@ from __future__ import unicode_literals
 
 import collections
 import io
-
-from future.builtins import str
-from future.utils import iteritems
 from typing import Any
 from typing import IO
 from typing import Iterable
 from typing import Sequence
 from typing import Text
+
 import yaml
 
 from grr_response_core.lib.util import compatibility
@@ -216,7 +215,7 @@ yaml.add_representer(str, _UnicodeRepresenter, Dumper=yaml.SafeDumper)
 # Add support for dumping `collections.OrderedDict`.
 def _OrderedDictRepresenter(dumper, value):
   precondition.AssertType(value, collections.OrderedDict)
-  return dumper.represent_dict(list(iteritems(value)))
+  return dumper.represent_dict(list(value.items()))
 
 
 yaml.add_representer(collections.OrderedDict, _OrderedDictRepresenter)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A simple thread pool for the Google Response Rig.
 
 This file defines a simple thread pool that is used throughout this
@@ -27,12 +28,11 @@ from __future__ import unicode_literals
 
 import itertools
 import logging
+import queue
 import threading
 import time
 
-from future.utils import itervalues
 import psutil
-import queue
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
@@ -101,7 +101,7 @@ class _WorkerThread(threading.Thread):
       name: A name for this worker thread.
     """
     # pyformat: enable
-    super(_WorkerThread, self).__init__(name=name)
+    super().__init__(name=name)
 
     self.pool = pool
     self._queue = message_queue
@@ -300,7 +300,7 @@ class ThreadPool(object):
 
   @property
   def busy_threads(self):
-    return len([x for x in itervalues(self._workers_ro_copy) if not x.idle])
+    return len([x for x in self._workers_ro_copy.values() if not x.idle])
 
   def __len__(self):
     return len(self._workers_ro_copy)
@@ -335,7 +335,7 @@ class ThreadPool(object):
       return
 
     # Remove all workers from the pool.
-    workers = list(itervalues(self._workers))
+    workers = list(self._workers.values())
     self._workers = {}
     self._workers_ro_copy = {}
 
@@ -520,7 +520,7 @@ class BatchConverter(object):
         threadpool_size is 0, no threads will be used and all conversions will
         be done in the current thread.
     """
-    super(BatchConverter, self).__init__()
+    super().__init__()
     self.batch_size = batch_size
     self.threadpool_prefix = threadpool_prefix
     self.threadpool_size = threadpool_size

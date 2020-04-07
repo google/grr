@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """OutputPlugin that sends Flow results to Splunk Http Event Collector.
 
 Configuration values for this plugin can be found in
@@ -12,17 +13,15 @@ from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.moves import urllib
-
-import requests
-
 from typing import Any
 from typing import Dict
 from typing import List
 from typing import Text
+from urllib import parse as urlparse
+
+import requests
 
 from google.protobuf import json_format
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -64,7 +63,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
 
   def __init__(self, *args, **kwargs):
     """See base class."""
-    super(SplunkOutputPlugin, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     url = config.CONFIG["Splunk.url"]
     self._verify_https = config.CONFIG["Splunk.verify_https"]
@@ -87,7 +86,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
           "token when configuring a new HEC input in your Splunk "
           "installation.")
 
-    self._url = urllib.parse.urljoin(url, HTTP_EVENT_COLLECTOR_PATH)
+    self._url = urlparse.urljoin(url, HTTP_EVENT_COLLECTOR_PATH)
 
   def ProcessResponses(self, state,
                        responses):

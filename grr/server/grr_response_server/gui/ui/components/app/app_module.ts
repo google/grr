@@ -7,6 +7,8 @@ import {StoreDevtoolsModule} from '@ngrx/store-devtools';
 import {ClientModule} from '@app/components/client/module';
 import {ClientSearchModule} from '@app/components/client_search/module';
 import {HomeModule} from '@app/components/home/module';
+import {UserMenuModule} from '@app/components/user_menu/module';
+
 import {App} from './app';
 import {AppRoutingModule} from './routing';
 
@@ -21,6 +23,7 @@ const GRR_MODULES = [
   ClientSearchModule,
   ClientModule,
   HomeModule,
+  UserMenuModule,
 ];
 
 /**

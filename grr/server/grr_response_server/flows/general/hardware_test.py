@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for low-level flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -20,10 +21,9 @@ class DumpFlashImageMock(action_mocks.ActionMock):
   """Mock the flash dumping on the client side."""
 
   def __init__(self, *args, **kwargs):
-    super(DumpFlashImageMock,
-          self).__init__(standard.HashBuffer, standard.HashFile,
-                         standard.GetFileStat, standard.TransferBuffer,
-                         tempfiles.DeleteGRRTempFiles)
+    super().__init__(standard.HashBuffer, standard.HashFile,
+                     standard.GetFileStat, standard.TransferBuffer,
+                     tempfiles.DeleteGRRTempFiles)
 
   def DumpFlashImage(self, args):
     flash_fd, flash_path = tempfiles.CreateGRRTempFileVFS()

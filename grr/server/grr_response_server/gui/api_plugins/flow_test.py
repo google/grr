@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module contains tests for flows-related API handlers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -59,6 +60,35 @@ class ApiFlowTest(test_lib.GRRBaseTest):
 
     self.assertEqual(flow_api_obj.client_id,
                      client_plugin.ApiClientId(client_id))
+
+  def testFlowWithoutFlowProgressTypeDoesNotReportProgress(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow.StartFlow(
+        client_id=client_id, flow_cls=flow_test_lib.DummyFlow)
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+
+    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
+    self.assertIsNone(flow_api_obj.progress)
+
+    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(
+        flow_obj, with_progress=True)
+    self.assertIsNone(flow_api_obj.progress)
+
+  def testWithFlowProgressTypeReportsProgressCorrectly(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow.StartFlow(
+        client_id=client_id, flow_cls=flow_test_lib.DummyFlowWithProgress)
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+
+    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
+    self.assertIsNotNone(flow_api_obj.progress)
+    # An empty proto is created by default.
+    self.assertFalse(flow_api_obj.progress.HasField("status"))
+
+    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(
+        flow_obj, with_progress=True)
+    self.assertIsNotNone(flow_api_obj.progress)
+    self.assertEqual(flow_api_obj.progress.status, "Progress.")
 
 
 class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):

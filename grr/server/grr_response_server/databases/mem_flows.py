@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The in memory database methods for flow handling."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,8 +12,6 @@ import sys
 import threading
 import time
 
-from future.utils import iteritems
-from future.utils import itervalues
 from typing import List, Optional, Text
 
 from grr_response_core.lib import rdfvalue
@@ -51,8 +50,8 @@ class InMemoryDBFlowMixin(object):
     """Reads all message handler requests from the database."""
     res = []
     leases = self.message_handler_leases
-    for requests in itervalues(self.message_handler_requests):
-      for r in itervalues(requests):
+    for requests in self.message_handler_requests.values():
+      for r in requests.values():
         res.append(r.Copy())
         existing_lease = leases.get(r.handler_name, {}).get(r.request_id, None)
         res[-1].leased_until = existing_lease
@@ -113,8 +112,8 @@ class InMemoryDBFlowMixin(object):
     expiration_time = now + lease_time
 
     leases = self.message_handler_leases
-    for requests in itervalues(self.message_handler_requests):
-      for r in itervalues(requests):
+    for requests in self.message_handler_requests.values():
+      for r in requests.values():
         existing_lease = leases.get(r.handler_name, {}).get(r.request_id, zero)
         if existing_lease < now:
           leases.setdefault(r.handler_name, {})[r.request_id] = expiration_time
@@ -130,7 +129,7 @@ class InMemoryDBFlowMixin(object):
   def ReadAllClientActionRequests(self, client_id):
     """Reads all client action requests available for a given client_id."""
     res = []
-    for key, orig_request in iteritems(self.client_action_requests):
+    for key, orig_request in self.client_action_requests.items():
       request_client_id, _, _ = key
       if request_client_id != client_id:
         continue
@@ -254,7 +253,7 @@ class InMemoryDBFlowMixin(object):
   ):
     """Returns all flow objects."""
     res = []
-    for flow in itervalues(self.flows):
+    for flow in self.flows.values():
       if ((client_id is None or flow.client_id == client_id) and
           (min_create_time is None or flow.create_time >= min_create_time) and
           (max_create_time is None or flow.create_time <= max_create_time) and
@@ -266,7 +265,7 @@ class InMemoryDBFlowMixin(object):
   def ReadChildFlowObjects(self, client_id, flow_id):
     """Reads flows that were started by a given flow from the database."""
     res = []
-    for flow in itervalues(self.flows):
+    for flow in self.flows.values():
       if flow.client_id == client_id and flow.parent_flow_id == flow_id:
         res.append(flow)
     return res
@@ -524,7 +523,7 @@ class InMemoryDBFlowMixin(object):
         break
 
       responses = sorted(
-          itervalues(response_dict.get(request_id, {})),
+          response_dict.get(request_id, {}).values(),
           key=lambda response: response.response_id)
       # Serialize/deserialize responses to better simulate the
       # real DB behavior (where serialization/deserialization is almost
@@ -590,7 +589,7 @@ class InMemoryDBFlowMixin(object):
   @utils.Synchronized
   def ReadFlowProcessingRequests(self):
     """Reads all flow processing requests from the database."""
-    return list(itervalues(self.flow_processing_requests))
+    return list(self.flow_processing_requests.values())
 
   @utils.Synchronized
   def AckFlowProcessingRequests(self, requests):
@@ -643,7 +642,7 @@ class InMemoryDBFlowMixin(object):
   def _GetFlowRequestsReadyForProcessing(self):
     now = rdfvalue.RDFDatetime.Now()
     todo = []
-    for r in list(itervalues(self.flow_processing_requests)):
+    for r in list(self.flow_processing_requests.values()):
       if r.delivery_time is None or r.delivery_time <= now:
         todo.append(r)
 

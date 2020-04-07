@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """REL_DB-based file store implementation."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,11 +11,6 @@ import collections
 import hashlib
 import io
 import os
-
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import with_metaclass
-
 from typing import Dict
 from typing import Iterable
 from typing import NamedTuple
@@ -38,25 +34,24 @@ class BlobNotFoundError(Error):
   """Raised when a blob was expected to exist, but couldn't be found."""
 
   def __init__(self, blob_id):
-    super(BlobNotFoundError, self).__init__(
+    super().__init__(
         "Could not find one of referenced blobs: {}. "
         "This is a sign of datastore inconsistency".format(blob_id))
 
 
-class FileNotFoundError(Error):
+# TODO(hanuszczak): Fix the linter warning properly.
+class FileNotFoundError(Error):  # pylint: disable=redefined-builtin
   """Raised when a given file path is not present in the datastore."""
 
   def __init__(self, client_path):
-    super(FileNotFoundError,
-          self).__init__("File not found: {}.".format(client_path))
+    super().__init__("File not found: {}.".format(client_path))
 
 
 class FileHasNoContentError(Error):
   """Raised when trying to read a file that was never downloaded."""
 
   def __init__(self, path):
-    super(FileHasNoContentError,
-          self).__init__("File was never collected: %r" % (path,))
+    super().__init__("File was never collected: %r" % (path,))
 
 
 class MissingBlobReferencesError(Error):
@@ -81,7 +76,7 @@ FileMetadata = NamedTuple("FileMetadata", [
 ])
 
 
-class ExternalFileStore(with_metaclass(abc.ABCMeta, object)):
+class ExternalFileStore(metaclass=abc.ABCMeta):
   """Filestore for files collected from clients."""
 
   @abc.abstractmethod
@@ -96,7 +91,7 @@ class ExternalFileStore(with_metaclass(abc.ABCMeta, object)):
       hash_id_metadatas: A dictionary mapping hash ids to file metadata (a tuple
         of hash client path and blob references).
     """
-    for hash_id, metadata in iteritems(hash_id_metadatas):
+    for hash_id, metadata in hash_id_metadatas.items():
       self.AddFile(hash_id, metadata)
 
 
@@ -104,7 +99,7 @@ class CompositeExternalFileStore(ExternalFileStore):
   """Composite file store used to multiplex requests to multiple file stores."""
 
   def __init__(self, nested_stores=None):
-    super(CompositeExternalFileStore, self).__init__()
+    super().__init__()
 
     self.nested_stores = nested_stores or []
 
@@ -263,7 +258,7 @@ def AddFilesWithUnknownHashes(
   metadatas = dict()
 
   all_client_path_blob_refs = list()
-  for client_path, blob_refs in iteritems(client_path_blob_refs):
+  for client_path, blob_refs in client_path_blob_refs.items():
     if blob_refs:
       for blob_ref in blob_refs:
         all_client_path_blob_refs.append((client_path, blob_ref))
@@ -306,7 +301,7 @@ def AddFilesWithUnknownHashes(
       client_path_offset[client_path] = offset + len(blob)
       client_path_sha256[client_path].update(blob)
 
-  for client_path in iterkeys(client_path_sha256):
+  for client_path in client_path_sha256.keys():
     sha256 = client_path_sha256[client_path].digest()
     hash_id = rdf_objects.SHA256HashID.FromSerializedBytes(sha256)
 
@@ -316,7 +311,7 @@ def AddFilesWithUnknownHashes(
   data_store.REL_DB.WriteHashBlobReferences(hash_id_blob_refs)
 
   if use_external_stores:
-    for client_path in iterkeys(verified_client_path_blob_refs):
+    for client_path in verified_client_path_blob_refs.keys():
       metadatas[client_path_hash_id[client_path]] = FileMetadata(
           client_path=client_path,
           blob_refs=verified_client_path_blob_refs[client_path])
@@ -492,7 +487,7 @@ def StreamFilesChunks(client_paths, max_timestamp=None, max_size=None):
           client_paths, max_timestamp=max_timestamp))
 
   hash_ids_by_cp = {}
-  for cp, pi in iteritems(path_infos_by_cp):
+  for cp, pi in path_infos_by_cp.items():
     if pi:
       hash_ids_by_cp[cp] = rdf_objects.SHA256HashID.FromSerializedBytes(
           pi.hash_entry.sha256.AsBytes())

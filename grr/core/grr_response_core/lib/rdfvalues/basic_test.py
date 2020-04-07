@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Basic rdfvalue tests."""
 from __future__ import absolute_import
@@ -185,14 +186,14 @@ class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     string_list = ["abc", "ghi", "def", "mno", "jkl"]
     urn_list = [rdfvalue.RDFURN(s) for s in string_list]
 
-    self.assertEqual(sorted(string_list), sorted(urn_list))
+    self.assertEqual(string_list, urn_list)
 
     # Inequality.
     s = "some_urn"
     s2 = "some_other_urn"
-    self.assertTrue(s == rdfvalue.RDFURN(s))
+    self.assertEqual(s, rdfvalue.RDFURN(s))
     self.assertFalse(s != rdfvalue.RDFURN(s))
-    self.assertTrue(s != rdfvalue.RDFURN(s2))
+    self.assertNotEqual(s, rdfvalue.RDFURN(s2))
     self.assertFalse(s == rdfvalue.RDFURN(s2))
 
   def testHashing(self):

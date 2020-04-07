@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of a router class that does no ACL checks."""
 from __future__ import absolute_import
 from __future__ import division
@@ -278,6 +279,13 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def GetHuntFile(self, args, token=None):
     return api_hunt.ApiGetHuntFileHandler()
+
+  def GetCollectedHuntTimelines(
+      self,
+      args,
+      token = None,
+  ):
+    return api_timeline.ApiGetCollectedHuntTimelinesHandler()
 
   # Stats metrics methods.
   # =====================

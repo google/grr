@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Module with GRRWorker implementation."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 import logging
 import time
 
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -34,7 +34,7 @@ def ProcessMessageHandlerRequests(requests):
   logging.debug("Leased message handler request ids: %s",
                 ",".join(str(r.request_id) for r in requests))
   grouped_requests = collection.Group(requests, lambda r: r.handler_name)
-  for handler_name, requests_for_handler in iteritems(grouped_requests):
+  for handler_name, requests_for_handler in grouped_requests.items():
     handler_cls = handler_registry.handler_name_map.get(handler_name)
     if not handler_cls:
       logging.error("Unknown message handler: %s", handler_name)

@@ -1,12 +1,14 @@
 import {Injectable} from '@angular/core';
 import {Store} from '@ngrx/store';
-import {FlowDescriptor} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {filter} from 'rxjs/operators';
+
+import {FlowDescriptor} from '../lib/models/flow';
 
 import * as actions from './flow/flow_actions';
 import {FlowDescriptorMap, FlowState} from './flow/flow_reducers';
 import * as selectors from './flow/flow_selectors';
+
 
 /** Facade for flow-related API calls. */
 @Injectable()
@@ -23,8 +25,8 @@ export class FlowFacade {
               filter((fds): fds is FlowDescriptorMap => fds !== undefined),
           );
 
-  selectFlow(name: string) {
-    this.store.dispatch(actions.selectFlow({name}));
+  selectFlow(name: string, args?: unknown) {
+    this.store.dispatch(actions.selectFlow({name, args}));
   }
 
   unselectFlow() {

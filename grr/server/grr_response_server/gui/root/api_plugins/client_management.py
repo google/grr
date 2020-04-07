@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Root-access-level API handlers for client management."""
 from __future__ import absolute_import
 from __future__ import division
@@ -37,7 +38,7 @@ class ApiKillFleetspeakHandler(api_call_handler_base.ApiCallHandler):
              args,
              token = None):
     _CheckFleetspeakConnection()
-    fleetspeak_utils.KillFleetspeak(args.client_id, args.force)
+    fleetspeak_utils.KillFleetspeak(args.client_id.Basename(), args.force)
 
 
 class ApiRestartFleetspeakGrrServiceArgs(rdf_structs.RDFProtoStruct):
@@ -57,4 +58,4 @@ class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
              args,
              token = None):
     _CheckFleetspeakConnection()
-    fleetspeak_utils.RestartFleetspeakGrrService(args.client_id)
+    fleetspeak_utils.RestartFleetspeakGrrService(args.client_id.Basename())

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Typing information for flow arguments.
 
 This contains objects that are used to provide type annotations for flow
@@ -11,16 +12,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-
-from future.utils import itervalues
-from future.utils import string_types
-from future.utils import with_metaclass
-from past.builtins import long
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import serialization
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import precondition
 
 
@@ -38,7 +34,7 @@ class UnknownArg(TypeValueError):
   """Raised for unknown flow args."""
 
 
-class TypeInfoObject(with_metaclass(registry.MetaclassRegistry, object)):
+class TypeInfoObject(metaclass=MetaclassRegistry):
   """Definition of the interface for flow arg typing information."""
 
   # The delegate type this TypeInfoObject manages.
@@ -123,7 +119,7 @@ class RDFValueType(TypeInfoObject):
       rdfclass: The RDFValue class that this arg must be.
       **kwargs: Passthrough to base class.
     """
-    super(RDFValueType, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     self._type = self.rdfclass = rdfclass
 
   def Validate(self, value):
@@ -170,7 +166,7 @@ class RDFStructDictType(TypeInfoObject):
       rdfclass: The RDFStruct subclass that this arg must be.
       **kwargs: Passthrough to base class.
     """
-    super(RDFStructDictType, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     self._type = self.rdfclass = rdfclass
 
   def Validate(self, value):
@@ -277,7 +273,7 @@ class TypeDescriptorSet(object):
 
     new_descriptors = [
         desc for desc in self.descriptors
-        if desc in itervalues(new_descriptor_map)
+        if desc in new_descriptor_map.values()
     ]
     return TypeDescriptorSet(*new_descriptors)
 
@@ -344,11 +340,11 @@ class List(TypeInfoObject):
 
   def __init__(self, validator=None, **kwargs):
     self.validator = validator
-    super(List, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
   def Validate(self, value):
     """Validate a potential list."""
-    if isinstance(value, string_types):
+    if isinstance(value, str):
       raise TypeValueError("Value must be an iterable not a string.")
 
     elif not isinstance(value, (list, tuple)):
@@ -377,7 +373,7 @@ class String(TypeInfoObject):
 
   def __init__(self, default = "", **kwargs):
     precondition.AssertType(default, Text)
-    super(String, self).__init__(default=default, **kwargs)
+    super().__init__(default=default, **kwargs)
 
   def Validate(self, value):
     if not isinstance(value, Text):
@@ -401,7 +397,7 @@ class Bytes(TypeInfoObject):
 
   def __init__(self, default = b"", **kwargs):
     precondition.AssertType(default, bytes)
-    super(Bytes, self).__init__(default=default, **kwargs)
+    super().__init__(default=default, **kwargs)
 
   def Validate(self, value):
     if not isinstance(value, bytes):
@@ -421,20 +417,20 @@ class Bytes(TypeInfoObject):
 class Integer(TypeInfoObject):
   """An Integer number type."""
 
-  _type = long
+  _type = int
 
   def Validate(self, value):
     if value is None:
       value = 0
 
-    if not isinstance(value, (int, long)):
+    if not isinstance(value, int):
       raise TypeValueError("Invalid value %s for Integer" % value)
 
-    return long(value)
+    return value
 
   def FromString(self, string):
     try:
-      return long(string)
+      return int(string)
     except ValueError:
       raise TypeValueError("Invalid value %s for Integer" % string)
 
@@ -464,7 +460,7 @@ class Choice(TypeInfoObject):
   def __init__(self, choices=None, validator=None, **kwargs):
     self.choices = choices
     self.validator = validator or String()
-    super(Choice, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
   def Validate(self, value):
     self.validator.Validate(value)
@@ -494,7 +490,7 @@ class MultiChoice(TypeInfoObject):
     # Check the choices match the validator
     for choice in self.choices:
       subvalidator.Validate(choice)
-    super(MultiChoice, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
   def Validate(self, values):
     self.validator.Validate(values)

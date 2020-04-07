@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """DB mixin for blobs-related methods."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,6 @@ from __future__ import unicode_literals
 
 import threading
 
-from future.utils import itervalues
 
 from grr_response_core.lib import utils
 from grr_response_server import blob_store
@@ -21,7 +21,7 @@ class _BlobRecord(object):
     self._blob_refs[blob_ref.offset] = blob_ref.Copy()
 
   def GetBlobReferences(self):
-    return list(itervalues(self._blob_refs))
+    return list(self._blob_refs.values())
 
 
 class InMemoryDBBlobsMixin(blob_store.BlobStore):
@@ -72,6 +72,8 @@ class InMemoryDBBlobsMixin(blob_store.BlobStore):
 class InMemoryBlobStore(InMemoryDBBlobsMixin):
 
   def __init__(self):
+    super().__init__()
+
     self.blobs = {}
     self.blob_refs_by_hashes = {}
     self.lock = threading.RLock()

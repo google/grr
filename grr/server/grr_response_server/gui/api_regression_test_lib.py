@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Base test classes for API handlers tests."""
 from __future__ import absolute_import
 from __future__ import division
@@ -13,11 +14,7 @@ import socket
 import sys
 
 from absl import flags
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import with_metaclass
 import psutil
-import pytest
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -52,7 +49,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
     registry.MetaclassRegistry.__init__(cls, name, bases, env_dict)
 
     has_mixin = False
-    for mixin in itervalues(cls.connection_mixins):
+    for mixin in cls.connection_mixins.values():
       if issubclass(cls, mixin):
         has_mixin = True
         break
@@ -64,7 +61,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
     if name == "ApiRegressionTest" or has_mixin:
       return
 
-    for mixin in itervalues(ApiRegressionTestMetaclass.connection_mixins):
+    for mixin in ApiRegressionTestMetaclass.connection_mixins.values():
       if (mixin.skip_legacy_dynamic_proto_tests and
           getattr(cls, "uses_legacy_dynamic_protos", False)):
         continue
@@ -85,10 +82,9 @@ ApiRegressionTestMetaclass.RegisterConnectionMixin(
     api_regression_http.HttpApiV2RelationalDBRegressionTestMixin)
 
 
-@pytest.mark.small
-@pytest.mark.api_regression
-class ApiRegressionTest(
-    with_metaclass(ApiRegressionTestMetaclass, test_lib.GRRBaseTest)):
+class ApiRegressionTest(  # pylint: disable=invalid-metaclass
+    test_lib.GRRBaseTest,
+    metaclass=ApiRegressionTestMetaclass):
   """Base class for API handlers regression tests.
 
   Regression tests are supposed to implement a single abstract Run() method.
@@ -252,13 +248,13 @@ class ApiRegressionGoldenOutputGenerator(object):
   """Helper class used to generate regression tests golden files."""
 
   def __init__(self, connection_type):
-    super(ApiRegressionGoldenOutputGenerator, self).__init__()
+    super().__init__()
 
     self.connection_type = connection_type
 
   def _GroupRegressionTestsByHandler(self):
     result = {}
-    for cls in itervalues(ApiRegressionTest.classes):
+    for cls in ApiRegressionTest.classes.values():
       if issubclass(cls, ApiRegressionTest) and getattr(cls, "HandleCheck",
                                                         None):
         result.setdefault(cls.handler, []).append(cls)
@@ -271,7 +267,7 @@ class ApiRegressionGoldenOutputGenerator(object):
     sample_data = {}
 
     tests = self._GroupRegressionTestsByHandler()
-    for handler, test_classes in iteritems(tests):
+    for handler, test_classes in tests.items():
       for test_class in sorted(test_classes, key=lambda cls: cls.__name__):
         if getattr(test_class, "connection_type", "") != self.connection_type:
           continue

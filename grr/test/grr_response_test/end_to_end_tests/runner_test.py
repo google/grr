@@ -8,7 +8,6 @@ import sys
 import unittest
 
 from absl import app
-from future.utils import itervalues
 import mock
 import requests
 
@@ -127,7 +126,7 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
   def testSanityCheckE2ETests(self):
     """Checks that all E2E tests have valid platforms specified."""
     self.assertTrue(test_base.REGISTRY)
-    for test_class in itervalues(test_base.REGISTRY):
+    for test_class in test_base.REGISTRY.values():
       self.assertTrue(test_class.platforms,
                       "%s has no platforms specified" % test_class.__name__)
       for platform in test_class.platforms:

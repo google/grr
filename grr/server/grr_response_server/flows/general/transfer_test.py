@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Test the file transfer mechanism."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,7 +13,6 @@ import struct
 import unittest
 
 from absl import app
-from future.utils import iterkeys
 import mock
 
 from grr_response_core.lib import constants
@@ -310,7 +310,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
     with test_lib.Instrument(transfer.MultiGetFile,
-                             "StoreStat") as storestat_instrument:
+                             "_StoreStat") as storestat_instrument:
       flow_test_lib.TestFlowHelper(
           transfer.MultiGetFile.__name__,
           client_mock,
@@ -587,6 +587,81 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertIsNotNone(history[-1].hash_entry.sha1)
     self.assertIsNotNone(history[-1].hash_entry.md5)
 
+  def testMultiGetFileProgressReportsFailuresAndSuccessesCorrectly(self):
+    client_mock = action_mocks.MultiGetFileClientMock()
+    image_path = os.path.join(self.base_path, "test_img.dd")
+    pathspec_1 = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=image_path)
+    pathspec_2 = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path="/non/existing/path")
+
+    args = transfer.MultiGetFileArgs(pathspecs=[
+        pathspec_1,
+        pathspec_2,
+    ])
+    flow_id = flow_test_lib.TestFlowHelper(
+        transfer.MultiGetFile.__name__,
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        args=args)
+
+    f_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    f_instance = transfer.MultiGetFile(f_obj)
+    p = f_instance.GetProgress()
+
+    self.assertEqual(p.num_pending_hashes, 0)
+    self.assertEqual(p.num_pending_files, 0)
+    self.assertEqual(p.num_skipped, 0)
+    self.assertEqual(p.num_collected, 1)
+    self.assertEqual(p.num_failed, 1)
+
+    # Check that pathspecs in the progress proto are returned in the same order
+    # as in the args proto.
+    self.assertEqual(p.pathspecs_progress[0].pathspec, pathspec_1)
+    self.assertEqual(p.pathspecs_progress[1].pathspec, pathspec_2)
+    # Check that per-pathspecs statuses are correct.
+    self.assertEqual(p.pathspecs_progress[0].status,
+                     transfer.PathSpecProgress.Status.COLLECTED)
+    self.assertEqual(p.pathspecs_progress[1].status,
+                     transfer.PathSpecProgress.Status.FAILED)
+
+  def testMultiGetFileProgressReportsSkippedDuplicatesCorrectly(self):
+    client_mock = action_mocks.MultiGetFileClientMock()
+    image_path = os.path.join(self.base_path, "test_img.dd")
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=image_path)
+
+    args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+    # Let the flow run to make sure the file is collected.
+    flow_test_lib.TestFlowHelper(
+        transfer.MultiGetFile.__name__,
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        args=args)
+
+    # Run the flow second time to make sure duplicates are collected.
+    flow_id = flow_test_lib.TestFlowHelper(
+        transfer.MultiGetFile.__name__,
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        args=args)
+
+    f_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    f_instance = transfer.MultiGetFile(f_obj)
+
+    p = f_instance.GetProgress()
+    self.assertEqual(p.num_collected, 0)
+    self.assertEqual(p.num_failed, 0)
+    self.assertEqual(p.num_skipped, 1)
+
+    self.assertLen(p.pathspecs_progress, 1)
+    self.assertEqual(p.pathspecs_progress[0].pathspec, pathspec)
+    self.assertEqual(p.pathspecs_progress[0].status,
+                     transfer.PathSpecProgress.Status.SKIPPED)
+
   @mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles")
   def testExternalFileStoreSubmissionIsTriggeredWhenFileIsSentToFileStore(
       self, add_file_mock):
@@ -605,7 +680,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     add_file_mock.assert_called_once()
     args = add_file_mock.call_args_list[0][0]
-    hash_id = list(iterkeys(args[0]))[0]
+    hash_id = list(args[0].keys())[0]
     self.assertIsInstance(hash_id, rdf_objects.SHA256HashID)
     self.assertEqual(args[0][hash_id].client_path,
                      db.ClientPath.FromPathSpec(self.client_id, pathspec))

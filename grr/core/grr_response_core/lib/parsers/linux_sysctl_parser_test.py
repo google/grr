@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Unit test for the linux sysctl parser."""
 
 from __future__ import absolute_import

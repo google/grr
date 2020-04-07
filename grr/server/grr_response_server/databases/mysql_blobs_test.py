@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the MySQL-based blob store."""
 
 from __future__ import absolute_import

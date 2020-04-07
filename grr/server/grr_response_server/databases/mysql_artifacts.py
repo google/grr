@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The MySQL database methods for handling artifacts."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Text
+
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
-from typing import Text
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_server.databases import db

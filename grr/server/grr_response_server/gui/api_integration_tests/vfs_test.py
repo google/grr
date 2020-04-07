@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for API client and VFS-related API calls."""
 from __future__ import absolute_import
@@ -62,12 +63,9 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
         client_id=self.client_id).File("fs/os/c/Downloads").ListFiles()
     files_list = list(files_iter)
 
-    self.assertEqual(
-        sorted(f.data.name for f in files_list),
-        sorted([
-            "a.txt", "b.txt", "c.txt", "d.txt", "sub1",
-            "中国新闻网新闻中.txt"
-        ]))
+    self.assertCountEqual(
+        [f.data.name for f in files_list],
+        ["a.txt", "b.txt", "c.txt", "d.txt", "sub1", "中国新闻网新闻中.txt"])
 
   def testGetBlob(self):
     out = io.BytesIO()
@@ -130,12 +128,10 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
     zip_fd = zipfile.ZipFile(zip_stream)
 
     namelist = zip_fd.namelist()
-    self.assertEqual(
-        sorted(namelist),
-        sorted([
-            "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/rbash",
-            "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/bash"
-        ]))
+    self.assertCountEqual(namelist, [
+        "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/rbash",
+        "vfs_C_1000000000000000_fs_tsk_c_bin/fs/tsk/c/bin/bash"
+    ])
 
     for info in zip_fd.infolist():
       self.assertGreater(info.compress_size, 0)

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for checks."""
 from __future__ import absolute_import
@@ -8,7 +9,6 @@ from __future__ import unicode_literals
 import os
 
 from absl import app
-from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib.parsers import config_file as config_file_parsers
@@ -292,7 +292,7 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
 
   def setUp(self):
     super(ProcessHostDataTests, self).setUp()
-    registered = set(iterkeys(checks.CheckRegistry.checks))
+    registered = set(checks.CheckRegistry.checks.keys())
     if "SW-CHECK" not in registered:
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sw.yaml")])
     if "SSHD-CHECK" not in registered:

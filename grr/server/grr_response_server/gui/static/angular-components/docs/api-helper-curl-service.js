@@ -30,7 +30,7 @@ ApiHelperCurlService.service_name = 'grrApiHelperCurlService';
  *
  * @param {string} clientId
  * @param {!Object} createFlowJson
- * @return {angular.$q.Promise}
+ * @return {!angular.$q.Promise}
  * @export
  */
 ApiHelperCurlService.prototype.buildStartFlow = function(clientId, createFlowJson) {

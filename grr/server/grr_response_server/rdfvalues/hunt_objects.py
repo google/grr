@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Rdfvalues for flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -77,7 +78,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(Hunt, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("hunt_id"):
       self.hunt_id = RandomHuntId()

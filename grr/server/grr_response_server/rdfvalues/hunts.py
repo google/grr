@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValue implementations for hunts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -75,7 +76,7 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, initializer=None, **kwargs):
-    super(HuntRunnerArgs, self).__init__(initializer=initializer, **kwargs)
+    super().__init__(initializer=initializer, **kwargs)
 
     if initializer is None:
       if not self.HasField("crash_limit"):

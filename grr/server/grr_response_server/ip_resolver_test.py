@@ -1,12 +1,13 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import ipaddress
 import socket
 
 from absl import app
-import ipaddress
 
 from grr_response_core.lib import utils
 from grr_response_server import ip_resolver

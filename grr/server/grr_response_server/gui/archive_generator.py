@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file contains code to generate ZIP/TAR archives."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,7 +9,6 @@ import io
 import os
 import zipfile
 
-from future.utils import iteritems
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
@@ -61,7 +61,7 @@ class CollectionArchiveGenerator(object):
     Raises:
       ValueError: if prefix is None.
     """
-    super(CollectionArchiveGenerator, self).__init__()
+    super().__init__()
 
     if archive_format == self.ZIP:
       self.archive_generator = utils.StreamingZipGenerator(
@@ -177,8 +177,8 @@ class CollectionArchiveGenerator(object):
           self.ignored_files | self.archived_files)
 
     if client_ids:
-      for client_id, client_info in iteritems(
-          data_store.REL_DB.MultiReadClientFullInfo(client_ids)):
+      client_infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
+      for client_id, client_info in client_infos.items():
         client = api_client.ApiClient().InitFromClientInfo(client_info)
         for chunk in self._GenerateClientInfo(client_id, client):
           yield chunk

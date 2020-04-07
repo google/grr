@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Local contexts.
 
 Put any config.CONFIG.DEFINE_context statements specific to your deployment

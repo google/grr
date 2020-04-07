@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR client installer module.
 
 GRR allows several installers to be registered as plugins. The

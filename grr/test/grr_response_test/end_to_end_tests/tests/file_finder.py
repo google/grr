@@ -44,40 +44,54 @@ class TestFileFinderOSWindows(test_base.AbstractFileTransferTest):
     self._testCollection(flow, path)
 
 
-class TestFileFinderTSKWindows(test_base.AbstractFileTransferTest):
+class AbstractWindowsFileTransferTest(test_base.AbstractFileTransferTest):
   """Test for FileFinder flow on Windows machines."""
 
-  platforms = [test_base.EndToEndTest.Platform.WINDOWS]
+  # To be set in subclasses
 
-  def _testTSKListing(self, flow_name):
+  # jobs_pb2.PathSpec.PathType to use
+  pathtype = None
+
+  # VFS path to use (For example: fs/tsk)
+  vfs_path = None
+
+  def _pathspecToVFSPath(self, pathspec):
+    path = self.vfs_path + "/"
+    while pathspec.path:
+      path += pathspec.path
+      pathspec = pathspec.nested_path
+
+    return path
+
+  def _testListing(self, flow_name):
     args = self.grr_api.types.CreateFlowArgs(flow_name)
     args.paths.append("C:\\*")
     args.action.action_type = args.action.STAT
-    args.pathtype = jobs_pb2.PathSpec.TSK
+    args.pathtype = self.pathtype
 
     f = self.RunFlowAndWait(flow_name, args=args)
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
-  def testTSKListing(self):
-    self._testTSKListing("FileFinder")
+  def testListing(self):
+    self._testListing("FileFinder")
 
-  def testTSKListingClientFileFinder(self):
-    self._testTSKListing("ClientFileFinder")
+  def testListingClientFileFinder(self):
+    self._testListing("ClientFileFinder")
 
-  def _testTSKSmallFileCollection(self, flow_name):
+  def _testSmallFileCollection(self, flow_name):
     args = self.grr_api.types.CreateFlowArgs(flow_name)
 
     args.paths.append("%%environ_systemroot%%\\System32\\notepad.*")
     args.action.action_type = args.action.DOWNLOAD
-    args.pathtype = jobs_pb2.PathSpec.TSK
+    args.pathtype = self.pathtype
 
     f = self.RunFlowAndWait(flow_name, args=args)
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
     ff_result = results[0].payload
-    path = self.TSKPathspecToVFSPath(ff_result.stat_entry.pathspec)
+    path = self._pathspecToVFSPath(ff_result.stat_entry.pathspec)
 
     # Run FileFinder again and make sure the path gets updated on VFS.
     with self.WaitForFileRefresh(path):
@@ -85,16 +99,16 @@ class TestFileFinderTSKWindows(test_base.AbstractFileTransferTest):
 
     self.CheckPEMagic(path)
 
-  def testTSKSmallFileCollection(self):
-    self._testTSKSmallFileCollection("FileFinder")
+  def testSmallFileCollection(self):
+    self._testSmallFileCollection("FileFinder")
 
-  def testTSKSmallFileCollectionClientFileFinder(self):
-    self._testTSKSmallFileCollection("ClientFileFinder")
+  def testSmallFileCollectionClientFileFinder(self):
+    self._testSmallFileCollection("ClientFileFinder")
 
-  def _testTSKLargeFileCollection(self, flow_name):
+  def _testLargeFileCollection(self, flow_name):
     args = self.grr_api.types.CreateFlowArgs(flow_name)
     args.paths.append("%%environ_systemdrive%%\\$MFT")
-    args.pathtype = jobs_pb2.PathSpec.TSK
+    args.pathtype = self.pathtype
     args.action.action_type = args.action.STAT
 
     f = self.RunFlowAndWait(flow_name, args=args)
@@ -102,11 +116,11 @@ class TestFileFinderTSKWindows(test_base.AbstractFileTransferTest):
     self.assertNotEmpty(results)
 
     ff_result = results[0].payload
-    path = self.TSKPathspecToVFSPath(ff_result.stat_entry.pathspec)
+    path = self._pathspecToVFSPath(ff_result.stat_entry.pathspec)
 
     args = self.grr_api.types.CreateFlowArgs(flow_name)
     args.paths.append("%%environ_systemdrive%%\\$MFT")
-    args.pathtype = jobs_pb2.PathSpec.TSK
+    args.pathtype = self.pathtype
     args.action.action_type = args.action.DOWNLOAD
     args.action.download.oversized_file_policy = (
         args.action.download.DOWNLOAD_TRUNCATED)
@@ -137,11 +151,25 @@ class TestFileFinderTSKWindows(test_base.AbstractFileTransferTest):
                                   [len(blob) for blob in fd.GetBlob()], 0)
     self.assertEqual(total_size, last_collected_size)
 
-  def testTSKLargeFileCollection(self):
-    self._testTSKLargeFileCollection("FileFinder")
+  def testLargeFileCollection(self):
+    self._testLargeFileCollection("FileFinder")
 
-  def testTSKLargeFileCollectionClientFileFinder(self):
-    self._testTSKLargeFileCollection("ClientFileFinder")
+  def testLargeFileCollectionClientFileFinder(self):
+    self._testLargeFileCollection("ClientFileFinder")
+
+
+class TestFileFinderTSKWindows(AbstractWindowsFileTransferTest):
+
+  platforms = [test_base.EndToEndTest.Platform.WINDOWS]
+  pathtype = jobs_pb2.PathSpec.TSK
+  vfs_path = "fs/tsk"
+
+
+class TestFileFinderNTFSWindows(AbstractWindowsFileTransferTest):
+
+  platforms = [test_base.EndToEndTest.Platform.WINDOWS]
+  pathtype = jobs_pb2.PathSpec.NTFS
+  vfs_path = "fs/ntfs"
 
 
 class TestFileFinderOSDarwin(test_base.AbstractFileTransferTest):

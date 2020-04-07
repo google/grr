@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The in memory database methods for GRR users and approval handling."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,6 @@ from __future__ import unicode_literals
 
 import os
 
-from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -69,8 +69,8 @@ class InMemoryDBUsersMixin(object):
     except KeyError:
       pass  # No approvals to delete for this user.
 
-    for approvals in itervalues(self.approvals_by_username):
-      for approval in itervalues(approvals):
+    for approvals in self.approvals_by_username.values():
+      for approval in approvals.values():
         grants = [g for g in approval.grants if g.grantor_username != username]
         if len(grants) != len(approval.grants):
           approval.grants = grants
@@ -119,7 +119,7 @@ class InMemoryDBUsersMixin(object):
 
     result = []
     approvals = self.approvals_by_username.get(requestor_username, {})
-    for approval in itervalues(approvals):
+    for approval in approvals.values():
       if approval.approval_type != approval_type:
         continue
 

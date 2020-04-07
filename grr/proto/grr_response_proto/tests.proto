@@ -18,6 +18,10 @@ message BadArgsFlow1Args {
   optional PathSpec arg1 = 1;
 }
 
+message DummyFlowProgress {
+  optional string status = 1;
+}
+
 message SendingFlowArgs {
   optional uint64 message_count = 1;
 }

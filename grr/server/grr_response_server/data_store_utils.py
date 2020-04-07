@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A temporary module with data store utility functions.
 
 This module serves simple functions that delegate calls to appropriate store

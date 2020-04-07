@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of anomaly types.
 
 

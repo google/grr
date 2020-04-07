@@ -1,14 +1,15 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Test for client comms."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import queue
 import time
 
 from absl import app
 import mock
-import queue
 import requests
 
 from grr_response_client import comms

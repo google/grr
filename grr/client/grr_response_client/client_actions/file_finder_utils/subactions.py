@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of client-side file-finder subactions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,14 +7,12 @@ from __future__ import unicode_literals
 
 import abc
 
-from future.utils import with_metaclass
-
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common
 from grr_response_client.client_actions.file_finder_utils import uploading
 
 
-class Action(with_metaclass(abc.ABCMeta, object)):
+class Action(metaclass=abc.ABCMeta):
   """An abstract class for subactions of the client-side file-finder.
 
   Attributes:
@@ -49,7 +48,7 @@ class StatAction(Action):
   """
 
   def __init__(self, flow, opts):
-    super(StatAction, self).__init__(flow)
+    super().__init__(flow)
     self.opts = opts
 
   def Execute(self, filepath, result):
@@ -73,7 +72,7 @@ class HashAction(Action):
   """
 
   def __init__(self, flow, opts):
-    super(HashAction, self).__init__(flow)
+    super().__init__(flow)
     self.opts = opts
 
   def Execute(self, filepath, result):
@@ -109,7 +108,7 @@ class DownloadAction(Action):
   """
 
   def __init__(self, flow, opts):
-    super(DownloadAction, self).__init__(flow)
+    super().__init__(flow)
     self.opts = opts
 
   def Execute(self, filepath, result):
@@ -125,7 +124,7 @@ class DownloadAction(Action):
     if stat.GetSize() <= max_size:
       result.transferred_file = self._UploadFilePath(filepath)
     elif policy == self.opts.OversizedFilePolicy.DOWNLOAD_TRUNCATED:
-      result.transferred_file = self._UploadFilePath(filepath, truncate=True)
+      result.transferred_file = self._UploadFilePath(filepath)
     elif policy == self.opts.OversizedFilePolicy.HASH_TRUNCATED:
       result.hash_entry = _HashEntry(stat, self.flow, max_size=max_size)
     elif policy == self.opts.OversizedFilePolicy.SKIP:
@@ -133,7 +132,7 @@ class DownloadAction(Action):
     else:
       raise ValueError("Unknown oversized file policy: %s" % policy)
 
-  def _UploadFilePath(self, filepath, truncate=False):
+  def _UploadFilePath(self, filepath):
     max_size = self.opts.max_size
     chunk_size = self.opts.chunk_size
 

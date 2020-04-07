@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test for the foreman client rule classes."""
 from __future__ import absolute_import

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Parsers for Linux PAM configuration files."""
 from __future__ import absolute_import
 from __future__ import division
@@ -189,7 +190,7 @@ class PAMParser(parsers.MultiFileParser):
   supported_artifacts = ["LinuxPamConfigs"]
 
   def __init__(self, *args, **kwargs):
-    super(PAMParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = PAMFieldParser()
 
   def ParseFiles(self, knowledge_base, pathspecs, filedescs):

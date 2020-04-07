@@ -1,15 +1,15 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Stats server implementation."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import errno
+from http import server as http_server
 import logging
 import socket
 import threading
-
-from http import server as http_server
 
 import prometheus_client
 
@@ -30,7 +30,7 @@ class StatsServer(base_stats_server.BaseStatsServer):
     Args:
       port: The TCP port that the server should listen to.
     """
-    super(StatsServer, self).__init__(port)
+    super().__init__(port)
     self._http_server = None
     self._server_thread = None
 

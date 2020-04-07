@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with utilities for maintaining compatibility with Python 2 and 3."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,9 +12,6 @@ import shlex
 import sys
 import time
 import types
-
-from future.builtins import str
-from future.utils import iteritems
 from typing import Any
 from typing import Dict
 from typing import List
@@ -35,21 +33,9 @@ PY2 = sys.version_info.major == 2
 
 # pytype: enable=attribute-error
 
-# pylint: disable=g-import-not-at-top, unused-import
-if PY2:
-  import __builtin__ as builtins
-else:
-  import builtins
-# pylint: enable=g-import-not-at-top, unused-import
-
 
 def NativeStr(obj):
   """A compatibility wrapper for returning native string representation.
-
-  Some methods accept only native strings (byte strings in Python 2, unicode
-  strings in Python 3). Because using `str` can be confusing, especially given
-  that some modules use `from future.builtins import str`, this function makes
-  the intention more explicit.
 
   Args:
     obj: An object for which we want a string representation.
@@ -57,10 +43,7 @@ def NativeStr(obj):
   Returns:
     A native string representation of given object.
   """
-  if PY2:
-    return bytes(obj)
-  else:
-    return str(obj)
+  return str(obj)
 
 
 def Repr(obj):
@@ -296,7 +279,7 @@ def UnicodeJson(json):
 
   if isinstance(json, dict):
     result = {}
-    for key, value in iteritems(json):
+    for key, value in json.items():
       result[UnicodeJson(key)] = UnicodeJson(value)
     return result
 

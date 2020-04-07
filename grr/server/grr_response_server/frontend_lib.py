@@ -1,15 +1,12 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The GRR frontend server."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-import operator
 import time
-
-from future import builtins as future_builtins
-from future.utils import iteritems
 
 from grr_response_core.lib import communicator
 from grr_response_core.lib import queues
@@ -33,28 +30,26 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 CLIENT_PINGS_BY_LABEL = metrics.Counter(
-    "client_pings_by_label", fields=[("label", future_builtins.str)])
+    "client_pings_by_label", fields=[("label", str)])
 FRONTEND_ACTIVE_COUNT = metrics.Gauge(
-    "frontend_active_count", int, fields=[("source", future_builtins.str)])
+    "frontend_active_count", int, fields=[("source", str)])
 FRONTEND_MAX_ACTIVE_COUNT = metrics.Gauge("frontend_max_active_count", int)
 FRONTEND_HTTP_REQUESTS = metrics.Counter(
-    "frontend_http_requests",
-    fields=[("action", future_builtins.str), ("protocol", future_builtins.str)])
+    "frontend_http_requests", fields=[("action", str), ("protocol", str)])
 FRONTEND_IN_BYTES = metrics.Counter(
-    "frontend_in_bytes", fields=[("source", future_builtins.str)])
+    "frontend_in_bytes", fields=[("source", str)])
 FRONTEND_OUT_BYTES = metrics.Counter(
-    "frontend_out_bytes", fields=[("source", future_builtins.str)])
+    "frontend_out_bytes", fields=[("source", str)])
 FRONTEND_REQUEST_COUNT = metrics.Counter(
-    "frontend_request_count", fields=[("source", future_builtins.str)])
+    "frontend_request_count", fields=[("source", str)])
 FRONTEND_INACTIVE_REQUEST_COUNT = metrics.Counter(
-    "frontend_inactive_request_count", fields=[("source", future_builtins.str)])
+    "frontend_inactive_request_count", fields=[("source", str)])
 FRONTEND_REQUEST_LATENCY = metrics.Event(
-    "frontend_request_latency", fields=[("source", future_builtins.str)])
+    "frontend_request_latency", fields=[("source", str)])
 GRR_FRONTENDSERVER_HANDLE_TIME = metrics.Event("grr_frontendserver_handle_time")
 GRR_FRONTENDSERVER_HANDLE_NUM = metrics.Counter("grr_frontendserver_handle_num")
 GRR_MESSAGES_SENT = metrics.Counter("grr_messages_sent")
-GRR_PUB_KEY_CACHE = metrics.Counter(
-    "grr_pub_key_cache", fields=[("type", future_builtins.str)])
+GRR_PUB_KEY_CACHE = metrics.Counter("grr_pub_key_cache", fields=[("type", str)])
 GRR_UNIQUE_CLIENTS = metrics.Counter("grr_unique_clients")
 
 
@@ -62,8 +57,7 @@ class ServerCommunicator(communicator.Communicator):
   """A communicator which stores certificates using the relational db."""
 
   def __init__(self, certificate, private_key):
-    super(ServerCommunicator, self).__init__(
-        certificate=certificate, private_key=private_key)
+    super().__init__(certificate=certificate, private_key=private_key)
     self.pub_key_cache = utils.FastStore(max_size=50000)
     self.common_name = self.certificate.GetCN()
 
@@ -359,8 +353,9 @@ class FrontEndServer(object):
     worker_message_handler_requests = []
     frontend_message_handler_requests = []
     dropped_count = 0
-    for session_id, msgs in iteritems(
-        collection.Group(messages, operator.attrgetter("session_id"))):
+
+    msgs_by_session_id = collection.Group(messages, lambda m: m.session_id)
+    for session_id, msgs in msgs_by_session_id.items():
 
       for msg in msgs:
         if (msg.auth_state != msg.AuthorizationState.AUTHENTICATED and

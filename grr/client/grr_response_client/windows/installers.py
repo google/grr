@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """These are windows specific installers.
 
 NOTE: Subprocess module is broken on windows in that pipes are not handled
@@ -25,12 +26,12 @@ import subprocess
 import sys
 import time
 
-from future.moves import winreg
 import pywintypes
 import win32process
 import win32service
 import win32serviceutil
 import winerror
+import winreg
 
 from grr_response_client.windows import regconfig
 from grr_response_core import config

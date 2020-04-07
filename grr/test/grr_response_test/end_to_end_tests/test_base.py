@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Base classes and routines used by all end to end tests."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,7 +13,6 @@ import time
 
 from absl import flags
 from absl.testing import absltest
-from future.utils import with_metaclass
 
 from grr_api_client import errors
 
@@ -155,7 +155,7 @@ class RunFlowAndWaitError(Error):
 init_fn = lambda: (None, None)
 
 
-class EndToEndTest(with_metaclass(EndToEndTestMetaclass, absltest.TestCase)):
+class EndToEndTest(absltest.TestCase, metaclass=EndToEndTestMetaclass):
   """This is a end-to-end test base class."""
 
   class Platform(object):
@@ -188,6 +188,7 @@ class EndToEndTest(with_metaclass(EndToEndTestMetaclass, absltest.TestCase)):
     return self.client.data.os_info.system
 
   def RunFlowAndWait(self, flow_name, args=None, runner_args=None):
+    """Runs a flow and busy-waits until its completion."""
     if runner_args is None:
       runner_args = self.grr_api.types.CreateFlowRunnerArgs()
     runner_args.notify_to_user = False
@@ -196,24 +197,11 @@ class EndToEndTest(with_metaclass(EndToEndTestMetaclass, absltest.TestCase)):
         name=flow_name, args=args, runner_args=runner_args)
     logging.info("Started flow %s with id %s.", flow_name, flow.flow_id)
 
-    total_time = 0
-    while flow.data.state == flow.data.State.Value("RUNNING"):
+    try:
+      return flow.WaitUntilDone(flags.FLAGS.flow_timeout_secs)
+    except (errors.PollTimeoutError, errors.FlowFailedError) as e:
       flow = self.client.Flow(flow.flow_id).Get()
-
-      time.sleep(self.RETRY_DELAY)
-      total_time += self.RETRY_DELAY
-      if total_time >= flags.FLAGS.flow_timeout_secs:
-        raise RunFlowAndWaitError(
-            "Flow hasn't finished in %d seconds." %
-            (flags.FLAGS.flow_timeout_secs,), flow)
-
-    if flow.data.state == flow.data.State.Value("ERROR"):
-      raise RunFlowAndWaitError(
-          "Flow failed with an error: %s" % flow.data.context.backtrace, flow)
-    elif flow.data.state == flow.data.State.Value("CLIENT_CRASHED"):
-      raise RunFlowAndWaitError("Flow failed due to a client crash.", flow)
-
-    return flow
+      raise RunFlowAndWaitError(str(e), flow) from e
 
   def WaitForFileCollection(self, file_path):
     return WaitForNewFileContextManager(

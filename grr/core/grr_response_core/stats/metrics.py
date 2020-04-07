@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Metric implementations to collect statistics."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,14 +8,12 @@ from __future__ import unicode_literals
 
 import abc
 
-from future import utils as future_utils
-
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import stats_collector_instance
 from grr_response_core.stats import stats_utils
 
 
-class AbstractMetric(future_utils.with_metaclass(abc.ABCMeta, object)):
+class AbstractMetric(metaclass=abc.ABCMeta):
   """An abstract metric with a name, fields, and values.
 
   Refer to default_stats_collector._Metric and DefaultStatsCollector to
@@ -48,7 +47,7 @@ class Counter(AbstractMetric):
 
   def __init__(self, name, fields=(), docstring=None, units=None):
     """Initializes a Counter metric and registers it with the StatsCollector."""
-    super(Counter, self).__init__(
+    super().__init__(
         rdf_stats.MetricMetadata(
             varname=name,
             metric_type=rdf_stats.MetricMetadata.MetricType.COUNTER,
@@ -84,7 +83,7 @@ class Gauge(AbstractMetric):
 
   def __init__(self, name, value_type, fields=(), docstring=None, units=None):
     """Initializes a Gauge metric and registers it with the StatsCollector."""
-    super(Gauge, self).__init__(
+    super().__init__(
         rdf_stats.MetricMetadata(
             varname=name,
             metric_type=rdf_stats.MetricMetadata.MetricType.GAUGE,
@@ -113,7 +112,7 @@ class Event(AbstractMetric):
 
   def __init__(self, name, bins=(), fields=(), docstring=None, units=None):
     """Initializes an Event metric and registers it with the StatsCollector."""
-    super(Event, self).__init__(
+    super().__init__(
         rdf_stats.MetricMetadata(
             varname=name,
             bins=bins,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """UI report plugins base class.
 
 Each report plugin is a subclass of ReportPluginBase.

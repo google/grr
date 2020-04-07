@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This modules contains tests for config API handler."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.utils import iteritems
 import mock
 
 from grr_response_core import config
@@ -39,8 +39,8 @@ def GetConfigMockClass(sections=None):
   raw_values = {}
   default_values = {}
 
-  for section_name, section in iteritems(sections):
-    for parameter_name, parameter_data in iteritems(section):
+  for section_name, section in sections.items():
+    for parameter_name, parameter_data in section.items():
       name = "%s.%s" % (section_name, parameter_name)
 
       descriptor = mock.MagicMock()

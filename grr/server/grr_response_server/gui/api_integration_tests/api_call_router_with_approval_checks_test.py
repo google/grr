@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API E2E tests for an ApiCallRouterWithChecks."""
 from __future__ import absolute_import
 from __future__ import division

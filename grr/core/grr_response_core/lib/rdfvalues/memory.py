@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValues used with Yara."""
 
 from __future__ import absolute_import

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for grr.lib.client_index."""
 from __future__ import absolute_import
@@ -6,12 +7,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
+import ipaddress
 
 from absl import app
-from future.utils import iteritems
-from future.utils import iterkeys
-
-import ipaddress
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -90,7 +88,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     index = client_index.ClientIndex()
 
     clients = self._SetupClients(2)
-    for client_id, client in iteritems(clients):
+    for client_id, client in clients.items():
       data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
       index.AddClient(client)
 
@@ -136,7 +134,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
 
     # 1413807132 = Mon, 20 Oct 2014 12:12:12 GMT
     with test_lib.FakeTime(1413807132):
-      for client_id, client in iteritems(clients):
+      for client_id, client in clients.items():
         data_store.REL_DB.WriteClientMetadata(
             client_id, fleetspeak_enabled=False)
         index.AddClient(client)
@@ -150,7 +148,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     self.assertEmpty(index.LookupClients([".", "start_date:XXX"]))
 
   def testRemoveLabels(self):
-    client_id = next(iter(iterkeys(self._SetupClients(1))))
+    client_id = next(iter(self._SetupClients(1).keys()))
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(client_id, "owner",
                                       ["testlabel_1", "testlabel_2"])

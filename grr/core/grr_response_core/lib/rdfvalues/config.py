@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementations of RDFValues used in GRR config options definitions."""
 
 from __future__ import absolute_import

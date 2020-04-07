@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Functions for client logging."""
 from __future__ import absolute_import
 from __future__ import division
@@ -42,7 +43,7 @@ class RobustSysLogHandler(handlers.SysLogHandler):
   def __init__(self, *args, **kwargs):
     self.formatter = None
     try:
-      super(RobustSysLogHandler, self).__init__(*args, **kwargs)
+      super().__init__(*args, **kwargs)
     except socket.error:
       pass
 

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import io
 import os
 
-from future.utils import iteritems
 
 import mock
 
@@ -171,7 +170,7 @@ def GenPathspecFileData(data):
   """Gen a tuple of list of stats and list of file contents from a dict."""
   paths = []
   contents = []
-  for path, content in iteritems(data):
+  for path, content in data.items():
     paths.append(rdf_paths.PathSpec.OS(path=path))
     contents.append(io.BytesIO(content))
   return paths, contents

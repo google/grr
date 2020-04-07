@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Registry for parsers and abstract classes for basic parser functionality."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,8 +7,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-
-from future.utils import with_metaclass
 from typing import Optional
 from typing import Text
 
@@ -32,11 +31,11 @@ class ParseError(Exception):
     if cause is not None:
       message = "{message}: {cause}".format(message=message, cause=cause)
 
-    super(ParseError, self).__init__(message)
+    super().__init__(message)
     self.cause = cause
 
 
-class Parser(with_metaclass(abc.ABCMeta)):
+class Parser(metaclass=abc.ABCMeta):
   """A base interface for all parsers types."""
 
   # TODO(hanuszczak): Once support for Python 2 is dropped, properties below can

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Parser testing lib."""
 
 from __future__ import absolute_import

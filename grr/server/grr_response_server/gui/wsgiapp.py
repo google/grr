@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """GRR HTTP server implementation."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,23 +8,19 @@ from __future__ import unicode_literals
 import base64
 import hashlib
 import hmac
+import ipaddress
 import logging
 import os
 import socket
+import socketserver
 import ssl
 import string
+from typing import Text
 from wsgiref import simple_server
 
 from cryptography.hazmat.primitives import constant_time
-
-
-import ipaddress
 import jinja2
 import psutil
-import socketserver
-
-from typing import Text
-
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing as werkzeug_routing
 from werkzeug import wrappers as werkzeug_wrappers
@@ -31,7 +28,6 @@ from werkzeug import wsgi as werkzeug_wsgi
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import server_logging
@@ -132,7 +128,7 @@ class HttpRequest(werkzeug_wrappers.Request):
   encoding_errors = "strict"
 
   def __init__(self, *args, **kwargs):
-    super(HttpRequest, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     self._user = None
     self.token = None

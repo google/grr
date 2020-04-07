@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file defines valid configuration contexts."""
 
 from __future__ import absolute_import

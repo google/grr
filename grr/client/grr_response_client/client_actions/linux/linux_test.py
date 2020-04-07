@@ -1,10 +1,12 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Linux only tests."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import builtins
 import glob
 import os
 
@@ -13,7 +15,6 @@ from absl import app
 from grr_response_client.client_actions.linux import linux
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.util import compatibility
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
 
@@ -27,11 +28,11 @@ class LinuxOnlyTest(client_test_lib.EmptyActionTest):
       try:
         fixture_path = os.path.join(self.base_path, "VFSFixture",
                                     requested_path.lstrip("/"))
-        return compatibility.builtins.open.old_target(fixture_path, mode)
+        return builtins.open.old_target(fixture_path, mode)
       except IOError:
-        return compatibility.builtins.open.old_target(requested_path, mode)
+        return builtins.open.old_target(requested_path, mode)
 
-    with utils.MultiStubber((compatibility.builtins, "open", MockedOpen),
+    with utils.MultiStubber((builtins, "open", MockedOpen),
                             (glob, "glob", lambda x: ["/var/log/wtmp"])):
       results = self.RunAction(linux.EnumerateUsers)
 

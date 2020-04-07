@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with RDF values wrapping osquery protobufs."""
 from __future__ import absolute_import
 from __future__ import division
@@ -19,7 +20,7 @@ class OsqueryArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
   def __init__(self, *args, **kwargs):
-    super(OsqueryArgs, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("timeout_millis"):
       self.timeout_millis = 5 * 60 * 1000  # 5 minutes.

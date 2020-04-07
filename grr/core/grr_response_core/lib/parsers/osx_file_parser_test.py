@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for grr.parsers.osx_file_parser."""
 from __future__ import absolute_import

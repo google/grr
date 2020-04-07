@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Renderers that render RDFValues into JSON compatible data structures."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,22 +10,16 @@ import base64
 import inspect
 import logging
 import numbers
-
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import with_metaclass
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
-
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_proto.api import reflection_pb2
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
-
 from grr_response_server.gui.api_plugins import stats as api_stats
 
 
@@ -74,14 +69,14 @@ def StripTypeInfo(rendered_data):
       return StripTypeInfo(rendered_data["value"])
     else:
       result = {}
-      for k, v in iteritems(rendered_data):
+      for k, v in rendered_data.items():
         result[k] = StripTypeInfo(v)
       return result
   else:
     return rendered_data
 
 
-class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
+class ApiValueRenderer(metaclass=MetaclassRegistry):
   """Baseclass for API renderers that render RDFValues."""
 
   value_class = object
@@ -103,7 +98,7 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
       renderer_cls = cls._renderers_cache[cache_key]
     except KeyError:
       candidates = []
-      for candidate in itervalues(ApiValueRenderer.classes):
+      for candidate in ApiValueRenderer.classes.values():
         if candidate.value_class:
           candidate_class = candidate.value_class
         else:
@@ -128,7 +123,7 @@ class ApiValueRenderer(with_metaclass(registry.MetaclassRegistry, object)):
     return renderer_cls(limit_lists=limit_lists)
 
   def __init__(self, limit_lists=-1):
-    super(ApiValueRenderer, self).__init__()
+    super().__init__()
 
     self.limit_lists = limit_lists
 
@@ -224,7 +219,7 @@ class ApiDictRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = {}
-    for k, v in iteritems(value):
+    for k, v in value.items():
       result[str(k)] = self._PassThrough(v)
 
     return self._IncludeTypeInfo(result, value)
@@ -465,7 +460,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     result = value.AsDict()
-    for k, v in iteritems(result):
+    for k, v in result.items():
       result[k] = self._PassThrough(v)
 
     for processor in self.value_processors:

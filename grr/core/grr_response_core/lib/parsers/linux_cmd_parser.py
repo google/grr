@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for the output of linux commands."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 import logging
 import re
 
-from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
@@ -100,7 +100,7 @@ class YumRepolistCmdParser(parser.CommandParser):
         repo_info = rdf_client.PackageRepository()
         setattr(repo_info, "id", match.group(1).strip())
         while line:
-          for attr, regex in iteritems(repo_regexes):
+          for attr, regex in repo_regexes.items():
             match = regex.match(line)
             if match:
               setattr(repo_info, attr, match.group(1).strip())
@@ -248,7 +248,7 @@ class DmidecodeCmdParser(parser.CommandParser):
       if sys_info_re.match(line):
         # Collect all System Information until we hit a blank line.
         while line:
-          for attr, regex in iteritems(sys_regexes):
+          for attr, regex in sys_regexes.items():
             match = regex.match(line)
             if match:
               setattr(dmi_info, attr, match.group(1).strip())
@@ -258,7 +258,7 @@ class DmidecodeCmdParser(parser.CommandParser):
       elif bios_info_re.match(line):
         # Collect all BIOS Information until we hit a blank line.
         while line:
-          for attr, regex in iteritems(bios_regexes):
+          for attr, regex in bios_regexes.items():
             match = regex.match(line)
             if match:
               setattr(dmi_info, attr, match.group(1).strip())

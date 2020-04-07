@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The client artifact collector."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.utils import iteritems
 from typing import Iterable
 from typing import Sequence
 from typing import Text
@@ -97,7 +97,7 @@ class ArtifactCollector(actions.ActionPlugin):
 
     if isinstance(response, rdf_protodict.Dict):
       response_dict = response.ToDict()
-      for attribute, value in iteritems(response_dict):
+      for attribute, value in response_dict.items():
         if attribute in provides:
           self.SetKnowledgeBaseValue(attribute, value)
       return

@@ -136,7 +136,7 @@ FileTreeController.prototype.initTree_ = function() {
 /**
  * Retrieves the child directories for the current folder.
  * @param {string} folderPath The path of the current folder.
- * @return {angular.$q.Promise} A promise returning the child files when resolved.
+ * @return {!angular.$q.Promise} A promise returning the child files when resolved.
  * @private
  */
 FileTreeController.prototype.getChildFiles_ = function(folderPath) {
@@ -151,7 +151,7 @@ FileTreeController.prototype.getChildFiles_ = function(folderPath) {
 /**
  * Parses the API response and converts it to the structure jsTree requires.
  * @param {Object} response The server response.
- * @return {Array} A list of files in a jsTree-compatible structure.
+ * @return {!Array} A list of files in a jsTree-compatible structure.
  * @private
  */
 FileTreeController.prototype.parseFileResponse_ = function(response) {

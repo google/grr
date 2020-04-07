@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Unit test for the linux cmd parser."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,11 +7,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+from typing import Sequence
+from typing import Text
 
 from absl import app
 from absl.testing import absltest
-from typing import Sequence
-from typing import Text
 
 from grr_response_core.lib.parsers import linux_cmd_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly

@@ -2,9 +2,9 @@ import {HttpClient, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpReq
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable} from 'rxjs';
-import {map} from 'rxjs/operators';
+import {map, shareReplay, switchMap, take} from 'rxjs/operators';
 
-import {ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiFlow, ApiFlowDescriptor, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowsResult, ApiSearchClientArgs, ApiSearchClientResult} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiFlow, ApiFlowDescriptor, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowsResult, ApiSearchClientArgs, ApiSearchClientResult} from './api_interfaces';
 
 
 /**
@@ -51,11 +51,11 @@ export class HttpApiService {
 
   /** Requests approval to give the current user access to a client. */
   requestApproval(args: ApprovalRequest): Observable<ApiClientApproval> {
-    const request = {
+    const request: ApiCreateClientApprovalArgs = {
       approval: {
         reason: args.reason,
-        notified_users: args.approvers,
-        email_cc_addresses: args.cc,
+        notifiedUsers: args.approvers,
+        emailCcAddresses: args.cc,
       },
     };
 
@@ -85,19 +85,82 @@ export class HttpApiService {
         );
   }
 
+  private readonly flowDescriptors$ =
+      this.http
+          .get<ApiListClientFlowDescriptorsResult>(
+              `${URL_PREFIX}/flows/descriptors`)
+          .pipe(
+              map(res => res.items),
+              shareReplay(1),  // Cache latest FlowDescriptors.
+          );
+
   listFlowDescriptors(): Observable<ReadonlyArray<ApiFlowDescriptor>> {
-    return this.http
-        .get<ApiListClientFlowDescriptorsResult>(
-            `${URL_PREFIX}/flows/descriptors`)
-        .pipe(map(res => res.items));
+    return this.flowDescriptors$;
   }
 
   /** Lists the latest Flows for the given Client. */
   listFlowsForClient(clientId: string): Observable<ReadonlyArray<ApiFlow>> {
-    const params = new HttpParams({fromObject: {count: '100', offset: '0'}});
+    // TODO(user): make the minStartedAt configurable, take it from the
+    // NgRx store.
+    // Set minStartedAt to 3 months in the past from now.
+    const minStartedAt = (Date.now() - 1000 * 60 * 60 * 24 * 180) * 1000;
+    const params = new HttpParams({
+      fromObject: {
+        count: '100',
+        offset: '0',
+        min_started_at: minStartedAt.toString(),
+        top_flows_only: '1',
+      }
+    });
     return this.http
         .get<ApiListFlowsResult>(
             `${URL_PREFIX}/clients/${clientId}/flows`, {params})
         .pipe(map(res => res.items));
   }
+
+  /** Starts a Flow on the given Client. */
+  startFlow(clientId: string, flowName: string, flowArgs: AnyObject):
+      Observable<ApiFlow> {
+    return this.listFlowDescriptors().pipe(
+        // Take FlowDescriptors at most once, so that Flows are not started
+        // repeatedly if FlowDescriptors are ever updated.
+        take(1),
+        map(findFlowDescriptor(flowName)),
+        map(fd => ({
+              clientId,
+              flow: {
+                name: flowName,
+                args: {
+                  '@type': fd.defaultArgs?.['@type'],
+                  ...flowArgs,
+                },
+              }
+            })),
+        switchMap((request: ApiCreateFlowArgs) => {
+          return this.http.post<ApiFlow>(
+              `${URL_PREFIX}/clients/${clientId}/flows`, request);
+        }),
+    );
+  }
+
+  /** Cancels the given Flow. */
+  cancelFlow(clientId: string, flowId: string): Observable<ApiFlow> {
+    const url =
+        `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/actions/cancel`;
+    return this.http.post<ApiFlow>(url, {});
+  }
+
+  /** Fetches the current user. */
+  fetchCurrentUser(): Observable<ApiGrrUser> {
+    return this.http.get<ApiGrrUser>(`${URL_PREFIX}/users/me`);
+  }
+}
+
+function findFlowDescriptor(flowName: string):
+    (fds: ReadonlyArray<ApiFlowDescriptor>) => ApiFlowDescriptor {
+  return fds => {
+    const fd = fds.find(fd => fd.name === flowName);
+    if (!fd) throw new Error(`FlowDescriptors do not contain ${flowName}.`);
+    return fd;
+  };
 }

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests the client file finder action."""
 from __future__ import absolute_import
@@ -390,7 +391,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
           conditions=[condition])
 
       result_paths = [result.stat_entry.pathspec.path for result in results]
-      self.assertItemsEqual(result_paths, [
+      self.assertCountEqual(result_paths, [
           os.path.join(temp_dirpath, "quux"),
           os.path.join(temp_dirpath, "thud"),
       ])
@@ -424,7 +425,7 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
           conditions=[condition])
 
       result_paths = [result.stat_entry.pathspec.path for result in results]
-      self.assertItemsEqual(result_paths, [
+      self.assertCountEqual(result_paths, [
           os.path.join(temp_dirpath, "foo", "bar", "norf"),
           os.path.join(temp_dirpath, "foo", "bar", "ztesch"),
       ])

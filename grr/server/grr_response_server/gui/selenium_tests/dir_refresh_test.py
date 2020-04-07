@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test the vfs refreshing functionality."""
 from __future__ import absolute_import

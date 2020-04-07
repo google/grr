@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Throttle user calls to flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -21,7 +22,7 @@ class DuplicateFlowError(Error):
   """The same exact flow has run recently on this client."""
 
   def __init__(self, message, flow_id):
-    super(DuplicateFlowError, self).__init__(message)
+    super().__init__(message)
 
     if not flow_id:
       raise ValueError("flow_id has to be specified.")

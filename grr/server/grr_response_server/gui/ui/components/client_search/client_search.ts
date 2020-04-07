@@ -17,7 +17,7 @@ export class ClientSearch implements OnInit, OnDestroy {
       map(params => params.get('query') || ''),
   );
 
-  private readonly unsubscribe = new Subject<void>();
+  private readonly unsubscribe$ = new Subject<void>();
 
   /**
    * Table rows for the MatTable component.
@@ -43,13 +43,13 @@ export class ClientSearch implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.query$.pipe(takeUntil(this.unsubscribe)).subscribe(query => {
+    this.query$.pipe(takeUntil(this.unsubscribe$)).subscribe(query => {
       this.clientSearchFacade.searchClients(query);
     });
   }
 
   ngOnDestroy() {
-    this.unsubscribe.next();
-    this.unsubscribe.complete();
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 }

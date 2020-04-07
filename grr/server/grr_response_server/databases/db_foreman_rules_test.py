@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Mixin tests for storing Foreman rules in the relational db."""
 from __future__ import absolute_import
 from __future__ import division
@@ -56,8 +57,7 @@ class DatabaseTestForemanRulesMixin(object):
     self.db.RemoveForemanRule("H:654321")
     read = self.db.ReadAllForemanRules()
     self.assertLen(read, 2)
-    self.assertEqual(
-        sorted(read, key=lambda rule: rule.hunt_id), [rule1, rule3])
+    self.assertCountEqual(read, [rule1, rule3])
 
     self.db.RemoveForemanRule("H:123456")
     read = self.db.ReadAllForemanRules()

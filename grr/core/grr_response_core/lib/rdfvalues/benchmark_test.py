@@ -1,12 +1,13 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module tests the RDFValue implementation for performance."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from absl import app
-from future.utils import iteritems
 from typing import Text
+
+from absl import app
 
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -85,7 +86,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def RDFStructCreateAndSerializeSetValue():
       s = rdf_client.User()
-      for k, v in iteritems(self.USER_ACCOUNT):
+      for k, v in self.USER_ACCOUNT.items():
         setattr(s, k, v)
 
       s.SerializeToBytes()
@@ -100,7 +101,7 @@ class RDFValueBenchmark(benchmark_test_lib.AverageMicroBenchmarks):
 
     def ProtoCreateAndSerializeSetValue():
       s = knowledge_base_pb2.User()
-      for k, v in iteritems(self.USER_ACCOUNT):
+      for k, v in self.USER_ACCOUNT.items():
         setattr(s, k, v)
 
       s.SerializeToString()

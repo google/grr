@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Pathspecs are methods of specifying the path on the client.
 
 The GRR client has a number of drivers to virtualize access to different objects
@@ -23,7 +24,6 @@ import itertools
 import posixpath
 import re
 
-from future.utils import iteritems
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
@@ -129,7 +129,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     if self.HasField("pathtype"):
       self.last.nested_path = component
     else:
-      for k, v in iteritems(kwarg):
+      for k, v in kwarg.items():
         setattr(self, k, v)
 
       self.SetRawData(component.GetRawData())

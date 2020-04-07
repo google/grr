@@ -13,7 +13,7 @@ import tempfile
 import threading
 import time
 
-from typing import Dict, Iterable, List, Optional, Union
+from typing import Dict, Iterable, List, Optional, Union, Text
 
 import portpicker
 
@@ -553,3 +553,15 @@ def DieIfSubProcessDies(
   atexit.register(PreventDoubleDeath)
 
   return t
+
+
+def RunApiShellRawAccess(config, exec_code):
+  """Runs exec_code in the API shell."""
+  p = _StartComponent(
+      "grr_response_server.bin."
+      "api_shell_raw_access",
+      ["--config", config, "--exec_code", exec_code],
+  )
+  if p.wait() != 0:
+    raise Exception("api_shell_raw_access execution failed: {}".format(
+        p.returncode))

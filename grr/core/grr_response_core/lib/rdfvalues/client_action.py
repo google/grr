@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Client actions requests and responses."""
 
 from __future__ import absolute_import

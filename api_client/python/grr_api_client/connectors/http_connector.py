@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """HTTP API connector implementation."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,8 +9,7 @@ import collections
 import json
 import logging
 
-from future.moves.urllib import parse as urlparse
-from future.utils import iterkeys
+from urllib import parse as urlparse
 
 import requests
 
@@ -164,7 +164,7 @@ class HttpConnector(connector.Connector):
     if not method:
       raise RuntimeError("Can't find method for %s" % handler_name)
 
-    return method, url, list(iterkeys(path_params))
+    return method, url, list(path_params.keys())
 
   def _ArgsToQueryParams(self, args, exclude_names):
     if not args:

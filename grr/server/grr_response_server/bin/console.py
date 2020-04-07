@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR Console.
 
 We can schedule a new flow for a specific client.

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the GRR Foreman."""
 from __future__ import absolute_import
 from __future__ import division

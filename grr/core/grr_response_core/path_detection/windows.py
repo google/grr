@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Windows paths detection classes."""
 
 from __future__ import absolute_import
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 
 import re
 
-from future.utils import iteritems
-from future.utils import string_types
 
 from grr_response_core.path_detection import core
 
@@ -91,7 +90,7 @@ class EnvVarsPostProcessor(core.PostProcessor):
     super(core.PostProcessor, self).__init__()
 
     self.vars_map = {}
-    for var_name, value in iteritems(vars_map):
+    for var_name, value in vars_map.items():
       var_regex = re.compile(
           re.escape("%" + var_name + "%"), flags=re.IGNORECASE)
       self.vars_map[var_name.lower()] = (var_regex, value)
@@ -121,7 +120,7 @@ class EnvVarsPostProcessor(core.PostProcessor):
       except KeyError:
         continue
 
-      if isinstance(var_value, string_types):
+      if isinstance(var_value, str):
         replacements = [var_value]
       else:
         replacements = var_value

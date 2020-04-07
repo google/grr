@@ -1,13 +1,16 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for API client + HTTPS server integration."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import datetime
+from http import server as http_server
 import io
 import os
 import socket
+import socketserver
 import threading
 
 from absl import app
@@ -16,10 +19,8 @@ from cryptography.hazmat import backends
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives import serialization
 from cryptography.x509 import oid
-from http import server as http_server
 import portpicker
 import requests
-import socketserver
 
 from grr_api_client import api as grr_api
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto

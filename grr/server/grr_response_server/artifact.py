@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Base classes for artifacts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 import contextlib
 import logging
 
-from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
@@ -83,6 +83,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_ADVANCED
   args_type = KnowledgeBaseInitializationArgs
+  result_types = (rdf_client.KnowledgeBase,)
 
   def Start(self):
     """For each artifact, create subflows for each collector."""
@@ -233,7 +234,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
                          "multiple provides clauses without using Dict."
                          ": %s" % artifact_obj)
 
-      for provides, value in iteritems(kb_dict):
+      for provides, value in kb_dict.items():
         if provides not in artifact_provides:
           raise ValueError("Attempt to provide knowledge base value %s "
                            "without this being set in the artifact "

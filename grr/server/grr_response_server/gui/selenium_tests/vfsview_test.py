@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test the vfs gui interface."""
 from __future__ import absolute_import
@@ -45,6 +46,17 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
     # Check that the correct file is listed.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"bzcmp\")")
+
+  def testFolderPathWithUnicodeCharactersCanBeClicked(self):
+    dirpath = "fs/os/home/user/foo/a看a"
+    filepath = f"{dirpath}/bar/baz.txt"
+
+    gui_test_lib.CreateFileVersion(self.client_id, filepath, b"foobar")
+
+    self.Open(f"/#/clients/{self.client_id}/vfs/{dirpath}")
+    self.Click("css=li > a:contains(\"a看a\")")
+    self.Click("css=li > a:contains(\"bar\")")
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"baz.txt\")")
 
   def testUrlSensitiveCharactersAreShownInTree(self):
     gui_test_lib.CreateFileVersion(

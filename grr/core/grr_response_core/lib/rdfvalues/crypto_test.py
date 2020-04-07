@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Crypto rdfvalue tests."""
 
@@ -11,7 +12,6 @@ import hashlib
 import os
 
 from absl import app
-from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -110,7 +110,7 @@ certificate = -----BEGIN CERTIFICATE-----
     config.CONFIG.context = []
 
     errors = config.CONFIG.Validate("Frontend")
-    self.assertCountEqual(list(iterkeys(errors)), ["Frontend.certificate"])
+    self.assertCountEqual(list(errors.keys()), ["Frontend.certificate"])
 
   def testInvalidRSAPrivateKey(self):
     """Deliberately try to parse invalid RSA keys."""
@@ -156,7 +156,7 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 
     errors = config.CONFIG.Validate("Client")
     self.assertCountEqual(
-        list(iterkeys(errors)), ["Client.executable_signing_public_key"])
+        list(errors.keys()), ["Client.executable_signing_public_key"])
 
   def testRSAPrivate(self):
     """Tests parsing an RSA private key."""

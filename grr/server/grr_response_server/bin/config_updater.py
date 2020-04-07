@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Util for modifying the GRR server configuration."""
 from __future__ import absolute_import
 from __future__ import division

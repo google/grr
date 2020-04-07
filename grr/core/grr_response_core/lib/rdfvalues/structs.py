@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Semantic Protobufs are serialization agnostic, rich data types."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,27 +11,11 @@ import collections
 import copy
 import functools
 import struct
-
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
-from future.utils import python_2_unicode_compatible
-from future.utils import string_types
-from future.utils import with_metaclass
-from past.builtins import long
-from typing import cast, ByteString, Iterator, Sequence, Text, Type, TypeVar
-
-# pylint: disable=g-import-not-at-top
-try:
-  from grr.core.accelerated import _semantic
-except ImportError:
-  _semantic = None
+from typing import ByteString, Iterator, Sequence, Text, Type, TypeVar, cast
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
-
 from google.protobuf import text_format
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
 from grr_response_core.lib import type_info
@@ -39,6 +24,13 @@ from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto import semantic_pb2
+
+# pylint: disable=g-import-not-at-top
+try:
+  from grr.core.accelerated import _semantic
+except ImportError:
+  _semantic = None
+
 # pylint: disable=super-init-not-called
 # pylint: enable=g-import-not-at-top
 
@@ -241,11 +233,7 @@ def _GetOrderedEntries(data):
   def Tag(field):
     """Tags field name with a number to make comparison possible."""
 
-    # TODO: We use `string_types` here because in Python 2
-    # attribute names (which are passed e.g. through keyword arguments) are
-    # represented as `bytes` whereas in Python 3 it is `unicode`. This should
-    # be replaced with `str` once support for Python 2 is dropped.
-    if isinstance(field, string_types):
+    if isinstance(field, str):
       return 0, field
     if isinstance(field, int):
       return 1, field
@@ -253,7 +241,7 @@ def _GetOrderedEntries(data):
     message = "Unexpected field '{}' of type '{}'".format(field, type(field))
     raise TypeError(message)
 
-  for field in sorted(iterkeys(data), key=Tag):
+  for field in sorted(data.keys(), key=Tag):
     yield data[field]
 
 
@@ -327,7 +315,6 @@ if _semantic:
 # pylint: enable=invalid-name
 
 
-@python_2_unicode_compatible
 class ProtoType(type_info.TypeInfoObject):
   """A specific type descriptor for protobuf fields.
 
@@ -364,7 +351,7 @@ class ProtoType(type_info.TypeInfoObject):
                labels=None,
                set_default_on_access=None,
                **kwargs):
-    super(ProtoType, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     # TODO: Without this type hint, pytype thinks that field_number
     # is always None.
     self.field_number = field_number  # type: int
@@ -499,7 +486,7 @@ class ProtoString(ProtoType):
 
   def __init__(self, default=u"", **kwargs):
     # Strings default to "" if not specified.
-    super(ProtoString, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     # Ensure the default is a unicode object.
     if default is not None:
@@ -565,7 +552,7 @@ class ProtoBinary(ProtoType):
     precondition.AssertType(default, bytes)
 
     # Byte strings default to "" if not specified.
-    super(ProtoBinary, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     # Ensure the default is a string object.
     if default is not None:
@@ -608,7 +595,7 @@ class ProtoUnsignedInteger(ProtoType):
 
   def __init__(self, default=0, **kwargs):
     # Integers default to 0 if not specified.
-    super(ProtoUnsignedInteger, self).__init__(default=default, **kwargs)
+    super().__init__(default=default, **kwargs)
 
   def ConvertFromWireFormat(self, value, container=None):
     return VarintReader(value[2], 0)[0]
@@ -647,7 +634,7 @@ class ProtoSignedInteger(ProtoUnsignedInteger):
 class ProtoFixed32(ProtoUnsignedInteger):
   """A 32 bit fixed unsigned integer.
 
-  The wire format is a 4 byte string, while the python type is a long.
+  The wire format is a 4 byte string, while the python type is an int.
   """
   _size = 4
 
@@ -677,7 +664,7 @@ class ProtoFixed64(ProtoFixed32):
 class ProtoFixedU32(ProtoFixed32):
   """A 32 bit fixed unsigned integer.
 
-  The wire format is a 4 byte string, while the python type is a long.
+  The wire format is a 4 byte string, while the python type is an int.
   """
   proto_type_name = "fixed32"
 
@@ -728,7 +715,6 @@ class ProtoDouble(ProtoFixed64):
     return struct.unpack("<d", value[2])[0]
 
 
-@python_2_unicode_compatible
 @functools.total_ordering
 class EnumNamedValue(rdfvalue.RDFPrimitive):
   """A class that wraps enums.
@@ -757,8 +743,7 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
     precondition.AssertOptionalType(description, Text)
     precondition.AssertIterableType(labels, int)
 
-    super(EnumNamedValue, self).__init__(
-        (int(initializer), name, description, tuple(labels)))
+    super().__init__((int(initializer), name, description, tuple(labels)))
 
   @property
   def id(self):
@@ -816,7 +801,7 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
     precondition.AssertType(value, bytes)
 
     if value:
-      return cls(compatibility.builtins.int(value))
+      return cls(int(value))
     else:
       return cls(0)
 
@@ -825,7 +810,7 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
     precondition.AssertType(string, Text)
 
     try:
-      num = compatibility.builtins.int(string)
+      num = int(string)
     except ValueError:
       num = 0
 
@@ -854,7 +839,7 @@ class ProtoEnum(ProtoSignedInteger):
                enum_descriptions=None,
                enum_labels=None,
                **kwargs):
-    super(ProtoEnum, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     if enum_name is None:
       raise type_info.TypeValueError("Enum groups must be given a name.")
 
@@ -863,8 +848,8 @@ class ProtoEnum(ProtoSignedInteger):
     if isinstance(enum, EnumContainer):
       enum = enum.enum_dict
 
-    for v in itervalues(enum):
-      if not (v.__class__ is int or v.__class__ is long):
+    for v in enum.values():
+      if v.__class__ is not int:
         raise type_info.TypeValueError("Enum values must be integers.")
 
     self.enum_container = EnumContainer(
@@ -892,7 +877,7 @@ class ProtoEnum(ProtoSignedInteger):
 
     # If the value is a string we need to try to convert it to an integer.
     checked_value = value
-    if isinstance(value, string_types):
+    if isinstance(value, str):
       # NOTE: that when initializing from string, enum values are
       # case-insensitive.
       checked_value = self.enum.get(value.upper())
@@ -910,7 +895,7 @@ class ProtoEnum(ProtoSignedInteger):
     result = self._FormatDescriptionComment()
 
     result += "  enum %s {\n" % self.enum_name
-    for k, v in sorted(iteritems(self.reverse_enum)):
+    for k, v in sorted(self.reverse_enum.items()):
       result += "    %s = %s;\n" % (v, k)
 
     result += "  }\n"
@@ -935,11 +920,7 @@ class ProtoBoolean(ProtoEnum):
   type = bool
 
   def __init__(self, **kwargs):
-    super(ProtoBoolean, self).__init__(
-        enum_name="Bool", enum={
-            "True": 1,
-            "False": 0
-        }, **kwargs)
+    super().__init__(enum_name="Bool", enum={"True": 1, "False": 0}, **kwargs)
 
     self.proto_type_name = "bool"
 
@@ -982,10 +963,10 @@ class ProtoEmbedded(ProtoType):
   set_default_on_access = True
 
   def __init__(self, nested=None, **kwargs):
-    super(ProtoEmbedded, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
     # Nested can refer to a target RDFProtoStruct by name.
-    if isinstance(nested, string_types):
+    if isinstance(nested, str):
       self.proto_type_name = nested
 
       # Try to resolve the type it names
@@ -1049,7 +1030,7 @@ class ProtoEmbedded(ProtoType):
     if proto.dirty:
       return True
 
-    for python_format, _, type_descriptor in itervalues(proto.GetRawData()):
+    for python_format, _, type_descriptor in proto.GetRawData().values():
       if python_format is not None and type_descriptor.IsDirty(python_format):
         proto.dirty = True
         return True
@@ -1061,7 +1042,7 @@ class ProtoEmbedded(ProtoType):
     return self.type()
 
   def Validate(self, value, **_):
-    if isinstance(value, string_types):
+    if isinstance(value, str):
       raise type_info.TypeValueError("Field %s must be of type %s" %
                                      (self.name, self.type.__name__))
 
@@ -1109,7 +1090,7 @@ class ProtoDynamicEmbedded(ProtoType):
         embedded data. We pass the callback our container.
       **kwargs: Passthrough.
     """
-    super(ProtoDynamicEmbedded, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     self._type = dynamic_cb
 
   def ConvertFromWireFormat(self, value, container=None):
@@ -1237,7 +1218,6 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
 
-@python_2_unicode_compatible
 class RepeatedFieldHelper(collections.Sequence, object):
   """A helper for the RDFProto to handle repeated fields.
 
@@ -1429,7 +1409,7 @@ class ProtoList(ProtoType):
 
     self.wire_type = delegate.wire_type
 
-    super(ProtoList, self).__init__(
+    super().__init__(
         name=delegate.name,
         description=delegate.description,
         field_number=delegate.field_number,
@@ -1560,13 +1540,13 @@ class ProtoRDFValue(ProtoType):
       string=ProtoString)
 
   def __init__(self, rdf_type=None, default=None, **kwargs):
-    super(ProtoRDFValue, self).__init__(**kwargs)
+    super().__init__(**kwargs)
     self._kwargs = kwargs
 
     if default is not None:
       self.default = default
 
-    if isinstance(rdf_type, string_types):
+    if isinstance(rdf_type, str):
       self.original_proto_type_name = self.proto_type_name = rdf_type
 
       # Try to resolve the type it names
@@ -1722,8 +1702,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
 T = TypeVar("T")
 
 
-@python_2_unicode_compatible
-class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
+class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: disable=invalid-metaclass
   """An RDFValue object which contains fields like a struct.
 
   Struct members contain values such as integers, strings etc. These are stored
@@ -1772,14 +1751,14 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
   _data = None
 
   def __init__(self, initializer=None, **kwargs):
-    super(RDFStruct, self).__init__()
+    super().__init__()
 
     # Maintain the order so that parsing and serializing a proto does not change
     # the serialized form.
     self._data = {}
     self._prev_hash = None
 
-    for arg, value in iteritems(kwargs):
+    for arg, value in kwargs.items():
       if not hasattr(self.__class__, arg):
         if arg in self.late_bound_type_infos:
           raise AttributeError(
@@ -1815,7 +1794,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
       other: An instance of the same type of this class.
     """
     self._data = {}
-    for name, (obj, serialized, t_info) in iteritems(other.GetRawData()):
+    for name, (obj, serialized, t_info) in other.GetRawData().items():
       if serialized is None:
         serialized = t_info.ConvertToWireFormat(obj)
 
@@ -1841,7 +1820,7 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     # If it is, someone else might have changed the subobject and the
     # serialization is not accurate anymore. This is indicated by the dirty
     # flag. Type_infos can be just copied by reference.
-    for name, (obj, serialized, t_info) in iteritems(self._data):
+    for name, (obj, serialized, t_info) in self._data.items():
       if serialized is None:
         obj = copy.copy(obj)
       else:
@@ -1936,13 +1915,13 @@ class RDFStruct(with_metaclass(RDFStructMetaclass, rdfvalue.RDFValue)):
     yield "message %s {" % self.__class__.__name__
 
     for k, (python_format, wire_format,
-            type_descriptor) in sorted(iteritems(self.GetRawData())):
+            type_descriptor) in sorted(self.GetRawData().items()):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)
 
       # Skip printing of unknown fields.
-      if isinstance(k, string_types):
+      if isinstance(k, str):
         prefix = "{} :".format(k)
         for line in type_descriptor.Format(python_format):
           yield " %s %s" % (prefix, line)
@@ -2076,7 +2055,7 @@ class EnumContainer(object):
     self.reverse_enum = {}
     self.name = name
 
-    for k, v in iteritems(values):
+    for k, v in values.items():
       v = EnumNamedValue(
           v,
           name=k,
@@ -2136,7 +2115,7 @@ class RDFProtoStruct(RDFStruct):
     """Initializes itself from a given dictionary."""
     dynamic_fields = []
 
-    for key, value in iteritems(dictionary):
+    for key, value in dictionary.items():
       field_type_info = self.type_infos.get(key)
       if isinstance(field_type_info, ProtoEmbedded):
         nested_value = field_type_info.GetDefault(container=self)
@@ -2156,7 +2135,7 @@ class RDFProtoStruct(RDFStruct):
       elif isinstance(field_type_info, ProtoDynamicEmbedded):
         dynamic_fields.append(field_type_info)
       elif field_type_info.proto_type_name == "bytes":
-        self.Set(key, base64.decodestring((value or "").encode("ascii")))
+        self.Set(key, base64.decodebytes((value or "").encode("ascii")))
       else:
         self.Set(key, value)
 
@@ -2185,12 +2164,12 @@ class RDFProtoStruct(RDFStruct):
       primitive_dict = {}
       # TODO(user):pytype: get rid of a dependency loop described above and
       # do a proper type check.
-      for k, v in iteritems(value.ToDict()):  # pytype: disable=attribute-error
+      for k, v in value.ToDict().items():  # pytype: disable=attribute-error
         primitive_dict[k] = self._ToPrimitive(v, stringify_leaf_fields)
       return primitive_dict
     elif isinstance(value, dict):
       primitive_dict = {}
-      for k, v in iteritems(value):
+      for k, v in value.items():
         primitive_dict[k] = self._ToPrimitive(v, stringify_leaf_fields)
       return primitive_dict
     elif isinstance(value, RDFProtoStruct):
@@ -2218,7 +2197,7 @@ class RDFProtoStruct(RDFStruct):
   def EmitProto(cls):
     """Emits .proto file definitions."""
     result = "message %s {\n" % cls.__name__
-    for _, desc in sorted(iteritems(cls.type_infos_by_field_number)):
+    for _, desc in sorted(cls.type_infos_by_field_number.items()):
       result += desc.Definition()
 
     result += "}\n"

@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Abstract base test for serving statistics."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-from future.utils import with_metaclass
 
 import portpicker
 import requests
@@ -13,10 +13,10 @@ import requests
 from grr_response_server import base_stats_server
 
 
-class StatsServerTestMixin(with_metaclass(abc.ABCMeta, object)):
+class StatsServerTestMixin(metaclass=abc.ABCMeta):
 
   def __init__(self, *args, **kwargs):
-    super(StatsServerTestMixin, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.server = None
 
   def setUp(self):
@@ -26,7 +26,7 @@ class StatsServerTestMixin(with_metaclass(abc.ABCMeta, object)):
     self.addCleanup(self.server.Stop)
 
   @abc.abstractmethod
-  def setUpStatsServer(self, port):
+  def setUpStatsServer(self, port):  # pylint: disable=invalid-name
     raise NotImplementedError()
 
   def url(self, path="/"):

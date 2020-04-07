@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Network-related client rdfvalues."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,11 +7,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
-import logging
-
-
 import ipaddress
-
+import logging
 from typing import Optional
 from typing import Text
 from typing import Union
@@ -20,7 +18,6 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import text
-
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 

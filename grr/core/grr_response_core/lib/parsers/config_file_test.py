@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Unit test for config files."""
 from __future__ import absolute_import
@@ -8,7 +9,6 @@ from __future__ import unicode_literals
 import io
 
 from absl import app
-from future.utils import iterkeys
 
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -574,13 +574,13 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     filename = result.filename
     users = result.users
     self.assertEqual("/etc/at.allow", filename)
-    self.assertEqual(sorted(["root", "user", "pparth"]), sorted(users))
+    self.assertCountEqual(["root", "user", "pparth"], users)
 
     anomalies = [a for a in results if isinstance(a, rdf_anomaly.Anomaly)]
     self.assertLen(anomalies, 1)
     anom = anomalies[0]
     self.assertEqual("Dodgy entries in /etc/at.allow.", anom.symptom)
-    self.assertEqual(sorted(["user2 user3", "hi hello"]), sorted(anom.finding))
+    self.assertCountEqual(["user2 user3", "hi hello"], anom.finding)
     self.assertEqual(pathspec, anom.reference_pathspec)
     self.assertEqual("PARSER_ANOMALY", anom.type)
 
@@ -628,8 +628,8 @@ class NtpParserTests(test_lib.GRRBaseTest):
     # Check all the expected "simple" config keywords are present.
     expected_config_keywords = set([
         "driftfile", "statsdir", "filegen", "ttl", "broadcastdelay"
-    ]) | set(iterkeys(config_file.NtpdFieldParser.defaults))
-    self.assertEqual(expected_config_keywords, set(iterkeys(results.config)))
+    ]) | set(config_file.NtpdFieldParser.defaults.keys())
+    self.assertEqual(expected_config_keywords, set(results.config.keys()))
 
     # Check all the expected "keyed" config keywords are present.
     self.assertTrue(results.server)

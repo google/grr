@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """REL_DB implementation of hunts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -30,48 +31,43 @@ class UnknownHuntTypeError(Error):
 class OnlyPausedHuntCanBeModifiedError(Error):
 
   def __init__(self, hunt_obj):
-    super(OnlyPausedHuntCanBeModifiedError,
-          self).__init__("Hunt %s can't be modified since it's in state %s." %
-                         (hunt_obj.hunt_id, hunt_obj.hunt_state))
+    super().__init__("Hunt %s can't be modified since it's in state %s." %
+                     (hunt_obj.hunt_id, hunt_obj.hunt_state))
 
 
 class OnlyPausedHuntCanBeStartedError(Error):
 
   def __init__(self, hunt_obj):
-    super(OnlyPausedHuntCanBeStartedError,
-          self).__init__("Hunt %s can't be started since it's in state %s." %
-                         (hunt_obj.hunt_id, hunt_obj.hunt_state))
+    super().__init__("Hunt %s can't be started since it's in state %s." %
+                     (hunt_obj.hunt_id, hunt_obj.hunt_state))
 
 
 class OnlyStartedHuntCanBePausedError(Error):
 
   def __init__(self, hunt_obj):
-    super(OnlyStartedHuntCanBePausedError,
-          self).__init__("Hunt %s can't be paused since it's in state %s." %
-                         (hunt_obj.hunt_id, hunt_obj.hunt_state))
+    super().__init__("Hunt %s can't be paused since it's in state %s." %
+                     (hunt_obj.hunt_id, hunt_obj.hunt_state))
 
 
 class OnlyStartedOrPausedHuntCanBeStoppedError(Error):
 
   def __init__(self, hunt_obj):
-    super(OnlyStartedOrPausedHuntCanBeStoppedError,
-          self).__init__("Hunt %s can't be stopped since it's in state %s." %
-                         (hunt_obj.hunt_id, hunt_obj.hunt_state))
+    super().__init__("Hunt %s can't be stopped since it's in state %s." %
+                     (hunt_obj.hunt_id, hunt_obj.hunt_state))
 
 
 class CanStartAtMostOneFlowPerClientError(Error):
 
   def __init__(self, hunt_id, client_id):
-    super(CanStartAtMostOneFlowPerClientError, self).__init__(
-        "Variable hunt %s has more than 1 flow for a client %s." %
-        (hunt_id, client_id))
+    super().__init__("Variable hunt %s has more than 1 flow for a client %s." %
+                     (hunt_id, client_id))
 
 
 class VariableHuntCanNotHaveClientRateError(Error):
 
   def __init__(self, hunt_id, client_rate):
 
-    super(VariableHuntCanNotHaveClientRateError, self).__init__(
+    super().__init__(
         "Variable hunt %s has must have client_rate=0, instead it's %.2f." %
         (hunt_id, client_rate))
 

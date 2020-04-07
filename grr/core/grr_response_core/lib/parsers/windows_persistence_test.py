@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr.parsers.windows_persistence."""
 
 from __future__ import absolute_import

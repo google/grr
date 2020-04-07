@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the setup.py file for the GRR client.
 
 This is just a meta-package which pulls in the minimal requirements to create a
@@ -11,11 +12,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import configparser
 import os
 import platform
 import shutil
 
-import configparser
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
@@ -80,6 +81,7 @@ setup_args = dict(
         "absl-py==0.8.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "pyinstaller==3.5",
+        "libfsntfs-python==20200223",
     ],
     extras_require={
         # The following requirements are needed in Windows.

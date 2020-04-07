@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utilities for handling stats."""
 
 from __future__ import absolute_import
@@ -7,12 +8,9 @@ from __future__ import unicode_literals
 
 import functools
 import time
-
-from past.builtins import long
 from typing import Text
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import compatibility
 
 
 class Timed(object):
@@ -102,7 +100,7 @@ def FieldDefinitionProtosFromTuples(field_def_tuples):
   # TODO: This needs fixing for Python 3.
   field_def_protos = []
   for field_name, field_type in field_def_tuples:
-    if field_type in (int, long):
+    if field_type is int:
       field_type = rdf_stats.MetricFieldDefinition.FieldType.INT
     elif issubclass(field_type, Text):
       field_type = rdf_stats.MetricFieldDefinition.FieldType.STR
@@ -123,7 +121,7 @@ def FieldDefinitionTuplesFromProtos(field_def_protos):
       field_type = int
     elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.STR:
       # Use old style str in Python 2 here or the streamz library will break.
-      field_type = compatibility.builtins.str
+      field_type = str
     else:
       raise ValueError("Unknown field type: %s" % proto.field_type)
     field_def_tuples.append((proto.field_name, field_type))
@@ -132,7 +130,7 @@ def FieldDefinitionTuplesFromProtos(field_def_protos):
 
 def MetricValueTypeFromPythonType(python_type):
   """Converts Python types to MetricMetadata.ValueType enum values."""
-  if python_type in (int, long):
+  if python_type is int:
     return rdf_stats.MetricMetadata.ValueType.INT
   elif python_type == float:
     return rdf_stats.MetricMetadata.ValueType.FLOAT

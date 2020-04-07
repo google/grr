@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Router classes route API requests to particular handlers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,12 +8,10 @@ from __future__ import unicode_literals
 
 import inspect
 import re
-
-from future.utils import with_metaclass
 from typing import Optional
 from typing import Text
 
-from grr_response_core.lib import registry
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
@@ -151,7 +150,7 @@ class RouterMethodMetadata(object):
     return result
 
 
-class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
+class ApiCallRouter(metaclass=MetaclassRegistry):
   """Routers do ACL checks and route API requests to handlers."""
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -170,7 +169,7 @@ class ApiCallRouter(with_metaclass(registry.MetaclassRegistry, object)):
     Args:
       params: None, or an RDFValue instance of params_type.
     """
-    super(ApiCallRouter, self).__init__()
+    super().__init__()
     _ = params
 
   @classmethod
@@ -561,6 +560,7 @@ class ApiCallRouterStub(ApiCallRouter):
 
   @Category("Flows")
   @ArgsType(api_flow.ApiCancelFlowArgs)
+  @ResultType(api_flow.ApiFlow)
   @Http("POST", "/api/clients/<client_id>/flows/<path:flow_id>/actions/cancel")
   def CancelFlow(self, args, token=None):
     """Stop given flow on a given client."""
@@ -932,6 +932,18 @@ class ApiCallRouterStub(ApiCallRouter):
   def GetHuntFile(self, args, token=None):
     """Get a file referenced by one of the hunt results."""
 
+    raise NotImplementedError()
+
+  @Category("Hunts")
+  @ArgsType(api_timeline.ApiGetCollectedHuntTimelinesArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/hunts/<hunt_id>/timelines")
+  def GetCollectedHuntTimelines(
+      self,
+      args,
+      token = None,
+  ):
+    """Exports results of a timeline hunt as a ZIP archive."""
     raise NotImplementedError()
 
   # Stats metrics methods.

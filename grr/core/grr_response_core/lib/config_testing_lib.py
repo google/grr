@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Helper library for config testing."""
 
 from __future__ import absolute_import
@@ -8,7 +9,6 @@ from __future__ import unicode_literals
 import copy
 import logging
 
-from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -64,7 +64,7 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
 
         if errors:
           logging.info("Validation of %s returned errors:", config_file)
-          for config_entry, error in iteritems(errors):
+          for config_entry, error in errors.items():
             logging.info("%s:", config_entry)
             logging.info("%s", error)
 

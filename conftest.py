@@ -18,9 +18,6 @@ from grr.test_lib import testing_startup
 
 FLAGS = flags.FLAGS
 
-SKIP_BENCHMARK = pytest.mark.skip(
-    reason="benchmark tests are executed only with --benchmark flag")
-
 test_args = None
 
 
@@ -68,33 +65,11 @@ def pytest_runtest_setup(item):
 def pytest_addoption(parser):
   """A pytest hook that is called during the argument parser initialization."""
   parser.addoption(
-      "-B",
-      "--benchmark",
-      dest="benchmark",
-      default=False,
-      action="store_true",
-      help="run tests marked as benchmarks")
-
-  parser.addoption(
       "--full_thread_trace",
       action="store_true",
       default=False,
       help="Include a full stacktrace for all thread in case of a thread leak.",
   )
-
-
-def pytest_collection_modifyitems(session, config, items):
-  """A pytest hook that is called when the test item collection is done."""
-  del session  # Unused.
-
-  benchmark = config.getoption("benchmark")
-  if benchmark:
-    return
-
-  for item in items:
-    for marker in item.iter_markers():
-      if marker.name == "benchmark":
-        item.add_marker(SKIP_BENCHMARK)
 
 
 def _generate_full_thread_trace():

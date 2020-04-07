@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Helper classes for flows-related testing."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,10 +7,9 @@ from __future__ import unicode_literals
 
 import logging
 import sys
-
-from future.utils import iteritems
-import mock
 from typing import Text
+
+import mock
 
 from grr_response_client.client_actions import standard
 
@@ -132,6 +132,18 @@ class BrokenFlow(flow_base.FlowBase):
 
 class DummyFlow(flow_base.FlowBase):
   """Dummy flow that does nothing."""
+
+
+class DummyFlowProgress(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.DummyFlowProgress
+
+
+class DummyFlowWithProgress(flow_base.FlowBase):
+  """Dummy flow that reports its own progress."""
+  progress_type = DummyFlowProgress
+
+  def GetProgress(self):
+    return DummyFlowProgress(status="Progress.")
 
 
 class FlowWithOneNestedFlow(flow_base.FlowBase):
@@ -287,7 +299,7 @@ class MockClient(object):
     message.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
     # Update kw args
-    for k, v in iteritems(kw):
+    for k, v in kw.items():
       setattr(message, k, v)
 
     # Handle well known flows

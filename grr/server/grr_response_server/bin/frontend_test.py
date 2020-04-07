@@ -1,19 +1,18 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Unittest for grr http server."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
+import ipaddress
 import os
 import socket
 import threading
 import time
 
 from absl import app
-from future.utils import iteritems
-from future.utils import itervalues
-import ipaddress
 import portpicker
 import requests
 
@@ -191,9 +190,9 @@ class GRRHTTPServerTest(test_lib.GRRBaseTest):
     }
     results_per_client = {
         c: flow_test_lib.GetFlowResults(c, session_id)
-        for c, session_id in iteritems(session_ids)
+        for c, session_id in session_ids.items()
     }
-    for results in itervalues(results_per_client):
+    for results in results_per_client.values():
       self.assertLen(results, 5)
       relpaths = [
           os.path.relpath(p.stat_entry.pathspec.path, self.base_path)

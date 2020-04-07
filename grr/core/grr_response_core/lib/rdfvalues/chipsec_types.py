@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValues used to communicate with Chipsec."""
 
 from __future__ import absolute_import

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
@@ -20,12 +21,14 @@ class RootApiClientManagementTest(
   def testKillFleetspeak(self, kill_fs_mock, fs_conn):
     self.api.root.Client("C.1000000000000000").KillFleetspeak(True)
     kill_fs_mock.assert_called_with("C.1000000000000000", True)
+    self.assertIsInstance(kill_fs_mock.call_args[0][0], str)
 
   @mock.patch.object(fleetspeak_connector, "CONN")
   @mock.patch.object(fleetspeak_utils, "RestartFleetspeakGrrService")
   def testRestartFleetspeakGrrService(self, kill_fs_mock, fs_conn):
     self.api.root.Client("C.2000000000000000").RestartFleetspeakGrrService()
     kill_fs_mock.assert_called_with("C.2000000000000000")
+    self.assertIsInstance(kill_fs_mock.call_args[0][0], str)
 
   def testClientRefRepr(self):
     self.assertEqual(

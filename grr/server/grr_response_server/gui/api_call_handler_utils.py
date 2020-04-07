@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file contains utility functions used in ApiCallHandler classes."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 import re
 import sys
 
-from future.utils import iteritems
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
@@ -63,7 +63,7 @@ class ApiDataObject(rdf_structs.RDFProtoStruct):
   ]
 
   def InitFromDataObject(self, data_object):
-    for key, value in sorted(iteritems(data_object)):
+    for key, value in sorted(data_object.items()):
       item = ApiDataObjectKeyValuePair().InitFromKeyValue(key, value)
       self.items.append(item)
 

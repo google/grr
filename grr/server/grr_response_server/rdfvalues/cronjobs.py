@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValues for GRR server-side cron jobs."""
 from __future__ import absolute_import
 from __future__ import division
@@ -79,7 +80,7 @@ class CronJob(rdf_structs.RDFProtoStruct):
   def __init__(self, *args, **kw):
     self.leased_until = None
     self.leased_by = None
-    super(CronJob, self).__init__(*args, **kw)
+    super().__init__(*args, **kw)
 
     if not self.created_at:
       self.created_at = rdfvalue.RDFDatetime.Now()

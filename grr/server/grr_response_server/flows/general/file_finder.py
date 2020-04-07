@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Search for certain files, filter them by given criteria and do something."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,8 +7,6 @@ from __future__ import unicode_literals
 
 import stat
 
-from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -38,6 +37,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
   friendly_name = "File Finder"
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
+  result_types = (rdf_file_finder.FileFinderResult,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   # Will be used by FingerprintFileLogic.
@@ -361,8 +361,14 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     result.hash_entry = hash_obj
     self.SendReply(result)
 
-  def ReceiveFetchedFile(self, unused_stat_entry, file_hash, request_data=None):
+  def ReceiveFetchedFile(self,
+                         unused_stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False):
     """Handle downloaded file from MultiGetFileLogic."""
+    del is_duplicate  # Unused.
+
     if "original_result" not in request_data:
       raise RuntimeError("Got fetched file data, but original result "
                          "is missing")
@@ -464,12 +470,12 @@ class ClientFileFinder(flow_base.FlowBase):
       use_external_stores = self.args.action.download.use_external_stores
       client_path_hash_id = file_store.AddFilesWithUnknownHashes(
           client_path_blob_refs, use_external_stores=use_external_stores)
-      for client_path, hash_id in iteritems(client_path_hash_id):
+      for client_path, hash_id in client_path_hash_id.items():
         path_info = client_path_path_info[client_path]
         path_info.hash_entry.sha256 = hash_id.AsBytes()
         path_info.hash_entry.num_bytes = client_path_sizes[client_path]
 
-    path_infos = list(itervalues(client_path_path_info))
+    path_infos = list(client_path_path_info.values())
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
 
   def _WriteStatEntries(self, stat_entries):

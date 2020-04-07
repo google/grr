@@ -1,12 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The in memory database methods for client handling."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.utils import iteritems
-from future.utils import itervalues
 from typing import Generator, List, Text
 
 from grr_response_core.lib import rdfvalue
@@ -154,7 +153,7 @@ class InMemoryDBClientMixin(object):
                           batch_size=db.CLIENT_IDS_BATCH_SIZE):
     """Yields dicts of last-ping timestamps for clients in the DB."""
     last_pings = {}
-    for client_id, metadata in iteritems(self.metadatas):
+    for client_id, metadata in self.metadatas.items():
       last_ping = metadata.get("ping", rdfvalue.RDFDatetime(0))
       is_fleetspeak_client = metadata.get("fleetspeak_enabled", False)
       if min_last_ping is not None and last_ping < min_last_ping:
@@ -227,7 +226,7 @@ class InMemoryDBClientMixin(object):
     """Lists the clients associated with keywords."""
     res = {kw: [] for kw in keywords}
     for kw in keywords:
-      for client_id, timestamp in iteritems(self.keywords.get(kw, {})):
+      for client_id, timestamp in self.keywords.get(kw, {}).items():
         if start_time is not None and timestamp < start_time:
           continue
         res[kw].append(client_id)
@@ -256,7 +255,7 @@ class InMemoryDBClientMixin(object):
     for client_id in client_ids:
       res[client_id] = []
       owner_dict = self.labels.get(client_id, {})
-      for owner, labels in iteritems(owner_dict):
+      for owner, labels in owner_dict.items():
         for l in labels:
           res[client_id].append(rdf_objects.ClientLabel(owner=owner, name=l))
       res[client_id].sort(key=lambda label: (label.owner, label.name))
@@ -273,8 +272,8 @@ class InMemoryDBClientMixin(object):
   def ReadAllClientLabels(self):
     """Lists all client labels known to the system."""
     results = {}
-    for labels_dict in itervalues(self.labels):
-      for owner, names in iteritems(labels_dict):
+    for labels_dict in self.labels.values():
+      for owner, names in labels_dict.items():
         for name in names:
           results[(owner, name)] = rdf_objects.ClientLabel(
               owner=owner, name=name)
@@ -377,7 +376,7 @@ class InMemoryDBClientMixin(object):
   ):
     """Reads ClientStats for a given client and time range."""
     results = []
-    for timestamp, stats in iteritems(self.client_stats[client_id]):
+    for timestamp, stats in self.client_stats[client_id].items():
       if min_timestamp <= timestamp <= max_timestamp:
         results.append(rdf_client_stats.ClientStats(stats))
     return results
@@ -389,7 +388,7 @@ class InMemoryDBClientMixin(object):
     """Deletes ClientStats older than a given timestamp."""
     deleted_count = 0
 
-    for stats_dict in itervalues(self.client_stats):
+    for stats_dict in self.client_stats.values():
       for timestamp in list(stats_dict.keys()):
         if timestamp < retention_time:
           del stats_dict[timestamp]

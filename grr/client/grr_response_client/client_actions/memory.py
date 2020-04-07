@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Client actions dealing with memory."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,13 +11,10 @@ import io
 import os
 import re
 import shutil
-
-
-import psutil
-
 from typing import Iterable
 from typing import List
 
+import psutil
 import yara
 
 from grr_response_client import actions
@@ -94,7 +92,7 @@ class YaraProcessScan(actions.ActionPlugin):
   out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
 
   def __init__(self, grr_worker=None):
-    super(YaraProcessScan, self).__init__(grr_worker=grr_worker)
+    super().__init__(grr_worker=grr_worker)
     self._rules = None
 
   def _ScanRegion(self, rules, chunks, deadline):

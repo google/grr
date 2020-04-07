@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with definition of the decoder interface."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,10 +7,8 @@ from __future__ import unicode_literals
 
 import abc
 
-from future.utils import with_metaclass
 
-
-class AbstractDecoder(with_metaclass(abc.ABCMeta, object)):
+class AbstractDecoder(metaclass=abc.ABCMeta):
   """An abstract interface that all decoders should implement."""
 
   # A decoder name used to uniquely identify it.

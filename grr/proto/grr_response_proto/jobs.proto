@@ -591,6 +591,7 @@ message PathSpec {
     REGISTRY = 2;
     // DEPRECATED: MEMORY = 3 [(label) = HIDDEN];
     TMPFILE = 4 [(label) = HIDDEN];
+    NTFS = 5;
   }
   optional PathType pathtype = 1 [default = UNSET];
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the setup.py file for the GRR client.
 
 This is just a meta-package which pulls in the minimal requirements to create a

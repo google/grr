@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 
 import hashlib
 
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -248,7 +248,7 @@ class DatabaseTestPathsMixin(object):
     }
 
     path_infos = []
-    for name, content in iteritems(files):
+    for name, content in files.items():
       content = name.encode("utf-8")
 
       hash_entry = rdf_crypto.Hash()
@@ -262,7 +262,7 @@ class DatabaseTestPathsMixin(object):
 
     self.db.WritePathInfos(client_id, path_infos)
 
-    for name, content in iteritems(files):
+    for name, content in files.items():
       content = name.encode("utf-8")
 
       result = self.db.ReadPathInfo(

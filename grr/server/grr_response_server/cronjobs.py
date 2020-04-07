@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Cron Job objects that get stored in the relational db."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,13 +12,11 @@ import threading
 import time
 import traceback
 
-from future import utils as future_utils
-# Shadow builtin `str` to enforce consistent behavior during Py3 migration.
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.registry import CronJobRegistry
+from grr_response_core.lib.registry import SystemCronJobRegistry
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
 from grr_response_server import access_control
@@ -49,7 +48,7 @@ class OneOrMoreCronJobsFailedError(Error):
   def __init__(self, failure_map):
     message = "One or more cron jobs failed unexpectedly: " + ", ".join(
         "%s=%s" % (k, v) for k, v in failure_map.items())
-    super(OneOrMoreCronJobsFailedError, self).__init__(message)
+    super().__init__(message)
     self.failure_map = failure_map
 
 
@@ -61,8 +60,7 @@ class LifetimeExceededError(Error):
   """Exception raised when a cronjob exceeds its max allowed runtime."""
 
 
-class CronJobBase(
-    future_utils.with_metaclass(registry.CronJobRegistry, object)):
+class CronJobBase(metaclass=CronJobRegistry):
   """The base class for all cron jobs."""
 
   __abstract = True  # pylint: disable=g-bad-name
@@ -140,8 +138,7 @@ class CronJobBase(
           last_run_status=self.run_state.status)
 
 
-class SystemCronJobBase(
-    future_utils.with_metaclass(registry.SystemCronJobRegistry, CronJobBase)):
+class SystemCronJobBase(CronJobBase, metaclass=SystemCronJobRegistry):
   """The base class for all system cron jobs."""
 
   __abstract = True  # pylint: disable=g-bad-name
@@ -153,7 +150,7 @@ class SystemCronJobBase(
   enabled = True
 
   def __init__(self, *args, **kw):
-    super(SystemCronJobBase, self).__init__(*args, **kw)
+    super().__init__(*args, **kw)
 
     if self.frequency is None or self.lifetime is None:
       raise ValueError(
@@ -205,7 +202,7 @@ class CronManager(object):
   """CronManager is used to schedule/terminate cron jobs."""
 
   def __init__(self, max_threads=10):
-    super(CronManager, self).__init__()
+    super().__init__()
 
     if max_threads <= 0:
       raise ValueError("max_threads should be >= 1")
@@ -400,10 +397,10 @@ class CronManager(object):
 
     if job.args.action_type == job.args.ActionType.SYSTEM_CRON_ACTION:
       cls_name = job.args.system_cron_action.job_class_name
-      job_cls = registry.SystemCronJobRegistry.CronJobClassByName(cls_name)
+      job_cls = SystemCronJobRegistry.CronJobClassByName(cls_name)
       name = "%s runner" % cls_name
     elif job.args.action_type == job.args.ActionType.HUNT_CRON_ACTION:
-      job_cls = registry.CronJobRegistry.CronJobClassByName("RunHunt")
+      job_cls = CronJobRegistry.CronJobClassByName("RunHunt")
       name = "Hunt runner"
     else:
       raise ValueError("CronJob %s doesn't have a valid args type set." %
@@ -497,17 +494,16 @@ def ScheduleSystemCronJobs(names=None):
   disabled_classes = config.CONFIG["Cron.disabled_cron_jobs"]
   for name in disabled_classes:
     try:
-      registry.SystemCronJobRegistry.CronJobClassByName(name)
+      SystemCronJobRegistry.CronJobClassByName(name)
     except ValueError:
       errors.append("Cron job not found: %s." % name)
       continue
 
   if names is None:
-    names = future_utils.iterkeys(
-        registry.SystemCronJobRegistry.SYSTEM_CRON_REGISTRY)
+    names = SystemCronJobRegistry.SYSTEM_CRON_REGISTRY.keys()
 
   for name in names:
-    cls = registry.SystemCronJobRegistry.CronJobClassByName(name)
+    cls = SystemCronJobRegistry.CronJobClassByName(name)
 
     enabled = cls.enabled and name not in disabled_classes
     system = rdf_cronjobs.CronJobAction.ActionType.SYSTEM_CRON_ACTION

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 
 # Copyright 2010 Google Inc. All Rights Reserved.
@@ -11,7 +12,6 @@ import hashlib
 import os
 
 from absl import app
-from future.utils import iteritems
 
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -43,7 +43,7 @@ class FilehashTest(client_test_lib.EmptyActionTest):
         rdf_client_action.FingerprintTuple.Type.FPT_GENERIC: "generic",
         rdf_client_action.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"
     }
-    ti_map = dict((v, k) for k, v in iteritems(t_map))
+    ti_map = dict((v, k) for k, v in t_map.items())
     for t in types:
       self.assertIn(t_map[t], fingers)
     for f in fingers:

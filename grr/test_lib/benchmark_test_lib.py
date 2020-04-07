@@ -8,12 +8,9 @@ from __future__ import unicode_literals
 import logging
 import time
 
-import pytest
-
 from grr.test_lib import test_lib
 
 
-@pytest.mark.large
 class MicroBenchmarks(test_lib.GRRBaseTest):
   """This base class created the GRR benchmarks."""
 

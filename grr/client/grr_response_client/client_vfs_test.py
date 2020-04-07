@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test client vfs."""
 from __future__ import absolute_import
@@ -511,6 +512,16 @@ class VFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
         path=fname, pathtype="OS", file_size_override=100000000)
     fd = vfs.VFSOpen(pathspec)
     self.assertEqual(fd.size, 100000000)
+
+  def testNTFSFile(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "ntfs.img"),
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL,
+        nested_path=rdf_paths.PathSpec(
+            path="numbers.txt", pathtype=rdf_paths.PathSpec.PathType.NTFS))
+    fd = vfs.VFSOpen(pathspec)
+    self.TestFileHandling(fd)
 
 
 class VFSMultiOpenTest(absltest.TestCase):

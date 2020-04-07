@@ -63,7 +63,7 @@ ApiHelperService.prototype.registerHelper = function(type, webAuthType,
  * @param {string} webAuthType
  * @param {string} clientId
  * @param {!Object} createFlowJson
- * @return {angular.$q.Promise}
+ * @return {!angular.$q.Promise}
  * @private
  */
 ApiHelperService.prototype.buildStartFlow_ = function(webAuthType, clientId,
@@ -115,7 +115,7 @@ ApiHelperService.prototype.buildStartFlow_ = function(webAuthType, clientId,
  *
  * @param {string} clientId
  * @param {!Object} createFlowJson
- * @return {angular.$q.Promise}
+ * @return {!angular.$q.Promise}
  * @export
  */
 ApiHelperService.prototype.buildStartFlow = function(clientId, createFlowJson) {

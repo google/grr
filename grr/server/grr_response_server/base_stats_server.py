@@ -1,12 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Abstract base class for serving statistics."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-
-from future.utils import with_metaclass
 
 
 class PortInUseError(Exception):
@@ -22,12 +21,11 @@ class PortInUseError(Exception):
     Args:
       port: The port being used.
     """
-    super(PortInUseError,
-          self).__init__("Port {} is already in use.".format(port))
+    super().__init__("Port {} is already in use.".format(port))
     self.port = port
 
 
-class BaseStatsServer(with_metaclass(abc.ABCMeta, object)):
+class BaseStatsServer(metaclass=abc.ABCMeta):
   """Abstract base class for statistics server.
 
   Attributes:

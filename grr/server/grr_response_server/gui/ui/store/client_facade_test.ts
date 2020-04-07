@@ -2,7 +2,8 @@ import {TestBed} from '@angular/core/testing';
 import {ApiClient, ApiClientApproval, ApiFlow} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ClientApproval} from '@app/lib/models/client';
-import {Flow} from '@app/lib/models/flow';
+import {FlowListEntry, flowListEntryFromFlow} from '@app/lib/models/flow';
+import {newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientFacade} from '@app/store/client_facade';
 import {GrrStoreModule} from '@app/store/store_module';
 import {initTestEnvironment} from '@app/testing';
@@ -16,11 +17,15 @@ describe('ClientFacade', () => {
   let apiListApprovals$: Subject<ReadonlyArray<ApiClientApproval>>;
   let apiFetchClient$: Subject<ApiClient>;
   let apiListFlowsForClient$: Subject<ReadonlyArray<ApiFlow>>;
+  let apiStartFlow$: Subject<ApiFlow>;
+  let apiCancelFlow$: Subject<ApiFlow>;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
     apiFetchClient$ = new Subject();
     apiListFlowsForClient$ = new Subject();
+    apiStartFlow$ = new Subject();
+    apiCancelFlow$ = new Subject();
     httpApiService = {
       listApprovals:
           jasmine.createSpy('listApprovals').and.returnValue(apiListApprovals$),
@@ -28,6 +33,10 @@ describe('ClientFacade', () => {
           jasmine.createSpy('fetchClient').and.returnValue(apiFetchClient$),
       listFlowsForClient: jasmine.createSpy('listFlowsForClient')
                               .and.returnValue(apiListFlowsForClient$),
+      startFlow: jasmine.createSpy('startFlow').and.returnValue(apiStartFlow$),
+      cancelFlow:
+          jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
+
     };
 
     TestBed.configureTestingModule({
@@ -91,17 +100,17 @@ describe('ClientFacade', () => {
     });
   });
 
-
   it('calls the listFlow API on select()', () => {
     clientFacade.selectClient('C.1234');
     expect(httpApiService.listFlowsForClient).toHaveBeenCalledWith('C.1234');
   });
 
-  it('emits Flows in reverse-chronological order', done => {
+  it('emits FlowListEntries in reverse-chronological order', done => {
     clientFacade.selectClient('C.1234');
     apiListFlowsForClient$.next([
       {
         flowId: '1',
+        clientId: 'C.1234',
         lastActiveAt: '999000',
         startedAt: '123000',
         creator: 'rick',
@@ -109,6 +118,7 @@ describe('ClientFacade', () => {
       },
       {
         flowId: '2',
+        clientId: 'C.1234',
         lastActiveAt: '999000',
         startedAt: '789000',
         creator: 'morty',
@@ -116,6 +126,7 @@ describe('ClientFacade', () => {
       },
       {
         flowId: '3',
+        clientId: 'C.1234',
         lastActiveAt: '999000',
         startedAt: '456000',
         creator: 'morty',
@@ -123,16 +134,18 @@ describe('ClientFacade', () => {
       },
     ]);
 
-    const expected: Flow[] = [
+    const expected: FlowListEntry[] = [
       {
         flowId: '2',
+        clientId: 'C.1234',
         lastActiveAt: new Date(999),
         startedAt: new Date(789),
         creator: 'morty',
-        name: 'GetFile'
+        name: 'GetFile',
       },
       {
         flowId: '3',
+        clientId: 'C.1234',
         lastActiveAt: new Date(999),
         startedAt: new Date(456),
         creator: 'morty',
@@ -140,14 +153,90 @@ describe('ClientFacade', () => {
       },
       {
         flowId: '1',
+        clientId: 'C.1234',
         lastActiveAt: new Date(999),
         startedAt: new Date(123),
         creator: 'rick',
         name: 'ListProcesses'
       },
+    ].map(newFlowListEntry);
+
+    clientFacade.flowListEntries$.subscribe(flowListEntries => {
+      expect(flowListEntries).toEqual(expected);
+      done();
+    });
+  });
+
+  it('calls the API on startFlow', () => {
+    clientFacade.startFlow('C.1234', 'ListProcesses', {});
+    expect(httpApiService.startFlow)
+        .toHaveBeenCalledWith('C.1234', 'ListProcesses', {});
+  });
+
+  it('emits the started flow in flowListEntries$', (done) => {
+    clientFacade.selectClient('C.1234');
+    clientFacade.startFlow('C.1234', 'ListProcesses', {});
+
+    apiStartFlow$.next({
+      flowId: '1',
+      clientId: 'C.1234',
+      lastActiveAt: '999000',
+      startedAt: '123000',
+      creator: 'rick',
+      name: 'ListProcesses'
+    });
+
+    const expected: FlowListEntry[] = [
+      flowListEntryFromFlow({
+        flowId: '1',
+        clientId: 'C.1234',
+        lastActiveAt: new Date(999),
+        startedAt: new Date(123),
+        creator: 'rick',
+        name: 'ListProcesses',
+        args: undefined,
+        progress: undefined,
+      }),
     ];
 
-    clientFacade.flows$.subscribe(flows => {
+    clientFacade.flowListEntries$.subscribe(flows => {
+      expect(flows).toEqual(expected);
+      done();
+    });
+  });
+
+  it('calls the API on cancelFlow', () => {
+    clientFacade.cancelFlow('C.1234', '5678');
+    expect(httpApiService.cancelFlow).toHaveBeenCalledWith('C.1234', '5678');
+  });
+
+  it('emits the cancelled flow in flowListEntries$', (done) => {
+    clientFacade.selectClient('C.1234');
+    clientFacade.cancelFlow('C.1234', '5678');
+
+    apiCancelFlow$.next({
+      flowId: '5678',
+      clientId: 'C.1234',
+      lastActiveAt: '999000',
+      startedAt: '123000',
+      creator: 'rick',
+      name: 'ListProcesses'
+    });
+
+    const expected: FlowListEntry[] = [
+      flowListEntryFromFlow({
+        flowId: '5678',
+        clientId: 'C.1234',
+        lastActiveAt: new Date(999),
+        startedAt: new Date(123),
+        creator: 'rick',
+        name: 'ListProcesses',
+        args: undefined,
+        progress: undefined,
+      }),
+    ];
+
+    clientFacade.flowListEntries$.subscribe(flows => {
       expect(flows).toEqual(expected);
       done();
     });

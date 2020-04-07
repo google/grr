@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # python3
 """Flow to recover history files."""
 from __future__ import absolute_import
@@ -92,10 +93,11 @@ class ChromeHistory(flow_base.FlowBase):
       for response in responses:
         client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                  response.stat_entry.pathspec)
+        filepath = response.stat_entry.pathspec.CollapsePath()
         fd = file_store.OpenFile(client_path)
         hist = chrome_history.ChromeParser()
         count = 0
-        for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse(fd):
+        for epoch64, dtype, url, dat1, dat2, dat3 in hist.Parse(filepath, fd):
           count += 1
           str_entry = "%s %s %s %s %s %s" % (datetime.datetime.utcfromtimestamp(
               epoch64 / 1e6), url, dat1, dat2, dat3, dtype)

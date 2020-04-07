@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Unittest for GRR<->Fleetspeak server side glue code."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,8 +7,6 @@ from __future__ import unicode_literals
 
 from absl import app
 import mock
-
-from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 
 from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
@@ -22,6 +21,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 
 FS_SERVICE_NAME = "GRR"
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Stubs of client actions.
 
 Client actions shouldn't be used on the server, stubs should be used instead.
@@ -9,10 +10,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import with_metaclass
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import apple_firmware as rdf_apple_firmware
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
@@ -30,9 +28,10 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
+from grr_response_core.lib.registry import MetaclassRegistry
 
 
-class ClientActionStub(with_metaclass(registry.MetaclassRegistry, object)):
+class ClientActionStub(metaclass=MetaclassRegistry):
   """Stub for a client action. To be used in server code."""
 
   in_rdfvalue = None

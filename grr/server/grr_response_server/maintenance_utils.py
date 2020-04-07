@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file contains utility classes related to maintenance used by GRR."""
 from __future__ import absolute_import
 from __future__ import division

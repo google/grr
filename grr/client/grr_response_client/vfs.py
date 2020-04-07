@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file implements a VFS abstraction on the client."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,6 +13,7 @@ from typing import Any, Optional, Callable, Dict, Type
 
 from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
+from grr_response_client.vfs_handlers import ntfs
 from grr_response_client.vfs_handlers import sleuthkit  # pylint: disable=unused-import
 # pylint: disable=g-import-not-at-top
 if platform.system() == "Windows":
@@ -45,6 +47,7 @@ def Init():
   VFS_HANDLERS[files.File.supported_pathtype] = files.File
   VFS_HANDLERS[files.TempFile.supported_pathtype] = files.TempFile
   VFS_HANDLERS[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
+  VFS_HANDLERS[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
   if vfs_registry is not None:
     VFS_HANDLERS[vfs_registry.RegistryFile
                  .supported_pathtype] = vfs_registry.RegistryFile

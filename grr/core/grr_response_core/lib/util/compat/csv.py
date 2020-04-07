@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with compatibility wrappers for CSV processing."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,9 +8,7 @@ from __future__ import unicode_literals
 
 import csv
 import io
-
-from future.builtins import str as text
-from typing import Iterator, Dict, List, Text
+from typing import Dict, Iterator, List, Text
 
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -29,8 +28,8 @@ class Reader(object):
   """
 
   def __init__(self, content, delimiter = ","):
-    precondition.AssertType(content, text)
-    precondition.AssertType(delimiter, text)
+    precondition.AssertType(content, Text)
+    precondition.AssertType(delimiter, Text)
 
     self._content = content
     self._delimiter = delimiter
@@ -73,7 +72,7 @@ class Writer(object):
   """
 
   def __init__(self, delimiter = ","):
-    precondition.AssertType(delimiter, text)
+    precondition.AssertType(delimiter, Text)
 
     if compatibility.PY2:
       self._output = io.BytesIO()
@@ -91,7 +90,7 @@ class Writer(object):
     Args:
       values: A list of string values to be inserted into the CSV output.
     """
-    precondition.AssertIterableType(values, text)
+    precondition.AssertIterableType(values, Text)
 
     if compatibility.PY2:
       self._csv.writerow([value.encode("utf-8") for value in values])
@@ -118,8 +117,8 @@ class DictWriter(object):
   """
 
   def __init__(self, columns, delimiter = ","):
-    precondition.AssertIterableType(columns, text)
-    precondition.AssertType(delimiter, text)
+    precondition.AssertIterableType(columns, Text)
+    precondition.AssertType(delimiter, Text)
 
     self._writer = Writer(delimiter=delimiter)
     self._columns = columns
@@ -139,7 +138,7 @@ class DictWriter(object):
       values: A dictionary mapping column names to values to be inserted into
         the CSV output.
     """
-    precondition.AssertDictType(values, text, text)
+    precondition.AssertDictType(values, Text, Text)
 
     row = []
     for column in self._columns:

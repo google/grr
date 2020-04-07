@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the hunt."""
 from __future__ import absolute_import
 from __future__ import division
@@ -380,7 +381,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         count=sys.maxsize,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
     self.assertLen(logs, 5)
-    self.assertItemsEqual([l.client_id for l in logs], client_ids)
+    self.assertCountEqual([l.client_id for l in logs], client_ids)
     for l in logs:
       self.assertEqual(l.hunt_id, hunt_id)
       self.assertGreater(l.timestamp, 0)
@@ -408,7 +409,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         count=sys.maxsize,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
-    self.assertItemsEqual([e.client_id for e in errors], client_ids)
+    self.assertCountEqual([e.client_id for e in errors], client_ids)
     for e in errors:
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
@@ -460,7 +461,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         count=sys.maxsize,
         with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
     self.assertLen(errors, 5)
-    self.assertItemsEqual([e.client_id for e in errors], client_ids)
+    self.assertCountEqual([e.client_id for e in errors], client_ids)
     for e in errors:
       self.assertEqual(e.hunt_id, hunt_id)
       self.assertGreater(e.timestamp, 0)
@@ -999,7 +1000,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
 
     all_flows = data_store.REL_DB.ReadHuntFlows(hunt_obj.hunt_id, 0,
                                                 sys.maxsize)
-    self.assertItemsEqual(client_ids, [f.client_id for f in all_flows])
+    self.assertCountEqual(client_ids, [f.client_id for f in all_flows])
 
     for index, pair in enumerate(collection.Batch(client_ids, 2)):
       for client_id in pair:

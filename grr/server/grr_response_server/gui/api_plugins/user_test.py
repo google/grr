@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module contains tests for user API handlers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -345,8 +346,7 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(result.is_valid)
-    self.assertEqual(
-        sorted(result.approvers), sorted([self.token.username, u"approver"]))
+    self.assertCountEqual(result.approvers, [self.token.username, u"approver"])
 
   def testRaisesWhenApprovalIsNotFound(self):
     args = user_plugin.ApiGetClientApprovalArgs(

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -45,7 +46,7 @@ class ClientMock(action_mocks.ActionMock):
   """Mock of client actions."""
 
   def __init__(self):
-    super(ClientMock, self).__init__(ReturnHello)
+    super().__init__(ReturnHello)
 
 
 class CallStateFlow(flow_base.FlowBase):

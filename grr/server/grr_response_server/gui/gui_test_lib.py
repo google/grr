@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Helper functionality for gui testing."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,9 +12,9 @@ import logging
 import os
 import threading
 import time
+from urllib import parse as urlparse
 
 from absl import flags
-from future.moves.urllib import parse as urlparse
 import portpicker
 from selenium import webdriver
 from selenium.common import exceptions

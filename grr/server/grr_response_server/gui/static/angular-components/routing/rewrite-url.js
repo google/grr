@@ -11,7 +11,7 @@ const {getFilePathFromId} = goog.require('grrUi.client.virtualFileSystem.fileVie
  * Parses the location bar's #hash value into an object.
  *
  * @param {string} hash Hash to be parsed.
- * @return {Object} an associative array of encoded values.
+ * @return {!Object} an associative array of encoded values.
  */
 const parseHash = function(hash) {
   if (hash.indexOf('#') == 0) {

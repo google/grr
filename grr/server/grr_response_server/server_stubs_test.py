@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for server stubs for client actions."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.utils import iteritems
 
 from grr_response_client import client_actions
 from grr_response_server import action_registry
@@ -23,7 +23,7 @@ class ClientActionStubTest(client_action_test_lib.WithAllClientActionsMixin,
     # Check that there's >0 server stubs.
     self.assertNotEmpty(action_registry.ACTION_STUB_BY_ID)
 
-    for name, cls in iteritems(client_actions.REGISTRY):
+    for name, cls in client_actions.REGISTRY.items():
       self.assertIn(name, action_registry.ACTION_STUB_BY_ID)
 
       stub_cls = action_registry.ACTION_STUB_BY_ID[name]

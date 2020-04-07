@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The GRR relational database abstraction.
 
 This defines the Database abstraction, which defines the methods used by GRR on
@@ -15,11 +16,6 @@ from __future__ import unicode_literals
 import abc
 import collections
 import re
-
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
-from future.utils import with_metaclass
 from typing import Dict
 from typing import Generator
 from typing import Iterable
@@ -97,7 +93,7 @@ class Error(Exception):
   # with all positional arguments they've received and set self.message to
   # a custom message (in case they need one).
   def __init__(self, *args, **kwargs):
-    super(Error, self).__init__(*args)
+    super().__init__(*args)
 
     self.cause = kwargs.get("cause")
     self.message = None
@@ -124,7 +120,7 @@ class UnknownArtifactError(NotFoundError):
   """
 
   def __init__(self, name, cause=None):
-    super(UnknownArtifactError, self).__init__(name, cause=cause)
+    super().__init__(name, cause=cause)
 
     self.name = name
     self.message = "Artifact with name '%s' does not exist" % self.name
@@ -139,7 +135,7 @@ class DuplicatedArtifactError(Error):
   """
 
   def __init__(self, name, cause=None):
-    super(DuplicatedArtifactError, self).__init__(name, cause=cause)
+    super().__init__(name, cause=cause)
 
     self.name = name
     self.message = "Artifact with name '%s' already exists" % self.name
@@ -155,7 +151,7 @@ class UnknownClientError(NotFoundError):
   """
 
   def __init__(self, client_id, cause=None):
-    super(UnknownClientError, self).__init__(client_id, cause=cause)
+    super().__init__(client_id, cause=cause)
 
     self.client_id = client_id
     self.message = "Client with id '%s' does not exist" % self.client_id
@@ -164,7 +160,7 @@ class UnknownClientError(NotFoundError):
 class AtLeastOneUnknownClientError(UnknownClientError):
 
   def __init__(self, client_ids, cause=None):
-    super(AtLeastOneUnknownClientError, self).__init__(client_ids, cause=cause)
+    super().__init__(client_ids, cause=cause)
 
     self.client_ids = client_ids
     self.message = "At least one client in '%s' does not exist" % ",".join(
@@ -181,8 +177,7 @@ class UnknownPathError(NotFoundError):
   """
 
   def __init__(self, client_id, path_type, components, cause=None):
-    super(UnknownPathError, self).__init__(
-        client_id, path_type, components, cause=cause)
+    super().__init__(client_id, path_type, components, cause=cause)
 
     self.client_id = client_id
     self.path_type = path_type
@@ -196,8 +191,7 @@ class AtLeastOneUnknownPathError(NotFoundError):
   """An exception class raised when one of a set of paths is unknown."""
 
   def __init__(self, client_path_ids, cause=None):
-    super(AtLeastOneUnknownPathError, self).__init__(
-        client_path_ids, cause=cause)
+    super().__init__(client_path_ids, cause=cause)
 
     self.client_path_ids = client_path_ids
 
@@ -209,8 +203,7 @@ class NotDirectoryPathError(NotFoundError):
   """An exception class raised when a path corresponds to a non-directory."""
 
   def __init__(self, client_id, path_type, components, cause=None):
-    super(NotDirectoryPathError, self).__init__(
-        client_id, path_type, components, cause=cause)
+    super().__init__(client_id, path_type, components, cause=cause)
 
     self.client_id = client_id
     self.path_type = path_type
@@ -229,7 +222,7 @@ class UnknownGRRUserError(NotFoundError):
   """An error thrown when no user is found for a given username."""
 
   def __init__(self, username):
-    super(UnknownGRRUserError, self).__init__(username)
+    super().__init__(username)
     self.username = username
 
     self.message = "Cannot find user with username %r" % self.username
@@ -258,7 +251,7 @@ class UnknownSignedBinaryError(NotFoundError):
       cause: A lower-level Exception raised by the database driver, which might
         have more details about the error.
     """
-    super(UnknownSignedBinaryError, self).__init__(binary_id, cause=cause)
+    super().__init__(binary_id, cause=cause)
 
     self.binary_id = binary_id
     self.message = ("Signed binary of type %s and path %s was not found" %
@@ -268,7 +261,7 @@ class UnknownSignedBinaryError(NotFoundError):
 class UnknownFlowError(NotFoundError):
 
   def __init__(self, client_id, flow_id, cause=None):
-    super(UnknownFlowError, self).__init__(client_id, flow_id, cause=cause)
+    super().__init__(client_id, flow_id, cause=cause)
 
     self.client_id = client_id
     self.flow_id = flow_id
@@ -280,7 +273,7 @@ class UnknownFlowError(NotFoundError):
 class UnknownHuntError(NotFoundError):
 
   def __init__(self, hunt_id, cause=None):
-    super(UnknownHuntError, self).__init__(hunt_id, cause=cause)
+    super().__init__(hunt_id, cause=cause)
     self.hunt_id = hunt_id
 
     self.message = "Hunt with hunt id '%s' does not exist" % self.hunt_id
@@ -290,7 +283,7 @@ class DuplicatedHuntError(Error):
 
   def __init__(self, hunt_id, cause=None):
     message = "Hunt with hunt id '{}' already exists".format(hunt_id)
-    super(DuplicatedHuntError, self).__init__(message, cause=cause)
+    super().__init__(message, cause=cause)
 
     self.hunt_id = hunt_id
 
@@ -298,8 +291,7 @@ class DuplicatedHuntError(Error):
 class UnknownHuntOutputPluginStateError(NotFoundError):
 
   def __init__(self, hunt_id, state_index):
-    super(UnknownHuntOutputPluginStateError,
-          self).__init__(hunt_id, state_index)
+    super().__init__(hunt_id, state_index)
 
     self.hunt_id = hunt_id
     self.state_index = state_index
@@ -312,7 +304,7 @@ class UnknownHuntOutputPluginStateError(NotFoundError):
 class AtLeastOneUnknownFlowError(NotFoundError):
 
   def __init__(self, flow_keys, cause=None):
-    super(AtLeastOneUnknownFlowError, self).__init__(flow_keys, cause=cause)
+    super().__init__(flow_keys, cause=cause)
 
     self.flow_keys = flow_keys
 
@@ -324,8 +316,7 @@ class UnknownFlowRequestError(NotFoundError):
   """Raised when a flow request is not found."""
 
   def __init__(self, client_id, flow_id, request_id, cause=None):
-    super(UnknownFlowRequestError, self).__init__(
-        client_id, flow_id, request_id, cause=cause)
+    super().__init__(client_id, flow_id, request_id, cause=cause)
 
     self.client_id = client_id
     self.flow_id = flow_id
@@ -339,8 +330,7 @@ class UnknownFlowRequestError(NotFoundError):
 class AtLeastOneUnknownRequestError(NotFoundError):
 
   def __init__(self, request_keys, cause=None):
-    super(AtLeastOneUnknownRequestError, self).__init__(
-        request_keys, cause=cause)
+    super().__init__(request_keys, cause=cause)
 
     self.request_keys = request_keys
 
@@ -352,8 +342,7 @@ class ParentHuntIsNotRunningError(Error):
   """Exception indicating that a hunt-induced flow is not processable."""
 
   def __init__(self, client_id, flow_id, hunt_id, hunt_state):
-    super(ParentHuntIsNotRunningError, self).__init__(client_id, flow_id,
-                                                      hunt_id, hunt_state)
+    super().__init__(client_id, flow_id, hunt_id, hunt_state)
 
     self.client_id = client_id
     self.flow_id = flow_id
@@ -370,8 +359,7 @@ class HuntOutputPluginsStatesAreNotInitializedError(Error):
   """Exception indicating that hunt output plugin states weren't initialized."""
 
   def __init__(self, hunt_obj):
-    super(HuntOutputPluginsStatesAreNotInitializedError,
-          self).__init__(hunt_obj)
+    super().__init__(hunt_obj)
 
     self.hunt_obj = hunt_obj
 
@@ -384,8 +372,7 @@ class ConflictingUpdateFlowArgumentsError(Error):
   """Raised when UpdateFlow is called with conflicting parameter."""
 
   def __init__(self, client_id, flow_id, param_name):
-    super(ConflictingUpdateFlowArgumentsError,
-          self).__init__(client_id, flow_id, param_name)
+    super().__init__(client_id, flow_id, param_name)
     self.client_id = client_id
     self.flow_id = flow_id
     self.param_name = param_name
@@ -400,8 +387,7 @@ class FlowExistsError(Error):
   """Raised when an insertion fails because the Flow already exists."""
 
   def __init__(self, client_id, flow_id):
-    super(FlowExistsError, self).__init__("Flow {}/{} already exists.".format(
-        client_id, flow_id))
+    super().__init__("Flow {}/{} already exists.".format(client_id, flow_id))
     self.client_id = client_id
     self.flow_id = flow_id
 
@@ -556,7 +542,7 @@ class ClientPathHistory(object):
     self.hash_entries[timestamp] = hash_entry
 
 
-class Database(with_metaclass(abc.ABCMeta, object)):
+class Database(metaclass=abc.ABCMeta):
   """The GRR relational database abstraction."""
 
   unchanged = "__unchanged__"
@@ -771,7 +757,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
 
     for results in self.ReadClientLastPings(
         min_last_ping=min_last_ping, batch_size=batch_size):
-      yield list(iterkeys(results))
+      yield list(results.keys())
 
   @abc.abstractmethod
   def ReadClientLastPings(self,
@@ -1286,7 +1272,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     for batch in self.ReadAllClientIDs(
         min_last_ping=min_last_ping, batch_size=batch_size):
       res = self.MultiReadClientFullInfo(batch)
-      for full_info in itervalues(res):
+      for full_info in res.values():
         yield full_info
 
   def IterateAllClientSnapshots(self, min_last_ping=None, batch_size=50000):
@@ -1303,7 +1289,7 @@ class Database(with_metaclass(abc.ABCMeta, object)):
     for batch in self.ReadAllClientIDs(
         min_last_ping=min_last_ping, batch_size=batch_size):
       res = self.MultiReadClientSnapshot(batch)
-      for snapshot in itervalues(res):
+      for snapshot in res.values():
         if snapshot:
           yield snapshot
 
@@ -2803,7 +2789,7 @@ class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
 
   def __init__(self, delegate):
-    super(DatabaseValidationWrapper, self).__init__()
+    super().__init__()
     self.delegate = delegate
 
   def WriteArtifact(self, artifact):
@@ -3006,7 +2992,7 @@ class DatabaseValidationWrapper(Database):
     result = self.delegate.ListClientsForKeywords(
         keywords, start_time=start_time)
     precondition.AssertDictType(result, Text, List)
-    for value in itervalues(result):
+    for value in result.values():
       precondition.AssertIterableType(value, Text)
     return result
 
@@ -3031,7 +3017,7 @@ class DatabaseValidationWrapper(Database):
     _ValidateClientIds(client_ids)
     result = self.delegate.MultiReadClientLabels(client_ids)
     precondition.AssertDictType(result, Text, List)
-    for value in itervalues(result):
+    for value in result.values():
       precondition.AssertIterableType(value, rdf_objects.ClientLabel)
     return result
 
@@ -3290,7 +3276,7 @@ class DatabaseValidationWrapper(Database):
 
   def MultiWritePathInfos(self, path_infos):
     precondition.AssertType(path_infos, dict)
-    for client_id, client_path_infos in iteritems(path_infos):
+    for client_id, client_path_infos in path_infos.items():
       precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
@@ -3303,7 +3289,7 @@ class DatabaseValidationWrapper(Database):
 
   def MultiInitPathInfos(self, path_infos):
     precondition.AssertType(path_infos, dict)
-    for client_id, client_path_infos in iteritems(path_infos):
+    for client_id, client_path_infos in path_infos.items():
       precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
@@ -3317,7 +3303,7 @@ class DatabaseValidationWrapper(Database):
 
   def MultiClearPathHistory(self, path_infos):
     precondition.AssertType(path_infos, dict)
-    for client_id, client_path_infos in iteritems(path_infos):
+    for client_id, client_path_infos in path_infos.items():
       precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
@@ -3325,7 +3311,7 @@ class DatabaseValidationWrapper(Database):
 
   def MultiWritePathHistory(self, client_path_histories):
     precondition.AssertType(client_path_histories, dict)
-    for client_path, client_path_history in iteritems(client_path_histories):
+    for client_path, client_path_history in client_path_histories.items():
       precondition.AssertType(client_path, ClientPath)
       precondition.AssertType(client_path_history, ClientPathHistory)
 

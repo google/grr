@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for HTTP API."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from urllib import parse as urlparse
+
 from absl import app
-from future.moves.urllib import parse as urlparse
 import mock
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

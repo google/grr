@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This class handles the GRR Client Communication.
 
 The GRR client uses HTTP to communicate with the server.
@@ -76,6 +77,7 @@ import logging
 import os
 import pdb
 import posixpath
+import queue
 import signal
 import sys
 import threading
@@ -84,7 +86,6 @@ import traceback
 
 from absl import flags
 import psutil
-import queue
 import requests
 
 from grr_response_client import actions
@@ -723,6 +724,7 @@ class GRRClientWorker(threading.Thread):
     return self._is_active
 
   def SendNannyMessage(self):
+    """Sends the Nanny message."""
     # We might be monitored by Fleetspeak.
     if not self.nanny_controller:
       return
@@ -1307,8 +1309,7 @@ class ClientCommunicator(communicator.Communicator):
   """
 
   def __init__(self, certificate=None, private_key=None):
-    super(ClientCommunicator, self).__init__(
-        certificate=certificate, private_key=private_key)
+    super().__init__(certificate=certificate, private_key=private_key)
     self.InitPrivateKey()
 
   def InitPrivateKey(self):

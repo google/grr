@@ -9,10 +9,8 @@ from __future__ import unicode_literals
 import collections
 import itertools
 import re
-from typing import Iterable
+from typing import Iterable, Optional, Type
 
-from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -56,7 +54,7 @@ class ApiFlowId(rdfvalue.RDFString):
   """Class encapsulating flows ids."""
 
   def __init__(self, initializer=None):
-    super(ApiFlowId, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
 
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
@@ -121,7 +119,7 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
         "    %s" % self._GetCallingPrototypeAsString(flow_cls), ""
     ]
     arg_list = sorted(
-        iteritems(self._GetArgsDescription(flow_cls.args_type)),
+        self._GetArgsDescription(flow_cls.args_type).items(),
         key=lambda x: x[0])
     if not arg_list:
       output.append("  Args: None")
@@ -187,20 +185,28 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       rdfvalue.SessionID,
   ]
 
-  def GetArgsClass(self):
+  def _GetFlowClass(self):
     flow_name = self.name
     if not flow_name:
       flow_name = self.runner_args.flow_name
 
     if flow_name:
-      flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+      return registry.FlowRegistry.FlowClassByName(flow_name)
 
-      # The required protobuf for this class is in args_type.
-      return flow_cls.args_type
+  def GetArgsClass(self):
+    cls = self._GetFlowClass()
+    if cls is not None:
+      return cls.args_type
+
+  def GetProgressClass(self):
+    cls = self._GetFlowClass()
+    if cls is not None:
+      return cls.progress_type
 
   def InitFromFlowObject(self,
                          flow_obj,
                          with_args=True,
+                         with_progress=False,
                          with_state_and_context=False):
     try:
       self.flow_id = flow_obj.flow_id
@@ -262,6 +268,11 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
           # this gracefully - we should still try to display some useful info
           # about the flow.
           pass
+
+      if with_progress:
+        flow_cls = self._GetFlowClass()
+        if flow_cls:
+          self.progress = flow_cls(flow_obj).GetProgress()
 
       self.runner_args = rdf_flow_runner.FlowRunnerArgs(
           client_id=flow_obj.client_id,
@@ -350,7 +361,8 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
-    return ApiFlow().InitFromFlowObject(flow_obj, with_state_and_context=True)
+    return ApiFlow().InitFromFlowObject(
+        flow_obj, with_state_and_context=True, with_progress=True)
 
 
 class ApiListFlowRequestsArgs(rdf_structs.RDFProtoStruct):
@@ -830,6 +842,7 @@ class ApiListFlowsArgs(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiListFlowsArgs
   rdf_deps = [
       client.ApiClientId,
+      rdfvalue.RDFDatetime,
   ]
 
 
@@ -846,9 +859,29 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowsArgs
   result_type = ApiListFlowsResult
 
-  def Handle(self, args, token=None):
+  def _HandleTopFlowsOnly(self, args, token=None):
+    top_flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id=str(args.client_id),
+        min_create_time=args.min_started_at,
+        max_create_time=args.max_started_at,
+        include_child_flows=False)
+
+    result = [
+        ApiFlow().InitFromFlowObject(
+            f_data, with_args=True, with_progress=True) for f_data in top_flows
+    ]
+    result.sort(key=lambda f: f.started_at, reverse=True)
+    result = result[args.offset:]
+    if args.count:
+      result = result[:args.count]
+    return ApiListFlowsResult(items=result)
+
+  def _HandleAllFlows(self, args, token=None):
     all_flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=str(args.client_id))
+        client_id=str(args.client_id),
+        min_create_time=args.min_started_at,
+        max_create_time=args.max_started_at,
+        include_child_flows=True)
     api_flow_dict = {
         rdf_flow.flow_id:
         ApiFlow().InitFromFlowObject(rdf_flow, with_args=False)
@@ -871,13 +904,19 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         child_flow_ids.add(rdf_flow.flow_id)
 
     result = [
-        f for f in itervalues(api_flow_dict) if f.flow_id not in child_flow_ids
+        f for f in api_flow_dict.values() if f.flow_id not in child_flow_ids
     ]
     result.sort(key=lambda f: f.started_at, reverse=True)
     result = result[args.offset:]
     if args.count:
       result = result[:args.count]
     return ApiListFlowsResult(items=result)
+
+  def Handle(self, args, token=None):
+    if args.top_flows_only:
+      return self._HandleTopFlowsOnly(args, token=token)
+    else:
+      return self._HandleAllFlows(args, token=token)
 
 
 class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
@@ -959,10 +998,14 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   """Cancels given flow on a given client."""
 
   args_type = ApiCancelFlowArgs
+  result_type = ApiFlow
 
   def Handle(self, args, token=None):
     flow_base.TerminateFlow(
         str(args.client_id), str(args.flow_id), reason="Cancelled in GUI")
+    flow_obj = data_store.REL_DB.ReadFlowObject(
+        str(args.client_id), str(args.flow_id))
+    return ApiFlow().InitFromFlowObject(flow_obj)
 
 
 class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
@@ -978,14 +1021,14 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowDescriptorsResult
 
   def __init__(self, access_check_fn=None):
-    super(ApiListFlowDescriptorsHandler, self).__init__()
+    super().__init__()
     self.access_check_fn = access_check_fn
 
   def Handle(self, args, token=None):
     """Renders list of descriptors for all the flows."""
 
     result = []
-    for name, cls in sorted(iteritems(registry.FlowRegistry.FLOW_REGISTRY)):
+    for name, cls in sorted(registry.FlowRegistry.FLOW_REGISTRY.items()):
 
       # Flows without a category do not show up in the GUI.
       if not getattr(cls, "category", None):

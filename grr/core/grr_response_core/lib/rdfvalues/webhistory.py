@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValues describing web history artifacts."""
 
 from __future__ import absolute_import

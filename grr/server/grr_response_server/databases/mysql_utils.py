@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utilities used by the MySQL database."""
 from __future__ import absolute_import
 from __future__ import division
@@ -16,7 +17,6 @@ from typing import Sequence
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_server.databases import db_utils
 
@@ -198,11 +198,7 @@ class WithTransaction(object):
   def __call__(self, func):
     readonly = self.readonly
 
-    if compatibility.PY2:
-      takes_args = inspect.getargspec(func).args
-    else:
-      takes_args = inspect.getfullargspec(func).args
-
+    takes_args = inspect.getfullargspec(func).args
     takes_connection = "connection" in takes_args
     takes_cursor = "cursor" in takes_args
 

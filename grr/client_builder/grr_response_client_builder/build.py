@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
+# Lint as: python3
 """Classes for handling build and repackaging of clients.
 
 This handles invocations for the build across the supported platforms including
@@ -12,8 +12,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-
-from future.utils import with_metaclass
 
 from typing import Text
 
@@ -38,7 +36,7 @@ REQUIRED_BUILD_YAML_KEYS = frozenset([
 ])
 
 
-class ClientBuilder(with_metaclass(abc.ABCMeta)):
+class ClientBuilder(metaclass=abc.ABCMeta):
   """A client builder is responsible for building the binary template.
 
   This is an abstract client builder class, used by the OS specific
@@ -79,7 +77,7 @@ class ClientBuilder(with_metaclass(abc.ABCMeta)):
     """
 
 
-class ClientRepacker(with_metaclass(abc.ABCMeta)):
+class ClientRepacker(metaclass=abc.ABCMeta):
   """Takes the binary template and producing an installer.
 
   Note that this should be runnable on all operating systems.

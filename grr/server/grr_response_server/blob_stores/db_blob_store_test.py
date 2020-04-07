@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for REL_DB-based blob store."""
 
 from __future__ import absolute_import

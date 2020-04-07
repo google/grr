@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Map the conditions that trigger checks to the methods that perform them."""
 from __future__ import absolute_import
 from __future__ import division
@@ -29,7 +30,7 @@ class Target(rdf_structs.RDFProtoStruct):
       initializer = None
     else:
       conf = kwargs
-    super(Target, self).__init__(initializer=initializer, **conf)
+    super().__init__(initializer=initializer, **conf)
 
   def __bool__(self):
     return any([self.cpe, self.os, self.label])

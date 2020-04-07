@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with utilities for a very simple serialization format."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,6 +11,8 @@ import io
 import struct
 
 from typing import Iterator
+
+from grr_response_core.lib.util import chunked
 
 DEFAULT_CHUNK_SIZE = 1 * 1024 * 1024  # 1 MiB.
 
@@ -35,8 +38,7 @@ def Serialize(
 
     with gzip.GzipFile(fileobj=buf, mode="wb") as filedesc:
       for data in stream:
-        filedesc.write(_UINT64.pack(len(data)))
-        filedesc.write(data)
+        chunked.Write(filedesc, data)  # pytype: disable=wrong-arg-types
         buf_entry_count += 1
 
         if len(buf.getvalue()) >= chunk_size:
@@ -62,17 +64,9 @@ def Deserialize(stream):
 
     with gzip.GzipFile(fileobj=buf, mode="rb") as filedesc:
       while True:
-        count = filedesc.read(_UINT64.size)
-        if not count:
+        data = chunked.Read(filedesc)  # pytype: disable=wrong-arg-types
+        if data is None:
           break
-        elif len(count) != _UINT64.size:
-          raise ValueError("Incorrect gzchunked data size")
-
-        (count,) = _UINT64.unpack(count)
-
-        data = filedesc.read(count)
-        if len(data) != count:
-          raise ValueError("Content too short")
 
         yield data
 

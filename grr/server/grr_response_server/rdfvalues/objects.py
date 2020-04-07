@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Top level datastore objects.
 
 This package contains the rdfvalue wrappers around the top level datastore
@@ -14,9 +15,8 @@ import hashlib
 import itertools
 import os
 import stat
-
-from future.utils import python_2_unicode_compatible
 from typing import Text
+
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -68,7 +68,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(ClientSnapshot, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.timestamp = None
 
   def Uname(self):
@@ -214,7 +214,6 @@ class ApprovalRequest(rdf_structs.RDFProtoStruct):
     return self.expiration_time < rdfvalue.RDFDatetime.Now()
 
 
-@python_2_unicode_compatible
 @functools.total_ordering
 class HashID(rdfvalue.RDFValue):
   """An unique hash identifier."""
@@ -230,7 +229,7 @@ class HashID(rdfvalue.RDFValue):
       raise TypeError("Trying to instantiate base HashID class. "
                       "hash_id_length has to be set.")
 
-    super(HashID, self).__init__()
+    super().__init__()
 
     if isinstance(initializer, HashID):
       initializer = initializer._value  # pylint: disable=protected-access
@@ -336,7 +335,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(PathInfo, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     _ValidatePathComponents(self.components)
 
   # TODO(hanuszczak): Find a reliable way to make sure that noone ends up with
@@ -361,6 +360,10 @@ class PathInfo(rdf_structs.RDFProtoStruct):
     return cls(*args, path_type=cls.PathType.REGISTRY, **kwargs)
 
   @classmethod
+  def NTFS(cls, *args, **kwargs):
+    return cls(*args, path_type=cls.PathType.NTFS, **kwargs)
+
+  @classmethod
   def PathTypeFromPathspecPathType(cls, ps_path_type):
     if ps_path_type == rdf_paths.PathSpec.PathType.OS:
       return cls.PathType.OS
@@ -370,6 +373,8 @@ class PathInfo(rdf_structs.RDFProtoStruct):
       return cls.PathType.REGISTRY
     elif ps_path_type == rdf_paths.PathSpec.PathType.TMPFILE:
       return cls.PathType.TEMP
+    elif ps_path_type == rdf_paths.PathSpec.PathType.NTFS:
+      return cls.PathType.NTFS
     else:
       raise ValueError("Unexpected path type: %s" % ps_path_type)
 
@@ -529,6 +534,8 @@ def ParseCategorizedPath(path):
     return PathInfo.PathType.REGISTRY, components[1:]
   elif components[0:1] == ("temp",):
     return PathInfo.PathType.TEMP, components[1:]
+  elif components[0:2] == ("fs", "ntfs"):
+    return PathInfo.PathType.NTFS, components[2:]
   else:
     raise ValueError("Incorrect path: '%s'" % path)
 
@@ -541,6 +548,7 @@ def ToCategorizedPath(path_type, components):
         PathInfo.PathType.TSK: ("fs", "tsk"),
         PathInfo.PathType.REGISTRY: ("registry",),
         PathInfo.PathType.TEMP: ("temp",),
+        PathInfo.PathType.NTFS: ("fs", "ntfs"),
     }[path_type]
   except KeyError:
     raise ValueError("Unknown path type: `%s`" % path_type)
@@ -585,6 +593,8 @@ class VfsFileReference(rdf_structs.RDFProtoStruct):
       return os.path.join("registry", *self.path_components)
     elif self.path_type == PathInfo.PathType.TEMP:
       return os.path.join("temp", *self.path_components)
+    elif self.path_type == PathInfo.PathType.NTFS:
+      return os.path.join("fs", "ntfs", *self.path_components)
 
     raise ValueError("Unsupported path type: %s" % self.path_type)
 

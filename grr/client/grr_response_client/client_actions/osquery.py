@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with client action for talking with osquery."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,7 +9,6 @@ from __future__ import unicode_literals
 import collections
 import os
 
-from future.utils import iterkeys
 from typing import Any
 from typing import Iterator
 from typing import List
@@ -39,7 +39,7 @@ class Error(Exception):
     if cause is not None:
       message = "{message}: {cause}".format(message=message, cause=cause)
 
-    super(Error, self).__init__(message)
+    super().__init__(message)
     self.cause = cause
 
 
@@ -48,14 +48,15 @@ class QueryError(Error):
 
   def __init__(self, output, cause = None):
     message = "invalid query: {}".format(output)
-    super(QueryError, self).__init__(message, cause=cause)
+    super().__init__(message, cause=cause)
 
 
-class TimeoutError(Error):
+# TODO(hanuszczak): Fix the linter error properly.
+class TimeoutError(Error):  # pylint: disable=redefined-builtin
   """A class of exceptions raised when a call to osquery timeouts."""
 
   def __init__(self, cause = None):
-    super(TimeoutError, self).__init__("osquery timeout", cause=cause)
+    super().__init__("osquery timeout", cause=cause)
 
 
 class Osquery(actions.ActionPlugin):
@@ -185,7 +186,7 @@ def ParseHeader(table):
   prototype = None  # type: List[Text]
 
   for row in table:
-    columns = list(iterkeys(row))
+    columns = list(row.keys())
     if prototype is None:
       prototype = columns
     elif prototype != columns:

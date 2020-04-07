@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """RDFValue implementations related to flow scheduling."""
 
 from __future__ import absolute_import
@@ -39,7 +40,7 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
                payload=None,
                generate_task_id=False,
                **kwarg):
-    super(GrrMessage, self).__init__(initializer=initializer, **kwarg)
+    super().__init__(initializer=initializer, **kwarg)
 
     if payload is not None:
       self.payload = payload
@@ -259,7 +260,7 @@ class ClientActionRequest(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(ClientActionRequest, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
     if not self.HasField("cpu_limit_ms"):
       self.cpu_limit_ms = 3600000

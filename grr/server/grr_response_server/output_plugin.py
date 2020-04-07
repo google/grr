@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Output plugins used by flows and hunts for results exports."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,12 +8,10 @@ from __future__ import unicode_literals
 import abc
 import threading
 
-from future.utils import with_metaclass
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import OutputPluginRegistry
 from grr_response_proto import output_plugin_pb2
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
@@ -33,7 +32,7 @@ class PluginDoesNotProduceOutputStreams(Error):
   """Raised when output streams API is used on plugins not supporting them."""
 
 
-class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
+class OutputPlugin(metaclass=OutputPluginRegistry):
   """The base class for output plugins.
 
   Plugins process responses incrementally in small batches.
@@ -52,6 +51,7 @@ class OutputPlugin(with_metaclass(registry.OutputPluginRegistry, object)):
 
   @classmethod
   def CreatePluginAndDefaultState(cls, source_urn=None, args=None, token=None):
+    """Creates a plugin and returns its initial state."""
     state = rdf_protodict.AttributedDict()
     state["source_urn"] = source_urn
     if args is not None:

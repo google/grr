@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The in memory database methods for cron job handling."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -23,7 +23,7 @@ class InMemoryDBCronJobMixin(object):
   def ReadCronJobs(self, cronjob_ids=None):
     """Reads a cronjob from the database."""
     if cronjob_ids is None:
-      res = [job.Copy() for job in itervalues(self.cronjobs)]
+      res = [job.Copy() for job in self.cronjobs.values()]
 
     else:
       res = []
@@ -101,7 +101,7 @@ class InMemoryDBCronJobMixin(object):
     now = rdfvalue.RDFDatetime.Now()
     expiration_time = now + lease_time
 
-    for job in itervalues(self.cronjobs):
+    for job in self.cronjobs.values():
       if cronjob_ids and job.cron_job_id not in cronjob_ids:
         continue
       existing_lease = self.cronjob_leases.get(job.cron_job_id)
@@ -149,14 +149,13 @@ class InMemoryDBCronJobMixin(object):
   def ReadCronJobRuns(self, job_id):
     """Reads all cron job runs for a given job id."""
     runs = [
-        run for run in itervalues(self.cronjob_runs)
-        if run.cron_job_id == job_id
+        run for run in self.cronjob_runs.values() if run.cron_job_id == job_id
     ]
     return sorted(runs, key=lambda run: run.timestamp, reverse=True)
 
   def ReadCronJobRun(self, job_id, run_id):
     """Reads a single cron job run from the db."""
-    for run in itervalues(self.cronjob_runs):
+    for run in self.cronjob_runs.values():
       if run.cron_job_id == job_id and run.run_id == run_id:
         return run
     raise db.UnknownCronJobRunError(
@@ -165,7 +164,7 @@ class InMemoryDBCronJobMixin(object):
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
     """Deletes cron job runs for a given job id."""
     deleted = 0
-    for run in list(itervalues(self.cronjob_runs)):
+    for run in list(self.cronjob_runs.values()):
       if run.timestamp < cutoff_timestamp:
         del self.cronjob_runs[(run.cron_job_id, run.run_id)]
         deleted += 1

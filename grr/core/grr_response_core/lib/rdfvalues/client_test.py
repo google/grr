@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Test client RDFValues."""
 
 from __future__ import absolute_import

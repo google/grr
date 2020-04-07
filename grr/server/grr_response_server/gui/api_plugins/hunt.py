@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handlers for accessing hunts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,7 +10,6 @@ import functools
 import os
 import re
 
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -80,7 +80,7 @@ class ApiHuntId(rdfvalue.RDFString):
   """Class encapsulating hunt ids."""
 
   def __init__(self, initializer=None):
-    super(ApiHuntId, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
 
     # TODO(user): move this to a separate validation method when
     # common RDFValues validation approach is implemented.
@@ -914,8 +914,8 @@ class ApiGetHuntClientCompletionStatsHandler(
     for client, timestamp in completed_clients:
       fdict.setdefault(client, []).append(timestamp)
 
-    cl_age = [min(x).AsSecondsSinceEpoch() for x in itervalues(cdict)]
-    fi_age = [min(x).AsSecondsSinceEpoch() for x in itervalues(fdict)]
+    cl_age = [min(x).AsSecondsSinceEpoch() for x in cdict.values()]
+    fi_age = [min(x).AsSecondsSinceEpoch() for x in fdict.values()]
 
     cl_hist = {}
     fi_hist = {}

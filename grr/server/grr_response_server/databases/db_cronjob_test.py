@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Mixin tests for storing cronjob objects in the relational db."""
 from __future__ import absolute_import
 from __future__ import division
@@ -183,9 +184,8 @@ class DatabaseTestCronJobMixin(object):
           cronjob_ids=[job.cron_job_id for job in jobs[:2]],
           lease_time=lease_time)
       self.assertLen(leased, 2)
-      self.assertEqual(
-          sorted([j.cron_job_id for j in leased]),
-          sorted([j.cron_job_id for j in jobs[:2]]))
+      self.assertCountEqual([j.cron_job_id for j in leased],
+                            [j.cron_job_id for j in jobs[:2]])
 
   def testCronJobReturning(self):
     job = self._CreateCronJob()

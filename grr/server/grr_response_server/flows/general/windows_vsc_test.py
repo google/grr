@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for Windows Volume Shadow Copy flow."""
 from __future__ import absolute_import
 from __future__ import division
@@ -104,7 +105,7 @@ class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
         ["\\\\.\\HarddiskVolumeShadowCopy3"])
 
     self.assertLen(children, 10)
-    self.assertItemsEqual([x.components[-1] for x in children],
+    self.assertCountEqual([x.components[-1] for x in children],
                           ["file %s" % i for i in range(10)])
 
 

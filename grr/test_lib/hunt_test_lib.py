@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 import hashlib
 import sys
 
-from future.utils import iteritems
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -152,7 +151,7 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
 
   client_mocks = [
       flow_test_lib.MockClient(client_id, client_mock, token=token)
-      for client_id, client_mock in iteritems(client_mocks)
+      for client_id, client_mock in client_mocks.items()
   ]
 
   if worker is None:

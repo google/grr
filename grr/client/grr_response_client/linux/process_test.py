@@ -1,9 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the Linux process memory reading."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import builtins
 import os
 
 from absl import app
@@ -11,7 +13,6 @@ from absl import app
 from grr_response_client import process_error
 from grr_response_client.linux import process
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 
@@ -43,7 +44,7 @@ class ProcessTest(test_lib.GRRBaseTest):
 
       raise OSError("Error in open.")
 
-    with utils.MultiStubber((compatibility.builtins, "open", MockedOpen),
+    with utils.MultiStubber((builtins, "open", MockedOpen),
                             (process, "open64", MockedOpen64)):
       with process.Process(pid=100) as proc:
         self.assertLen(list(proc.Regions()), 32)

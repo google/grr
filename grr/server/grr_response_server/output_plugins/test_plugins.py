@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Output plugins used for testing."""
 from __future__ import absolute_import
 from __future__ import division

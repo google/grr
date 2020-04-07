@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utilities for managing signed binaries."""
 from __future__ import absolute_import
 from __future__ import division
@@ -57,8 +58,7 @@ class SignedBinaryNotFoundError(Exception):
   """Exception raised when a signed binary is not found in the datastore."""
 
   def __init__(self, binary_urn):
-    super(SignedBinaryNotFoundError,
-          self).__init__("Binary with urn %s was not found." % binary_urn)
+    super().__init__("Binary with urn %s was not found." % binary_urn)
 
 
 def WriteSignedBinary(binary_urn,

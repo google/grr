@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for Linux files."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,9 +10,6 @@ import collections
 import logging
 import os
 import re
-
-from future.utils import iteritems
-from future.utils import itervalues
 from typing import Optional
 from typing import Text
 
@@ -72,7 +70,7 @@ class PCIDevicesInfoParser(parsers.MultiFileParser):
 
     # Now that we've captured all information for each PCI device. Let's convert
     # the dictionary into a list of PCIDevice protos.
-    for bdf, bdf_filedata in iteritems(data):
+    for bdf, bdf_filedata in data.items():
       pci_device = rdf_client.PCIDevice()
       bdf_split = bdf.split(":")
       df_split = bdf_split[2].split(".")
@@ -205,7 +203,7 @@ class LinuxWtmpParser(parsers.SingleFileParser):
       except KeyError:
         users[record.user] = record.sec
 
-    for user, last_login in iteritems(users):
+    for user, last_login in users.items():
       yield rdf_client.User(
           username=utils.SmartUnicode(user), last_logon=last_login * 1000000)
 
@@ -318,7 +316,7 @@ class LinuxBaseShadowParser(parsers.MultiFileParser):
   shadow_store = None
 
   def __init__(self, *args, **kwargs):
-    super(LinuxBaseShadowParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     # Entries as defined by "getent", i.e. account databases used by nsswitch.
     self.entry = {}
     # Shadow files
@@ -392,7 +390,7 @@ class LinuxBaseShadowParser(parsers.MultiFileParser):
       store_type: The type of password store that should be used (e.g.
         /etc/shadow or /etc/gshadow)
     """
-    for k, v in iteritems(self.entry):
+    for k, v in self.entry.items():
       if v.pw_entry.store == store_type:
         shadow_entry = self.shadow.get(k)
         if shadow_entry is not None:
@@ -439,7 +437,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
   shadow_store = rdf_client.PwEntry.PwStore.GSHADOW
 
   def __init__(self, *args, **kwargs):
-    super(LinuxSystemGroupParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.gshadow_members = {}
 
   def ParseGshadowEntry(self, line):
@@ -489,14 +487,14 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
     Normally group and shadow should be in sync, but no guarantees. Merges the
     two stores as membership in either file may confer membership.
     """
-    for group_name, members in iteritems(self.gshadow_members):
+    for group_name, members in self.gshadow_members.items():
       group = self.entry.get(group_name)
       if group and group.pw_entry.store == self.shadow_store:
         group.members = members.union(group.members)
 
   def FindAnomalies(self):
     """Identify any anomalous group attributes or memberships."""
-    for grp_name, group in iteritems(self.entry):
+    for grp_name, group in self.entry.items():
       shadow = self.shadow.get(grp_name)
       gshadows = self.gshadow_members.get(grp_name, [])
       if shadow is not None:
@@ -544,7 +542,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
       yield anom
     # Then add shadow group members to the group membership.
     self.MergeMembers()
-    for group in itervalues(self.entry):
+    for group in self.entry.values():
       yield group
 
 
@@ -558,7 +556,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
   shadow_store = rdf_client.PwEntry.PwStore.SHADOW
 
   def __init__(self, *args, **kwargs):
-    super(LinuxSystemPasswdParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.groups = {}  # Groups mapped by name.
     self.memberships = {}  # Group memberships per user.
     self.uids = {}  # Assigned uids
@@ -620,21 +618,21 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
 
   def AddGroupMemberships(self):
     """Adds aggregate group membership from group, gshadow and passwd."""
-    self.groups = {g.name: self._Members(g) for g in itervalues(self.groups)}
+    self.groups = {g.name: self._Members(g) for g in self.groups.values()}
     # Map the groups a user is a member of, irrespective of primary/extra gid.
-    for g in itervalues(self.groups):
+    for g in self.groups.values():
       for user in g.members:
         membership = self.memberships.setdefault(user, set())
         membership.add(g.gid)
     # Now add the completed membership to the user account.
-    for user in itervalues(self.entry):
+    for user in self.entry.values():
       user.gids = self.memberships.get(user.username)
 
   def FindAnomalies(self):
     """Identify anomalies in the password/shadow and group/gshadow data."""
     # Find anomalous group entries.
     findings = []
-    group_entries = {g.gid for g in itervalues(self.groups)}
+    group_entries = {g.gid for g in self.groups.values()}
     for gid in set(self.gids) - group_entries:
       undefined = ",".join(self.gids.get(gid, []))
       findings.append(
@@ -644,7 +642,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
 
     # Find any shared user IDs.
     findings = []
-    for uid, names in iteritems(self.uids):
+    for uid, names in self.uids.items():
       if len(names) > 1:
         findings.append("uid %d assigned to multiple accounts: %s" %
                         (uid, ",".join(sorted(names))))
@@ -709,9 +707,9 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       else:
         yield rdf
     self.AddGroupMemberships()
-    for user in itervalues(self.entry):
+    for user in self.entry.values():
       yield user
-    for grp in itervalues(self.groups):
+    for grp in self.groups.values():
       yield grp
     for anom in self.FindAnomalies():
       yield anom
@@ -748,7 +746,7 @@ class PathParser(parsers.SingleFileParser):
   _SHELLVAR_RE = re.compile(r'"?\$\{?\s*(\w+)\s*\}?"?')
 
   def __init__(self, *args, **kwargs):
-    super(PathParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     # Terminate entries on ";" to capture multiple values on one line.
     self.parser = config_file.FieldParser(term=r"[\r\n;]")
 
@@ -877,6 +875,6 @@ class PathParser(parsers.SingleFileParser):
       paths = self._ParseCshVariables(lines)
     else:
       paths = self._ParseShVariables(lines)
-    for path_name, path_vals in iteritems(paths):
+    for path_name, path_vals in paths.items():
       yield rdf_protodict.AttributedDict(
           config=pathspec.path, name=path_name, vals=path_vals)

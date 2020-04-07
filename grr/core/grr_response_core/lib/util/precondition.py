@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with assertion functions for checking preconditions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,8 +7,6 @@ from __future__ import unicode_literals
 
 import collections
 import re
-
-from future.utils import iteritems
 from typing import Sized, Text
 
 
@@ -81,7 +80,7 @@ def AssertDictType(dct, expected_key_type, expected_value_type):
                keys and values have the expected type.
   """
   AssertType(dct, dict)
-  for key, value in iteritems(dct):
+  for key, value in dct.items():
     AssertType(key, expected_key_type)
     AssertType(value, expected_value_type)
 

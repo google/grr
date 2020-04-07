@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API E2E tests for ApiCallRobotRouter."""
 from __future__ import absolute_import
 from __future__ import division
@@ -122,16 +123,16 @@ users:
     # First component of every path in the archive is the containing folder,
     # we should strip it.
     namelist = [os.path.join(*n.split(os.sep)[1:]) for n in namelist]
-    self.assertEqual(
-        sorted([
+    self.assertCountEqual(
+        [
             # pyformat: disable
             os.path.join(self.client_id, "fs", "os", self.base_path.strip("/"),
                          "test.plist"),
             os.path.join(self.client_id, "client_info.yaml"),
             "MANIFEST"
             # pyformat: enable
-        ]),
-        sorted(namelist))
+        ],
+        namelist)
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %

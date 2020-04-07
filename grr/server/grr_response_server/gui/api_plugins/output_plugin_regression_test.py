@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module contains regression tests for output plugins API handlers."""
 from __future__ import absolute_import
 from __future__ import division

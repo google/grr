@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Central registry for artifacts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,8 +10,6 @@ import logging
 import os
 import threading
 
-from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
@@ -290,7 +289,7 @@ class ArtifactRegistry(object):
   def _UnregisterDatastoreArtifacts(self):
     """Remove artifacts that came from the datastore."""
     to_remove = []
-    for name, artifact in iteritems(self._artifacts):
+    for name, artifact in self._artifacts.items():
       if artifact.loaded_from.startswith("datastore"):
         to_remove.append(name)
     for key in to_remove:
@@ -338,7 +337,7 @@ class ArtifactRegistry(object):
     """
     self._CheckDirty(reload_datastore_artifacts=reload_datastore_artifacts)
     results = {}
-    for artifact in itervalues(self._artifacts):
+    for artifact in self._artifacts.values():
 
       # artifact.supported_os = [] matches all OSes
       if os_name and artifact.supported_os and (
@@ -671,7 +670,7 @@ def GetArtifactPathDependencies(rdf_artifact):
   """
   deps = set()
   for source in rdf_artifact.sources:
-    for arg, value in iteritems(source.attributes):
+    for arg, value in source.attributes.items():
       paths = []
       if arg in ["path", "query"]:
         paths.append(value)

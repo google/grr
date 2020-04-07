@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """FS GRR server side integration utility functions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,18 +7,16 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
-
 from typing import Text
-
-from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
-from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import text
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
+from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
+from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
 def IsFleetspeakEnabledClient(grr_id):

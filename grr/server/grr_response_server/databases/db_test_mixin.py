@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Mixin class to be used in tests for DB implementations."""
 from __future__ import absolute_import
@@ -6,14 +7,13 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-from future.utils import with_metaclass
 import mock
 
 from grr_response_server import data_store
 from grr_response_server.databases import db
 
 
-class DatabaseProvider(with_metaclass(abc.ABCMeta, object)):
+class DatabaseProvider(metaclass=abc.ABCMeta):
   """An abstract class that provides tests with a database."""
 
   @abc.abstractmethod
@@ -31,6 +31,7 @@ class DatabaseSetupMixin(DatabaseProvider):
   """A mixin that adds a setup method to tests that instantiates self.db."""
 
   def setUp(self):
+    """Setups the database mixin."""
     # Set up database before calling super.setUp(), in case any other mixin
     # depends on db during its setup.
     db_obj, cleanup = self.CreateDatabase()
@@ -45,7 +46,7 @@ class DatabaseSetupMixin(DatabaseProvider):
     super(DatabaseSetupMixin, self).setUp()
 
 
-class DatabaseTestMixin(with_metaclass(abc.ABCMeta, DatabaseSetupMixin)):
+class DatabaseTestMixin(DatabaseSetupMixin, metaclass=abc.ABCMeta):
   """An abstract class for testing db.Database implementations.
 
   Implementations should override CreateDatabase in order to produce
@@ -75,6 +76,7 @@ class GlobalDatabaseTestMixin(DatabaseProvider):
   """
 
   def setUp(self):
+    """Setups the global database environment."""
     # Set up database before calling super.setUp(), in case any other mixin
     # depends on db during its setup.
     db_obj, cleanup = self.CreateDatabase()

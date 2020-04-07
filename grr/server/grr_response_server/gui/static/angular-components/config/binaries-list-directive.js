@@ -12,7 +12,7 @@ goog.module.declareLegacyNamespace();
  * Note that returned array has some extra fields containing path information.
  *
  * @param {Array<Object>} binaries
- * @return {Array<Object>}
+ * @return {!Array<Object>}
  */
 exports.sortBinaries = function(binaries) {
   return binaries.map(function(b) {

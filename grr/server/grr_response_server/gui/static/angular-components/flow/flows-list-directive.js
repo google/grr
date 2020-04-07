@@ -70,7 +70,7 @@ var flattenFlowsList = exports.flattenFlowsList;
  *
  * @param {Array<Object>} flows Flattened list of flows.
  * @param {number} index Index of a flow to be expanded.
- * @return {Array<Object>} Returns list of flows passed in "flows" argument.
+ * @return {!Array<Object>} Returns list of flows passed in "flows" argument.
  *     Note that it's modified inplace, no copies are created.
  *
  * @export

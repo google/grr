@@ -3,19 +3,24 @@
 import csv
 import io
 import random
+from typing import Optional
 from typing import Sequence
 from typing import Text
+import zipfile
 
 from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
+from grr_response_core.lib.util import chunked
 from grr_response_server import data_store
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import testing_startup
 
 
@@ -141,10 +146,10 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     args.flow_id = flow_id
     args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
 
-    content = self.handler.Handle(args).GenerateContent()
-    deserialized = list(rdf_timeline.TimelineEntry.DeserializeStream(content))
+    content = b"".join(self.handler.Handle(args).GenerateContent())
 
-    self.assertEmpty(deserialized)
+    buf = io.BytesIO(content)
+    self.assertIsNone(chunked.Read(buf))
 
   def testRawGzchunkedMulipleEntries(self):
     entries = []
@@ -163,21 +168,110 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     args.flow_id = flow_id
     args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
 
-    content = self.handler.Handle(args).GenerateContent()
-    deserialized = list(rdf_timeline.TimelineEntry.DeserializeStream(content))
+    content = b"".join(self.handler.Handle(args).GenerateContent())
+
+    buf = io.BytesIO(content)
+    chunks = chunked.ReadAll(buf)
+    deserialized = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
 
     self.assertEqual(entries, deserialized)
+
+
+class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    testing_startup.TestInit()
+
+  def setUp(self):
+    super().setUp()
+    self.handler = api_timeline.ApiGetCollectedHuntTimelinesHandler()
+
+  def testRaisesOnIncorrectFlowType(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    hunt_id = "A0B1D2C3E4"
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.client_ids = [client_id]
+    hunt_obj.args.standard.flow_name = "NotTimelineFlow"
+    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_id
+
+    with self.assertRaises(ValueError):
+      self.handler.Handle(args)
+
+  def testRawGzchunkedMultipleClients(self):
+    client_id_1 = db_test_utils.InitializeClient(data_store.REL_DB)
+    client_id_2 = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id_1
+    snapshot.knowledge_base.fqdn = "foo.quux.com"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id_2
+    snapshot.knowledge_base.fqdn = "foo.norf.com"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_id = "A0B1D2C3E4"
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.client_ids = [client_id_1, client_id_2]
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    entry_1 = rdf_timeline.TimelineEntry()
+    entry_1.path = "foo_1".encode("utf-8")
+    entry_1.size = 13371
+
+    entry_2 = rdf_timeline.TimelineEntry()
+    entry_2.path = "foo_2".encode("utf-8")
+    entry_2.size = 13372
+
+    _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
+    _WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
+
+    args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_id
+
+    content = b"".join(self.handler.Handle(args).GenerateContent())
+    buffer = io.BytesIO(content)
+
+    with zipfile.ZipFile(buffer, mode="r") as archive:
+      client_filename_1 = f"{client_id_1}_foo.quux.com.gzchunked"
+      with archive.open(client_filename_1, mode="r") as file:
+        chunks = chunked.ReadAll(file)
+        entries = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
+        self.assertEqual(entries, [entry_1])
+
+      client_filename_2 = f"{client_id_2}_foo.norf.com.gzchunked"
+      with archive.open(client_filename_2, mode="r") as file:
+        chunks = chunked.ReadAll(file)
+        entries = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
+        self.assertEqual(entries, [entry_2])
 
 
 def _WriteTimeline(
     client_id,
     entries,
+    hunt_id = None,
 ):
   """Writes a timeline to the database (as fake flow result).
 
   Args:
     client_id: An identifier of the client for which the flow ran.
     entries: A sequence of timeline entries produced by the flow run.
+    hunt_id: An (optional) identifier of a hunt the flows belong to.
 
   Returns:
     An identifier of the flow.
@@ -189,6 +283,7 @@ def _WriteTimeline(
   flow_obj.client_id = client_id
   flow_obj.flow_class_name = timeline.TimelineFlow.__name__
   flow_obj.create_time = rdfvalue.RDFDatetime.Now()
+  flow_obj.parent_hunt_id = hunt_id
   data_store.REL_DB.WriteFlowObject(flow_obj)
 
   blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.objectfilter."""
 from __future__ import absolute_import
@@ -7,7 +8,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 from absl.testing import absltest
-from future.utils import iteritems
 
 from grr_response_core.lib import objectfilter
 
@@ -213,7 +213,7 @@ class ObjectFilterTest(absltest.TestCase):
   }
 
   def testBinaryOperators(self):
-    for operator, test_data in iteritems(self.operator_tests):
+    for operator, test_data in self.operator_tests.items():
       for test_unit in test_data:
         print("Testing %s with %s and %s" % (operator, test_unit[0],
                                              test_unit[1]))

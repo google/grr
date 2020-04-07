@@ -17,7 +17,7 @@ var GB_UNIT = MB_UNIT * 1024;
  * Returns string representation of a given byte size value.
  *
  * @param {number} value Value in bytes to be stringified.
- * @return {Array<number|string>} Array with a number and size token.
+ * @return {!Array<number|string>} Array with a number and size token.
  */
 const stringifyByteSize = function(value) {
   if (value == 0) {

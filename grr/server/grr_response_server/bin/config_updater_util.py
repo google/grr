@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utilities for modifying the GRR server configuration."""
 from __future__ import absolute_import
 from __future__ import division
@@ -14,21 +15,13 @@ import socket
 import subprocess
 import sys
 import time
-
-# Usually we import concrete items from the builtins module. However, here we
-# use `builtins.input` which is stubbed in the test, so we have to always use
-# qualified version.
-from future import builtins
-from future.moves.urllib import parse as urlparse
-from future.utils import iteritems
-from future.utils import string_types
+from typing import Optional, Text
+from urllib import parse as urlparse
 
 import MySQLdb
 from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as general_mysql_errors
 import pkg_resources
-
-from typing import Optional, Text
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
@@ -65,7 +58,7 @@ class ConfigInitError(Exception):
   """Exception raised to abort config initialization."""
 
   def __init__(self):
-    super(ConfigInitError, self).__init__(
+    super().__init__(
         "Aborting config initialization. Please run 'grr_config_updater "
         "initialize' to retry initialization.")
 
@@ -82,8 +75,7 @@ class UserNotFoundError(Exception):
   """Exception raised when trying to fetch a non-existent user."""
 
   def __init__(self, username):
-    super(UserNotFoundError,
-          self).__init__("User '%s' does not exist." % username)
+    super().__init__("User '%s' does not exist." % username)
 
 
 def ImportConfig(filename, config):
@@ -118,7 +110,7 @@ def RetryQuestion(question_text, output_re="", default_val=None):
     else:
       new_text = "%s: " % question_text
     # pytype: disable=wrong-arg-count
-    output = builtins.input(new_text) or str(default_val)
+    output = input(new_text) or str(default_val)
     # pytype: enable=wrong-arg-count
     output = output.strip()
     if not output_re or re.match(output_re, output):
@@ -306,7 +298,7 @@ def ConfigureMySQLDatastore(config):
       else:
         raise ConfigInitError()
 
-  for option, value in iteritems(db_options):
+  for option, value in db_options.items():
     config.Set(option, value)
 
 
@@ -461,8 +453,8 @@ def FinalizeConfigInit(config,
   except UserAlreadyExistsError:
     if prompt:
       # pytype: disable=wrong-arg-count
-      if ((builtins.input("User 'admin' already exists, do you want to "
-                          "reset the password? [yN]: ").upper() or "N") == "Y"):
+      if ((input("User 'admin' already exists, do you want to "
+                 "reset the password? [yN]: ").upper() or "N") == "Y"):
         UpdateUser("admin", password=admin_password, is_admin=True)
       # pytype: enable=wrong-arg-count
     else:
@@ -501,8 +493,8 @@ def Initialize(config=None,
   if prev_config_file and os.access(prev_config_file, os.R_OK):
     print("Found config file %s." % prev_config_file)
     # pytype: disable=wrong-arg-count
-    if builtins.input("Do you want to import this configuration? "
-                      "[yN]: ").upper() == "Y":
+    if input("Do you want to import this configuration? "
+             "[yN]: ").upper() == "Y":
       options_imported = ImportConfig(prev_config_file, config)
     # pytype: enable=wrong-arg-count
   else:
@@ -520,8 +512,8 @@ def Initialize(config=None,
       print("Since you have imported keys from another installation in the "
             "last step,\nyou probably do not want to generate new keys now.")
     # pytype: disable=wrong-arg-count
-    if (builtins.input("You already have keys in your config, do you want to"
-                       " overwrite them? [yN]: ").upper() or "N") == "Y":
+    if (input("You already have keys in your config, do you want to"
+              " overwrite them? [yN]: ").upper() or "N") == "Y":
       config_updater_keys_util.GenerateKeys(config, overwrite_keys=True)
     # pytype: enable=wrong-arg-count
   else:
@@ -625,7 +617,7 @@ def InitializeNoPrompt(config=None,
   else:
     print("Error: Could not connect to MySQL with the given configuration.")
     raise ConfigInitError()
-  for key, value in iteritems(config_dict):
+  for key, value in config_dict.items():
     config.Set(key, value)
   config_updater_keys_util.GenerateKeys(config)
   FinalizeConfigInit(
@@ -791,9 +783,8 @@ def SwitchToRelDB(config):
     db_name = config["Mysql.database_name"]
   config.Set("Mysql.database", db_name)
 
-  if (builtins.input(
-      "Do you want to use previously set up MySQL username and password\n"
-      "to connect to MySQL database '%s'? [Yn]: " % db_name).upper() or
+  if (input("Do you want to use previously set up MySQL username and password\n"
+            "to connect to MySQL database '%s'? [Yn]: " % db_name).upper() or
       "Y") == "Y":
     username = config["Mysql.database_username"]
     password = config["Mysql.database_password"]
@@ -831,7 +822,7 @@ def ArgparseBool(raw_value):
     ArgumentTypeError: If the raw value passed in is not a string equal to
       'True' or 'False'.
   """
-  if not isinstance(raw_value, string_types):
+  if not isinstance(raw_value, str):
     raise argparse.ArgumentTypeError("Unexpected type: %s. Expected a string." %
                                      compatibility.GetName(type(raw_value)))
 

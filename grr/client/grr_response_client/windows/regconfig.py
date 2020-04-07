@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A registry based configuration parser."""
 
 # NOTE: Running a 32 bit compiled client and 64 bit compiled client on a 64 bit
@@ -13,11 +14,10 @@ from __future__ import unicode_literals
 
 import collections
 import logging
-
-from future.moves import winreg
-from future.moves.urllib import parse as urlparse
-from future.utils import iteritems
 from typing import Text
+from urllib import parse as urlparse
+
+import winreg
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.util import precondition
@@ -93,7 +93,7 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
 
     # Ensure intermediate directories exist.
     try:
-      for key, value in iteritems(raw_data):
+      for key, value in raw_data.items():
         # TODO(user): refactor regconfig. At the moment it has no idea
         # what kind of data it's serializing and simply stringifies, them
         # assuming that bytes are simply ascii-encoded strings. Note that

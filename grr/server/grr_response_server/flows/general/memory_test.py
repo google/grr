@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for Yara flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,12 +9,12 @@ from __future__ import unicode_literals
 import functools
 import os
 import string
+from typing import Iterable
+from typing import Optional
 
 from absl import app
 import mock
 import psutil
-from typing import Iterable
-from typing import Optional
 import yara
 
 from grr_response_client import client_utils

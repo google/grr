@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Default implementation for a stats-collector."""
 
 from __future__ import absolute_import
@@ -6,8 +7,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-
-from future.utils import with_metaclass
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -20,17 +19,19 @@ def _FieldsToKey(fields):
   return tuple(fields) if fields else ()
 
 
-class _Metric(with_metaclass(abc.ABCMeta, object)):
+class _Metric(metaclass=abc.ABCMeta):
   """Base class for all the metric objects used by the DefaultStatsCollector.
 
   See stats_collector for more info.
-
-  Args:
-    field_defs: A list of (field-name, field-type) tuples describing the
-      dimensions for the metric.
   """
 
   def __init__(self, field_defs):
+    """Initializes the metric.
+
+    Args:
+      field_defs: A list of (field-name, field-type) tuples describing the
+        dimensions for the metric.
+    """
     self._field_defs = field_defs
     self._metric_values = {}
 
@@ -95,7 +96,7 @@ class _EventMetric(_Metric):
   """
 
   def __init__(self, bins, fields):
-    super(_EventMetric, self).__init__(fields)
+    super().__init__(fields)
     self._bins = bins or [
         0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9,
         10, 15, 20, 50, 100
@@ -126,7 +127,7 @@ class _GaugeMetric(_Metric):
   """
 
   def __init__(self, value_type, fields):
-    super(_GaugeMetric, self).__init__(fields)
+    super().__init__(fields)
     self._value_type = value_type
 
   def _DefaultValue(self):
@@ -157,7 +158,7 @@ class DefaultStatsCollector(stats_collector.StatsCollector):
     self._gauge_metrics = {}
     self._event_metrics = {}
 
-    super(DefaultStatsCollector, self).__init__()
+    super().__init__()
 
   def _InitializeMetric(self, metadata):
     """See base class."""

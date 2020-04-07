@@ -1335,6 +1335,28 @@ message MultiGetFileArgs {
   ];
 }
 
+message PathSpecProgress {
+  enum Status {
+    UNDEFINED = 0;
+    IN_PROGRESS = 1;
+    SKIPPED = 2;
+    COLLECTED = 3;
+    FAILED = 4;
+  }
+  optional PathSpec pathspec = 1;
+  optional Status status = 2;
+}
+
+message MultiGetFileProgress {
+  optional uint32 num_pending_hashes = 1;
+  optional uint32 num_pending_files = 2;
+  optional uint32 num_skipped = 3;
+  optional uint32 num_collected = 4;
+  optional uint32 num_failed = 5;
+
+  repeated PathSpecProgress pathspecs_progress = 6;
+}
+
 // DEPRECATED. This cronjob doesn't use any args anymore.
 // Next field ID: 6
 message ProcessHuntResultCollectionsCronFlowArgs {

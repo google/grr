@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file implements a VFS abstraction on the client."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 
 import abc
 import os
-
-from future.utils import with_metaclass
 
 from grr_response_client import client_utils
 from grr_response_core.lib import utils
@@ -24,11 +23,10 @@ class UnsupportedHandlerError(Error):
   """Raised when an unsupported VFSHandler is used."""
 
   def __init__(self, pathtype):
-    super(UnsupportedHandlerError,
-          self).__init__("VFSHandler {} is not supported.".format(pathtype))
+    super().__init__("VFSHandler {} is not supported.".format(pathtype))
 
 
-class VFSHandler(with_metaclass(abc.ABCMeta, object)):
+class VFSHandler(metaclass=abc.ABCMeta):
   """Base class for handling objects in the VFS."""
   supported_pathtype = -1
 
@@ -131,24 +129,26 @@ class VFSHandler(with_metaclass(abc.ABCMeta, object)):
   def Close(self):
     """Close internal file descriptors."""
 
-  def OpenAsContainer(self):
+  def OpenAsContainer(self, pathtype):
     """Guesses a container from the current object."""
     if self.IsDirectory():
       return self
 
     # TODO(user): Add support for more containers here (e.g. registries, zip
     # files etc).
-    else:  # For now just guess TSK.
-      tsk_handler = self._handlers[rdf_paths.PathSpec.PathType.TSK]
-      tsk_pathspec = rdf_paths.PathSpec(
-          path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
-      return tsk_handler(
+    else:
+      if pathtype != rdf_paths.PathSpec.PathType.NTFS:
+        # For now just guess TSK.
+        pathtype = rdf_paths.PathSpec.PathType.TSK
+      handler = self._handlers[pathtype]
+      pathspec = rdf_paths.PathSpec(path="/", pathtype=pathtype)
+      return handler(
           base_fd=self,
           handlers=self._handlers,
-          pathspec=tsk_pathspec,
+          pathspec=pathspec,
           progress_callback=self.progress_callback)
 
-  def MatchBestComponentName(self, component):
+  def MatchBestComponentName(self, component, pathtype):
     """Returns the name of the component which matches best our base listing.
 
     In order to do the best case insensitive matching we list the files in the
@@ -156,11 +156,12 @@ class VFSHandler(with_metaclass(abc.ABCMeta, object)):
 
     Args:
       component: A component name which should be present in this directory.
+      pathtype: Pathtype of the component.
 
     Returns:
       the best component name.
     """
-    fd = self.OpenAsContainer()
+    fd = self.OpenAsContainer(pathtype)
 
     # Adjust the component casing
     file_listing = set(fd.ListNames())
@@ -248,7 +249,8 @@ class VFSHandler(with_metaclass(abc.ABCMeta, object)):
     for i, path_component in enumerate(path_components):
       try:
         if fd:
-          new_pathspec = fd.MatchBestComponentName(path_component)
+          new_pathspec = fd.MatchBestComponentName(path_component,
+                                                   component.pathtype)
         else:
           new_pathspec = component
           new_pathspec.path = path_component

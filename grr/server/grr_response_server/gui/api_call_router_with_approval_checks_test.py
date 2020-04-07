@@ -1,26 +1,27 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for an ApiCallRouterWithChecks."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.utils import iterkeys
 import mock
 
 from grr_response_server import access_control
 
+from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
-
+from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
-
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 
+from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
@@ -179,6 +180,58 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
         self.router.UpdateVfsFileContent, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
+      "GetCollectedTimeline",
+  ])
+
+  def testGetCollectedTimelineRaisesIfFlowIsNotFound(self):
+    args = api_timeline.ApiGetCollectedTimelineArgs(
+        client_id=self.client_id, flow_id="F:123456")
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.GetCollectedTimeline(args, token=self.token)
+
+  def testGetCollectedTimelineGrantsAccessIfPartOfHunt(self):
+    client_id = self.SetupClient(0)
+    hunt_id = self.CreateHunt()
+    flow_id = flow_test_lib.StartFlow(
+        timeline.TimelineFlow, client_id=client_id, parent_hunt_id=hunt_id)
+
+    args = api_timeline.ApiGetCollectedTimelineArgs(
+        client_id=client_id, flow_id=flow_id)
+    self.CheckMethodIsNotAccessChecked(
+        self.router.GetCollectedTimeline, args=args)
+
+  def testGetCollectedTimelineRefusesAccessIfPartOfHuntButWrongFlow(self):
+    client_id = self.SetupClient(0)
+    hunt_id = self.CreateHunt()
+    flow_id = flow_test_lib.StartFlow(
+        flow_test_lib.DummyFlow, client_id=client_id, parent_hunt_id=hunt_id)
+
+    args = api_timeline.ApiGetCollectedTimelineArgs(
+        client_id=client_id, flow_id=flow_id)
+    with self.assertRaises(ValueError):
+      self.router.GetCollectedTimeline(args=args, token=self.token)
+
+  def testGetCollectedTimelineRefusesAccessIfWrongFlow(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow_test_lib.StartFlow(
+        flow_test_lib.DummyFlow, client_id=client_id)
+
+    args = api_timeline.ApiGetCollectedTimelineArgs(
+        client_id=client_id, flow_id=flow_id)
+    with self.assertRaises(ValueError):
+      self.router.GetCollectedTimeline(args=args, token=self.token)
+
+  def testGetCollectedTimelineChecksClientAccessIfNotPartOfHunt(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow_test_lib.StartFlow(
+        timeline.TimelineFlow, client_id=client_id)
+
+    args = api_timeline.ApiGetCollectedTimelineArgs(
+        client_id=client_id, flow_id=flow_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetCollectedTimeline, "CheckClientAccess", args=args)
+
+  ACCESS_CHECKED_METHODS.extend([
       "ListFlows",
       "GetFlow",
       "CreateFlow",
@@ -192,7 +245,6 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "ListFlowOutputPluginLogs",
       "ListFlowOutputPluginErrors",
       "ListFlowLogs",
-      "GetCollectedTimeline",
   ])
 
   def testAllClientFlowsMethodsAreAccessChecked(self):
@@ -361,7 +413,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testAllOtherMethodsAreNotAccessChecked(self):
     unchecked_methods = (
-        set(iterkeys(self.router.__class__.GetAnnotatedMethods())) -
+        set(self.router.__class__.GetAnnotatedMethods().keys()) -
         set(self.ACCESS_CHECKED_METHODS))
     self.assertTrue(unchecked_methods)
 

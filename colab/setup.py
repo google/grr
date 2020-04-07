@@ -68,7 +68,6 @@ setup(
         "sdist": Sdist,
     },
     install_requires=[
-        "future==0.17.1",
         "grr_api_client==%s" % VERSION.get("Version", "packagedepends"),
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "humanize==0.5.1",

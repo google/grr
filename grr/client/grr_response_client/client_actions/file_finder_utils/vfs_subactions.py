@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of client-side file-finder subactions."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 
 import abc
 import stat
-
-from future.utils import with_metaclass
 from typing import Callable, Optional
 
 from grr_response_client import actions
@@ -20,7 +19,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 
 
-class Action(with_metaclass(abc.ABCMeta, object)):
+class Action(metaclass=abc.ABCMeta):
   """An abstract class for subactions of the client-side file-finder."""
 
   def __init__(self, action):
@@ -53,7 +52,7 @@ class StatAction(Action):
       self,
       flow,
       opts = None):
-    super(StatAction, self).__init__(flow)
+    super().__init__(flow)
     del opts  # Unused.
 
   def __call__(self, stat_entry,
@@ -70,7 +69,7 @@ class HashAction(Action):
   """
 
   def __init__(self, flow, opts):
-    super(HashAction, self).__init__(flow)
+    super().__init__(flow)
     self._opts = opts
 
   def __call__(self, stat_entry,
@@ -108,7 +107,7 @@ class DownloadAction(Action):
 
   def __init__(self, flow,
                opts):
-    super(DownloadAction, self).__init__(flow)
+    super().__init__(flow)
     self._opts = opts
 
   def __call__(self, stat_entry,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Parse various Windows persistence mechanisms into PersistenceFiles."""
 
 from __future__ import absolute_import

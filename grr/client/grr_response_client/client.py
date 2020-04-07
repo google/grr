@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR client."""
 from __future__ import absolute_import
 from __future__ import division
@@ -11,7 +12,6 @@ import sys
 
 from absl import app
 from absl import flags
-from future.utils import iterkeys
 
 # pylint: disable=unused-import
 from grr_response_client import client_plugins
@@ -77,7 +77,7 @@ def main(unused_args):
 
   errors = config.CONFIG.Validate(["Client", "CA", "Logging"])
 
-  if errors and list(iterkeys(errors)) != ["Client.private_key"]:
+  if errors and list(errors.keys()) != ["Client.private_key"]:
     raise config_lib.ConfigFormatError(errors)
 
   if config.CONFIG["Client.fleetspeak_enabled"]:

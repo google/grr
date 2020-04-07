@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The path detection interface (base) class definitions."""
 
 from __future__ import absolute_import
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 
 import abc
 import shlex
-from future.utils import with_metaclass
 
 
 def SplitIntoComponents(str_in):
@@ -37,7 +37,7 @@ def SplitIntoComponents(str_in):
       return components
 
 
-class Extractor(with_metaclass(abc.ABCMeta, object)):
+class Extractor(metaclass=abc.ABCMeta):
   """Base class for paths extractors."""
 
   @abc.abstractmethod
@@ -58,7 +58,7 @@ class Extractor(with_metaclass(abc.ABCMeta, object)):
     raise NotImplementedError()
 
 
-class PostProcessor(with_metaclass(abc.ABCMeta, object)):
+class PostProcessor(metaclass=abc.ABCMeta):
   """Base class for paths post-processors."""
 
   @abc.abstractmethod

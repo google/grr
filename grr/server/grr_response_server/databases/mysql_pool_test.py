@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for mysql_pool.py."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,6 @@ from __future__ import unicode_literals
 
 from absl import app
 from absl.testing import absltest
-from future import builtins
 import mock
 import MySQLdb
 
@@ -26,7 +26,7 @@ class TestPool(absltest.TestCase):
 
     proxies = []
     pool = mysql_pool.Pool(gen_mock, max_size=5)
-    for _ in builtins.range(5):
+    for _ in range(5):
       c = pool.get(blocking=False)
       self.assertIsNotNone(c)
       proxies.append(c)
@@ -39,7 +39,7 @@ class TestPool(absltest.TestCase):
       # Should be returned to the pool.
       m.close.assert_not_called()
 
-    for _ in builtins.range(5):
+    for _ in range(5):
       c = pool.get(blocking=False)
       self.assertIsNotNone(c)
       proxies.append(c)
@@ -57,7 +57,7 @@ class TestPool(absltest.TestCase):
 
     pool = mysql_pool.Pool(gen_failure, max_size=5)
     # Repeated tries should fail, but not use up pool capacity. Try 10>5 times.
-    for _ in builtins.range(10):
+    for _ in range(10):
       with self.assertRaises(TestException):
         pool.get()
 
@@ -90,7 +90,7 @@ class TestPool(absltest.TestCase):
     ]:
       # If we can fail 10 times, then failed connections aren't consuming
       # pool capacity.
-      for _ in builtins.range(10):
+      for _ in range(10):
         con = pool.get()
         cur = con.cursor()
         with self.assertRaises(MySQLdb.OperationalError):
@@ -128,7 +128,7 @@ class TestPool(absltest.TestCase):
     ]:
       # If we can fail 10 times, then idling a connection doesn't consume pool
       # capacity.
-      for _ in builtins.range(10):
+      for _ in range(10):
         con = pool.get()
         cur = con.cursor()
         self.assertEqual(m, op(cur))

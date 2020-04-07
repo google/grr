@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Hint processing."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 import collections
 import string
 
-from future.utils import iteritems
-from future.utils import string_types
 
 from grr_response_core.lib import objectfilter
 from grr_response_core.lib import utils
@@ -59,14 +58,13 @@ class RdfFormatter(string.Formatter):
     # Catch cases where RDFs are iterable but return themselves.
     if parent and obj == parent:
       results = [utils.SmartUnicode(obj).strip()]
-    elif isinstance(obj, (string_types, rdf_structs.EnumNamedValue)):
+    elif isinstance(obj, (str, rdf_structs.EnumNamedValue)):
       results = [utils.SmartUnicode(obj).strip()]
     elif isinstance(obj, rdf_protodict.DataBlob):
       results = self.FanOut(obj.GetValue())
     elif isinstance(obj, (collections.Mapping, rdf_protodict.Dict)):
       results = []
-      # rdf_protodict.Dict only has items, not iteritems.
-      for k, v in iteritems(obj):
+      for k, v in obj.items():
         expanded_v = [utils.SmartUnicode(r) for r in self.FanOut(v)]
         results.append("%s:%s" % (utils.SmartUnicode(k), ",".join(expanded_v)))
     elif isinstance(obj, (collections.Iterable,

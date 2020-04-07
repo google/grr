@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handler for rendering descriptors of GRR data structures."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import itervalues
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -129,7 +129,7 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
     router_methods = self.router.__class__.GetAnnotatedMethods()
 
     result = ApiListApiMethodsResult()
-    for router_method in itervalues(router_methods):
+    for router_method in router_methods.values():
       api_method = ApiMethod(
           name=router_method.name,
           category=router_method.category,

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """WMI RDF values."""
 
 from __future__ import absolute_import

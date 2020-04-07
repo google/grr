@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the legacy AFF4-based blob store."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import queue
+
 from absl import app
-from future.moves import queue
 import mock
 
 from grr_response_server import blob_store

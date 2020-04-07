@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """BigQuery output plugin."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,7 +10,6 @@ import logging
 import os
 import tempfile
 
-from future.utils import itervalues
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -83,7 +83,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
   }
 
   def __init__(self, *args, **kwargs):
-    super(BigQueryOutputPlugin, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.temp_output_trackers = {}
     self.output_jobids = {}
     self.failure_count = 0
@@ -190,7 +190,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     urn_str = rdfvalue.RDFURN(self.source_urn).RelativeName("aff4:/").replace(
         "/", "_").replace(":", "").replace(".", "-")
 
-    for tracker in itervalues(self.temp_output_trackers):
+    for tracker in self.temp_output_trackers.values():
       # Close out the gzip handle and pass the original file handle to the
       # bigquery client so it sees the gzip'd content.
       tracker.gzip_filehandle.write(b"\n")
@@ -308,5 +308,5 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
         self._WriteJSONValue(
             output_tracker.gzip_filehandle, value, delimiter="\n")
 
-    for output_tracker in itervalues(self.temp_output_trackers):
+    for output_tracker in self.temp_output_trackers.values():
       output_tracker.gzip_filehandle.flush()

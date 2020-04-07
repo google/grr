@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """UI client report handling classes."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -47,21 +47,21 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
         period=rdfvalue.Duration.From(180, rdfvalue.DAYS))
 
     categories = {}
-    for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):
+    for timestamp, graph_series in sorted(series_with_timestamps.items()):
       self._ProcessGraphSeries(graph_series, timestamp, categories)
 
     graphs = []
-    for k, v in iteritems(categories):
+    for k, v in categories.items():
       graph = dict(label=k, data=v)
       graphs.append(graph)
 
-    report.line_chart.data = sorted(
-        (rdf_report_plugins.ApiReportDataSeries2D(
-            label=label,
-            points=(rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
-                    for x, y in points))
-         for label, points in iteritems(categories)),
-        key=lambda series: series.label)
+    series = []
+    for label, points in categories.items():
+      rdf = rdf_report_plugins
+      points = [rdf.ApiReportDataPoint2D(x=x, y=y) for x, y in points]
+      series.append(rdf.ApiReportDataSeries2D(label=label, points=points))
+
+    report.line_chart.data = sorted(series, key=lambda s: s.label)
 
     return report
 
@@ -115,11 +115,11 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
         period=rdfvalue.Duration.From(180, rdfvalue.DAYS))
 
     categories = {}
-    for timestamp, graph_series in sorted(iteritems(series_with_timestamps)):
+    for timestamp, graph_series in sorted(series_with_timestamps.items()):
       self._ProcessGraphSeries(graph_series, timestamp, categories)
 
     series = []
-    for label, points in iteritems(categories):
+    for label, points in categories.items():
       series.append(
           rdf_report_plugins.ApiReportDataSeries2D(
               label=label,

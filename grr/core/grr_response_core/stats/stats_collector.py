@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Common logic for objects used to track monitoring-related metrics.
 
 GRR has a notion of statistic metrics. These metrics reflect GRR's state at
@@ -49,12 +50,10 @@ from __future__ import unicode_literals
 import abc
 import threading
 
-from future.utils import with_metaclass
-
 from grr_response_core.lib import utils
 
 
-class StatsCollector(with_metaclass(abc.ABCMeta, object)):
+class StatsCollector(metaclass=abc.ABCMeta):
   """Base implementation for a stats-collector.
 
   Stats-collectors are used to track monitoring-related metrics. By default,

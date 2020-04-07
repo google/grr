@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of condition mechanism for client-side file-finder."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 
 import abc
 import re
-
-from future.utils import with_metaclass
 from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
@@ -20,7 +19,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.util import precondition
 
 
-class MetadataCondition(with_metaclass(abc.ABCMeta, object)):
+class MetadataCondition(metaclass=abc.ABCMeta):
   """An abstract class representing conditions on the file metadata."""
 
   @abc.abstractmethod
@@ -65,7 +64,7 @@ class ModificationTimeCondition(MetadataCondition):
   """A condition checking modification time of a file."""
 
   def __init__(self, params):
-    super(ModificationTimeCondition, self).__init__()
+    super().__init__()
     self.params = params.modification_time
 
   def Check(self, stat):
@@ -78,7 +77,7 @@ class AccessTimeCondition(MetadataCondition):
   """A condition checking access time of a file."""
 
   def __init__(self, params):
-    super(AccessTimeCondition, self).__init__()
+    super().__init__()
     self.params = params.access_time
 
   def Check(self, stat):
@@ -91,7 +90,7 @@ class InodeChangeTimeCondition(MetadataCondition):
   """A condition checking change time of inode of a file."""
 
   def __init__(self, params):
-    super(InodeChangeTimeCondition, self).__init__()
+    super().__init__()
     self.params = params.inode_change_time
 
   def Check(self, stat):
@@ -106,7 +105,7 @@ class SizeCondition(MetadataCondition):
   """A condition checking size of a file."""
 
   def __init__(self, params):
-    super(SizeCondition, self).__init__()
+    super().__init__()
     self.params = params.size
 
   def Check(self, stat):
@@ -123,7 +122,7 @@ class ExtFlagsCondition(MetadataCondition):
   """
 
   def __init__(self, params):
-    super(ExtFlagsCondition, self).__init__()
+    super().__init__()
     self.params = params.ext_flags
 
   def Check(self, stat):
@@ -142,7 +141,7 @@ class ExtFlagsCondition(MetadataCondition):
     return (bits_set & flags) == bits_set and (bits_unset & flags) == 0
 
 
-class ContentCondition(with_metaclass(abc.ABCMeta, object)):
+class ContentCondition(metaclass=abc.ABCMeta):
   """An abstract class representing conditions on the file contents."""
 
   @abc.abstractmethod
@@ -217,7 +216,7 @@ class LiteralMatchCondition(ContentCondition):
   """A content condition that lookups a literal pattern."""
 
   def __init__(self, params):
-    super(LiteralMatchCondition, self).__init__()
+    super().__init__()
     self.params = params.contents_literal_match
 
   def Search(self, fd):
@@ -230,7 +229,7 @@ class RegexMatchCondition(ContentCondition):
   """A content condition that lookups regular expressions."""
 
   def __init__(self, params):
-    super(RegexMatchCondition, self).__init__()
+    super().__init__()
     self.params = params.contents_regex_match
 
   def Search(self, fd):
@@ -241,7 +240,7 @@ class RegexMatchCondition(ContentCondition):
       yield match
 
 
-class Matcher(with_metaclass(abc.ABCMeta, object)):
+class Matcher(metaclass=abc.ABCMeta):
   """An abstract class for objects able to lookup byte strings."""
 
   Span = NamedTuple("Span", [("begin", int), ("end", int)])  # pylint: disable=invalid-name
@@ -270,7 +269,7 @@ class RegexMatcher(Matcher):
   def __init__(self, regex):
     precondition.AssertType(regex, Pattern)
 
-    super(RegexMatcher, self).__init__()
+    super().__init__()
     self._regex = regex
 
   def Match(self, data, position):
@@ -295,7 +294,7 @@ class LiteralMatcher(Matcher):
   def __init__(self, literal):
     precondition.AssertType(literal, bytes)
 
-    super(LiteralMatcher, self).__init__()
+    super().__init__()
     self._literal = literal
 
   def Match(self, data, position):

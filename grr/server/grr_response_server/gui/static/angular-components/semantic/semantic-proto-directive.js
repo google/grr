@@ -47,7 +47,7 @@ var getUnionFieldValue = exports.getUnionFieldValue;
  * @param {!Object} descriptor Descriptor of the value to be converted to an
  *     array of items. Expected to have 'fields' attribute with list of fields
  *     descriptors.
- * @return {Array.<Object>} List of items to display. It will *always* have
+ * @return {!Array.<Object>} List of items to display. It will *always* have
  *     *only* union type field and a field that union type field value points
  *     to.
  * @export
@@ -95,7 +95,7 @@ var buildUnionItems = exports.buildUnionItems;
  *     from this list.
  * @param {Object=} opt_hiddenFields If provided, doesn't show fields with names
  *     from this list.
- * @return {Array.<Object>} List of items to display.
+ * @return {!Array.<Object>} List of items to display.
  * @export
  */
 exports.buildNonUnionItems = function(
@@ -154,7 +154,7 @@ var buildNonUnionItems = exports.buildNonUnionItems;
  *     from this list.
  * @param {Object=} opt_hiddenFields If provided, doesn't show fields with names
  *     from this list.
- * @return {Array.<Object>} List of items to display.
+ * @return {!Array.<Object>} List of items to display.
  * @export
  */
 exports.buildItems = function(

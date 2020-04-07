@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """OSX specific actions.
 
 Most of these actions share an interface (in/out rdfvalues) with linux actions
@@ -18,8 +19,6 @@ import socket
 import struct
 import sys
 
-from future.utils import iteritems
-from future.utils import itervalues
 import pytsk3
 
 from grr_response_client import actions
@@ -261,7 +260,7 @@ def ParseIfaddrs(ifaddrs):
     else:
       raise ValueError("Unexpected socket address family: %s" % iffamily)
 
-  return itervalues(ifaces)
+  return ifaces.values()
 
 
 def EnumerateInterfacesFromClient(args):
@@ -358,20 +357,24 @@ def CreateServiceProto(job):
       label=job.get("Label"),
       program=job.get("Program"),
       sessiontype=job.get("LimitLoadToSessionType"),
-      lastexitstatus=int(job["LastExitStatus"]),
-      timeout=int(job["TimeOut"]),
       ondemand=bool(job["OnDemand"]))
+
+  if job["LastExitStatus"] is not None:
+    service.lastexitstatus = int(job["LastExitStatus"])
+
+  if job["TimeOut"] is not None:
+    service.timeout = int(job["TimeOut"])
 
   for arg in job.get("ProgramArguments", "", stringify=False):
     # Returns CFArray of CFStrings
     service.args.Append(str(arg))
 
   mach_dict = job.get("MachServices", {}, stringify=False)
-  for key, value in iteritems(mach_dict):
+  for key, value in mach_dict.items():
     service.machservice.Append("%s:%s" % (key, value))
 
   job_mach_dict = job.get("PerJobMachServices", {}, stringify=False)
-  for key, value in iteritems(job_mach_dict):
+  for key, value in job_mach_dict.items():
     service.perjobmachservice.Append("%s:%s" % (key, value))
 
   if "PID" in job:

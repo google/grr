@@ -33,7 +33,7 @@ message ApiFlowDescriptor {
       [(sem_type) = { description: "Flow behaviours." }];
 }
 
-// Next id: 16
+// Next id: 17
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -56,6 +56,10 @@ message ApiFlow {
   optional google.protobuf.Any args = 3 [(sem_type) = {
     description: "Flow arguments.",
     dynamic_type: "GetArgsClass"
+  }];
+  optional google.protobuf.Any progress = 16 [(sem_type) = {
+    description: "Flow progress info.",
+    dynamic_type: "GetProgressClass"
   }];
   optional FlowRunnerArgs runner_args = 4
       [(sem_type) = { description: "Flow runner arguments." }];
@@ -306,6 +310,22 @@ message ApiListFlowsArgs {
   optional int64 offset = 2 [(sem_type) = { description: "Starting offset." }];
   optional int64 count = 3
       [(sem_type) = { description: "Max number of flows to fetch." }];
+
+  // Filtering criteria.
+  optional bool top_flows_only = 4 [(sem_type) = {
+    description: "If set, only the top flow objects will be fetched, nested "
+                 "flow will be ignored."
+  }];
+  optional uint64 min_started_at = 5 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Only return flows that were created after the given "
+                 "timestamp (inclusive)."
+  }];
+  optional uint64 max_started_at = 6 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Only return flows that were created before the given "
+                 "timestamp (inclusive)."
+  }];
 }
 
 message ApiListFlowsResult {

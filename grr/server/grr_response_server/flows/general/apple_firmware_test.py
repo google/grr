@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for eficheck flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -107,10 +108,9 @@ class CollectEfiHashesTest(flow_test_lib.FlowTestsBaseclass):
 class DumpEfiImageMock(action_mocks.ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(DumpEfiImageMock,
-          self).__init__(standard.HashBuffer, standard.HashFile,
-                         standard.GetFileStat, standard.TransferBuffer,
-                         tempfiles.DeleteGRRTempFiles)
+    super().__init__(standard.HashBuffer, standard.HashFile,
+                     standard.GetFileStat, standard.TransferBuffer,
+                     tempfiles.DeleteGRRTempFiles)
 
   def EficheckDumpImage(self, args):
     flash_fd, flash_path = tempfiles.CreateGRRTempFileVFS()

@@ -13,7 +13,6 @@ import platform
 import sys
 import zipfile
 
-from future.utils import iterkeys
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
@@ -29,7 +28,7 @@ from grr_response_core.lib import rdfvalue
 class RepackConfig(object):
 
   def Validate(self, config_data, template_path):
-    config_keys = set(iterkeys(config_data))
+    config_keys = set(config_data.keys())
     required_keys = build.REQUIRED_BUILD_YAML_KEYS
     if config_keys != required_keys:
       raise RuntimeError("Bad build.yaml from %s: expected %s, got %s" %

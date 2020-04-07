@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Interface to Objective C libraries on OS X."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,11 +8,6 @@ from __future__ import unicode_literals
 
 import ctypes
 import ctypes.util
-
-from future.utils import iteritems
-from future.utils import python_2_unicode_compatible
-from future.utils import string_types
-from past.builtins import long
 from typing import Text
 
 # kCFStringEncodingUTF8
@@ -136,8 +132,8 @@ class Foundation(object):
     return buff.value.decode('utf-8')
 
   def IntToCFNumber(self, num):
-    if not isinstance(num, (int, long)):
-      raise TypeError('CFNumber can only be created from int or long')
+    if not isinstance(num, int):
+      raise TypeError('CFNumber can only be created from int')
     c_num = ctypes.c_int64(num)
     cf_number = self.dll.CFNumberCreate(CF_DEFAULT_ALLOCATOR, INT64,
                                         ctypes.byref(c_num))
@@ -196,7 +192,7 @@ class SystemConfiguration(Foundation):
   """
 
   def __init__(self):
-    super(SystemConfiguration, self).__init__()
+    super().__init__()
     self.cftable.append(('SCDynamicStoreCopyProxies', [ctypes.c_void_p],
                          ctypes.c_void_p))
 
@@ -211,7 +207,7 @@ class ServiceManagement(Foundation):
   """
 
   def __init__(self):
-    super(ServiceManagement, self).__init__()
+    super().__init__()
     self.cftable.append(
         # Only available 10.6 and later
         ('SMCopyAllJobDictionaries', [ctypes.c_void_p], ctypes.c_void_p),)
@@ -236,7 +232,7 @@ class CFType(Foundation):
   """Wrapper class for Core Foundation Types."""
 
   def __init__(self, ref):
-    super(CFType, self).__init__()
+    super().__init__()
     self.ref = ref
 
   def __del__(self):
@@ -260,7 +256,7 @@ class CFBoolean(CFType):
       ptr = obj
     else:
       raise TypeError('CFBoolean initializer must be objc Boolean')
-    super(CFBoolean, self).__init__(ptr)
+    super().__init__(ptr)
 
   @property
   def value(self):
@@ -285,10 +281,10 @@ class CFNumber(CFType):
 
   def __init__(self, obj=0):
     if isinstance(obj, ctypes.c_void_p):
-      super(CFNumber, self).__init__(obj)
+      super().__init__(obj)
       self.dll.CFRetain(obj)
-    elif isinstance(obj, (int, long)):
-      super(CFNumber, self).__init__(None)
+    elif isinstance(obj, int):
+      super().__init__(None)
       self.ref = ctypes.c_void_p(self.IntToCFNumber(obj))
     else:
       raise TypeError(
@@ -305,17 +301,16 @@ class CFNumber(CFType):
     return str(self.value)
 
 
-@python_2_unicode_compatible
 class CFString(CFType):
   """Wrapper class for CFString to behave like a python string."""
 
   def __init__(self, obj=''):
     """Can initialize CFString with python or objc strings."""
     if isinstance(obj, (ctypes.c_void_p, int)):
-      super(CFString, self).__init__(obj)
+      super().__init__(obj)
       self.dll.CFRetain(obj)
-    elif isinstance(obj, string_types):
-      super(CFString, self).__init__(None)
+    elif isinstance(obj, str):
+      super().__init__(None)
       self.ref = self.PyStringToCFString(obj)
     else:
       raise TypeError('CFString initializer must be python or objc string.')
@@ -338,7 +333,7 @@ class CFArray(CFType):
   """Wrapper class for CFArray to behave like a python list."""
 
   def __init__(self, ptr):
-    super(CFArray, self).__init__(ptr)
+    super().__init__(ptr)
     self.dll.CFRetain(ptr)
 
   def __len__(self):
@@ -362,7 +357,7 @@ class CFDictionary(CFType):
   """Wrapper class for CFDictionary to behave like a python dict."""
 
   def __init__(self, ptr):
-    super(CFDictionary, self).__init__(ptr)
+    super().__init__(ptr)
     self.dll.CFRetain(ptr)
 
   def __contains__(self, key):
@@ -375,9 +370,9 @@ class CFDictionary(CFType):
   def __getitem__(self, key):
     if isinstance(key, CFType):
       cftype_key = key
-    if isinstance(key, string_types):
+    if isinstance(key, str):
       cftype_key = CFString(key)
-    elif isinstance(key, (int, long)):
+    elif isinstance(key, int):
       cftype_key = CFNumber(key)
     elif isinstance(key, ctypes.c_void_p):
       cftype_key = key
@@ -415,7 +410,7 @@ class CFDictionary(CFType):
       obj = str(obj)
     return obj
 
-  def iteritems(self):
+  def items(self):
     size = len(self)
     keys = (ctypes.c_void_p * size)()
     values = (ctypes.c_void_p * size)()
@@ -429,7 +424,7 @@ class CFDictionary(CFType):
 
   def __repr__(self):
     representation = '{'
-    for key, value in iteritems(self):
+    for key, value in self.items():
       representation += '{0}:{1},'.format(str(key), str(value))
     representation += '}'
     return representation

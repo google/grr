@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Registry for filters and abstract classes for basic filter functionality."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,10 +11,6 @@ import itertools
 import logging
 import os
 
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
-from future.utils import string_types
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -65,7 +62,7 @@ def MatchStrToList(match=None):
   # Allow multiple match types, either as a list or as a string.
   if match is None:
     match = ["ANY"]
-  elif isinstance(match, string_types):
+  elif isinstance(match, str):
     match = match.split()
   return match
 
@@ -82,7 +79,7 @@ class Hint(rdf_structs.RDFProtoStruct):
       initializer = None
     else:
       conf = kwargs
-    super(Hint, self).__init__(initializer=initializer, **conf)
+    super().__init__(initializer=initializer, **conf)
     if not self.max_results:
       self.max_results = config.CONFIG.Get("Checks.max_results")
     if reformat:
@@ -127,7 +124,7 @@ class Filter(rdf_structs.RDFProtoStruct):
       initializer = None
     else:
       conf = kwargs
-    super(Filter, self).__init__(initializer=initializer, **conf)
+    super().__init__(initializer=initializer, **conf)
     filter_name = self.type or "Filter"
     self._filter = filters.Filter.GetFilter(filter_name)
 
@@ -176,7 +173,7 @@ class Probe(rdf_structs.RDFProtoStruct):
     else:
       conf = kwargs
     conf["match"] = MatchStrToList(kwargs.get("match"))
-    super(Probe, self).__init__(initializer=initializer, **conf)
+    super().__init__(initializer=initializer, **conf)
     if self.filters:
       handler = filters.GetHandler(mode=self.mode)
     else:
@@ -239,7 +236,7 @@ class Method(rdf_structs.RDFProtoStruct):
       initializer = None
     else:
       conf = kwargs
-    super(Method, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
     probe = conf.get("probe", {})
     resource = conf.get("resource", {})
     hint = conf.get("hint", {})
@@ -362,7 +359,7 @@ class Check(rdf_structs.RDFProtoStruct):
                match=None,
                method=None,
                hint=None):
-    super(Check, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
     self.check_id = check_id
     self.match = MatchStrToList(match)
     self.hint = Hint(hint, reformat=False)
@@ -410,7 +407,7 @@ class Check(rdf_structs.RDFProtoStruct):
     # If artifact is a single string, see if it is in the list of artifacts
     # as-is. Otherwise, test whether any of the artifacts passed in to this
     # function exist in the list of artifacts.
-    if isinstance(artifacts, string_types):
+    if isinstance(artifacts, str):
       return artifacts in self.artifacts
     else:
       return any(True for artifact in artifacts if artifact in self.artifacts)
@@ -452,10 +449,15 @@ class Matcher(object):
         "ANY": self.GotAny,
         "ALL": self.GotAll
     }
-    try:
-      self.detectors = [method_map.get(str(match)) for match in matches]
-    except KeyError:
-      raise DefinitionError("Match uses undefined check condition: %s" % match)
+
+    self.detectors = []
+    for match in matches:
+      try:
+        self.detectors.append(method_map[str(match)])
+      except KeyError:
+        message = "Match uses undefined check condition: {match}"
+        raise DefinitionError(message)
+
     self.hint = hint
 
   def Detect(self, baseline, host_data):
@@ -583,8 +585,7 @@ class CheckRegistry(object):
   @staticmethod
   def _AsList(arg):
     """Encapsulates an argument in a list, if it's not already iterable."""
-    if (isinstance(arg, string_types) or
-        not isinstance(arg, collections.Iterable)):
+    if (isinstance(arg, str) or not isinstance(arg, collections.Iterable)):
       return [arg]
     else:
       return list(arg)
@@ -641,7 +642,7 @@ class CheckRegistry(object):
     """
     check_ids = set()
     conditions = list(cls.Conditions(artifact, os_name, cpe, labels))
-    for chk_id, chk in iteritems(cls.checks):
+    for chk_id, chk in cls.checks.items():
       if restrict_checks and chk_id not in restrict_checks:
         continue
       for condition in conditions:
@@ -670,7 +671,7 @@ class CheckRegistry(object):
     results = set()
     for condition in cls.Conditions(None, os_name, cpe, labels):
       trigger = condition[1:]
-      for chk in itervalues(cls.checks):
+      for chk in cls.checks.values():
         if restrict_checks and chk.check_id not in restrict_checks:
           continue
         results.update(chk.triggers.Artifacts(*trigger))
@@ -699,7 +700,7 @@ class CheckRegistry(object):
       A CheckResult message for each check that was performed.
     """
     # All the conditions that apply to this host.
-    artifacts = list(iterkeys(host_data))
+    artifacts = list(host_data.keys())
     check_ids = cls.FindChecks(artifacts, os_name, cpe, labels)
     conditions = list(cls.Conditions(artifacts, os_name, cpe, labels))
     for check_id in check_ids:
@@ -793,7 +794,7 @@ def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
   loaded = []
   for file_path in file_paths:
     configs = LoadConfigsFromFile(file_path)
-    for conf in itervalues(configs):
+    for conf in configs.values():
       check = Check(**conf)
       # Validate will raise if the check doesn't load.
       check.Validate()

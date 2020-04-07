@@ -76,7 +76,7 @@ const UserDesktopNotificationsController =
  * @param {string} tag A string that uniquely identifies the notification across
                        browser windows.
  * @param {function()=} opt_onclick Optional on notification click callback.
- * @return {Object} Generated Notification instance.
+ * @return {!Object} Generated Notification instance.
  */
 UserDesktopNotificationsController.prototype.notify_ = function(
     title, body, tag, opt_onclick) {

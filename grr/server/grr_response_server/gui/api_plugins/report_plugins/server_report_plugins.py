@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """UI server report handling classes."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,7 +9,6 @@ import collections
 import math
 import re
 
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import events as rdf_events
@@ -201,7 +201,7 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
     entries = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
         min_timestamp=get_report_args.start_time,
         max_timestamp=get_report_args.start_time + get_report_args.duration)
-    for (username, _), count in iteritems(entries):
+    for (username, _), count in entries.items():
       counter[username] += count
     return counter
 
@@ -216,7 +216,7 @@ class MostActiveUsersReportPlugin(report_plugin_base.ReportPluginBase):
 
     ret.pie_chart.data = [
         rdf_report_plugins.ApiReportDataPoint1D(x=count, label=user)
-        for user, count in sorted(iteritems(counts))
+        for user, count in sorted(counts.items())
     ]
 
     return ret
@@ -249,7 +249,7 @@ class BaseUserFlowReportPlugin(report_plugin_base.ReportPluginBase):
 
     counts = self._GetFlows(get_report_args, token)
     total_counts = collections.Counter(
-        {flow: sum(cts.values()) for flow, cts in iteritems(counts)})
+        {flow: sum(cts.values()) for flow, cts in counts.items()})
 
     for i, (flow, total_count) in enumerate(total_counts.most_common()):
       topusercounts = counts[flow].most_common(3)
@@ -304,7 +304,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
   def _LoadUserActivity(self, start_time, end_time, token):
     counts = data_store.REL_DB.CountAPIAuditEntriesByUserAndDay(
         min_timestamp=start_time, max_timestamp=end_time)
-    for (username, day), count in iteritems(counts):
+    for (username, day), count in counts.items():
       yield username, day, count
 
   def GetReportData(self, get_report_args, token):
@@ -332,7 +332,7 @@ class UserActivityReportPlugin(report_plugin_base.ReportPluginBase):
       if week in user_activity[username]:
         user_activity[username][week] += count
 
-    user_activity = sorted(iteritems(user_activity))
+    user_activity = sorted(user_activity.items())
     user_activity = [(user, data)
                      for user, data in user_activity
                      if user not in access_control.SYSTEM_USERS]

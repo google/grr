@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR client for thread pools."""
 from __future__ import absolute_import
 from __future__ import division
@@ -58,7 +59,7 @@ class PoolGRRClient(threading.Thread):
                fast_poll=False,
                send_foreman_request=False):
     """Constructor."""
-    super(PoolGRRClient, self).__init__()
+    super().__init__()
     self.private_key = private_key
     self.daemon = True
 

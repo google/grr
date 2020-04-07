@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Helper for running end-to-end tests."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,10 +13,7 @@ import os
 import time
 import unittest
 
-from future.moves.urllib import parse as urlparse
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import string_types
+from urllib import parse as urlparse
 import requests
 
 from grr_api_client import api
@@ -67,11 +65,11 @@ class E2ETestRunner(object):
     # TODO(hanuszczak): Use the `precondition` module for validation here.
     if not api_endpoint:
       raise ValueError("GRR api_endpoint is required.")
-    if isinstance(whitelisted_tests, string_types):
+    if isinstance(whitelisted_tests, str):
       raise ValueError("whitelisted_tests should be a list.")
-    if isinstance(blacklisted_tests, string_types):
+    if isinstance(blacklisted_tests, str):
       raise ValueError("blacklisted_tests should be a list.")
-    if isinstance(manual_tests, string_types):
+    if isinstance(manual_tests, str):
       raise ValueError("manual_tests should be a list.")
     if max_test_attempts < 1:
       raise ValueError("max_test_attempts (%d) must be at least 1." %
@@ -160,7 +158,7 @@ class E2ETestRunner(object):
     if not applicable_tests:
       raise E2ETestError("Can't find applicable tests for the client.")
 
-    for test_name, test in iteritems(applicable_tests):
+    for test_name, test in applicable_tests.items():
       result, millis_elapsed = self._RetryTest(test_name, test, unittest_runner)
       results[test_name] = result
       if not self._appveyor_tests_endpoint:
@@ -255,7 +253,7 @@ class E2ETestRunner(object):
   def _GetApplicableTests(self, client):
     """Returns all e2e test methods that should be run against the client."""
     applicable_tests = {}
-    for test_class in itervalues(test_base.REGISTRY):
+    for test_class in test_base.REGISTRY.values():
       if client.data.os_info.system not in test_class.platforms:
         continue
 
@@ -279,7 +277,7 @@ class E2ETestRunner(object):
           continue
         else:
           applicable_tests[test_name] = test
-    return collections.OrderedDict(sorted(iteritems(applicable_tests)))
+    return collections.OrderedDict(sorted(applicable_tests.items()))
 
   def _RetryTest(self, test_name, test, unittest_runner):
     """Runs the given test with the given test runner, retrying on failure."""
@@ -324,7 +322,7 @@ class E2ETestRunner(object):
     report_lines = []
     max_test_name_len = max(len(test_name) for test_name in results_dict)
     report_lines.append("Results for %s:" % client_id)
-    for test_name, result in iteritems(results_dict):
+    for test_name, result in results_dict.items():
       pretty_result = self.LOGFILE_SUCCESS_RESULT
       if result.errors or result.failures:
         pretty_result = self.LOGFILE_FAILURE_RESULT

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A generic serializer for python dictionaries."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,13 +8,7 @@ from __future__ import unicode_literals
 
 import collections
 import logging
-
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
-from future.utils import python_2_unicode_compatible
-from past.builtins import long
-from typing import cast, List, Text, Union
+from typing import List, Text, Union, cast
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
@@ -37,8 +32,7 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
       payload = initializer
       initializer = None
 
-    super(EmbeddedRDFValue, self).__init__(
-        initializer=initializer, *args, **kwargs)
+    super().__init__(initializer=initializer, *args, **kwargs)
     if payload is not None:
       self.payload = payload
 
@@ -84,8 +78,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       TypeError: if the value can't be serialized and raise_on_error is True
     """
     type_mappings = [(Text, "string"), (bytes, "data"), (bool, "boolean"),
-                     (int, "integer"), (long, "integer"), (dict, "dict"),
-                     (float, "float")]
+                     (int, "integer"), (dict, "dict"), (float, "float")]
 
     if value is None:
       self.none = "None"
@@ -173,7 +166,6 @@ class KeyValue(rdf_structs.RDFProtoStruct):
   ]
 
 
-@python_2_unicode_compatible
 class Dict(rdf_structs.RDFProtoStruct):
   """A high level interface for protobuf Dict objects.
 
@@ -189,7 +181,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   _values = None
 
   def __init__(self, initializer=None, **kwargs):
-    super(Dict, self).__init__(initializer=None)
+    super().__init__(initializer=None)
 
     self.dat = None  # type: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper]
 
@@ -222,11 +214,11 @@ class Dict(rdf_structs.RDFProtoStruct):
   def FromDict(self, dictionary, raise_on_error=True):
     # First clear and then set the dictionary.
     self._values = {}
-    for key, value in iteritems(dictionary):
+    for key, value in dictionary.items():
       self._values[key] = KeyValue(
           k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
           v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
-    self.dat = itervalues(self._values)
+    self.dat = self._values.values()
     return self
 
   def __getitem__(self, key):
@@ -244,15 +236,15 @@ class Dict(rdf_structs.RDFProtoStruct):
     return default
 
   def Items(self):
-    for x in itervalues(self._values):
+    for x in self._values.values():
       yield x.k.GetValue(), x.v.GetValue()
 
   def Values(self):
-    for x in itervalues(self._values):
+    for x in self._values.values():
       yield x.v.GetValue()
 
   def Keys(self):
-    for x in itervalues(self._values):
+    for x in self._values.values():
       yield x.k.GetValue()
 
   get = utils.Proxy("GetItem")
@@ -310,7 +302,7 @@ class Dict(rdf_structs.RDFProtoStruct):
         k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
 
   def __iter__(self):
-    for x in itervalues(self._values):
+    for x in self._values.values():
       yield x.k.GetValue()
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.
@@ -325,11 +317,11 @@ class Dict(rdf_structs.RDFProtoStruct):
       return False
 
   def GetRawData(self):
-    self.dat = itervalues(self._values)
+    self.dat = self._values.values()
     return super(Dict, self).GetRawData()
 
   def _CopyRawData(self):
-    self.dat = itervalues(self._values)
+    self.dat = self._values.values()
     return super(Dict, self)._CopyRawData()
 
   def SetRawData(self, raw_data):
@@ -339,7 +331,7 @@ class Dict(rdf_structs.RDFProtoStruct):
       self._values[d.k.GetValue()] = d
 
   def SerializeToBytes(self):
-    self.dat = itervalues(self._values)
+    self.dat = self._values.values()
     return super(Dict, self).SerializeToBytes()
 
   def __str__(self):
@@ -355,7 +347,7 @@ class AttributedDict(Dict):
   ]
 
   def __init__(self, *args, **kwargs):
-    super(AttributedDict, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._StringifyKeys()
 
   def SetRawData(self, raw_data):
@@ -407,7 +399,7 @@ class AttributedDict(Dict):
     """Turns byte string keys into unicode string keys."""
     byte_keys = set()
 
-    for key in iterkeys(self._values):
+    for key in self._values.keys():
       if isinstance(key, bytes):
         byte_keys.add(key)
       elif not isinstance(key, Text):
@@ -425,7 +417,7 @@ class AttributedDict(Dict):
     # If we made any changes, update `self.dat` (whatever it is, but other
     # methods seem to do the same in case of modifying the internal state).
     if byte_keys:
-      self.dat = list(itervalues(self._values))
+      self.dat = list(self._values.values())
 
 
 class BlobArray(rdf_structs.RDFProtoStruct):
@@ -452,7 +444,7 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
   rdf_type = None
 
   def __init__(self, initializer=None):
-    super(RDFValueArray, self).__init__()
+    super().__init__()
 
     if self.__class__ == initializer.__class__:
       self.content = initializer.Copy().content

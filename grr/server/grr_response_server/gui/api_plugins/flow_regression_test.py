@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module contains regression tests for flows-related API handlers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,6 +7,7 @@ from __future__ import unicode_literals
 
 from absl import app
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -97,6 +99,32 @@ class ApiListFlowsHandlerRegressionTest(
     self.Check(
         "ListFlows",
         args=flow_plugin.ApiListFlowsArgs(client_id=client_id),
+        replace=replace)
+
+    self.Check(
+        "ListFlows",
+        args=flow_plugin.ApiListFlowsArgs(
+            client_id=client_id,
+            top_flows_only=True,
+        ),
+        replace=replace)
+
+    self.Check(
+        "ListFlows",
+        args=flow_plugin.ApiListFlowsArgs(
+            client_id=client_id,
+            min_started_at=rdfvalue.RDFDatetimeSeconds(44),
+            top_flows_only=True,
+        ),
+        replace=replace)
+
+    self.Check(
+        "ListFlows",
+        args=flow_plugin.ApiListFlowsArgs(
+            client_id=client_id,
+            max_started_at=rdfvalue.RDFDatetimeSeconds(43),
+            top_flows_only=True,
+        ),
         replace=replace)
 
 
@@ -365,14 +393,16 @@ class ApiCancelFlowHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    flow_id = flow.StartFlow(
-        flow_cls=processes.ListProcesses, client_id=client_id)
+    with test_lib.FakeTime(42):
+      flow_id = flow.StartFlow(
+          flow_cls=processes.ListProcesses, client_id=client_id)
 
-    self.Check(
-        "CancelFlow",
-        args=flow_plugin.ApiCancelFlowArgs(
-            client_id=client_id, flow_id=flow_id),
-        replace={flow_id: "W:ABCDEF"})
+    with test_lib.FakeTime(4242):
+      self.Check(
+          "CancelFlow",
+          args=flow_plugin.ApiCancelFlowArgs(
+              client_id=client_id, flow_id=flow_id),
+          replace={flow_id: "W:ABCDEF"})
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(

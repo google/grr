@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Invoke the fingerprint client action on a file."""
 from __future__ import absolute_import
 from __future__ import division
@@ -64,10 +65,10 @@ class FingerprintFileLogic(object):
     self.CallClient(
         self.fingerprint_file_mixin_client_action,
         request,
-        next_state=compatibility.GetName(self.ProcessFingerprint),
+        next_state=compatibility.GetName(self._ProcessFingerprint),
         request_data=request_data)
 
-  def ProcessFingerprint(self, responses):
+  def _ProcessFingerprint(self, responses):
     """Store the fingerprint response."""
     if not responses.success:
       # Its better to raise rather than merely logging since it will make it to

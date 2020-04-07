@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Library for processing of artifacts.
 
 This file contains non-GRR specific pieces of artifact processing and is
@@ -11,10 +12,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import re
-
-from future.utils import string_types
 from typing import Iterable
 from typing import Text
+
 
 from grr_response_core.lib import interpolation
 from grr_response_core.lib import objectfilter
@@ -39,7 +39,7 @@ class KbInterpolationMissingAttributesError(Error):
   def __init__(self, attrs):
     message = "Some attributes could not be located in the knowledgebase: {}"
     message = message.format(", ".join(attrs))
-    super(KbInterpolationMissingAttributesError, self).__init__(message)
+    super().__init__(message)
 
     self.attrs = list(attrs)
 
@@ -50,7 +50,7 @@ class KbInterpolationUnknownAttributesError(Error):
   def __init__(self, attrs):
     message = "Some attributes are not part of the knowledgebase: {}"
     message = message.format(", ".join(attrs))
-    super(KbInterpolationUnknownAttributesError, self).__init__(message)
+    super().__init__(message)
 
     self.attrs = list(attrs)
 
@@ -261,7 +261,7 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
     # KB environment variables are prefixed with environ_.
     kb_value = getattr(knowledge_base, "environ_%s" % match.group(1).lower(),
                        None)
-    if isinstance(kb_value, string_types) and kb_value:
+    if isinstance(kb_value, str) and kb_value:
       components.append(kb_value)
     else:
       # Failed to expand, leave the variable as it was.
@@ -316,7 +316,7 @@ def ExpandWindowsUserEnvironmentVariables(data_string,
     kb_value = None
     if kb_user:
       kb_value = getattr(kb_user, match.group(1).lower(), None)
-    if isinstance(kb_value, string_types) and kb_value:
+    if isinstance(kb_value, str) and kb_value:
       components.append(kb_value)
     else:
       components.append("%%%s%%" % match.group(1))

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Client actions related to searching files and directories."""
 from __future__ import absolute_import
 from __future__ import division

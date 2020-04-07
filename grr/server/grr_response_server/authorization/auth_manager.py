@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """GRR authorization manager."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,8 +8,6 @@ from __future__ import unicode_literals
 import collections
 import logging
 
-from future.utils import iterkeys
-from future.utils import itervalues
 import yaml as pyyaml
 
 from grr_response_core.lib.util.compat import yaml
@@ -31,7 +30,7 @@ class AuthorizationReader(object):
   """Helper class for reading authorization objects from YAML sources."""
 
   def __init__(self):
-    super(AuthorizationReader, self).__init__()
+    super().__init__()
     self.auth_objects = collections.OrderedDict()
 
   def CreateAuthorizations(self, yaml_data, auth_class):
@@ -54,12 +53,12 @@ class AuthorizationReader(object):
     return self.auth_objects[subject]
 
   def GetAllAuthorizationObjects(self):
-    return itervalues(self.auth_objects)
+    return self.auth_objects.values()
 
   # TODO(hanuszczak): This appears to be used only in tests. Maybe it should be
   # removed.
   def GetAuthSubjects(self):
-    return iterkeys(self.auth_objects)
+    return self.auth_objects.keys()
 
 
 class AuthorizationManager(object):
@@ -119,7 +118,7 @@ class AuthorizationManager(object):
   # TODO(hanuszczak): This appears to be used only in tests. Maybe it should be
   # removed.
   def GetAuthSubjects(self):
-    return iterkeys(self.authorized_users)
+    return self.authorized_users.keys()
 
   def HasAuthSubject(self, subject):
     return subject in self.authorized_users

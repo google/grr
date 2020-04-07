@@ -4,7 +4,22 @@
       "api_method": "CancelFlow",
       "method": "POST",
       "response": {
-        "status": "OK"
+        "args": {
+          "@type": "type.googleapis.com/ListProcessesArgs"
+        },
+        "clientId": "C.1000000000000000",
+        "creator": "",
+        "flowId": "W:ABCDEF",
+        "lastActiveAt": "4242000000",
+        "name": "ListProcesses",
+        "runnerArgs": {
+          "clientId": "aff4:/C.1000000000000000",
+          "flowName": "ListProcesses",
+          "notifyToUser": false
+        },
+        "startedAt": "42000000",
+        "state": "ERROR",
+        "urn": "aff4:/C.1000000000000000/W:ABCDEF"
       },
       "test_class": "ApiCancelFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
@@ -2589,6 +2604,14 @@
             "repeated": false
           },
           {
+            "doc": "Flow progress info.",
+            "dynamic": true,
+            "friendlyName": "Progress",
+            "index": 16,
+            "name": "progress",
+            "repeated": false
+          },
+          {
             "doc": "Flow runner arguments.",
             "dynamic": false,
             "friendlyName": "Runner args",
@@ -4042,6 +4065,108 @@
       },
       "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/ListProcessesArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF11",
+            "lastActiveAt": "44000000",
+            "name": "ListProcesses",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "ListProcesses",
+              "notifyToUser": true
+            },
+            "startedAt": "44000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          },
+          {
+            "args": {
+              "@type": "type.googleapis.com/InterrogateArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF10",
+            "lastActiveAt": "43000000",
+            "name": "Interrogate",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "Interrogate",
+              "notifyToUser": true
+            },
+            "startedAt": "43000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows?top_flows_only=1"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/ListProcessesArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF11",
+            "lastActiveAt": "44000000",
+            "name": "ListProcesses",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "ListProcesses",
+              "notifyToUser": true
+            },
+            "startedAt": "44000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows?min_started_at=44000000&top_flows_only=1"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/InterrogateArgs"
+            },
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF10",
+            "lastActiveAt": "43000000",
+            "name": "Interrogate",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "Interrogate",
+              "notifyToUser": true
+            },
+            "startedAt": "43000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows?max_started_at=43000000&top_flows_only=1"
     }
   ],
   "ApiListGrrBinariesHandler": [

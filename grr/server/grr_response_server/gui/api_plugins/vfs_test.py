@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 from __future__ import absolute_import
@@ -10,7 +11,6 @@ import io
 import zipfile
 
 from absl import app
-from future.utils import iteritems
 import mock
 
 from grr_response_core.lib import factory
@@ -158,7 +158,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     attributes_by_type["AFF4Object"] = ["TYPE"]
 
     details = result.file.details
-    for type_name, attrs in iteritems(attributes_by_type):
+    for type_name, attrs in attributes_by_type.items():
       type_obj = next(t for t in details.types if t.name == type_name)
       all_attrs = set([a.name for a in type_obj.attributes])
       self.assertContainsSubset(attrs, all_attrs)
@@ -337,7 +337,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     exception = context.exception
     self.assertEqual(exception.client_id, self.client_id)
     self.assertEqual(exception.path_type, rdf_objects.PathInfo.PathType.OS)
-    self.assertItemsEqual(exception.components, ["foo", "bar"])
+    self.assertCountEqual(exception.components, ["foo", "bar"])
 
   def testRaisesOnExistingPathWithoutContent(self):
     path_info = rdf_objects.PathInfo.OS(components=["foo", "bar"])
@@ -352,7 +352,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     exception = context.exception
     self.assertEqual(exception.client_id, self.client_id)
     self.assertEqual(exception.path_type, rdf_objects.PathInfo.PathType.OS)
-    self.assertItemsEqual(exception.components, ["foo", "bar"])
+    self.assertCountEqual(exception.components, ["foo", "bar"])
     self.assertIsNone(exception.timestamp)
 
   def testRaisesOnEmptyPath(self):
@@ -494,7 +494,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     exception = context.exception
     self.assertEqual(exception.client_id, self.client_id)
     self.assertEqual(exception.path_type, rdf_objects.PathInfo.PathType.OS)
-    self.assertItemsEqual(exception.components, ["foo", "bar"])
+    self.assertCountEqual(exception.components, ["foo", "bar"])
 
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(

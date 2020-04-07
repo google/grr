@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implement access to the windows registry."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,6 +11,7 @@ import ctypes.wintypes
 import io
 import os
 import stat
+import winreg
 
 from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_core.lib import utils
@@ -17,11 +19,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
-
-try:  # future.moves.winreg can't be used because mocking of modules is hard.
-  import winreg  # pylint: disable=g-import-not-at-top
-except ImportError:  # In case of Python 2:
-  import _winreg as winreg  # pylint: disable=g-import-not-at-top
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600
@@ -301,7 +298,7 @@ class RegistryFile(vfs_base.VFSHandler):
   }
 
   def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
-    super(RegistryFile, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,

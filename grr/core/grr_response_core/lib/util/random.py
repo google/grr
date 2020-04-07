@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with utilities for optimized pseudo-random number generation."""
 from __future__ import absolute_import
 from __future__ import division

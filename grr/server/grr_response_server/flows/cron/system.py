@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """These flows are system-specific GRR cron flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,6 @@ from __future__ import unicode_literals
 
 import collections
 
-from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -47,9 +47,8 @@ def _WriteFleetBreakdownStatsToDB(fleet_stats, report_type):
     for client_label in fleet_stats.GetAllLabels():
       graph = rdf_stats.Graph(title="%d day actives for %s label" %
                               (day_bucket, client_label))
-      for category_value, num_actives in sorted(
-          iteritems(
-              fleet_stats.GetValuesForDayAndLabel(day_bucket, client_label))):
+      values = fleet_stats.GetValuesForDayAndLabel(day_bucket, client_label)
+      for category_value, num_actives in sorted(values.items()):
         graph.Append(label=category_value, y_value=num_actives)
       graph_series_by_label[client_label].graphs.Append(graph)
 
@@ -58,12 +57,12 @@ def _WriteFleetBreakdownStatsToDB(fleet_stats, report_type):
   for day_bucket in fleet_stats.GetDayBuckets():
     graph = rdf_stats.Graph(title="%d day actives for %s label" %
                             (day_bucket, _ALL_CLIENT_FLEET_STATS_LABEL))
-    for category_value, num_actives in sorted(
-        iteritems(fleet_stats.GetTotalsForDay(day_bucket))):
+    totals = fleet_stats.GetTotalsForDay(day_bucket)
+    for category_value, num_actives in sorted(totals.items()):
       graph.Append(label=category_value, y_value=num_actives)
     graph_series_by_label[_ALL_CLIENT_FLEET_STATS_LABEL].graphs.Append(graph)
 
-  for client_label, graph_series in iteritems(graph_series_by_label):
+  for client_label, graph_series in graph_series_by_label.items():
     client_report_utils.WriteGraphSeries(graph_series, client_label)
 
 
@@ -99,7 +98,7 @@ class OSBreakDownCronJob(cronjobs.SystemCronJobBase):
 
 def _WriteFleetAggregateStatsToDB(client_label, bucket_dict):
   graph = rdf_stats.Graph()
-  for day_bucket, num_actives in sorted(iteritems(bucket_dict)):
+  for day_bucket, num_actives in sorted(bucket_dict.items()):
     graph.Append(
         x_value=rdfvalue.Duration.From(day_bucket, rdfvalue.DAYS).microseconds,
         y_value=num_actives)
@@ -118,8 +117,8 @@ class LastAccessStatsCronJob(cronjobs.SystemCronJobBase):
   def Run(self):
     platform_stats = data_store.REL_DB.CountClientPlatformsByLabel(
         _GENERAL_FLEET_STATS_DAY_BUCKETS)
-    for client_label, bucket_dict in iteritems(
-        platform_stats.GetAggregatedLabelCounts()):
+    counts = platform_stats.GetAggregatedLabelCounts()
+    for client_label, bucket_dict in counts.items():
       _WriteFleetAggregateStatsToDB(client_label, bucket_dict)
     _WriteFleetAggregateStatsToDB(_ALL_CLIENT_FLEET_STATS_LABEL,
                                   platform_stats.GetAggregatedTotalCounts())
@@ -178,11 +177,11 @@ class _ActiveCounter(object):
             label, rdf_stats.ClientGraphSeries(report_type=self._report_type))
         graph = rdf_stats.Graph(title="%s day actives for %s label" %
                                 (active_time, label))
-        for k, v in sorted(iteritems(self.categories[active_time][label])):
+        for k, v in sorted(self.categories[active_time][label].items()):
           graph.Append(label=k, y_value=v)
         graphs_for_label.graphs.Append(graph)
 
-    for label, graph_series in iteritems(graph_series_by_label):
+    for label, graph_series in graph_series_by_label.items():
       client_report_utils.WriteGraphSeries(graph_series, label)
 
 

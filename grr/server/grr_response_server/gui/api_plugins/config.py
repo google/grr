@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """API handlers for accessing config."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,7 +7,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.utils import iteritems
 
 from grr_response_core import config
 from grr_response_core.lib import config_lib
@@ -215,7 +215,7 @@ class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
     binary_urns = signed_binary_utils.FetchURNsForAllSignedBinaries()
     api_binaries = []
     for binary_urn in sorted(binary_urns):
-      for binary_type, root in iteritems(roots):
+      for binary_type, root in roots.items():
         relative_path = binary_urn.RelativeName(root)
         if relative_path:
           api_binary = _GetSignedBinaryMetadata(binary_type, relative_path)

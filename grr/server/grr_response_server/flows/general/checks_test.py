@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Test the collector flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 import os
 
 from absl import app
-from future.utils import iterkeys
 
 from grr_response_core import config
 from grr_response_core.lib.parsers import config_file
@@ -64,7 +64,7 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
     cfg_dir = os.path.join(config.CONFIG["Test.data_dir"], "checks")
     chk_files = [os.path.join(cfg_dir, f) for f in check_configs]
     checks.LoadChecksFromFiles(chk_files)
-    return list(iterkeys(checks.CheckRegistry.checks))
+    return list(checks.CheckRegistry.checks.keys())
 
   def testSelectArtifactsForChecks(self):
     client_id = self.SetupLinuxUser()

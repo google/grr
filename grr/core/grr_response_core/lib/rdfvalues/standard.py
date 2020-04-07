@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Standard RDFValues."""
 
 from __future__ import absolute_import
@@ -7,9 +8,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import re
-
-from future.moves.urllib import parse as urlparse
 from typing import Text
+
+from urllib import parse as urlparse
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
@@ -26,7 +27,7 @@ class RegularExpression(rdfvalue.RDFString):
                       "literal-and-regex-matching.html#regex-matches")
 
   def __init__(self, initializer=None):
-    super(RegularExpression, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
     # Try compiling the pattern right away to fail fast for pattern errors.
     self._Regex()
 
@@ -66,7 +67,7 @@ class EmailAddress(rdfvalue.RDFString):
   _EMAIL_REGEX = re.compile(r"[^@]+@([^@]+)$")
 
   def __init__(self, initializer=None):
-    super(EmailAddress, self).__init__(initializer)
+    super().__init__(initializer)
 
     self._match = self._EMAIL_REGEX.match(self._value)
     if self._value and not self._match:
@@ -77,7 +78,7 @@ class DomainEmailAddress(EmailAddress):
   """A more restricted email address may only address the domain."""
 
   def __init__(self, initializer=None):
-    super(DomainEmailAddress, self).__init__(initializer)
+    super().__init__(initializer)
 
     # TODO(user): dependency loop with
     # core/grr_response_core/grr/config/client.py.
@@ -107,10 +108,10 @@ class URI(rdf_structs.RDFProtoStruct):
 
   def __init__(self, initializer=None, **kwargs):
     if not isinstance(initializer, urlparse.ParseResult):
-      super(URI, self).__init__(initializer, **kwargs)
+      super().__init__(initializer, **kwargs)
       return
 
-    super(URI, self).__init__()
+    super().__init__()
 
     if initializer.scheme:
       self.transport = initializer.scheme

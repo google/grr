@@ -7,7 +7,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
-from future.utils import itervalues
 
 import mock
 import portpicker
@@ -93,7 +92,7 @@ class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,
     def wait_until_done_wrapper(func):
 
       def wait_until_done(*args, **kwargs):
-        actions = list(itervalues(client_actions.REGISTRY))
+        actions = list(client_actions.REGISTRY.values())
         client_mock = action_mocks.ActionMock(*actions)
 
         flow_test_lib.FinishAllFlows(client_mock=client_mock)

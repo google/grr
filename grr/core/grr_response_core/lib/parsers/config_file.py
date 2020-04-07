@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for configuration files."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,10 +9,8 @@ from __future__ import unicode_literals
 import collections
 import logging
 import re
-
-from future.utils import iteritems
-from future.utils import string_types
 from typing import Text
+
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
@@ -28,7 +27,7 @@ from grr_response_core.lib.util import precondition
 
 def AsIter(arg):
   """Encapsulates an argument in a tuple, if it's not already iterable."""
-  if isinstance(arg, string_types):
+  if isinstance(arg, str):
     rslt = [arg]
   elif isinstance(arg, collections.Iterable):
     rslt = arg
@@ -90,7 +89,7 @@ class FieldParser(lexer.Lexer):
       term: Entry termination patterns (e.g. "\\n").
       verbose: Enable verbose mode for the lexer. Useful for debugging.
     """
-    super(FieldParser, self).__init__()
+    super().__init__()
     self.entries = []
     self.fields = []
     self.field = ""
@@ -238,7 +237,7 @@ class KeyValueParser(FieldParser):
       verbose: Enable verbose mode for the lexer. Useful for debugging.
     """
     self.kv_sep = AsIter(kv_sep)
-    super(KeyValueParser, self).__init__(
+    super().__init__(
         comments=comments,
         cont=cont,
         ml_quote=ml_quote,
@@ -327,7 +326,7 @@ class NfsExportsParser(parsers.SingleFileParser):
   supported_artifacts = ["NfsExportsFile"]
 
   def __init__(self, *args, **kwargs):
-    super(NfsExportsParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
@@ -435,7 +434,7 @@ class SshdFieldParser(object):
   ]
 
   def __init__(self):
-    super(SshdFieldParser, self).__init__()
+    super().__init__()
     self.Flush()
 
   def Flush(self):
@@ -541,7 +540,7 @@ class SshdConfigParser(parsers.SingleFileParser):
   output_types = [rdf_config_file.SshdConfig]
 
   def __init__(self, *args, **kwargs):
-    super(SshdConfigParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = SshdFieldParser()
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
@@ -569,7 +568,7 @@ class SshdConfigCmdParser(parser.CommandParser):
   output_types = [rdf_config_file.SshdConfig]
 
   def __init__(self, *args, **kwargs):
-    super(SshdConfigCmdParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = SshdFieldParser()
 
   def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
@@ -589,7 +588,7 @@ class MtabParser(parsers.SingleFileParser):
   supported_artifacts = ["LinuxProcMounts", "LinuxFstab"]
 
   def __init__(self, *args, **kwargs):
-    super(MtabParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
@@ -607,7 +606,7 @@ class MtabParser(parsers.SingleFileParser):
       options = KeyValueParser(term=",").ParseToOrderedDict(entry[3])
       # Keys without values get assigned [] by default. Because these keys are
       # actually true, if declared, change any [] values to True.
-      for k, v in iteritems(options):
+      for k, v in options.items():
         options[k] = v or [True]
       result.options = rdf_protodict.AttributedDict(**options)
       yield result
@@ -621,7 +620,7 @@ class MountCmdParser(parser.CommandParser):
   mount_re = re.compile(r"(.*) on (.*) type (.*) \((.*)\)")
 
   def __init__(self, *args, **kwargs):
-    super(MountCmdParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
   def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
@@ -642,7 +641,7 @@ class MountCmdParser(parser.CommandParser):
         options = KeyValueParser(term=",").ParseToOrderedDict(option_str)
         # Keys without values get assigned [] by default. Because these keys are
         # actually true, if declared, change any [] values to True.
-        for k, v in iteritems(options):
+        for k, v in options.items():
           options[k] = v or [True]
         result.options = rdf_protodict.AttributedDict(**options)
         yield result
@@ -685,7 +684,7 @@ class RsyslogFieldParser(FieldParser):
       a rdfvalue.LogTarget message.
     """
     rslt = rdf_config_file.LogTarget()
-    for dst_str, dst_re in iteritems(self.destinations):
+    for dst_str, dst_re in self.destinations.items():
       dst = dst_re.match(action)
       if dst:
         rslt.transport = dst_str
@@ -701,7 +700,7 @@ class RsyslogParser(parsers.MultiFileParser):
   supported_artifacts = ["LinuxRsyslogConfigs"]
 
   def __init__(self, *args, **kwargs):
-    super(RsyslogParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = RsyslogFieldParser()
 
   def ParseFiles(self, knowledge_base, pathspecs, filedescs):
@@ -785,7 +784,7 @@ class PackageSourceParser(parsers.SingleFileParser):
     uris = []
     check_uri_on_next_line = False
     for kv_entry, sp_entry in zip(kv_entries, spaced_entries):
-      for k, v in iteritems(kv_entry):
+      for k, v in kv_entry.items():
         # This line could be a URL if a) from  key:value, value is empty OR
         # b) if separator is : and first character of v starts with /.
         if (check_uri_on_next_line and
@@ -909,7 +908,7 @@ class NtpdFieldParser(FieldParser):
   }
 
   def __init__(self):
-    super(NtpdFieldParser, self).__init__()
+    super().__init__()
     # ntp.conf has no line continuation. Override the default 'cont' values
     # then parse up the lines.
     self.cont = ""
@@ -946,7 +945,7 @@ class NtpdFieldParser(FieldParser):
 
     if keyword not in self._repeated | self._duplicates:
       # We have a plain and simple single key/value config line.
-      if isinstance(values[0], string_types):
+      if isinstance(values[0], str):
         self.config[keyword] = " ".join(values)
       else:
         self.config[keyword] = values
@@ -1047,7 +1046,7 @@ class SudoersFieldParser(FieldParser):
 
   def __init__(self, *args, **kwargs):
     kwargs["comments"] = []
-    super(SudoersFieldParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
 
   def _ExtractList(self, fields, ignores=(",",), terminators=()):
     """Extract a list from the given fields."""
@@ -1147,7 +1146,7 @@ class SudoersParser(parsers.SingleFileParser):
   supported_artifacts = ["UnixSudoersConfiguration"]
 
   def __init__(self, *args, **kwargs):
-    super(SudoersParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._field_parser = SudoersFieldParser()
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):

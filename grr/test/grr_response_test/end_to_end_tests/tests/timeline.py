@@ -31,7 +31,7 @@ class TestTimelineLinux(test_base.EndToEndTest):
       body = flow.GetCollectedTimeline(timeline_format)
       body.WriteToFile(temp_filepath)
 
-      with io.open(temp_filepath) as temp_filedesc:
+      with io.open(temp_filepath, mode="r", encoding="utf-8") as temp_filedesc:
         entries = list(csv.reader(temp_filedesc, delimiter="|"))
 
     paths = [entry[1] for entry in entries]
@@ -63,7 +63,7 @@ class TestTimelineWindows(test_base.EndToEndTest):
       body = flow.GetCollectedTimeline(timeline_format)
       body.WriteToFile(temp_filepath)
 
-      with io.open(temp_filepath) as temp_filedesc:
+      with io.open(temp_filepath, mode="r", encoding="utf-8") as temp_filedesc:
         entries = list(csv.reader(temp_filedesc, delimiter="|"))
 
     paths = [entry[1].lower() for entry in entries]

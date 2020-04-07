@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
 from __future__ import absolute_import
@@ -13,7 +14,6 @@ import stat
 import struct
 
 from absl import app
-from future.utils import itervalues
 import mock
 
 from grr_response_client import vfs
@@ -340,7 +340,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   CONDITION_TESTS_ACTIONS = sorted(
-      set(itervalues(rdf_file_finder.FileFinderAction.Action.enum_dict)))
+      set(rdf_file_finder.FileFinderAction.Action.enum_dict.values()))
 
   def testLiteralMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]

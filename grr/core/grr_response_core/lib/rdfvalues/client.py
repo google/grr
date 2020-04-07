@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """AFF4 RDFValue implementations for client information.
 
 This module contains the RDFValue implementations used to communicate with the
@@ -17,13 +18,10 @@ import re
 import socket
 import struct
 import sys
+from typing import Text
 
 import distro
-from future.utils import iteritems
-from future.utils import string_types
-from past.builtins import long
 import psutil
-from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -70,7 +68,7 @@ class ClientURN(rdfvalue.RDFURN):
   CLIENT_ID_RE = re.compile(r"^(aff4:)?/?(?P<clientid>(c|C)\.[0-9a-fA-F]{16})$")
 
   def __init__(self, initializer=None):
-    super(ClientURN, self).__init__(initializer)
+    super().__init__(initializer)
 
     if self._value and not self.Validate(self._value):
       raise type_info.TypeValueError("Client urn malformed: %s" % initializer)
@@ -134,7 +132,7 @@ class ClientURN(rdfvalue.RDFURN):
     Raises:
        ValueError: if the path component is not a string.
     """
-    if not isinstance(path, string_types):
+    if not isinstance(path, str):
       raise ValueError("Only strings should be added to a URN.")
 
     return rdfvalue.RDFURN(utils.JoinPath(self._value, path))
@@ -196,7 +194,7 @@ class User(rdf_structs.RDFProtoStruct):
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
       initializer = User.FromSerializedBytes(initializer.SerializeToBytes())
-    super(User, self).__init__(initializer=initializer, **kwargs)
+    super().__init__(initializer=initializer, **kwargs)
 
 
 class KnowledgeBaseUser(User):
@@ -235,7 +233,7 @@ class KnowledgeBase(rdf_structs.RDFProtoStruct):
     if not user:
       new_attrs = self._CreateNewUser(kb_user)
     else:
-      for key, val in iteritems(kb_user.AsDict()):
+      for key, val in kb_user.AsDict().items():
         if user.Get(key) and user.Get(key) != val:
           merge_conflicts.append((key, user.Get(key), val))
         user.Set(key, val)
@@ -349,7 +347,7 @@ class Process(rdf_structs.RDFProtoStruct):
           if callable(value):
             value = value()
 
-          if not isinstance(value, (int, long)):
+          if not isinstance(value, int):
             value = utils.SmartUnicode(value)
 
           setattr(response, field, value)

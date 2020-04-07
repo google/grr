@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Configuration parameters for client builder and server packaging."""
 from __future__ import absolute_import
 from __future__ import division
@@ -76,7 +77,7 @@ class PathTypeInfo(type_info.String):
 
   def __init__(self, must_exist=True, **kwargs):
     self.must_exist = must_exist
-    super(PathTypeInfo, self).__init__(**kwargs)
+    super().__init__(**kwargs)
 
   def Validate(self, value):
     value = super(PathTypeInfo, self).Validate(value)

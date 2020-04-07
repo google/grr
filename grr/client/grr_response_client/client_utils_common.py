@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Client utilities common to all platforms."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,7 +13,6 @@ import subprocess
 import threading
 import time
 
-from future.utils import itervalues
 
 from grr_response_client.local import binary_whitelist
 from grr_response_core import config
@@ -266,7 +266,7 @@ class MultiHasher(object):
     Args:
       buf: A byte buffer (string object) that is going to be fed to the hashers.
     """
-    for hasher in itervalues(self._hashers):
+    for hasher in self._hashers.values():
       hasher.update(buf)
       if self._progress:
         self._progress()

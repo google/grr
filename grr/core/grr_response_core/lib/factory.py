@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A module with definition of factory."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.utils import iterkeys
 from typing import Callable
 from typing import Generic
 from typing import Iterator
@@ -110,4 +110,4 @@ class Factory(Generic[T]):
 
   def Names(self):
     """Yields all names that have been registered with this factory."""
-    return iterkeys(self._constructors)
+    return iter(self._constructors.keys())

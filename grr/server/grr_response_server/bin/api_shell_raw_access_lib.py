@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Raw access server-side only API shell."""
 from __future__ import absolute_import
 from __future__ import division
@@ -18,7 +19,7 @@ class RawConnector(connector.Connector):
   """API connector that uses API routers directly."""
 
   def __init__(self, page_size=None, token=None):
-    super(RawConnector, self).__init__()
+    super().__init__()
 
     if not page_size:
       raise ValueError("page_size has to be specified.")

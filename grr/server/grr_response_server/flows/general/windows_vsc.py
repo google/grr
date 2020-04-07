@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Queries a Windows client for Volume Shadow Copy information."""
 from __future__ import absolute_import
 from __future__ import division

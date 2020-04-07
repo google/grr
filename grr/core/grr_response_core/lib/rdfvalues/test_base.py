@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """The base classes for RDFValue tests."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from past.builtins import long
 from typing import Text
 
 from grr_response_core.lib import serialization
@@ -101,8 +101,7 @@ class RDFValueTestMixin(object):
     elif protobuf_type == "string":
       self.assertIsInstance(serialized, Text)
     elif protobuf_type in ["unsigned_integer", "integer"]:
-      # TODO(hanuszczak): Import `future.builtins.int`.
-      self.assertIsInstance(serialized, (int, long))
+      self.assertIsInstance(serialized, int)
     else:
       self.fail("%s has no valid protobuf_type" % self.rdfvalue_class)
 

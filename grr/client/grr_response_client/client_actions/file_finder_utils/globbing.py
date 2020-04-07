@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of path expansion mechanism for client-side file-finder."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,10 +13,9 @@ import os
 import platform
 import re
 import stat
-
-from future.utils import with_metaclass
-import psutil
 from typing import Callable, Iterator, Optional, Text
+
+import psutil
 
 from grr_response_client import vfs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -54,7 +54,7 @@ class PathOpts(object):
     return raw.format(bool(self.follow_links), self.xdev, self.pathtype)
 
 
-class PathComponent(with_metaclass(abc.ABCMeta, object)):
+class PathComponent(metaclass=abc.ABCMeta):
   """An abstract class representing parsed path component.
 
   A path component is part of the path delimited by the directory separator.
@@ -79,15 +79,16 @@ class RecursiveComponent(PathComponent):
   DEFAULT_MAX_DEPTH = 3
 
   def __init__(self, max_depth=None, opts=None):
-    super(RecursiveComponent, self).__init__()
+    super().__init__()
     self.max_depth = max_depth or self.DEFAULT_MAX_DEPTH
     self.opts = opts or PathOpts()
 
   def Generate(self, dirpath):
-    self.allowed_devices = _GetAllowedDevices(self.opts.xdev, dirpath)
+    self._allowed_devices = _GetAllowedDevices(self.opts.xdev, dirpath)
     return self._Generate(dirpath, 1)
 
   def _Generate(self, dirpath, depth):
+    """Generates recursively path descendants."""
     if depth > self.max_depth:
       return
 
@@ -100,6 +101,7 @@ class RecursiveComponent(PathComponent):
         yield childpath
 
   def _Recurse(self, path, depth):
+    """Recurses to the given path if necessary up to the given depth."""
     if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
       try:
         stat_entry = os.stat(path)
@@ -107,8 +109,8 @@ class RecursiveComponent(PathComponent):
         # Can happen for links pointing to non existent files/directories.
         return
 
-      if (self.allowed_devices is not _XDEV_ALL_ALLOWED and
-          stat_entry.st_dev not in self.allowed_devices):
+      if (self._allowed_devices is not _XDEV_ALL_ALLOWED and
+          stat_entry.st_dev not in self._allowed_devices):
         return
 
       if not stat.S_ISDIR(stat_entry.st_mode):
@@ -156,13 +158,14 @@ class GlobComponent(PathComponent):
       glob: A string with potential glob elements (e.g. `foo*`).
       opts: An optional PathOpts instance.
     """
-    super(GlobComponent, self).__init__()
+    super().__init__()
     self._glob = glob
     self._is_literal = PATH_GLOB_REGEX.search(self._glob) is None
     self.regex = re.compile(fnmatch.translate(glob), re.I)
     self.opts = opts or PathOpts()
 
   def _GenerateLiteralMatchOS(self, dirpath):
+    """Generates an OS-specific literal match."""
     if not os.path.exists(os.path.join(dirpath, self._glob)):
       return None
 
@@ -183,6 +186,7 @@ class GlobComponent(PathComponent):
     return None
 
   def _GenerateLiteralMatch(self, dirpath):
+    """Generates a literal match."""
     if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
       return self._GenerateLiteralMatchOS(dirpath)
 

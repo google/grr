@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for grr_response_server.flows.general.collectors.
 
 These test cover the artifact downloader functionality which downloads files
@@ -48,7 +49,8 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
       self.assertIn("indexed_pathspecs", this.state)
 
       for r in self.received_files:
-        this.ReceiveFetchedFile(r, None, request_data=request_data)
+        this.ReceiveFetchedFile(
+            r, None, request_data=request_data, is_duplicate=False)
 
       for r in self.failed_files:
         this.FileFetchFailed(r, request_data=request_data)

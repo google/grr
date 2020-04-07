@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for configuration files."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
@@ -43,7 +43,7 @@ class SysctlCmdParser(parser.CommandParser):
   supported_artifacts = ["LinuxSysctlCmd"]
 
   def __init__(self, *args, **kwargs):
-    super(SysctlCmdParser, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.lexer = config_file.KeyValueParser()
 
   def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
@@ -53,7 +53,7 @@ class SysctlCmdParser(parser.CommandParser):
     result = rdf_protodict.AttributedDict()
     # The KeyValueParser generates an ordered dict by default. The sysctl vals
     # aren't ordering dependent, but there's no need to un-order it.
-    for k, v in iteritems(self.lexer.ParseToOrderedDict(stdout)):
+    for k, v in self.lexer.ParseToOrderedDict(stdout).items():
       key = k.replace(".", "_")
       if len(v) == 1:
         v = v[0]

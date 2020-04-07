@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """AFF4 RDFValue implementations.
 
@@ -23,15 +24,11 @@ import logging
 import posixpath
 import re
 import time
+from typing import Any, Optional, Text, Union, cast
 import zlib
 
 import dateutil
 from dateutil import parser
-from future.utils import iteritems
-from future.utils import python_2_unicode_compatible
-from future.utils import string_types
-from future.utils import with_metaclass
-from typing import cast, Any, Optional, Text, Union
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -62,7 +59,7 @@ class DecodeError(InitializeError, ValueError):
 
   def __init__(self, msg):
     logging.debug(msg)
-    super(DecodeError, self).__init__(msg)
+    super().__init__(msg)
 
 
 class RDFValueMetaclass(registry.MetaclassRegistry):
@@ -76,8 +73,7 @@ class RDFValueMetaclass(registry.MetaclassRegistry):
       callback(target=cls, **kwargs)
 
 
-@python_2_unicode_compatible
-class RDFValue(with_metaclass(RDFValueMetaclass, object)):
+class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclass
   """Baseclass for values.
 
   RDFValues are serialized to and from the data store.
@@ -185,7 +181,7 @@ class RDFPrimitive(RDFValue):
   _primitive_value = None
 
   def __init__(self, initializer):
-    super(RDFPrimitive, self).__init__()
+    super().__init__()
     self._primitive_value = initializer
 
   @property
@@ -204,7 +200,6 @@ class RDFPrimitive(RDFValue):
             compatibility.GetName(cls)))
 
 
-@python_2_unicode_compatible
 @functools.total_ordering
 class RDFBytes(RDFPrimitive):
   """An attribute which holds bytes."""
@@ -212,11 +207,11 @@ class RDFBytes(RDFPrimitive):
 
   def __init__(self, initializer=None):
     if initializer is None:
-      super(RDFBytes, self).__init__(b"")
+      super().__init__(b"")
     elif isinstance(initializer, bytes):
-      super(RDFBytes, self).__init__(initializer)
+      super().__init__(initializer)
     elif isinstance(initializer, RDFBytes):
-      super(RDFBytes, self).__init__(initializer.AsBytes())
+      super().__init__(initializer.AsBytes())
     else:
       message = "Unexpected initializer `{value}` of type {type}"
       raise TypeError(message.format(value=initializer, type=type(initializer)))
@@ -275,7 +270,6 @@ class RDFZippedBytes(RDFBytes):
 
 
 @functools.total_ordering
-@python_2_unicode_compatible
 class RDFString(RDFPrimitive):
   """Represent a simple string."""
 
@@ -284,13 +278,13 @@ class RDFString(RDFPrimitive):
   # TODO(hanuszczak): Allow initializing from arbitrary `unicode`-able object.
   def __init__(self, initializer=None):
     if initializer is None:
-      super(RDFString, self).__init__("")
+      super().__init__("")
     if isinstance(initializer, RDFString):
-      super(RDFString, self).__init__(str(initializer))
+      super().__init__(str(initializer))
     elif isinstance(initializer, bytes):
-      super(RDFString, self).__init__(initializer.decode("utf-8"))
+      super().__init__(initializer.decode("utf-8"))
     elif isinstance(initializer, Text):
-      super(RDFString, self).__init__(initializer)
+      super().__init__(initializer)
     elif initializer is not None:
       message = "Unexpected initializer `%s` of type `%s`"
       message %= (initializer, type(initializer))
@@ -368,7 +362,6 @@ class RDFString(RDFPrimitive):
 # TODO(hanuszczak): This class should provide custom method for parsing from
 # human readable strings (and arguably should not derive from `RDFBytes` at
 # all).
-@python_2_unicode_compatible
 class HashDigest(RDFBytes):
   """Binary hash digest with hex string representation."""
 
@@ -398,7 +391,6 @@ class HashDigest(RDFBytes):
 
 
 @functools.total_ordering
-@python_2_unicode_compatible
 class RDFInteger(RDFPrimitive):
   """Represent an integer."""
 
@@ -410,9 +402,9 @@ class RDFInteger(RDFPrimitive):
 
   def __init__(self, initializer=None):
     if initializer is None:
-      super(RDFInteger, self).__init__(0)
+      super().__init__(0)
     else:
-      super(RDFInteger, self).__init__(compatibility.builtins.int(initializer))
+      super().__init__(int(initializer))
 
   def SerializeToBytes(self):
     return str(self._value).encode("ascii")
@@ -422,14 +414,14 @@ class RDFInteger(RDFPrimitive):
     precondition.AssertType(value, bytes)
 
     if value:
-      return cls(compatibility.builtins.int(value))
+      return cls(int(value))
     else:
       return cls(0)
 
   @classmethod
   def FromHumanReadable(cls, string):
     precondition.AssertType(string, Text)
-    return cls(compatibility.builtins.int(string))
+    return cls(int(string))
 
   def __str__(self):
     return str(self._value)
@@ -505,7 +497,6 @@ class RDFInteger(RDFPrimitive):
     return hash(self._value)
 
 
-@python_2_unicode_compatible
 @functools.total_ordering
 class RDFDatetime(RDFPrimitive):
   """A date and time internally stored in MICROSECONDS."""
@@ -514,13 +505,13 @@ class RDFDatetime(RDFPrimitive):
 
   def __init__(self, initializer=None):
     if initializer is None:
-      super(RDFDatetime, self).__init__(0)
+      super().__init__(0)
     elif isinstance(initializer, RDFDatetime):
-      super(RDFDatetime, self).__init__(initializer.AsMicrosecondsSinceEpoch() *
-                                        self.converter // 1000000)
+      super().__init__(initializer.AsMicrosecondsSinceEpoch() *
+                       self.converter // 1000000)
     # TODO(hanuszczak): Disallow `float` initialization.
     elif isinstance(initializer, (RDFInteger, int, float)):
-      super(RDFDatetime, self).__init__(compatibility.builtins.int(initializer))
+      super().__init__(int(initializer))
     else:
       raise InitializeError("Unknown initializer for RDFDateTime: %s %s." %
                             (type(initializer), initializer))
@@ -541,7 +532,7 @@ class RDFDatetime(RDFPrimitive):
     precondition.AssertType(value, bytes)
 
     if value:
-      return cls(compatibility.builtins.int(value))
+      return cls(int(value))
     else:
       return cls(0)
 
@@ -585,7 +576,8 @@ class RDFDatetime(RDFPrimitive):
   @classmethod
   def FromDatetime(cls, value):
     seconds = calendar.timegm(value.utctimetuple())
-    return cls(seconds * cls.converter + value.microsecond)
+    return cls((seconds * cls.converter) +
+               (value.microsecond * cls.converter // 1000000))
 
   @classmethod
   def FromDate(cls, value):
@@ -621,7 +613,7 @@ class RDFDatetime(RDFPrimitive):
     # TODO(hanuszczak): Disallow `float` initialization.
     if isinstance(other, (int, float)):
       # Assume other is in seconds
-      other_microseconds = compatibility.builtins.int(other * self.converter)
+      other_microseconds = int(other * self.converter)
       return self.__class__(self._value + other_microseconds)
     elif isinstance(other, (DurationSeconds, Duration)):
       self_us = self.AsMicrosecondsSinceEpoch()
@@ -634,7 +626,7 @@ class RDFDatetime(RDFPrimitive):
     # TODO(hanuszczak): Disallow `float` initialization.
     if isinstance(other, (int, float)):
       # Assume other is in seconds
-      other_microseconds = compatibility.builtins.int(other * self.converter)
+      other_microseconds = int(other * self.converter)
       return self.__class__(self._value - other_microseconds)
     elif isinstance(other, (DurationSeconds, Duration)):
       self_us = self.AsMicrosecondsSinceEpoch()
@@ -670,7 +662,7 @@ class RDFDatetime(RDFPrimitive):
     # '2000-01-01 13:37'. This is less than ideal (since timestamps are not
     # really "human readable") and should be fixed in the future.
     try:
-      return compatibility.builtins.int(string)
+      return cls(int(string))
     except ValueError:
       pass
 
@@ -731,7 +723,6 @@ WEEKS = 7 * DAYS
 _DURATION_RE = re.compile(r"(?P<number>\d+) ?(?P<unit>[a-z]{1,2})?")
 
 
-@python_2_unicode_compatible
 @functools.total_ordering
 class Duration(RDFPrimitive):
   """Absolute duration between instants in time with microsecond precision.
@@ -754,14 +745,13 @@ class Duration(RDFPrimitive):
         absolute (positive) value will be stored.
     """
     if isinstance(initializer, Duration):
-      super(Duration, self).__init__(abs(initializer.microseconds))
+      super().__init__(abs(initializer.microseconds))
     elif isinstance(initializer, (int, RDFInteger)):
-      super(Duration, self).__init__(abs(int(initializer)))
+      super().__init__(abs(int(initializer)))
     elif isinstance(initializer, Text):
-      super(Duration,
-            self).__init__(self._ParseText(initializer, default_unit=None))
+      super().__init__(self._ParseText(initializer, default_unit=None))
     elif initializer is None:
-      super(Duration, self).__init__(0)
+      super().__init__(0)
     else:
       message = "Unsupported initializer `{value}` of type `{type}`"
       raise TypeError(message.format(value=initializer, type=type(initializer)))
@@ -804,7 +794,7 @@ class Duration(RDFPrimitive):
       return cls(0)
 
     try:
-      raw = abs(compatibility.builtins.int(value))
+      raw = abs(int(value))
     except ValueError as e:
       raise DecodeError(e)
 
@@ -822,7 +812,7 @@ class Duration(RDFPrimitive):
   def __str__(self):
     if self._value == 0:
       return "0 us"
-    for label, divider in iteritems(self._DIVIDERS):
+    for label, divider in self._DIVIDERS.items():
       if self._value % divider == 0:
         return "%d %s" % (self._value // divider, label)
     return "%d us" % self._value  # Make pytype happy.
@@ -924,6 +914,7 @@ class Duration(RDFPrimitive):
 
   @classmethod
   def _ParseText(cls, string, default_unit):
+    """Parses a textual representation of a duration."""
     precondition.AssertType(string, Text)
 
     if not string:
@@ -966,7 +957,7 @@ class DurationSeconds(Duration):
       initializer = int(initializer) * SECONDS
     elif isinstance(initializer, Text):
       initializer = self._ParseText(initializer, default_unit="s")
-    super(DurationSeconds, self).__init__(initializer)
+    super().__init__(initializer)
 
   def SerializeToBytes(self):
     """See base class."""
@@ -1015,15 +1006,15 @@ class ByteSize(RDFInteger):
 
   def __init__(self, initializer=None):
     if isinstance(initializer, ByteSize):
-      super(ByteSize, self).__init__(initializer._value)  # pylint: disable=protected-access
-    elif isinstance(initializer, string_types):
-      super(ByteSize, self).__init__(self._ParseText(initializer))
+      super().__init__(initializer._value)  # pylint: disable=protected-access
+    elif isinstance(initializer, str):
+      super().__init__(self._ParseText(initializer))
     elif isinstance(initializer, (int, float)):
-      super(ByteSize, self).__init__(initializer)
+      super().__init__(initializer)
     elif isinstance(initializer, RDFInteger):
-      super(ByteSize, self).__init__(int(initializer))
+      super().__init__(int(initializer))
     elif initializer is None:
-      super(ByteSize, self).__init__(0)
+      super().__init__(0)
     else:
       raise InitializeError("Unknown initializer for ByteSize: %s." %
                             type(initializer))
@@ -1049,6 +1040,7 @@ class ByteSize(RDFInteger):
 
   @classmethod
   def _ParseText(cls, string):
+    """Parses a textual representation of the number of bytes."""
     if not string:
       return 0
 
@@ -1071,7 +1063,6 @@ class ByteSize(RDFInteger):
 
 
 @functools.total_ordering
-@python_2_unicode_compatible
 class RDFURN(RDFPrimitive):
   """An object to abstract URL manipulation."""
 
@@ -1094,12 +1085,12 @@ class RDFURN(RDFPrimitive):
     # RDFURN so it is already in the correct format.
 
     if initializer is None:
-      super(RDFURN, self).__init__("")
+      super().__init__("")
       return
 
     if isinstance(initializer, RDFURN):
       # Make a direct copy of the other object
-      super(RDFURN, self).__init__(cast(RDFURN, initializer).Path())
+      super().__init__(cast(RDFURN, initializer).Path())
       return
 
     precondition.AssertType(initializer, (bytes, Text))
@@ -1107,7 +1098,7 @@ class RDFURN(RDFPrimitive):
     if isinstance(initializer, bytes):
       initializer = initializer.decode("utf-8")
 
-    super(RDFURN, self).__init__(self._Normalize(initializer))
+    super().__init__(self._Normalize(initializer))
 
   @classmethod
   def _Normalize(cls, string):
@@ -1159,7 +1150,7 @@ class RDFURN(RDFPrimitive):
     Raises:
        ValueError: if the path component is not a string.
     """
-    if not isinstance(path, string_types):
+    if not isinstance(path, str):
       raise ValueError("Only strings should be added to a URN, not %s" %
                        path.__class__)
     return self.__class__(utils.JoinPath(self._value, path))
@@ -1171,7 +1162,7 @@ class RDFURN(RDFPrimitive):
   __hash__ = RDFPrimitive.__hash__
 
   def __eq__(self, other):
-    if isinstance(other, string_types):
+    if isinstance(other, str):
       other = self.__class__(other)
 
     elif other is None:
@@ -1285,7 +1276,7 @@ class SessionID(RDFURN):
           raise InitializeError("Invalid URN for SessionID: %s, %s" %
                                 (initializer, e))
 
-    super(SessionID, self).__init__(initializer=initializer)
+    super().__init__(initializer=initializer)
 
   def Add(self, path):
     # Adding to a SessionID results in a normal RDFURN.

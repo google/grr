@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for grr_response_client.client_actions.plist."""
 from __future__ import absolute_import

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Flows related to process memory."""
 from __future__ import absolute_import
 from __future__ import division
@@ -33,6 +34,13 @@ class YaraProcessScan(flow_base.FlowBase):
 
   args_type = rdf_memory.YaraProcessScanRequest
   behaviours = flow_base.BEHAVIOUR_BASIC
+  result_types = (
+      rdf_client_fs.StatEntry,
+      rdf_memory.YaraProcessDumpResponse,
+      rdf_memory.ProcessMemoryError,
+      rdf_memory.YaraProcessScanMatch,
+      rdf_memory.YaraProcessScanMiss,
+  )
 
   def _ValidateFlowArgs(self):
     if self.args.yara_signature and self.args.yara_signature_blob_id:
@@ -234,6 +242,7 @@ class DumpProcessMemory(flow_base.FlowBase):
   friendly_name = "Process Dump"
 
   args_type = rdf_memory.YaraProcessDumpArgs
+  result_types = (rdf_client_fs.StatEntry, rdf_memory.YaraProcessDumpResponse)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):

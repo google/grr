@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This module contains report plugin mocks used for testing."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -46,7 +46,7 @@ class BarReportPlugin(report_plugin_base.ReportPluginBase):
             label="Bar",
             points=[
                 rdf_report_plugins.ApiReportDataPoint2D(x=x, y=y)
-                for (t, (x, y)) in sorted(iteritems(database))
+                for (t, (x, y)) in sorted(database.items())
                 if get_report_args.start_time <= t and
                 t < get_report_args.start_time + get_report_args.duration
             ])

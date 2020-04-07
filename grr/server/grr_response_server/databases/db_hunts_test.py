@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for the hunt database api."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,8 +7,6 @@ from __future__ import unicode_literals
 
 import collections
 import random
-
-from future.utils import text_type
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -819,7 +818,7 @@ class DatabaseTestHuntMixin(object):
     self.db.WriteHuntObject(hunt_obj)
 
     sample_results = []
-    for i in range(10):
+    for _ in range(10):
       client_id, flow_id = self._SetupHuntClientAndFlow(
           hunt_id=hunt_obj.hunt_id)
       results = self._SampleTwoTypeHuntResults(
@@ -895,8 +894,8 @@ class DatabaseTestHuntMixin(object):
 
     self.assertLen(sample_results, len(results))
     for r in results:
-      self.assertTrue(
-          isinstance(r.payload, rdf_objects.SerializedValueOfUnrecognizedType))
+      self.assertIsInstance(r.payload,
+                            rdf_objects.SerializedValueOfUnrecognizedType)
       self.assertEqual(r.payload.type_name, type_name)
 
   def testCountHuntResultsReturnsCorrectResultsCount(self):
@@ -909,7 +908,7 @@ class DatabaseTestHuntMixin(object):
     self._WriteHuntResults(sample_results)
 
     num_results = self.db.CountHuntResults(hunt_obj.hunt_id)
-    self.assertEqual(num_results, len(sample_results))
+    self.assertLen(sample_results, num_results)
 
   def testCountHuntResultsCorrectlyAppliesWithTagFilter(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -1017,7 +1016,7 @@ class DatabaseTestHuntMixin(object):
 
     counts = self.db.CountHuntResultsByType(hunt_obj.hunt_id)
     for key in counts:
-      self.assertIsInstance(key, text_type)
+      self.assertIsInstance(key, str)
 
     self.assertEqual(
         counts, {
@@ -1193,8 +1192,8 @@ class DatabaseTestHuntMixin(object):
     for filter_condition, expected in expectations.items():
       result = self.db.CountHuntFlows(
           hunt_obj.hunt_id, filter_condition=filter_condition)
-      self.assertEqual(
-          result, len(expected), "Result count does not match for "
+      self.assertLen(
+          expected, result, "Result count does not match for "
           "(filter_condition=%d): %d vs %d" %
           (filter_condition, len(expected), result))
 
@@ -1218,19 +1217,17 @@ class DatabaseTestHuntMixin(object):
     expectations = self._BuildFilterConditionExpectations(hunt_obj)
 
     hunt_counters = self.db.ReadHuntCounters(hunt_obj.hunt_id)
-    self.assertEqual(hunt_counters.num_clients,
-                     len(expectations[db.HuntFlowsCondition.UNSET]))
-    self.assertEqual(
-        hunt_counters.num_successful_clients,
-        len(expectations[db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY]))
-    self.assertEqual(hunt_counters.num_failed_clients,
-                     len(expectations[db.HuntFlowsCondition.FAILED_FLOWS_ONLY]))
+    self.assertLen(expectations[db.HuntFlowsCondition.UNSET],
+                   hunt_counters.num_clients)
+    self.assertLen(expectations[db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY],
+                   hunt_counters.num_successful_clients)
+    self.assertLen(expectations[db.HuntFlowsCondition.FAILED_FLOWS_ONLY],
+                   hunt_counters.num_failed_clients)
 
     # _BuildFilterConditionExpectations writes 10 sample results for one client.
     self.assertEqual(hunt_counters.num_clients_with_results, 1)
-    self.assertEqual(
-        hunt_counters.num_crashed_clients,
-        len(expectations[db.HuntFlowsCondition.CRASHED_FLOWS_ONLY]))
+    self.assertLen(expectations[db.HuntFlowsCondition.CRASHED_FLOWS_ONLY],
+                   hunt_counters.num_crashed_clients)
 
     # _BuildFilterConditionExpectations writes 10 sample results.
     self.assertEqual(hunt_counters.num_results, 10)

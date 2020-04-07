@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test client vfs."""
 from __future__ import absolute_import
@@ -46,7 +47,7 @@ class MockVFSHandlerFind(vfs.VFSHandler):
   }
 
   def __init__(self, base_fd, handlers, pathspec=None, progress_callback=None):
-    super(MockVFSHandlerFind, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,

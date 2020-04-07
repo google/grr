@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implement rdf post-processors for running data through a chain of parsers."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,15 +9,13 @@ import os
 import re
 import stat
 
-from future.utils import with_metaclass
-
 from grr_response_core.lib import objectfilter
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.parsers import config_file
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import MetaclassRegistry
 
 
 class Error(Exception):
@@ -131,7 +130,7 @@ class SerialHandler(BaseHandler):
     return self.results
 
 
-class Filter(with_metaclass(registry.MetaclassRegistry, object)):
+class Filter(metaclass=MetaclassRegistry):
   """A class for looking up filters.
 
   Filters may be in other libraries or third party code. This class keeps

@@ -1,25 +1,23 @@
 #!/usr/bin/env python
+# Lint as: python3
 """HTTP API logic that ties API call handlers with HTTP routes."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import http.client
 import itertools
 import logging
 import time
 import traceback
-
-from future.moves.urllib import parse as urlparse
-from future.utils import iteritems
-import http.client
-from past.builtins import unicode
 from typing import Text
+
+from urllib import parse as urlparse
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import json_format
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
@@ -90,7 +88,7 @@ class RouterMatcher(object):
     # potential problems caused by child router classes using the @Http
     # annotation (thus adding additional unforeseen HTTP paths/methods). We
     # don't want the HTTP API to depend on a particular router implementation.
-    for _, metadata in iteritems(router_cls.GetAnnotatedMethods()):
+    for _, metadata in router_cls.GetAnnotatedMethods().items():
       for http_method, path, unused_options in metadata.http_methods:
         routing_map.add(
             routing.Rule(path, methods=[http_method], endpoint=metadata))
@@ -159,7 +157,7 @@ class RouterMatcher(object):
           args = method_metadata.args_type()
           args.FromDict(payload)
 
-          for name, fd in iteritems(request.files):
+          for name, fd in request.files.items():
             args.Set(name, fd.read())
         elif format_mode == JsonMode.PROTO3_JSON_MODE:
           # NOTE: Arguments rdfvalue has to be a protobuf-based RDFValue.
@@ -372,20 +370,15 @@ class HttpRequestHandler(object):
         "Content-Disposition"] = "attachment; filename=response.json"
     response.headers["X-Content-Type-Options"] = "nosniff"
 
-    # TODO: remove unicode usages here and below
-    # when Python 2.7 support is dropped.
-    # Python 2.7's wsgiref doesn't play nicely with future's "newstr"
-    # returned by future.builtins.str() calls. unicode forces
-    # conversion of this object to a builtin Python 2.7 unicode type.
     if token and token.reason:
-      response.headers["X-GRR-Reason"] = unicode(token.reason)
+      response.headers["X-GRR-Reason"] = token.reason
     if method_name:
-      response.headers["X-API-Method"] = unicode(method_name)
+      response.headers["X-API-Method"] = method_name
     if no_audit_log:
       response.headers["X-No-Log"] = "True"
 
-    for key, value in iteritems(headers or {}):
-      response.headers[key] = unicode(value)
+    for key, value in (headers or {}).items():
+      response.headers[key] = value
 
     if content_length is not None:
       response.content_length = content_length

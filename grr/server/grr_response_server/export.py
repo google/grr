@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Classes for exporting data from AFF4 to the rest of the world.
 
 Exporters defined here convert various complex RDFValues to simple RDFValues
@@ -13,16 +14,11 @@ from __future__ import unicode_literals
 import hashlib
 import logging
 import time
-
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import with_metaclass
 from typing import Any
 from typing import Iterator
 from typing import Type
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
@@ -33,6 +29,7 @@ from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -81,7 +78,7 @@ class ExportedMetadata(rdf_structs.RDFProtoStruct):
   ]
 
   def __init__(self, initializer=None, payload=None, **kwarg):
-    super(ExportedMetadata, self).__init__(initializer=initializer, **kwarg)
+    super().__init__(initializer=initializer, **kwarg)
 
     if not self.timestamp:
       self.timestamp = rdfvalue.RDFDatetime.Now()
@@ -214,7 +211,7 @@ class ExportedProcessMemoryError(rdf_structs.RDFProtoStruct):
   rdf_deps = [ExportedProcess, ExportedMetadata]
 
 
-class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
+class ExportConverter(metaclass=MetaclassRegistry):
   """Base ExportConverter class.
 
   ExportConverters are used to convert RDFValues to export-friendly RDFValues.
@@ -243,7 +240,7 @@ class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
       options: ExportOptions value, which contains settings that may or or may
         not affect this converter's behavior.
     """
-    super(ExportConverter, self).__init__()
+    super().__init__()
     self.options = options or ExportOptions()
 
   def Convert(self, metadata, value, token=None):
@@ -305,7 +302,7 @@ class ExportConverter(with_metaclass(registry.MetaclassRegistry, object)):
       return ExportConverter.converters_cache[value_cls]
     except KeyError:
       results = [
-          cls for cls in itervalues(ExportConverter.classes)
+          cls for cls in ExportConverter.classes.values()
           if cls.input_rdf_type == value_cls
       ]
       if not results:
@@ -359,7 +356,7 @@ class DataAgnosticExportConverter(ExportConverter):
         rdf_structs.ProtoEmbedded(
             name="metadata", field_number=1, nested=ExportedMetadata))
 
-    for number, desc in sorted(iteritems(value.type_infos_by_field_number)):
+    for number, desc in sorted(value.type_infos_by_field_number.items()):
       # Name 'metadata' is reserved to store ExportedMetadata value.
       if desc.name == "metadata":
         logging.debug("Ignoring 'metadata' field in %s.",
@@ -388,7 +385,7 @@ class DataAgnosticExportConverter(ExportConverter):
     for descriptor in descriptors:
       output_class.AddDescriptor(descriptor)
 
-    for name, container in iteritems(enums):
+    for name, container in enums.items():
       setattr(output_class, name, container)
 
     return output_class
@@ -457,7 +454,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
             auth.counter_chain_head[2])
 
       certs = []
-      for (issuer, serial), cert in iteritems(auth.certificates):
+      for (issuer, serial), cert in auth.certificates.items():
         subject = cert[0][0]["subject"]
         subject_dn = str(dn.DistinguishedName.TraverseRdn(subject[0]))
         not_before = cert[0][0]["validity"]["notBefore"]
@@ -552,6 +549,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
   _BATCH_SIZE = 5000
 
   def _BatchConvert(self, metadata_value_pairs):
+    """Convert given batch of metadata value pairs."""
     filtered_pairs = self._RemoveRegistryKeys(metadata_value_pairs)
     for fp_batch in collection.Batch(filtered_pairs, self._BATCH_SIZE):
 
@@ -809,7 +807,7 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
   input_rdf_type = rdf_file_finder.FileFinderResult
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderResultConverter, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     # We only need to open the file if we're going to export the contents, we
     # already have the hash in the FileFinderResult
     self.open_file_for_read = self.options.export_files_contents
@@ -949,6 +947,7 @@ class DictToExportedDictItemsConverter(ExportConverter):
   input_rdf_type = rdf_protodict.Dict
 
   def _IterateDict(self, d, key=""):
+    """Performs a deeply-nested iteration of a given dictionary."""
     if isinstance(d, (list, tuple)):
       for i, v in enumerate(d):
         next_key = "%s[%d]" % (key, i)
@@ -1005,7 +1004,7 @@ class GrrMessageConverter(ExportConverter):
   input_rdf_type = rdf_flows.GrrMessage
 
   def __init__(self, *args, **kw):
-    super(GrrMessageConverter, self).__init__(*args, **kw)
+    super().__init__(*args, **kw)
     self.cached_metadata = {}
 
   def Convert(self, metadata, grr_message, token=None):
@@ -1091,7 +1090,7 @@ class GrrMessageConverter(ExportConverter):
 
     # Run all converters against all objects of the relevant type
     converted_batch = []
-    for dataset in itervalues(data_by_type):
+    for dataset in data_by_type.values():
       for converter in dataset["converters"]:
         converted_batch.extend(
             converter.BatchConvert(dataset["batch_data"], token=token))
@@ -1484,10 +1483,9 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
                       exception message.
   """
   no_converter_found_error = None
-  for metadata_values_group in itervalues(
-      collection.Group(metadata_value_pairs,
-                       lambda pair: pair[1].__class__.__name__)):
-
+  metadata_value_groups = collection.Group(
+      metadata_value_pairs, lambda pair: pair[1].__class__.__name__)
+  for metadata_values_group in metadata_value_groups.values():
     _, first_value = metadata_values_group[0]
     converters_classes = ExportConverter.GetConvertersByValue(first_value)
     if not converters_classes:

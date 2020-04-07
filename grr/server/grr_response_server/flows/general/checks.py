@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A flow to run checks for a host."""
 from __future__ import absolute_import
 from __future__ import division
@@ -40,6 +41,7 @@ class CheckRunner(flow_base.FlowBase):
   friendly_name = "Run Checks"
   category = "/Checks/"
   args_type = CheckFlowArgs
+  result_types = (checks.CheckResult,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):

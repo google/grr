@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test the filesystem related flows."""
 from __future__ import absolute_import
@@ -629,7 +630,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         for method in "StatFile", "Find":
           stat_args = client_mock.recorded_args.get(method, [])
           stat_paths = [c.pathspec.CollapsePath() for c in stat_args]
-          self.assertListEqual(sorted(stat_paths), sorted(set(stat_paths)))
+          self.assertCountEqual(stat_paths, set(stat_paths))
 
   def _CheckCasing(self, path, filename):
     path_infos = self._ListTestChildPathInfos(

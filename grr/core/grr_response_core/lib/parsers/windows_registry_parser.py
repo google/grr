@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for registry keys and values."""
 
 from __future__ import absolute_import
@@ -9,8 +10,6 @@ import logging
 import os
 import re
 
-from future.utils import iteritems
-from future.utils import itervalues
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
@@ -248,7 +247,7 @@ class WinUserSpecialDirs(parser.RegistryMultiParser):
               user_dict[sid_str].Set(kb_attr, value)
 
     # Now yield each user we found.
-    return itervalues(user_dict)
+    return user_dict.values()
 
 
 class WinServicesParser(parsers.MultiResponseParser):
@@ -266,7 +265,7 @@ class WinServicesParser(parsers.MultiResponseParser):
     self.service_re = re.compile(
         r".*HKEY_LOCAL_MACHINE/SYSTEM/[^/]+/services/([^/]+)(/(.*))?$",
         re.IGNORECASE)
-    super(WinServicesParser, self).__init__()
+    super().__init__()
 
   def _GetServiceName(self, path):
     return self.service_re.match(path).group(1)
@@ -299,7 +298,7 @@ class WinServicesParser(parsers.MultiResponseParser):
     # Field map key should be converted to lowercase because key aquired through
     # self._GetKeyName could have some  characters in different case than the
     # field map, e.g. ServiceDLL and ServiceDll.
-    field_map = {k.lower(): v for k, v in iteritems(field_map)}
+    field_map = {k.lower(): v for k, v in field_map.items()}
     for stat in responses:
 
       # Ignore subkeys
@@ -334,7 +333,7 @@ class WinServicesParser(parsers.MultiResponseParser):
                           stat.pathspec.path, stat.registry_data.GetValue(),
                           dest_type, type(stat.registry_data.GetValue()))
 
-    return itervalues(services)
+    return services.values()
 
 
 class WinTimezoneParser(parser.RegistryValueParser):

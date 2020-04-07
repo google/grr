@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Common tests for stats-collector implementations."""
 
 from __future__ import absolute_import
@@ -10,7 +11,6 @@ import time
 
 from absl.testing import absltest
 
-from future.utils import with_metaclass
 import mock
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -21,8 +21,9 @@ _INF = float("inf")
 
 
 class StatsCollectorTest(
-    with_metaclass(abc.ABCMeta, stats_test_lib.StatsCollectorTestMixin,
-                   absltest.TestCase)):
+    stats_test_lib.StatsCollectorTestMixin,
+    absltest.TestCase,
+    metaclass=abc.ABCMeta):
   """Stats collection tests.
 
   Each test method has uniquely-named metrics to accommodate implementations

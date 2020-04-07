@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Instant output plugins used by the API for on-the-fly conversion."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,17 +8,14 @@ from __future__ import unicode_literals
 import functools
 import re
 
-from future.utils import itervalues
-from future.utils import with_metaclass
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import collection
 from grr_response_server import data_store
 from grr_response_server import export
 
 
-class InstantOutputPlugin(with_metaclass(registry.MetaclassRegistry, object)):
+class InstantOutputPlugin(metaclass=MetaclassRegistry):
   """The base class for instant output plugins.
 
   Instant output plugins do on-the-fly data conversion and are used in
@@ -32,7 +30,7 @@ class InstantOutputPlugin(with_metaclass(registry.MetaclassRegistry, object)):
 
   @classmethod
   def GetPluginClassByPluginName(cls, name):
-    for plugin_cls in itervalues(cls.classes):
+    for plugin_cls in cls.classes.values():
       if plugin_cls.plugin_name == name:
         return plugin_cls
 
@@ -48,7 +46,7 @@ class InstantOutputPlugin(with_metaclass(registry.MetaclassRegistry, object)):
     Raises:
       ValueError: If one of the keyword arguments is empty.
     """
-    super(InstantOutputPlugin, self).__init__()
+    super().__init__()
 
     if not source_urn:
       raise ValueError("source_urn can't be empty.")
@@ -105,8 +103,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
   BATCH_SIZE = 5000
 
   def __init__(self, *args, **kwargs):
-    super(InstantOutputPluginWithExportConversion,
-          self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._cached_metadata = {}
 
   def _GetMetadataForClients(self, client_urns):

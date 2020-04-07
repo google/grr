@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests core paths detection logic."""
 
 from __future__ import absolute_import
@@ -72,7 +73,7 @@ class TestExtractor(core.Extractor):
   """Test extractor class."""
 
   def __init__(self, multiplier=1):
-    super(TestExtractor, self).__init__()
+    super().__init__()
     self.multiplier = multiplier
 
   def Extract(self, components):
@@ -84,7 +85,7 @@ class TestPostProcessor(core.PostProcessor):
   """Test post processor that adds a suffix to the path."""
 
   def __init__(self, suffix, count=1):
-    super(TestPostProcessor, self).__init__()
+    super().__init__()
     self.suffix = suffix
     self.count = count
 

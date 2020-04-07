@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Unit test for the linux file parser."""
 
@@ -11,7 +12,6 @@ import operator
 import os
 
 from absl import app
-from future.utils import iteritems
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import linux_file_parser
@@ -117,7 +117,7 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     file_objs = []
 
     # Populate stats, file_ojbs, kb_ojbs lists needed by the parser.
-    for filename, data in iteritems(test_data):
+    for filename, data in test_data.items():
       pathspec = rdf_paths.PathSpec(path=filename, pathtype="OS")
       file_obj = io.BytesIO(data)
       pathspecs.append(pathspec)
@@ -431,7 +431,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
   def testSetShadowedEntries(self):
     passwd = ["user:x:1001:1001:User:/home/user:/bin/bash"]
     group = ["user:x:1001:user"]
-    for algo, crypted in iteritems(self.crypt):
+    for algo, crypted in self.crypt.items():
       # Flush the parser for each iteration.
       shadow = ["user:%s:16000:0:99999:7:::" % crypted]
       gshadow = ["user:%s::user" % crypted]
@@ -441,7 +441,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
   def testSetNonShadowedEntries(self):
     shadow = ["user::16000:0:99999:7:::"]
     gshadow = ["user:::user"]
-    for algo, crypted in iteritems(self.crypt):
+    for algo, crypted in self.crypt.items():
       # Flush the parser for each iteration.
       passwd = ["user:%s:1001:1001:User:/home/user:/bin/bash" % crypted]
       group = ["user:%s:1001:user" % crypted]

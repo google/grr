@@ -1,16 +1,17 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """This modules contains tests for clients API handlers."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from absl import app
 import ipaddress
+
+from absl import app
 import mock
 
 from google.protobuf import timestamp_pb2
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import client_index
@@ -21,6 +22,7 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
 class ApiClientIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):

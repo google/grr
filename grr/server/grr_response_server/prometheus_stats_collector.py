@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Prometheus-based statistics collection."""
 
 from __future__ import absolute_import
@@ -7,10 +8,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+from typing import Dict, Text
 
 import prometheus_client
 import six
-from typing import Dict, Text
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
@@ -171,7 +172,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
     else:
       self._registry = registry
 
-    super(PrometheusStatsCollector, self).__init__()
+    super().__init__()
 
   def _InitializeMetric(self, metadata):
     self._metrics[metadata.varname] = _Metric(metadata, registry=self._registry)

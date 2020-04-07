@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This is the GRR class registry.
 
 A central place responsible for registering plugins. Any class can have plugins

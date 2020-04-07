@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 from grr_api_client import client
 from grr_api_client import utils
 from grr_response_proto.api import hunt_pb2
+from grr_response_proto.api import timeline_pb2
 from grr_response_proto.api import user_pb2
 
 
@@ -276,6 +277,12 @@ class HuntBase(object):
     args = hunt_pb2.ApiGetExportedHuntResultsArgs(
         hunt_id=self.hunt_id, plugin_name=plugin_name)
     return self._context.SendStreamingRequest("GetExportedHuntResults", args)
+
+  def GetCollectedTimelines(self):
+    args = timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = self.hunt_id
+
+    return self._context.SendStreamingRequest("GetCollectedHuntTimelines", args)
 
 
 class HuntRef(HuntBase):

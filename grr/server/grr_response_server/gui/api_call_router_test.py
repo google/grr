@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for API call routers."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.utils import itervalues
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_call_router
@@ -56,7 +56,7 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
     # @Http("GET", "/api/clients/<client_id>")
 
     methods = api_call_router.ApiCallRouterStub.GetAnnotatedMethods()
-    for method in itervalues(methods):
+    for method in methods.values():
       if method.args_type is None:
         continue  # Skip methods like ListOutputPluginDescriptors.
 

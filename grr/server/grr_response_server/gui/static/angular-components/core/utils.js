@@ -56,7 +56,7 @@ exports.upperCaseToTitleCase = function(input) {
  * along the way.
  *
  * @param {string} input Comma-separated string.
- * @return {Array<string>} List of trimmed strings.
+ * @return {!Array<string>} List of trimmed strings.
  */
 exports.stringToList = function(input) {
   var result = [];

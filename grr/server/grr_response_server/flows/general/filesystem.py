@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """These are filesystem related flows."""
 from __future__ import absolute_import
 from __future__ import division
@@ -8,8 +9,6 @@ import os
 import re
 import stat
 
-from future.utils import iteritems
-from future.utils import iterkeys
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -377,7 +376,7 @@ class GlobLogic(object):
       # The root node.
       curr_node = self.state.component_tree
 
-      components = self.ConvertGlobIntoPathComponents(pattern)
+      components = self._ConvertGlobIntoPathComponents(pattern)
       for i, curr_component in enumerate(components):
         is_last_component = i == len(components) - 1
         next_node = curr_node.get(curr_component.SerializeToBytes(), {})
@@ -389,10 +388,10 @@ class GlobLogic(object):
           curr_node = curr_node.setdefault(curr_component.SerializeToBytes(),
                                            {})
 
-    root_path = next(iter(iterkeys(self.state.component_tree)))
+    root_path = next(iter(self.state.component_tree.keys()))
     self.CallStateInline(
         messages=[None],
-        next_state=compatibility.GetName(self.ProcessEntry),
+        next_state=compatibility.GetName(self._ProcessEntry),
         request_data=dict(component_path=[root_path]))
 
   def GlobReportMatch(self, stat_response):
@@ -406,7 +405,7 @@ class GlobLogic(object):
   # Maximum number of files to inspect in a single directory
   FILE_MAX_PER_DIR = 1000000
 
-  def ConvertGlobIntoPathComponents(self, pattern):
+  def _ConvertGlobIntoPathComponents(self, pattern):
     r"""Converts a glob pattern into a list of pathspec components.
 
     Wildcards are also converted to regular expressions. The pathspec components
@@ -465,7 +464,7 @@ class GlobLogic(object):
     super(GlobLogic, self).Start()
     self.state.component_tree = {}
 
-  def FindNode(self, component_path):
+  def _FindNode(self, component_path):
     """Find the node in the component_tree from component_path.
 
     Args:
@@ -495,7 +494,7 @@ class GlobLogic(object):
       return True
     raise ValueError("Unknown Pathspec type.")
 
-  def ProcessEntry(self, responses):
+  def _ProcessEntry(self, responses):
     """Process the responses from the client."""
     if not responses.success:
       return
@@ -522,7 +521,7 @@ class GlobLogic(object):
     else:
       # This is a combined match.
       base_path = responses.request_data["base_path"]
-      base_node = self.FindNode(base_path)
+      base_node = self._FindNode(base_path)
       for response in stat_responses:
         matching_components = []
         for next_node in base_node:
@@ -550,7 +549,7 @@ class GlobLogic(object):
       regexes_to_get = []
       recursions_to_get = {}
 
-      node = self.FindNode(component_path)
+      node = self._FindNode(component_path)
 
       if not node:
         # Node is empty representing a leaf node - we found a hit - report it.
@@ -558,7 +557,7 @@ class GlobLogic(object):
         return
 
       # There are further components in the tree - iterate over them.
-      for component_str, next_node in iteritems(node):
+      for component_str, next_node in node.items():
         component = rdf_paths.PathSpec.FromSerializedBytes(component_str)
         next_component = component_path + [component_str]
 
@@ -620,7 +619,7 @@ class GlobLogic(object):
               self.CallClient(
                   stub,
                   request,
-                  next_state=compatibility.GetName(self.ProcessEntry),
+                  next_state=compatibility.GetName(self._ProcessEntry),
                   request_data=dict(component_path=next_component))
           else:
             # There is no need to go back to the client for intermediate
@@ -628,7 +627,7 @@ class GlobLogic(object):
             # calling this state inline.
             self.CallStateInline(
                 [rdf_client_fs.StatEntry(pathspec=pathspec)],
-                next_state=compatibility.GetName(self.ProcessEntry),
+                next_state=compatibility.GetName(self._ProcessEntry),
                 request_data=dict(component_path=next_component))
 
       if recursions_to_get or regexes_to_get:
@@ -641,7 +640,7 @@ class GlobLogic(object):
           base_pathspec = rdf_paths.PathSpec(
               path="/", pathtype=self.state.pathtype)
 
-        for depth, recursions in iteritems(recursions_to_get):
+        for depth, recursions in recursions_to_get.items():
           path_regex = "(?i)^" + "$|^".join(set([c.path for c in recursions
                                                 ])) + "$"
 
@@ -655,7 +654,7 @@ class GlobLogic(object):
           self.CallClient(
               server_stubs.Find,
               findspec,
-              next_state=compatibility.GetName(self.ProcessEntry),
+              next_state=compatibility.GetName(self._ProcessEntry),
               request_data=dict(base_path=component_path))
 
         if regexes_to_get:
@@ -668,7 +667,7 @@ class GlobLogic(object):
           self.CallClient(
               server_stubs.Find,
               findspec,
-              next_state=compatibility.GetName(self.ProcessEntry),
+              next_state=compatibility.GetName(self._ProcessEntry),
               request_data=dict(base_path=component_path))
 
 
@@ -682,6 +681,7 @@ class Glob(GlobLogic, flow_base.FlowBase):
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_ADVANCED
   args_type = GlobArgs
+  result_types = (rdf_client_fs.StatEntry,)
 
   def Start(self):
     """Starts the Glob.

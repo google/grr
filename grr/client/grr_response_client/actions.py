@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file contains common grr jobs."""
 from __future__ import absolute_import
 from __future__ import division

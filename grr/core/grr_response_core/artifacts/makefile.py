@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Update the artifacts directory from upstream."""
 from __future__ import absolute_import
 from __future__ import division
@@ -9,9 +10,8 @@ import fnmatch
 import glob
 import io
 import os
+from urllib import request as urlrequest
 import zipfile
-
-from future.moves.urllib import request as urlrequest
 
 
 def main():

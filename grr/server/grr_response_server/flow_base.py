@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The base class for flow objects."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,12 +8,11 @@ from __future__ import unicode_literals
 import logging
 import traceback
 
-from future.utils import with_metaclass
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.registry import FlowRegistry
 from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import metrics
 from grr_response_server import access_control
@@ -101,7 +101,7 @@ def _TerminateFlow(rdf_flow,
                    reason=None,
                    flow_state=rdf_flow_objects.Flow.FlowState.ERROR):
   """Does the actual termination."""
-  flow_cls = registry.FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
+  flow_cls = FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
   flow_obj = flow_cls(rdf_flow)
 
   if not flow_obj.IsRunning():
@@ -152,12 +152,17 @@ def TerminateFlow(client_id,
     to_terminate = next_to_terminate
 
 
-class FlowBase(with_metaclass(registry.FlowRegistry, object)):
+class FlowBase(metaclass=FlowRegistry):
   """The base class for new style flow objects."""
 
   # Alternatively we can specify a single semantic protobuf that will be used to
   # provide the args.
   args_type = rdf_flows.EmptyFlowArgs
+
+  # (Optional) An RDFProtoStruct to be produced by the flow's 'progress'
+  # property. To be used by the API/UI to report on the flow's progress in a
+  # structured way.
+  progress_type = None
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -166,6 +171,10 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
   # Behaviors set attributes of this flow. See FlowBehavior() in
   # grr_response_server/flow.py.
   behaviours = BEHAVIOUR_ADVANCED
+
+  # Tuple, containing the union of all possible types this flow might
+  # return. By default, any RDFValue migth be returned.
+  result_types = (rdfvalue.RDFValue,)
 
   def __init__(self, rdf_flow):
     self.rdf_flow = rdf_flow
@@ -349,8 +358,6 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
                flow_name=None,
                next_state=None,
                request_data=None,
-               client_id=None,
-               base_session_id=None,
                **kwargs):
     """Creates a new flow and send its responses to a state.
 
@@ -367,8 +374,6 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
          this protobuf for use in the execution of the state method. (so you can
          access this data by responses.request). There is no format mandated on
          this data but it may be a serialized protobuf.
-       client_id: If given, the flow is started for this client.
-       base_session_id: A URN which will be used to build a URN.
        **kwargs: Arguments for the child flow.
 
     Returns:
@@ -391,7 +396,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
     self.flow_requests.append(flow_request)
 
-    flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+    flow_cls = FlowRegistry.FlowClassByName(flow_name)
 
     flow.StartFlow(
         client_id=self.rdf_flow.client_id,
@@ -413,6 +418,11 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     """
     if not isinstance(response, rdfvalue.RDFValue):
       raise ValueError("SendReply can only send RDFValues")
+
+    if not any(isinstance(response, t) for t in self.result_types):
+      logging.warning("Flow %s sends response of unexpected type %s.",
+                      type(self).__name__,
+                      type(response).__name__)
 
     reply = rdf_flow_objects.FlowResult(
         client_id=self.rdf_flow.client_id,
@@ -538,6 +548,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
               flow=flow_ref))
 
   def _ClearAllRequestsAndResponses(self):
+    """Clears all requests and responses."""
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
 
@@ -747,6 +758,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     return self.rdf_flow.response_count
 
   def FlushQueuedMessages(self):
+    """Flushes queued messages."""
     # TODO(amoser): This could be done in a single db call, might be worth
     # optimizing.
 
@@ -784,6 +796,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
       self.replies_to_write = []
 
   def _ProcessRepliesWithHuntOutputPlugins(self, replies):
+    """Applies output plugins to hunt results."""
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
     self.rdf_flow.output_plugins = hunt_obj.output_plugins
     hunt_output_plugins_states = data_store.REL_DB.ReadHuntOutputPluginsStates(
@@ -876,6 +889,7 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
     return created_output_plugins
 
   def MergeQueuedMessages(self, flow_obj):
+    """Merges queued messages."""
     self.flow_requests.extend(flow_obj.flow_requests)
     flow_obj.flow_requests = []
     self.flow_responses.extend(flow_obj.flow_responses)
@@ -894,6 +908,12 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   def IsRunning(self):
     return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
+
+  def GetProgress(self):
+    if self.__class__.progress_type is not None:
+      raise NotImplementedError(
+          "GetProgress() methods has to be implemented "
+          "on a flow with defined 'progress_type' attribute.")
 
   @property
   def client_id(self):
@@ -945,4 +965,5 @@ class FlowBase(with_metaclass(registry.FlowRegistry, object)):
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
+    del username  # Unused.
     return cls.args_type()

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of a router class that has approvals-based ACL checks."""
 from __future__ import absolute_import
 from __future__ import division
@@ -15,11 +16,13 @@ from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
+from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import yara as api_yara
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -128,7 +131,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return cls.access_checker
 
   def __init__(self, params=None, access_checker=None, delegate=None):
-    super(ApiCallRouterWithApprovalChecks, self).__init__(params=params)
+    super().__init__(params=params)
 
     if not access_checker:
       access_checker = self._GetAccessChecker()
@@ -384,7 +387,21 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ListFlowLogs(args, token=token)
 
   def GetCollectedTimeline(self, args, token=None):
-    self.access_checker.CheckClientAccess(token.username, args.client_id)
+    try:
+      flow = data_store.REL_DB.ReadFlowObject(
+          str(args.client_id), str(args.flow_id))
+    except db.UnknownFlowError:
+      raise api_call_handler_base.ResourceNotFoundError(
+          "Flow with client id %s and flow id %s could not be found" %
+          (args.client_id, args.flow_id))
+
+    if flow.flow_class_name != timeline.TimelineFlow.__name__:
+      raise ValueError("Flow '{}' is not a timeline flow".format(flow.flow_id))
+
+    # Check for client access if this flow was not scheduled as part of a hunt.
+    if flow.parent_hunt_id != flow.flow_id:
+      self.access_checker.CheckClientAccess(token.username, args.client_id)
+
     return self.delegate.GetCollectedTimeline(args, token=token)
 
   def UploadYaraSignature(
@@ -551,6 +568,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.access_checker.CheckHuntAccess(token.username, args.hunt_id)
 
     return self.delegate.GetHuntFile(args, token=token)
+
+  def GetCollectedHuntTimelines(
+      self,
+      args,
+      token = None,
+  ):
+    # Everybody can export collected hunt timelines.
+    return self.delegate.GetCollectedHuntTimelines(args, token=token)
 
   # Stats metrics methods.
   # =====================

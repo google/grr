@@ -1,12 +1,14 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A facade for the GRR-FS server-side connection."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-from fleetspeak.server_connector import connector as fs_client
+
 from grr_response_core import config
+from fleetspeak.server_connector import connector as fs_client
 
 # The singleton instance of the Fleetspeak connector.
 CONN = None

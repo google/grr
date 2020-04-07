@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A class to read process memory on Windows.
 
 This code is based on the memorpy project:
@@ -106,7 +107,7 @@ class Process(object):
 
   def __init__(self, pid=None):
     """Creates a process for reading memory."""
-    super(Process, self).__init__()
+    super().__init__()
     if pid is None:
       raise process_error.ProcessError("No pid given.")
     self.pid = int(pid)

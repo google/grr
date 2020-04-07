@@ -1,11 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for ApiCallRobotRouter."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
 from absl import app
-from future.utils import iterkeys
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -504,7 +504,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     router = self._CreateRouter()
 
     unchecked_methods = (
-        set(iterkeys(router.__class__.GetAnnotatedMethods())) -
+        set(router.__class__.GetAnnotatedMethods().keys()) -
         set(self.IMPLEMENTED_METHODS))
     self.assertTrue(unchecked_methods)
 

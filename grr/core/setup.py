@@ -1,17 +1,18 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Setup configuration for the python grr modules."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import configparser
 import itertools
 import os
 import shutil
 import subprocess
 import sys
 
-import configparser
 from setuptools import Extension
 from setuptools import find_packages
 from setuptools import setup
@@ -142,7 +143,6 @@ setup_args = dict(
         "cryptography==2.8",
         "distro==1.4.0",
         "fleetspeak==0.1.7",
-        "future==0.17.1",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipaddress==1.0.22",

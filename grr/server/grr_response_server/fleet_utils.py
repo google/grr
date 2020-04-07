@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utilities for dealing with client fleet data."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,15 +8,12 @@ from __future__ import unicode_literals
 
 import collections
 
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import itervalues
 from typing import Any, DefaultDict, Dict, List, Optional, Set, Text, Tuple
 
 
 def _DictFromDefaultDict(input_dict):
   output_dict = {}
-  for k, v in iteritems(input_dict):
+  for k, v in input_dict.items():
     if isinstance(v, collections.defaultdict):
       output_dict[k] = _DictFromDefaultDict(v)
     else:
@@ -60,7 +58,7 @@ class FleetStats(object):
     self._total_counts = total_counts
     all_labels = set()
     for day_bucket in self._label_counts:
-      all_labels.update(iterkeys(self._label_counts[day_bucket]))
+      all_labels.update(self._label_counts[day_bucket].keys())
     self._all_labels = sorted(all_labels)
 
   def GetAllLabels(self):
@@ -114,9 +112,9 @@ class FleetStats(object):
     This method is mostly intended to make testing easier.
     """
     flattened_counts = {}
-    for day_bucket, label_dict in iteritems(self._label_counts):
-      for client_label, category_value_dict in iteritems(label_dict):
-        for category_value, num_actives in iteritems(category_value_dict):
+    for day_bucket, label_dict in self._label_counts.items():
+      for client_label, category_value_dict in label_dict.items():
+        for category_value, num_actives in category_value_dict.items():
           flattened_counts[(day_bucket, client_label,
                             category_value)] = num_actives
     return flattened_counts
@@ -127,8 +125,8 @@ class FleetStats(object):
     This method is mostly intended to make testing easier.
     """
     flattened_counts = {}
-    for day_bucket, category_value_dict in iteritems(self._total_counts):
-      for category_value, num_actives in iteritems(category_value_dict):
+    for day_bucket, category_value_dict in self._total_counts.items():
+      for category_value, num_actives in category_value_dict.items():
         flattened_counts[(day_bucket, category_value)] = num_actives
     return flattened_counts
 
@@ -149,8 +147,8 @@ class FleetStats(object):
     for day_bucket in self._day_buckets:
       for client_label in self.GetAllLabels():
         day_label_sum = 0
-        for num_actives in itervalues(
-            self.GetValuesForDayAndLabel(day_bucket, client_label)):
+        values = self.GetValuesForDayAndLabel(day_bucket, client_label).values()
+        for num_actives in values:
           day_label_sum += num_actives
         aggregated_counts[client_label][day_bucket] = day_label_sum
     return _DictFromDefaultDict(aggregated_counts)
@@ -165,7 +163,7 @@ class FleetStats(object):
     aggregated_counts = collections.defaultdict(int)
     for day_bucket in self._day_buckets:
       day_sum = 0
-      for num_actives in itervalues(self.GetTotalsForDay(day_bucket)):
+      for num_actives in self.GetTotalsForDay(day_bucket).values():
         day_sum += num_actives
       aggregated_counts[day_bucket] = day_sum
     return _DictFromDefaultDict(aggregated_counts)
@@ -182,8 +180,8 @@ class FleetStats(object):
       ValueError: If the underlying data fails sanity checks.
     """
     aggregated_label_counts = self.GetAggregatedLabelCounts()
-    for client_label, day_bucket_dict in iteritems(aggregated_label_counts):
-      sorted_counts_by_day = sorted(iteritems(day_bucket_dict))
+    for client_label, day_bucket_dict in aggregated_label_counts.items():
+      sorted_counts_by_day = sorted(day_bucket_dict.items())
       prev_count = 0
       for _, count in sorted_counts_by_day:
         if count < prev_count:
@@ -191,7 +189,7 @@ class FleetStats(object):
                            (client_label, sorted_counts_by_day))
         prev_count = count
 
-    sorted_counts_by_day = sorted(iteritems(self.GetAggregatedTotalCounts()))
+    sorted_counts_by_day = sorted(self.GetAggregatedTotalCounts().items())
     prev_count = 0
     for _, count in sorted_counts_by_day:
       if count < prev_count:

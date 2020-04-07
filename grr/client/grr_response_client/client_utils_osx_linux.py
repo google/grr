@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utils common to macOS and Linux."""
 from __future__ import absolute_import
 from __future__ import division
@@ -10,13 +11,12 @@ import logging
 import os
 import threading
 import time
+from typing import Text
 
 import psutil
-from typing import Text
 import xattr
 
 from google.protobuf import message
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -108,7 +108,7 @@ class NannyThread(threading.Thread):
       unresponsive_kill_period: The time in seconds which we wait for a
         heartbeat.
     """
-    super(NannyThread, self).__init__(name="Nanny")
+    super().__init__(name="Nanny")
     self.last_heart_beat_time = time.time()
     self.unresponsive_kill_period = unresponsive_kill_period
     self.running = True

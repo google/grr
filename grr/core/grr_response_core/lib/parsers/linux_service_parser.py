@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Simple parsers for configuration files."""
 
 from __future__ import absolute_import
@@ -9,9 +10,6 @@ import logging
 import os
 import re
 import stat
-
-from future.utils import iteritems
-from future.utils import itervalues
 from typing import Text
 
 from grr_response_core.lib import lexer
@@ -50,7 +48,7 @@ class LSBInitLexer(lexer.Lexer):
   required = {"provides", "default-start"}
 
   def __init__(self):
-    super(LSBInitLexer, self).__init__()
+    super().__init__()
     self.entries = {}
 
   def StoreEntry(self, match, **_):
@@ -178,11 +176,11 @@ class LinuxLSBInitParser(parsers.MultiFileParser):
     raw = {e[0]: e[1:] for e in entries}
     # Now expand out the facilities to services.
     facilities = {}
-    for k, v in iteritems(raw):
+    for k, v in raw.items():
       # Remove interactive tags.
       k = k.replace("<", "").replace(">", "")
       facilities[k] = v
-    for k, vals in iteritems(facilities):
+    for k, vals in facilities.items():
       self.insserv[k] = []
       for v in vals:
         self.insserv[k].extend(self._InsservExpander(facilities, v))
@@ -195,7 +193,7 @@ class LinuxLSBInitParser(parsers.MultiFileParser):
     files = dict(zip(paths, filedescs))
     insserv_data = ""
     init_files = []
-    for k, v in iteritems(files):
+    for k, v in files.items():
       if k.startswith("/etc/insserv.conf"):
         insserv_data += "%s\n" % utils.ReadFileBytesAsUnicode(v)
       else:
@@ -233,7 +231,7 @@ class LinuxXinetdParser(parsers.MultiFileParser):
     data = utils.ReadFileBytesAsUnicode(fd)
     entries = p.ParseEntries(data)
     for entry in entries:
-      for section, cfg in iteritems(entry):
+      for section, cfg in entry.items():
         # The parser returns a list of configs. There will only be one.
         if cfg:
           cfg = cfg[0].strip()
@@ -246,7 +244,7 @@ class LinuxXinetdParser(parsers.MultiFileParser):
     # Some setting names may have a + or - suffix. These indicate that the
     # settings modify the default values.
     merged = self.default.copy()
-    for setting, vals in iteritems(cfg):
+    for setting, vals in cfg.items():
       option, operator = (setting.split(None, 1) + [None])[:2]
       vals = set(vals)
       default = set(self.default.get(option, []))
@@ -275,9 +273,9 @@ class LinuxXinetdParser(parsers.MultiFileParser):
     self.default = {}
     paths = [pathspec.path for pathspec in pathspecs]
     files = dict(zip(paths, filedescs))
-    for v in itervalues(files):
+    for v in files.values():
       self._ProcessEntries(v)
-    for name, cfg in iteritems(self.entries):
+    for name, cfg in self.entries.items():
       yield self._GenService(name, cfg)
 
 
@@ -340,5 +338,5 @@ class LinuxSysVInitParser(parser.FileMultiParser):
               type="PARSER_ANOMALY",
               finding=[path],
               explanation="Startup script is not a symlink.")
-    for svc in itervalues(services):
+    for svc in services.values():
       yield svc

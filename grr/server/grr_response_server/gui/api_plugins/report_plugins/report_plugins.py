@@ -1,10 +1,10 @@
 #!/usr/bin/env python
+# Lint as: python3
 """UI report plugins server-side interface."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import itervalues
 
 from grr_response_server.gui.api_plugins.report_plugins import client_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import server_report_plugins
@@ -13,7 +13,7 @@ from grr_response_server.gui.api_plugins.report_plugins import server_report_plu
 def GetAvailableReportPlugins():
   """Lists the registered report plugins."""
   return sorted(
-      itervalues(REGISTRY.GetRegisteredPlugins()), key=lambda cls: cls.__name__)
+      REGISTRY.GetRegisteredPlugins().values(), key=lambda cls: cls.__name__)
 
 
 def GetReportByName(name):

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The base class for ApiCallHandlers."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import with_metaclass
 from typing import Text
 
-from grr_response_core.lib import registry
+from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import precondition
 
 
@@ -54,7 +54,7 @@ class ApiBinaryStream(object):
       yield chunk
 
 
-class ApiCallHandler(with_metaclass(registry.MetaclassRegistry, object)):
+class ApiCallHandler(metaclass=MetaclassRegistry):
   """Baseclass for restful API renderers."""
 
   # RDFValue type used to handle API renderer arguments. This has to be

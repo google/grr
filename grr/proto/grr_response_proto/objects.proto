@@ -170,6 +170,7 @@ message PathInfo {
     TSK = 2;
     REGISTRY = 3;
     TEMP = 4;
+    NTFS = 5;
   }
   optional PathType path_type = 1;
   repeated string components = 2;

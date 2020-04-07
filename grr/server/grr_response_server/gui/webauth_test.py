@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for the web auth managers."""
 from __future__ import absolute_import
@@ -9,6 +10,7 @@ import base64
 
 from absl import app
 import mock
+import requests
 
 from werkzeug import test as werkzeug_test
 from werkzeug import wrappers as werkzeug_wrappers
@@ -254,8 +256,18 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
 
     self.assertEqual(response.status_code, 401)
 
-  def testFailedSignatureKey(self):
+  @mock.patch.object(requests, "get")
+  def testFailedSignatureKey(self, mock_get):
     """Test requests with an invalid JWT Token."""
+
+    mock_get.return_value.status_code = 200
+    mock_get.return_value.json.return_value = {
+        "6BEeoA": (
+            "-----BEGIN PUBLIC KEY-----\n"
+            "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAElmi1hJdqtbvdX1INOf5B9dWvkydY\n"
+            "oowHUXiw8ELWzk/YHESNr8vXQoyOuLOEtLZeCQbFkeLUqxYp1sTArKNu/A==\n"
+            "-----END PUBLIC KEY-----\n"),
+    }
 
     assertion_header = (
         "eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsI"
@@ -284,6 +296,8 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     manager = webauth.IAPWebAuthManager()
     response = manager.SecurityCheck(Handler, request)
 
+    mock_get.assert_called_once_with(
+        "https://www.gstatic.com/iap/verify/public_key")
     self.assertEqual(response.status_code, 401)
 
   @mock.patch.object(

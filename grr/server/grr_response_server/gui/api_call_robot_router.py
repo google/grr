@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Implementation of a router class that should be used by robot users."""
 from __future__ import absolute_import
 from __future__ import division
@@ -92,7 +93,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   def __init__(self,
                override_flow_name=None,
                override_flow_args=None):
-    super(ApiRobotCreateFlowHandler, self).__init__()
+    super().__init__()
 
     self.override_flow_name = override_flow_name
     self.override_flow_args = override_flow_args
@@ -125,7 +126,7 @@ class ApiRobotReturnDuplicateFlowHandler(api_call_handler_base.ApiCallHandler):
   result_type = api_flow.ApiFlow
 
   def __init__(self, flow_id):
-    super(ApiRobotReturnDuplicateFlowHandler, self).__init__()
+    super().__init__()
 
     if not flow_id:
       raise ValueError("flow_id can't be empty.")
@@ -143,7 +144,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   params_type = ApiCallRobotRouterParams
 
   def __init__(self, params=None, delegate=None):
-    super(ApiCallRobotRouter, self).__init__(params=params)
+    super().__init__(params=params)
 
     if params is None:
       raise ValueError("Router params are mandatory for ApiCallRobotRouter.")

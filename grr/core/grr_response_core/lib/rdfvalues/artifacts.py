@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """rdf value representation for artifact collector parameters."""
 from __future__ import absolute_import
 from __future__ import division
@@ -6,11 +7,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
-
-from future.utils import iteritems
-from future.utils import iterkeys
-from future.utils import string_types
 from typing import Type
+
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
@@ -43,7 +41,7 @@ class ArtifactDefinitionError(Exception):
     if cause:
       message += ": %s" % cause
 
-    super(ArtifactDefinitionError, self).__init__(message)
+    super().__init__(message)
 
 
 class ArtifactSyntaxError(ArtifactDefinitionError):
@@ -56,7 +54,7 @@ class ArtifactSyntaxError(ArtifactDefinitionError):
   """
 
   def __init__(self, artifact, details, cause=None):
-    super(ArtifactSyntaxError, self).__init__(artifact.name, details, cause)
+    super().__init__(artifact.name, details, cause)
 
 
 class ArtifactDependencyError(ArtifactDefinitionError):
@@ -69,7 +67,7 @@ class ArtifactDependencyError(ArtifactDefinitionError):
   """
 
   def __init__(self, artifact, details, cause=None):
-    super(ArtifactDependencyError, self).__init__(artifact.name, details, cause)
+    super().__init__(artifact.name, details, cause)
 
 
 class ArtifactSourceSyntaxError(ArtifactDefinitionError):
@@ -81,7 +79,7 @@ class ArtifactSourceSyntaxError(ArtifactDefinitionError):
   """
 
   def __init__(self, source, details):
-    super(ArtifactSourceSyntaxError, self).__init__(source.type, details)
+    super().__init__(source.type, details)
 
 
 class ArtifactNotRegisteredError(Exception):
@@ -165,9 +163,9 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
   def __init__(self, initializer=None, **kwarg):
     # Support initializing from a mapping
     if isinstance(initializer, dict):
-      super(ArtifactSource, self).__init__(**initializer)
+      super().__init__(**initializer)
     else:
-      super(ArtifactSource, self).__init__(initializer=initializer, **kwarg)
+      super().__init__(initializer=initializer, **kwarg)
 
   def Validate(self):
     """Check the source is well constructed."""
@@ -208,7 +206,7 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
     # TODO(hanuszczak): It looks like no collector is using `path` attribute.
     # Is this really necessary?
     path = self.attributes.GetItem("path")
-    if path and not isinstance(path, string_types):
+    if path and not isinstance(path, str):
       raise ArtifactSourceSyntaxError(self, "`path` is not a string")
 
   def _ValidateType(self):
@@ -219,7 +217,7 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
 
   def _ValidateRequiredAttributes(self):
     required = set(self.TYPE_MAP[self.type].get("required_attributes", []))
-    provided = set(iterkeys(self.attributes))
+    provided = set(self.attributes.keys())
     missing = required.difference(provided)
 
     if missing:
@@ -332,7 +330,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
     # Remove redundant empty defaults.
 
     def ReduceDict(in_dict):
-      return dict((k, v) for (k, v) in iteritems(in_dict) if v)
+      return dict((k, v) for (k, v) in in_dict.items() if v)
 
     artifact_dict = ReduceDict(artifact_dict)
     sources_dict = artifact_dict.get("sources")

@@ -1,12 +1,11 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The in memory database methods for path handling."""
 from __future__ import absolute_import
 from __future__ import division
 
 from __future__ import unicode_literals
 
-from future.utils import iteritems
-from future.utils import iterkeys
 from typing import Dict
 from typing import Iterable
 from typing import Optional
@@ -39,7 +38,7 @@ class _PathRecord(object):
   def _stat_entries(self):
     return {
         ts: pi.stat_entry
-        for ts, pi in iteritems(self._path_infos)
+        for ts, pi in self._path_infos.items()
         if pi.stat_entry
     }
 
@@ -47,7 +46,7 @@ class _PathRecord(object):
   def _hash_entries(self):
     return {
         ts: pi.hash_entry
-        for ts, pi in iteritems(self._path_infos)
+        for ts, pi in self._path_infos.items()
         if pi.hash_entry
     }
 
@@ -182,7 +181,7 @@ class _PathRecord(object):
       upper_bound = lambda key: key <= upper_bound_timestamp
 
     try:
-      return max(filter(upper_bound, iterkeys(dct)))
+      return max(filter(upper_bound, dct.keys()))
     except ValueError:  # Thrown if `max` input (result of filtering) is empty.
       return None
 
@@ -225,7 +224,7 @@ class InMemoryDBPathMixin(object):
     result = []
     root_dir_exists = False
 
-    for path_idx, path_record in iteritems(self.path_records):
+    for path_idx, path_record in self.path_records.items():
       other_client_id, other_path_type, other_components = path_idx
       path_info = path_record.GetPathInfo(timestamp=timestamp)
 
@@ -281,7 +280,7 @@ class InMemoryDBPathMixin(object):
         if self.path_info is not None and self.explicit:
           path_infos.append(self.path_info)
 
-        for component in sorted(iterkeys(self.children)):
+        for component in sorted(self.children):
           self.children[component].Collect(path_infos)
 
     trie = TrieNode()
@@ -318,7 +317,7 @@ class InMemoryDBPathMixin(object):
 
   @utils.Synchronized
   def MultiWritePathInfos(self, path_infos):
-    for client_id, client_path_infos in iteritems(path_infos):
+    for client_id, client_path_infos in path_infos.items():
       self.WritePathInfos(client_id, client_path_infos)
 
   @utils.Synchronized
@@ -366,7 +365,7 @@ class InMemoryDBPathMixin(object):
         pi.hash_entry = hash_entry
 
       results[components] = []
-      for timestamp in sorted(iterkeys(entries_by_ts)):
+      for timestamp in sorted(entries_by_ts):
         if cutoff is not None and timestamp > cutoff:
           continue
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Tests for windows paths detection logic."""
 
 from __future__ import absolute_import

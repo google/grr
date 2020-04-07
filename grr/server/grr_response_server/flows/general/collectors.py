@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Flows for handling the collection for artifacts."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,7 +8,6 @@ from __future__ import unicode_literals
 
 import logging
 
-from future.utils import iteritems
 from typing import Optional
 from typing import Sequence
 from typing import Text
@@ -489,7 +489,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
       original dict with all string values interpolated
     """
     new_args = {}
-    for key, value in iteritems(input_dict):
+    for key, value in input_dict.items():
       if isinstance(value, Text) or isinstance(value, bytes):
         new_args[key] = self._GetSingleExpansion(value)
       elif isinstance(value, list):
@@ -657,7 +657,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
 
     Raises:
       RuntimeError: if pathspec value is not a PathSpec instance and not
-                    a string_types.
+                    a str.
     """
     self.download_list = []
     source = responses.request_data.GetItem("source")
@@ -774,8 +774,9 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
 
   category = "/Collectors/"
   args_type = ArtifactFilesDownloaderFlowArgs
+  result_types = (ArtifactFilesDownloaderResult,)
 
-  def FindMatchingPathspecs(self, response):
+  def _FindMatchingPathspecs(self, response):
     # If we're dealing with plain file StatEntry, just
     # return it's pathspec - there's nothing to parse
     # and guess.
@@ -802,19 +803,19 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
     return parsed_pathspecs
 
   def Start(self):
-    super(ArtifactFilesDownloaderFlow, self).Start()
+    super().Start()
 
     self.state.file_size = self.args.max_file_size
     self.state.results_to_download = []
 
     self.CallFlow(
         ArtifactCollectorFlow.__name__,
-        next_state=compatibility.GetName(self.DownloadFiles),
+        next_state=compatibility.GetName(self._DownloadFiles),
         artifact_list=self.args.artifact_list,
         use_tsk=self.args.use_tsk,
         max_file_size=self.args.max_file_size)
 
-  def DownloadFiles(self, responses):
+  def _DownloadFiles(self, responses):
     if not responses.success:
       self.Log("Failed to run ArtifactCollectorFlow: %s", responses.status)
       return
@@ -822,7 +823,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
     results_with_pathspecs = []
     results_without_pathspecs = []
     for response in responses:
-      pathspecs = self.FindMatchingPathspecs(response)
+      pathspecs = self._FindMatchingPathspecs(response)
       if pathspecs:
         for pathspec in pathspecs:
           result = ArtifactFilesDownloaderResult(
@@ -838,14 +839,21 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
 
     grouped_results = collection.Group(
         results_with_pathspecs, lambda x: x.found_pathspec.CollapsePath())
-    for _, group in iteritems(grouped_results):
+    for _, group in grouped_results.items():
       self.StartFileFetch(
           group[0].found_pathspec, request_data=dict(results=group))
 
     for result in results_without_pathspecs:
       self.SendReply(result)
 
-  def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False):
+    """See MultiGetFileLogic."""
+    del is_duplicate  # Unused.
+
     if not request_data:
       raise RuntimeError("Expected non-empty request_data")
 
@@ -854,6 +862,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
       self.SendReply(result)
 
   def FileFetchFailed(self, pathspec, request_data=None):
+    """See MultiGetFileLogic."""
     if not request_data:
       raise RuntimeError("Expected non-empty request_data")
 

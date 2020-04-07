@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """This file contains various utility classes used by GRR."""
 from __future__ import absolute_import
 from __future__ import division
@@ -12,6 +13,7 @@ import getpass
 import io
 import os
 import pipes
+import queue
 import random
 import re
 import shutil
@@ -21,17 +23,12 @@ import tarfile
 import tempfile
 import threading
 import time
+from typing import Iterable, Optional, Text
 import weakref
 import zipfile
 import zlib
 
-from future.utils import iteritems
-from future.utils import itervalues
-from future.utils import python_2_unicode_compatible
 import psutil
-import queue
-
-from typing import Iterable, Optional, Text
 
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -103,7 +100,7 @@ class InterruptableThread(threading.Thread):
 
     # TODO(hanuszczak): Incorrect type specification for the `name` param.
     # pytype: disable=wrong-arg-count
-    super(InterruptableThread, self).__init__(name=name, **kw)
+    super().__init__(name=name, **kw)
     # pytype: enable=wrong-arg-count
 
     # Do not hold up program exit
@@ -156,7 +153,6 @@ class Node(object):
 # TODO(user):pytype: self.next and self.prev are assigned to self but then
 # are used in AppendNode in a very different way. Should be redesigned.
 # pytype: disable=attribute-error
-@python_2_unicode_compatible
 class LinkedList(object):
   """A simple doubly linked list used for fast caches."""
 
@@ -252,7 +248,7 @@ class FastStore(object):
 
   @Synchronized
   def __iter__(self):
-    return iter([(key, n.data) for key, n in iteritems(self._hash)])
+    return iter([(key, n.data) for key, n in self._hash.items()])
 
   @Synchronized
   def Expire(self):
@@ -379,7 +375,7 @@ class TimeBasedCache(FastStore):
       max_size: The maximum number of objects held in cache.
       max_age: The maximum length of time an object is considered alive.
     """
-    super(TimeBasedCache, self).__init__(max_size)
+    super().__init__(max_size)
     self.max_age = max_age
 
     def HouseKeeper():
@@ -396,7 +392,7 @@ class TimeBasedCache(FastStore):
           # pylint: disable=protected-access
           # We need to take a copy of the value list because we are changing
           # this dict during the iteration.
-          for node in list(itervalues(cache._hash)):
+          for node in list(cache._hash.values()):
             timestamp, obj = node.data
 
             # Expire the object if it is too old.
@@ -506,20 +502,7 @@ def SmartUnicode(string):
 
 def Xor(bytestr, key):
   """Returns a `bytes` object where each byte has been xored with key."""
-  # TODO(hanuszczak): Remove this import when string migration is done.
-  # pytype: disable=import-error
-  from builtins import bytes  # pylint: disable=redefined-builtin, g-import-not-at-top
-  # pytype: enable=import-error
   precondition.AssertType(bytestr, bytes)
-
-  # TODO: This seemingly no-op operation actually changes things.
-  # In Python 2 this function receives a `str` object which has different
-  # iterator semantics. So we use a `bytes` wrapper from the `future` package to
-  # get the Python 3 behaviour. In Python 3 this should be indeed a no-op. Once
-  # the migration is completed and support for Python 2 is dropped, this line
-  # can be removed.
-  bytestr = bytes(bytestr)
-
   return bytes([byte ^ key for byte in bytestr])
 
 
@@ -1104,7 +1087,7 @@ class StreamingTarGenerator(object):
   FILE_CHUNK_SIZE = 1024 * 1024 * 4
 
   def __init__(self):
-    super(StreamingTarGenerator, self).__init__()
+    super().__init__()
 
     self._stream = RollingMemoryStream()
     # TODO(user):pytype: self._stream should be a valid IO object.

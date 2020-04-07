@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Loads all the parsers so they are visible in the registry."""
 from __future__ import absolute_import
 from __future__ import division

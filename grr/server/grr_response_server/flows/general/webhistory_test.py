@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 # python3
 """Test the webhistory flows."""
 from __future__ import absolute_import

@@ -352,6 +352,9 @@ class FakeTime(object):
   def __init__(self, fake_time, increment=0):
     if isinstance(fake_time, rdfvalue.RDFDatetime):
       self.time = fake_time.AsMicrosecondsSinceEpoch() / 1e6
+    elif isinstance(fake_time, str):
+      self.time = rdfvalue.RDFDatetime.FromHumanReadable(
+          fake_time).AsMicrosecondsSinceEpoch() / 1e6
     else:
       self.time = fake_time
     self.increment = increment

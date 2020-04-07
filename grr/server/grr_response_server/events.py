@@ -1,18 +1,16 @@
 #!/usr/bin/env python
+# Lint as: python3
 """The GRR event publishing classes."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from future.utils import iteritems
-from future.utils import string_types
-from future.utils import with_metaclass
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import registry
+from grr_response_core.lib.registry import EventRegistry
 
 
-class EventListener(with_metaclass(registry.EventRegistry, object)):
+class EventListener(metaclass=EventRegistry):
   """Base Class for all Event Listeners.
 
   Event listeners can register for an event by specifying the event
@@ -62,9 +60,9 @@ class Events(object):
       ValueError: If the message is invalid. The message must be a Semantic
         Value (instance of RDFValue) or a full GrrMessage.
     """
-    event_name_map = registry.EventRegistry.EVENT_NAME_MAP
-    for event_name, messages in iteritems(events):
-      if not isinstance(event_name, string_types):
+    event_name_map = EventRegistry.EVENT_NAME_MAP
+    for event_name, messages in events.items():
+      if not isinstance(event_name, str):
         raise ValueError(
             "Event names should be string, got: %s" % type(event_name))
       for msg in messages:

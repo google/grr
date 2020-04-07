@@ -1,10 +1,9 @@
 #!/usr/bin/env python
+# Lint as: python3
 """A mapping of client action id strings to action stub classes."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-
-from future import utils
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server import server_stubs
@@ -65,9 +64,7 @@ ACTION_STUB_BY_ID = {
     "YaraProcessScan": server_stubs.YaraProcessScan,
 }
 
-ID_BY_ACTION_STUB = {
-    stub: name for name, stub in utils.iteritems(ACTION_STUB_BY_ID)
-}
+ID_BY_ACTION_STUB = {stub: name for name, stub in ACTION_STUB_BY_ID.items()}
 
 
 def RegisterAdditionalTestClientAction(action_cls):
