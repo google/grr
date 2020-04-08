@@ -246,14 +246,20 @@ class VFSHandler(metaclass=abc.ABCMeta):
 
     path_components = client_utils.LocalPathToCanonicalPath(component.path)
     path_components = ["/"] + list(filter(None, path_components.split("/")))
+
     for i, path_component in enumerate(path_components):
       try:
         if fd:
           new_pathspec = fd.MatchBestComponentName(path_component,
                                                    component.pathtype)
         else:
-          new_pathspec = component
+          new_pathspec = component.Copy()
           new_pathspec.path = path_component
+
+        # If the component has a stream_name (NTFS alternate data stream) set,
+        # set it on the last path_component.
+        if i == len(path_components) - 1 and component.HasField("stream_name"):
+          new_pathspec.stream_name = component.stream_name
 
         # The handler for this component
         try:

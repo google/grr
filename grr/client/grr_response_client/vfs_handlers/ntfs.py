@@ -19,6 +19,14 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 MOUNT_CACHE = utils.TimeBasedCache()
 
 
+def _GetAlternateDataStreamCaseInsensitive(
+    fd, name):
+  name = name.lower()
+  for data_stream in fd.alternate_data_streams:
+    if data_stream.name.lower() == name:
+      return data_stream
+
+
 class NTFSFile(vfs_base.VFSHandler):
   """VFSHandler implementation based on pyfsntfs."""
 
@@ -34,6 +42,8 @@ class NTFSFile(vfs_base.VFSHandler):
         handlers=handlers,
         pathspec=pathspec,
         progress_callback=progress_callback)
+
+    # self.pathspec is initialized to a copy of base_fd
 
     if base_fd is None:
       raise ValueError("NTFS driver must have a file base.")
@@ -57,6 +67,7 @@ class NTFSFile(vfs_base.VFSHandler):
       raise IOError("Base must be a file.")
 
     self.fd = None
+    self.data_stream = None
 
     # Try to open by "inode" number.
     if pathspec is not None and pathspec.HasField("inode"):
@@ -77,6 +88,22 @@ class NTFSFile(vfs_base.VFSHandler):
     if self.fd is None:
       raise IOError("Failed to open {}".format(path))
 
+    # Determine data stream
+    if pathspec is not None and pathspec.HasField("stream_name"):
+      if pathspec.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
+        self.data_stream = self.fd.get_alternate_data_stream_by_name(
+            pathspec.stream_name)
+      else:
+        self.data_stream = _GetAlternateDataStreamCaseInsensitive(
+            self.fd, pathspec.stream_name)
+      if self.data_stream is None:
+        raise IOError("Failed to open data stream {} in {}.".format(
+            pathspec.stream_name, path))
+      self.pathspec.last.stream_name = self.data_stream.name
+    else:
+      if self.fd.has_default_data_stream():
+        self.data_stream = self.fd
+
     # self.pathspec will be used for future access to this file.
 
     # The name is now literal, so disable case-insensitive lookup (expensive).
@@ -86,19 +113,19 @@ class NTFSFile(vfs_base.VFSHandler):
     self.pathspec.last.inode = self.fd.file_reference
 
     if not self.IsDirectory():
-      if self.fd.has_default_data_stream():
-        self.size = self.fd.get_size()
+      if self.data_stream is not None:
+        self.size = self.data_stream.get_size()
       else:
         self.size = 0
 
   def Stat(self,
            ext_attrs = False,
            follow_symlink = True):
-    return self._Stat(self.fd, self.pathspec.Copy())
+    return self._Stat(self.fd, self.data_stream, self.pathspec.Copy())
 
   def Read(self, length):
-    self.fd.seek(self.offset)
-    data = self.fd.read(length)
+    self.data_stream.seek(self.offset)
+    data = self.data_stream.read(length)
     self.offset += len(data)
     return data
 
@@ -116,7 +143,13 @@ class NTFSFile(vfs_base.VFSHandler):
       pathspec.last.path = utils.JoinPath(pathspec.last.path, entry.name)
       pathspec.last.inode = entry.file_reference
       pathspec.last.options = rdf_paths.PathSpec.Options.CASE_LITERAL
-      yield self._Stat(entry, pathspec)
+      data_stream = entry if entry.has_default_data_stream() else None
+      yield self._Stat(entry, data_stream, pathspec.Copy())
+
+      # Create extra entries for alternate data streams
+      for data_stream in entry.alternate_data_streams:
+        pathspec.last.stream_name = data_stream.name
+        yield self._Stat(entry, data_stream, pathspec.Copy())
 
   def ListNames(self):
     self._CheckIsDirectory()
@@ -128,8 +161,12 @@ class NTFSFile(vfs_base.VFSHandler):
       raise IOError("{} is not a directory".format(
           self.pathspec.CollapsePath()))
 
-  def _Stat(self, entry,
-            pathspec):
+  def _Stat(
+      self,
+      entry,
+      data_stream,
+      pathspec,
+  ):
     st = rdf_client_fs.StatEntry()
     st.pathspec = pathspec
 
@@ -143,15 +180,24 @@ class NTFSFile(vfs_base.VFSHandler):
       st.st_mode = stat.S_IFDIR
     else:
       st.st_mode = stat.S_IFREG
-      if entry.has_default_data_stream():
-        st.st_size = entry.get_size()
+      if data_stream is not None:
+        st.st_size = data_stream.get_size()
     return st
 
   @classmethod
-  def Open(cls, fd, component, handlers, pathspec=None, progress_callback=None):
+  def Open(
+      cls,
+      fd,
+      component,
+      handlers,
+      pathspec = None,
+      progress_callback = None
+  ):
     # A Pathspec which starts with NTFS means we need to resolve the mount
     # point at runtime.
-    if fd is None and component.pathtype == rdf_paths.PathSpec.PathType.NTFS:
+    if (fd is None and
+        component.pathtype == rdf_paths.PathSpec.PathType.NTFS and
+        pathspec is not None):
       # We are the top level handler. This means we need to check the system
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
@@ -174,6 +220,11 @@ class NTFSFile(vfs_base.VFSHandler):
       # pathspec. Next time we should be able to open it properly.
       return fd
 
+    # If an inode is specified, just use it directly.
+    # This is necessary so that component.path is ignored.
+    elif component.HasField("inode"):
+      return NTFSFile(
+          fd, handlers, component, progress_callback=progress_callback)
     else:
       return super(NTFSFile, cls).Open(
           fd=fd,
