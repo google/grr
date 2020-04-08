@@ -1,0 +1,42 @@
+<mat-card>
+  <div class="header-wrapper" (click)="triggerExpansionToggle()">
+    <div class="header">
+      <!-- Basic flow information. -->
+      <div class="flow-info">
+        <div class="flow-title">{{flowDescriptor?.friendlyName || flow.name}}</div>
+        <div class="flow-info">
+          <mat-icon class="user-icon">account_circle</mat-icon>
+          <span class="user-name">{{flow.creator}}</span>
+          <span class="start-time">{{flow.startedAt | date}}</span>
+        </div>
+      </div>
+
+      <!-- Flow context menu. -->
+      <button class="menu-button" [matMenuTriggerFor]="menu" mat-icon-button aria-label="Flow menu">
+        <mat-icon class="menu-icon">more_vert</mat-icon>
+      </button>
+      <mat-menu #menu="matMenu">
+        <button mat-menu-item (click)="triggerMenuEvent(flowMenuAction.CANCEL)">
+          <span>Cancel flow</span>
+        </button>
+        <button mat-menu-item (click)="triggerMenuEvent(flowMenuAction.DUPLICATE)">
+          <span>Duplicate flow</span>
+        </button>
+        <button mat-menu-item (click)="triggerMenuEvent(flowMenuAction.CREATE_HUNT)">
+          <span>Create a hunt</span>
+        </button>
+        <button mat-menu-item (click)="triggerMenuEvent(flowMenuAction.START_VIA_API)">
+          <span>Start via API</span>
+        </button>
+        <button mat-menu-item (click)="triggerMenuEvent(flowMenuAction.DEBUG)">
+          <span>Debug mode</span>
+        </button>
+      </mat-menu>
+    </div>
+  </div>
+
+  <div class="content-wrapper">
+    <template #detailsContainer></template>
+  </div>
+
+</mat-card>

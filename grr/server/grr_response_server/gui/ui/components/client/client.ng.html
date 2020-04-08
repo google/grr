@@ -1,0 +1,18 @@
+<div *ngIf="client$ | async as client">
+  <div class="client-header mat-body-1">
+    {{client.knowledgeBase.os}}
+    <h2 class="mat-h2">{{client.knowledgeBase.fqdn}}</h2>
+    {{client.lastSeenAt}} <br>
+    {{client.clientId}}
+    <mat-chip-list>
+      <mat-chip
+          *ngFor="let label of client.labels">
+        {{label.name}}
+      </mat-chip>
+    </mat-chip-list>
+  </div>
+
+  <approval></approval>
+  <flow-form></flow-form>
+  <flow-list></flow-list>
+</div>

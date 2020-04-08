@@ -1,0 +1,11 @@
+<h2 class="mat-h2">Collect</h2>
+<mat-card>
+  <flow-picker></flow-picker>
+
+  <form #form>
+    <flow-args-form [flowDescriptor]="selectedFlow"></flow-args-form>
+    <button *ngIf="selectedFlow" mat-flat-button color="primary" type="submit">
+      Start
+    </button>
+  </form>
+</mat-card>

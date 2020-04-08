@@ -1,0 +1,29 @@
+<div *ngIf="selectedFlow$ | async as selectedFlow else picker">
+  <mat-form-field appearance="outline">
+    <mat-chip-list>
+      <mat-chip [selectable]="false" [removable]="true" (removed)="unselectFlow()">
+        {{selectedFlow.friendlyName}}
+      </mat-chip>
+    </mat-chip-list>
+  </mat-form-field>
+</div>
+
+<ng-template #picker>
+<form #form>
+  <mat-form-field appearance="outline">
+    <mat-label>What data would you like to collect?</mat-label>
+    <input matInput [formControl]="textInput">
+  </mat-form-field>
+  <div *ngIf="flowEntries$ | async as flowEntries">
+    <div *ngFor="let category of flowEntries.keys()" class="column">
+      <h3 class="mat-h3">{{category}}</h3>
+      <button *ngFor="let entry of flowEntries.get(category)"
+              mat-flat-button color="primary" type="button"
+              [class.faded]="!entry.highlighted"
+              (click)="selectFlow(entry.name)">
+        {{entry.friendlyName}}
+      </button>
+    </div>
+  </div>
+</form>
+</ng-template>

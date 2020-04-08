@@ -1,0 +1,27 @@
+<div *ngIf="!hasProgress">
+  The flow didn't report its progress. It's either a legacy flow or this flow
+  did run before progress reporting was introduced as a feature.
+</div>
+
+<div *ngIf="hasProgress">
+  <div class="overall-status">
+    Processed {{ progress.numSkipped +
+      progress.numCollected +
+      progress.numFailed }} out of {{ args.pathspecs.length }}
+  </div>
+  <div class="detailed-numbers">
+    <div class="item">Successfully collected: {{ progress.numCollected }}</div>
+    <div class="item">Skipped: {{ progress.numSkipped }}</div>
+    <div class="item">Failed: {{ progress.numFailed }}</div>
+  </div>
+
+  <div *ngIf="!flowListEntry.isExpanded" class="first-path">
+    First path: {{ args.pathspecs.length > 0 ? pathSpecToPath(args.pathspecs[0]) : ''}}
+  </div>
+  <div *ngIf="flowListEntry.isExpanded">
+    <div *ngFor="let pathStatus of progress.pathspecsProgress">
+      <div class="path">{{ pathSpecToPath(pathStatus.pathspec) }}</div>
+      <div class="status">{{ pathStatus.status }}</div>
+    </div>
+  </div>
+</div>

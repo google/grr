@@ -1,0 +1,12 @@
+<!-- trackBy is needed, since otherwise ngFor will recreate inner components
+  on every change. -->
+<div *ngFor="let entry of entries$ | async; trackBy: entryTrackByFunction">
+  <div class="flow-item">
+    <flow-details
+      [flowListEntry]="entry"
+      [flowDescriptor]="entry.descriptor"
+      (expansionToggle)="toggleFlowExpansion(entry.flow.flowId)"
+      (menuActionTriggered)="triggerFlowAction(entry.flow, $event)">
+    </flow-details>
+  </div>
+</div>

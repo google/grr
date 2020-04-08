@@ -1,0 +1,24 @@
+:host {
+  display: block;
+}
+
+.column {
+  display: inline-block;
+  padding: 1em;
+  vertical-align: top;
+}
+
+button {
+  color: #fff;
+  display: block;
+  margin: 4px 0;
+  transition: opacity ease 200ms;
+}
+
+.faded {
+  opacity: .5;
+}
+
+mat-form-field {
+  width: 100%;
+}

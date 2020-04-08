@@ -1,0 +1,13 @@
+# This file is used by the build system to adjust CSS and JS output to
+# support the specified browsers below.
+# For additional information regarding the format and
+# rule options, please see:
+# https://github.com/browserslist/browserslist#queries
+
+# You can see what browsers were selected by your queries by running:
+#   npx browserslist
+
+# NOTE: support just Chrome > 70 forces angular-cli to not generate
+# es2015- and es5 versions of compiled bundles.
+
+Chrome > 70

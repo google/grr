@@ -1,0 +1,63 @@
+mat-card {
+  padding: 0;
+
+  .header-wrapper {
+    :hover {
+      background-color: #f0f0f0;
+    }
+
+    .header {
+      padding: 24px;
+      display: flex;
+
+      .flow-info {
+        flex-grow: 1;
+
+        .flow-title {
+          font-size: 115%;
+          font-weight: 500;
+          color: #6d6d6d;
+        }
+
+        .flow-info {
+          margin-top: .85em;
+          font-size: 85%;
+          color: #8c8c8c;
+
+          .user-icon {
+            vertical-align: middle;
+          }
+
+          .user-name {
+            padding-left: .4em;
+            position: relative;
+            top: 1px;
+          }
+
+          .start-time {
+            padding-left: .4em;
+            color: #8c8c8c;
+          }
+        }
+      }
+
+      .menu-button {
+        position: relative;
+        top: -15px;
+        left: -20px;
+
+        .menu-icon {
+          opacity: .2;
+          font-size: 250%;
+          position: relative;
+          left: -5.5px;
+        }
+      }
+    }
+  }
+
+  .content-wrapper {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}

@@ -209,3 +209,18 @@ class FileFinderResult(rdf_structs.RDFProtoStruct):
       rdf_client_fs.StatEntry,
       rdf_client_fs.BlobImageDescriptor,
   ]
+
+
+class CollectSingleFileArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for CollectSingleFile."""
+  protobuf = flows_pb2.CollectSingleFileArgs
+  rdf_deps = [rdfvalue.ByteSize]
+
+
+class CollectSingleFileResult(rdf_structs.RDFProtoStruct):
+  """Result returned by CollectSingleFile."""
+  protobuf = flows_pb2.CollectSingleFileResult
+  rdf_deps = [
+      rdf_crypto.Hash,
+      rdf_client_fs.StatEntry,
+  ]

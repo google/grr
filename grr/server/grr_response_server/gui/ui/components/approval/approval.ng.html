@@ -1,0 +1,38 @@
+<h2 class="mat-h2">
+  Approval
+
+  <mat-chip *ngIf="latestApproval?.status.type === 'pending'"
+    color="primary">pending</mat-chip>
+  <mat-chip *ngIf="latestApproval?.status.type === 'valid'"
+    color="primary">pending</mat-chip>
+</h2>
+
+<p *ngIf="latestApproval?.status.type === 'pending'" class="mat-body-1">
+  An approval request with reason "{{latestApproval.reason}}" has been sent to
+  {{latestApproval.requestedApprovers.join(", ")}}.
+</p>
+<p *ngIf="latestApproval?.status.type === 'valid'" class="mat-body-1">
+  {{latestApproval.approvers.join(", ")}} approved access for reason
+  "{{latestApproval.reason}}".
+</p>
+
+<form (submit)="submitRequest()" [formGroup]="form">
+  <mat-form-field appearance="outline">
+    <mat-label>Reason for approval</mat-label>
+    <input matInput formControlName="reason">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Approvers</mat-label>
+    <input matInput formControlName="approvers">
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" type="submit">Request access</button>
+
+  <div>
+    <mat-checkbox *ngIf="ccEmail$ | async as ccEmail"
+                  formControlName="ccEnabled">
+      CC: {{ccEmail}}
+    </mat-checkbox>
+  </div>
+</form>

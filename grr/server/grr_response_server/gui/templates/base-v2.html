@@ -1,25 +1,23 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <script>
-    window.CLOSURE_NO_DEPS = true;
-  </script>
-
   <meta charset="utf-8">
   <title>GRR UI v2</title>
   <base href="/">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <link rel="shortcut icon" href="/static/images/favicon.ico" />
 
   <!-- Needed for Material icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-  <!-- Global styles -->
-  <link rel="stylesheet" href="/static/dist/v2/styles.css">
 </head>
 <body>
   <app-root></app-root>
-  <script src="/static/dist/v2/{{'app_bundle_debug-bundle' if is_development else 'app_bundle'}}.js"></script>
+  <script src="/static/dist/v2/runtime.js" type="module"></script>
+  <script src="/static/dist/v2/polyfills.js" type="module"></script>
+  <script src="/static/dist/v2/styles.js" type="module"></script>
+  <script src="/static/dist/v2/vendor.js" type="module"></script>
+  <script src="/static/dist/v2/main.js" type="module"></script>
 </body>
 </html>

@@ -12,6 +12,9 @@
     "./**/*.ts"
   ],
   "exclude": [
-    "./components/**/*_test.ts"
+    "./**/test.ts",
+    "./**/testing.ts",
+    "./**/*_test.ts",
+    "./**/*_test_util.ts"
   ]
 }

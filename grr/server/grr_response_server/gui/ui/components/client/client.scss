@@ -1,0 +1,11 @@
+.client-header {
+  background: #222149;
+  color: white;
+  padding: 3em 0 3em 10em;
+}
+
+mat-chip-list {
+  /* mat-chip-list causes slight horizontal scrolling otherwise. */
+  display: block;
+  overflow: hidden;
+}

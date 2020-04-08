@@ -1896,6 +1896,16 @@ message FileFinderResult {
   }];
 }
 
+message CollectSingleFileArgs {
+  optional string path = 1;
+  optional uint64 max_size_bytes = 2 [(sem_type) = { type: "ByteSize" }];
+}
+
+message CollectSingleFileResult {
+  optional StatEntry stat = 1;
+  optional Hash hash = 2;
+}
+
 // Next field ID: 4
 message FileReference {
   optional string client_id = 1 [(sem_type) = {

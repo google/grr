@@ -54,6 +54,10 @@ def make_ui_files():
       "npm ci", shell=True, cwd="grr_response_server/gui/static")
   subprocess.check_call(
       "npm run gulp compile", shell=True, cwd="grr_response_server/gui/static")
+  # Compile UI v2.
+  subprocess.check_call("npm ci", shell=True, cwd="grr_response_server/gui/ui")
+  subprocess.check_call(
+      "npm run ng build --prod", shell=True, cwd="grr_response_server/gui/ui")
 
 
 def get_config():
