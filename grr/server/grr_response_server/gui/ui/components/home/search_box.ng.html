@@ -1,6 +1,7 @@
 <mat-form-field hideRequiredMarker="true" appearance="outline">
   <mat-label>Search for a client...</mat-label>
   <input #input placeholder="Search for a client..."
+         name="clientSearchBox"
          matInput
          [formControl]="inputFormControl"
          [matAutocomplete]="auto">

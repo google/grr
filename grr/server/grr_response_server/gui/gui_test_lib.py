@@ -22,6 +22,7 @@ from selenium.webdriver.common import action_chains
 from selenium.webdriver.common import keys
 from selenium.webdriver.support import select
 
+from grr_response_core.lib import package
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -231,6 +232,10 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   _selenium_set_up_lock = threading.RLock()
   _selenium_set_up_done = False
 
+  # Cached jQuery source to be injected into pages on Open (for selectors
+  # support).
+  _jquery_source = None
+
   @classmethod
   def setUpClass(cls):
     super(GRRSeleniumTest, cls).setUpClass()
@@ -245,6 +250,12 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
             port, name="SeleniumServerThread")
         GRRSeleniumTest._server_trd.StartAndWaitUntilServing()
         GRRSeleniumTest._SetUpSelenium(port)
+
+        jquery_path = package.ResourcePath(
+            "grr-response-test",
+            "grr_response_test/test_data/jquery_3.1.0.min.js")
+        with open(jquery_path, mode="r", encoding="utf-8") as fd:
+          GRRSeleniumTest._jquery_source = fd.read()
 
         GRRSeleniumTest._selenium_set_up_done = True
 
@@ -391,6 +402,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # when confused.
     self.driver.get("data:.")
     self.driver.get(self.base_url + url)
+
+    jquery_present = self.driver.execute_script(
+        "return window.$ !== undefined;")
+    if not jquery_present:
+      self.driver.execute_script(GRRSeleniumTest._jquery_source)
 
   @SeleniumAction
   def Refresh(self):

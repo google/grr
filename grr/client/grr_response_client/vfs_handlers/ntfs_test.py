@@ -22,6 +22,12 @@ ADS_FILE_REF = 1125899906842697
 ADS_ADS_TXT_FILE_REF = 562949953421386
 NUMBERS_TXT_FILE_REF = 281474976710720
 A_B1_C1_D_FILE_REF = 281474976710728
+READ_ONLY_FILE_TXT_FILE_REF = 844424930132043
+HIDDEN_FILE_TXT_FILE_REF = 562949953421388
+
+# Default st_mode flags for files and directories
+S_DEFAULT_FILE = (stat.S_IFREG | stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+S_DEFAULT_DIR = (stat.S_IFDIR | stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
 
 
 class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
@@ -38,6 +44,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
     # -rwxrwxrwx 1 root root    5 Apr  7 15:19 ./ads/ads.txt
     # -rwxrwxrwx 1 root root    6 Apr  7 15:48 ./ads/ads.txt:one
     # -rwxrwxrwx 1 root root    7 Apr  7 15:48 ./ads/ads.txt:two
+    # -rwxrwxrwx 1 root root    0 Apr  8 22:14 ./hidden_file.txt
+    # -rwxrwxrwx 1 root root    0 Apr  8 22:14 ./read_only_file.txt
 
     ntfs_img_path = os.path.join(self.base_path, "ntfs.img")
     return rdf_paths.PathSpec(
@@ -94,9 +102,22 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
     fd = vfs.VFSOpen(pathspec)
     names = fd.ListNames()
     expected_names = [
-        "$AttrDef", "$BadClus", "$Bitmap", "$Boot", "$Extend", "$LogFile",
-        "$MFT", "$MFTMirr", "$Secure", "$UpCase", "$Volume", "a", "ads",
-        "numbers.txt"
+        "$AttrDef",
+        "$BadClus",
+        "$Bitmap",
+        "$Boot",
+        "$Extend",
+        "$LogFile",
+        "$MFT",
+        "$MFTMirr",
+        "$Secure",
+        "$UpCase",
+        "$Volume",
+        "a",
+        "ads",
+        "numbers.txt",
+        "read_only_file.txt",
+        "hidden_file.txt",
     ]
     self.assertSameElements(names, expected_names)
 
@@ -119,7 +140,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-03-03 16:47:43"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 16:47:50"),
-            st_mode=stat.S_IFDIR,
+            st_mode=S_DEFAULT_DIR,
         ),
         rdf_client_fs.StatEntry(
             pathspec=self._GetNTFSPathSpec(
@@ -132,7 +153,22 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-07 13:23:07"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 14:56:47"),
-            st_mode=stat.S_IFDIR,
+            st_mode=S_DEFAULT_DIR,
+        ),
+        rdf_client_fs.StatEntry(
+            pathspec=self._GetNTFSPathSpec(
+                "/hidden_file.txt",
+                inode=HIDDEN_FILE_TXT_FILE_REF,
+                path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
+            st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:38"),
+            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:38"),
+            st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:38"),
+            st_mode=(stat.S_IFREG | stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+                     | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
+            st_size=0,
         ),
         rdf_client_fs.StatEntry(
             pathspec=self._GetNTFSPathSpec(
@@ -145,11 +181,25 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-03-03 16:46:00"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 20:10:46"),
-            st_mode=stat.S_IFREG,
+            st_mode=S_DEFAULT_FILE,
             st_size=3893,
         ),
+        rdf_client_fs.StatEntry(
+            pathspec=self._GetNTFSPathSpec(
+                "/read_only_file.txt",
+                inode=READ_ONLY_FILE_TXT_FILE_REF,
+                path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
+            st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:33"),
+            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:33"),
+            st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:33"),
+            st_mode=(stat.S_IFREG | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+                     | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
+            st_size=0,
+        ),
     ]
-    # print("XX", str(files).replace("\\n", "\n"))
     self.assertEqual(files, expected_files)
 
   def testNTFSListFiles_alternateDataStreams(self):
@@ -170,7 +220,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
-            st_mode=stat.S_IFREG,
+            st_mode=S_DEFAULT_FILE,
             st_size=5,
         ),
         rdf_client_fs.StatEntry(
@@ -185,7 +235,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
-            st_mode=stat.S_IFREG,
+            st_mode=S_DEFAULT_FILE,
             st_size=6,
         ),
         rdf_client_fs.StatEntry(
@@ -200,11 +250,10 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
-            st_mode=stat.S_IFREG,
+            st_mode=S_DEFAULT_FILE,
             st_size=7,
         ),
     ]
-    # print("XX", str(files).replace("\\n", "\n"))
     self.assertEqual(files, expected_files)
 
   def testNTFSOpen_alternateDataStreams(self):

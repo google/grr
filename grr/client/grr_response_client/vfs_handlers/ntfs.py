@@ -19,6 +19,12 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 MOUNT_CACHE = utils.TimeBasedCache()
 
 
+# See
+# https://github.com/libyal/libfsntfs/blob/master/documentation/New%20Technologies%20File%20System%20(NTFS).asciidoc#file_attribute_flags
+FILE_ATTRIBUTE_READONLY = 0x00000001
+FILE_ATTRIBUTE_HIDDEN = 0x00000002
+
+
 def _GetAlternateDataStreamCaseInsensitive(
     fd, name):
   name = name.lower()
@@ -182,6 +188,12 @@ class NTFSFile(vfs_base.VFSHandler):
       st.st_mode = stat.S_IFREG
       if data_stream is not None:
         st.st_size = data_stream.get_size()
+    flags = entry.file_attribute_flags
+    st.st_mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    if (flags & FILE_ATTRIBUTE_READONLY) == 0:
+      st.st_mode |= stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+    if (flags & FILE_ATTRIBUTE_HIDDEN) == 0:
+      st.st_mode |= stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
     return st
 
   @classmethod
