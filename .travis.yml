@@ -165,8 +165,6 @@ matrix:
       env:
         - GCS_TAG=server_deb
       before_install:
-        - virtualenv "${HOME}/GCS_VENV"
-        - ${HOME}/GCS_VENV/bin/pip install google-cloud-storage absl-py
         - >-
           sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev
           python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git
@@ -175,6 +173,8 @@ matrix:
         - sudo -i pip3 install --upgrade setuptools
         - python3 -m venv "${HOME}/INSTALL"
         - ${HOME}/INSTALL/bin/python -m pip install --upgrade pip setuptools
+        - python3 -m venv "${HOME}/GCS_VENV"
+        - ${HOME}/INSTALL/bin/python -m pip install google-cloud-storage absl-py
       install:
         - travis/install.sh
       script:
