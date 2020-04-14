@@ -3,7 +3,6 @@
 """Utility functions/decorators for DB implementations."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import functools
@@ -70,7 +69,7 @@ def CallLoggedAndAccounted(f):
   return Decorator
 
 
-def EscapeWildcards(string):
+def EscapeWildcards(string: Text) -> Text:
   """Escapes wildcard characters for strings intended to be used with `LIKE`.
 
   Databases don't automatically escape wildcard characters ('%', '_'), so any
@@ -87,7 +86,7 @@ def EscapeWildcards(string):
   return string.replace("%", r"\%").replace("_", r"\_")
 
 
-def EscapeBackslashes(string):
+def EscapeBackslashes(string: Text) -> Text:
   """Escapes backslash characters for strings intended to be used with `LIKE`.
 
   Backslashes work in mysterious ways: sometimes they do need to be escaped,

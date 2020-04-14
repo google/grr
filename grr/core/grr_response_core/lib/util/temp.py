@@ -3,7 +3,6 @@
 """A module with utilities for dealing with temporary files and directories."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -22,7 +21,7 @@ from grr_response_core.lib.util import precondition
 FLAGS = flags.FLAGS
 
 
-def _TestTempRootPath():
+def _TestTempRootPath() -> Optional[Text]:
   """Returns a default root path for storing temporary files during tests."""
   # `TEST_TMPDIR` and `FLAGS.test_tmpdir` are only defined only for test
   # environments. For non-test code, we use the default temporary directory.
@@ -48,7 +47,7 @@ def _TestTempRootPath():
   return test_tmpdir
 
 
-def TempDirPath(suffix = "", prefix = "tmp"):
+def TempDirPath(suffix: Text = "", prefix: Text = "tmp") -> Text:
   """Creates a temporary directory based on the environment configuration.
 
   The directory will be placed in folder as specified by the `TEST_TMPDIR`
@@ -68,8 +67,8 @@ def TempDirPath(suffix = "", prefix = "tmp"):
   return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=_TestTempRootPath())
 
 
-def TempFilePath(suffix = "", prefix = "tmp",
-                 dir = None):  # pylint: disable=redefined-builtin
+def TempFilePath(suffix: Text = "", prefix: Text = "tmp",
+                 dir: Text = None) -> Text:  # pylint: disable=redefined-builtin
   """Creates a temporary file based on the environment configuration.
 
   If no directory is specified the file will be placed in folder as specified by
@@ -130,9 +129,9 @@ class AutoTempDirPath(object):
   """
 
   def __init__(self,
-               suffix = "",
-               prefix = "tmp",
-               remove_non_empty = False):
+               suffix: Text = "",
+               prefix: Text = "tmp",
+               remove_non_empty: bool = False):
     precondition.AssertType(suffix, Text)
     precondition.AssertType(prefix, Text)
     precondition.AssertType(remove_non_empty, bool)
@@ -141,7 +140,7 @@ class AutoTempDirPath(object):
     self.prefix = prefix
     self.remove_non_empty = remove_non_empty
 
-  def __enter__(self):
+  def __enter__(self) -> Text:
     self.path = TempDirPath(suffix=self.suffix, prefix=self.prefix)
     return self.path
 
@@ -183,9 +182,9 @@ class AutoTempFilePath(object):
   """
 
   def __init__(self,
-               suffix = "",
-               prefix = "tmp",
-               dir = None):  # pylint: disable=redefined-builtin
+               suffix: Text = "",
+               prefix: Text = "tmp",
+               dir: Optional[Text] = None):  # pylint: disable=redefined-builtin
     precondition.AssertType(prefix, Text)
     precondition.AssertType(suffix, Text)
     precondition.AssertOptionalType(dir, Text)
@@ -194,7 +193,7 @@ class AutoTempFilePath(object):
     self.prefix = prefix
     self.dir = dir
 
-  def __enter__(self):
+  def __enter__(self) -> Text:
     self.path = TempFilePath(
         suffix=self.suffix, prefix=self.prefix, dir=self.dir)
     return self.path

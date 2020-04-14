@@ -3,7 +3,6 @@
 """Filesystem related client rdfvalues."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import stat
@@ -109,7 +108,7 @@ class StatMode(rdfvalue.RDFInteger):
   """The mode of a file."""
   protobuf_type = "unsigned_integer"
 
-  def __str__(self):
+  def __str__(self) -> Text:
     """Pretty print the file mode."""
     type_char = "-"
 

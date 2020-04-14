@@ -3,7 +3,6 @@
 """Tests for Yara flows."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import functools
@@ -1002,8 +1001,8 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
 
       def YaraProcessScan(
           self,
-          args,
-      ):
+          args: rdf_memory.YaraProcessScanRequest,
+      ) -> Iterable[rdf_memory.YaraProcessScanResponse]:
         shards.append(args.signature_shard)
         return []
 
@@ -1047,9 +1046,9 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
 
   def _YaraProcessScan(
       self,
-      args,
-      action_mock = None,
-  ):
+      args: rdf_memory.YaraProcessScanRequest,
+      action_mock: Optional[action_mocks.ActionMock] = None,
+  ) -> None:
     if action_mock is None:
       action_mock = action_mocks.ActionMock()
 

@@ -8,7 +8,6 @@ libs/server_stubs.py
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import binascii
@@ -45,7 +44,7 @@ IGNORE_PROPS = [
 ]
 
 
-def UnicodeFromCodePage(string):
+def UnicodeFromCodePage(string: bytes) -> Text:
   """Attempt to coerce string into a unicode object."""
   precondition.AssertType(string, bytes)
 

@@ -2,7 +2,6 @@
 """A module with utility decorators for skipping tests."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -16,7 +15,7 @@ from typing import Text
 from typing import Union
 
 
-def If(condition, reason):
+def If(condition: Union[Any, Callable[[], Any]], reason: Text):
   """A decorator that skips test evaluation if the condition holds.
 
   This decorator can be applied either to a test method or a test class (in
@@ -39,7 +38,7 @@ def If(condition, reason):
     return unittest.skipIf(condition, reason)
 
 
-def Unless(condition, reason):
+def Unless(condition: Union[Any, Callable[[], Any]], reason: Text):
   """A decorator that skips test evaluation if the condition dot not hold.
 
   See documentation for the `If` decorator for more information.
@@ -57,7 +56,7 @@ def Unless(condition, reason):
     return unittest.skipUnless(condition, reason)
 
 
-def _IfLazy(condition, reason):
+def _IfLazy(condition: Callable[[], Any], reason: Text):
 
   def Decorator(test):
     if isinstance(test, type):
@@ -90,5 +89,5 @@ def _IfLazy(condition, reason):
   return Decorator
 
 
-def _UnlessLazy(condition, reason):
+def _UnlessLazy(condition: Callable[[], Any], reason: Text):
   return _IfLazy(lambda: not condition(), reason)

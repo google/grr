@@ -3,7 +3,6 @@
 """The in memory database methods for client handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Generator, List, Text
@@ -357,8 +356,8 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def WriteClientStats(self, client_id,
-                       stats):
+  def WriteClientStats(self, client_id: Text,
+                       stats: rdf_client_stats.ClientStats) -> None:
     """Stores a ClientStats instance."""
     if client_id not in collection.Flatten(self.ReadAllClientIDs()):
       raise db.UnknownClientError(client_id)
@@ -371,9 +370,9 @@ class InMemoryDBClientMixin(object):
 
   @utils.Synchronized
   def ReadClientStats(
-      self, client_id, min_timestamp,
-      max_timestamp
-  ):
+      self, client_id: Text, min_timestamp: rdfvalue.RDFDatetime,
+      max_timestamp: rdfvalue.RDFDatetime
+  ) -> List[rdf_client_stats.ClientStats]:
     """Reads ClientStats for a given client and time range."""
     results = []
     for timestamp, stats in self.client_stats[client_id].items():
@@ -383,8 +382,8 @@ class InMemoryDBClientMixin(object):
 
   @utils.Synchronized
   def DeleteOldClientStats(
-      self, yield_after_count,
-      retention_time):
+      self, yield_after_count: int,
+      retention_time: rdfvalue.RDFDatetime) -> Generator[int, None, None]:
     """Deletes ClientStats older than a given timestamp."""
     deleted_count = 0
 

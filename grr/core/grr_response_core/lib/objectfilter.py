@@ -89,7 +89,6 @@ filter is easy. Three basic filter implementations are given:
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -153,7 +152,7 @@ class Filter(metaclass=abc.ABCMeta):
     """Returns a list of objects that pass the filter."""
     return list(filter(self.Matches, objects))
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return "%s(%s)" % (self.__class__.__name__, ", ".join(
         [str(arg) for arg in self.args]))
 
@@ -598,7 +597,7 @@ class ContextExpression(lexer.Expression):
       self.args.append(part)
     super().__init__()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return "Context(%s %s)" % (self.attribute, [str(x) for x in self.args])
 
   def SetExpression(self, expression):

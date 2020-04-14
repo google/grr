@@ -2,7 +2,6 @@
 """Root (i.e. administrative) actions support in GRR API client library."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import hashlib
@@ -144,25 +143,25 @@ class GrrBinaryRef(object):
 class ClientRef(object):
   """Reference class pointing to a GRR client."""
 
-  def __init__(self, client_id,
-               context):
+  def __init__(self, client_id: Text,
+               context: api_context.GrrApiContext) -> None:
     self.client_id = client_id
     self._context = context
 
-  def KillFleetspeak(self, force):
+  def KillFleetspeak(self, force: bool) -> None:
     """Kills fleetspeak on the given client."""
     args = client_management_pb2.ApiKillFleetspeakArgs()
     args.client_id = self.client_id
     args.force = force
     self._context.SendRequest("KillFleetspeak", args)
 
-  def RestartFleetspeakGrrService(self):
+  def RestartFleetspeakGrrService(self) -> None:
     """Restarts the GRR fleetspeak service on the given client."""
     args = client_management_pb2.ApiRestartFleetspeakGrrServiceArgs()
     args.client_id = self.client_id
     self._context.SendRequest("RestartFleetspeakGrrService", args)
 
-  def __repr__(self):
+  def __repr__(self) -> Text:
     return "<{} client_id={}>".format(self.__class__.__name__, self.client_id)
 
 
@@ -215,6 +214,6 @@ class RootGrrApi(object):
     return GrrBinaryRef(
         binary_type=binary_type, path=path, context=self._context)
 
-  def Client(self, client_id):
+  def Client(self, client_id: Text) -> ClientRef:
     """Returns a reference to a GRR client."""
     return ClientRef(client_id, self._context)

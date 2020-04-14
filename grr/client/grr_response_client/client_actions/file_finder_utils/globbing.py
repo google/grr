@@ -3,7 +3,6 @@
 """Implementation of path expansion mechanism for client-side file-finder."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -151,7 +150,7 @@ class GlobComponent(PathComponent):
   that contain no wildcards and match only themselves.
   """
 
-  def __init__(self, glob, opts = None):
+  def __init__(self, glob: Text, opts: Optional[PathOpts] = None):
     """Instantiates a new GlobComponent from a given path glob.
 
     Args:
@@ -164,7 +163,7 @@ class GlobComponent(PathComponent):
     self.regex = re.compile(fnmatch.translate(glob), re.I)
     self.opts = opts or PathOpts()
 
-  def _GenerateLiteralMatchOS(self, dirpath):
+  def _GenerateLiteralMatchOS(self, dirpath: Text) -> Optional[Text]:
     """Generates an OS-specific literal match."""
     if not os.path.exists(os.path.join(dirpath, self._glob)):
       return None
@@ -185,7 +184,7 @@ class GlobComponent(PathComponent):
         return fname
     return None
 
-  def _GenerateLiteralMatch(self, dirpath):
+  def _GenerateLiteralMatch(self, dirpath: Text) -> Optional[Text]:
     """Generates a literal match."""
     if self.opts.pathtype == rdf_paths.PathSpec.PathType.OS:
       return self._GenerateLiteralMatchOS(dirpath)
@@ -297,8 +296,8 @@ def ParsePathItem(item, opts=None):
   return RecursiveComponent(max_depth=max_depth, opts=opts)
 
 
-def ParsePath(path,
-              opts = None):
+def ParsePath(path: Text,
+              opts: Optional[PathOpts] = None) -> Iterator[PathComponent]:
   """Parses given path into a stream of `PathComponent` instances.
 
   Args:
@@ -329,9 +328,9 @@ def ParsePath(path,
     yield component
 
 
-def ExpandPath(path,
-               opts = None,
-               heartbeat_cb = _NoOp):
+def ExpandPath(path: Text,
+               opts: Optional[PathOpts] = None,
+               heartbeat_cb: Callable[[], None] = _NoOp):
   """Applies all expansion mechanisms to the given path.
 
   Args:
@@ -377,9 +376,9 @@ def ExpandGroups(path):
     yield "".join(prod)
 
 
-def ExpandGlobs(path,
-                opts = None,
-                heartbeat_cb = _NoOp):
+def ExpandGlobs(path: Text,
+                opts: Optional[PathOpts] = None,
+                heartbeat_cb: Callable[[], None] = _NoOp):
   """Performs glob expansion on a given path.
 
   Path can contain regular glob elements (such as `**`, `*`, `?`, `[a-z]`). For
@@ -416,7 +415,7 @@ def ExpandGlobs(path,
   return _ExpandComponents(root_dir, components, heartbeat_cb=heartbeat_cb)
 
 
-def _IsAbsolutePath(path, opts = None):
+def _IsAbsolutePath(path: Text, opts: Optional[PathOpts] = None) -> bool:
   if opts and opts.pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
     return path.startswith("/HKEY_") or path.startswith("HKEY_")
 

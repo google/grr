@@ -3,7 +3,6 @@
 """Renderers that render RDFValues into JSON compatible data structures."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import base64
@@ -235,7 +234,7 @@ class FetchMoreLink(rdfvalue.RDFValue):
   """Stub used to display 'More data available...' link."""
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     del value  # Unused.
     return cls()
 

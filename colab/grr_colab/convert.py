@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -19,7 +18,7 @@ from grr_response_proto import osquery_pb2
 from grr_response_proto import semantic_pb2
 
 
-def from_sequence(seq):
+def from_sequence(seq: Sequence[Any]) -> pd.DataFrame:
   """Converts sequence of objects to a dataframe.
 
   Args:
@@ -35,7 +34,7 @@ def from_sequence(seq):
   return pd.concat(dframes, ignore_index=True, sort=False)
 
 
-def from_object(obj):
+def from_object(obj: Any) -> pd.DataFrame:
   """Converts object to a dataframe.
 
   Args:
@@ -49,8 +48,8 @@ def from_object(obj):
   return pd.DataFrame(data=[obj])
 
 
-def from_message(msg,
-                 components = None):
+def from_message(msg: message.Message,
+                 components: Optional[List[Text]] = None) -> pd.DataFrame:
   """Converts protobuf message to a dataframe.
 
   Args:
@@ -73,7 +72,7 @@ def from_message(msg,
   return pd.DataFrame(data=data)
 
 
-def from_osquery_table(table):
+def from_osquery_table(table: osquery_pb2.OsqueryTable) -> pd.DataFrame:
   """Converts osquery table to a dataframe.
 
   Args:
@@ -91,8 +90,8 @@ def from_osquery_table(table):
   return pd.DataFrame(data=data)
 
 
-def _get_pretty_value(value, desc,
-                      components):
+def _get_pretty_value(value: Any, desc: descriptor.FieldDescriptor,
+                      components: List[Text]) -> Dict[Text, List[Any]]:
   """Converts value to the object easier to work with or more representative.
 
   Args:
@@ -133,9 +132,9 @@ def _get_pretty_value(value, desc,
   return data
 
 
-def reindex_dataframe(df,
-                      priority_columns = None,
-                      ignore_columns = None):
+def reindex_dataframe(df: pd.DataFrame,
+                      priority_columns: List[Text] = None,
+                      ignore_columns: List[Text] = None) -> pd.DataFrame:
   """Reorders and removes dataframe columns according to the given priorities.
 
   Args:
@@ -161,8 +160,8 @@ def reindex_dataframe(df,
   return df.reindex(columns=columns)
 
 
-def add_pretty_column(df, col_name,
-                      values):
+def add_pretty_column(df: pd.DataFrame, col_name: Text,
+                      values: Sequence[Any]) -> pd.DataFrame:
   """Adds pretty column for the specified column name with values provided.
 
   Args:

@@ -3,7 +3,6 @@
 """A module with compatibility wrappers for YAML processing."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -20,7 +19,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
-def Parse(text):
+def Parse(text: Text) -> Any:
   """Parses a YAML source into a Python object.
 
   Args:
@@ -37,7 +36,7 @@ def Parse(text):
   return yaml.safe_load(text)
 
 
-def ParseMany(text):
+def ParseMany(text: Text) -> Sequence[Any]:
   """Parses many YAML documents into a list of Python objects.
 
   Args:
@@ -54,7 +53,7 @@ def ParseMany(text):
   return list(yaml.safe_load_all(text))
 
 
-def ReadFromFile(filedesc):
+def ReadFromFile(filedesc: IO[Text]) -> Any:
   """Reads a Python object from given file descriptor.
 
   Args:
@@ -67,7 +66,7 @@ def ReadFromFile(filedesc):
   return Parse(content)
 
 
-def ReadManyFromFile(filedesc):
+def ReadManyFromFile(filedesc: IO[Text]) -> Any:
   """Reads many YAML documents from given file into a list of Python objects.
 
   Args:
@@ -80,7 +79,7 @@ def ReadManyFromFile(filedesc):
   return ParseMany(content)
 
 
-def ReadFromPath(filepath):
+def ReadFromPath(filepath: Text) -> Any:
   """Reads a Python object stored in a specified YAML file.
 
   Args:
@@ -93,7 +92,7 @@ def ReadFromPath(filepath):
     return ReadFromFile(filedesc)
 
 
-def ReadManyFromPath(filepath):
+def ReadManyFromPath(filepath: Text) -> Any:
   """Reads a Python object stored in a specified YAML file.
 
   Args:
@@ -106,7 +105,7 @@ def ReadManyFromPath(filepath):
     return ReadManyFromFile(filedesc)
 
 
-def Dump(obj):
+def Dump(obj: Any) -> Text:
   """Stringifies a Python object into its YAML representation.
 
   Args:
@@ -123,7 +122,7 @@ def Dump(obj):
   return text
 
 
-def DumpMany(objs):
+def DumpMany(objs: Iterable[Any]) -> Text:
   """Stringifies a sequence of Python objects to a multi-document YAML.
 
   Args:
@@ -142,7 +141,7 @@ def DumpMany(objs):
   return text
 
 
-def WriteToFile(obj, filedesc):
+def WriteToFile(obj: Any, filedesc: IO[Text]) -> None:
   """Serializes and writes given Python object to a YAML file.
 
   Args:
@@ -152,7 +151,7 @@ def WriteToFile(obj, filedesc):
   filedesc.write(Dump(obj))
 
 
-def WriteManyToFile(objs, filedesc):
+def WriteManyToFile(objs: Iterable[Any], filedesc: IO[Text]) -> None:
   """Serializes and writes Python objects to a multi-document YAML file.
 
   Args:
@@ -162,7 +161,7 @@ def WriteManyToFile(objs, filedesc):
   filedesc.write(DumpMany(objs))
 
 
-def WriteToPath(obj, filepath):
+def WriteToPath(obj: Any, filepath: Text) -> None:
   """Serializes and writes given Python object to the specified YAML file.
 
   Args:
@@ -173,7 +172,7 @@ def WriteToPath(obj, filepath):
     WriteToFile(obj, filedesc)
 
 
-def WriteManyToPath(objs, filepath):
+def WriteManyToPath(objs: Iterable[Any], filepath: Text) -> None:
   """Serializes and writes given Python objects to a multi-document YAML file.
 
   Args:

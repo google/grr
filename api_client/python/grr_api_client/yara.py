@@ -2,7 +2,6 @@
 """A module with YARA convenience wrappers for the GRR API."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Text
@@ -12,9 +11,9 @@ from grr_response_proto.api import yara_pb2
 
 
 def UploadYaraSignature(
-    signature,
-    context,
-):
+    signature: Text,
+    context: api_context.GrrApiContext,
+) -> bytes:
   """Uploads the specified YARA signature.
 
   Args:

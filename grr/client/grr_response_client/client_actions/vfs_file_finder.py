@@ -3,7 +3,6 @@
 """The file finder client action."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Callable, Text, Iterator
@@ -29,7 +28,7 @@ class VfsFileFinder(actions.ActionPlugin):
   in_rdfvalue = rdf_file_finder.FileFinderArgs
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
-  def Run(self, args):
+  def Run(self, args: rdf_file_finder.FileFinderArgs):
     action = self._ParseAction(args)
     content_conditions = list(
         conditions.ContentCondition.Parse(args.conditions))
@@ -59,7 +58,7 @@ class VfsFileFinder(actions.ActionPlugin):
       self.SendReply(result)
 
   def _ParseAction(
-      self, args):
+      self, args: rdf_file_finder.FileFinderArgs) -> vfs_subactions.Action:
     action_type = args.action.action_type
     if action_type == rdf_file_finder.FileFinderAction.Action.HASH:
       return vfs_subactions.HashAction(self, args.action.hash)
@@ -83,9 +82,9 @@ def _CheckConditionsShortCircuit(content_conditions, pathspec):
 
 
 def _GetExpandedPaths(
-    args,
-    heartbeat_cb = _NoOp,
-):
+    args: rdf_file_finder.FileFinderArgs,
+    heartbeat_cb: Callable[[], None] = _NoOp,
+) -> Iterator[Text]:
   """Yields all possible expansions from given path patterns."""
   opts = globbing.PathOpts(
       follow_links=args.follow_links, pathtype=args.pathtype)
@@ -97,7 +96,7 @@ def _GetExpandedPaths(
 
 # TODO: This is only used by artifact_collector. It should be
 # removed and artifact_collector should use VfsFileFinder or VFS directly.
-def RegistryKeyFromClient(args):
+def RegistryKeyFromClient(args: rdf_file_finder.FileFinderArgs):
   """This function expands paths from the args and returns registry keys.
 
   Args:

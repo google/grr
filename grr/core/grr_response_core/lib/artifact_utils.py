@@ -8,7 +8,6 @@ intended to end up as an independent library.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import re
@@ -36,7 +35,7 @@ class ArtifactProcessingError(Error):
 class KbInterpolationMissingAttributesError(Error):
   """An exception class for missing knowledgebase attributes."""
 
-  def __init__(self, attrs):
+  def __init__(self, attrs: Iterable[Text]) -> None:
     message = "Some attributes could not be located in the knowledgebase: {}"
     message = message.format(", ".join(attrs))
     super().__init__(message)
@@ -47,7 +46,7 @@ class KbInterpolationMissingAttributesError(Error):
 class KbInterpolationUnknownAttributesError(Error):
   """An exception class for non-existing knowledgebase attributes."""
 
-  def __init__(self, attrs):
+  def __init__(self, attrs: Iterable[Text]) -> None:
     message = "Some attributes are not part of the knowledgebase: {}"
     message = message.format(", ".join(attrs))
     super().__init__(message)

@@ -26,7 +26,7 @@ FILE_ATTRIBUTE_HIDDEN = 0x00000002
 
 
 def _GetAlternateDataStreamCaseInsensitive(
-    fd, name):
+    fd: pyfsntfs.file_entry, name: Text) -> Optional[pyfsntfs.data_stream]:
   name = name.lower()
   for data_stream in fd.alternate_data_streams:
     if data_stream.name.lower() == name:
@@ -39,10 +39,10 @@ class NTFSFile(vfs_base.VFSHandler):
   supported_pathtype = rdf_paths.PathSpec.PathType.NTFS
 
   def __init__(self,
-               base_fd,
-               handlers,
-               pathspec = None,
-               progress_callback = None):
+               base_fd: Optional[vfs_base.VFSHandler],
+               handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+               pathspec: Optional[rdf_paths.PathSpec] = None,
+               progress_callback: Optional[Callable[[], None]] = None):
     super().__init__(
         base_fd,
         handlers=handlers,
@@ -125,21 +125,21 @@ class NTFSFile(vfs_base.VFSHandler):
         self.size = 0
 
   def Stat(self,
-           ext_attrs = False,
-           follow_symlink = True):
+           ext_attrs: bool = False,
+           follow_symlink: bool = True) -> rdf_client_fs.StatEntry:
     return self._Stat(self.fd, self.data_stream, self.pathspec.Copy())
 
-  def Read(self, length):
+  def Read(self, length: int) -> bytes:
     self.data_stream.seek(self.offset)
     data = self.data_stream.read(length)
     self.offset += len(data)
     return data
 
-  def IsDirectory(self):
+  def IsDirectory(self) -> bool:
     return self.fd.has_directory_entries_index()
 
   def ListFiles(self,
-                ext_attrs = False):
+                ext_attrs: bool = False) -> Iterable[rdf_client_fs.StatEntry]:
     del ext_attrs  # Unused.
 
     self._CheckIsDirectory()
@@ -157,22 +157,22 @@ class NTFSFile(vfs_base.VFSHandler):
         pathspec.last.stream_name = data_stream.name
         yield self._Stat(entry, data_stream, pathspec.Copy())
 
-  def ListNames(self):
+  def ListNames(self) -> Iterable[Text]:
     self._CheckIsDirectory()
     for entry in self.fd.sub_file_entries:
       yield entry.name
 
-  def _CheckIsDirectory(self):
+  def _CheckIsDirectory(self) -> None:
     if not self.IsDirectory():
       raise IOError("{} is not a directory".format(
           self.pathspec.CollapsePath()))
 
   def _Stat(
       self,
-      entry,
-      data_stream,
-      pathspec,
-  ):
+      entry: pyfsntfs.file_entry,
+      data_stream: pyfsntfs.data_stream,
+      pathspec: rdf_paths.PathSpec,
+  ) -> rdf_client_fs.StatEntry:
     st = rdf_client_fs.StatEntry()
     st.pathspec = pathspec
 
@@ -199,12 +199,12 @@ class NTFSFile(vfs_base.VFSHandler):
   @classmethod
   def Open(
       cls,
-      fd,
-      component,
-      handlers,
-      pathspec = None,
-      progress_callback = None
-  ):
+      fd: Optional[vfs_base.VFSHandler],
+      component: rdf_paths.PathSpec,
+      handlers: Dict[Any, Type[vfs_base.VFSHandler]],
+      pathspec: Optional[rdf_paths.PathSpec] = None,
+      progress_callback: Optional[Callable[[], None]] = None
+  ) -> Optional[vfs_base.VFSHandler]:
     # A Pathspec which starts with NTFS means we need to resolve the mount
     # point at runtime.
     if (fd is None and

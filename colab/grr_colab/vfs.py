@@ -6,7 +6,6 @@ The module contains classes that interact with VFS.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -33,7 +32,7 @@ class VfsFile(io.BufferedIOBase):
   """
   _buffer_pos = None  # type: int
 
-  def __init__(self, fetch):
+  def __init__(self, fetch: Callable[[int], Iterator[bytes]]) -> None:
     super(VfsFile, self).__init__()
     self._data = fetch(0)
     self._buffer = b''
@@ -60,7 +59,7 @@ class VfsFile(io.BufferedIOBase):
   def _is_buffer_empty(self):
     return self._buffer_pos == len(self._buffer)
 
-  def _read_from_buffer(self, size = -1):
+  def _read_from_buffer(self, size: int = -1) -> bytes:
     if self._is_buffer_empty():
       self._load_buffer()
     available = len(self._buffer) - self._buffer_pos
@@ -71,25 +70,25 @@ class VfsFile(io.BufferedIOBase):
     return self._buffer[self._buffer_pos - size:self._buffer_pos]
 
   @property
-  def closed(self):
+  def closed(self) -> bool:
     return self._closed
 
-  def close(self):
+  def close(self) -> None:
     self._closed = True
 
-  def fileno(self):
+  def fileno(self) -> None:
     raise io.UnsupportedOperation()
 
-  def flush(self):
+  def flush(self) -> None:
     pass
 
-  def isatty(self):
+  def isatty(self) -> bool:
     return False
 
-  def seekable(self):
+  def seekable(self) -> bool:
     return True
 
-  def seek(self, offset, whence = io.SEEK_SET):
+  def seek(self, offset: int, whence: int = io.SEEK_SET) -> int:
     self._ensure_not_closed()
 
     if whence == io.SEEK_SET:
@@ -113,29 +112,29 @@ class VfsFile(io.BufferedIOBase):
 
     return self.tell()
 
-  def tell(self):
+  def tell(self) -> int:
     self._ensure_not_closed()
     return self._pos
 
-  def truncate(self, size = None):
+  def truncate(self, size: int = None) -> None:
     raise io.UnsupportedOperation()
 
-  def writable(self):
+  def writable(self) -> bool:
     return False
 
   def write(self, b):
     raise io.UnsupportedOperation()
 
-  def writelines(self, lines):
+  def writelines(self, lines: List[Text]) -> None:
     raise io.UnsupportedOperation()
 
-  def detach(self):
+  def detach(self) -> None:
     raise io.UnsupportedOperation()
 
-  def readable(self):
+  def readable(self) -> bool:
     return True
 
-  def read(self, size = -1):
+  def read(self, size: int = -1) -> bytes:
     self._ensure_not_closed()
     size = size or -1
 
@@ -150,7 +149,7 @@ class VfsFile(io.BufferedIOBase):
 
     return b''.join(chunks)
 
-  def read1(self, size = -1):
+  def read1(self, size: int = -1) -> bytes:
     self._ensure_not_closed()
     has_data = not self._is_buffer_empty()
     data = self._read_from_buffer(size=size)
@@ -158,7 +157,7 @@ class VfsFile(io.BufferedIOBase):
       data += self._read_from_buffer(size=size - len(data))
     return bytes(data)
 
-  def readinto1(self, b):
+  def readinto1(self, b: bytearray) -> int:
     self._ensure_not_closed()
     data = self.read1(size=len(b))
     b[:len(data)] = data
@@ -171,12 +170,12 @@ class VFS(object):
   Offers easy to use interface to perform operations on GRR VFS from Colab.
   """
 
-  def __init__(self, client_,
-               path_type):
+  def __init__(self, client_: client.ClientBase,
+               path_type: jobs_pb2.PathSpec.PathType) -> None:
     self._client = client_
     self._path_type = path_type
 
-  def ls(self, path, max_depth = 1):
+  def ls(self, path: Text, max_depth: int = 1) -> List[jobs_pb2.StatEntry]:
     """Lists contents of a given VFS directory.
 
     Args:
@@ -212,7 +211,7 @@ class VFS(object):
         inner_entries += []
     return representer.StatEntryList(stat_entries + inner_entries)
 
-  def refresh(self, path, max_depth = 1):
+  def refresh(self, path: Text, max_depth: int = 1) -> None:
     """Syncs the collected VFS with current filesystem of the client.
 
     Args:
@@ -234,7 +233,7 @@ class VFS(object):
     except api_errors.AccessForbiddenError as e:
       raise errors.ApprovalMissingError(self._client.client_id, e)
 
-  def open(self, path):
+  def open(self, path: Text) -> VfsFile:
     """Opens a file object corresponding to the given path in the VFS.
 
     The returned file object is read-only.
@@ -254,7 +253,7 @@ class VFS(object):
 
     return VfsFile(f.GetBlobWithOffset)
 
-  def wget(self, path):
+  def wget(self, path: Text) -> Text:
     """Returns a link to the file specified.
 
     Args:
@@ -278,11 +277,11 @@ class VFS(object):
     return link.format(FLAGS.grr_admin_ui_url, self._client.client_id,
                        get_vfs_path(path, self._path_type))
 
-  def _get_file(self, path):
+  def _get_file(self, path: Text):
     return self._client.File(get_vfs_path(path, self._path_type))
 
 
-def get_vfs_path(path, path_type):
+def get_vfs_path(path: Text, path_type: jobs_pb2.PathSpec.PathType) -> Text:
   if path_type == jobs_pb2.PathSpec.OS:
     return 'fs/os{}'.format(path)
   elif path_type == jobs_pb2.PathSpec.TSK:

@@ -2,7 +2,6 @@
 # Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -28,15 +27,15 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     super(TimelineTest, cls).setUpClass()
     testing_startup.TestInit()
 
-  def setUp(self):
+  def setUp(self) -> None:
     super(TimelineTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def testRaisesOnEmptyRoot(self):
+  def testRaisesOnEmptyRoot(self) -> None:
     with self.assertRaisesRegex(RuntimeError, "root directory not specified"):
       self._Collect(b"")
 
-  def testSingleFile(self):
+  def testSingleFile(self) -> None:
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
       filepath = os.path.join(dirpath, "foo")
       filesystem_test_lib.CreateFile(filepath, content=b"foobar")
@@ -51,7 +50,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(entries[1].path, filepath.encode("utf-8"))
       self.assertEqual(entries[1].size, 6)
 
-  def testMultipleFiles(self):
+  def testMultipleFiles(self) -> None:
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
       foo_filepath = os.path.join(dirpath, "foo")
       filesystem_test_lib.CreateFile(foo_filepath)
@@ -105,7 +104,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
   # TODO(hanuszczak): Add tests for symlinks.
   # TODO(hanuszczak): Add tests for timestamps.
 
-  def _Collect(self, root):
+  def _Collect(self, root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
     args = rdf_timeline.TimelineArgs(root=root)
 
     flow_id = flow_test_lib.TestFlowHelper(

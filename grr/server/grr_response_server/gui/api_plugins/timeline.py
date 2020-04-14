@@ -3,7 +3,6 @@
 """A module with API handlers related to the timeline colllection."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Iterator
@@ -47,9 +46,9 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(
       self,
-      args,
-      token = None,
-  ):
+      args: ApiGetCollectedTimelineArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the timeline export API call."""
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)
@@ -69,9 +68,9 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   def _StreamBody(
       self,
-      client_id,
-      flow_id,
-  ):
+      client_id: Text,
+      flow_id: Text,
+  ) -> api_call_handler_base.ApiBinaryStream:
     entries = timeline.Entries(client_id=client_id, flow_id=flow_id)
     content = body.Stream(entries)
 
@@ -80,9 +79,9 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   def _StreamRawGzchunked(
       self,
-      client_id,
-      flow_id,
-  ):
+      client_id: Text,
+      flow_id: Text,
+  ) -> api_call_handler_base.ApiBinaryStream:
     content = timeline.Blobs(client_id=client_id, flow_id=flow_id)
     content = map(chunked.Encode, content)
 
@@ -101,9 +100,9 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(
       self,
-      args,
-      token = None,
-  ):
+      args: ApiGetCollectedHuntTimelinesArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the hunt timelines export API call."""
     hunt_id = str(args.hunt_id)
 
@@ -116,16 +115,16 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
     content = self._Generate(hunt_id)
     return api_call_handler_base.ApiBinaryStream(filename, content)
 
-  def _Generate(self, hunt_id):
+  def _Generate(self, hunt_id: Text) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
     yield from self._GenerateTimelines(hunt_id, zipgen)
     yield zipgen.Close()
 
   def _GenerateTimelines(
       self,
-      hunt_id,
-      zipgen,
-  ):
+      hunt_id: Text,
+      zipgen: utils.StreamingZipGenerator,
+  ) -> Iterator[bytes]:
     offset = 0
     while True:
       flows = data_store.REL_DB.ReadHuntFlows(hunt_id, offset, _FLOW_BATCH_SIZE)
@@ -150,11 +149,11 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
   def _GenerateTimeline(
       self,
-      client_id,
-      flow_id,
-      fqdn,
-      zipgen,
-  ):
+      client_id: Text,
+      flow_id: Text,
+      fqdn: Text,
+      zipgen: utils.StreamingZipGenerator,
+  ) -> Iterator[bytes]:
     args = ApiGetCollectedTimelineArgs()
     args.client_id = client_id
     args.flow_id = flow_id

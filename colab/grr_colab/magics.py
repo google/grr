@@ -7,7 +7,6 @@ The module contains implementation of **magic** commands that use GRR API.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -23,7 +22,7 @@ from grr_colab import magics_impl
 _PATH_TYPE_CHOICES = [magics_impl.OS, magics_impl.TSK, magics_impl.REGISTRY]
 
 
-def grr_set_no_flow_timeout(line):
+def grr_set_no_flow_timeout(line: Text) -> None:
   """Disables flow timeout (it means wait forever).
 
   Args:
@@ -36,7 +35,7 @@ def grr_set_no_flow_timeout(line):
   magics_impl.grr_set_no_flow_timeout_impl()
 
 
-def grr_set_default_flow_timeout(line):
+def grr_set_default_flow_timeout(line: Text) -> None:
   """Sets flow timeout to default value (30 seconds).
 
   Args:
@@ -52,7 +51,7 @@ def grr_set_default_flow_timeout(line):
 @magic_arguments.magic_arguments()
 @magic_arguments.argument(
     'timeout', help='Timeout in seconds', type=int, nargs='?', default=None)
-def grr_set_flow_timeout(line):
+def grr_set_flow_timeout(line: Text) -> None:
   """Sets flow timeout.
 
   Specifying 0 as timeout means not to wait.
@@ -67,7 +66,7 @@ def grr_set_flow_timeout(line):
   magics_impl.grr_set_flow_timeout_impl(args.timeout)
 
 
-def grr_list_artifacts(line):
+def grr_list_artifacts(line: Text) -> pd.DataFrame:
   """Lists all registered GRR artifacts.
 
   Args:
@@ -88,7 +87,7 @@ def grr_list_artifacts(line):
 @magic_arguments.argument('-v', '--version', help='Client version', type=str)
 @magic_arguments.argument(
     '-l', '--label', help='Client label', type=str, action='append')
-def grr_search_clients(line):
+def grr_search_clients(line: Text) -> pd.DataFrame:
   """Searches for clients with specified keywords.
 
   Args:
@@ -115,7 +114,7 @@ def grr_search_clients(line):
 @magic_arguments.argument('-v', '--version', help='Client version', type=str)
 @magic_arguments.argument(
     '-l', '--label', help='Client label', type=str, action='append')
-def grr_search_online_clients(line):
+def grr_search_online_clients(line: Text) -> pd.DataFrame:
   """Searches for online clients with specified keywords.
 
   Args:
@@ -137,7 +136,7 @@ def grr_search_online_clients(line):
 @magic_arguments.magic_arguments()
 @magic_arguments.argument('-h', '--hostname', help='Hostname', type=str)
 @magic_arguments.argument('-c', '--client', help='Client ID', type=str)
-def grr_set_client(line):
+def grr_set_client(line: Text) -> None:
   """Sets a new client for the current state.
 
   Args:
@@ -161,7 +160,7 @@ def grr_set_client(line):
     nargs='+')
 @magic_arguments.argument(
     '-w', '--wait', action='store_true', help='Wait until approval is granted')
-def grr_request_approval(line):
+def grr_request_approval(line: Text) -> None:
   """Sends approval request to the selected client for the current user.
 
   Args:
@@ -177,7 +176,7 @@ def grr_request_approval(line):
   magics_impl.grr_request_approval_impl(args.reason, args.approvers, args.wait)
 
 
-def grr_id(line):
+def grr_id(line: Text) -> Text:
   """Returns ID of the selected client.
 
   Args:
@@ -195,7 +194,7 @@ def grr_id(line):
 
 @magic_arguments.magic_arguments()
 @magic_arguments.argument('path', help='Directory path', type=str)
-def grr_cd(line):
+def grr_cd(line: Text) -> None:
   """Changes the current directory.
 
   Args:
@@ -211,7 +210,7 @@ def grr_cd(line):
   magics_impl.grr_cd_impl(args.path)
 
 
-def grr_pwd(line):
+def grr_pwd(line: Text) -> Text:
   """Returns absolute path to the current directory.
 
   Args:
@@ -241,7 +240,7 @@ def grr_pwd(line):
     type=str,
     choices=_PATH_TYPE_CHOICES,
     default=magics_impl.OS)
-def grr_ls(line):
+def grr_ls(line: Text) -> pd.DataFrame:
   """Lists files in the specified directory or the current directory.
 
   Args:
@@ -267,7 +266,7 @@ def grr_ls(line):
     type=str,
     choices=_PATH_TYPE_CHOICES,
     default=magics_impl.OS)
-def grr_stat(line):
+def grr_stat(line: Text) -> pd.DataFrame:
   """Stats the file specified.
 
   Accepts glob expressions as a file path.
@@ -303,7 +302,7 @@ def grr_stat(line):
     type=str,
     choices=_PATH_TYPE_CHOICES,
     default=magics_impl.OS)
-def grr_head(line):
+def grr_head(line: Text) -> bytes:
   """Reads the first bytes of a specified file.
 
   Args:
@@ -344,7 +343,7 @@ def grr_head(line):
     '--hex-string',
     action='store_true',
     help='Interpret pattern as a hex-encoded byte string')
-def grr_grep(line):
+def grr_grep(line: Text) -> pd.DataFrame:
   """Greps for a given content of a specified file.
 
   Args:
@@ -380,7 +379,7 @@ def grr_grep(line):
     '--hex-string',
     action='store_true',
     help='Interpret pattern as a hex-encoded byte string')
-def grr_fgrep(line):
+def grr_fgrep(line: Text) -> pd.DataFrame:
   """Greps for a given literal content of a specified file.
 
   Is the same as running: %grr_grep -F
@@ -402,7 +401,7 @@ def grr_fgrep(line):
       hex_string=args.hex_string)
 
 
-def grr_interrogate(line):
+def grr_interrogate(line: Text) -> pd.DataFrame:
   """Creates Interrogate flow for the chosen client.
 
   Args:
@@ -418,7 +417,7 @@ def grr_interrogate(line):
   return magics_impl.grr_interrogate_impl()
 
 
-def grr_hostname(line):
+def grr_hostname(line: Text) -> Text:
   """Returns hostname of the selected client.
 
   Args:
@@ -434,7 +433,7 @@ def grr_hostname(line):
   return magics_impl.grr_hostname_impl()
 
 
-def grr_ifconfig(line):
+def grr_ifconfig(line: Text) -> pd.DataFrame:
   """Lists network interfaces of the selected client.
 
   Args:
@@ -458,7 +457,7 @@ def grr_ifconfig(line):
     '--kernel-release',
     action='store_true',
     help='Get kernel release string')
-def grr_uname(line):
+def grr_uname(line: Text) -> Text:
   """Returns certain system infornamtion.
 
   Args:
@@ -474,7 +473,7 @@ def grr_uname(line):
   return magics_impl.grr_uname_impl(args.machine, args.kernel_release)
 
 
-def grr_ps(line):
+def grr_ps(line: Text) -> pd.DataFrame:
   """Lists processes of the selected client.
 
   Args:
@@ -492,7 +491,7 @@ def grr_ps(line):
 
 @magic_arguments.magic_arguments()
 @magic_arguments.argument('sql', help='SQL statement', type=str)
-def grr_osqueryi(line):
+def grr_osqueryi(line: Text) -> pd.DataFrame:
   """Runs given SQL statement on client osquery.
 
   Args:
@@ -510,7 +509,7 @@ def grr_osqueryi(line):
 
 @magic_arguments.magic_arguments()
 @magic_arguments.argument('artifact', help='Name of the artifact', type=str)
-def grr_collect(line):
+def grr_collect(line: Text) -> pd.DataFrame:
   """Collects specified artifact.
 
   Args:
@@ -531,7 +530,7 @@ def grr_collect(line):
 @magic_arguments.argument('-r', '--regex', help='Process name regex', type=str)
 @magic_arguments.argument(
     '-p', '--pids', help='Pids of processes to scan', type=int, nargs='+')
-def grr_yara(line):
+def grr_yara(line: Text) -> pd.DataFrame:
   """Scans processes using provided YARA rule.
 
   Args:
@@ -561,7 +560,7 @@ def grr_yara(line):
     type=str,
     choices=_PATH_TYPE_CHOICES,
     default=magics_impl.OS)
-def grr_wget(line):
+def grr_wget(line: Text) -> Text:
   """Downloads a file and returns a link to it.
 
   Args:

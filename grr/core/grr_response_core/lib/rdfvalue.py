@@ -12,7 +12,6 @@ from this module.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -114,7 +113,7 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
             compatibility.GetName(cls)))
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     raise NotImplementedError(
         "Class {} does not implement FromSerializedBytes.".format(
             compatibility.GetName(cls)))
@@ -189,7 +188,7 @@ class RDFPrimitive(RDFValue):
     return self._primitive_value
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     """Returns a new instance from a human-readable string.
 
     Args:
@@ -217,17 +216,17 @@ class RDFBytes(RDFPrimitive):
       raise TypeError(message.format(value=initializer, type=type(initializer)))
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
   @classmethod
-  def FromWireFormat(cls, value):
+  def FromWireFormat(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(string.encode("utf-8"))
 
@@ -237,7 +236,7 @@ class RDFBytes(RDFPrimitive):
   def SerializeToBytes(self):
     return self.AsBytes()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return text.Hexify(self.AsBytes())
 
   def __hash__(self):
@@ -296,7 +295,7 @@ class RDFString(RDFPrimitive):
   def split(self, *args, **kwargs):  # pylint: disable=invalid-name
     return self._value.split(*args, **kwargs)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self._value
 
   def __hash__(self):
@@ -339,7 +338,7 @@ class RDFString(RDFPrimitive):
     return NotImplemented
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -348,7 +347,7 @@ class RDFString(RDFPrimitive):
     return cls.FromHumanReadable(value)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(string)
 
@@ -367,10 +366,10 @@ class HashDigest(RDFBytes):
 
   protobuf_type = "bytes"
 
-  def HexDigest(self):
+  def HexDigest(self) -> Text:
     return text.Hexify(self._value)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self.HexDigest()
 
   def __hash__(self):
@@ -406,11 +405,11 @@ class RDFInteger(RDFPrimitive):
     else:
       super().__init__(int(initializer))
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     return str(self._value).encode("ascii")
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
 
     if value:
@@ -419,11 +418,11 @@ class RDFInteger(RDFPrimitive):
       return cls(0)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(int(string))
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return str(self._value)
 
   @classmethod
@@ -517,18 +516,18 @@ class RDFDatetime(RDFPrimitive):
                             (type(initializer), initializer))
 
   @classmethod
-  def FromWireFormat(cls, value):
+  def FromWireFormat(cls, value: int):
     return cls(initializer=value)
 
-  def SerializeToWireFormat(self):
+  def SerializeToWireFormat(self) -> int:
     """Use varint to store the integer."""
     return self._value
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     return str(self._value).encode("ascii")
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
 
     if value:
@@ -540,14 +539,14 @@ class RDFDatetime(RDFPrimitive):
   def Now(cls):
     return cls(int(time.time() * cls.converter))
 
-  def Format(self, fmt):
+  def Format(self, fmt: Text) -> Text:
     """Return the value as a string formatted as per strftime semantics."""
     precondition.AssertType(fmt, Text)
 
     stime = time.gmtime(self._value / self.converter)
     return compatibility.FormatTime(fmt, stime)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     """Return the date in human readable (UTC)."""
     # TODO: Display microseconds if applicable.
     return self.Format("%Y-%m-%d %H:%M:%S")
@@ -640,7 +639,7 @@ class RDFDatetime(RDFPrimitive):
     return NotImplemented
 
   @classmethod
-  def FromHumanReadable(cls, string, eoy=False):
+  def FromHumanReadable(cls, string: Text, eoy=False):
     """Parses a human readable string of a timestamp (in local time).
 
     Args:
@@ -757,7 +756,7 @@ class Duration(RDFPrimitive):
       raise TypeError(message.format(value=initializer, type=type(initializer)))
 
   @classmethod
-  def From(cls, value, timeunit):
+  def From(cls, value: Union[int, float], timeunit: int):
     """Returns a new Duration given a timeunit and value.
 
     Args:
@@ -787,7 +786,7 @@ class Duration(RDFPrimitive):
     return self.microseconds
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
 
     if not value:
@@ -800,7 +799,7 @@ class Duration(RDFPrimitive):
 
     return cls(raw)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     """See base class."""
     # Technically, equal to ascii encoding, since str(self._value) only contains
     # the digits 0-9.
@@ -809,7 +808,7 @@ class Duration(RDFPrimitive):
   def __repr__(self):
     return "<{} {}>".format(compatibility.GetName(type(self)), self)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     if self._value == 0:
       return "0 us"
     for label, divider in self._DIVIDERS.items():
@@ -855,7 +854,7 @@ class Duration(RDFPrimitive):
   def __abs__(self):
     return self
 
-  def ToInt(self, timeunit):
+  def ToInt(self, timeunit: int) -> int:
     """Returns the duration as truncated integer, converted to the time unit.
 
     All fractions are truncated. To preserve them, use `toFractional()`.
@@ -880,7 +879,7 @@ class Duration(RDFPrimitive):
     """
     return self.microseconds // timeunit
 
-  def ToFractional(self, timeunit):
+  def ToFractional(self, timeunit: int) -> float:
     """Returns the duration as float, converted to the given time unit.
 
     Examples:
@@ -908,12 +907,12 @@ class Duration(RDFPrimitive):
     return self._value
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     """See base class."""
     return cls(cls._ParseText(string, default_unit=None))
 
   @classmethod
-  def _ParseText(cls, string, default_unit):
+  def _ParseText(cls, string: Text, default_unit: Optional[Text]) -> int:
     """Parses a textual representation of a duration."""
     precondition.AssertType(string, Text)
 
@@ -952,14 +951,14 @@ class DurationSeconds(Duration):
   simple. For most uses, please prefer `Duration` directly.
   """
 
-  def __init__(self, initializer = None):
+  def __init__(self, initializer: Any = None):
     if isinstance(initializer, (int, RDFInteger)):
       initializer = int(initializer) * SECONDS
     elif isinstance(initializer, Text):
       initializer = self._ParseText(initializer, default_unit="s")
     super().__init__(initializer)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     """See base class."""
     return str(self.ToInt(SECONDS)).encode("utf-8")
 
@@ -968,17 +967,17 @@ class DurationSeconds(Duration):
     return self.ToInt(SECONDS)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(string)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     if self.microseconds == 0:
       return "0 s"
     return super(DurationSeconds, self).__str__()
 
   @classmethod
-  def From(cls, value, timeunit):
+  def From(cls, value: Union[int, float], timeunit: int):
     """See base class."""
     return cls(int(timeunit * value // SECONDS))
 
@@ -1035,11 +1034,11 @@ class ByteSize(RDFInteger):
     return "{value:.1f} {unit}".format(value=value, unit=unit)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     return cls(cls._ParseText(string))
 
   @classmethod
-  def _ParseText(cls, string):
+  def _ParseText(cls, string: Text) -> int:
     """Parses a textual representation of the number of bytes."""
     if not string:
       return 0
@@ -1107,7 +1106,7 @@ class RDFURN(RDFPrimitive):
     return utils.NormalizePath(string)
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -1120,14 +1119,14 @@ class RDFURN(RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(string)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     return str(self).encode("utf-8")
 
-  def SerializeToWireFormat(self):
+  def SerializeToWireFormat(self) -> Text:
     return str(self)
 
   def Dirname(self):
@@ -1155,7 +1154,7 @@ class RDFURN(RDFPrimitive):
                        path.__class__)
     return self.__class__(utils.JoinPath(self._value, path))
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return "aff4:%s" % self._value
 
   # Required, because in Python 3 overriding `__eq__` nullifies `__hash__`.

@@ -3,7 +3,6 @@
 """Incremental MySQL migrations implementation."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import contextlib
@@ -16,22 +15,22 @@ from MySQLdb.connections import Connection
 from MySQLdb.cursors import Cursor
 
 
-def GetLatestMigrationNumber(cursor):
+def GetLatestMigrationNumber(cursor: Cursor) -> int:
   """Returns the number of the latest migration done."""
   cursor.execute("SELECT MAX(migration_id) FROM _migrations")
   rows = cursor.fetchall()
   return rows[0][0]
 
 
-def _MigrationFilenameToInt(fname):
+def _MigrationFilenameToInt(fname: Text) -> int:
   """Converts migration filename to a migration number."""
   base, _ = os.path.splitext(fname)
   return int(base)
 
 
-def ListMigrationsToProcess(migrations_root,
-                            current_migration_number
-                           ):
+def ListMigrationsToProcess(migrations_root: Text,
+                            current_migration_number: Optional[int]
+                           ) -> Sequence[Text]:
   """Lists filenames of migrations with numbers bigger than a given one."""
   migrations = []
   for m in os.listdir(migrations_root):
@@ -42,8 +41,8 @@ def ListMigrationsToProcess(migrations_root,
   return sorted(migrations, key=_MigrationFilenameToInt)
 
 
-def ProcessMigrations(open_conn_fn,
-                      migrations_root):
+def ProcessMigrations(open_conn_fn: Callable[[], Connection],
+                      migrations_root: Text) -> None:
   """Processes migrations from a given folder.
 
   This function uses LOCK TABLE MySQL command on _migrations
@@ -102,7 +101,7 @@ def ProcessMigrations(open_conn_fn,
         cursor.execute('SELECT RELEASE_LOCK("grr_migration")')
 
 
-def DumpCurrentSchema(cursor):
+def DumpCurrentSchema(cursor: Cursor) -> Text:
   """Dumps current database schema."""
   cursor.execute("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES "
                  "WHERE table_schema = (SELECT DATABASE())")

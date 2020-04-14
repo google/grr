@@ -780,7 +780,7 @@ class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
   progress_type = MultiGetFileProgress
   result_types = (rdf_client_fs.StatEntry,)
 
-  def GetProgress(self):
+  def GetProgress(self) -> MultiGetFileProgress:
     return MultiGetFileProgress(
         num_pending_hashes=len(self.state.pending_hashes),
         num_pending_files=len(self.state.pending_files),

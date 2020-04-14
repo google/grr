@@ -7,7 +7,6 @@ client.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import binascii
@@ -54,7 +53,7 @@ FS_ENCODING = sys.getfilesystemencoding() or sys.getdefaultencoding()
 _LOCALHOST = "localhost"
 
 
-def _DecodeArgument(arg):
+def _DecodeArgument(arg) -> Text:
   if compatibility.PY2:
     return arg.decode(FS_ENCODING)
   else:

@@ -3,7 +3,6 @@
 """Registry for parsers and abstract classes for basic parser functionality."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -18,7 +17,7 @@ class ParseError(Exception):
     cause: An optional exception that caused this exception to be raised.
   """
 
-  def __init__(self, message, cause = None):
+  def __init__(self, message: Text, cause: Optional[Exception] = None) -> None:
     """Initializes the error.
 
     Args:

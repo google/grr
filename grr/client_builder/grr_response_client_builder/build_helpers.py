@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -48,10 +47,11 @@ except ImportError:
 Context = Sequence[Text]
 
 
-def GenerateDirectory(input_dir = None,
-                      output_dir = None,
-                      replacements = None,
-                      context = None):
+def GenerateDirectory(input_dir: Optional[Text] = None,
+                      output_dir: Optional[Text] = None,
+                      replacements: Optional[Sequence[Tuple[Text,
+                                                            Text]]] = None,
+                      context: Optional[Context] = None) -> None:
   """Copies an a directory rewriting file names according to spec."""
   if context is None:
     raise ValueError("context must be provided")
@@ -70,9 +70,9 @@ def GenerateDirectory(input_dir = None,
       GenerateFile(in_file, out_file, context=context)
 
 
-def GenerateFile(input_filename = None,
-                 output_filename = None,
-                 context = None):
+def GenerateFile(input_filename: Optional[Text] = None,
+                 output_filename: Optional[Text] = None,
+                 context: Optional[Context] = None) -> None:
   """Generates a file from a template, interpolating config values."""
   if context is None:
     raise ValueError("context must be provided.")
@@ -90,7 +90,7 @@ def GenerateFile(input_filename = None,
     fd.write(config.CONFIG.InterpolateValue(data, context=context))
 
 
-def CleanDirectory(directory):
+def CleanDirectory(directory: Text):
   logging.info("Clearing directory %s", directory)
   try:
     shutil.rmtree(directory)

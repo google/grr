@@ -7,7 +7,6 @@ See grr/server/db.py for interface.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import contextlib
@@ -522,8 +521,8 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     self.pool.close()
 
   def _RunInTransaction(self,
-                        function,
-                        readonly = False):
+                        function: Callable[[MySQLdb.Connection], None],
+                        readonly: bool = False) -> None:
     """Runs function within a transaction.
 
     Allocates a connection, begins a transaction on it and passes the connection

@@ -3,7 +3,6 @@
 """A module with filesystem-related utility functions and classes."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import array
@@ -35,7 +34,7 @@ class Stat(object):
   """
 
   @classmethod
-  def FromPath(cls, path, follow_symlink = True):
+  def FromPath(cls, path: Text, follow_symlink: bool = True) -> "Stat":
     """Returns stat information about the given OS path, calling os.[l]stat.
 
     Args:
@@ -73,9 +72,9 @@ class Stat(object):
     return cls(path=path, stat_obj=stat_obj, symlink_target=target)
 
   def __init__(self,
-               path,
-               stat_obj,
-               symlink_target = None):
+               path: Text,
+               stat_obj: os.stat_result,
+               symlink_target: Optional[Text] = None) -> None:
     """Wrap an existing stat result in a `filesystem.Stat` instance.
 
     Args:
@@ -89,62 +88,62 @@ class Stat(object):
     self._flags_linux = None
     self._flags_osx = None
 
-  def GetRaw(self):
+  def GetRaw(self) -> os.stat_result:
     return self._stat
 
-  def GetPath(self):
+  def GetPath(self) -> Text:
     return self._path
 
-  def GetLinuxFlags(self):
+  def GetLinuxFlags(self) -> int:
     if self._flags_linux is None:
       self._flags_linux = self._FetchLinuxFlags()
     return self._flags_linux
 
-  def GetOsxFlags(self):
+  def GetOsxFlags(self) -> int:
     if self._flags_osx is None:
       self._flags_osx = self._FetchOsxFlags()
     return self._flags_osx
 
-  def GetSize(self):
+  def GetSize(self) -> int:
     return self._stat.st_size
 
-  def GetAccessTime(self):
+  def GetAccessTime(self) -> int:
     if compatibility.PY2:
       return _SecondsToMicroseconds(self._stat.st_atime)
     return _NanosecondsToMicroseconds(self._stat.st_atime_ns)  # pytype: disable=attribute-error
 
-  def GetModificationTime(self):
+  def GetModificationTime(self) -> int:
     if compatibility.PY2:
       return _SecondsToMicroseconds(self._stat.st_mtime)
     return _NanosecondsToMicroseconds(self._stat.st_mtime_ns)  # pytype: disable=attribute-error
 
-  def GetChangeTime(self):
+  def GetChangeTime(self) -> int:
     if compatibility.PY2:
       return _SecondsToMicroseconds(self._stat.st_ctime)
     return _NanosecondsToMicroseconds(self._stat.st_ctime_ns)  # pytype: disable=attribute-error
 
-  def GetDevice(self):
+  def GetDevice(self) -> int:
     return self._stat.st_dev
 
-  def GetSymlinkTarget(self):
+  def GetSymlinkTarget(self) -> Optional[Text]:
     return self._symlink_target
 
-  def IsDirectory(self):
+  def IsDirectory(self) -> bool:
     return stat.S_ISDIR(self._stat.st_mode)
 
-  def IsRegular(self):
+  def IsRegular(self) -> bool:
     return stat.S_ISREG(self._stat.st_mode)
 
-  def IsSocket(self):
+  def IsSocket(self) -> bool:
     return stat.S_ISSOCK(self._stat.st_mode)
 
-  def IsSymlink(self):
+  def IsSymlink(self) -> bool:
     return stat.S_ISLNK(self._stat.st_mode)
 
   # http://manpages.courier-mta.org/htmlman2/ioctl_list.2.html
   FS_IOC_GETFLAGS = 0x80086601
 
-  def _FetchLinuxFlags(self):
+  def _FetchLinuxFlags(self) -> int:
     """Fetches Linux extended file flags."""
     if platform.system() != "Linux":
       return 0
@@ -185,7 +184,7 @@ class Stat(object):
     finally:
       os.close(fd)
 
-  def _FetchOsxFlags(self):
+  def _FetchOsxFlags(self) -> int:
     """Fetches macOS extended file flags."""
     if platform.system() != "Darwin":
       return 0
@@ -211,7 +210,7 @@ class StatCache(object):
   def __init__(self):
     self._cache = {}  # type: Dict[StatCache._Key, Stat]
 
-  def Get(self, path, follow_symlink = True):
+  def Get(self, path: Text, follow_symlink: bool = True) -> Stat:
     """Stats given file or returns a cached result if available.
 
     Args:
@@ -239,11 +238,11 @@ class StatCache(object):
       return value
 
 
-def _SecondsToMicroseconds(secs):
+def _SecondsToMicroseconds(secs: float) -> int:
   """Converts seconds to microseconds."""
   return int(secs * 1000000)
 
 
-def _NanosecondsToMicroseconds(ns):
+def _NanosecondsToMicroseconds(ns: int) -> int:
   """Converts nanoseconds to microseconds."""
   return ns // 1000

@@ -3,7 +3,6 @@
 """Router classes route API requests to particular handlers."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import inspect
@@ -667,9 +666,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("POST", "/api/yara-signatures")
   def UploadYaraSignature(
       self,
-      args,
-      token = None,
-  ):
+      args: api_yara.ApiUploadYaraSignatureArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_yara.ApiUploadYaraSignatureHandler:
     raise NotImplementedError()
 
   # Cron jobs methods.
@@ -940,9 +939,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("GET", "/api/hunts/<hunt_id>/timelines")
   def GetCollectedHuntTimelines(
       self,
-      args,
-      token = None,
-  ):
+      args: api_timeline.ApiGetCollectedHuntTimelinesArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     """Exports results of a timeline hunt as a ZIP archive."""
     raise NotImplementedError()
 

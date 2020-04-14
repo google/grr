@@ -3,7 +3,6 @@
 """A module with RDF values wrapping osquery protobufs."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Iterator
@@ -53,7 +52,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
   protobuf = osquery_pb2.OsqueryTable
   rdf_deps = [OsqueryHeader, OsqueryRow]
 
-  def Column(self, column_name):
+  def Column(self, column_name: Text) -> Iterator[Text]:
     """Iterates over values of a given column.
 
     Args:

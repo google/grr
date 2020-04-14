@@ -40,7 +40,7 @@ class ConfigInitializationError(Error):
   """Raised when a self-contained config can't be written."""
 
 
-def _ComponentOptionsToArgs(options):
+def _ComponentOptionsToArgs(options: Optional[ComponentOptions]) -> List[str]:
   if options is None:
     return []
 
@@ -50,7 +50,7 @@ def _ComponentOptionsToArgs(options):
   return args
 
 
-def _GetServerComponentArgs(config_path):
+def _GetServerComponentArgs(config_path: str) -> List[str]:
   """Returns a set of command line arguments for server components.
 
   Args:
@@ -80,8 +80,8 @@ def _GetServerComponentArgs(config_path):
 def _GetRunEndToEndTestsArgs(
     client_id,
     server_config_path,
-    tests = None,
-    manual_tests = None):
+    tests: Optional[Iterable[str]] = None,
+    manual_tests: Optional[Iterable[str]] = None) -> List[str]:
   """Returns arguments needed to configure run_end_to_end_tests process.
 
   Args:
@@ -116,7 +116,7 @@ def _GetRunEndToEndTestsArgs(
   return args
 
 
-def _StartBinary(binary_path, args):
+def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen:
   """Starts a new process with a given binary and args.
 
   Started subprocess will be killed automatically on exit.
@@ -144,7 +144,7 @@ def _StartBinary(binary_path, args):
   return process
 
 
-def _StartComponent(main_package, args):
+def _StartComponent(main_package: str, args: List[str]) -> subprocess.Popen:
   """Starts a new process with a given component.
 
   This starts a Python interpreter with a "-m" argument followed by
@@ -181,12 +181,12 @@ GRRConfigs = collections.namedtuple("GRRConfigs", [
 ])
 
 
-def InitGRRConfigs(mysql_database,
-                   mysql_username = None,
-                   mysql_password = None,
-                   logging_path = None,
-                   osquery_path = None,
-                   with_fleetspeak = False):
+def InitGRRConfigs(mysql_database: str,
+                   mysql_username: Optional[str] = None,
+                   mysql_password: Optional[str] = None,
+                   logging_path: Optional[str] = None,
+                   osquery_path: Optional[str] = None,
+                   with_fleetspeak: bool = False) -> GRRConfigs:
   """Initializes server and client config files."""
 
   # Create 2 temporary files to contain server and client configuration files
@@ -250,10 +250,10 @@ FleetspeakConfigs = collections.namedtuple("FleetspeakConfigs", [
 
 
 def InitFleetspeakConfigs(
-    grr_configs,
-    mysql_database,
-    mysql_username = None,
-    mysql_password = None):
+    grr_configs: GRRConfigs,
+    mysql_database: str,
+    mysql_username: Optional[str] = None,
+    mysql_password: Optional[str] = None) -> FleetspeakConfigs:
   """Initializes Fleetspeak server and client configs."""
 
   fs_frontend_port, fs_admin_port = api_helpers.GetFleetspeakPortsFromConfig(
@@ -344,9 +344,9 @@ def InitFleetspeakConfigs(
 
 
 def StartServerProcesses(
-    grr_configs,
-    fleetspeak_configs = None,
-):
+    grr_configs: GRRConfigs,
+    fleetspeak_configs: Optional[FleetspeakConfigs] = None,
+) -> List[subprocess.Popen]:
   """Starts GRR server processes (optionally behind Fleetspeak frontend)."""
 
   def Args():
@@ -385,9 +385,9 @@ def StartServerProcesses(
     ]
 
 
-def StartClientProcess(grr_configs,
-                       fleetspeak_configs = None,
-                       verbose = False):
+def StartClientProcess(grr_configs: GRRConfigs,
+                       fleetspeak_configs: Optional[FleetspeakConfigs] = None,
+                       verbose: bool = False) -> subprocess.Popen:
   """Starts a GRR client or Fleetspeak client configured to run GRR."""
 
   if fleetspeak_configs is None:
@@ -404,10 +404,10 @@ def StartClientProcess(grr_configs,
     ])
 
 
-def RunEndToEndTests(client_id,
-                     server_config_path,
-                     tests = None,
-                     manual_tests = None):
+def RunEndToEndTests(client_id: str,
+                     server_config_path: str,
+                     tests: Optional[Iterable[str]] = None,
+                     manual_tests: Optional[Iterable[str]] = None):
   """Runs end to end tests on a given client."""
   p = _StartComponent(
       "grr_response_test.run_end_to_end_tests",
@@ -418,9 +418,9 @@ def RunEndToEndTests(client_id,
     raise RuntimeError("RunEndToEndTests execution failed.")
 
 
-def RunBuildTemplate(server_config_path,
-                     component_options = None,
-                     version_ini = None):
+def RunBuildTemplate(server_config_path: str,
+                     component_options: Optional[ComponentOptions] = None,
+                     version_ini: Optional[str] = None) -> str:
   """Runs end to end tests on a given client."""
   output_dir = tempfile.mkdtemp()
 
@@ -450,9 +450,9 @@ def RunBuildTemplate(server_config_path,
 
 
 def RunRepackTemplate(
-    server_config_path,
-    template_path,
-    component_options = None):
+    server_config_path: str,
+    template_path: str,
+    component_options: Optional[ComponentOptions] = None) -> str:
   """Runs 'grr_client_builder repack' to repack a template."""
   output_dir = tempfile.mkdtemp()
 
@@ -478,10 +478,10 @@ def RunRepackTemplate(
   return biggest_path
 
 
-def RunUploadExe(server_config_path,
-                 exe_path,
-                 platform,
-                 component_options = None):
+def RunUploadExe(server_config_path: str,
+                 exe_path: str,
+                 platform: str,
+                 component_options: Optional[ComponentOptions] = None) -> str:
   """Runs 'grr_config_upater upload_exe' to upload a binary to GRR."""
   p = _StartComponent(
       "grr_response_server.bin.config_updater",
@@ -499,8 +499,8 @@ def RunUploadExe(server_config_path,
 _PROCESS_CHECK_INTERVAL = 0.1
 
 
-def _DieIfSubProcessDies(processes,
-                         already_dead_event):
+def _DieIfSubProcessDies(processes: Iterable[subprocess.Popen],
+                         already_dead_event: threading.Event):
   """Synchronously waits for processes and dies if one dies."""
   while True:
     for p in processes:
@@ -529,7 +529,7 @@ def _DieIfSubProcessDies(processes,
 
 
 def DieIfSubProcessDies(
-    processes):
+    processes: Iterable[subprocess.Popen]) -> threading.Thread:
   """Kills the process if any of given processes dies.
 
   This function is supposed to run in a background thread and monitor provided
@@ -555,7 +555,7 @@ def DieIfSubProcessDies(
   return t
 
 
-def RunApiShellRawAccess(config, exec_code):
+def RunApiShellRawAccess(config: Text, exec_code: Text) -> None:
   """Runs exec_code in the API shell."""
   p = _StartComponent(
       "grr_response_server.bin."

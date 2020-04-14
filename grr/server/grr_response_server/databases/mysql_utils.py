@@ -3,7 +3,6 @@
 """Utilities used by the MySQL database."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import contextlib
@@ -25,7 +24,7 @@ def StringToRDFProto(proto_type, value):
   return value if value is None else proto_type.FromSerializedBytes(value)
 
 
-def Hash(value):
+def Hash(value: Text) -> bytes:
   """Calculate a 32 byte cryptographic hash of a unicode string using SHA-256.
 
   This function allows using arbitrary length strings as primary keys in MySQL.
@@ -43,7 +42,7 @@ def Hash(value):
   return hashlib.sha256(encoded).digest()
 
 
-def Placeholders(num, values = 1):
+def Placeholders(num: int, values: int = 1) -> Text:
   """Returns a string of placeholders for MySQL INSERTs.
 
   Examples:
@@ -66,7 +65,7 @@ def Placeholders(num, values = 1):
   return ", ".join([value] * values)
 
 
-def NamedPlaceholders(iterable):
+def NamedPlaceholders(iterable: Iterable[Text]) -> Text:
   """Returns named placeholders from all elements of the given iterable.
 
   Use this function for VALUES of MySQL INSERTs.
@@ -88,7 +87,7 @@ def NamedPlaceholders(iterable):
   return "({})".format(placeholders)
 
 
-def Columns(iterable):
+def Columns(iterable: Iterable[Text]) -> Text:
   """Returns a string of column names for MySQL INSERTs.
 
   To account for Iterables with undefined order (dicts before Python 3.6),
@@ -106,7 +105,7 @@ def Columns(iterable):
   return "({})".format(", ".join("`{}`".format(col) for col in columns))
 
 
-def TimestampToRDFDatetime(timestamp):
+def TimestampToRDFDatetime(timestamp) -> Optional[rdfvalue.RDFDatetime]:
   """Converts MySQL `TIMESTAMP(6)` columns to datetime objects."""
   # TODO(hanuszczak): `timestamp` should be of MySQL type `Decimal`. However,
   # it is unclear where this type is actually defined and how to import it in
@@ -118,8 +117,8 @@ def TimestampToRDFDatetime(timestamp):
     return rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(micros)
 
 
-def RDFDatetimeToTimestamp(datetime
-                          ):
+def RDFDatetimeToTimestamp(datetime: Optional[rdfvalue.RDFDatetime]
+                          ) -> Optional[float]:
   """Converts a datetime object to MySQL `TIMESTAMP(6)` column."""
   if datetime is None:
     return None
@@ -127,7 +126,7 @@ def RDFDatetimeToTimestamp(datetime
     return "%.6f" % (datetime.AsMicrosecondsSinceEpoch() / 1000000)
 
 
-def ComponentsToPath(components):
+def ComponentsToPath(components: Sequence[Text]) -> Text:
   """Converts a list of path components to a canonical path representation.
 
   Args:
@@ -150,7 +149,7 @@ def ComponentsToPath(components):
     return ""
 
 
-def PathToComponents(path):
+def PathToComponents(path: Text) -> Sequence[Text]:
   """Converts a canonical path representation to a list of components.
 
   Args:

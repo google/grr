@@ -3,7 +3,6 @@
 """Mixin class to be used in tests for DB implementations."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import itertools
@@ -18,9 +17,9 @@ class QueryTestHelpersMixin(object):
   """Mixin containing helper methods for list/query methods tests."""
 
   def DoOffsetAndCountTest(self,
-                           fetch_all_fn,
-                           fetch_range_fn,
-                           error_desc = None):
+                           fetch_all_fn: Callable[[], Iterable[Any]],
+                           fetch_range_fn: Callable[[int, int], Iterable[Any]],
+                           error_desc: Optional[Text] = None):
     """Tests a DB API method with different offset/count combinations.
 
     This helper method works by first fetching all available objects with
@@ -53,9 +52,9 @@ class QueryTestHelpersMixin(object):
              (", " + error_desc) if error_desc else "", results, expected))
 
   def DoFilterCombinationsTest(self,
-                               fetch_fn,
-                               conditions,
-                               error_desc = None):
+                               fetch_fn: Callable[..., Iterable[Any]],
+                               conditions: Dict[Text, Any],
+                               error_desc: Optional[Text] = None):
     """Tests a DB API method with different keyword arguments combinations.
 
     This test method works by fetching sets of objects for each individual
@@ -104,9 +103,10 @@ class QueryTestHelpersMixin(object):
            (", " + error_desc) if error_desc else "", got, expected))
 
   def DoFilterCombinationsAndOffsetCountTest(self,
-                                             fetch_fn,
-                                             conditions,
-                                             error_desc = None):
+                                             fetch_fn: Callable[...,
+                                                                Iterable[Any]],
+                                             conditions: Dict[Text, Any],
+                                             error_desc: Optional[Text] = None):
     """Tests a DB API methods with combinations of offset/count args and kwargs.
 
     This test methods works in 2 steps:

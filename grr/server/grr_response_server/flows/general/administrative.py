@@ -3,7 +3,6 @@
 """Administrative flows for managing the clients state."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -940,7 +939,7 @@ class LaunchBinary(flow_base.FlowBase):
       raise flow_base.FlowError("Error while calling ExecuteBinaryCommand: %s" %
                                 responses.status)
 
-  def _SanitizeOutput(self, data):
+  def _SanitizeOutput(self, data: bytes) -> Text:
     if len(data) > 2000:
       result = data[:2000] + "... [truncated]".encode("utf-8")
     else:

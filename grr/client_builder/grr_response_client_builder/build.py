@@ -8,7 +8,6 @@ handling Visual Studio, pyinstaller and other packaging mechanisms.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -60,7 +59,7 @@ class ClientBuilder(metaclass=abc.ABCMeta):
         context or config.CONFIG.context[:])
 
   @abc.abstractmethod
-  def MakeExecutableTemplate(self, output_path):
+  def MakeExecutableTemplate(self, output_path: Text) -> None:
     """Makes an executable template at a given location.
 
     The client is built in two phases. First an executable template is created
@@ -95,5 +94,5 @@ class ClientRepacker(metaclass=abc.ABCMeta):
     self.signer = signer
 
   @abc.abstractmethod
-  def MakeDeployableBinary(self, template_path, output_path):
+  def MakeDeployableBinary(self, template_path: Text, output_path: Text):
     """Use the template to create a customized installer."""

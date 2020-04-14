@@ -3,7 +3,6 @@
 """REL_DB-based file store implementation."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -80,11 +79,11 @@ class ExternalFileStore(metaclass=abc.ABCMeta):
   """Filestore for files collected from clients."""
 
   @abc.abstractmethod
-  def AddFile(self, hash_id, metadata):
+  def AddFile(self, hash_id: rdf_objects.HashID, metadata: FileMetadata):
     """Add a new file to the file store."""
     raise NotImplementedError()
 
-  def AddFiles(self, hash_id_metadatas):
+  def AddFiles(self, hash_id_metadatas: Dict[rdf_objects.HashID, FileMetadata]):
     """Adds multiple files to the file store.
 
     Args:
@@ -232,9 +231,10 @@ BLOBS_READ_TIMEOUT = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
 
 
 def AddFilesWithUnknownHashes(
-    client_path_blob_refs,
-    use_external_stores = True
-):
+    client_path_blob_refs: Dict[db.ClientPath, Iterable[rdf_objects
+                                                        .BlobReference]],
+    use_external_stores: bool = True
+) -> Dict[db.ClientPath, rdf_objects.SHA256HashID]:
   """Adds new files consisting of given blob references.
 
   Args:
@@ -384,9 +384,9 @@ def GetLastCollectionPathInfo(client_path, max_timestamp=None):
 
 
 def OpenFile(
-    client_path,
-    max_timestamp = None,
-):
+    client_path: db.ClientPath,
+    max_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+) -> BlobStream:
   """Opens latest content of a given file for reading.
 
   Args:

@@ -3,7 +3,6 @@
 """Implementation of a router class that does no ACL checks."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Optional
@@ -184,9 +183,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def UploadYaraSignature(
       self,
-      args,
-      token = None,
-  ):
+      args: api_yara.ApiUploadYaraSignatureArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_yara.ApiUploadYaraSignatureHandler:
     del args, token  # Unused.
     return api_yara.ApiUploadYaraSignatureHandler()
 
@@ -282,9 +281,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def GetCollectedHuntTimelines(
       self,
-      args,
-      token = None,
-  ):
+      args: api_timeline.ApiGetCollectedHuntTimelinesArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     return api_timeline.ApiGetCollectedHuntTimelinesHandler()
 
   # Stats metrics methods.

@@ -3,7 +3,6 @@
 """Simple parsers for Linux files."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -96,7 +95,7 @@ class PasswdParser(parsers.SingleFileParser):
   supported_artifacts = ["UnixPasswd"]
 
   @classmethod
-  def ParseLine(cls, index, line):
+  def ParseLine(cls, index, line) -> Optional[rdf_client.User]:
     precondition.AssertType(line, Text)
 
     fields = "username,password,uid,gid,fullname,homedir,shell".split(",")

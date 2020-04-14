@@ -4,7 +4,6 @@
 """The MySQL database methods for client handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -721,9 +720,9 @@ class MySQLDBClientMixin(object):
 
   @mysql_utils.WithTransaction()
   def WriteClientStats(self,
-                       client_id,
-                       stats,
-                       cursor=None):
+                       client_id: Text,
+                       stats: rdf_client_stats.ClientStats,
+                       cursor=None) -> None:
     """Stores a ClientStats instance."""
 
     if stats.timestamp is None:
@@ -748,10 +747,10 @@ class MySQLDBClientMixin(object):
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientStats(self,
-                      client_id,
-                      min_timestamp,
-                      max_timestamp,
-                      cursor=None):
+                      client_id: Text,
+                      min_timestamp: rdfvalue.RDFDatetime,
+                      max_timestamp: rdfvalue.RDFDatetime,
+                      cursor=None) -> List[rdf_client_stats.ClientStats]:
     """Reads ClientStats for a given client and time range."""
 
     cursor.execute(
@@ -773,8 +772,8 @@ class MySQLDBClientMixin(object):
   # DeleteOldClientStats does not use a single transaction, since it runs for
   # a long time. Instead, it uses multiple transactions internally.
   def DeleteOldClientStats(
-      self, yield_after_count,
-      retention_time):
+      self, yield_after_count: int,
+      retention_time: rdfvalue.RDFDatetime) -> Generator[int, None, None]:
     """Deletes ClientStats older than a given timestamp."""
 
     while True:
@@ -793,9 +792,9 @@ class MySQLDBClientMixin(object):
 
   @mysql_utils.WithTransaction()
   def _DeleteClientStats(self,
-                         limit,
-                         retention_time,
-                         cursor=None):
+                         limit: int,
+                         retention_time: rdfvalue.RDFDatetime,
+                         cursor=None) -> int:
     """Deletes up to `limit` ClientStats older than `retention_time`."""
     cursor.execute(
         "DELETE FROM client_stats WHERE timestamp < FROM_UNIXTIME(%s) LIMIT %s",

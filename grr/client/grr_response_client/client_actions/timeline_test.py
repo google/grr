@@ -2,7 +2,6 @@
 # Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import hashlib
@@ -148,7 +147,7 @@ class WalkTest(absltest.TestCase):
     self.assertEmpty(entries)
 
 
-def _Touch(filepath, content = b""):
+def _Touch(filepath: Text, content: bytes = b"") -> None:
   with io.open(filepath, mode="wb") as filedesc:
     filedesc.write(content)
 

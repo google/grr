@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import re
@@ -125,18 +124,18 @@ class URI(rdf_structs.RDFProtoStruct):
       self.fragment = initializer.fragment
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(urlparse.urlparse(value.decode("utf-8")))
 
   @classmethod
-  def FromHumanReadable(cls, value):
+  def FromHumanReadable(cls, value: Text):
     precondition.AssertType(value, Text)
     return cls(urlparse.urlparse(value))
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     return self.SerializeToHumanReadable().encode("utf-8")
 
-  def SerializeToHumanReadable(self):
+  def SerializeToHumanReadable(self) -> Text:
     parts = (self.transport, self.host, self.path, self.query, self.fragment)
     return urlparse.urlunsplit(parts)

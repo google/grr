@@ -3,7 +3,6 @@
 """A module with utilities for a very simple chunked serialization format."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import struct
@@ -12,7 +11,7 @@ from typing import Iterator
 from typing import Optional
 
 
-def Write(buf, chunk):
+def Write(buf: IO[bytes], chunk: bytes) -> None:
   """Writes a single chunk to the output buffer.
 
   Args:
@@ -23,7 +22,7 @@ def Write(buf, chunk):
   buf.write(chunk)
 
 
-def Read(buf):
+def Read(buf: IO[bytes]) -> Optional[bytes]:
   """Reads a single chunk from the input buffer.
 
   Args:
@@ -51,7 +50,7 @@ def Read(buf):
   return chunk
 
 
-def ReadAll(buf):
+def ReadAll(buf: IO[bytes]) -> Iterator[bytes]:
   """Reads all the chunks from the input buffer (until the end).
 
   Args:
@@ -71,7 +70,7 @@ def ReadAll(buf):
     yield chunk
 
 
-def Encode(chunk):
+def Encode(chunk: bytes) -> bytes:
   """Encodes a single chunk to a blob of bytes in the chunked format.
 
   Args:

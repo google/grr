@@ -3,7 +3,6 @@
 """Metric implementations to collect statistics."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc

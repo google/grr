@@ -2,7 +2,6 @@
 # Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -27,7 +26,7 @@ from grr.test_lib import test_lib
 class RegexMatcherTest(absltest.TestCase):
 
   @staticmethod
-  def _RegexMatcher(regex):
+  def _RegexMatcher(regex: bytes):
     return conditions.RegexMatcher(re.compile(regex))
 
   def testMatchLiteral(self):

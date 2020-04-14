@@ -3,7 +3,6 @@
 """Standard actions that happen on the client."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -379,7 +378,7 @@ class StdOutHook(object):
   def __init__(self, buf):
     self.buf = buf
 
-  def write(self, text):  # pylint: disable=invalid-name
+  def write(self, text: Text):  # pylint: disable=invalid-name
     precondition.AssertType(text, Text)
     self.buf.write(text)
 

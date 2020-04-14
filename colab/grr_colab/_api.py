@@ -2,7 +2,6 @@
 """A module for lazy instantiation of the GRR's Python API."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -16,7 +15,7 @@ FLAGS = flags.FLAGS
 _API = None  # type: api.GrrApi
 
 
-def get():
+def get() -> api.GrrApi:
   """Lazily returns the GRR API object.
 
   This method is not thread-safe. This is okay because Colab is supposed to be

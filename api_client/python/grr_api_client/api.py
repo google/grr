@@ -2,7 +2,6 @@
 """Main file of GRR API client library."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Text
@@ -64,7 +63,7 @@ class GrrApi(object):
   def GrrUser(self):
     return user.GrrUser(context=self._context)
 
-  def UploadYaraSignature(self, signature):
+  def UploadYaraSignature(self, signature: Text) -> bytes:
     """Uploads the specified YARA signature.
 
     Args:

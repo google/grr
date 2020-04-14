@@ -3,7 +3,6 @@
 """MySQL implementation of DB methods for handling client-report data."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import cast, Dict, Optional, Text
@@ -21,9 +20,9 @@ class MySQLDBClientReportsMixin(object):
   @mysql_utils.WithTransaction()
   def WriteClientGraphSeries(
       self,
-      graph_series,
-      client_label,
-      timestamp,
+      graph_series: rdf_stats.ClientGraphSeries,
+      client_label: Text,
+      timestamp: rdfvalue.RDFDatetime,
       cursor=None,
   ):
     """Writes the provided graphs to the DB with the given client label."""
@@ -47,10 +46,10 @@ class MySQLDBClientReportsMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllClientGraphSeries(
       self,
-      client_label,
-      report_type,
-      time_range = None,
-      cursor=None):
+      client_label: Text,
+      report_type: rdf_structs.EnumNamedValue,
+      time_range: Optional[time_utils.TimeRange] = None,
+      cursor=None) -> Dict[rdfvalue.RDFDatetime, rdf_stats.ClientGraphSeries]:
     """Reads graph series for the given label and report-type from the DB."""
     query = """
       SELECT UNIX_TIMESTAMP(timestamp), graph_series
@@ -80,10 +79,10 @@ class MySQLDBClientReportsMixin(object):
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadMostRecentClientGraphSeries(self,
-                                      client_label,
-                                      report_type,
+                                      client_label: Text,
+                                      report_type: rdf_structs.EnumNamedValue,
                                       cursor=None
-                                     ):
+                                     ) -> Optional[rdf_stats.ClientGraphSeries]:
     """Fetches the latest graph series for a client-label from the DB."""
     query = """
       SELECT graph_series

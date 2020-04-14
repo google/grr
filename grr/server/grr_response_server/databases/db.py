@@ -10,7 +10,6 @@ WIP, will eventually replace datastore.py.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -492,7 +491,7 @@ class ClientPath(object):
     return self._repr[2]
 
   @property
-  def path_id(self):
+  def path_id(self) -> rdf_objects.PathID:
     return rdf_objects.PathID.FromComponents(self.components)
 
   @property
@@ -892,8 +891,8 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def AddClientKeywords(self, client_id,
-                        keywords):
+  def AddClientKeywords(self, client_id: Text,
+                        keywords: Iterable[Text]) -> None:
     """Associates the provided keywords with the client.
 
     Args:
@@ -907,9 +906,9 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ListClientsForKeywords(
       self,
-      keywords,
-      start_time = None
-  ):
+      keywords: Iterable[Text],
+      start_time: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Text, List[Text]]:
     """Lists the clients associated with keywords.
 
     Args:
@@ -923,7 +922,7 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def RemoveClientKeyword(self, client_id, keyword):
+  def RemoveClientKeyword(self, client_id: Text, keyword: Text) -> None:
     """Removes the association of a particular client to a keyword.
 
     Args:
@@ -932,8 +931,8 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def AddClientLabels(self, client_id, owner,
-                      labels):
+  def AddClientLabels(self, client_id: Text, owner: Text,
+                      labels: List[Text]) -> None:
     """Attaches a user label to a client.
 
     Args:
@@ -945,7 +944,7 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def MultiReadClientLabels(
       self,
-      client_ids):
+      client_ids: List[Text]) -> Dict[Text, List[rdf_objects.ClientLabel]]:
     """Reads the user labels for a list of clients.
 
     Args:
@@ -957,7 +956,7 @@ class Database(metaclass=abc.ABCMeta):
       sorted by owner, label name.
     """
 
-  def ReadClientLabels(self, client_id):
+  def ReadClientLabels(self, client_id: Text) -> List[rdf_objects.ClientLabel]:
     """Reads the user labels for a given client.
 
     Args:
@@ -970,8 +969,8 @@ class Database(metaclass=abc.ABCMeta):
     return self.MultiReadClientLabels([client_id])[client_id]
 
   @abc.abstractmethod
-  def RemoveClientLabels(self, client_id, owner,
-                         labels):
+  def RemoveClientLabels(self, client_id: Text, owner: Text,
+                         labels: List[Text]) -> None:
     """Removes a list of user labels from a given client.
 
     Args:
@@ -981,7 +980,7 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadAllClientLabels(self):
+  def ReadAllClientLabels(self) -> List[rdf_objects.ClientLabel]:
     """Lists all client labels known to the system.
 
     Returns:
@@ -989,8 +988,8 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteClientStats(self, client_id,
-                       stats):
+  def WriteClientStats(self, client_id: Text,
+                       stats: rdf_client_stats.ClientStats) -> None:
     """Stores a ClientStats instance.
 
     If stats.create_time is unset, a copy of stats with create_time = now()
@@ -1010,10 +1009,10 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadClientStats(
       self,
-      client_id,
-      min_timestamp = None,
-      max_timestamp = None
-  ):
+      client_id: Text,
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> List[rdf_client_stats.ClientStats]:
     """Reads ClientStats for a given client and optional time range.
 
     Args:
@@ -1029,9 +1028,9 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def DeleteOldClientStats(
       self,
-      yield_after_count,
-      retention_time = None
-  ):
+      yield_after_count: int,
+      retention_time: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Generator[int, None, None]:
     """Deletes ClientStats older than a given timestamp.
 
     This function yields after deleting at most `yield_after_count` ClientStats.
@@ -1050,7 +1049,7 @@ class Database(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def CountClientVersionStringsByLabel(
-      self, day_buckets):
+      self, day_buckets: Set[int]) -> fleet_utils.FleetStats:
     """Computes client-activity stats for all GRR versions in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1067,7 +1066,7 @@ class Database(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def CountClientPlatformsByLabel(
-      self, day_buckets):
+      self, day_buckets: Set[int]) -> fleet_utils.FleetStats:
     """Computes client-activity stats for all client platforms in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1084,7 +1083,7 @@ class Database(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def CountClientPlatformReleasesByLabel(
-      self, day_buckets):
+      self, day_buckets: Set[int]) -> fleet_utils.FleetStats:
     """Computes client-activity stats for client OS-release strings in the DB.
 
     Stats are aggregated across the given time buckets, e.g. if the buckets
@@ -1396,11 +1395,11 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadPathInfosHistories(
       self,
-      client_id,
-      path_type,
-      components_list,
-      cutoff = None
-  ):
+      client_id: Text,
+      path_type: rdf_objects.PathInfo.PathType,
+      components_list: Iterable[Sequence[Text]],
+      cutoff: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Sequence[Text], Sequence[rdf_objects.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths.
 
     Args:
@@ -1418,11 +1417,11 @@ class Database(metaclass=abc.ABCMeta):
 
   def ReadPathInfoHistory(
       self,
-      client_id,
-      path_type,
-      components,
-      cutoff = None
-  ):
+      client_id: Text,
+      path_type: rdf_objects.PathInfo.PathType,
+      components: Sequence[Text],
+      cutoff: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Sequence[rdf_objects.PathInfo]:
     """Reads a collection of hash and stat entry for given path.
 
     Args:
@@ -1506,11 +1505,11 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadAPIAuditEntries(
       self,
-      username = None,
-      router_method_names = None,
-      min_timestamp = None,
-      max_timestamp = None
-  ):
+      username: Optional[Text] = None,
+      router_method_names: Optional[List[Text]] = None,
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> List[rdf_objects.APIAuditEntry]:
     """Returns audit entries stored in the database.
 
     The event log is sorted according to their timestamp (with the oldest
@@ -1529,9 +1528,9 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def CountAPIAuditEntriesByUserAndDay(
       self,
-      min_timestamp = None,
-      max_timestamp = None
-  ):
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Tuple[Text, rdfvalue.RDFDatetime], int]:
     """Returns audit entry counts grouped by user and calendar day.
 
     Examples:
@@ -1886,11 +1885,11 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def ReadAllFlowObjects(
       self,
-      client_id = None,
-      min_create_time = None,
-      max_create_time = None,
-      include_child_flows = True,
-  ):
+      client_id: Optional[Text] = None,
+      min_create_time: Optional[rdfvalue.RDFDatetime] = None,
+      max_create_time: Optional[rdfvalue.RDFDatetime] = None,
+      include_child_flows: bool = True,
+  ) -> List[rdf_flow_objects.Flow]:
     """Returns all flow objects.
 
     Args:
@@ -2010,7 +2009,7 @@ class Database(metaclass=abc.ABCMeta):
 
   @abc.abstractmethod
   def WriteFlowResponses(
-      self, responses):
+      self, responses: Iterable[rdf_flow_objects.FlowMessage]) -> None:
     """Writes FlowMessages and updates corresponding requests.
 
     This method not only stores the list of responses given in the database but
@@ -2699,8 +2698,8 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def DeleteSignedBinaryReferences(
       self,
-      binary_id,
-  ):
+      binary_id: rdf_objects.SignedBinaryID,
+  ) -> None:
     """Deletes blob references for the given signed binary from the DB.
 
     Does nothing if no entry with the given id exists in the DB.
@@ -2760,9 +2759,9 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def WriteYaraSignatureReference(
       self,
-      blob_id,
-      username,
-  ):
+      blob_id: rdf_objects.BlobID,
+      username: Text,
+  ) -> None:
     """Marks the specified blob id as a YARA signature.
 
     Args:
@@ -2773,8 +2772,8 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def VerifyYaraSignatureReference(
       self,
-      blob_id,
-  ):
+      blob_id: rdf_objects.BlobID,
+  ) -> bool:
     """Verifies whether the specified blob is a YARA signature.
 
     Args:
@@ -2788,7 +2787,7 @@ class Database(metaclass=abc.ABCMeta):
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
 
-  def __init__(self, delegate):
+  def __init__(self, delegate: Database):
     super().__init__()
     self.delegate = delegate
 
@@ -2816,7 +2815,7 @@ class DatabaseValidationWrapper(Database):
   # that all artifacts have been properly migrated to use Python 3 serialized
   # representation.
   def _PatchArtifact(
-      self, artifact):
+      self, artifact: rdf_artifacts.Artifact) -> rdf_artifacts.Artifact:
     """Patches artifact to not contain byte-string source attributes."""
     patched = False
 
@@ -2971,8 +2970,8 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadClientCrashInfoHistory(client_id)
 
-  def AddClientKeywords(self, client_id,
-                        keywords):
+  def AddClientKeywords(self, client_id: Text,
+                        keywords: Iterable[Text]) -> None:
     precondition.ValidateClientId(client_id)
     precondition.AssertIterableType(keywords, Text)
 
@@ -2980,9 +2979,9 @@ class DatabaseValidationWrapper(Database):
 
   def ListClientsForKeywords(
       self,
-      keywords,
-      start_time = None
-  ):
+      keywords: Iterable[Text],
+      start_time: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Text, List[Text]]:
     precondition.AssertIterableType(keywords, Text)
     keywords = set(keywords)
 
@@ -2996,14 +2995,14 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertIterableType(value, Text)
     return result
 
-  def RemoveClientKeyword(self, client_id, keyword):
+  def RemoveClientKeyword(self, client_id: Text, keyword: Text) -> None:
     precondition.ValidateClientId(client_id)
     precondition.AssertType(keyword, Text)
 
     return self.delegate.RemoveClientKeyword(client_id, keyword)
 
-  def AddClientLabels(self, client_id, owner,
-                      labels):
+  def AddClientLabels(self, client_id: Text, owner: Text,
+                      labels: List[Text]) -> None:
     precondition.ValidateClientId(client_id)
     _ValidateUsername(owner)
     for label in labels:
@@ -3013,7 +3012,7 @@ class DatabaseValidationWrapper(Database):
 
   def MultiReadClientLabels(
       self,
-      client_ids):
+      client_ids: List[Text]) -> Dict[Text, List[rdf_objects.ClientLabel]]:
     _ValidateClientIds(client_ids)
     result = self.delegate.MultiReadClientLabels(client_ids)
     precondition.AssertDictType(result, Text, List)
@@ -3021,21 +3020,21 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertIterableType(value, rdf_objects.ClientLabel)
     return result
 
-  def RemoveClientLabels(self, client_id, owner,
-                         labels):
+  def RemoveClientLabels(self, client_id: Text, owner: Text,
+                         labels: List[Text]) -> None:
     precondition.ValidateClientId(client_id)
     for label in labels:
       _ValidateLabel(label)
 
     return self.delegate.RemoveClientLabels(client_id, owner, labels)
 
-  def ReadAllClientLabels(self):
+  def ReadAllClientLabels(self) -> List[rdf_objects.ClientLabel]:
     result = self.delegate.ReadAllClientLabels()
     precondition.AssertIterableType(result, rdf_objects.ClientLabel)
     return result
 
-  def WriteClientStats(self, client_id,
-                       stats):
+  def WriteClientStats(self, client_id: Text,
+                       stats: rdf_client_stats.ClientStats) -> None:
     precondition.ValidateClientId(client_id)
     precondition.AssertType(stats, rdf_client_stats.ClientStats)
 
@@ -3043,10 +3042,10 @@ class DatabaseValidationWrapper(Database):
 
   def ReadClientStats(
       self,
-      client_id,
-      min_timestamp = None,
-      max_timestamp = None
-  ):
+      client_id: Text,
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> List[rdf_client_stats.ClientStats]:
     precondition.ValidateClientId(client_id)
 
     if min_timestamp is None:
@@ -3064,9 +3063,9 @@ class DatabaseValidationWrapper(Database):
 
   def DeleteOldClientStats(
       self,
-      yield_after_count,
-      retention_time = None
-  ):
+      yield_after_count: int,
+      retention_time: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Generator[int, None, None]:
     if retention_time is None:
       retention_time = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
     else:
@@ -3090,17 +3089,17 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteForemanRule(rule)
 
   def CountClientVersionStringsByLabel(
-      self, day_buckets):
+      self, day_buckets: Set[int]) -> fleet_utils.FleetStats:
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientVersionStringsByLabel(day_buckets)
 
   def CountClientPlatformsByLabel(
-      self, day_buckets):
+      self, day_buckets: Set[int]) -> fleet_utils.FleetStats:
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientPlatformsByLabel(day_buckets)
 
   def CountClientPlatformReleasesByLabel(
-      self, day_buckets):
+      self, day_buckets: Set[int]) -> fleet_utils.FleetStats:
     _ValidateClientActivityBuckets(day_buckets)
     return self.delegate.CountClientPlatformReleasesByLabel(day_buckets)
 
@@ -3347,11 +3346,11 @@ class DatabaseValidationWrapper(Database):
 
   def ReadPathInfosHistories(
       self,
-      client_id,
-      path_type,
-      components_list,
-      cutoff = None
-  ):
+      client_id: Text,
+      path_type: rdf_objects.PathInfo.PathType,
+      components_list: Iterable[Sequence[Text]],
+      cutoff: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Sequence[Text], Sequence[rdf_objects.PathInfo]]:
     precondition.ValidateClientId(client_id)
     _ValidateEnumType(path_type, rdf_objects.PathInfo.PathType)
     precondition.AssertType(components_list, list)
@@ -3381,11 +3380,11 @@ class DatabaseValidationWrapper(Database):
 
   def ReadAPIAuditEntries(
       self,
-      username = None,
-      router_method_names = None,
-      min_timestamp = None,
-      max_timestamp = None
-  ):
+      username: Optional[Text] = None,
+      router_method_names: Optional[List[Text]] = None,
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> List[rdf_objects.APIAuditEntry]:
     return self.delegate.ReadAPIAuditEntries(
         username=username,
         router_method_names=router_method_names,
@@ -3394,9 +3393,9 @@ class DatabaseValidationWrapper(Database):
 
   def CountAPIAuditEntriesByUserAndDay(
       self,
-      min_timestamp = None,
-      max_timestamp = None
-  ):
+      min_timestamp: Optional[rdfvalue.RDFDatetime] = None,
+      max_timestamp: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Tuple[Text, rdfvalue.RDFDatetime], int]:
     precondition.AssertOptionalType(min_timestamp, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_timestamp, rdfvalue.RDFDatetime)
     return self.delegate.CountAPIAuditEntriesByUserAndDay(
@@ -3552,11 +3551,11 @@ class DatabaseValidationWrapper(Database):
 
   def ReadAllFlowObjects(
       self,
-      client_id = None,
-      min_create_time = None,
-      max_create_time = None,
-      include_child_flows = True,
-  ):
+      client_id: Optional[Text] = None,
+      min_create_time: Optional[rdfvalue.RDFDatetime] = None,
+      max_create_time: Optional[rdfvalue.RDFDatetime] = None,
+      include_child_flows: bool = True,
+  ) -> List[rdf_flow_objects.Flow]:
     if client_id is not None:
       precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(min_create_time, rdfvalue.RDFDatetime)
@@ -3649,7 +3648,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.DeleteFlowRequests(requests)
 
   def WriteFlowResponses(
-      self, responses):
+      self, responses: Iterable[rdf_flow_objects.FlowMessage]) -> None:
     precondition.AssertIterableType(responses, rdf_flow_objects.FlowMessage)
     return self.delegate.WriteFlowResponses(responses)
 
@@ -4049,8 +4048,8 @@ class DatabaseValidationWrapper(Database):
 
   def DeleteSignedBinaryReferences(
       self,
-      binary_id,
-  ):
+      binary_id: rdf_objects.SignedBinaryID,
+  ) -> None:
     precondition.AssertType(binary_id, rdf_objects.SignedBinaryID)
     return self.delegate.DeleteSignedBinaryReferences(binary_id)
 
@@ -4093,17 +4092,17 @@ class DatabaseValidationWrapper(Database):
 
   def WriteYaraSignatureReference(
       self,
-      blob_id,
-      username,
-  ):
+      blob_id: rdf_objects.BlobID,
+      username: Text,
+  ) -> None:
     _ValidateBlobID(blob_id)
     _ValidateUsername(username)
     return self.delegate.WriteYaraSignatureReference(blob_id, username)
 
   def VerifyYaraSignatureReference(
       self,
-      blob_id,
-  ):
+      blob_id: rdf_objects.BlobID,
+  ) -> bool:
     _ValidateBlobID(blob_id)
     return self.delegate.VerifyYaraSignatureReference(blob_id)
 

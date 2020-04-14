@@ -3,7 +3,6 @@
 """A module with definition of factory."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Callable
@@ -32,7 +31,7 @@ class Factory(Generic[T]):
   instances that are relevant for the test.
   """
 
-  def __init__(self, cls):
+  def __init__(self, cls: Type[T]):
     """Initializes the factory.
 
     Args:
@@ -41,7 +40,7 @@ class Factory(Generic[T]):
     self._cls = cls
     self._constructors = {}
 
-  def Register(self, name, constructor):
+  def Register(self, name: Text, constructor: Callable[[], T]):
     """Registers a new constructor in the factory.
 
     Args:
@@ -60,7 +59,7 @@ class Factory(Generic[T]):
 
     self._constructors[name] = constructor
 
-  def Unregister(self, name):
+  def Unregister(self, name: Text):
     """Unregisters a constructor.
 
     Args:
@@ -76,7 +75,7 @@ class Factory(Generic[T]):
     except KeyError:
       raise ValueError("Constructor with name '%s' is not registered" % name)
 
-  def Create(self, name):
+  def Create(self, name: Text) -> T:
     """Creates a new instance.
 
     Args:
@@ -103,11 +102,11 @@ class Factory(Generic[T]):
 
     return instance
 
-  def CreateAll(self):
+  def CreateAll(self) -> Iterator[T]:
     """Creates instances using all registered constructors."""
     for name in self.Names():
       yield self.Create(name)
 
-  def Names(self):
+  def Names(self) -> Iterator[Text]:
     """Yields all names that have been registered with this factory."""
     return iter(self._constructors.keys())

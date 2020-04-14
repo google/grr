@@ -3,7 +3,6 @@
 """API Authorization Manager."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -82,8 +81,8 @@ class APIAuthorizationManager(object):
 
     return router_cls(params=rdf_params)
 
-  def __init__(self, acl_list,
-               default_router_cls):
+  def __init__(self, acl_list: Iterable[APIAuthorization],
+               default_router_cls: Type[api_call_router.ApiCallRouter]):
     """Initializes the manager by reading the config file."""
     precondition.AssertIterableType(acl_list, APIAuthorization)
 
@@ -106,9 +105,9 @@ class APIAuthorizationManager(object):
         self.auth_manager.AuthorizeUser(user, router_id)
 
   @staticmethod
-  def FromYaml(source,
-               default_router_cls
-              ):
+  def FromYaml(source: Text,
+               default_router_cls: Type[api_call_router.ApiCallRouter]
+              ) -> "APIAuthorizationManager":
     precondition.AssertType(source, Text)
 
     acl_list = APIAuthorization.ParseYAMLAuthorizationsList(source)
@@ -152,7 +151,7 @@ def InitializeApiAuthManager(default_router_cls=None):
     API_AUTH_MGR = APIAuthorizationManager([], default_router_cls)
 
 
-def _GetRouterClass(router_name):
+def _GetRouterClass(router_name: Text) -> Type[api_call_router.ApiCallRouter]:
   try:
     return api_call_router.ApiCallRouter.classes[router_name]
   except KeyError:

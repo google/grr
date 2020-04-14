@@ -8,7 +8,6 @@ starting flows and for validating arguments.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -371,21 +370,21 @@ class String(TypeInfoObject):
 
   _type = Text
 
-  def __init__(self, default = "", **kwargs):
+  def __init__(self, default: Text = "", **kwargs):
     precondition.AssertType(default, Text)
     super().__init__(default=default, **kwargs)
 
-  def Validate(self, value):
+  def Validate(self, value: Text) -> Text:
     if not isinstance(value, Text):
       raise TypeValueError("'{}' is not a valid string".format(value))
 
     return value
 
-  def FromString(self, string):
+  def FromString(self, string: Text) -> Text:
     precondition.AssertType(string, Text)
     return string
 
-  def ToString(self, value):
+  def ToString(self, value: Text) -> Text:
     precondition.AssertType(value, Text)
     return value
 
@@ -395,21 +394,21 @@ class Bytes(TypeInfoObject):
 
   _type = bytes
 
-  def __init__(self, default = b"", **kwargs):
+  def __init__(self, default: bytes = b"", **kwargs):
     precondition.AssertType(default, bytes)
     super().__init__(default=default, **kwargs)
 
-  def Validate(self, value):
+  def Validate(self, value: bytes) -> bytes:
     if not isinstance(value, bytes):
       raise TypeValueError("%s not a valid string" % value)
 
     return value
 
-  def FromString(self, string):
+  def FromString(self, string: Text) -> bytes:
     precondition.AssertType(string, Text)
     return string.encode("utf-8")
 
-  def ToString(self, value):
+  def ToString(self, value: bytes) -> Text:
     precondition.AssertType(value, bytes)
     return value.decode("utf-8")
 

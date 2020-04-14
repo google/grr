@@ -3,7 +3,6 @@
 """A module with functions for working with GRR packages."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import importlib
@@ -65,7 +64,7 @@ def ResourcePath(package_name, filepath):
 
 
 
-def ModulePath(module_name):
+def ModulePath(module_name) -> Text:
   """Computes a path to the specified module.
 
   Args:

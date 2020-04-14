@@ -3,7 +3,6 @@
 """This file contains various utility classes used by GRR."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -87,7 +86,7 @@ class InterruptableThread(threading.Thread):
                args=None,
                kwargs=None,
                sleep_time=10,
-               name = None,
+               name: Optional[Text] = None,
                **kw):
     self.exit = False
     self.last_run = 0
@@ -517,14 +516,14 @@ def FormatAsHexString(num, width=None, prefix="0x"):
   return "%s%s" % (prefix, hex_str)
 
 
-def FormatAsTimestamp(timestamp):
+def FormatAsTimestamp(timestamp: int) -> Text:
   if not timestamp:
     return "-"
 
   return compatibility.FormatTime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
 
 
-def NormalizePath(path, sep = "/"):
+def NormalizePath(path: Text, sep: Text = "/") -> Text:
   """A sane implementation of os.path.normpath.
 
   The standard implementation treats leading / and // as different leading to
@@ -585,7 +584,7 @@ def NormalizePath(path, sep = "/"):
 
 # TODO(hanuszczak): The linter complains for a reason here, the signature of
 # this function should be fixed as soon as possible.
-def JoinPath(stem = "", *parts):  # pylint: disable=keyword-arg-before-vararg
+def JoinPath(stem: Text = "", *parts: Text) -> Text:  # pylint: disable=keyword-arg-before-vararg
   """A sane version of os.path.join.
 
   The intention here is to append the stem to the path. The standard module
@@ -1065,7 +1064,7 @@ class StreamingZipGeneratorPy3(object):
     yield self.WriteFileFooter()
 
   @property
-  def is_file_write_in_progress(self):
+  def is_file_write_in_progress(self) -> bool:
     return bool(self._zipopen)
 
   @property
@@ -1292,7 +1291,7 @@ def ProcessIdString():
                        os.getpid())
 
 
-def RegexListDisjunction(regex_list):
+def RegexListDisjunction(regex_list: Iterable[bytes]):
   precondition.AssertIterableType(regex_list, bytes)
   return b"(" + b")|(".join(regex_list) + b")"
 

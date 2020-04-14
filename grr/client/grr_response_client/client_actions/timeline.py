@@ -3,7 +3,6 @@
 """A module with a client action for timeline collection."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import hashlib
@@ -26,7 +25,7 @@ class Timeline(actions.ActionPlugin):
 
   _TRANSFER_STORE_ID = rdfvalue.SessionID(flow_name="TransferStore")
 
-  def Run(self, args):
+  def Run(self, args: rdf_timeline.TimelineArgs) -> None:
     """Executes the client action."""
     result = rdf_timeline.TimelineResult()
 
@@ -43,7 +42,7 @@ class Timeline(actions.ActionPlugin):
     self.SendReply(result)
 
 
-def Walk(root):
+def Walk(root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
   """Walks the filesystem collecting stat information.
 
   This method will recursively descend to all sub-folders and sub-sub-folders
@@ -62,7 +61,7 @@ def Walk(root):
   except OSError:
     return iter([])
 
-  def Recurse(path):
+  def Recurse(path: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
     """Performs the recursive walk over the file hierarchy."""
     try:
       stat = os.lstat(path)

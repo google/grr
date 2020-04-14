@@ -3,7 +3,6 @@
 """An LL(1) lexer. This lexer is very tolerant of errors and can resync."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -265,7 +264,7 @@ class BinaryExpression(Expression):
       self.args.append(part)
     super().__init__()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return "Binary Expression: %s %s" % (self.operator,
                                          [str(x) for x in self.args])
 

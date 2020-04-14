@@ -3,7 +3,6 @@
 """The in memory database methods for path handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Dict
@@ -330,11 +329,11 @@ class InMemoryDBPathMixin(object):
   @utils.Synchronized
   def ReadPathInfosHistories(
       self,
-      client_id,
-      path_type,
-      components_list,
-      cutoff = None
-  ):
+      client_id: Text,
+      path_type: rdf_objects.PathInfo.PathType,
+      components_list: Iterable[Sequence[Text]],
+      cutoff: Optional[rdfvalue.RDFDatetime] = None
+  ) -> Dict[Sequence[Text], Sequence[rdf_objects.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths."""
     results = {}
 

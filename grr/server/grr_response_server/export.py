@@ -8,7 +8,6 @@ easily be written to a relational database or just to a set of files.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import hashlib
@@ -1300,9 +1299,9 @@ class YaraProcessScanMatchConverter(ExportConverter):
   input_rdf_type = rdf_memory.YaraProcessScanMatch
 
   def Convert(self,
-              metadata,
-              value,
-              token=None):
+              metadata: ExportedMetadata,
+              value: rdf_memory.YaraProcessScanMatch,
+              token=None) -> Iterator[ExportedYaraProcessScanMatch]:
     """See base class."""
 
     conv = ProcessToExportedProcessConverter(options=self.options)
@@ -1326,9 +1325,9 @@ class ProcessMemoryErrorConverter(ExportConverter):
   input_rdf_type = rdf_memory.ProcessMemoryError
 
   def Convert(self,
-              metadata,
-              value,
-              token=None):
+              metadata: ExportedMetadata,
+              value: rdf_memory.ProcessMemoryError,
+              token=None) -> Iterator[ExportedProcessMemoryError]:
     """See base class."""
 
     conv = ProcessToExportedProcessConverter(options=self.options)
@@ -1345,7 +1344,7 @@ class OsqueryExportConverter(ExportConverter):
   _rdf_cls_cache = {}
 
   @classmethod
-  def _RDFClass(cls, table):
+  def _RDFClass(cls, table: rdf_osquery.OsqueryTable) -> Type[Any]:
     """Creates a dynamic RDF proto struct class for given osquery table.
 
     The fields of the proto will correspond to the columns of the table.

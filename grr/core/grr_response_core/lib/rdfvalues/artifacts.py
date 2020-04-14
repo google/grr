@@ -3,7 +3,6 @@
 """rdf value representation for artifact collector parameters."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -353,8 +352,8 @@ class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
   protobuf = artifact_pb2.ArtifactProcessorDescriptor
 
   @classmethod
-  def FromParser(cls, parser_cls
-                ):
+  def FromParser(cls, parser_cls: Type[parsers.Parser]
+                ) -> "ArtifactProcessorDescriptor":
     """Creates a descriptor corresponding to the given parser.
 
     Args:

@@ -3,7 +3,6 @@
 """Utilities for dealing with client fleet data."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -11,7 +10,7 @@ import collections
 from typing import Any, DefaultDict, Dict, List, Optional, Set, Text, Tuple
 
 
-def _DictFromDefaultDict(input_dict):
+def _DictFromDefaultDict(input_dict: DefaultDict[Any, Any]) -> Dict[Any, Any]:
   output_dict = {}
   for k, v in input_dict.items():
     if isinstance(v, collections.defaultdict):
@@ -21,7 +20,7 @@ def _DictFromDefaultDict(input_dict):
   return output_dict
 
 
-def _ValidateBucket(day_bucket, day_buckets):
+def _ValidateBucket(day_bucket: int, day_buckets: Set[int]):
   if day_bucket not in day_buckets:
     raise ValueError("Invalid bucket '%d'. Allowed buckets are %s." %
                      (day_bucket, sorted(day_buckets)))
@@ -38,9 +37,9 @@ class FleetStats(object):
   Every FleetStats object contains data for one, and only one category.
   """
 
-  def __init__(self, day_buckets,
-               label_counts,
-               total_counts):
+  def __init__(self, day_buckets: Set[int],
+               label_counts: Dict[int, Dict[Text, Dict[Text, int]]],
+               total_counts: Dict[int, Dict[Text, int]]):
     """Initializes a FleetStats object.
 
     Args:
@@ -61,16 +60,16 @@ class FleetStats(object):
       all_labels.update(self._label_counts[day_bucket].keys())
     self._all_labels = sorted(all_labels)
 
-  def GetAllLabels(self):
+  def GetAllLabels(self) -> List[Text]:
     """Returns all client labels represented in the underlying data."""
     return list(self._all_labels)
 
-  def GetDayBuckets(self):
+  def GetDayBuckets(self) -> List[int]:
     """"Returns the n-day-active buckets for the underlying data (sorted)."""
     return sorted(self._day_buckets)
 
-  def GetValuesForDayAndLabel(self, day_bucket,
-                              client_label):
+  def GetValuesForDayAndLabel(self, day_bucket: int,
+                              client_label: Text) -> Dict[Text, int]:
     """Returns activity counts for a particular bucket and client label.
 
     Each entry in the returned dict maps a category value to the total number
@@ -89,7 +88,7 @@ class FleetStats(object):
     except KeyError:
       return {}
 
-  def GetTotalsForDay(self, day_bucket):
+  def GetTotalsForDay(self, day_bucket: int) -> Dict[Text, int]:
     """Returns totals for a particular bucket (across all client-labels).
 
     Each entry in the returned dict maps a category value to the total number
@@ -106,7 +105,7 @@ class FleetStats(object):
     except KeyError:
       return {}
 
-  def GetFlattenedLabelCounts(self):
+  def GetFlattenedLabelCounts(self) -> Dict[Tuple[int, Text, Text], int]:
     """Returns a flat representation of the encapsulated label-specific data.
 
     This method is mostly intended to make testing easier.
@@ -119,7 +118,7 @@ class FleetStats(object):
                             category_value)] = num_actives
     return flattened_counts
 
-  def GetFlattenedTotalCounts(self):
+  def GetFlattenedTotalCounts(self) -> Dict[Tuple[int, Text], int]:
     """Returns a flat representation of the encapsulated label-free totals.
 
     This method is mostly intended to make testing easier.
@@ -130,7 +129,7 @@ class FleetStats(object):
         flattened_counts[(day_bucket, category_value)] = num_actives
     return flattened_counts
 
-  def GetAggregatedLabelCounts(self):
+  def GetAggregatedLabelCounts(self) -> Dict[Text, Dict[int, int]]:
     """Sums up the total number of n-day-actives by label and day-bucket.
 
     Returns:
@@ -153,7 +152,7 @@ class FleetStats(object):
         aggregated_counts[client_label][day_bucket] = day_label_sum
     return _DictFromDefaultDict(aggregated_counts)
 
-  def GetAggregatedTotalCounts(self):
+  def GetAggregatedTotalCounts(self) -> Dict[int, int]:
     """Sums up the total number of n-day-actives by day-bucket.
 
     Returns:
@@ -202,7 +201,7 @@ class FleetStats(object):
 class FleetStatsBuilder(object):
   """An object used to incrementally build FleetStats objects."""
 
-  def __init__(self, day_buckets):
+  def __init__(self, day_buckets: Set[int]):
     """Initializes a FleetStatsBuilder object.
 
     Args:
@@ -219,23 +218,23 @@ class FleetStatsBuilder(object):
     # pyformat: enable
 
   def IncrementLabel(self,
-                     client_label,
-                     category_value,
-                     day_bucket,
-                     delta = 1):
+                     client_label: Text,
+                     category_value: Optional[Text],
+                     day_bucket: int,
+                     delta: int = 1):
     category_value = "" if category_value is None else category_value
     _ValidateBucket(day_bucket, self._day_buckets)
     self._label_counts[day_bucket][client_label][category_value] += delta
 
   def IncrementTotal(self,
-                     category_value,
-                     day_bucket,
-                     delta = 1):
+                     category_value: Optional[Text],
+                     day_bucket: int,
+                     delta: int = 1):
     category_value = "" if category_value is None else category_value
     _ValidateBucket(day_bucket, self._day_buckets)
     self._total_counts[day_bucket][category_value] += delta
 
-  def Build(self):
+  def Build(self) -> FleetStats:
     fleet_stats = FleetStats(self._day_buckets,
                              _DictFromDefaultDict(self._label_counts),
                              _DictFromDefaultDict(self._total_counts))

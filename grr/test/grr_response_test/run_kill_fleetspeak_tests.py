@@ -29,7 +29,7 @@ flags.DEFINE_string("logging_path", None,
                     "Base logging path for server components to use.")
 
 
-def FindGrrClientProcess(config_path):
+def FindGrrClientProcess(config_path: Text) -> psutil.Process:
   """Finds the running GRR process."""
   for proc in psutil.process_iter(["pid", "cmdline", "create_time"]):
     name_found = False
@@ -44,7 +44,7 @@ def FindGrrClientProcess(config_path):
   raise RuntimeError("Couldn't find GRR client process.")
 
 
-def RunInterrogate(grr_api, client_id):
+def RunInterrogate(grr_api: api.GrrApi, client_id: Text) -> api_flow.Flow:
   """Runs the Interrogate flow."""
   args = grr_api.types.CreateFlowArgs("Interrogate")
   args.lightweight = True

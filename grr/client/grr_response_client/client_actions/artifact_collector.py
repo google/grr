@@ -3,7 +3,6 @@
 """The client artifact collector."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -274,7 +273,7 @@ class ArtifactCollector(actions.ActionPlugin):
           query=query, base_object=base_object)
       yield action, request
 
-  def _Interpolate(self, pattern):
+  def _Interpolate(self, pattern: Text) -> Sequence[Text]:
     try:
       return artifact_utils.InterpolateKbAttributes(pattern,
                                                     self.knowledge_base)
@@ -285,7 +284,7 @@ class ArtifactCollector(actions.ActionPlugin):
       else:
         raise
 
-  def _InterpolateMany(self, patterns):
+  def _InterpolateMany(self, patterns: Iterable[Text]) -> Sequence[Text]:
     results = []
     for pattern in patterns:
       results.extend(self._Interpolate(pattern))

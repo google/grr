@@ -6,7 +6,6 @@ The module contains classes that Colab users will use to interact with GRR API.
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -33,7 +32,7 @@ from grr_response_proto import osquery_pb2
 from grr_response_proto import sysinfo_pb2
 
 
-def set_no_flow_timeout():
+def set_no_flow_timeout() -> None:
   """Disables flow timeout (it means wait forever).
 
   Returns:
@@ -42,7 +41,7 @@ def set_no_flow_timeout():
   _timeout.set_timeout(None)
 
 
-def set_default_flow_timeout():
+def set_default_flow_timeout() -> None:
   """Sets flow timeout to default value (30 seconds).
 
   Returns:
@@ -51,7 +50,7 @@ def set_default_flow_timeout():
   _timeout.reset_timeout()
 
 
-def set_flow_timeout(timeout):
+def set_flow_timeout(timeout: int) -> None:
   """Sets flow timeout.
 
   Args:
@@ -67,7 +66,7 @@ def set_flow_timeout(timeout):
   _timeout.set_timeout(timeout)
 
 
-def list_artifacts():
+def list_artifacts() -> Sequence[artifact_pb2.ArtifactDescriptor]:
   """Lists all registered artifacts.
 
   Returns:
@@ -101,19 +100,19 @@ class Client(object):
       operations.
   """
 
-  def __init__(self, client_):
+  def __init__(self, client_: client.Client) -> None:
     self._client = client_
     self._summary = None  # type: jobs_pb2.ClientSummary
 
   @classmethod
-  def with_id(cls, client_id):
+  def with_id(cls, client_id: Text) -> 'Client':
     try:
       return cls(_api.get().Client(client_id).Get())
     except api_errors.UnknownError as e:
       raise errors.UnknownClientError(client_id, e)
 
   @classmethod
-  def with_hostname(cls, hostname):
+  def with_hostname(cls, hostname: Text) -> 'Client':
     clients = cls.search(host=hostname)
     if not clients:
       raise errors.UnknownHostnameError(hostname)
@@ -123,12 +122,12 @@ class Client(object):
 
   @classmethod
   def search(cls,
-             ip = None,
-             mac = None,
-             host = None,
-             version = None,
-             labels = None,
-             user = None):
+             ip: Optional[Text] = None,
+             mac: Optional[Text] = None,
+             host: Optional[Text] = None,
+             version: Optional[int] = None,
+             labels: Optional[List[Text]] = None,
+             user: Optional[Text] = None) -> Sequence['Client']:
     """Searches for clients specified with keywords.
 
     Args:
@@ -143,7 +142,7 @@ class Client(object):
       A sequence of clients.
     """
 
-    def format_keyword(key, value):
+    def format_keyword(key: Text, value: Text) -> Text:
       return '{}:{}'.format(key, value)
 
     keywords = []
@@ -166,66 +165,66 @@ class Client(object):
     return representer.ClientList([cls(_) for _ in clients])
 
   @property
-  def id(self):
+  def id(self) -> Text:
     return self._client.client_id
 
   @property
-  def hostname(self):
+  def hostname(self) -> Text:
     if self._summary is not None:
       return self._summary.system_info.fqdn
     return self.knowledgebase.fqdn
 
   @property
-  def ifaces(self):
+  def ifaces(self) -> Sequence[jobs_pb2.Interface]:
     if self._summary is not None:
       return representer.InterfaceList(self._summary.interfaces)
     return representer.InterfaceList(self._client.data.interfaces)
 
   @property
-  def knowledgebase(self):
+  def knowledgebase(self) -> knowledge_base_pb2.KnowledgeBase:
     return self._client.data.knowledge_base
 
   @property
-  def arch(self):
+  def arch(self) -> Text:
     if self._summary is not None:
       return self._summary.system_info.machine
     return self._client.data.os_info.machine
 
   @property
-  def kernel(self):
+  def kernel(self) -> Text:
     if self._summary is not None:
       return self._summary.system_info.kernel
     return self._client.data.os_info.kernel
 
   @property
-  def labels(self):
+  def labels(self) -> Sequence[Text]:
     return [_.name for _ in self._client.data.labels]
 
   @property
-  def first_seen(self):
+  def first_seen(self) -> datetime.datetime:
     return _microseconds_to_datetime(self._client.data.first_seen_at)
 
   @property
-  def last_seen(self):
+  def last_seen(self) -> datetime.datetime:
     return _microseconds_to_datetime(self._client.data.last_seen_at)
 
   @property
-  def os(self):
+  def os(self) -> fs.FileSystem:
     return fs.FileSystem(self._client, jobs_pb2.PathSpec.OS)
 
   @property
-  def tsk(self):
+  def tsk(self) -> fs.FileSystem:
     return fs.FileSystem(self._client, jobs_pb2.PathSpec.TSK)
 
   @property
-  def registry(self):
+  def registry(self) -> fs.FileSystem:
     return fs.FileSystem(self._client, jobs_pb2.PathSpec.REGISTRY)
 
   @property
-  def cached(self):
+  def cached(self) -> vfs.VFS:
     return self.os.cached
 
-  def request_approval(self, approvers, reason):
+  def request_approval(self, approvers: List[Text], reason: Text) -> None:
     """Sends approval request to the client for the current user.
 
     Args:
@@ -242,8 +241,8 @@ class Client(object):
 
     self._client.CreateApproval(reason=reason, notified_users=approvers)
 
-  def request_approval_and_wait(self, approvers,
-                                reason):
+  def request_approval_and_wait(self, approvers: List[Text],
+                                reason: Text) -> None:
     """Sends approval request and waits until it's granted.
 
     Args:
@@ -262,7 +261,7 @@ class Client(object):
         reason=reason, notified_users=approvers)
     approval.WaitUntilValid()
 
-  def interrogate(self):
+  def interrogate(self) -> jobs_pb2.ClientSummary:
     """Grabs fresh metadata about the client.
 
     Returns:
@@ -277,7 +276,7 @@ class Client(object):
     self._summary = list(interrogate.ListResults())[0].payload
     return self._summary
 
-  def ps(self):
+  def ps(self) -> Sequence[sysinfo_pb2.Process]:
     """Returns a list of processes running on the client."""
     args = flows_pb2.ListProcessesArgs()
 
@@ -289,7 +288,7 @@ class Client(object):
     _timeout.await_flow(ps)
     return representer.ProcessList([_.payload for _ in ps.ListResults()])
 
-  def ls(self, path, max_depth = 1):
+  def ls(self, path: Text, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
     """Lists contents of a given directory.
 
     Args:
@@ -303,7 +302,7 @@ class Client(object):
     """
     return self.os.ls(path, max_depth)
 
-  def glob(self, path):
+  def glob(self, path: Text) -> Sequence[jobs_pb2.StatEntry]:
     """Globs for files on the given client.
 
     Args:
@@ -314,8 +313,8 @@ class Client(object):
     """
     return self.os.glob(path)
 
-  def grep(self, path,
-           pattern):
+  def grep(self, path: Text,
+           pattern: bytes) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -327,8 +326,8 @@ class Client(object):
     """
     return self.os.grep(path, pattern)
 
-  def fgrep(self, path,
-            literal):
+  def fgrep(self, path: Text,
+            literal: bytes) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -341,9 +340,9 @@ class Client(object):
     return self.os.fgrep(path, literal)
 
   def osquery(self,
-              query,
-              timeout = 30000,
-              ignore_stderr_errors = False):
+              query: Text,
+              timeout: int = 30000,
+              ignore_stderr_errors: bool = False) -> osquery_pb2.OsqueryTable:
     """Runs given query on the client.
 
     Args:
@@ -369,7 +368,7 @@ class Client(object):
     return list(oq.ListResults())[0].payload.table
 
   def collect(self,
-              artifact):
+              artifact: Text) -> Sequence[artifact_pb2.ClientActionResult]:
     """Collects specified artifact.
 
     Args:
@@ -393,10 +392,10 @@ class Client(object):
 
   def yara(
       self,
-      signature,
-      pids = None,
-      regex = None
-  ):
+      signature: Text,
+      pids: Optional[Sequence[int]] = None,
+      regex: Optional[Text] = None
+  ) -> Sequence[flows_pb2.YaraProcessScanResponse]:
     """Scans processes using provided YARA rule.
 
     Args:
@@ -427,7 +426,7 @@ class Client(object):
     _timeout.await_flow(yara)
     return [_.payload for _ in yara.ListResults()]
 
-  def wget(self, path):
+  def wget(self, path: Text) -> Text:
     """Downloads a file and returns a link to it.
 
     Args:
@@ -438,7 +437,7 @@ class Client(object):
     """
     return self.os.wget(path)
 
-  def open(self, path):
+  def open(self, path: Text) -> io.BufferedIOBase:
     """Opens a file object corresponding to the given path on the client.
 
     The returned file object is read-only.
@@ -451,7 +450,7 @@ class Client(object):
     """
     return self.os.open(path)
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     del cycle  # Unused.
     icon = client_textify.online_icon(self._client.data.last_seen_at)
     last_seen = client_textify.last_seen(self._client.data.last_seen_at)
@@ -460,5 +459,5 @@ class Client(object):
     p.text(data)
 
 
-def _microseconds_to_datetime(ms):
+def _microseconds_to_datetime(ms: int) -> datetime.datetime:
   return datetime.datetime.utcfromtimestamp(ms / (10**6))

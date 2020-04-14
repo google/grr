@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -13,7 +12,7 @@ import time
 from typing import Text
 
 
-def last_seen(last_ping):
+def last_seen(last_ping: int) -> Text:
   """Constructs last seen label from last ping time.
 
   Args:
@@ -45,7 +44,7 @@ def last_seen(last_ping):
     return 'in {} {}'.format(measure_value, measure_unit)
 
 
-def online_icon(last_ping):
+def online_icon(last_ping: int) -> Text:
   current_time_secs = time.time()
   last_seen_secs = current_time_secs - last_ping / 10**6
 
@@ -57,7 +56,7 @@ def online_icon(last_ping):
     return '🌑'
 
 
-def online_status(last_ping):
+def online_status(last_ping: int) -> Text:
   current_time_secs = time.time()
   last_seen_secs = current_time_secs - last_ping / 10**6
 
@@ -69,7 +68,7 @@ def online_status(last_ping):
     return 'offline'
 
 
-def mac(packed_bytes):
+def mac(packed_bytes: bytes) -> Text:
   if not packed_bytes:
     return ''
 

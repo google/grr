@@ -262,10 +262,10 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
 
 def _WriteTimeline(
-    client_id,
-    entries,
-    hunt_id = None,
-):
+    client_id: Text,
+    entries: Sequence[rdf_timeline.TimelineEntry],
+    hunt_id: Optional[Text] = None,
+) -> Text:
   """Writes a timeline to the database (as fake flow result).
 
   Args:

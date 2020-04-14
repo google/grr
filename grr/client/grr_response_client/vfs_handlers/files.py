@@ -3,7 +3,6 @@
 """Implements VFSHandlers for files on the client."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -37,7 +36,7 @@ FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=30)
 # possible to remove the directory with locked files, causing issues e.g. during
 # test clean-up. Once this terrible caching is removed (as it should be), this
 # method can be removed but for now, we have to empty the cache manually.
-def FlushHandleCache():
+def FlushHandleCache() -> None:
   """Flushes the handle cache closing all cached files and releasing locks."""
   for _, [_, filedesc] in FILE_HANDLE_CACHE:
     filedesc.Close()
@@ -256,18 +255,18 @@ class File(vfs_base.VFSHandler):
 
   def Stat(
       self,
-      ext_attrs = False,
-      follow_symlink = True,
-  ):
+      ext_attrs: bool = False,
+      follow_symlink: bool = True,
+  ) -> rdf_client_fs.StatEntry:
     return self._Stat(
         self.path, ext_attrs=ext_attrs, follow_symlink=follow_symlink)
 
   def _Stat(
       self,
-      path,
-      ext_attrs = False,
-      follow_symlink = True,
-  ):
+      path: Text,
+      ext_attrs: bool = False,
+      follow_symlink: bool = True,
+  ) -> rdf_client_fs.StatEntry:
     """Returns stat information of a specific path.
 
     Args:

@@ -3,7 +3,6 @@
 """Utilities for modifying the GRR server configuration."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -130,7 +129,7 @@ def RetryBoolQuestion(question_text, default_bool):
                        default_val)[0].upper() == "Y"
 
 
-def ConfigureHostnames(config, external_hostname = None):
+def ConfigureHostnames(config, external_hostname: Optional[Text] = None):
   """This configures the hostnames stored in the config."""
   if not external_hostname:
     try:
@@ -339,7 +338,7 @@ def ConfigureDatastore(config):
       raise ConfigInitError()
 
 
-def ConfigureUrls(config, external_hostname = None):
+def ConfigureUrls(config, external_hostname: Optional[Text] = None):
   """Guides the user through configuration of various URLs used by GRR."""
   print("\n\n-=GRR URLs=-\n"
         "For GRR to work each client has to be able to communicate with the\n"
@@ -435,10 +434,10 @@ def InstallTemplatePackage():
 
 
 def FinalizeConfigInit(config,
-                       admin_password = None,
-                       redownload_templates = False,
-                       repack_templates = True,
-                       prompt = True):
+                       admin_password: Optional[Text] = None,
+                       redownload_templates: bool = False,
+                       repack_templates: bool = True,
+                       prompt: bool = True):
   """Performs the final steps of config initialization."""
   config.Set("Server.initialized", True)
   print("\nWriting configuration to %s." % config["Config.writeback"])
@@ -477,10 +476,10 @@ def FinalizeConfigInit(config,
 
 
 def Initialize(config=None,
-               external_hostname = None,
-               admin_password = None,
-               redownload_templates = False,
-               repack_templates = True):
+               external_hostname: Optional[Text] = None,
+               admin_password: Optional[Text] = None,
+               redownload_templates: bool = False,
+               repack_templates: bool = True):
   """Initialize or update a GRR configuration."""
 
   print("Checking write access on config %s" % config["Config.writeback"])
@@ -528,18 +527,18 @@ def Initialize(config=None,
 
 
 def InitializeNoPrompt(config=None,
-                       external_hostname = None,
-                       admin_password = None,
-                       mysql_hostname = None,
-                       mysql_port = None,
-                       mysql_username = None,
-                       mysql_password = None,
-                       mysql_db = None,
-                       mysql_client_key_path = None,
-                       mysql_client_cert_path = None,
-                       mysql_ca_cert_path = None,
-                       redownload_templates = False,
-                       repack_templates = True):
+                       external_hostname: Optional[Text] = None,
+                       admin_password: Optional[Text] = None,
+                       mysql_hostname: Optional[Text] = None,
+                       mysql_port: Optional[int] = None,
+                       mysql_username: Optional[Text] = None,
+                       mysql_password: Optional[Text] = None,
+                       mysql_db: Optional[Text] = None,
+                       mysql_client_key_path: Optional[Text] = None,
+                       mysql_client_cert_path: Optional[Text] = None,
+                       mysql_ca_cert_path: Optional[Text] = None,
+                       redownload_templates: bool = False,
+                       repack_templates: bool = True):
   """Initialize GRR with no prompts.
 
   Args:

@@ -3,7 +3,6 @@
 """Unit test for the linux cmd parser."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -169,7 +168,7 @@ dhcp-common.x86_64         12:4.2.5-58.el7_4.4 @rhui-rhel-7-server-e4s-rhui-rpms
     ])
 
   @staticmethod
-  def _Parse(output):
+  def _Parse(output: Text) -> Sequence[rdf_client.SoftwarePackage]:
     parser = linux_cmd_parser.YumListCmdParser()
     parsed = list(
         parser.Parse(

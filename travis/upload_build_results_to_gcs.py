@@ -59,7 +59,7 @@ class GCSUploadError(Exception):
   """Generic exception raised when an error occurs during upload of results."""
 
 
-def _GetRedactedExceptionMessage(exception):
+def _GetRedactedExceptionMessage(exception: Exception) -> str:
   """Returns the message for an exception after redacting sensitive info."""
   service_file_encryption_key_var = os.environ[_SERVICE_FILE_ENCRYPTION_KEY_VAR]
   service_file_encryption_iv_var = os.environ[_SERVICE_FILE_ENCRYPTION_IV_VAR]
@@ -73,7 +73,7 @@ def _GetRedactedExceptionMessage(exception):
   return redacted_message
 
 
-def _GetGCSBuildResultsDir():
+def _GetGCSBuildResultsDir() -> str:
   """Returns the GCS blob prefix for build results."""
   git_output = subprocess.check_output(
       ["git", "show", "-s", "--format=%ct", os.environ[_TRAVIS_COMMIT]])
@@ -93,7 +93,7 @@ def _GetGCSBuildResultsDir():
   return destination_dir
 
 
-def _DecryptGCPServiceFileTo(service_file_path):
+def _DecryptGCPServiceFileTo(service_file_path: str):
   """Decrypts Travis's GCP service account key to the given location.
 
   More information about decrypting files on Travis can be found in
@@ -125,7 +125,7 @@ def _DecryptGCPServiceFileTo(service_file_path):
             e.__class__.__name__, redacted_message))
 
 
-def _UploadBuildResults(gcs_bucket, gcs_build_results_dir):
+def _UploadBuildResults(gcs_bucket: storage.Bucket, gcs_build_results_dir: str):
   """Uploads all build results to Google Cloud Storage."""
   logging.info("Will upload build results to gs://%s/%s.",
                os.environ[_GCS_BUCKET], gcs_build_results_dir)
@@ -143,7 +143,7 @@ def _UploadBuildResults(gcs_bucket, gcs_build_results_dir):
   logging.info("GCS upload done.")
 
 
-def _TriggerAppveyorBuild(project_slug_var_name):
+def _TriggerAppveyorBuild(project_slug_var_name: str):
   """Sends a POST request to trigger an Appveyor build.
 
   Args:
@@ -173,8 +173,8 @@ def _TriggerAppveyorBuild(project_slug_var_name):
             response.status_code))
 
 
-def _UpdateLatestServerDebDirectory(gcs_bucket,
-                                    gcs_build_results_dir):
+def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
+                                    gcs_build_results_dir: str):
   """Updates the '_latest_server_deb' GCS directory with the latest results."""
   logging.info("Updating latest server deb directory.")
 

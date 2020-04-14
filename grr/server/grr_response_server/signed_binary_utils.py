@@ -3,7 +3,6 @@
 """Utilities for managing signed binaries."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -26,8 +25,8 @@ def GetAFF4ExecutablesRoot():
   return rdfvalue.RDFURN("aff4:/config/executables")
 
 
-def _SignedBinaryIDFromURN(binary_urn
-                          ):
+def _SignedBinaryIDFromURN(binary_urn: rdfvalue.RDFURN
+                          ) -> rdf_objects.SignedBinaryID:
   """Converts an AFF4 URN for a signed binary to a SignedBinaryID."""
   if binary_urn.RelativeName(GetAFF4PythonHackRoot()):
     return rdf_objects.SignedBinaryID(
@@ -42,8 +41,8 @@ def _SignedBinaryIDFromURN(binary_urn
                      binary_urn)
 
 
-def _SignedBinaryURNFromID(binary_id
-                          ):
+def _SignedBinaryURNFromID(binary_id: rdf_objects.SignedBinaryID
+                          ) -> rdfvalue.RDFURN:
   """Converts a SignedBinaryID to the equivalent AFF4 URN."""
   binary_type = binary_id.binary_type
   if binary_type == rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK:
@@ -61,11 +60,11 @@ class SignedBinaryNotFoundError(Exception):
     super().__init__("Binary with urn %s was not found." % binary_urn)
 
 
-def WriteSignedBinary(binary_urn,
-                      binary_content,
-                      private_key,
-                      public_key,
-                      chunk_size = 1024):
+def WriteSignedBinary(binary_urn: rdfvalue.RDFURN,
+                      binary_content: bytes,
+                      private_key: rdf_crypto.RSAPrivateKey,
+                      public_key: Optional[rdf_crypto.RSAPublicKey],
+                      chunk_size: int = 1024):
   """Signs a binary and saves it to the datastore.
 
   If a signed binary with the given URN already exists, its contents will get
@@ -94,8 +93,8 @@ def WriteSignedBinary(binary_urn,
       _SignedBinaryIDFromURN(binary_urn), blob_references)
 
 
-def WriteSignedBinaryBlobs(binary_urn,
-                           blobs):
+def WriteSignedBinaryBlobs(binary_urn: rdfvalue.RDFURN,
+                           blobs: Iterable[rdf_crypto.SignedBlob]):
   """Saves signed blobs to the datastore.
 
   If a signed binary with the given URN already exists, its contents will get
@@ -117,7 +116,7 @@ def WriteSignedBinaryBlobs(binary_urn,
       _SignedBinaryIDFromURN(binary_urn), blob_references)
 
 
-def DeleteSignedBinary(binary_urn):
+def DeleteSignedBinary(binary_urn: rdfvalue.RDFURN):
   """Deletes the binary with the given urn from the datastore.
 
   Args:
@@ -135,7 +134,7 @@ def DeleteSignedBinary(binary_urn):
       _SignedBinaryIDFromURN(binary_urn))
 
 
-def FetchURNsForAllSignedBinaries():
+def FetchURNsForAllSignedBinaries() -> Sequence[rdfvalue.RDFURN]:
   """Returns URNs for all signed binaries in the datastore."""
   return [
       _SignedBinaryURNFromID(i)
@@ -144,8 +143,8 @@ def FetchURNsForAllSignedBinaries():
 
 
 def FetchBlobsForSignedBinaryByID(
-    binary_id
-):
+    binary_id: rdf_objects.SignedBinaryID
+) -> Tuple[Iterator[rdf_crypto.SignedBlob], rdfvalue.RDFDatetime]:
   """Retrieves blobs for the given binary from the datastore.
 
   Args:
@@ -173,8 +172,8 @@ def FetchBlobsForSignedBinaryByID(
 
 
 def FetchBlobsForSignedBinaryByURN(
-    binary_urn
-):
+    binary_urn: rdfvalue.RDFURN
+) -> Tuple[Iterator[rdf_crypto.SignedBlob], rdfvalue.RDFDatetime]:
   """Retrieves blobs for the given binary from the datastore.
 
   Args:
@@ -191,7 +190,7 @@ def FetchBlobsForSignedBinaryByURN(
   return FetchBlobsForSignedBinaryByID(_SignedBinaryIDFromURN(binary_urn))
 
 
-def FetchSizeOfSignedBinary(binary_urn):
+def FetchSizeOfSignedBinary(binary_urn: rdfvalue.RDFURN) -> int:
   """Returns the size of the given binary (in bytes).
 
   Args:
@@ -209,9 +208,9 @@ def FetchSizeOfSignedBinary(binary_urn):
   return last_reference.offset + last_reference.size
 
 
-def StreamSignedBinaryContents(blob_iterator,
-                               chunk_size = 1024
-                              ):
+def StreamSignedBinaryContents(blob_iterator: Iterator[rdf_crypto.SignedBlob],
+                               chunk_size: int = 1024
+                              ) -> Generator[bytes, None, None]:
   """Yields the contents of the given binary in chunks of the given size.
 
   Args:

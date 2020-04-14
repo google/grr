@@ -3,7 +3,6 @@
 """Utility classes for streaming files and memory."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -75,7 +74,7 @@ class Streamer(object):
     reader = MemoryReader(process, offset=offset)
     return self.Stream(reader, amount=amount)
 
-  def Stream(self, reader, amount=None):
+  def Stream(self, reader: "Reader", amount=None):
     """Streams chunks of a given file starting at given offset.
 
     Args:

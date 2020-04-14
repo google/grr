@@ -2,7 +2,6 @@
 """VFS-related test classes."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -238,9 +237,9 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
   def Stat(
       self,
-      ext_attrs = False,
-      follow_symlink = True,
-  ):
+      ext_attrs: bool = False,
+      follow_symlink: bool = True,
+  ) -> rdf_client_fs.StatEntry:
     """Get Stat for self.path."""
     del ext_attrs, follow_symlink  # Unused.
     stat_data = self.paths.get(self._NormalizeCaseForPath(self.path, None))
@@ -318,9 +317,9 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
 
   def Stat(
       self,
-      ext_attrs = False,
-      follow_symlink = True,
-  ):
+      ext_attrs: bool = False,
+      follow_symlink: bool = True,
+  ) -> rdf_client_fs.StatEntry:
     """Get Stat for self.path."""
     del follow_symlink  # Unused.
 
@@ -549,8 +548,8 @@ def CreateDirectory(client_path):
 
 
 def GenerateBlobRefs(
-    blob_size, contents
-):
+    blob_size: int, contents: bytes
+) -> Tuple[Iterable[bytes], Iterable[rdf_objects.BlobReference]]:
   """Generates a series of blob data and references.
 
   Args:
@@ -577,8 +576,8 @@ def GenerateBlobRefs(
 
 
 def CreateFileWithBlobRefsAndData(
-    client_path, blob_refs,
-    blob_data):
+    client_path: db.ClientPath, blob_refs: Iterable[rdf_objects.BlobReference],
+    blob_data: Iterable[bytes]):
   """Writes a file with given data and blob refs to the data/blob store.
 
   Args:

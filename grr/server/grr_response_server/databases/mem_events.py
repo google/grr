@@ -3,7 +3,6 @@
 """The in memory database methods for event handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -63,7 +62,7 @@ class InMemoryDBEventMixin(object):
     return dict(results)
 
   @utils.Synchronized
-  def WriteAPIAuditEntry(self, entry):
+  def WriteAPIAuditEntry(self, entry: rdf_objects.APIAuditEntry):
     """Writes an audit entry to the database."""
     copy = entry.Copy()
     if copy.timestamp is None:

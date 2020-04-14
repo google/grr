@@ -142,7 +142,7 @@ class DummyFlowWithProgress(flow_base.FlowBase):
   """Dummy flow that reports its own progress."""
   progress_type = DummyFlowProgress
 
-  def GetProgress(self):
+  def GetProgress(self) -> DummyFlowProgress:
     return DummyFlowProgress(status="Progress.")
 
 

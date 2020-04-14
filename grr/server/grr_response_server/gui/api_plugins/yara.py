@@ -3,7 +3,6 @@
 """A module with API handlers related to the YARA memory scanning."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -36,9 +35,9 @@ class ApiUploadYaraSignatureHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(
       self,
-      args,
-      token,
-  ):
+      args: ApiUploadYaraSignatureArgs,
+      token: access_control.ACLToken,
+  ) -> ApiUploadYaraSignatureResult:
     blob = args.signature.encode("utf-8")
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob)
 

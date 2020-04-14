@@ -3,7 +3,6 @@
 """Rdfvalues for flows."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Optional
@@ -114,7 +113,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
       self.num_clients_at_start_time = 0
 
   @property
-  def expiry_time(self):
+  def expiry_time(self) -> Optional[rdfvalue.RDFDatetime]:
     """Returns the expiry time of the hunt."""
     if self.init_start_time is not None:
       return self.init_start_time + self.duration
@@ -122,7 +121,7 @@ class Hunt(rdf_structs.RDFProtoStruct):
       return None
 
   @property
-  def expired(self):
+  def expired(self) -> bool:
     """Checks if the hunt has expired."""
     expiry_time = self.expiry_time
     if expiry_time is not None:

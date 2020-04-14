@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -30,20 +29,20 @@ class FileSystem(object):
       server that may not be up-to-date but is a way faster.
   """
 
-  def __init__(self, client_,
-               path_type):
+  def __init__(self, client_: client.Client,
+               path_type: jobs_pb2.PathSpec.PathType) -> None:
     self._client = client_
     self._path_type = path_type
 
   @property
-  def id(self):
+  def id(self) -> Text:
     return self._client.client_id
 
   @property
-  def cached(self):
+  def cached(self) -> vfs.VFS:
     return vfs.VFS(self._client, self._path_type)
 
-  def ls(self, path, max_depth = 1):
+  def ls(self, path: Text, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
     """Lists contents of a given directory.
 
     Args:
@@ -79,7 +78,7 @@ class FileSystem(object):
     _timeout.await_flow(ls)
     return representer.StatEntryList([_.payload for _ in ls.ListResults()])
 
-  def glob(self, path):
+  def glob(self, path: Text) -> Sequence[jobs_pb2.StatEntry]:
     """Globs for files on the given client.
 
     Args:
@@ -100,8 +99,8 @@ class FileSystem(object):
     _timeout.await_flow(glob)
     return representer.StatEntryList([_.payload for _ in glob.ListResults()])
 
-  def grep(self, path,
-           pattern):
+  def grep(self, path: Text,
+           pattern: bytes) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -133,8 +132,8 @@ class FileSystem(object):
     return representer.BufferReferenceList(
         [list(_.payload.matches)[0] for _ in ff.ListResults()])
 
-  def fgrep(self, path,
-            literal):
+  def fgrep(self, path: Text,
+            literal: bytes) -> Sequence[jobs_pb2.BufferReference]:
     """Greps for given content on the specified path.
 
     Args:
@@ -166,7 +165,7 @@ class FileSystem(object):
     return representer.BufferReferenceList(
         [list(_.payload.matches)[0] for _ in ff.ListResults()])
 
-  def wget(self, path):
+  def wget(self, path: Text) -> Text:
     """Downloads a file and returns a link to it.
 
     Args:
@@ -178,7 +177,7 @@ class FileSystem(object):
     self._collect_file(path)
     return self.cached.wget(path)
 
-  def open(self, path):
+  def open(self, path: Text) -> io.BufferedIOBase:
     """Opens a file object corresponding to the given path on the client.
 
     The returned file object is read-only.
@@ -192,7 +191,7 @@ class FileSystem(object):
     self._collect_file(path)
     return self.cached.open(path)
 
-  def _collect_file(self, path):
+  def _collect_file(self, path: Text) -> None:
     """Save file from client to VFS.
 
     Args:

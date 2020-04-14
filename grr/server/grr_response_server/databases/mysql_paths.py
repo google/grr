@@ -3,7 +3,6 @@
 """The MySQL database methods for path handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Dict
@@ -481,12 +480,12 @@ class MySQLDBPathMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadPathInfosHistories(
       self,
-      client_id,
-      path_type,
-      components_list,
-      cutoff = None,
-      cursor = None
-  ):
+      client_id: Text,
+      path_type: rdf_objects.PathInfo.PathType,
+      components_list: Iterable[Sequence[Text]],
+      cutoff: Optional[rdfvalue.RDFDatetime] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None
+  ) -> Dict[Sequence[Text], Sequence[rdf_objects.PathInfo]]:
     """Reads a collection of hash and stat entries for given paths."""
     # MySQL does not handle well empty `IN` clauses so we guard against that.
     if not components_list:

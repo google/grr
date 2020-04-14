@@ -3,7 +3,6 @@
 """Semantic Protobufs are serialization agnostic, rich data types."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import base64
@@ -453,7 +452,7 @@ class ProtoType(type_info.TypeInfoObject):
     """Return a string with the definition of this field."""
     return self._FormatDescriptionComment() + self._FormatField()
 
-  def Format(self, value):
+  def Format(self, value) -> Iterator[Text]:
     """A Generator for display lines representing value."""
     yield str(value)
 
@@ -466,7 +465,7 @@ class ProtoType(type_info.TypeInfoObject):
     _ = container
     return self.default
 
-  def __str__(self):
+  def __str__(self) -> Text:
     # TODO: This fails for ProtoList.
     return "<Field %s (%s) of %s: field_number: %s>" % (
         self.name, self.__class__.__name__, self.owner.__name__,
@@ -496,7 +495,7 @@ class ProtoString(ProtoType):
     _ = container
     return self.default
 
-  def Validate(self, value, **_):
+  def Validate(self, value, **_) -> Text:
     """Validates a python format representation of the value."""
     if isinstance(value, rdfvalue.RDFString):
       # TODO(hanuszczak): Use `str` here.
@@ -775,7 +774,7 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
       return (self.id, self.name) < (other.id, other.name)
     return NotImplemented
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self.name
 
   def __repr__(self):
@@ -793,11 +792,11 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
   def Copy(self):
     return type(self)(self.id, self.name, self.description, self.labels)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     return str(self.id).encode("ascii")
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
 
     if value:
@@ -806,7 +805,7 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
       return cls(0)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
 
     try:
@@ -1347,7 +1346,7 @@ class RepeatedFieldHelper(collections.Sequence, object):
         return False
     return True
 
-  def __str__(self):
+  def __str__(self) -> Text:
     result = ["'%s': [" % self.type_descriptor.name]
     for element in self:
       for line in self.type_descriptor.Format(element):
@@ -1835,7 +1834,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
       new_raw_data[name] = (obj, serialized, t_info)
     return new_raw_data
 
-  def Copy(self):
+  def Copy(self: T) -> T:
     """Make an efficient copy of this protobuf."""
     result = self.__class__()
     result.SetRawData(self._CopyRawData())
@@ -1875,7 +1874,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     return _SerializeEntries(_GetOrderedEntries(self._data))
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     instance = cls()
     ReadIntoObject(value, 0, instance)
@@ -1929,7 +1928,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
 
     yield "}"
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return "\n".join(self.Format())
 
   def __dir__(self):

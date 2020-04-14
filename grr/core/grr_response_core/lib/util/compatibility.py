@@ -3,7 +3,6 @@
 """A module with utilities for maintaining compatibility with Python 2 and 3."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -46,7 +45,7 @@ def NativeStr(obj):
   return str(obj)
 
 
-def Repr(obj):
+def Repr(obj) -> Text:
   """A variant of the `repr` builtin that always returns unicode objects.
 
   Note that this function does not guarantee that the output is the same in both
@@ -62,7 +61,7 @@ def Repr(obj):
   return "{!r}".format(obj)
 
 
-def GetName(obj):
+def GetName(obj) -> Text:
   """A compatibility wrapper for getting the name of an object or function.
 
   In Python 2 names are returned as `bytes` (since names can contain only ASCII
@@ -89,7 +88,7 @@ def GetName(obj):
     return obj.__name__
 
 
-def SetName(obj, name):
+def SetName(obj, name: Text):
   """A compatibility wrapper for setting object's name.
 
   See documentation for `GetName` for more information.
@@ -108,7 +107,7 @@ def SetName(obj, name):
     obj.__name__ = name
 
 
-def ListAttrs(cls):
+def ListAttrs(cls: type) -> List[Text]:
   """A compatibility wrapper for listing class attributes.
 
   This method solves similar Python 2 compatibility issues for `dir` function as
@@ -134,8 +133,8 @@ def ListAttrs(cls):
     return dir(cls)
 
 
-def MakeType(name, base_classes,
-             namespace):
+def MakeType(name: Text, base_classes: Tuple[Type[Any], ...],
+             namespace: Dict[Text, Any]) -> Type[Any]:
   """A compatibility wrapper for the `type` built-in function.
 
   In Python 2 `type` (used as a type constructor) requires the name argument to
@@ -164,7 +163,7 @@ def MakeType(name, base_classes,
   return type(name, base_classes, namespace)
 
 
-def FormatTime(fmt, stime = None):
+def FormatTime(fmt: Text, stime: Optional[time.struct_time] = None) -> Text:
   """A compatibility wrapper for the `strftime` function.
 
   It is guaranteed to always take unicode string as an argument and return an
@@ -196,7 +195,7 @@ def FormatTime(fmt, stime = None):
   # pytype: enable=wrong-arg-types
 
 
-def ShlexSplit(string):
+def ShlexSplit(string: Text) -> List[Text]:
   """A wrapper for `shlex.split` that works with unicode objects.
 
   Args:
@@ -221,7 +220,7 @@ def ShlexSplit(string):
   return parts
 
 
-def UnescapeString(string):
+def UnescapeString(string: Text) -> Text:
   """A wrapper for `decode("string_escape")` that works in Python 3.
 
   Args:
@@ -234,7 +233,7 @@ def UnescapeString(string):
   return string.encode("utf-8").decode("unicode_escape")
 
 
-def Environ(variable, default):
+def Environ(variable: Text, default: T) -> Union[Text, T]:
   """A wrapper for `os.environ.get` that works the same way in both Pythons.
 
   Args:
@@ -256,7 +255,7 @@ def Environ(variable, default):
   return value
 
 
-def UnicodeJson(json):
+def UnicodeJson(json: Any) -> Any:
   """Converts given JSON-like Python object to one without byte strings.
 
   In some cases when a dictionary is deserialized from some Python 2-specific

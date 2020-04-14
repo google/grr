@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -17,11 +16,11 @@ from typing import Text
 from grr_response_proto import jobs_pb2
 
 
-def size(stat_entry):
+def size(stat_entry: jobs_pb2.StatEntry) -> Text:
   return humanize.naturalsize(stat_entry.st_size, binary=True)
 
 
-def icon(stat_entry):
+def icon(stat_entry: jobs_pb2.StatEntry) -> Text:
   if stat.S_ISDIR(stat_entry.st_mode):
     return '📂'
   elif _is_symlink(stat_entry):
@@ -29,18 +28,18 @@ def icon(stat_entry):
   return '📄'
 
 
-def name(stat_entry):
+def name(stat_entry: jobs_pb2.StatEntry) -> Text:
   filename = os.path.basename(os.path.normpath(stat_entry.pathspec.path))
   if _is_symlink(stat_entry):
     return '{} -> {}'.format(filename, stat_entry.symlink)
   return filename
 
 
-def mode(stat_entry):
+def mode(stat_entry: jobs_pb2.StatEntry) -> Text:
   return mode_from_bitmask(stat_entry.st_mode)
 
 
-def mode_from_bitmask(st_mode):
+def mode_from_bitmask(st_mode: int) -> Text:
   """Represents stat mode of a file in UNIX-like format.
 
   Args:
@@ -86,5 +85,5 @@ def mode_from_bitmask(st_mode):
   return file_type + permissions
 
 
-def _is_symlink(stat_entry):
+def _is_symlink(stat_entry: jobs_pb2.StatEntry) -> bool:
   return stat.S_ISLNK(stat_entry.st_mode) or bool(stat_entry.symlink)

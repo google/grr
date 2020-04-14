@@ -6,7 +6,6 @@ This handles opening and parsing of config files.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -140,7 +139,7 @@ class ConfigFilter(metaclass=MetaclassRegistry):
   # for key material.
   sensitive_arg = False
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     return data
 
@@ -153,7 +152,7 @@ class Literal(ConfigFilter):
 class Lower(ConfigFilter):
   name = "lower"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     return data.lower()
 
@@ -161,7 +160,7 @@ class Lower(ConfigFilter):
 class Upper(ConfigFilter):
   name = "upper"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     return data.upper()
 
@@ -169,7 +168,7 @@ class Upper(ConfigFilter):
 class Filename(ConfigFilter):
   name = "file"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     try:
       with io.open(data, "r") as fd:
@@ -181,7 +180,7 @@ class Filename(ConfigFilter):
 class OptionalFile(ConfigFilter):
   name = "optionalfile"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     try:
       with io.open(data, "r") as fd:
@@ -195,7 +194,7 @@ class FixPathSeparator(ConfigFilter):
 
   name = "fixpathsep"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     if platform.system() == "Windows":
       # This will fix "X:\", and might add extra slashes to other paths, but
@@ -209,7 +208,7 @@ class Env(ConfigFilter):
   """Interpolate environment variables."""
   name = "env"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     return compatibility.Environ(data.upper(), default="")
 
@@ -218,7 +217,7 @@ class Expand(ConfigFilter):
   """Expands the input as a configuration parameter."""
   name = "expand"
 
-  def Filter(self, data):
+  def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
     interpolated = _CONFIG.InterpolateValue(data)
     # TODO(hanuszczak): This assertion should not be necessary but since the
@@ -232,7 +231,7 @@ class Flags(ConfigFilter):
   """Get the parameter from the flags."""
   name = "flags"
 
-  def Filter(self, data):
+  def Filter(self, data: Text):
     precondition.AssertType(data, Text)
     try:
       logging.debug("Overriding config option with flags.FLAGS.%s", data)
@@ -259,7 +258,7 @@ class Resource(ConfigFilter):
   name = "resource"
   default_package = "grr-response-core"
 
-  def Filter(self, filename_spec):
+  def Filter(self, filename_spec: Text) -> Text:
     """Use pkg_resources to find the path to the required resource."""
     if "@" in filename_spec:
       file_path, package_name = filename_spec.split("@")
@@ -289,7 +288,7 @@ class ModulePath(ConfigFilter):
   """
   name = "module_path"
 
-  def Filter(self, name):
+  def Filter(self, name: Text) -> Text:
     try:
       return package.ModulePath(name)
     except ImportError:
@@ -1092,7 +1091,7 @@ class GrrConfigManager(object):
   def LoadSecondaryConfig(self,
                           filename=None,
                           parser=None,
-                          process_includes=True):
+                          process_includes=True) -> GRRConfigParser:
     """Loads an additional configuration file.
 
     The configuration system has the concept of a single Primary configuration

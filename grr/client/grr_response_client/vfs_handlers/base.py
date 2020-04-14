@@ -3,7 +3,6 @@
 """This file implements a VFS abstraction on the client."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -100,9 +99,9 @@ class VFSHandler(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def Stat(
       self,
-      ext_attrs = False,
-      follow_symlink = True,
-  ):
+      ext_attrs: bool = False,
+      follow_symlink: bool = True,
+  ) -> rdf_client_fs.StatEntry:
     """Collects stat information about the file.
 
     If links resolving is enabled, if called on a symlink, the function will

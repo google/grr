@@ -2,7 +2,6 @@
 """A module with utilities for testing GRR's Colab library."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -32,7 +31,7 @@ class ColabTestMixin(object):
   """A mixin intended for tests that need to leverage GRR's Colab library."""
 
   @classmethod
-  def setUpClass(cls):
+  def setUpClass(cls) -> None:
     """Performs all initialization needed to interface with GRR's API."""
     # This is a mixin class intended to be used with `absltest.TestCase`.
     super(ColabTestMixin, cls).setUpClass()  # pytype: disable=attribute-error
@@ -52,7 +51,7 @@ class ColabTestMixin(object):
     _api._API = api.InitHttp(api_endpoint="http://localhost:{}".format(port))  # pylint: disable=protected-access
 
   @classmethod
-  def tearDownClass(cls):
+  def tearDownClass(cls) -> None:
     """Cleanups all the resources allocated during class initialization."""
     # This is a mixin class intended to be used with `absltest.TestCase`.
     super(ColabTestMixin, cls).tearDownClass()  # pytype: disable=attribute-error
@@ -72,7 +71,7 @@ class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,
   """
 
   @classmethod
-  def setUpClass(cls):
+  def setUpClass(cls) -> None:
     # TODO(hanuszczak): See comment about `TestInit` in `ColabTestMixin`.
     # Testing startup has to be called before `setUpClass` of the superclass,
     # because it requires things like the configuration system to be already
@@ -80,7 +79,7 @@ class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,
     testing_startup.TestInit()
     super(ColabE2ETest, cls).setUpClass()
 
-  def setUp(self):
+  def setUp(self) -> None:
     super(ColabE2ETest, self).setUp()
 
     # We override original `WaitUntilDone` with a one that executes all flows

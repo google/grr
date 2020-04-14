@@ -2,7 +2,6 @@
 """Library for client code signing."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -81,7 +80,7 @@ class WindowsOsslsigncodeCodeSigner(CodeSigner):
     self.password = password
     self.application = application
 
-  def SignBuffer(self, in_buffer):
+  def SignBuffer(self, in_buffer: bytes) -> bytes:
     """Sign a buffer via temp files.
 
     Our signing tool can't sign a buffer, so we work around it using temporary

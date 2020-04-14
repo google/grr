@@ -909,7 +909,7 @@ class FlowBase(metaclass=FlowRegistry):
   def IsRunning(self):
     return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
 
-  def GetProgress(self):
+  def GetProgress(self) -> rdf_structs.RDFProtoStruct:
     if self.__class__.progress_type is not None:
       raise NotImplementedError(
           "GetProgress() methods has to be implemented "

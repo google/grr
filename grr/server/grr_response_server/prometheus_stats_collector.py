@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -32,8 +31,8 @@ class _Metric(object):
       Gauge, or Histogram.
   """
 
-  def __init__(self, metadata,
-               registry):
+  def __init__(self, metadata: rdf_stats.MetricMetadata,
+               registry: prometheus_client.registry.CollectorRegistry):
     """Instantiates a new _Metric.
 
     Args:
@@ -81,7 +80,7 @@ class _Metric(object):
           " {!r} was trying to be saved.".format(self.metadata.varname,
                                                  self.fields, fields))
 
-  def ForFields(self, fields):
+  def ForFields(self, fields) -> prometheus_client.metrics.MetricWrapperBase:
     self.Validate(fields)
     if fields:
       return self.metric.labels(*fields)
@@ -174,7 +173,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
 
     super().__init__()
 
-  def _InitializeMetric(self, metadata):
+  def _InitializeMetric(self, metadata: rdf_stats.MetricMetadata):
     self._metrics[metadata.varname] = _Metric(metadata, registry=self._registry)
 
   @utils.Synchronized

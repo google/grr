@@ -3,7 +3,6 @@
 """A module with utility functions for working with SQLite databases."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import contextlib
@@ -25,7 +24,7 @@ class ConnectionContext(object):
   not provide safe context-manager interface.
   """
 
-  def __init__(self, conn):
+  def __init__(self, conn: sqlite3.Connection) -> None:
     """Initializes the SQLite connection objects.
 
     Args:
@@ -33,7 +32,7 @@ class ConnectionContext(object):
     """
     self._conn = conn
 
-  def Query(self, query):  # pylint: disable=g-bare-generic
+  def Query(self, query: Text) -> Iterator[Tuple]:  # pylint: disable=g-bare-generic
     """Queries the underlying database.
 
     Args:
@@ -55,7 +54,7 @@ class ConnectionContext(object):
 
 
 @contextlib.contextmanager
-def IOConnection(db_filedesc):
+def IOConnection(db_filedesc: IO[bytes]) -> Iterator[ConnectionContext]:
   """A connection to the SQLite database created out of given byte stream.
 
   Args:
@@ -74,7 +73,7 @@ def IOConnection(db_filedesc):
       yield ConnectionContext(conn)
 
 
-def _CopyIO(input, output):  # pylint: disable=redefined-builtin
+def _CopyIO(input: IO[bytes], output: IO[bytes]) -> None:  # pylint: disable=redefined-builtin
   """Copies contents of one binary stream into another.
 
   Args:

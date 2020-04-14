@@ -3,7 +3,6 @@
 """The MySQL database methods for flow handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -398,11 +397,11 @@ class MySQLDBFlowMixin(object):
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowObjects(self,
-                         client_id = None,
-                         min_create_time = None,
-                         max_create_time = None,
-                         include_child_flows = True,
-                         cursor=None):
+                         client_id: Optional[Text] = None,
+                         min_create_time: Optional[rdfvalue.RDFDatetime] = None,
+                         max_create_time: Optional[rdfvalue.RDFDatetime] = None,
+                         include_child_flows: bool = True,
+                         cursor=None) -> List[rdf_flow_objects.Flow]:
     """Returns all flow objects."""
     conditions = []
     args = []

@@ -3,7 +3,6 @@
 """A generic serializer for python dictionaries."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -334,7 +333,7 @@ class Dict(rdf_structs.RDFProtoStruct):
     self.dat = self._values.values()
     return super(Dict, self).SerializeToBytes()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return str(self.ToDict())
 
 

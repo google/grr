@@ -3,7 +3,6 @@
 """A module with utilities for optimized pseudo-random number generation."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -17,17 +16,17 @@ _random_buffer = []  # type: List[int]
 _mutex = threading.Lock()
 
 
-def UInt16():
+def UInt16() -> int:
   """Returns a pseudo-random 16-bit unsigned integer."""
   return UInt32() & 0xFFFF
 
 
-def PositiveUInt16():
+def PositiveUInt16() -> int:
   """Returns a pseudo-random 16-bit non-zero unsigned integer."""
   return _Positive(UInt16)
 
 
-def UInt32():
+def UInt32() -> int:
   """Returns a pseudo-random 32-bit unsigned integer."""
   with _mutex:
     try:
@@ -39,17 +38,17 @@ def UInt32():
       return _random_buffer.pop()
 
 
-def PositiveUInt32():
+def PositiveUInt32() -> int:
   """Returns a pseudo-random 32-bit non-zero unsigned integer."""
   return _Positive(UInt32)
 
 
-def UInt64():
+def UInt64() -> int:
   """Returns a pseudo-random 64-bit unsigned integer."""
   return (UInt32() << 32) | UInt32()
 
 
-def _Positive(rng):
+def _Positive(rng: Callable[[], int]) -> int:
   while True:
     result = rng()
     if result > 0:

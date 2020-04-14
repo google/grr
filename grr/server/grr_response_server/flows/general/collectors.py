@@ -3,7 +3,6 @@
 """Flows for handling the collection for artifacts."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -527,8 +526,9 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     return new_args
 
   def _Interpolate(self,
-                   pattern,
-                   knowledgebase = None):
+                   pattern: Text,
+                   knowledgebase: Optional[rdf_client.KnowledgeBase] = None)\
+  -> Sequence[Text]:
     """Performs a knowledgebase interpolation.
 
     Args:

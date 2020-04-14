@@ -3,7 +3,6 @@
 """A module with utilities for string interpolation."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -30,7 +29,7 @@ ScopeConfig = Dict[ScopeId, VarConfig]
 class Substitution(object):
   """A class representing substitution environment."""
 
-  def __init__(self, var_config, scope_config):
+  def __init__(self, var_config: VarConfig, scope_config: ScopeConfig):
     """Initializes the substitution environment.
 
     Args:
@@ -50,7 +49,7 @@ class Substitution(object):
         key = "%%{scope}.{var}%%".format(scope=scope_id, var=var_id)
         self._substs[key] = str(var_value)
 
-  def Substitute(self, pattern):
+  def Substitute(self, pattern: AnyStr) -> AnyStr:
     """Formats given pattern with this substitution environment.
 
     A pattern can contain placeholders for variables (`%%foo%%`) and scopes
@@ -67,7 +66,7 @@ class Substitution(object):
       substs = [re.escape(subst.encode("ascii")) for subst in self._substs]
       regex = re.compile(b"|".join(substs))
 
-      def Replacement(match):
+      def Replacement(match: Match[bytes]) -> bytes:
         key = match.group(0).decode("ascii")
         return self._substs[key].encode("utf-8")
 
@@ -75,7 +74,7 @@ class Substitution(object):
       substs = [re.escape(subst) for subst in self._substs]
       regex = re.compile("|".join(substs))
 
-      def Replacement(match):
+      def Replacement(match: Match[Text]) -> Text:
         key = match.group(0)
         return self._substs[key]
 
@@ -103,7 +102,7 @@ class Interpolator(Generic[AnyStr]):
   _VAR_PLACEHOLDER_PATTERN = r"%%(?P<var>\w+)%%"
   _SCOPE_PLACEHOLDER_PATTERN = r"%%(?P<scope>\w+)\.(?P<var>\w+)%%"
 
-  def __init__(self, pattern):
+  def __init__(self, pattern: AnyStr):
     """Initializes the interpolator.
 
     Args:
@@ -138,19 +137,19 @@ class Interpolator(Generic[AnyStr]):
     self._var_bindings = collections.defaultdict(lambda: [])
     self._scope_bindings = collections.defaultdict(lambda: [])
 
-  def Vars(self):
+  def Vars(self) -> Set[VarId]:
     """A set of variable names of the interpolation pattern."""
     return set(self._vars)
 
-  def Scopes(self):
+  def Scopes(self) -> Set[ScopeId]:
     """A set of scope names of the interpolation pattern."""
     return set(self._scopes.keys())
 
-  def ScopeVars(self, vid):
+  def ScopeVars(self, vid: ScopeId) -> Set[VarId]:
     """A set of variables names for given scope of the interpolation pattern."""
     return set(self._scopes[vid])
 
-  def BindVar(self, var_id, value):
+  def BindVar(self, var_id: VarId, value: Any) -> None:
     """Associates a value with given variable.
 
     This can be called multiple times to associate multiple values.
@@ -167,7 +166,7 @@ class Interpolator(Generic[AnyStr]):
 
     self._var_bindings[var_id].append(value)
 
-  def BindScope(self, scope_id, values):
+  def BindScope(self, scope_id: ScopeId, values: Dict[Text, Any]) -> None:
     """Associates given values with given scope.
 
     This can be called multiple times to associate multiple values.
@@ -189,7 +188,7 @@ class Interpolator(Generic[AnyStr]):
 
     self._scope_bindings[scope_id].append(values)
 
-  def Interpolate(self):
+  def Interpolate(self) -> Iterator[AnyStr]:
     """Interpolates the pattern.
 
     Yields:

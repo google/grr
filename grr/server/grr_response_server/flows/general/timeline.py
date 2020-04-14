@@ -3,7 +3,6 @@
 """A module that defines the timeline flow."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Iterator
@@ -27,7 +26,7 @@ class TimelineFlow(flow_base.FlowBase):
 
   args_type = rdf_timeline.TimelineArgs
 
-  def Start(self):
+  def Start(self) -> None:
     super(TimelineFlow, self).Start()
 
     if not self.args.root:
@@ -40,8 +39,8 @@ class TimelineFlow(flow_base.FlowBase):
 
   def Process(
       self,
-      responses,
-  ):
+      responses: flow_responses.Responses[rdf_timeline.TimelineResult],
+  ) -> None:
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
@@ -57,9 +56,9 @@ class TimelineFlow(flow_base.FlowBase):
 
 
 def Entries(
-    client_id,
-    flow_id,
-):
+    client_id: Text,
+    flow_id: Text,
+) -> Iterator[rdf_timeline.TimelineEntry]:
   """Retrieves timeline entries for the specified flow.
 
   Args:
@@ -74,9 +73,9 @@ def Entries(
 
 
 def Blobs(
-    client_id,
-    flow_id,
-):
+    client_id: Text,
+    flow_id: Text,
+) -> Iterator[bytes]:
   """Retrieves timeline blobs for the specified flow.
 
   Args:

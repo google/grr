@@ -3,7 +3,6 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -204,12 +203,12 @@ class DumpTest(absltest.TestCase):
 
     class Foo(object):
 
-      def __init__(self, foo):
+      def __init__(self, foo: Text):
         self.foo = foo
 
     class FooEncoder(json.Encoder):
 
-      def default(self, obj):
+      def default(self, obj: Any):
         if isinstance(obj, Foo):
           return obj.foo
         else:

@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -28,14 +27,14 @@ REGISTRY = 'registry'
 
 class _State(object):
 
-  def __init__(self):
+  def __init__(self) -> None:
     self.client = None  # type: Optional[grr_colab.Client]
     self.cur_dir = '/'
 
 
 class NoClientSelectedError(Exception):
 
-  def __init__(self):
+  def __init__(self) -> None:
     msg = 'A client must be selected'
     super(NoClientSelectedError, self).__init__(msg)
 
@@ -43,7 +42,7 @@ class NoClientSelectedError(Exception):
 _state = _State()
 
 
-def grr_set_no_flow_timeout_impl():
+def grr_set_no_flow_timeout_impl() -> None:
   """Disables flow timeout (it means wait forever).
 
   Returns:
@@ -52,7 +51,7 @@ def grr_set_no_flow_timeout_impl():
   grr_colab.set_no_flow_timeout()
 
 
-def grr_set_default_flow_timeout_impl():
+def grr_set_default_flow_timeout_impl() -> None:
   """Sets flow timeout to default value (30 seconds).
 
   Returns:
@@ -61,7 +60,7 @@ def grr_set_default_flow_timeout_impl():
   grr_colab.set_default_flow_timeout()
 
 
-def grr_set_flow_timeout_impl(timeout):
+def grr_set_flow_timeout_impl(timeout: int) -> None:
   """Sets flow timeout.
 
   Args:
@@ -73,7 +72,7 @@ def grr_set_flow_timeout_impl(timeout):
   grr_colab.set_flow_timeout(timeout)
 
 
-def grr_list_artifacts_impl():
+def grr_list_artifacts_impl() -> pd.DataFrame:
   """Lists all registered GRR artifacts.
 
   Returns:
@@ -93,12 +92,12 @@ def grr_list_artifacts_impl():
 
 
 def grr_search_clients_impl(
-    ip = None,
-    mac = None,
-    host = None,
-    user = None,
-    version = None,
-    labels = None):
+    ip: Optional[Text] = None,
+    mac: Optional[Text] = None,
+    host: Optional[Text] = None,
+    user: Optional[Text] = None,
+    version: Optional[Text] = None,
+    labels: Optional[List[Text]] = None) -> pd.DataFrame:
   """Searches for clients with specified keywords.
 
   Args:
@@ -134,12 +133,12 @@ def grr_search_clients_impl(
 
 
 def grr_search_online_clients_impl(
-    ip = None,
-    mac = None,
-    host = None,
-    user = None,
-    version = None,
-    labels = None):
+    ip: Optional[Text] = None,
+    mac: Optional[Text] = None,
+    host: Optional[Text] = None,
+    user: Optional[Text] = None,
+    version: Optional[Text] = None,
+    labels: Optional[List[Text]] = None) -> pd.DataFrame:
   """Searches for online clients with specified keywords.
 
   Args:
@@ -157,8 +156,8 @@ def grr_search_online_clients_impl(
   return df[df.online == 'online'].reset_index(drop=True)
 
 
-def grr_set_client_impl(hostname = None,
-                        client = None):
+def grr_set_client_impl(hostname: Optional[Text] = None,
+                        client: Optional[Text] = None) -> None:
   """Sets a new client for the current state.
 
   Args:
@@ -179,9 +178,9 @@ def grr_set_client_impl(hostname = None,
   _state.cur_dir = '/'
 
 
-def grr_request_approval_impl(reason,
-                              approvers,
-                              wait = False):
+def grr_request_approval_impl(reason: Text,
+                              approvers: List[Text],
+                              wait: bool = False) -> None:
   """Sends approval request to the selected client for the current user.
 
   Args:
@@ -204,7 +203,7 @@ def grr_request_approval_impl(reason,
     _state.client.request_approval(approvers=approvers, reason=reason)
 
 
-def grr_id_impl():
+def grr_id_impl() -> Text:
   """Returns ID of the selected client.
 
   Returns:
@@ -218,7 +217,7 @@ def grr_id_impl():
   return _state.client.id
 
 
-def grr_cd_impl(path):
+def grr_cd_impl(path: Text) -> None:
   """Changes the current directory.
 
   Args:
@@ -235,7 +234,7 @@ def grr_cd_impl(path):
   _state.cur_dir = _build_absolute_path(path)
 
 
-def grr_pwd_impl():
+def grr_pwd_impl() -> Text:
   """Returns absolute path to the current directory.
 
   Returns:
@@ -249,9 +248,9 @@ def grr_pwd_impl():
   return _state.cur_dir
 
 
-def grr_ls_impl(path = None,
-                cached = False,
-                path_type = OS):
+def grr_ls_impl(path: Optional[Text] = None,
+                cached: bool = False,
+                path_type: Text = OS) -> pd.DataFrame:
   """Lists files in the specified directory or the current directory.
 
   Args:
@@ -276,7 +275,7 @@ def grr_ls_impl(path = None,
   return convert.from_sequence(filesystem.ls(path))
 
 
-def grr_stat_impl(path, path_type = OS):
+def grr_stat_impl(path: Text, path_type: Text = OS) -> pd.DataFrame:
   """Stats the file specified.
 
   Accepts glob expressions as a file path.
@@ -301,11 +300,11 @@ def grr_stat_impl(path, path_type = OS):
 
 
 def grr_head_impl(
-    path,
-    bytes = 4096,  # pylint: disable=redefined-builtin
-    offset = 0,
-    cached = False,
-    path_type = OS):
+    path: Text,
+    bytes: int = 4096,  # pylint: disable=redefined-builtin
+    offset: int = 0,
+    cached: bool = False,
+    path_type: Text = OS) -> bytes:
   """Reads the first bytes of a specified file.
 
   Args:
@@ -336,11 +335,11 @@ def grr_head_impl(
     return f.read(bytes)
 
 
-def grr_grep_impl(pattern,
-                  path,
-                  fixed_strings = False,
-                  path_type = OS,
-                  hex_string = False):
+def grr_grep_impl(pattern: Text,
+                  path: Text,
+                  fixed_strings: bool = False,
+                  path_type: Text = OS,
+                  hex_string: bool = False) -> pd.DataFrame:
   """Greps for a given content of a specified file.
 
   Args:
@@ -372,10 +371,10 @@ def grr_grep_impl(pattern,
   return convert.from_sequence(filesystem.grep(path, byte_pattern))
 
 
-def grr_fgrep_impl(literal,
-                   path,
-                   path_type = OS,
-                   hex_string = False):
+def grr_fgrep_impl(literal: Text,
+                   path: Text,
+                   path_type: Text = OS,
+                   hex_string: bool = False) -> pd.DataFrame:
   """Greps for a given literal content of a specified file.
 
   Is the same as running: %grr_grep -F
@@ -406,7 +405,7 @@ def grr_fgrep_impl(literal,
   return convert.from_sequence(filesystem.fgrep(path, byte_literal))
 
 
-def grr_interrogate_impl():
+def grr_interrogate_impl() -> pd.DataFrame:
   """Creates Interrogate flow for the chosen client.
 
   Returns:
@@ -420,7 +419,7 @@ def grr_interrogate_impl():
   return convert.from_message(_state.client.interrogate())
 
 
-def grr_hostname_impl():
+def grr_hostname_impl() -> Text:
   """Returns hostname of the selected client.
 
   Returns:
@@ -434,7 +433,7 @@ def grr_hostname_impl():
   return _state.client.hostname
 
 
-def grr_ifconfig_impl():
+def grr_ifconfig_impl() -> pd.DataFrame:
   """Lists network interfaces of the selected client.
 
   Returns:
@@ -458,7 +457,7 @@ def grr_ifconfig_impl():
   return df
 
 
-def grr_uname_impl(machine = False, kernel_release = False):
+def grr_uname_impl(machine: bool = False, kernel_release: bool = False) -> Text:
   """Returns certain system infornamtion.
 
   Args:
@@ -481,7 +480,7 @@ def grr_uname_impl(machine = False, kernel_release = False):
   raise ValueError('No options were specified')
 
 
-def grr_ps_impl():
+def grr_ps_impl() -> pd.DataFrame:
   """Lists processes of the selected client.
 
   Returns:
@@ -495,7 +494,7 @@ def grr_ps_impl():
   return convert.from_sequence(_state.client.ps())
 
 
-def grr_osqueryi_impl(sql):
+def grr_osqueryi_impl(sql: Text) -> pd.DataFrame:
   """Runs given SQL statement on client osquery.
 
   Args:
@@ -512,7 +511,7 @@ def grr_osqueryi_impl(sql):
   return convert.from_osquery_table(_state.client.osquery(sql))
 
 
-def grr_collect_impl(artifact):
+def grr_collect_impl(artifact: Text) -> pd.DataFrame:
   """Collects specified artifact.
 
   Args:
@@ -529,9 +528,9 @@ def grr_collect_impl(artifact):
   return convert.from_sequence(_state.client.collect(artifact))
 
 
-def grr_yara_impl(signature,
-                  pids = None,
-                  regex = None):
+def grr_yara_impl(signature: Text,
+                  pids: Optional[List[int]] = None,
+                  regex: Optional[Text] = None) -> pd.DataFrame:
   """Scans processes using provided YARA rule.
 
   Args:
@@ -550,9 +549,9 @@ def grr_yara_impl(signature,
   return convert.from_sequence(_state.client.yara(signature, pids, regex))
 
 
-def grr_wget_impl(path,
-                  cached = False,
-                  path_type = OS):
+def grr_wget_impl(path: Text,
+                  cached: bool = False,
+                  path_type: Text = OS) -> Text:
   """Downloads a file and returns a link to it.
 
   Args:
@@ -577,7 +576,7 @@ def grr_wget_impl(path,
   return filesystem.wget(path)
 
 
-def _build_absolute_path(path):
+def _build_absolute_path(path: Text) -> Text:
   if path.startswith('/'):
     abs_path = path
   else:
@@ -585,7 +584,7 @@ def _build_absolute_path(path):
   return os.path.normpath(abs_path)
 
 
-def _get_filesystem(path_type):
+def _get_filesystem(path_type: Text) -> fs.FileSystem:
   """Returns filesystem depending on provided path type.
 
   Args:
@@ -603,7 +602,7 @@ def _get_filesystem(path_type):
   raise ValueError('Unsupported path type `{}`'.format(path_type))
 
 
-def _add_online_status_columns(df):
+def _add_online_status_columns(df: pd.DataFrame) -> pd.DataFrame:
   """Adds string and unicode online status columns to a dataframe of clients.
 
   Args:
@@ -622,7 +621,7 @@ def _add_online_status_columns(df):
   return df
 
 
-def _add_last_seen_column(df):
+def _add_last_seen_column(df: pd.DataFrame) -> pd.DataFrame:
   """Adds last seen time ago column to a dataframe of clients.
 
   Args:
@@ -639,8 +638,8 @@ def _add_last_seen_column(df):
   return df
 
 
-def _add_pretty_ipaddress_column(df,
-                                 col_name):
+def _add_pretty_ipaddress_column(df: pd.DataFrame,
+                                 col_name: Text) -> pd.DataFrame:
   """Adds a column with pretty representation of IP address value.
 
   Args:
@@ -654,7 +653,7 @@ def _add_pretty_ipaddress_column(df,
   if col_name not in df.columns:
     return df
 
-  def convert_to_pretty_str(packed):
+  def convert_to_pretty_str(packed: bytes) -> Text:
     if len(packed) == 4:
       return str(ipaddress.IPv4Address(packed))
     return str(ipaddress.IPv6Address(packed))
@@ -663,7 +662,7 @@ def _add_pretty_ipaddress_column(df,
   return convert.add_pretty_column(df, col_name, pretty_values)
 
 
-def _add_pretty_mac_column(df, col_name):
+def _add_pretty_mac_column(df: pd.DataFrame, col_name: Text) -> pd.DataFrame:
   """Adds a column with pretty representation of MAC address value.
 
   Args:
@@ -677,7 +676,7 @@ def _add_pretty_mac_column(df, col_name):
   if col_name not in df.columns:
     return df
 
-  def convert_to_pretty_str(packed):
+  def convert_to_pretty_str(packed: bytes) -> Text:
     if pd.isna(packed):
       return np.nan
     return client_textify.mac(packed)

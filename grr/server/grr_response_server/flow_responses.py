@@ -3,7 +3,6 @@
 """The class encapsulating flow responses."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Iterable, Iterator, Optional, TypeVar
@@ -24,7 +23,7 @@ class Responses(Iterable[T]):
     self.responses = []
 
   @classmethod
-  def FromResponses(cls, request=None, responses=None):
+  def FromResponses(cls, request=None, responses=None) -> "Responses":
     """Creates a Responses object from new style flow request and responses."""
     res = cls()
     res.request = request
@@ -43,18 +42,18 @@ class Responses(Iterable[T]):
         raise TypeError("Got unexpected response type: %s" % type(r))
     return res
 
-  def __iter__(self):
+  def __iter__(self) -> Iterator[T]:
     return iter(self.responses)
 
-  def First(self):
+  def First(self) -> Optional[T]:
     """A convenience method to return the first response."""
     for x in self:
       return x
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self.responses)
 
-  def __bool__(self):
+  def __bool__(self) -> bool:
     return bool(self.responses)
 
   # TODO: Remove after support for Python 2 is dropped.

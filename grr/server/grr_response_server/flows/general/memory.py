@@ -3,7 +3,6 @@
 """Flows related to process memory."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -114,7 +113,7 @@ class YaraProcessScan(flow_base.FlowBase):
 
   def ProcessScanResults(
       self,
-      responses):
+      responses: flow_responses.Responses[rdf_memory.YaraProcessScanResponse]):
     """Processes the results of the scan."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
@@ -165,7 +164,8 @@ class YaraProcessScan(flow_base.FlowBase):
           skip_readonly_regions=self.args.skip_readonly_regions,
           next_state=compatibility.GetName(self.CheckDumpProcessMemoryResults))
 
-  def CheckDumpProcessMemoryResults(self, responses):
+  def CheckDumpProcessMemoryResults(self, responses: flow_responses.Responses[
+      Union[rdf_client_fs.StatEntry, rdf_memory.YaraProcessDumpResponse]]):
     # First send responses to parent Flow, then indicate potential errors, to
     # increase robustness.
     for response in responses:
@@ -174,7 +174,7 @@ class YaraProcessScan(flow_base.FlowBase):
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
-  def _ShouldIncludeError(self, error):
+  def _ShouldIncludeError(self, error: rdf_memory.ProcessMemoryError) -> bool:
     ErrorPolicy = self.args.ErrorPolicy  # pylint: disable=invalid-name
 
     if self.args.include_errors_in_results == ErrorPolicy.NO_ERRORS:
@@ -189,7 +189,7 @@ class YaraProcessScan(flow_base.FlowBase):
     return True
 
 
-def _CanonicalizeLegacyWindowsPathSpec(ps):
+def _CanonicalizeLegacyWindowsPathSpec(ps: rdf_paths.PathSpec):
   """Canonicalize simple PathSpecs that might be from Windows legacy clients."""
   canonicalized = rdf_paths.PathSpec(ps)
   # Detect a path like C:\\Windows\\System32\\GRR.
@@ -200,7 +200,7 @@ def _CanonicalizeLegacyWindowsPathSpec(ps):
 
 
 def _MigrateLegacyDumpFilesToMemoryAreas(
-    response):
+    response: rdf_memory.YaraProcessDumpResponse):
   """Migrates a YPDR from dump_files to memory_regions inplace."""
   for info in response.dumped_processes:
     for dump_file in info.dump_files:
@@ -222,8 +222,8 @@ def _MigrateLegacyDumpFilesToMemoryAreas(
 
 
 def _ReplaceDumpPathspecsWithMultiGetFilePathspec(
-    dump_response,
-    stat_entries):
+    dump_response: rdf_memory.YaraProcessDumpResponse,
+    stat_entries: Iterable[rdf_client_fs.StatEntry]):
   """Replaces a dump's PathSpecs based on their Basename."""
   memory_regions = {}
   for dumped_process in dump_response.dumped_processes:
@@ -267,7 +267,7 @@ class DumpProcessMemory(flow_base.FlowBase):
 
   def ProcessResults(
       self,
-      responses):
+      responses: flow_responses.Responses[rdf_memory.YaraProcessDumpResponse]):
     """Processes the results of the dump."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
@@ -302,7 +302,7 @@ class DumpProcessMemory(flow_base.FlowBase):
         request_data={"YaraProcessDumpResponse": response})
 
   def ProcessMemoryRegions(
-      self, responses):
+      self, responses: flow_responses.Responses[rdf_client_fs.StatEntry]):
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
@@ -328,7 +328,7 @@ class DumpProcessMemory(flow_base.FlowBase):
           next_state=compatibility.GetName(self.LogDeleteFiles))
 
   def LogDeleteFiles(
-      self, responses):
+      self, responses: flow_responses.Responses[rdf_client.LogMessage]):
     # Check that the DeleteFiles flow worked.
     if not responses.success:
       raise flow_base.FlowError("Could not delete file: %s" % responses.status)

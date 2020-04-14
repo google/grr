@@ -2,7 +2,6 @@
 # Lint as: python3
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -52,7 +51,7 @@ class TimelineEntryTest(absltest.TestCase):
     serialize = rdf_timeline.TimelineEntry.SerializeStream
     deserialize = rdf_timeline.TimelineEntry.DeserializeStream
 
-    def RandomEntry():
+    def RandomEntry() -> rdf_timeline.TimelineEntry:
       entry = rdf_timeline.TimelineEntry()
       entry.path = os.urandom(4096)
       entry.mode = random.randint(0x0000, 0xFFFF - 1)

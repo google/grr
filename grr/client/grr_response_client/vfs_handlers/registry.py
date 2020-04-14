@@ -3,7 +3,6 @@
 """Implement access to the windows registry."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import ctypes
@@ -366,9 +365,9 @@ class RegistryFile(vfs_base.VFSHandler):
 
   def Stat(
       self,
-      ext_attrs = False,
-      follow_symlink = True,
-  ):
+      ext_attrs: bool = False,
+      follow_symlink: bool = True,
+  ) -> rdf_client_fs.StatEntry:
     del ext_attrs, follow_symlink  # Unused.
     # mtime is only available for keys, not values. Also special-casing root
     # entry (it's not going to have a hive defined).

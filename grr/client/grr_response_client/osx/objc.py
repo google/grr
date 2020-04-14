@@ -3,7 +3,6 @@
 """Interface to Objective C libraries on OS X."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import ctypes
@@ -125,7 +124,7 @@ class Foundation(object):
 
     self.LoadLibrary('Foundation', self.cftable)
 
-  def CFStringToPystring(self, value):
+  def CFStringToPystring(self, value) -> Text:
     length = (self.dll.CFStringGetLength(value) * 4) + 1
     buff = ctypes.create_string_buffer(length)
     self.dll.CFStringGetCString(value, buff, length * 4, UTF8)
@@ -316,13 +315,13 @@ class CFString(CFType):
       raise TypeError('CFString initializer must be python or objc string.')
 
   @property
-  def value(self):
+  def value(self) -> Text:
     return self.CFStringToPystring(self)
 
   def __len__(self):
     return self.dll.CFArrayGetCount(self.ref)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self.value
 
   def __repr__(self):

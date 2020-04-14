@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -17,7 +16,7 @@ FLAGS = flags.FLAGS
 
 class UnknownClientError(Exception):
 
-  def __init__(self, client_id, cause):
+  def __init__(self, client_id: Text, cause: Exception) -> None:
     self.client_id = client_id
     self.cause = cause
     msg = 'Client with id {} does not exist: {}'.format(client_id, cause)
@@ -26,7 +25,7 @@ class UnknownClientError(Exception):
 
 class AmbiguousHostnameError(Exception):
 
-  def __init__(self, hostname, clients):
+  def __init__(self, hostname: Text, clients: List[Text]) -> None:
     self.hostname = hostname
     self.clients = clients
     msg = 'Too many clients ({}) found for hostname: {}'.format(
@@ -36,7 +35,7 @@ class AmbiguousHostnameError(Exception):
 
 class UnknownHostnameError(Exception):
 
-  def __init__(self, hostname):
+  def __init__(self, hostname: Text) -> None:
     self.hostname = hostname
     msg = 'No clients found for hostname: {}'.format(hostname)
     super(UnknownHostnameError, self).__init__(msg)
@@ -44,7 +43,7 @@ class UnknownHostnameError(Exception):
 
 class ApprovalMissingError(Exception):
 
-  def __init__(self, client_id, cause):
+  def __init__(self, client_id: Text, cause: Exception) -> None:
     self.client_id = client_id
     self.cause = cause
     msg = 'No approval to the client {} found: {}'.format(client_id, cause)
@@ -61,9 +60,9 @@ class FlowTimeoutError(Exception):
   """
 
   def __init__(self,
-               client_id,
-               flow_id,
-               cause = None):
+               client_id: Text,
+               flow_id: Text,
+               cause: Optional[Exception] = None) -> None:
     self.client_id = client_id
     self.flow_id = flow_id
     self.cause = cause
@@ -75,7 +74,7 @@ class FlowTimeoutError(Exception):
           msg, url)
     super(FlowTimeoutError, self).__init__(msg)
 
-  def _build_path_to_ui(self):
+  def _build_path_to_ui(self) -> Optional[Text]:
     if not FLAGS.grr_admin_ui_url:
       return None
     url = '{}/#/clients/{}/flows/{}'
@@ -84,7 +83,7 @@ class FlowTimeoutError(Exception):
 
 class NotDirectoryError(Exception):
 
-  def __init__(self, client_id, path):
+  def __init__(self, client_id: Text, path: Text) -> None:
     self.client_id = client_id
     self.path = path
     msg = 'Path `{}` for client {} is not a directory'.format(client_id, path)
@@ -93,7 +92,7 @@ class NotDirectoryError(Exception):
 
 class UnsupportedPathTypeError(Exception):
 
-  def __init__(self, path_type):
+  def __init__(self, path_type: jobs_pb2.PathSpec.PathType) -> None:
     self.path_type = path_type
     msg = 'Unsupported path type {}'.format(path_type)
     super(UnsupportedPathTypeError, self).__init__(msg)

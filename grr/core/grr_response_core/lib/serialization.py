@@ -3,7 +3,6 @@
 """(De-)serialization to bytes, wire format, and human readable strings."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -21,12 +20,12 @@ class Converter(metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
-  def FromBytes(self, value):
+  def FromBytes(self, value: bytes):
     """Deserializes a value from bytes outputted by ToBytes."""
     pass
 
   @abc.abstractmethod
-  def ToBytes(self, value):
+  def ToBytes(self, value) -> bytes:
     """Serializes `value` into bytes which can be parsed with FromBytes."""
     pass
 
@@ -41,7 +40,7 @@ class Converter(metaclass=abc.ABCMeta):
     pass
 
   @abc.abstractmethod
-  def FromHumanReadable(self, string):
+  def FromHumanReadable(self, string: Text):
     """Deserializes a value from a string outputted by str(value)."""
     pass
 
@@ -51,20 +50,20 @@ class BoolConverter(Converter):
   protobuf_type = "unsigned_integer"
   wrapping_type = bool
 
-  def FromBytes(self, value):
+  def FromBytes(self, value: bytes) -> bool:
     return bool(int(value))
 
-  def ToBytes(self, value):
+  def ToBytes(self, value: bool) -> bytes:
     return b"1" if value else b"0"
 
-  def FromWireFormat(self, value):
+  def FromWireFormat(self, value: int) -> bool:
     precondition.AssertType(value, int)
     return bool(value)
 
-  def ToWireFormat(self, value):
+  def ToWireFormat(self, value: bool) -> int:
     return 1 if value else 0
 
-  def FromHumanReadable(self, string):
+  def FromHumanReadable(self, string: Text) -> bool:
     upper_string = string.upper()
     if upper_string == u"TRUE" or string == u"1":
       return True
@@ -85,21 +84,21 @@ class RDFValueConverter(Converter):
   def protobuf_type(self):
     return self._cls.protobuf_type
 
-  def FromBytes(self, value):
+  def FromBytes(self, value: bytes):
     return self._cls.FromSerializedBytes(value)
 
-  def ToBytes(self, value):
+  def ToBytes(self, value: rdfvalue.RDFValue) -> bytes:
     precondition.AssertType(value, self._cls)
     return value.SerializeToBytes()
 
   def FromWireFormat(self, value):
     return self._cls.FromWireFormat(value)
 
-  def ToWireFormat(self, value):
+  def ToWireFormat(self, value: rdfvalue.RDFValue):
     precondition.AssertType(value, self._cls)
     return value.SerializeToWireFormat()
 
-  def FromHumanReadable(self, string):
+  def FromHumanReadable(self, string: Text) -> rdfvalue.RDFValue:
     if issubclass(self._cls, rdfvalue.RDFPrimitive):
       return self._cls.FromHumanReadable(string)
     else:
@@ -120,7 +119,7 @@ def GetProtobufType(cls):
   return _GetFactory(cls).protobuf_type
 
 
-def FromHumanReadable(cls, string):
+def FromHumanReadable(cls, string: Text):
   """Deserializes a value of `cls` from a string outputted by str(value)."""
   precondition.AssertType(string, Text)
   return _GetFactory(cls).FromHumanReadable(string)
@@ -136,12 +135,12 @@ def FromWireFormat(cls, value):
   return _GetFactory(cls).FromWireFormat(value)
 
 
-def FromBytes(cls, value):
+def FromBytes(cls, value: bytes):
   """Deserializes a value of `cls` from bytes outputted by ToBytes."""
   precondition.AssertType(value, bytes)
   return _GetFactory(cls).FromBytes(value)
 
 
-def ToBytes(value):
+def ToBytes(value) -> bytes:
   """Serializes `value` into bytes which can be parsed with FromBytes."""
   return _GetFactory(type(value)).ToBytes(value)

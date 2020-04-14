@@ -3,7 +3,6 @@
 """Implementation of condition mechanism for client-side file-finder."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -182,7 +181,7 @@ class ContentCondition(metaclass=abc.ABCMeta):
   CHUNK_SIZE = 10 * 1024 * 1024
 
   def Scan(self, fd,
-           matcher):
+           matcher: "Matcher") -> Iterator[rdf_client.BufferReference]:
     """Scans given file searching for occurrences of given pattern.
 
     Args:
@@ -232,7 +231,7 @@ class RegexMatchCondition(ContentCondition):
     super().__init__()
     self.params = params.contents_regex_match
 
-  def Search(self, fd):
+  def Search(self, fd) -> Iterator[rdf_client.BufferReference]:
     regex = re.compile(self.params.regex.AsBytes(), flags=re.I | re.S | re.M)
 
     matcher = RegexMatcher(regex)
@@ -246,7 +245,7 @@ class Matcher(metaclass=abc.ABCMeta):
   Span = NamedTuple("Span", [("begin", int), ("end", int)])  # pylint: disable=invalid-name
 
   @abc.abstractmethod
-  def Match(self, data, position):
+  def Match(self, data: bytes, position: int) -> Optional["Matcher.Span"]:
     """Matches the given data object starting at specified position.
 
     Args:
@@ -266,13 +265,13 @@ class RegexMatcher(Matcher):
     regex: An RDF regular expression that the matcher represents.
   """
 
-  def __init__(self, regex):
+  def __init__(self, regex: Pattern[bytes]):
     precondition.AssertType(regex, Pattern)
 
     super().__init__()
     self._regex = regex
 
-  def Match(self, data, position):
+  def Match(self, data: bytes, position: int) -> Optional[Matcher.Span]:
     precondition.AssertType(data, bytes)
     precondition.AssertType(position, int)
 
@@ -291,13 +290,13 @@ class LiteralMatcher(Matcher):
     literal: A byte string pattern that the matcher matches.
   """
 
-  def __init__(self, literal):
+  def __init__(self, literal: bytes):
     precondition.AssertType(literal, bytes)
 
     super().__init__()
     self._literal = literal
 
-  def Match(self, data, position):
+  def Match(self, data: bytes, position: int) -> Optional[Matcher.Span]:
     precondition.AssertType(data, bytes)
     precondition.AssertType(position, int)
 

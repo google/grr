@@ -3,7 +3,6 @@
 # -*- encoding: utf-8 -*-
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import hashlib
@@ -232,10 +231,10 @@ class DatabaseTestPathsMixin(object):
 
   def testWriteMultiplePathInfosHashEntry(self):
 
-    def SHA256(data):
+    def SHA256(data: bytes) -> bytes:
       return hashlib.sha256(data).digest()
 
-    def MD5(data):
+    def MD5(data: bytes) -> bytes:
       return hashlib.md5(data).digest()
 
     client_id = db_test_utils.InitializeClient(self.db)

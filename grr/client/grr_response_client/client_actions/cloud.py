@@ -3,7 +3,6 @@
 """Client actions for cloud VMs."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -78,7 +77,7 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     return rdf_cloud.CloudMetadataResponse(
         label=request.label or request.url, text=result.text)
 
-  def Run(self, args):
+  def Run(self, args: rdf_cloud.CloudMetadataRequests):
     bios_version = None
     services = None
     if platform.system() == "Linux":

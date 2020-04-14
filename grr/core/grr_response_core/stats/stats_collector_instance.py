@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -23,7 +22,7 @@ class StatsNotInitializedError(Exception):
     super().__init__("No StatsCollector has been initialized yet.")
 
 
-def Set(collector):
+def Set(collector: stats_collector.StatsCollector):
   """Initializes the StatsCollector singleton and registers metrics with it."""
   global _stats_singleton
 
@@ -38,7 +37,7 @@ def Set(collector):
       logging.warning("Tried to re-initialize global stats collector.")
 
 
-def Get():
+def Get() -> stats_collector.StatsCollector:
   """Returns an initialized stats-collector.
 
   Raises:

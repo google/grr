@@ -3,7 +3,6 @@
 """Implementation of client-side file-finder subactions."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import abc
@@ -22,12 +21,12 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 class Action(metaclass=abc.ABCMeta):
   """An abstract class for subactions of the client-side file-finder."""
 
-  def __init__(self, action):
+  def __init__(self, action: actions.ActionPlugin):
     self._action = action
 
   @abc.abstractmethod
-  def __call__(self, stat_entry,
-               fd):
+  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
+               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
     """Executes the action on a given file.
 
     Args:
@@ -51,12 +50,12 @@ class StatAction(Action):
   def __init__(
       self,
       flow,
-      opts = None):
+      opts: Optional[rdf_file_finder.FileFinderStatActionOptions] = None):
     super().__init__(flow)
     del opts  # Unused.
 
-  def __call__(self, stat_entry,
-               fd):
+  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
+               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
     return rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
 
 
@@ -68,12 +67,12 @@ class HashAction(Action):
   hashed file.
   """
 
-  def __init__(self, flow, opts):
+  def __init__(self, flow, opts: rdf_file_finder.FileFinderHashActionOptions):
     super().__init__(flow)
     self._opts = opts
 
-  def __call__(self, stat_entry,
-               fd):
+  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
+               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
     result = StatAction(self._action)(stat_entry, fd)
 
     # stat_entry.st_mode has StatMode type.
@@ -106,12 +105,12 @@ class DownloadAction(Action):
   """
 
   def __init__(self, flow,
-               opts):
+               opts: rdf_file_finder.FileFinderDownloadActionOptions):
     super().__init__(flow)
     self._opts = opts
 
-  def __call__(self, stat_entry,
-               fd):
+  def __call__(self, stat_entry: rdf_client_fs.StatEntry,
+               fd: vfs.VFSHandler) -> rdf_file_finder.FileFinderResult:
     result = StatAction(self._action)(stat_entry, fd)
 
     # stat_entry.st_mode has StatMode type.
@@ -140,10 +139,10 @@ class DownloadAction(Action):
     return uploader.UploadFile(fd, amount=max_size)
 
 
-def _HashEntry(stat_entry,
-               fd,
-               progress,
-               max_size = None):
+def _HashEntry(stat_entry: rdf_client_fs.StatEntry,
+               fd: vfs.VFSHandler,
+               progress: Callable[[], None],
+               max_size: Optional[int] = None) -> Optional[rdf_crypto.Hash]:
   hasher = client_utils_common.MultiHasher(progress=progress)
   try:
     hasher.HashFile(fd, max_size or stat_entry.st_size)

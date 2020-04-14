@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -17,7 +16,7 @@ _DEFAULT_FLOW_TIMEOUT = 30
 _FLOW_TIMEOUT = _DEFAULT_FLOW_TIMEOUT
 
 
-def set_timeout(timeout):
+def set_timeout(timeout: Optional[int]) -> None:
   """Sets flow timeout in seconds.
 
   Args:
@@ -30,7 +29,7 @@ def set_timeout(timeout):
   _FLOW_TIMEOUT = timeout
 
 
-def reset_timeout():
+def reset_timeout() -> None:
   """Sets flow timeout to a default value of 30 seconds.
 
   Returns:
@@ -40,7 +39,7 @@ def reset_timeout():
   _FLOW_TIMEOUT = _DEFAULT_FLOW_TIMEOUT
 
 
-def await_flow(f):
+def await_flow(f: flow.Flow) -> None:
   """Awaits flow until timeout is exceeded.
 
   Args:

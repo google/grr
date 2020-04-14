@@ -3,7 +3,6 @@
 """Implementation of various cryptographic types."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import binascii
@@ -110,12 +109,12 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     return self._value.issuer
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls.FromSerializedBytes(string.encode("ascii"))
 
@@ -124,7 +123,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
     precondition.AssertType(value, bytes)
     return cls.FromSerializedBytes(value)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     if self._value is None:
       return b""
     return self._value.public_bytes(encoding=serialization.Encoding.PEM)
@@ -134,7 +133,7 @@ class RDFX509Cert(rdfvalue.RDFPrimitive):
   def AsPEM(self):
     return self.SerializeToBytes()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self.SerializeToBytes().decode("ascii")
 
   def Verify(self, public_key):
@@ -238,7 +237,7 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
                                      (self.__class__, initializer))
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -247,7 +246,7 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
     precondition.AssertType(value, bytes)
     return cls.FromSerializedBytes(value)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     if self._value is None:
       return b""
     return self._value.public_bytes(serialization.Encoding.PEM)
@@ -257,7 +256,7 @@ class CertificateSigningRequest(rdfvalue.RDFPrimitive):
   def AsPEM(self):
     return self.SerializeToBytes()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self.SerializeToBytes().decode("ascii")
 
   def GetCN(self):
@@ -317,7 +316,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return self._value
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -327,11 +326,11 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
     return cls.FromSerializedBytes(value)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls.FromSerializedBytes(string.encode("ascii"))
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     if self._value is None:
       return b""
     return self._value.public_bytes(
@@ -341,7 +340,7 @@ class RSAPublicKey(rdfvalue.RDFPrimitive):
   def GetN(self):
     return self._value.public_numbers().n
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return self.SerializeToBytes().decode("ascii")
 
   # TODO(user): this should return a string, since PEM format
@@ -455,7 +454,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
       raise type_info.TypeValueError("Unable to load private key: %s" % e)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls.FromSerializedBytes(string.encode("ascii"))
 
@@ -499,7 +498,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     return cls(key)
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
@@ -508,7 +507,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
     precondition.AssertType(value, bytes)
     return cls(value)
 
-  def SerializeToBytes(self):
+  def SerializeToBytes(self) -> bytes:
     if self._value is None:
       return b""
     return self._value.private_bytes(
@@ -516,7 +515,7 @@ class RSAPrivateKey(rdfvalue.RDFPrimitive):
         format=serialization.PrivateFormat.TraditionalOpenSSL,
         encryption_algorithm=serialization.NoEncryption())
 
-  def __str__(self):
+  def __str__(self) -> Text:
     digest = hashlib.sha256(self.AsPEM()).hexdigest()
 
     # TODO: `hexdigest` returns a unicode object in Python 3, but
@@ -663,22 +662,22 @@ class EncryptionKey(rdfvalue.RDFPrimitive):
     return cls(value)
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 
   @classmethod
-  def FromHumanReadable(cls, string):
+  def FromHumanReadable(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(binascii.unhexlify(string))
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return "%s (%s)" % (self.__class__.__name__, self.AsHexDigest())
 
-  def __len__(self):
+  def __len__(self) -> int:
     return len(self._value)
 
-  def AsHexDigest(self):
+  def AsHexDigest(self) -> Text:
     return text.Hexify(self._value)
 
   def SerializeToBytes(self):

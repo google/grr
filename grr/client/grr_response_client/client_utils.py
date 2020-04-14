@@ -3,7 +3,6 @@
 """Client utilities."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -42,11 +41,11 @@ VerifyFileOwner = _client_utils.VerifyFileOwner
 
 
 def StatEntryFromPath(
-    path,
-    pathspec,
-    ext_attrs = True,
-    follow_symlink = True,
-):
+    path: Text,
+    pathspec: rdf_paths.PathSpec,
+    ext_attrs: bool = True,
+    follow_symlink: bool = True,
+) -> rdf_client_fs.StatEntry:
   """Builds a stat entry object from a given path.
 
   Args:
@@ -67,9 +66,9 @@ def StatEntryFromPath(
   return StatEntryFromStat(stat, pathspec, ext_attrs=ext_attrs)
 
 
-def StatEntryFromStat(stat,
-                      pathspec,
-                      ext_attrs = True):
+def StatEntryFromStat(stat: filesystem.Stat,
+                      pathspec: rdf_paths.PathSpec,
+                      ext_attrs: bool = True) -> rdf_client_fs.StatEntry:
   """Build a stat entry object from a given stat object.
 
   Args:
@@ -108,8 +107,8 @@ def StatEntryFromStat(stat,
   return result
 
 
-def StatEntryFromStatPathSpec(stat,
-                              ext_attrs):
+def StatEntryFromStatPathSpec(stat: filesystem.Stat,
+                              ext_attrs: bool) -> rdf_client_fs.StatEntry:
   pathspec = rdf_paths.PathSpec(
       pathtype=rdf_paths.PathSpec.PathType.OS,
       path=LocalPathToCanonicalPath(stat.GetPath()),
@@ -118,7 +117,7 @@ def StatEntryFromStatPathSpec(stat,
 
 
 def StatResultFromStatEntry(
-    stat_entry):
+    stat_entry: rdf_client_fs.StatEntry) -> os.stat_result:
   """Returns a `os.stat_result` with most information from `StatEntry`.
 
   This is a lossy conversion, only the 10 first stat_result fields are

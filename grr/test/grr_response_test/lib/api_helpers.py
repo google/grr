@@ -28,7 +28,7 @@ class ClientVersionTimeoutError(Error):
   """Raised then a client doesn't report a specific version in time."""
 
 
-def GetFleetspeakPortsFromConfig(config_path):
+def GetFleetspeakPortsFromConfig(config_path: str) -> Tuple[int, int]:
   """Gets Fleetspeak frontend and admin ports from GRR config."""
   conf = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(), config_path)
   frontend_port = int(
@@ -37,7 +37,7 @@ def GetFleetspeakPortsFromConfig(config_path):
   return frontend_port, admin_port
 
 
-def GetAdminUIPortFromConfig(config_path):
+def GetAdminUIPortFromConfig(config_path: str) -> int:
   """Gets the AdminUI.port setting from a given config file."""
   conf = config_lib.LoadConfig(config.CONFIG.MakeNewConfig(), config_path)
   return conf["AdminUI.port"]
@@ -47,7 +47,7 @@ _WAIT_TIMEOUT_SECS = 150
 _CHECK_INTERVAL = 1
 
 
-def WaitForAPIEndpoint(port):
+def WaitForAPIEndpoint(port: int) -> api.GrrApi:
   """Waits for API endpoint to come online."""
   api_endpoint = "http://localhost:%d" % port
 
@@ -66,7 +66,7 @@ def WaitForAPIEndpoint(port):
                                 api_endpoint)
 
 
-def WaitForClientToEnroll(grrapi):
+def WaitForClientToEnroll(grrapi: api.GrrApi) -> str:
   """Waits for an already started client to enroll.
 
   If the client doesn't enroll within ~100 seconds, main process gets killed.
@@ -93,7 +93,7 @@ def WaitForClientToEnroll(grrapi):
   raise ClientEnrollmentTimeoutError("Client didn't enroll.")
 
 
-def KillClient(grrapi, client_id):
+def KillClient(grrapi: api.GrrApi, client_id: str):
   """Kills a given client."""
 
   f = grrapi.Client(client_id).CreateFlow("Kill")

@@ -3,7 +3,6 @@
 """Root-access-level API handlers for client management."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Optional
@@ -17,7 +16,7 @@ from grr_response_server import fleetspeak_utils
 from grr_response_server.gui import api_call_handler_base
 
 
-def _CheckFleetspeakConnection():
+def _CheckFleetspeakConnection() -> None:
   if fleetspeak_connector.CONN is None:
     raise Exception("Fleetspeak connection is not available.")
 
@@ -35,8 +34,8 @@ class ApiKillFleetspeakHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiKillFleetspeakArgs
 
   def Handle(self,
-             args,
-             token = None):
+             args: ApiKillFleetspeakArgs,
+             token: Optional[access_control.ACLToken] = None) -> None:
     _CheckFleetspeakConnection()
     fleetspeak_utils.KillFleetspeak(args.client_id.Basename(), args.force)
 
@@ -55,7 +54,7 @@ class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
   args_type = ApiRestartFleetspeakGrrServiceArgs
 
   def Handle(self,
-             args,
-             token = None):
+             args: ApiRestartFleetspeakGrrServiceArgs,
+             token: Optional[access_control.ACLToken] = None) -> None:
     _CheckFleetspeakConnection()
     fleetspeak_utils.RestartFleetspeakGrrService(args.client_id.Basename())

@@ -3,7 +3,6 @@
 """In-memory implementation of DB methods for handling client report data."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Dict, Optional, Text
@@ -29,9 +28,9 @@ class InMemoryDBClientReportsMixin(object):
   """
 
   @utils.Synchronized
-  def WriteClientGraphSeries(self, graph_series,
-                             client_label,
-                             timestamp):
+  def WriteClientGraphSeries(self, graph_series: rdf_stats.ClientGraphSeries,
+                             client_label: Text,
+                             timestamp: rdfvalue.RDFDatetime):
     """See db.Database."""
     series_key = (client_label, graph_series.report_type, timestamp.Copy())
     self.client_graph_series[series_key] = graph_series.Copy()
@@ -39,10 +38,10 @@ class InMemoryDBClientReportsMixin(object):
   @utils.Synchronized
   def ReadAllClientGraphSeries(
       self,
-      client_label,
-      report_type,
-      time_range = None,
-  ):
+      client_label: Text,
+      report_type: rdf_structs.EnumNamedValue,
+      time_range: Optional[time_utils.TimeRange] = None,
+  ) -> Dict[rdfvalue.RDFDatetime, rdf_stats.ClientGraphSeries]:
     """See db.Database."""
     series_with_timestamps = {}
     for series_key, series in self.client_graph_series.items():
@@ -54,9 +53,9 @@ class InMemoryDBClientReportsMixin(object):
     return series_with_timestamps
 
   @utils.Synchronized
-  def ReadMostRecentClientGraphSeries(self, client_label,
-                                      report_type
-                                     ):
+  def ReadMostRecentClientGraphSeries(self, client_label: Text,
+                                      report_type: rdf_structs.EnumNamedValue
+                                     ) -> Optional[rdf_stats.ClientGraphSeries]:
     """See db.Database."""
     series_with_timestamps = self.ReadAllClientGraphSeries(
         client_label, report_type)

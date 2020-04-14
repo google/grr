@@ -412,7 +412,7 @@ class BrowserHistoryFlow(flow_base.FlowBase):
 
   def ProcessArtifactResponses(
       self,
-      responses):
+      responses: flow_responses.Responses[rdf_client_fs.StatEntry]) -> None:
     for response in responses:
       self.SendReply(response)
 

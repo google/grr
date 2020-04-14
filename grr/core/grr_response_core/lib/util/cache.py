@@ -3,7 +3,6 @@
 """This file contains cache-related utility functions used by GRR."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -15,7 +14,7 @@ from grr_response_core.lib import rdfvalue
 WITH_LIMITED_CALL_FREQUENCY_PASS_THROUGH = False
 
 
-def WithLimitedCallFrequency(min_time_between_calls):
+def WithLimitedCallFrequency(min_time_between_calls: rdfvalue.Duration):
   """Function call rate-limiting decorator.
 
   This decorator ensures that the wrapped function will be called at most

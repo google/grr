@@ -4,7 +4,6 @@
 
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -37,38 +36,38 @@ def register_representers():
   pretty_formatter.for_type(osquery_pb2.OsqueryTable, osquery_table_pretty)
 
 
-def stat_entry_pretty(stat_entry, p,
-                      cycle):
+def stat_entry_pretty(stat_entry: jobs_pb2.StatEntry, p: pretty.PrettyPrinter,
+                      cycle: bool) -> None:
   del cycle  # Unused.
   p.text(str(_StatEntryData(stat_entry)))
 
 
-def buffer_reference_pretty(ref,
-                            p, cycle):
+def buffer_reference_pretty(ref: jobs_pb2.BufferReference,
+                            p: pretty.PrettyPrinter, cycle: bool) -> None:
   del cycle  # Unused.
   p.text(str(_BufferReferenceData(ref)))
 
 
-def process_pretty(process, p,
-                   cycle):
+def process_pretty(process: sysinfo_pb2.Process, p: pretty.PrettyPrinter,
+                   cycle: bool) -> None:
   del cycle  # Unused.
   p.text(str(_ProcessData(process)))
 
 
-def network_address_pretty(address,
-                           p, cycle):
+def network_address_pretty(address: jobs_pb2.NetworkAddress,
+                           p: pretty.PrettyPrinter, cycle: bool) -> None:
   del cycle  # Unused.
   p.text(str(_NetworkAddressData(address)))
 
 
-def interface_pretty(iface, p,
-                     cycle):
+def interface_pretty(iface: jobs_pb2.Interface, p: pretty.PrettyPrinter,
+                     cycle: bool) -> None:
   del cycle  # Unused.
   p.text(pretty.pretty(_InterfaceData(iface)))
 
 
-def osquery_table_pretty(table,
-                         p, cycle):
+def osquery_table_pretty(table: osquery_pb2.OsqueryTable,
+                         p: pretty.PrettyPrinter, cycle: bool) -> None:
   del cycle  # Unused.
   df = convert.from_osquery_table(table)
   p.text(str(df))
@@ -77,26 +76,26 @@ def osquery_table_pretty(table,
 class _RepresenterList(list):
   """Parent of representer lists that ensures that slices have the same type."""
 
-  def __getitem__(self, key):
+  def __getitem__(self, key: Union[int, slice]) -> Union[Any, List[Any]]:
     if isinstance(key, slice):
       return type(self)(super(_RepresenterList, self).__getitem__(key))
     return super(_RepresenterList, self).__getitem__(key)
 
   # TODO: Remove this method when Python 2 support is dropped. It
   #  is called in some versions of CPython while getting slice of a list.
-  def __getslice__(self, start, stop):
+  def __getslice__(self, start: int, stop: int) -> List[Any]:
     return self.__getitem__(slice(start, stop))
 
 
 class StatEntryList(_RepresenterList):
   """Representer for a list of stat entries."""
 
-  def __init__(self, *args, **kwargs):
+  def __init__(self, *args, **kwargs) -> None:
     super(StatEntryList, self).__init__(*args, **kwargs)
     self._hierarchy = None  # type: Optional[Dict[Text, List]]
     self._build_hierarchy()
 
-  def _build_hierarchy(self):
+  def _build_hierarchy(self) -> None:
     """Builds hierarchy of stat entries in list.
 
     Returns:
@@ -114,7 +113,7 @@ class StatEntryList(_RepresenterList):
       self._hierarchy[parent].append((path, stat_entry))
       self._hierarchy[path] = []
 
-  def _repr_contents(self, root, p):
+  def _repr_contents(self, root: Text, p: pretty.PrettyPrinter) -> None:
     with p.group(4, '', ''):
       p.group_stack[-1].want_break = True
 
@@ -123,7 +122,7 @@ class StatEntryList(_RepresenterList):
         p.text(str(_StatEntryData(stat_entry)))
         self._repr_contents(path, p)
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     """Print list of stat entries in IPython.
 
     Args:
@@ -153,7 +152,7 @@ class StatEntryList(_RepresenterList):
 class BufferReferenceList(_RepresenterList):
   """Representer for a list of buffer references."""
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     """Print list of buffer references in IPython.
 
     Args:
@@ -182,7 +181,7 @@ class BufferReferenceList(_RepresenterList):
 class ClientList(_RepresenterList):
   """Representer for a list of clients."""
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     """Print list of clients in IPython.
 
     Args:
@@ -211,7 +210,7 @@ class ClientList(_RepresenterList):
 class InterfaceList(_RepresenterList):
   """Representer for a list of interfaces."""
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     """Print list of interfaces in IPython.
 
     Args:
@@ -239,7 +238,7 @@ class InterfaceList(_RepresenterList):
 class ProcessList(_RepresenterList):
   """Representer for a list of processes."""
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     """Print list of processes in IPython.
 
     Args:
@@ -284,14 +283,14 @@ class ProcessList(_RepresenterList):
 class _StatEntryData(object):
   """Class that encapsulates stat entry data displayed in IPython."""
 
-  def __init__(self, stat_entry):
+  def __init__(self, stat_entry: jobs_pb2.StatEntry) -> None:
     self.size = stat.size(stat_entry)
     self.abs_path = os.path.normpath(stat_entry.pathspec.path)
     self.name = stat.name(stat_entry)
     self.icon = stat.icon(stat_entry)
     self.mode = stat.mode(stat_entry)
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return '{icon} {name} ({mode} {abs_path}, {size})'.format(
         icon=self.icon,
         name=self.name,
@@ -303,13 +302,13 @@ class _StatEntryData(object):
 class _BufferReferenceData(object):
   """Class that encapsulates buffer reference data displayed in IPython."""
 
-  def __init__(self, ref):
+  def __init__(self, ref: jobs_pb2.BufferReference) -> None:
     self.path = os.path.normpath(ref.pathspec.path)
     self.start = ref.offset
     self.end = ref.offset + ref.length
     self.data = ref.data
 
-  def __str__(self):
+  def __str__(self) -> Text:
     data_repr = repr(self.data)
 
     # TODO: Remove this once support for Python 2 is dropped.
@@ -323,12 +322,12 @@ class _BufferReferenceData(object):
 class _InterfaceData(object):
   """Class that encapsulates interface data displayed in IPython."""
 
-  def __init__(self, iface):
+  def __init__(self, iface: jobs_pb2.Interface) -> None:
     self.name = iface.ifname
     self.addresses = iface.addresses
     self.mac = client.mac(iface.mac_address)
 
-  def _repr_pretty_(self, p, cycle):
+  def _repr_pretty_(self, p: pretty.PrettyPrinter, cycle: bool) -> None:
     """Print interface in IPython.
 
     Args:
@@ -357,7 +356,7 @@ class _InterfaceData(object):
 class _NetworkAddressData(object):
   """Class that encapsulates network address data displayed in IPython."""
 
-  def __init__(self, address):
+  def __init__(self, address: jobs_pb2.NetworkAddress) -> None:
     if address.address_type == jobs_pb2.NetworkAddress.INET6:
       self.type = 'inet6'
       self.address = str(ipaddress.IPv6Address(address.packed_bytes))
@@ -365,14 +364,14 @@ class _NetworkAddressData(object):
       self.type = 'inet'
       self.address = str(ipaddress.IPv4Address(address.packed_bytes))
 
-  def __str__(self):
+  def __str__(self) -> Text:
     return '{type} {address}'.format(type=self.type, address=self.address)
 
 
 class _ProcessData(object):
   """Class that encapsulates process data displayed in IPython."""
 
-  def __init__(self, process):
+  def __init__(self, process: sysinfo_pb2.Process) -> None:
     self.pid = process.pid
     self.user = process.username[:9]
     self.nice = process.nice
@@ -383,7 +382,7 @@ class _ProcessData(object):
     self.mem = '{:.1f}'.format(process.memory_percent)
     self.command = process.exe
 
-  def __str__(self):
+  def __str__(self) -> Text:
     data = ('{pid:6d} {user:9s} {ni:3d} {virt:>5s} {res:>5s} {s:1s} {cpu:>4s} '
             '{mem:>4s} {cmd}')
 

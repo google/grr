@@ -3,7 +3,6 @@
 """Utils common to macOS and Linux."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -30,7 +29,7 @@ def VerifyFileOwner(filename):
   return os.getuid() == stat_info.st_uid
 
 
-def CanonicalPathToLocalPath(path):
+def CanonicalPathToLocalPath(path: Text) -> Text:
   """Linux uses a normal path.
 
   We always want to encode as UTF-8 here. If the environment for the
@@ -50,7 +49,7 @@ def CanonicalPathToLocalPath(path):
   return utils.NormalizePath(path)
 
 
-def LocalPathToCanonicalPath(path):
+def LocalPathToCanonicalPath(path: Text) -> Text:
   """Linux uses a normal path."""
   precondition.AssertType(path, Text)
   return utils.NormalizePath(path)

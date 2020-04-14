@@ -3,7 +3,6 @@
 """Parser for Mozilla Firefox3 3 History files."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -50,7 +49,7 @@ class Firefox3History(object):
                   "ORDER BY moz_historyvisits.visit_date ASC;")
 
   # TODO(hanuszczak): This should return well-structured data.
-  def Parse(self, filedesc):  # pylint: disable=g-bare-generic
+  def Parse(self, filedesc: IO[bytes]) -> Iterator[Tuple]:  # pylint: disable=g-bare-generic
     """Iterator returning dict for each entry in history."""
     with sqlite.IOConnection(filedesc) as conn:
       for timestamp, url, title in conn.Query(self.VISITS_QUERY):

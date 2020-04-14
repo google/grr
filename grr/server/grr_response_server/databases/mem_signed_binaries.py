@@ -3,7 +3,6 @@
 """In-memory implementation of DB methods for handling signed binaries."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Sequence, Text, Tuple
@@ -14,14 +13,14 @@ from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def _SignedBinaryKeyFromID(binary_id
-                          ):
+def _SignedBinaryKeyFromID(binary_id: rdf_objects.SignedBinaryID
+                          ) -> Tuple[int, Text]:
   """Converts a binary id to an equivalent dict key (tuple)."""
   return binary_id.binary_type.SerializeToWireFormat(), binary_id.path
 
 
-def _SignedBinaryIDFromKey(binary_key
-                          ):
+def _SignedBinaryIDFromKey(binary_key: Tuple[int, Text]
+                          ) -> rdf_objects.SignedBinaryID:
   """Converts a tuple representing a signed binary to a SignedBinaryID."""
   return rdf_objects.SignedBinaryID(
       binary_type=binary_key[0], path=binary_key[1])
@@ -42,16 +41,16 @@ class InMemoryDBSignedBinariesMixin(object):
   """
 
   @utils.Synchronized
-  def WriteSignedBinaryReferences(self, binary_id,
-                                  references):
+  def WriteSignedBinaryReferences(self, binary_id: rdf_objects.SignedBinaryID,
+                                  references: rdf_objects.BlobReferences):
     """See db.Database."""
     self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)] = (
         references.Copy(), rdfvalue.RDFDatetime.Now())
 
   @utils.Synchronized
   def ReadSignedBinaryReferences(
-      self, binary_id
-  ):
+      self, binary_id: rdf_objects.SignedBinaryID
+  ) -> Tuple[rdf_objects.BlobReferences, rdfvalue.RDFDatetime]:
     """See db.Database."""
     binary_key = _SignedBinaryKeyFromID(binary_id)
     try:
@@ -61,14 +60,14 @@ class InMemoryDBSignedBinariesMixin(object):
     return references.Copy(), timestamp.Copy()
 
   @utils.Synchronized
-  def ReadIDsForAllSignedBinaries(self):
+  def ReadIDsForAllSignedBinaries(self) -> Sequence[rdf_objects.SignedBinaryID]:
     """See db.Database."""
     return [_SignedBinaryIDFromKey(k) for k in self.signed_binary_references]
 
   def DeleteSignedBinaryReferences(
       self,
-      binary_id,
-  ):
+      binary_id: rdf_objects.SignedBinaryID,
+  ) -> None:
     """See db.Database."""
     try:
       del self.signed_binary_references[_SignedBinaryKeyFromID(binary_id)]

@@ -2,7 +2,6 @@
 """A module with utilities for testing osquery-related code."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import contextlib
@@ -20,7 +19,7 @@ from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
 
-def FakeOsqueryiOutput(stdout, stderr):
+def FakeOsqueryiOutput(stdout: Text, stderr: Text) -> ContextManager[None]:
   """A context manager with osqueryi executable providing fake output."""
   # TODO: Ugly formatting.
   script = """\
@@ -36,7 +35,7 @@ $EOF$
   return _FakeOsqueryiScript(script)
 
 
-def FakeOsqueryiSleep(time):
+def FakeOsqueryiSleep(time: float) -> ContextManager[None]:
   """A context manager with osqueryi executable hanging for some time."""
   script = """\
 #!/usr/bin/env bash
@@ -46,7 +45,7 @@ sleep {time}
 
 
 @contextlib.contextmanager
-def _FakeOsqueryiScript(script):
+def _FakeOsqueryiScript(script: Text) -> Iterator[None]:
   """A context manager with fake script pretending to be osqueri executable."""
   if platform.system() != "Linux":
     raise unittest.SkipTest("Fake osquery scripts are available only on Linux.")

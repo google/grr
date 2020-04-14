@@ -3,7 +3,6 @@
 """API handlers for dealing with flows."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -185,7 +184,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       rdfvalue.SessionID,
   ]
 
-  def _GetFlowClass(self):
+  def _GetFlowClass(self) -> Optional[Type[flow_base.FlowBase]]:
     flow_name = self.name
     if not flow_name:
       flow_name = self.runner_args.flow_name
@@ -193,12 +192,12 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
     if flow_name:
       return registry.FlowRegistry.FlowClassByName(flow_name)
 
-  def GetArgsClass(self):
+  def GetArgsClass(self) -> Optional[Type[rdf_structs.RDFProtoStruct]]:
     cls = self._GetFlowClass()
     if cls is not None:
       return cls.args_type
 
-  def GetProgressClass(self):
+  def GetProgressClass(self) -> Optional[Type[rdf_structs.RDFProtoStruct]]:
     cls = self._GetFlowClass()
     if cls is not None:
       return cls.progress_type
@@ -715,7 +714,8 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListFlowOutputPluginsResult(items=result)
 
 
-def GetOutputPluginIndex(plugin_descriptors, plugin_id):
+def GetOutputPluginIndex(plugin_descriptors: Iterable[
+    rdf_output_plugin.OutputPluginDescriptor], plugin_id: str) -> int:
   """Gets an output plugin index for a plugin with a given id.
 
   Historically output plugins descriptors were stored in dicts-like

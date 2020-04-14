@@ -3,7 +3,6 @@
 """Parser for Google chrome/chromium History files."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -97,7 +96,7 @@ class ChromeParser(object):
 
   # TODO(hanuszczak): This function should return a well-structured data instead
   # of a tuple of 6 elements (of which 2 of them are never used).
-  def Parse(self, filepath, filedesc):  # pylint: disable=g-bare-generic
+  def Parse(self, filepath: Text, filedesc: IO[bytes]) -> Iterator[Tuple]:  # pylint: disable=g-bare-generic
     """Iterator returning a list for each entry in history.
 
     We store all the download events in an array (choosing this over visits

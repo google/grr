@@ -3,7 +3,6 @@
 """This file implements a VFS abstraction on the client."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import functools
@@ -78,9 +77,9 @@ def Init():
         path=root, pathtype=base_type, is_virtualroot=True)
 
 
-def VFSOpen(pathspec,
-            progress_callback = None
-           ):
+def VFSOpen(pathspec: rdf_paths.PathSpec,
+            progress_callback: Optional[Callable[[], None]] = None
+           ) -> VFSHandler:
   """Expands pathspec to return an expanded Path.
 
   A pathspec is a specification of how to access the file by recursively opening

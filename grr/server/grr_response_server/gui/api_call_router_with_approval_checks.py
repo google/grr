@@ -3,7 +3,6 @@
 """Implementation of a router class that has approvals-based ACL checks."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Optional
@@ -406,9 +405,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def UploadYaraSignature(
       self,
-      args,
-      token = None,
-  ):
+      args: api_yara.ApiUploadYaraSignatureArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_yara.ApiUploadYaraSignatureHandler:
     return self.delegate.UploadYaraSignature(args, token=token)
 
   # Cron jobs methods.
@@ -571,9 +570,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def GetCollectedHuntTimelines(
       self,
-      args,
-      token = None,
-  ):
+      args: api_timeline.ApiGetCollectedHuntTimelinesArgs,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
     # Everybody can export collected hunt timelines.
     return self.delegate.GetCollectedHuntTimelines(args, token=token)
 

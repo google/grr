@@ -3,7 +3,6 @@
 """The MySQL database methods for event handling."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -111,7 +110,7 @@ class MySQLDBEventMixin(object):
             for (username, day, count) in cursor.fetchall()}
 
   @mysql_utils.WithTransaction()
-  def WriteAPIAuditEntry(self, entry, cursor=None):
+  def WriteAPIAuditEntry(self, entry: rdf_objects.APIAuditEntry, cursor=None):
     """Writes an audit entry to the database."""
     if entry.timestamp is None:
       datetime = rdfvalue.RDFDatetime.Now()

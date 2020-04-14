@@ -3,7 +3,6 @@
 """A module with compatibility wrappers for JSON processing."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -22,7 +21,7 @@ Decoder = json.JSONDecoder
 Encoder = json.JSONEncoder
 
 
-def Parse(text):
+def Parse(text: Text) -> Any:
   """Parses a JSON source into a Python object.
 
   Args:
@@ -35,7 +34,7 @@ def Parse(text):
   return json.loads(text)
 
 
-def ReadFromFile(filedesc):
+def ReadFromFile(filedesc: IO[Text]) -> Any:
   """Reads a Python object from given file descriptor.
 
   Args:
@@ -48,7 +47,7 @@ def ReadFromFile(filedesc):
   return Parse(content)
 
 
-def ReadFromPath(filepath):
+def ReadFromPath(filepath: Text) -> Any:
   """Reads a Python object stored in a JSON under a specified filepath.
 
   Args:
@@ -67,9 +66,9 @@ else:
   _SEPARATORS = (",", ": ")
 
 
-def Dump(obj,
-         sort_keys = False,
-         encoder = None):
+def Dump(obj: Any,
+         sort_keys: bool = False,
+         encoder: Optional[Type[Encoder]] = None) -> Text:
   """Stringifies a Python object into its JSON representation.
 
   Args:

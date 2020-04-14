@@ -3,7 +3,6 @@
 """Time-related utilities."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
@@ -17,7 +16,7 @@ class TimeRange(object):
     end: An RDFDatetime that indicates the end of the time-range.
   """
 
-  def __init__(self, start, end):
+  def __init__(self, start: rdfvalue.RDFDatetime, end: rdfvalue.RDFDatetime):
     """Initializes a TimeRange.
 
     Args:
@@ -43,6 +42,6 @@ class TimeRange(object):
   def end(self):
     return self._end
 
-  def Includes(self, timestamp):
+  def Includes(self, timestamp: rdfvalue.RDFDatetime) -> bool:
     """Returns true iff the given timestamp is included in the TimeRange."""
     return self._start <= timestamp <= self._end

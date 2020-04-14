@@ -3,7 +3,6 @@
 """A module with YARA-related methods of the in-memory database."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Dict
@@ -23,9 +22,9 @@ class InMemoryDBYaraMixin(object):
 
   def WriteYaraSignatureReference(
       self,
-      blob_id,
-      username,
-  ):
+      blob_id: rdf_objects.BlobID,
+      username: Text,
+  ) -> None:
     """Marks specified blob id as a YARA signature."""
     if username not in self.users:
       raise db.UnknownGRRUserError(username=username)
@@ -34,7 +33,7 @@ class InMemoryDBYaraMixin(object):
 
   def VerifyYaraSignatureReference(
       self,
-      blob_id,
-  ):
+      blob_id: rdf_objects.BlobID,
+  ) -> bool:
     """Verifies whether specified blob is a YARA signature."""
     return blob_id in self.yara

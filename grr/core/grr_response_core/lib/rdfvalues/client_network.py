@@ -3,7 +3,6 @@
 """Network-related client rdfvalues."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import binascii
@@ -52,7 +51,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.NetworkAddress
 
   @property
-  def human_readable_address(self):
+  def human_readable_address(self) -> Text:
     addr = self.AsIPAddr()
     if addr is not None:
       return str(addr)
@@ -60,7 +59,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
       return ""
 
   @human_readable_address.setter
-  def human_readable_address(self, value):
+  def human_readable_address(self, value: Text) -> None:
     precondition.AssertType(value, Text)
     addr = ipaddress.ip_address(value)
 
@@ -74,7 +73,7 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
 
     self.packed_bytes = addr.packed
 
-  def AsIPAddr(self):
+  def AsIPAddr(self) -> Optional[IPAddress]:
     """Returns the IP as an `IPAddress` object (if packed bytes are defined)."""
     precondition.AssertOptionalType(self.packed_bytes, bytes)
 
@@ -105,11 +104,11 @@ class MacAddress(rdfvalue.RDFBytes):
   """A MAC address."""
 
   @property
-  def human_readable_address(self):
+  def human_readable_address(self) -> Text:
     return text.Hexify(self._value)
 
   @classmethod
-  def FromHumanReadableAddress(cls, string):
+  def FromHumanReadableAddress(cls, string: Text):
     precondition.AssertType(string, Text)
     return cls(binascii.unhexlify(string.encode("ascii")))
 

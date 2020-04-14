@@ -4,7 +4,6 @@
 """A module with utility functions for working with collections."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import itertools
@@ -14,7 +13,7 @@ T = TypeVar("T")
 K = TypeVar("K")
 
 
-def Flatten(iterator):
+def Flatten(iterator: Iterable[Iterable[T]]) -> Iterator[T]:
   """Flattens nested iterables into one iterator.
 
   Examples:
@@ -35,7 +34,7 @@ def Flatten(iterator):
       yield item
 
 
-def Trim(lst, limit):
+def Trim(lst: List[T], limit: int) -> List[T]:
   """Trims a given list so that it is not longer than given limit.
 
   Args:
@@ -52,7 +51,7 @@ def Trim(lst, limit):
   return clipping
 
 
-def Group(items, key):
+def Group(items: Iterable[T], key: Callable[[T], K]) -> Dict[K, T]:
   """Groups items by given key function.
 
   Args:
@@ -71,7 +70,7 @@ def Group(items, key):
   return result
 
 
-def Batch(items, size):
+def Batch(items: Iterable[T], size: int) -> Iterator[List[T]]:
   """Divide items into batches of specified size.
 
   In case where number of items is not evenly divisible by the batch size, the
@@ -96,7 +95,7 @@ def Batch(items, size):
     yield batch
 
 
-def StartsWith(this, that):
+def StartsWith(this: Iterable[T], that: Iterable[T]) -> bool:
   """Checks whether an items of one iterable are a prefix of another.
 
   Args:
@@ -124,7 +123,7 @@ def StartsWith(this, that):
       return False
 
 
-def Unzip(iterable):
+def Unzip(iterable: Iterable[Tuple[K, T]]) -> Tuple[Iterable[K], Iterable[T]]:
   """Unzips specified iterable of pairs to pair of two iterables.
 
   This function is an inversion of the standard `zip` function and the following
@@ -153,7 +152,7 @@ def Unzip(iterable):
   return lefts, rights
 
 
-def DictProduct(dictionary):
+def DictProduct(dictionary: Dict[K, Iterable[T]]) -> Iterator[Dict[K, T]]:
   """Computes a cartesian product of dict with iterable values.
 
   This utility function, accepts a dictionary with iterable values, computes

@@ -3,7 +3,6 @@
 """Utility functions for working with text representation of objects."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import binascii
@@ -14,7 +13,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
-def Asciify(data):
+def Asciify(data: bytes) -> Text:
   """Turns given bytes to human-readable ASCII representation.
 
   All ASCII-representable bytes are turned into proper characters, whereas all
@@ -34,7 +33,7 @@ def Asciify(data):
     return repr(data)[2:-1]
 
 
-def Hexify(data):
+def Hexify(data: bytes) -> Text:
   """Turns given bytes to its hex representation.
 
   It works just like `binascii.hexlify` but always returns string objects rather

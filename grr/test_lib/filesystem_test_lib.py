@@ -2,7 +2,6 @@
 """A test utilities for interacting with filesystem."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -14,7 +13,7 @@ import unittest
 from typing import Text
 
 
-def CreateFile(filepath, content = b""):
+def CreateFile(filepath: Text, content: bytes = b"") -> None:
   """Creates a file at specified path.
 
   Note that if a file at the specified path already exists, its old content will

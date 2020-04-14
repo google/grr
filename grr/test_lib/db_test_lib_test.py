@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from absl.testing import absltest
@@ -17,7 +16,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testDatabaseIsProvided(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(db):
+    def TestMethod(db: abstract_db.Database):
       self.assertIsInstance(db, abstract_db.Database)
 
     TestMethod()  # pylint: disable=no-value-for-parameter
@@ -26,7 +25,7 @@ class WithDatabaseTest(absltest.TestCase):
     now = rdfvalue.RDFDatetime.Now()
 
     @db_test_lib.WithDatabase
-    def TestMethod(self, db):
+    def TestMethod(self, db: abstract_db.Database):
       client_id = "C.0123456789abcdef"
       db.WriteClientMetadata(client_id, first_seen=now)
 
@@ -38,7 +37,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testDatabaseIsFresh(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(db):
+    def TestMethod(db: abstract_db.Database):
       self.assertEqual(db.CountGRRUsers(), 0)
 
       db.WriteGRRUser("foo")
@@ -52,7 +51,7 @@ class WithDatabaseTest(absltest.TestCase):
   def testPassesArguments(self):
 
     @db_test_lib.WithDatabase
-    def TestMethod(self, username, db):
+    def TestMethod(self, username: Text, db: abstract_db.Database):
       db.WriteGRRUser(username)
 
       user = db.ReadGRRUser(username)

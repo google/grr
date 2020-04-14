@@ -3,7 +3,6 @@
 """FS GRR server side integration utility functions."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import binascii
@@ -46,7 +45,7 @@ def SendGrrMessageThroughFleetspeak(grr_id, grr_msg):
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 
-def KillFleetspeak(grr_id, force):
+def KillFleetspeak(grr_id: Text, force: bool) -> None:
   """Kills Fleespeak on the given client."""
   die_req = fs_system_pb2.DieRequest(force=force)
   fs_msg = fs_common_pb2.Message()
@@ -58,7 +57,7 @@ def KillFleetspeak(grr_id, force):
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 
-def RestartFleetspeakGrrService(grr_id):
+def RestartFleetspeakGrrService(grr_id: Text) -> None:
   """Restarts the GRR service on the given client."""
   restart_req = fs_system_pb2.RestartServiceRequest(name="GRR")
   fs_msg = fs_common_pb2.Message()

@@ -3,7 +3,6 @@
 """A module with client action for talking with osquery."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -35,7 +34,7 @@ except ImportError:
 class Error(Exception):
   """A class for all osquery-related exceptions."""
 
-  def __init__(self, message, cause = None):
+  def __init__(self, message: Text, cause: Exception = None):
     if cause is not None:
       message = "{message}: {cause}".format(message=message, cause=cause)
 
@@ -46,7 +45,7 @@ class Error(Exception):
 class QueryError(Error):
   """A class of exceptions indicating invalid queries (e.g. syntax errors)."""
 
-  def __init__(self, output, cause = None):
+  def __init__(self, output: Text, cause: Exception = None):
     message = "invalid query: {}".format(output)
     super().__init__(message, cause=cause)
 
@@ -55,7 +54,7 @@ class QueryError(Error):
 class TimeoutError(Error):  # pylint: disable=redefined-builtin
   """A class of exceptions raised when a call to osquery timeouts."""
 
-  def __init__(self, cause = None):
+  def __init__(self, cause: Exception = None):
     super().__init__("osquery timeout", cause=cause)
 
 
@@ -71,7 +70,7 @@ class Osquery(actions.ActionPlugin):
 
   # TODO(hanuszczak): This does not need to be a class method. It should be
   # refactored to a separate function and tested as such.
-  def Process(self, args):
+  def Process(self, args) -> Iterator[rdf_osquery.OsqueryResult]:
     if not config.CONFIG["Osquery.path"]:
       raise RuntimeError("The `Osquery` action invoked on a client without "
                          "osquery path specified.")
@@ -99,8 +98,8 @@ class Osquery(actions.ActionPlugin):
       yield rdf_osquery.OsqueryResult(table=chunk, stderr=output.stderr)
 
 
-def ChunkTable(table,
-               max_chunk_size):
+def ChunkTable(table: rdf_osquery.OsqueryTable,
+               max_chunk_size: int) -> Iterator[rdf_osquery.OsqueryTable]:
   """Chunks given table into multiple smaller ones.
 
   Tables that osquery yields can be arbitrarily large. Because GRR's messages
@@ -120,10 +119,10 @@ def ChunkTable(table,
     rows.
   """
 
-  def ByteLength(string):
+  def ByteLength(string: Text) -> int:
     return len(string.encode("utf-8"))
 
-  def Chunk():
+  def Chunk() -> rdf_osquery.OsqueryTable:
     result = rdf_osquery.OsqueryTable()
     result.query = table.query
     result.header = table.header
@@ -153,7 +152,7 @@ def ChunkTable(table,
     yield chunk
 
 
-def ParseTable(table):
+def ParseTable(table: Any) -> rdf_osquery.OsqueryTable:
   """Parses table of osquery output.
 
   Args:
@@ -172,7 +171,7 @@ def ParseTable(table):
 
 
 # TODO: Parse type information.
-def ParseHeader(table):
+def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   """Parses header of osquery output.
 
   Args:
@@ -200,8 +199,8 @@ def ParseHeader(table):
   return result
 
 
-def ParseRow(header,
-             row):
+def ParseRow(header: rdf_osquery.OsqueryHeader,
+             row: Any) -> rdf_osquery.OsqueryRow:
   """Parses a single row of osquery output.
 
   Args:
@@ -223,7 +222,7 @@ def ParseRow(header,
 ProcOutput = NamedTuple("ProcOutput", [("stdout", Text), ("stderr", Text)])  # pytype: disable=wrong-arg-types
 
 
-def Query(args):
+def Query(args: rdf_osquery.OsqueryArgs) -> ProcOutput:
   """Calls osquery with given query and returns its output.
 
   Args:

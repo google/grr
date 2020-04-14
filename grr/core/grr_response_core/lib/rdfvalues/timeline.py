@@ -3,7 +3,6 @@
 """A module with RDF value wrappers for timeline protobufs."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import os
@@ -37,7 +36,7 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
   @classmethod
-  def FromStat(cls, path, stat):
+  def FromStat(cls, path: bytes, stat: os.stat_result) -> "TimelineEntry":
     entry = cls()
     entry.path = path
 
@@ -66,13 +65,13 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
   @classmethod
   def SerializeStream(
       cls,
-      entries,
-  ):
+      entries: Iterator["TimelineEntry"],
+  ) -> Iterator[bytes]:
     return gzchunked.Serialize(_.SerializeToBytes() for _ in entries)
 
   @classmethod
   def DeserializeStream(
       cls,
-      entries,
-  ):
+      entries: Iterator[bytes],
+  ) -> Iterator["TimelineEntry"]:
     return map(cls.FromSerializedBytes, gzchunked.Deserialize(entries))

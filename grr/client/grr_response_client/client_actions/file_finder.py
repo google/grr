@@ -3,7 +3,6 @@
 """The file finder client action."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import io
@@ -64,7 +63,7 @@ class FileFinderOS(actions.ActionPlugin):
   in_rdfvalue = rdf_file_finder.FileFinderArgs
   out_rdfvalues = [rdf_file_finder.FileFinderResult]
 
-  def Run(self, args):
+  def Run(self, args: rdf_file_finder.FileFinderArgs):
     if args.pathtype != rdf_paths.PathSpec.PathType.OS:
       raise ValueError(
           "FileFinderOS can only be used with OS paths, got {}".format(
@@ -90,7 +89,7 @@ class FileFinderOS(actions.ActionPlugin):
         pass
 
   def _ParseAction(self,
-                   args):
+                   args: rdf_file_finder.FileFinderArgs) -> subactions.Action:
     action_type = args.action.action_type
     if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
       return subactions.StatAction(self, args.action.stat)
@@ -106,8 +105,8 @@ class FileFinderOS(actions.ActionPlugin):
     except OSError:
       raise _SkipFileException()
 
-  def _Validate(self, args,
-                filepath):
+  def _Validate(self, args: rdf_file_finder.FileFinderArgs,
+                filepath: Text) -> List[rdf_client.BufferReference]:
     matches = []
     stat = self._GetStat(filepath, follow_symlink=bool(args.follow_links))
     self._ValidateRegularity(stat, args, filepath)
@@ -141,8 +140,8 @@ class FileFinderOS(actions.ActionPlugin):
 
 
 def GetExpandedPaths(
-    args,
-    heartbeat_cb = _NoOp):
+    args: rdf_file_finder.FileFinderArgs,
+    heartbeat_cb: Callable[[], None] = _NoOp) -> Iterator[Text]:
   """Expands given path patterns.
 
   Args:

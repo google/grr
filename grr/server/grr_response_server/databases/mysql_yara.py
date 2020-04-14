@@ -3,7 +3,6 @@
 """A module with MySQL implementation of YARA-related database methods."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Text
@@ -21,10 +20,10 @@ class MySQLDBYaraMixin(object):
   @mysql_utils.WithTransaction()
   def WriteYaraSignatureReference(
       self,
-      blob_id,
-      username,
-      cursor,
-  ):
+      blob_id: rdf_objects.BlobID,
+      username: Text,
+      cursor: MySQLdb.cursors.Cursor,
+  ) -> None:
     """Marks specified blob id as a YARA signature."""
     query = """
     INSERT IGNORE INTO yara_signature_references
@@ -43,9 +42,9 @@ class MySQLDBYaraMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def VerifyYaraSignatureReference(
       self,
-      blob_id,
-      cursor,
-  ):
+      blob_id: rdf_objects.BlobID,
+      cursor: MySQLdb.cursors.Cursor,
+  ) -> bool:
     """Verifies whether specified blob is a YARA signature."""
     query = """
     SELECT 1

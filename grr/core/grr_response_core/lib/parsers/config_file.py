@@ -3,7 +3,6 @@
 """Simple parsers for configuration files."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -191,7 +190,7 @@ class FieldParser(lexer.Lexer):
     logging.debug("Skipped bad line in file at %s", self.processed)
     self.field = ""
 
-  def ParseEntries(self, data):
+  def ParseEntries(self, data: Text):
     precondition.AssertType(data, Text)
 
     # Flush any old results.

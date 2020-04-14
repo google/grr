@@ -77,9 +77,9 @@ class TestTimelineWindows(test_base.EndToEndTest):
 
 
 def assertBodyEntrySanity(  # pylint: disable=invalid-name
-    test,
-    entry,
-):
+    test: absltest.TestCase,
+    entry: Sequence[Text],
+) -> None:
   """Asserts that given row of a body file is sane."""
   # Size should be non-negative (some files might be empty, though).
   test.assertGreaterEqual(int(entry[6]), 0)

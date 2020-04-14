@@ -3,7 +3,6 @@
 """Utilities for managing client-report data."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import print_function
 from __future__ import unicode_literals
 
@@ -16,7 +15,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_server import data_store
 
 
-def WriteGraphSeries(graph_series, label):
+def WriteGraphSeries(graph_series: rdf_stats.ClientGraphSeries, label: Text):
   """Writes graph series for a particularb client label to the DB.
 
   Args:
@@ -28,10 +27,10 @@ def WriteGraphSeries(graph_series, label):
 
 
 def FetchAllGraphSeries(
-    label,
-    report_type,
-    period = None,
-):
+    label: Text,
+    report_type: rdf_structs.EnumNamedValue,
+    period: Optional[rdfvalue.Duration] = None,
+) -> Dict[rdfvalue.RDFDatetime, rdf_stats.ClientGraphSeries]:
   """Fetches graph series for the given label and report-type from the DB.
 
   Args:
@@ -54,9 +53,9 @@ def FetchAllGraphSeries(
       label, report_type, time_range=time_range)
 
 
-def FetchMostRecentGraphSeries(label,
-                               report_type,
-                              ):
+def FetchMostRecentGraphSeries(label: Text,
+                               report_type: rdf_structs.EnumNamedValue,
+                              ) -> Optional[rdf_stats.ClientGraphSeries]:
   """Fetches the latest graph series for a client label from the DB.
 
   Args:

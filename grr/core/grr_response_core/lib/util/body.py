@@ -3,7 +3,6 @@
 """A module with utilities for working with the Sleuthkit's body format."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import csv
@@ -18,9 +17,9 @@ DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB.
 
 
 def Stream(
-    entries,
-    chunk_size = DEFAULT_CHUNK_SIZE,
-):
+    entries: Iterator[rdf_timeline.TimelineEntry],
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+) -> Iterator[bytes]:
   """Streams chunks of a Sleuthkit's body file (from a stream of entries).
 
   Args:

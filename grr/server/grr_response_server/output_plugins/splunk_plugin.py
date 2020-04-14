@@ -10,7 +10,6 @@ The spec for HTTP Event Collector is taken from https://docs.splunk.com
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 from typing import Any
@@ -50,7 +49,7 @@ class SplunkOutputPluginArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
 
-def _ToDict(rdfval):
+def _ToDict(rdfval: rdf_structs.RDFProtoStruct) -> JsonDict:
   return json_format.MessageToDict(rdfval.AsPrimitiveProto(), float_precision=8)
 
 
@@ -88,8 +87,8 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
 
     self._url = urlparse.urljoin(url, HTTP_EVENT_COLLECTOR_PATH)
 
-  def ProcessResponses(self, state,
-                       responses):
+  def ProcessResponses(self, state: rdf_protodict.AttributedDict,
+                       responses: List[rdf_flows.GrrMessage]) -> None:
     """See base class."""
     client_id = self._GetClientId(responses)
     flow_id = self._GetFlowId(responses)
@@ -100,7 +99,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
     events = [self._MakeEvent(response, client, flow) for response in responses]
     self._SendEvents(events)
 
-  def _GetClientId(self, responses):
+  def _GetClientId(self, responses: List[rdf_flows.GrrMessage]) -> Text:
     client_ids = {msg.source.Basename() for msg in responses}
     if len(client_ids) > 1:
       raise AssertionError((
@@ -108,7 +107,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
           "violates OutputPlugin constraints.").format(client_ids))
     return client_ids.pop()
 
-  def _GetFlowId(self, responses):
+  def _GetFlowId(self, responses: List[rdf_flows.GrrMessage]) -> Text:
     flow_ids = {msg.session_id.Basename() for msg in responses}
     if len(flow_ids) > 1:
       raise AssertionError(
@@ -116,20 +115,20 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
            "violates OutputPlugin constraints.").format(flow_ids))
     return flow_ids.pop()
 
-  def _GetClientMetadata(self, client_id):
+  def _GetClientMetadata(self, client_id: Text) -> export.ExportedMetadata:
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
     metadata = export.GetMetadata(client_id, info)
     metadata.timestamp = None  # timestamp is sent outside of metadata.
     return metadata
 
-  def _GetFlowMetadata(self, client_id,
-                       flow_id):
+  def _GetFlowMetadata(self, client_id: Text,
+                       flow_id: Text) -> api_flow.ApiFlow:
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     return api_flow.ApiFlow().InitFromFlowObject(flow_obj)
 
-  def _MakeEvent(self, message,
-                 client,
-                 flow):
+  def _MakeEvent(self, message: rdf_flows.GrrMessage,
+                 client: export.ExportedMetadata,
+                 flow: api_flow.ApiFlow) -> JsonDict:
 
     if message.timestamp:
       time = message.timestamp.AsSecondsSinceEpoch()
@@ -157,7 +156,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
 
     return event
 
-  def _SendEvents(self, events):
+  def _SendEvents(self, events: List[JsonDict]) -> None:
     headers = {"Authorization": "Splunk {}".format(self._token)}
 
     # Batch multiple events in one request, separated by two newlines.

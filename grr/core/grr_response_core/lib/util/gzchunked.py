@@ -3,7 +3,6 @@
 """A module with utilities for a very simple serialization format."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import gzip
@@ -18,9 +17,9 @@ DEFAULT_CHUNK_SIZE = 1 * 1024 * 1024  # 1 MiB.
 
 
 def Serialize(
-    stream,
-    chunk_size = DEFAULT_CHUNK_SIZE,
-):
+    stream: Iterator[bytes],
+    chunk_size: int = DEFAULT_CHUNK_SIZE,
+) -> Iterator[bytes]:
   """Serializes a stream of data to the stream of chunks.
 
   Args:
@@ -50,7 +49,7 @@ def Serialize(
     yield buf.getvalue()
 
 
-def Deserialize(stream):
+def Deserialize(stream: Iterator[bytes]) -> Iterator[bytes]:
   """Deserializes a stream a chunks into a stream of data.
 
   Args:

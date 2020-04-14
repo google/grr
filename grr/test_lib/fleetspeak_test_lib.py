@@ -2,7 +2,6 @@
 """Fleetspeak-related helpers for use in tests."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -18,7 +17,7 @@ _message_lock = threading.Lock()
 _messages_by_client_id = {}
 
 
-def StoreMessage(fs_msg):
+def StoreMessage(fs_msg: common_pb2.Message):
   """Emulates sending of a message to Fleetspeak by storing it in-memory."""
   if not fs_msg.destination.client_id:
     raise ValueError("No destination set for Fleetspeak message:\n%s" % fs_msg)
@@ -35,7 +34,7 @@ def StoreMessage(fs_msg):
       _messages_by_client_id[grr_id] = collections.deque([grr_msg])
 
 
-def PopMessage(client_id):
+def PopMessage(client_id: Text) -> Optional[rdf_flows.GrrMessage]:
   """Returns a message sent to the given Fleetspeak client.
 
   The returned message is removed from the in-memory store. Messages for

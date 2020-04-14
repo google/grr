@@ -7,7 +7,6 @@ objects defined by objects.proto.
 """
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import functools
@@ -258,7 +257,7 @@ class HashID(rdfvalue.RDFValue):
     return self.AsBytes()
 
   @classmethod
-  def FromSerializedBytes(cls, value):
+  def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     return cls(value)
 

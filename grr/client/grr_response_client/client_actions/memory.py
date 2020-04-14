@@ -3,7 +3,6 @@
 """Client actions dealing with memory."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -266,9 +265,9 @@ class YaraProcessScan(actions.ActionPlugin):
 
 
 def _PrioritizeRegions(
-    regions,
-    prioritize_offsets
-):
+    regions: Iterable[rdf_memory.ProcessMemoryRegion],
+    prioritize_offsets: Iterable[int]
+) -> Iterable[rdf_memory.ProcessMemoryRegion]:
   """Returns reordered `regions` to prioritize regions containing offsets.
 
   Args:
@@ -328,8 +327,8 @@ def _PrioritizeRegions(
   return prio_regions + nonprio_regions + list(all_regions)
 
 
-def _ApplySizeLimit(regions,
-                    size_limit):
+def _ApplySizeLimit(regions: Iterable[rdf_memory.ProcessMemoryRegion],
+                    size_limit: int) -> List[rdf_memory.ProcessMemoryRegion]:
   """Truncates regions so that the total size stays in size_limit."""
   total_size = 0
   regions_in_limit = []

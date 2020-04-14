@@ -4,7 +4,6 @@
 """A module with client action for talking with osquery."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import collections
@@ -33,7 +32,7 @@ from grr.test_lib import test_lib
 FLAGS = flags.FLAGS
 
 
-def _Query(query, **kwargs):
+def _Query(query: Text, **kwargs) -> List[rdf_osquery.OsqueryResult]:
   args = rdf_osquery.OsqueryArgs(query=query, **kwargs)
   return list(osquery.Osquery().Process(args))
 

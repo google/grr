@@ -3,7 +3,6 @@
 """Output_plugin related rdf values."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -40,7 +39,7 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
     cls = registry.OutputPluginRegistry.PluginClassByName(self.plugin_name)
     return cls()
 
-  def __str__(self):
+  def __str__(self) -> Text:
     result = self.plugin_name
     if self.plugin_args:
       result += " <%r>" % self.plugin_args

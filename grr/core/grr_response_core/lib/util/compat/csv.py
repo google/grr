@@ -3,7 +3,6 @@
 """A module with compatibility wrappers for CSV processing."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import csv
@@ -27,14 +26,14 @@ class Reader(object):
     delimiter: A delimiter the values are separated with. Defaults to a comma.
   """
 
-  def __init__(self, content, delimiter = ","):
+  def __init__(self, content: Text, delimiter: Text = ","):
     precondition.AssertType(content, Text)
     precondition.AssertType(delimiter, Text)
 
     self._content = content
     self._delimiter = delimiter
 
-  def __iter__(self):
+  def __iter__(self) -> Iterator[List[Text]]:
     if compatibility.PY2:
       filedesc = io.BytesIO(self._content.encode("utf-8"))
     else:
@@ -71,7 +70,7 @@ class Writer(object):
     delimiter: A delimiter to separate the values with. Defaults to a comma.
   """
 
-  def __init__(self, delimiter = ","):
+  def __init__(self, delimiter: Text = ","):
     precondition.AssertType(delimiter, Text)
 
     if compatibility.PY2:
@@ -84,7 +83,7 @@ class Writer(object):
         delimiter=compatibility.NativeStr(delimiter),
         lineterminator=compatibility.NativeStr("\n"))
 
-  def WriteRow(self, values):
+  def WriteRow(self, values: List[Text]):
     """Writes a single row to the underlying buffer.
 
     Args:
@@ -97,7 +96,7 @@ class Writer(object):
     else:
       self._csv.writerow(values)
 
-  def Content(self):
+  def Content(self) -> Text:
     if compatibility.PY2:
       # TODO(hanuszczak): https://github.com/google/pytype/issues/127
       return self._output.getvalue().decode("utf-8")  # pytype: disable=attribute-error
@@ -116,7 +115,7 @@ class DictWriter(object):
     delimiter: A delimiter to separate the values with. Defaults to a comma.
   """
 
-  def __init__(self, columns, delimiter = ","):
+  def __init__(self, columns: List[Text], delimiter: Text = ","):
     precondition.AssertIterableType(columns, Text)
     precondition.AssertType(delimiter, Text)
 
@@ -131,7 +130,7 @@ class DictWriter(object):
     """
     self._writer.WriteRow(self._columns)
 
-  def WriteRow(self, values):
+  def WriteRow(self, values: Dict[Text, Text]):
     """Writes a single row to the underlying buffer.
 
     Args:
@@ -151,5 +150,5 @@ class DictWriter(object):
 
     self._writer.WriteRow(row)
 
-  def Content(self):
+  def Content(self) -> Text:
     return self._writer.Content()

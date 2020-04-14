@@ -3,7 +3,6 @@
 """A BlobStore proxy that writes to two BlobStores."""
 from __future__ import absolute_import
 from __future__ import division
-
 from __future__ import unicode_literals
 
 import logging
@@ -44,7 +43,7 @@ DUAL_BLOB_STORE_DISCARD_COUNT = metrics.Counter(
     fields=[("backend_class", str), ("method", str)])
 
 
-def _InstantiateBlobStore(name):
+def _InstantiateBlobStore(name: Text) -> blob_store.BlobStore:
   try:
     cls = blob_store.REGISTRY[name]
   except KeyError:
@@ -56,7 +55,7 @@ I = TypeVar("I")
 O = TypeVar("O")
 
 
-def _MeasureFn(bs, fn, arg):
+def _MeasureFn(bs: blob_store.BlobStore, fn: Callable[[I], O], arg: I) -> O:
   """Runs fn(arg) and tracks latency and error metrics."""
   start_time = time.time()
   cls_name = compatibility.GetName(type(bs))
@@ -107,8 +106,8 @@ class DualBlobStore(blob_store.BlobStore):
   """
 
   def __init__(self,
-               primary = None,
-               secondary = None):
+               primary: Optional[Text] = None,
+               secondary: Optional[Text] = None):
     """Instantiates a new DualBlobStore and its primary and secondary BlobStore.
 
     Args:
@@ -139,33 +138,33 @@ class DualBlobStore(blob_store.BlobStore):
     self._StartBackgroundThread("DualBlobStore_ReadThread", self._read_queue)
 
   def WriteBlobs(self,
-                 blob_id_data_map):
+                 blob_id_data_map: Dict[rdf_objects.BlobID, bytes]) -> None:
     """Creates or overwrites blobs."""
     _Enqueue(self._write_queue, self._secondary, self._secondary.WriteBlobs,
              dict(blob_id_data_map))
     _MeasureFn(self._primary, self._primary.WriteBlobs, blob_id_data_map)
 
-  def ReadBlobs(self, blob_ids
-               ):
+  def ReadBlobs(self, blob_ids: Iterable[rdf_objects.BlobID]
+               ) -> Dict[rdf_objects.BlobID, Optional[bytes]]:
     """Reads all blobs, specified by blob_ids, returning their contents."""
     _Enqueue(self._read_queue, self._secondary, self._secondary.ReadBlobs,
              list(blob_ids))
     return _MeasureFn(self._primary, self._primary.ReadBlobs, blob_ids)
 
-  def ReadBlob(self, blob_id):
+  def ReadBlob(self, blob_id: rdf_objects.BlobID) -> Optional[bytes]:
     """Reads the blob contents, identified by the given BlobID."""
     _Enqueue(self._read_queue, self._secondary, self._secondary.ReadBlob,
              blob_id)
     return _MeasureFn(self._primary, self._primary.ReadBlob, blob_id)
 
-  def CheckBlobExists(self, blob_id):
+  def CheckBlobExists(self, blob_id: rdf_objects.BlobID) -> bool:
     """Checks if a blob with a given BlobID exists."""
     _Enqueue(self._read_queue, self._secondary, self._secondary.CheckBlobExists,
              blob_id)
     return _MeasureFn(self._primary, self._primary.CheckBlobExists, blob_id)
 
-  def CheckBlobsExist(self, blob_ids
-                     ):
+  def CheckBlobsExist(self, blob_ids: Iterable[rdf_objects.BlobID]
+                     ) -> Dict[rdf_objects.BlobID, bool]:
     """Checks if blobs for the given identifiers already exist."""
     _Enqueue(self._read_queue, self._secondary, self._secondary.CheckBlobsExist,
              list(blob_ids))
