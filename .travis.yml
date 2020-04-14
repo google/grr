@@ -174,7 +174,7 @@ matrix:
         - python3 -m venv "${HOME}/INSTALL"
         - ${HOME}/INSTALL/bin/python -m pip install --upgrade pip setuptools
         - python3 -m venv "${HOME}/GCS_VENV"
-        - ${HOME}/INSTALL/bin/python -m pip install google-cloud-storage absl-py
+        - ${HOME}/GCS_VENV/bin/python -m pip install google-cloud-storage absl-py
       install:
         - travis/install.sh
       script:
