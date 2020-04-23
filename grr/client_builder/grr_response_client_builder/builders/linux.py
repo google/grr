@@ -55,6 +55,8 @@ def _CopyFleetspeakDpkgFiles(package_dir, context=None):
           "ClientBuilder.fleetspeak_config_path", context=context),
       fleetspeak_dir)
 
+def _CopyBundledFleetspeakDpkgFiles(src_dir, package_dir):
+  raise Exception("src dir is " + src_dir)
 
 def _CopyNonFleetspeakDpkgFiles(dist_dir, package_dir):
   """Copies non-Fleetspeak-enabled DPKG files to template directory."""
@@ -122,6 +124,14 @@ class DebianClientBuilder(build.ClientBuilder):
     return config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context)
 
   @property
+  def fleetspeak_bundled(self):
+    return config.CONFIG.Get("Client.fleetspeak_bundled", context=self.context)
+
+  @property
+  def fleetspeak_bundled_dir(self):
+    return config.CONFIG.Get("Client.fleetspeak_bundled_dir", context=self.context)
+
+  @property
   def package_dir(self):
     return config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
 
@@ -131,10 +141,13 @@ class DebianClientBuilder(build.ClientBuilder):
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
 
     _StripLibraries(output_dir)
-    if self.fleetspeak_enabled:
+    if self.fleetspeak_enabled or self.fleetspeak_bundled:
       _CopyFleetspeakDpkgFiles(self.package_dir, context=self.context)
     else:
       _CopyNonFleetspeakDpkgFiles(output_dir, self.package_dir)
+
+    if self.fleetspeak_bundled:
+      _CopyBundledFleetspeakDpkgFiles(self.fleetspeak_bundled_dir, self.package_dir)
 
     _MakeZip(self.package_dir, output_file)
 

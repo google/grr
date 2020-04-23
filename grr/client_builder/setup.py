@@ -71,6 +71,7 @@ setup_args = dict(
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "pyinstaller==3.5",
+        "fleetspeak-client-bin==0.1.7.1",
     ],
 
     # Data files used by GRR. Access these via the config_lib "resource" filter.

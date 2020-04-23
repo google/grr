@@ -4,12 +4,15 @@ set -e
 
 source "${HOME}/INSTALL/bin/activate"
 
-grr_client_build build --output gcs_upload_dir
+CONFIG_OVERRIDES="-p Client.fleetspeak_bundled=True"
+
+grr_client_build build --output gcs_upload_dir $CONFIG_OVERRIDES
 
 # We only have one template on linux or OS X so using *.zip is safe here
 grr_client_build \
   --verbose \
   --secondary_configs grr/test/grr_response_test/test_data/dummyconfig.yaml \
+  $CONFIG_OVERRIDES \
   repack \
   --template gcs_upload_dir/*.zip \
   --output_dir gcs_upload_dir

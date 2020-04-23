@@ -33,6 +33,15 @@ config_lib.DEFINE_bool(
     "Whether the client uses Fleetspeak to communicate "
     "with the server.")
 
+config_lib.DEFINE_bool(
+    "Client.fleetspeak_bundled", False,
+    "Whether the client bundles a fleetspeak installation.")
+
+config_lib.DEFINE_string(
+    "Client.fleetspeak_bundled_dir",
+    "%(fleetspeak-client-bin@fleetspeak-client-bin|resource)",
+    "Foo")
+
 config_lib.DEFINE_string(
     "Client.fleetspeak_service_name", "FleetspeakService",
     "Name of the Fleetspeak (upstart, systemd or Windows) service. Used to "
