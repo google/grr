@@ -499,8 +499,6 @@ class Communicator(with_metaclass(abc.ABCMeta, object)):
         remote_public_key = self._GetRemotePublicKey(source)
         if cipher.VerifyCipherSignature(remote_public_key):
           # At this point we know this cipher is legit, we can cache it.
-          self.encrypted_cipher_cache.Put(response_comms.encrypted_cipher,
-                                          cipher)
           cipher_verified = True
 
       except UnknownClientCertError:
