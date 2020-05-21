@@ -121,7 +121,7 @@ if platform.system\(\).lower\(\) == 'linux':
 
 a = Analysis\(
     [client_path],
-    hiddenimports=CHIPSEC_IMPORTS,
+    hiddenimports=CHIPSEC_IMPORTS + ['pkg_resources.py2_warn'],
     hookspath=None\)
 
 # Remove some optional libraries that would be packed but serve no purpose.
