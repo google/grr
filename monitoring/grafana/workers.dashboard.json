@@ -49,14 +49,52 @@
   "links": [],
   "panels": [
     {
+      "alert": {
+        "alertRuleTags": {},
+        "conditions": [
+          {
+            "evaluator": {
+              "params": [
+                0.5
+              ],
+              "type": "lt"
+            },
+            "operator": {
+              "type": "and"
+            },
+            "query": {
+              "params": [
+                "A",
+                "10s",
+                "now"
+              ]
+            },
+            "reducer": {
+              "params": [],
+              "type": "last"
+            },
+            "type": "query"
+          }
+        ],
+        "executionErrorState": "alerting",
+        "for": "10s",
+        "frequency": "10s",
+        "handler": 1,
+        "name": "Number of Active Processes alert",
+        "noDataState": "alerting",
+        "notifications": []
+      },
       "aliasColors": {},
       "bars": false,
       "dashLength": 10,
       "dashes": false,
       "datasource": "${DS_GRR-SERVER}",
+      "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {},
+          "custom": {
+            "align": null
+          },
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -110,17 +148,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "sum(up{job=\"grr_frontend\"})",
+          "expr": "sum(up{job=\"grr_worker\"})",
           "interval": "",
-          "legendFormat": "",
+          "legendFormat": "Number of Active Worker Processes",
           "refId": "A"
         }
       ],
-      "thresholds": [],
+      "thresholds": [
+        {
+          "colorMode": "critical",
+          "fill": true,
+          "line": true,
+          "op": "lt",
+          "value": 0.5
+        }
+      ],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Number of Active Frontend Processes",
+      "title": "Number of Active Processes",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -166,9 +212,7 @@
       "description": "",
       "fieldConfig": {
         "defaults": {
-          "custom": {
-            "align": null
-          },
+          "custom": {},
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -222,17 +266,25 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(frontend_request_count_total{job=\"grr_frontend\"}[1m])",
+          "expr": "sum(threadpool_outstanding_tasks{job=\"grr_worker\"})",
+          "instant": false,
           "interval": "",
-          "legendFormat": "Requests - {{instance}}",
+          "legendFormat": "Outstanding Tasks",
           "refId": "A"
+        },
+        {
+          "expr": "sum(threadpool_threads{job=\"grr_worker\"})",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Threads",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Frontend QPS",
+      "title": "Outstanding Tasks vs. Number of Threads",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -316,17 +368,23 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "frontend_active_count",
+          "expr": "sum(rate(threadpool_working_time_sum{job=\"grr_worker\"}[5m])) /\nsum(rate(threadpool_working_time_count{job=\"grr_worker\"}[5m]))",
           "interval": "",
-          "legendFormat": "Active Tasks - {{instance}}",
+          "legendFormat": "Latency",
           "refId": "A"
+        },
+        {
+          "expr": "sum(rate(threadpool_queueing_time_sum{job=\"grr_worker\"}[5m])) /\nsum(rate(threadpool_queueing_time_count{job=\"grr_worker\"}[5m]))",
+          "interval": "",
+          "legendFormat": "Queueing Time",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Frontend Active Tasks Count",
+      "title": "Threadpool Latency vs. Queuing Time Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -410,17 +468,23 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(frontend_request_latency_sum{job=\"grr_frontend\"}[5m]) /\nrate(frontend_request_latency_count{job=\"grr_frontend\"}[5m])",
+          "expr": "sum(rate(flow_completions_total{job=\"grr_worker\"}[5m]))",
           "interval": "",
-          "legendFormat": "Latency - {{instance}} ",
+          "legendFormat": "Successes",
           "refId": "A"
+        },
+        {
+          "expr": "sum(rate(flow_errors_total{job=\"grr_worker\"}[5m]))",
+          "interval": "",
+          "legendFormat": "Failures",
+          "refId": "B"
         }
       ],
       "thresholds": [],
       "timeFrom": null,
       "timeRegions": [],
       "timeShift": null,
-      "title": "Frontend Request Latency Rate",
+      "title": "Successful Flows vs. Failed Flows Rate",
       "tooltip": {
         "shared": true,
         "sort": 0,
@@ -458,6 +522,7 @@
       }
     }
   ],
+  "refresh": "5s",
   "schemaVersion": 25,
   "style": "dark",
   "tags": [],
@@ -482,7 +547,7 @@
     ]
   },
   "timezone": "",
-  "title": "Frontend Dashboard",
-  "uid": "rY7bgwRGk",
-  "version": 15
+  "title": "Workers Dashboard",
+  "uid": "m2e1kwRMz",
+  "version": 28
 }
