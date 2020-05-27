@@ -36,8 +36,10 @@ class HuntApprovalBase(object):
 
     self._context = context
 
+  # TODO(hanuszczak): There was an unresolved reference in this function, yet
+  # none of the test caught it, indicating insufficient test coverage.
   def Grant(self):
-    args = hunt_pb2.ApiGrantHuntApprovalArgs(
+    args = user_pb2.ApiGrantHuntApprovalArgs(
         hunt_id=self.hunt_id,
         username=self.username,
         approval_id=self.approval_id)
@@ -354,10 +356,12 @@ def ListHunts(context=None):
                                 items)
 
 
+# TODO(hanuszczak): There was an unresolved reference in this function, yet none
+# of the test caught it, indicating insufficient test coverage.
 def ListHuntApprovals(context=None):
   """List all hunt approvals belonging to requesting user."""
   items = context.SendIteratorRequest("ListHuntApprovals",
-                                      hunt_pb2.ApiListHuntApprovalsArgs())
+                                      user_pb2.ApiListHuntApprovalsArgs())
 
   def MapHuntApproval(data):
     return HuntApproval(data=data, username=context.username, context=context)

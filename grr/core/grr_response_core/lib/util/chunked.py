@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import os
 import struct
 from typing import IO
 from typing import Iterator
@@ -43,9 +44,30 @@ def Read(buf: IO[bytes]) -> Optional[bytes]:
   except struct.error as error:
     raise ValueError(f"Incorrect size tag {count_bytes}: {error}")
 
+  # It might happen that we are given file with incorrect format. If the size
+  # tag is interpreted as a huge number, reading the buffer will lead to raising
+  # an exception, because Python will try to allocate a buffer to read into. If
+  # possible, we try to check guard against such situations and provide more
+  # informative exception message.
+
+  def Error(left: int) -> ValueError:
+    message = f"Malformed input (reading {count} bytes out of {left} available)"
+    return ValueError(message)
+
+  if buf.seekable():
+    position = buf.tell()
+
+    buf.seek(0, os.SEEK_END)
+    size = buf.tell()
+
+    if count > size - position:
+      raise Error(size - position)
+
+    buf.seek(position, os.SEEK_SET)
+
   chunk = buf.read(count)
   if len(chunk) != count:
-    raise ValueError(f"Content too short: {chunk}")
+    raise Error(len(chunk))
 
   return chunk
 

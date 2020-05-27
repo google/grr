@@ -1,5 +1,6 @@
 syntax = "proto2";
 
+package grr;
 
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";

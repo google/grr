@@ -35,6 +35,29 @@ export function createOptionalDate(apiTimestamp?: string): Date|undefined {
 }
 
 /**
+ * Constructs a Date from a unixtime string with seconds precision.
+ */
+export function createOptionalDateSeconds(timestampSeconds: undefined):
+    undefined;
+export function createOptionalDateSeconds(timestampSeconds: string): Date;
+export function createOptionalDateSeconds(timestampSeconds?: string): Date|
+    undefined;
+
+export function createOptionalDateSeconds(timestampSeconds?: string): Date|
+    undefined {
+  if (!timestampSeconds) {
+    return undefined;
+  }
+  const result = new Date(Number(timestampSeconds) * 1000);
+  if (isNaN(result.valueOf())) {
+    throw new Error(`Date "${timestampSeconds}" is invalid.`);
+  }
+  return result;
+}
+
+
+
+/**
  * Creates an unknown object out of protobuf's any object.
  * Unknown is different from any as, unlike any, it has to be explicitly cast
  * to a type for any use.

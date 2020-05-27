@@ -1,8 +1,15 @@
+@use '~material-theme' as c;
+
 :host {
   display: block;
 
   .mat-form-field {
     width: 100%;
+
+    mat-icon {
+      margin-right: .5em;
+      color: c.mat-color(c.$foreground, divider);
+    }
   }
 }
 

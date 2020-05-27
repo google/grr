@@ -1,10 +1,8 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {ClientFacade} from '@app/store/client_facade';
+import {ClientPageFacade} from '@app/store/client_page_facade';
 import {fromEvent, Subject} from 'rxjs';
-import {takeUntil, withLatestFrom} from 'rxjs/operators';
+import {map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
-import {FlowDescriptor} from '../../lib/models/flow';
-import {FlowFacade} from '../../store/flow_facade';
 import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 
 /**
@@ -19,22 +17,20 @@ import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   private readonly unsubscribe$ = new Subject<void>();
 
-  selectedFlow?: FlowDescriptor;
-  readonly selectedFlow$ = this.flowFacade.selectedFlow$;
-  readonly selectedClient$ = this.clientFacade.selectedClient$;
+  readonly selectedFD$ = this.clientPageFacade.selectedFlowDescriptor$;
 
   @ViewChild('form') form!: ElementRef<HTMLFormElement>;
 
   @ViewChild(FlowArgsForm) flowArgsForm!: FlowArgsForm;
 
+  readonly disabled$ = new Subject<boolean>();
+
+  readonly error$ = this.clientPageFacade.startFlowState$.pipe(
+      map(state => state.state === 'error' ? state.error : undefined));
+
   constructor(
-      private readonly flowFacade: FlowFacade,
-      private readonly clientFacade: ClientFacade,
-  ) {
-    this.flowFacade.selectedFlow$.subscribe(selectedFlow => {
-      this.selectedFlow = selectedFlow;
-    });
-  }
+      private readonly clientPageFacade: ClientPageFacade,
+  ) {}
 
   ngOnInit() {}
 
@@ -42,19 +38,17 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
     fromEvent(this.form.nativeElement, 'submit')
         .pipe(
             takeUntil(this.unsubscribe$),
-            withLatestFrom(
-                this.selectedFlow$, this.selectedClient$,
-                this.flowArgsForm.flowArgValues$),
+            withLatestFrom(this.flowArgsForm.flowArgValues$),
             )
-        .subscribe(([e, selectedFlow, selectedClient, flowArgs]) => {
+        .subscribe(([e, flowArgs]) => {
           e.preventDefault();
 
-          if (selectedFlow === undefined) {
-            throw new Error('Cannot submit flow form without selected flow.');
-          }
+          this.clientPageFacade.startFlow(flowArgs);
+        });
 
-          this.clientFacade.startFlow(
-              selectedClient.clientId, selectedFlow.name, flowArgs);
+    this.flowArgsForm.valid$.pipe(takeUntil(this.unsubscribe$))
+        .subscribe(valid => {
+          this.disabled$.next(!valid);
         });
   }
 

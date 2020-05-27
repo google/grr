@@ -1,12 +1,49 @@
 :host {
   display: block;
-  padding: 2em 0 2em 10em;
+  margin-top: 2em;
+  margin-bottom: 1.75em;
 }
 
 button {
   text-transform: uppercase;
 }
 
-mat-form-field {
-  padding-right: 1em;
+form {
+  display: flex;
+  align-items: stretch;
+
+  mat-form-field {
+    padding-right: 1em;
+  }
+
+  .approvers {
+    display: flex;
+    flex-direction: column;
+
+    mat-form-field {
+      ::ng-deep {
+        .mat-form-field-wrapper {
+          padding-bottom: .75em;
+        }
+      }
+    }
+
+    mat-checkbox {
+      position: relative;
+      left: 3px;
+    }
+  }
+
+  button {
+    margin-top: .25em;
+    height: 4.3em;
+  }
+}
+
+h1 {
+  mat-chip {
+    margin-left: .75em;
+    min-height: 26px;
+    font-size: 12px;
+  }
 }

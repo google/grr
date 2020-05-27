@@ -258,7 +258,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
         self.state.files_found += 1
         self.SendReply(response)
       else:
-        if self.client_version < 3221:
+        if self.client_version and self.client_version < 3221:
           self.Error("Client is too old to get requested stat information.")
         request = rdf_client_action.GetFileStatRequest(
             pathspec=response.stat_entry.pathspec,

@@ -10,6 +10,8 @@ from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
+from grr_response_core.lib.util import timeline
+from grr_response_proto import timeline_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -55,10 +57,10 @@ class TimelineFlow(flow_base.FlowBase):
       self.SendReply(response)
 
 
-def Entries(
+def ProtoEntries(
     client_id: Text,
     flow_id: Text,
-) -> Iterator[rdf_timeline.TimelineEntry]:
+) -> Iterator[timeline_pb2.TimelineEntry]:
   """Retrieves timeline entries for the specified flow.
 
   Args:
@@ -66,10 +68,10 @@ def Entries(
     flow_id: An identifier of the flow to retrieve the blobs for.
 
   Returns:
-    An iterator over timeline entries for the specified flow.
+    An iterator over timeline entries protos for the specified flow.
   """
   blobs = Blobs(client_id, flow_id)
-  return rdf_timeline.TimelineEntry.DeserializeStream(blobs)
+  return timeline.DeserializeTimelineEntryProtoStream(blobs)
 
 
 def Blobs(

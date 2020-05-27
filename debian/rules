@@ -24,6 +24,7 @@ override_dh_auto_test:
 override_dh_installinit:
 	dh_installinit
 	bash grr/core/scripts/install_server_from_src.sh -i debian/grr-server
+	cp -v -r fleetspeak-server-bin/* debian/grr-server
 
 override_dh_installdocs:
 

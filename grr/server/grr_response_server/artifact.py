@@ -5,17 +5,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import contextlib
 import logging
-
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import Optional
+from typing import Sequence
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
@@ -317,6 +322,144 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
         pass
 
 
+class ParseResults(object):
+  """A class representing results of parsing flow responses."""
+
+  def __init__(self):
+    self._responses = []  # type: List[rdfvalue.RDFValue]
+    self._errors = []  # type: List[parsers.ParseError]
+
+  def AddResponses(self, responses: Iterator[rdfvalue.RDFValue]) -> None:
+    self._responses.extend(responses)
+
+  def AddError(self, error: parsers.ParseError) -> None:
+    self._errors.append(error)
+
+  def Responses(self) -> Iterator[rdfvalue.RDFValue]:
+    return iter(self._responses)
+
+  def Errors(self) -> Iterator[parsers.ParseError]:
+    return iter(self._errors)
+
+
+class ParserApplicator(object):
+  """An utility class for applying many parsers to responses."""
+
+  def __init__(
+      self,
+      factory: parsers.ArtifactParserFactory,
+      client_id: str,
+      knowledge_base: rdf_client.KnowledgeBase,
+      timestamp: Optional[rdfvalue.RDFDatetime] = None,
+  ):
+    """Initializes the applicator.
+
+    Args:
+      factory: A parser factory that produces parsers to apply.
+      client_id: An identifier of the client for which the responses were
+        collected.
+      knowledge_base: A knowledge base of the client from which the responses
+        were collected.
+      timestamp: An optional timestamp at which parsers should interpret the
+        results. For example, parsers that depend on files, will receive content
+        of files as it was at the given timestamp.
+    """
+    self._factory = factory
+    self._client_id = client_id
+    self._knowledge_base = knowledge_base
+    self._timestamp = timestamp
+    self._results = ParseResults()
+
+  def Apply(self, responses: Sequence[rdfvalue.RDFValue]):
+    """Applies all known parsers to the specified responses.
+
+    Args:
+      responses: A sequence of responses to apply the parsers to.
+    """
+    for response in responses:
+      self._ApplySingleResponse(response)
+
+    self._ApplyMultiResponse(responses)
+
+    has_single_file_parsers = self._factory.HasSingleFileParsers()
+    has_multi_file_parsers = self._factory.HasMultiFileParsers()
+
+    if has_single_file_parsers or has_multi_file_parsers:
+      precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+      pathspecs = [response.pathspec for response in responses]
+      filedescs = [self._OpenFile(pathspec) for pathspec in pathspecs]
+
+      for pathspec, filedesc in zip(pathspecs, filedescs):
+        self._ApplySingleFile(pathspec, filedesc)
+
+      self._ApplyMultiFile(pathspecs, filedescs)
+
+  def Responses(self) -> Iterator[rdfvalue.RDFValue]:
+    """Returns an iterator over all parsed responses."""
+    yield from self._results.Responses()
+
+  def Errors(self) -> Iterator[parsers.ParseError]:
+    """Returns an iterator over errors that occurred during parsing."""
+    yield from self._results.Errors()
+
+  def _ApplySingleResponse(
+      self,
+      response: rdfvalue.RDFValue,
+  ) -> None:
+    """Applies all single-response parsers to the given response."""
+    for parser in self._factory.SingleResponseParsers():
+      try:
+        results = parser.ParseResponse(self._knowledge_base, response)
+        self._results.AddResponses(results)
+      except parsers.ParseError as error:
+        self._results.AddError(error)
+
+  def _ApplyMultiResponse(
+      self,
+      responses: Iterable[rdfvalue.RDFValue],
+  ) -> None:
+    """Applies all multi-response parsers to the given responses."""
+    for parser in self._factory.MultiResponseParsers():
+      try:
+        results = parser.ParseResponses(self._knowledge_base, responses)
+        self._results.AddResponses(results)
+      except parsers.ParseError as error:
+        self._results.AddError(error)
+
+  def _ApplySingleFile(
+      self,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: file_store.BlobStream,
+  ) -> None:
+    """Applies all single-file parsers to the given file."""
+    for parser in self._factory.SingleFileParsers():
+      try:
+        results = parser.ParseFile(self._knowledge_base, pathspec, filedesc)
+        self._results.AddResponses(results)
+      except parsers.ParseError as error:
+        self._results.AddError(error)
+
+  def _ApplyMultiFile(
+      self,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[file_store.BlobStream],
+  ) -> None:
+    """Applies all multi-file parsers to the given file."""
+    for parser in self._factory.MultiFileParsers():
+      try:
+        results = parser.ParseFiles(self._knowledge_base, pathspecs, filedescs)
+        self._results.AddResponses(results)
+      except parsers.ParseError as error:
+        self._results.AddError(error)
+
+  def _OpenFile(self, pathspec: rdf_paths.PathSpec) -> file_store.BlobStream:
+    # TODO(amoser): This is not super efficient, AFF4 provided an api to open
+    # all pathspecs at the same time, investigate if optimizing this is worth
+    # it.
+    client_path = db.ClientPath.FromPathSpec(self._client_id, pathspec)
+    return file_store.OpenFile(client_path, max_timestamp=self._timestamp)
+
+
 def ApplyParsersToResponses(parser_factory, responses, flow_obj):
   """Parse responses with applicable parsers.
 
@@ -332,57 +475,16 @@ def ApplyParsersToResponses(parser_factory, responses, flow_obj):
     # If we don't have any parsers, we expect to use the unparsed responses.
     return responses
 
-  # We have some processors to run.
   knowledge_base = flow_obj.state.knowledge_base
+  client_id = flow_obj.client_id
 
-  @contextlib.contextmanager
-  def ParseErrorHandler():
-    try:
-      yield
-    except parsers.ParseError as error:
-      flow_obj.Log("Error encountered when parsing responses: %s", error)
+  applicator = ParserApplicator(parser_factory, client_id, knowledge_base)
+  applicator.Apply(responses)
 
-  parsed_responses = []
+  for error in applicator.Errors():
+    flow_obj.Log("Error encountered when parsing responses: %s", error)
 
-  if parser_factory.HasSingleResponseParsers():
-    for response in responses:
-      for parser in parser_factory.SingleResponseParsers():
-        with ParseErrorHandler():
-          parsed_responses.extend(
-              parser.ParseResponse(knowledge_base, response))
-
-  for parser in parser_factory.MultiResponseParsers():
-    with ParseErrorHandler():
-      parsed_responses.extend(parser.ParseResponses(knowledge_base, responses))
-
-  has_single_file_parsers = parser_factory.HasSingleFileParsers()
-  has_multi_file_parsers = parser_factory.HasMultiFileParsers()
-
-  if has_single_file_parsers or has_multi_file_parsers:
-    precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
-    pathspecs = [response.pathspec for response in responses]
-    # TODO(amoser): This is not super efficient, AFF4 provided an api to open
-    # all pathspecs at the same time, investigate if optimizing this is worth
-    # it.
-    filedescs = []
-    for pathspec in pathspecs:
-      client_path = db.ClientPath.FromPathSpec(flow_obj.client_id, pathspec)
-      filedescs.append(file_store.OpenFile(client_path))
-
-  if has_single_file_parsers:
-    for response, filedesc in zip(responses, filedescs):
-      for parser in parser_factory.SingleFileParsers():
-        with ParseErrorHandler():
-          parsed_responses.extend(
-              parser.ParseFile(knowledge_base, response.pathspec, filedesc))
-
-  if has_multi_file_parsers:
-    for parser in parser_factory.MultiFileParsers():
-      with ParseErrorHandler():
-        parsed_responses.extend(
-            parser.ParseFiles(knowledge_base, pathspecs, filedescs))
-
-  return parsed_responses
+  return list(applicator.Responses())
 
 
 def UploadArtifactYamlFile(file_content,

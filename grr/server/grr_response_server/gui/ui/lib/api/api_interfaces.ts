@@ -10,8 +10,15 @@
 
 export declare interface AnyObject {
   '@type'?: string;
-  [key: string]: undefined|null|string|number|boolean|AnyObject;
+  [key: string]: undefined|null|string|number|boolean|object;
 }
+
+/**
+ * int64, fixed64, and DecimalString in Protobuf are serialized as string in
+ * JSON because JS loses precision for big numeric types. During
+ * deserialization, both decimal strings and numbers are accepted.
+ */
+export type DecimalString = string|number;
 
 /**
  * KnowledgeBase proto mapping.
@@ -48,12 +55,12 @@ export declare interface ApiClient {
 }
 
 /**
- * ApiSearchClientArgs proto mapping.
+ * ApiSearchClientsArgs proto mapping.
  */
-export declare interface ApiSearchClientArgs {
+export declare interface ApiSearchClientsArgs {
   readonly query?: string;
-  readonly offset?: number;
-  readonly count?: number;
+  readonly offset?: DecimalString;
+  readonly count?: DecimalString;
 }
 
 /**
@@ -100,6 +107,14 @@ export declare interface ApiListClientFlowDescriptorsResult {
   readonly items: ReadonlyArray<ApiFlowDescriptor>;
 }
 
+/** ApiFlow.State proto enum mapping. */
+export enum ApiFlowState {
+  RUNNING = 'RUNNING',
+  TERMINATED = 'TERMINATED',
+  ERROR = 'ERROR',
+  CLIENT_CRASHED = 'CLIENT_CRASHED',
+}
+
 /** ApiFlow proto mapping. */
 export declare interface ApiFlow {
   readonly flowId?: string;
@@ -110,6 +125,7 @@ export declare interface ApiFlow {
   readonly creator?: string;
   readonly args?: AnyObject;
   readonly progress?: AnyObject;
+  readonly state?: ApiFlowState;
 }
 
 /** ApiListFlowsResult proto mapping. */
@@ -129,13 +145,28 @@ export declare interface ApiCreateClientApprovalArgs {
   approval?: ApiClientApproval;
 }
 
-/** ApiBrowserHistoryFlowArgs proto mapping. */
-export declare interface ApiBrowserHistoryFlowArgs {
-  collectChrome?: boolean;
-  collectFirefox?: boolean;
-  collectInternetExplorer?: boolean;
-  collectOpera?: boolean;
-  collectSafari?: boolean;
+/** ApiFlowResult proto mapping */
+export declare interface ApiFlowResult {
+  readonly payload?: AnyObject;
+  readonly payloadType?: string;
+  readonly timestamp?: string;
+  readonly tag?: string;
+}
+
+/** ApiListFlowResultsArgs proto mapping. */
+export declare interface ApiListFlowResultsArgs {
+  readonly clientId?: string;
+  readonly flowId?: string;
+  readonly offset?: number;
+  readonly count?: number;
+  readonly withType?: string;
+  readonly withTag?: string;
+}
+
+/** ApiListFlowResultsResult proto mapping. */
+export declare interface ApiListFlowResultsResult {
+  readonly items?: ReadonlyArray<ApiFlowResult>;
+  readonly totalCount?: number;
 }
 
 /** GUISettings proto mapping. */
@@ -244,13 +275,13 @@ export declare interface PathSpec {
   readonly mountPoint?: string;
   readonly streamName?: string;
   readonly nestedPath?: PathSpec;
-  readonly offset?: number;
+  readonly offset?: DecimalString;
   readonly pathOptions?: PathSpecOptions;
-  readonly recursionDepth?: number;
-  readonly inode?: number;
+  readonly recursionDepth?: DecimalString;
+  readonly inode?: DecimalString;
   readonly ntfsType?: PathSpecTskFsAttrType;
-  readonly ntfsId?: number;
-  readonly fileSizeOverride?: number;
+  readonly ntfsId?: DecimalString;
+  readonly fileSizeOverride?: DecimalString;
   readonly isVirtualroot?: boolean;
 }
 
@@ -258,8 +289,8 @@ export declare interface PathSpec {
 export declare interface MultiGetFileArgs {
   readonly pathspecs: PathSpec[];
   readonly useExternalStores?: boolean;
-  readonly fileSize?: number;
-  readonly maximumPendingFiles?: number;
+  readonly fileSize?: DecimalString;
+  readonly maximumPendingFiles?: DecimalString;
 }
 
 /** PathSpecProgress.Status enum mapping. */
@@ -286,4 +317,100 @@ export declare interface MultiGetFileProgress {
   numFailed?: number;
 
   pathspecsProgress: PathSpecProgress[];
+}
+
+/** CollectSingleFileArgs proto mapping. */
+export declare interface CollectSingleFileArgs {
+  readonly path?: string;
+  readonly maxSizeBytes?: DecimalString;
+}
+
+/** CollectBrowserHistoryResult.Browser proto enum mapping. */
+export enum CollectBrowserHistoryArgsBrowser {
+  UNDEFINED = 'UNDEFINED',
+  CHROME = 'CHROME',
+  FIREFOX = 'FIREFOX',
+  INTERNET_EXPLORER = 'INTERNET_EXPLORER',
+  OPERA = 'OPERA',
+  SAFARI = 'SAFARI',
+}
+
+/** CollectBrowserHistoryArgs proto mapping. */
+export declare interface CollectBrowserHistoryArgs {
+  readonly browsers?: ReadonlyArray<CollectBrowserHistoryArgsBrowser>;
+}
+
+/** CollectBrowserHistoryResult proto mapping. */
+export declare interface CollectBrowserHistoryResult {
+  readonly browser?: CollectBrowserHistoryArgsBrowser;
+  readonly statEntry?: StatEntry;
+}
+
+/** BrowserProgress.Status proto enum mapping. */
+export enum BrowserProgressStatus {
+  UNDEFINED = 'UNDEFINED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR',
+}
+
+/** BrowserProgress proto mapping. */
+export declare interface BrowserProgress {
+  readonly browser?: CollectBrowserHistoryArgsBrowser;
+  readonly status?: BrowserProgressStatus;
+  readonly description?: string;
+  readonly numCollectedFiles?: number;
+  readonly flowId?: string;
+}
+
+/** CollectBrowserHistoryProgress proto mapping. */
+export declare interface CollectBrowserHistoryProgress {
+  readonly browsers?: ReadonlyArray<BrowserProgress>;
+}
+
+/** StatEntry proto mapping. */
+export declare interface StatEntry {
+  readonly stMode?: string;
+  readonly stIno?: number;
+  readonly stDev?: number;
+  readonly stNlink?: number;
+  readonly stUid?: number;
+  readonly stGid?: number;
+  readonly stSize?: string;
+  readonly stAtime?: string;
+  readonly stMtime?: string;
+  readonly stCtime?: string;
+
+  readonly stBlocks?: number;
+  readonly stBlksize?: number;
+  readonly stRdev?: number;
+  readonly stFlagsOsx?: number;
+  readonly stFlagsLinux?: number;
+
+  readonly symlink?: string;
+
+  readonly pathspec?: PathSpec;
+}
+
+/** CollectMultipleFilesArgs proto mapping. */
+export declare interface CollectMultipleFilesArgs {
+  pathExpressions?: ReadonlyArray<string>;
+}
+
+/** GlobComponentExplanation proto mapping. */
+export declare interface GlobComponentExplanation {
+  globExpression?: string;
+  examples?: ReadonlyArray<string>;
+}
+
+/** ApiExplainGlobExpressionArgs proto mapping. */
+export declare interface ApiExplainGlobExpressionArgs {
+  globExpression?: string;
+  exampleCount?: number;
+  clientId?: string;
+}
+
+/** ApiExplainGlobExpressionResult proto mapping. */
+export declare interface ApiExplainGlobExpressionResult {
+  components?: ReadonlyArray<GlobComponentExplanation>;
 }

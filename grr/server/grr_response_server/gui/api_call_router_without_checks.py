@@ -16,6 +16,7 @@ from grr_response_server.gui.api_plugins import config as api_config
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -188,6 +189,14 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   ) -> api_yara.ApiUploadYaraSignatureHandler:
     del args, token  # Unused.
     return api_yara.ApiUploadYaraSignatureHandler()
+
+  def ExplainGlobExpression(
+      self,
+      args: api_flow.ApiExplainGlobExpressionArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiExplainGlobExpressionHandler:
+    del args, token  # Unused.
+    return api_flow.ApiExplainGlobExpressionHandler()
 
   # Cron jobs methods.
   # =================
@@ -401,3 +410,10 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def ListApiMethods(self, args, token=None):
     return api_reflection.ApiListApiMethodsHandler(self)
+
+  def GetGrrVersion(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_metadata.ApiGetGrrVersionHandler:
+    return api_metadata.ApiGetGrrVersionHandler()

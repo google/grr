@@ -211,6 +211,15 @@ class FileFinderResult(rdf_structs.RDFProtoStruct):
   ]
 
 
+class CollectedFile(rdf_structs.RDFProtoStruct):
+  """A file (content, hash, stat) that has been collected from the client."""
+  protobuf = flows_pb2.CollectedFile
+  rdf_deps = [
+      rdf_crypto.Hash,
+      rdf_client_fs.StatEntry,
+  ]
+
+
 class CollectSingleFileArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectSingleFile."""
   protobuf = flows_pb2.CollectSingleFileArgs
@@ -223,4 +232,20 @@ class CollectSingleFileResult(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_crypto.Hash,
       rdf_client_fs.StatEntry,
+  ]
+
+
+class CollectMultipleFilesArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for CollectMultipleFiles."""
+  protobuf = flows_pb2.CollectMultipleFilesArgs
+  rdf_deps = [
+      rdf_paths.GlobExpression,
+  ]
+
+
+class CollectMultipleFilesResult(rdf_structs.RDFProtoStruct):
+  """Result returned by CollectMultipleFiles."""
+  protobuf = flows_pb2.CollectMultipleFilesResult
+  rdf_deps = [
+      CollectedFile,
   ]

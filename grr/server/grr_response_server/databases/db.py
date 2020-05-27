@@ -2182,6 +2182,81 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
+  def CountFlowErrorsByType(self, client_id: str,
+                            flow_id: str) -> Dict[str, int]:
+    """Returns counts of flow errors grouped by error type.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count errors for.
+
+    Returns:
+      A dictionary of "type name" => <number of items>.
+    """
+
+  @abc.abstractmethod
+  def WriteFlowErrors(self, errors: Iterable[rdf_flow_objects.FlowError]):
+    """Writes flow errors for a given flow.
+
+    Args:
+      errors: An iterable with FlowError rdfvalues.
+    """
+
+  @abc.abstractmethod
+  def ReadFlowErrors(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None) -> List[rdf_flow_objects.FlowError]:
+    """Reads flow errors of a given flow using given query options.
+
+    If both with_tag and with_type and/or with_substring arguments are provided,
+    they will be applied using AND boolean operator.
+
+    Args:
+      client_id: The client id on which this flow is running.
+      flow_id: The id of the flow to read errors for.
+      offset: An integer specifying an offset to be used when reading errors.
+        "offset" is applied after with_tag/with_type/with_substring filters are
+        applied.
+      count: Number of errors to read. "count" is applied after
+        with_tag/with_type/with_substring filters are applied.
+      with_tag: (Optional) When specified, should be a string. Only errors
+        having specified tag will be returned.
+      with_type: (Optional) When specified, should be a string. Only errors of a
+        specified type will be returned.
+
+    Returns:
+      A list of FlowError values sorted by timestamp in ascending order.
+    """
+
+  @abc.abstractmethod
+  def CountFlowErrors(self,
+                      client_id: str,
+                      flow_id: str,
+                      with_tag: Optional[str] = None,
+                      with_type: Optional[str] = None) -> int:
+    """Counts flow errors of a given flow using given query options.
+
+    If both with_tag and with_type arguments are provided, they will be applied
+    using AND boolean operator.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The id of the flow to count errors for.
+      with_tag: (Optional) When specified, should be a string. Only errors
+        having specified tag will be accounted for.
+      with_type: (Optional) When specified, should be a string. Only errors of a
+        specified type will be accounted for.
+
+    Returns:
+      A number of flow errors of a given flow matching given query options.
+    """
+
+  @abc.abstractmethod
   def WriteFlowLogEntries(self, entries):
     """Writes flow log entries for a given flow.
 
@@ -3752,6 +3827,57 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateFlowId(flow_id)
 
     return self.delegate.CountFlowResultsByType(client_id, flow_id)
+
+  def CountFlowErrorsByType(self, client_id: str,
+                            flow_id: str) -> Dict[str, int]:
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+
+    return self.delegate.CountFlowErrorsByType(client_id, flow_id)
+
+  def WriteFlowErrors(self, errors: Iterable[rdf_flow_objects.FlowError]):
+    for r in errors:
+      precondition.AssertType(r, rdf_flow_objects.FlowError)
+      precondition.ValidateClientId(r.client_id)
+      precondition.ValidateFlowId(r.flow_id)
+      if r.HasField("hunt_id") and r.hunt_id:
+        _ValidateHuntId(r.hunt_id)
+
+    return self.delegate.WriteFlowErrors(errors)
+
+  def ReadFlowErrors(
+      self,
+      client_id: str,
+      flow_id: str,
+      offset: int,
+      count: int,
+      with_tag: Optional[str] = None,
+      with_type: Optional[str] = None) -> List[rdf_flow_objects.FlowError]:
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+    precondition.AssertOptionalType(with_tag, Text)
+    precondition.AssertOptionalType(with_type, Text)
+
+    return self.delegate.ReadFlowErrors(
+        client_id,
+        flow_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type)
+
+  def CountFlowErrors(self,
+                      client_id: str,
+                      flow_id: str,
+                      with_tag: Optional[str] = None,
+                      with_type: Optional[str] = None) -> int:
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+    precondition.AssertOptionalType(with_tag, Text)
+    precondition.AssertOptionalType(with_type, Text)
+
+    return self.delegate.CountFlowErrors(
+        client_id, flow_id, with_tag=with_tag, with_type=with_type)
 
   def WriteFlowLogEntries(self, entries):
     for e in entries:

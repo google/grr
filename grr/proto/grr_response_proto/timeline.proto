@@ -1,5 +1,6 @@
 syntax = "proto2";
 
+package grr;
 
 // A message describing input arguments for the timeline action.
 message TimelineArgs {

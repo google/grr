@@ -140,6 +140,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-03-03 16:47:43"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 16:47:50"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-03-03 16:47:50"),
             st_mode=S_DEFAULT_DIR,
         ),
         rdf_client_fs.StatEntry(
@@ -152,6 +154,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
             st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:23:07"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-07 14:56:47"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 14:56:47"),
             st_mode=S_DEFAULT_DIR,
         ),
@@ -166,6 +170,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-08 20:14:38"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:38"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:15:07"),
             st_mode=(stat.S_IFREG | stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
                      | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
             st_size=0,
@@ -181,6 +187,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-03-03 16:46:00"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 20:10:46"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-03-03 20:10:46"),
             st_mode=S_DEFAULT_FILE,
             st_size=3893,
         ),
@@ -195,6 +203,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-08 20:14:33"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:33"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-08 20:14:55"),
             st_mode=(stat.S_IFREG | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
                      | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
             st_size=0,
@@ -220,6 +230,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-07 13:48:56"),
             st_mode=S_DEFAULT_FILE,
             st_size=5,
         ),
@@ -235,6 +247,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-07 13:48:56"),
             st_mode=S_DEFAULT_FILE,
             st_size=6,
         ),
@@ -249,6 +263,8 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
             st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-04-07 13:48:56"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
             st_mode=S_DEFAULT_FILE,
             st_size=7,

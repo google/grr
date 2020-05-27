@@ -45,7 +45,7 @@ def _CopyFleetspeakDpkgFiles(package_dir, context=None):
   shutil.copytree(
       config_lib.Resource().Filter(
           "install_data/debian/dpkg_client/fleetspeak-debian"),
-      os.path.join(package_dir, "debian/debian.in"))
+      os.path.join(package_dir, "debian/fleetspeak-debian.in"))
 
   # Include the Fleetspeak service config in the template.
   fleetspeak_dir = os.path.join(package_dir, "fleetspeak")
@@ -68,7 +68,7 @@ def _CopyNonFleetspeakDpkgFiles(dist_dir, package_dir):
   # Copy files needed for dpkg-buildpackage.
   shutil.copytree(
       config_lib.Resource().Filter("install_data/debian/dpkg_client/debian"),
-      os.path.join(package_dir, "debian/debian.in"))
+      os.path.join(package_dir, "debian/legacy-debian.in"))
 
   # Copy upstart files
   outdir = os.path.join(package_dir, "debian/upstart.in")
@@ -92,6 +92,20 @@ def _CopyNonFleetspeakDpkgFiles(dist_dir, package_dir):
           "install_data/systemd/client/grr-client.service"), outdir)
 
 
+def _CopyBundledFleetspeakDpkgFiles(src_dir, package_dir):
+  """Copies the bundled fleetspeak installation into the package dir."""
+  files = [
+      "etc/fleetspeak-client/communicator.txt",
+      "lib/systemd/system/fleetspeak-client.service",
+      "usr/bin/fleetspeak-client",
+  ]
+  for filename in files:
+    src = os.path.join(src_dir, filename)
+    dst = os.path.join(package_dir, "bundled-fleetspeak", filename)
+    utils.EnsureDirExists(os.path.dirname(dst))
+    shutil.copy(src, dst)
+
+
 def _MakeZip(input_dir, output_file):
   """Creates a ZIP archive of the files in the input directory.
 
@@ -104,12 +118,25 @@ def _MakeZip(input_dir, output_file):
   zf = zipfile.ZipFile(output_file, "w")
   oldwd = os.getcwd()
   os.chdir(input_dir)
-  for path in ["debian", "rpmbuild", "fleetspeak"]:
+  for path in ["debian", "rpmbuild", "fleetspeak", "bundled-fleetspeak"]:
     for root, _, files in os.walk(path):
       for f in files:
         zf.write(os.path.join(root, f))
   zf.close()
   os.chdir(oldwd)
+
+# Layout:
+#
+# - Common:
+#   * debian/grr-client: PyInstaller generated files
+# - Legacy:
+#   * debian/legacy-debian.in: Debian directory
+#   * debian/{upstart,systemd,initd}.in: Startup scripts
+# - Fleetspeak enabled and bundled:
+#   * debian/fleetspeak-debian.in: Debian directory
+#   * fleetspeak: Fleetspeak config
+# - Fleetspeak bundled only:
+#   * bundled-fleetspak: Bundled fleetspeak client binaries
 
 
 class DebianClientBuilder(build.ClientBuilder):
@@ -118,12 +145,13 @@ class DebianClientBuilder(build.ClientBuilder):
   BUILDER_CONTEXT = "Target:Linux"
 
   @property
-  def fleetspeak_enabled(self):
-    return config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context)
-
-  @property
   def package_dir(self):
     return config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
+
+  @property
+  def fleetspeak_install_dir(self):
+    return config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_install_dir", context=self.context)
 
   def MakeExecutableTemplate(self, output_file):
     build_helpers.MakeBuildDirectory(context=self.context)
@@ -131,10 +159,11 @@ class DebianClientBuilder(build.ClientBuilder):
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
 
     _StripLibraries(output_dir)
-    if self.fleetspeak_enabled:
-      _CopyFleetspeakDpkgFiles(self.package_dir, context=self.context)
-    else:
-      _CopyNonFleetspeakDpkgFiles(output_dir, self.package_dir)
+
+    _CopyFleetspeakDpkgFiles(self.package_dir, context=self.context)
+    _CopyNonFleetspeakDpkgFiles(output_dir, self.package_dir)
+    _CopyBundledFleetspeakDpkgFiles(self.fleetspeak_install_dir,
+                                    self.package_dir)
 
     _MakeZip(self.package_dir, output_file)
 

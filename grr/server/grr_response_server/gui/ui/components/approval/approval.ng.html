@@ -1,11 +1,17 @@
-<h2 class="mat-h2">
-  Approval
+<h1 class="mat-h1">
+  Access approval
 
-  <mat-chip *ngIf="latestApproval?.status.type === 'pending'"
-    color="primary">pending</mat-chip>
-  <mat-chip *ngIf="latestApproval?.status.type === 'valid'"
-    color="primary">pending</mat-chip>
-</h2>
+  <span class="mat-body-1">
+    <!--
+      Note: coloring doesn't work without selected, see:
+      https://github.com/angular/components/issues/9851
+    -->
+    <mat-chip *ngIf="latestApproval?.status.type === 'pending'"
+      color="warn" selected>pending</mat-chip>
+    <mat-chip *ngIf="latestApproval?.status.type === 'valid'"
+      color="success" selected>pending</mat-chip>
+  </span>
+</h1>
 
 <p *ngIf="latestApproval?.status.type === 'pending'" class="mat-body-1">
   An approval request with reason "{{latestApproval.reason}}" has been sent to
@@ -22,17 +28,16 @@
     <input matInput formControlName="reason">
   </mat-form-field>
 
-  <mat-form-field appearance="outline">
-    <mat-label>Approvers</mat-label>
-    <input matInput formControlName="approvers">
-  </mat-form-field>
-
-  <button mat-flat-button color="primary" type="submit">Request access</button>
-
-  <div>
+  <div class="approvers">
+    <mat-form-field appearance="outline">
+      <mat-label>Approvers</mat-label>
+      <input matInput formControlName="approvers">
+    </mat-form-field>
     <mat-checkbox *ngIf="ccEmail$ | async as ccEmail"
-                  formControlName="ccEnabled">
+      color="primary" formControlName="ccEnabled">
       CC: {{ccEmail}}
     </mat-checkbox>
   </div>
+
+  <button mat-flat-button color="primary" type="submit">Request access</button>
 </form>

@@ -2059,6 +2059,351 @@ class DatabaseTestFlowMixin(object):
         "ClientCrash": 5,
     })
 
+  def _CreateErrors(self, client_id, flow_id, hunt_id=None):
+    sample_errors = []
+    for i in range(10):
+      sample_errors.append(
+          rdf_flow_objects.FlowError(
+              client_id=client_id,
+              flow_id=flow_id,
+              hunt_id=hunt_id,
+              tag="tag_%d" % i,
+              payload=rdf_client.ClientSummary(
+                  client_id=client_id,
+                  system_manufacturer="manufacturer_%d" % i,
+                  install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 +
+                                                                          i))))
+
+    return sample_errors
+
+  def _WriteFlowErrors(self, sample_errors=None, multiple_timestamps=False):
+
+    if multiple_timestamps:
+      for r in sample_errors:
+        self.db.WriteFlowErrors([r])
+    else:
+      # Use random.shuffle to make sure we don't care about the order of
+      # errors here, as they all have the same timestamp.
+      random.shuffle(sample_errors)
+      self.db.WriteFlowErrors(sample_errors)
+
+    return sample_errors
+
+  def testWritesAndCounts40001FlowErrors(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = [
+        rdf_flow_objects.FlowError(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 40001
+
+    self.db.WriteFlowErrors(sample_errors)
+
+    error_count = self.db.CountFlowErrors(client_id, flow_id)
+    self.assertEqual(error_count, 40001)
+
+  def testWritesAndReadsSingleFlowErrorOfSingleType(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_error = rdf_flow_objects.FlowError(
+        client_id=client_id,
+        flow_id=flow_id,
+        payload=rdf_client.ClientSummary(client_id=client_id))
+
+    with test_lib.FakeTime(42):
+      self.db.WriteFlowErrors([sample_error])
+
+    errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
+    self.assertLen(errors, 1)
+    self.assertEqual(errors[0].payload, sample_error.payload)
+    self.assertEqual(errors[0].timestamp.AsSecondsSinceEpoch(), 42)
+
+  def testWritesAndReadsMultipleFlowErrorsOfSingleType(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id))
+
+    errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
+    self.assertLen(errors, len(sample_errors))
+
+    # All errors were written with the same timestamp (as they were written
+    # via a single WriteFlowErrors call), so no assumptions about
+    # the order are made.
+    self.assertCountEqual(
+        [i.payload for i in errors],
+        [i.payload for i in sample_errors],
+    )
+
+  def testWritesAndReadsMultipleFlowErrorsWithDifferentTimestamps(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
+    self.assertLen(errors, len(sample_errors))
+
+    # Returned errors have to be sorted by the timestamp in the ascending
+    # order.
+    self.assertEqual(
+        [i.payload for i in errors],
+        [i.payload for i in sample_errors],
+    )
+
+  def testWritesAndReadsMultipleFlowErrorsOfMultipleTypes(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    def SampleClientSummaryError(i):
+      return rdf_flow_objects.FlowError(
+          client_id=client_id,
+          flow_id=flow_id,
+          payload=rdf_client.ClientSummary(
+              client_id=client_id,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+
+    sample_errors = self._WriteFlowErrors(
+        sample_errors=[SampleClientSummaryError(i) for i in range(10)])
+
+    def SampleClientCrashError(i):
+      return rdf_flow_objects.FlowError(
+          client_id=client_id,
+          flow_id=flow_id,
+          payload=rdf_client.ClientCrash(
+              client_id=client_id,
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+
+    sample_errors.extend(
+        self._WriteFlowErrors(
+            sample_errors=[SampleClientCrashError(i) for i in range(10)]))
+
+    def SampleClientInformationError(i):
+      return rdf_flow_objects.FlowError(
+          client_id=client_id,
+          flow_id=flow_id,
+          payload=rdf_client.ClientInformation(client_version=i))
+
+    sample_errors.extend(
+        self._WriteFlowErrors(
+            sample_errors=[SampleClientInformationError(i) for i in range(10)]))
+
+    errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
+    self.assertLen(errors, len(sample_errors))
+
+    self.assertCountEqual(
+        [i.payload for i in errors],
+        [i.payload for i in sample_errors],
+    )
+
+  def testReadFlowErrorsCorrectlyAppliesOffsetAndCountFilters(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    for l in range(1, 11):
+      for i in range(10):
+        errors = self.db.ReadFlowErrors(client_id, flow_id, i, l)
+        expected = sample_errors[i:i + l]
+
+        error_payloads = [x.payload for x in errors]
+        expected_payloads = [x.payload for x in expected]
+        self.assertEqual(
+            error_payloads, expected_payloads,
+            "Errors differ from expected (from %d, size %d): %s vs %s" %
+            (i, l, error_payloads, expected_payloads))
+
+  def testReadFlowErrorsCorrectlyAppliesWithTagFilter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100, with_tag="blah")
+    self.assertFalse(errors)
+
+    errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100, with_tag="tag")
+    self.assertFalse(errors)
+
+    errors = self.db.ReadFlowErrors(
+        client_id, flow_id, 0, 100, with_tag="tag_1")
+    self.assertEqual([i.payload for i in errors], [sample_errors[1].payload])
+
+  def testReadFlowErrorsCorrectlyAppliesWithTypeFilter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    def SampleClientSummaryError(i):
+      return rdf_flow_objects.FlowError(
+          client_id=client_id,
+          flow_id=flow_id,
+          payload=rdf_client.ClientSummary(
+              client_id=client_id,
+              install_date=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+
+    sample_errors = self._WriteFlowErrors(
+        sample_errors=[SampleClientSummaryError(i) for i in range(10)])
+
+    def SampleClientCrashError(i):
+      return rdf_flow_objects.FlowError(
+          client_id=client_id,
+          flow_id=flow_id,
+          payload=rdf_client.ClientCrash(
+              client_id=client_id,
+              timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10 + i)))
+
+    sample_errors.extend(
+        self._WriteFlowErrors(
+            sample_errors=[SampleClientCrashError(i) for i in range(10)]))
+
+    errors = self.db.ReadFlowErrors(
+        client_id,
+        flow_id,
+        0,
+        100,
+        with_type=compatibility.GetName(rdf_client.ClientInformation))
+    self.assertFalse(errors)
+
+    errors = self.db.ReadFlowErrors(
+        client_id,
+        flow_id,
+        0,
+        100,
+        with_type=compatibility.GetName(rdf_client.ClientSummary))
+    self.assertCountEqual(
+        [i.payload for i in errors],
+        [i.payload for i in sample_errors[:10]],
+    )
+
+  def testReadFlowErrorsCorrectlyAppliesVariousCombinationsOfFilters(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    tags = {None: list(sample_errors), "tag_1": [sample_errors[1]]}
+
+    types = {
+        None: list(sample_errors),
+        compatibility.GetName(rdf_client.ClientSummary): list(sample_errors),
+    }
+
+    for tag_value, tag_expected in tags.items():
+      for type_value, type_expected in types.items():
+        expected = [r for r in tag_expected if r in type_expected]
+        errors = self.db.ReadFlowErrors(
+            client_id,
+            flow_id,
+            0,
+            100,
+            with_tag=tag_value,
+            with_type=type_value)
+
+        self.assertCountEqual([i.payload for i in expected],
+                              [i.payload for i in errors],
+                              "Error items do not match for "
+                              "(tag=%s, type=%s): %s vs %s" %
+                              (tag_value, type_value, expected, errors))
+
+  def testReadFlowErrorsReturnsPayloadWithMissingTypeAsSpecialValue(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    type_name = compatibility.GetName(rdf_client.ClientSummary)
+    try:
+      cls = rdfvalue.RDFValue.classes.pop(type_name)
+
+      errors = self.db.ReadFlowErrors(client_id, flow_id, 0, 100)
+    finally:
+      rdfvalue.RDFValue.classes[type_name] = cls
+
+    self.assertLen(sample_errors, len(errors))
+    for r in errors:
+      self.assertIsInstance(r.payload,
+                            rdf_objects.SerializedValueOfUnrecognizedType)
+      self.assertEqual(r.payload.type_name, type_name)
+
+  def testCountFlowErrorsReturnsCorrectErrorsCount(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    num_errors = self.db.CountFlowErrors(client_id, flow_id)
+    self.assertEqual(num_errors, len(sample_errors))
+
+  def testCountFlowErrorsCorrectlyAppliesWithTagFilter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    num_errors = self.db.CountFlowErrors(client_id, flow_id, with_tag="blah")
+    self.assertEqual(num_errors, 0)
+
+    num_errors = self.db.CountFlowErrors(client_id, flow_id, with_tag="tag_1")
+    self.assertEqual(num_errors, 1)
+
+  def testCountFlowErrorsCorrectlyAppliesWithTypeFilter(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    self._WriteFlowErrors(sample_errors=[
+        rdf_flow_objects.FlowError(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 10)
+    self._WriteFlowErrors(sample_errors=[
+        rdf_flow_objects.FlowError(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientCrash(client_id=client_id))
+    ] * 10)
+
+    num_errors = self.db.CountFlowErrors(
+        client_id,
+        flow_id,
+        with_type=compatibility.GetName(rdf_client.ClientInformation))
+    self.assertEqual(num_errors, 0)
+
+    num_errors = self.db.CountFlowErrors(
+        client_id,
+        flow_id,
+        with_type=compatibility.GetName(rdf_client.ClientSummary))
+    self.assertEqual(num_errors, 10)
+
+    num_errors = self.db.CountFlowErrors(
+        client_id,
+        flow_id,
+        with_type=compatibility.GetName(rdf_client.ClientCrash))
+    self.assertEqual(num_errors, 10)
+
+  def testCountFlowErrorsCorrectlyAppliesWithTagAndWithTypeFilters(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    self._WriteFlowErrors(
+        self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
+
+    num_errors = self.db.CountFlowErrors(
+        client_id,
+        flow_id,
+        with_tag="tag_1",
+        with_type=compatibility.GetName(rdf_client.ClientSummary))
+    self.assertEqual(num_errors, 1)
+
+  def testCountFlowErrorsByTypeReturnsCorrectNumbers(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_errors = self._WriteFlowErrors(sample_errors=[
+        rdf_flow_objects.FlowError(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 3)
+    sample_errors.extend(
+        self._WriteFlowErrors(sample_errors=[
+            rdf_flow_objects.FlowError(
+                client_id=client_id,
+                flow_id=flow_id,
+                payload=rdf_client.ClientCrash(client_id=client_id))
+        ] * 5))
+
+    counts_by_type = self.db.CountFlowErrorsByType(client_id, flow_id)
+    self.assertEqual(counts_by_type, {
+        "ClientSummary": 3,
+        "ClientCrash": 5,
+    })
+
   def testWritesAndReadsSingleFlowLogEntry(self):
     client_id, flow_id = self._SetupClientAndFlow()
     message = "blah: ٩(͡๏̯͡๏)۶"

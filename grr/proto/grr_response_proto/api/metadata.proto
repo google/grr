@@ -1,0 +1,13 @@
+syntax = "proto2";
+
+package grr;
+
+
+// A message type representing results of the API method for querying version of
+// the GRR server.
+message ApiGetGrrVersionResult {
+  optional uint32 major = 1;
+  optional uint32 minor = 2;
+  optional uint32 revision = 3;
+  optional uint32 release = 4;
+}

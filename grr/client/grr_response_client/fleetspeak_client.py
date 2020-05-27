@@ -20,8 +20,8 @@ import time
 from absl import flags
 
 from grr_response_client import comms
+from grr_response_client import communicator
 from grr_response_core import config
-from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict

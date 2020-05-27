@@ -1,6 +1,6 @@
 import {initTestEnvironment} from '../../testing';
 
-import {createDate, createOptionalDate} from './primitive';
+import {createDate, createOptionalDate, createOptionalDateSeconds} from './primitive';
 
 
 initTestEnvironment();
@@ -52,5 +52,24 @@ describe('createOptionalDate', () => {
     const y2100 = 130 * 365 * 86400 * 1000;
     expect(createOptionalDate((y2100 * 1000).toString()))
         .toEqual(new Date(y2100));
+  });
+});
+
+describe('createOptionalDateSeconds', () => {
+  it('returns undefined for undefined', () => {
+    expect(createOptionalDateSeconds(undefined)).toBeUndefined();
+  });
+  it('returns undefined for empty string', () => {
+    expect(createOptionalDateSeconds('')).toBeUndefined();
+  });
+  it('throws for invalid string', () => {
+    expect(() => createOptionalDateSeconds('123abc')).toThrowError(/invalid/);
+  });
+  it('handles unix epoch correctly', () => {
+    expect(createOptionalDateSeconds('0')).toEqual(new Date(0));
+  });
+  it('handles unixtimes correctly', () => {
+    expect(createOptionalDateSeconds('1579167695'))
+        .toEqual(new Date(1579167695000));
   });
 });

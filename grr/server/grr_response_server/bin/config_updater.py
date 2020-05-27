@@ -135,6 +135,11 @@ parser_initialize.add_argument(
     help="Name of GRR's MySQL database (only applies if --noprompt is set).")
 
 parser_initialize.add_argument(
+    "--mysql_fleetspeak_db",
+    help="Name of Fleetspeak's MySQL database (only applies if --noprompt is set)."
+)
+
+parser_initialize.add_argument(
     "--mysql_username",
     help="Name of GRR MySQL database user (only applies if --noprompt is set).")
 
@@ -162,6 +167,12 @@ parser_initialize.add_argument(
     action="store_true",
     help="Use the new-generation datastore (REL_DB). Deprecated, REL_DB is now "
     "the only available choice.")
+
+parser_initialize.add_argument(
+    "--use_fleetspeak",
+    default=False,
+    action="store_true",
+    help="Use the new-generation communication framework (Fleetspeak).")
 
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
@@ -289,7 +300,9 @@ def main(args):
           mysql_client_cert_path=args.mysql_client_cert_path,
           mysql_ca_cert_path=args.mysql_ca_cert_path,
           redownload_templates=args.redownload_templates,
-          repack_templates=not args.norepack_templates)
+          repack_templates=not args.norepack_templates,
+          use_fleetspeak=args.use_fleetspeak,
+          mysql_fleetspeak_db=args.mysql_fleetspeak_db)
     else:
       config_updater_util.Initialize(
           grr_config.CONFIG,

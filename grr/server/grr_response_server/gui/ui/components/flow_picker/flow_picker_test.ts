@@ -2,16 +2,19 @@ import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowDescriptor} from '@app/lib/models/flow';
 import {newFlowDescriptorMap} from '@app/lib/models/model_test_util';
-import {FlowFacade} from '@app/store/flow_facade';
-import {FlowFacadeMock, mockFlowFacade} from '@app/store/flow_facade_test_util';
+import {ClientPageFacadeMock, mockClientPageFacade} from '@app/store/client_page_facade_test_util';
+import {ConfigFacade} from '@app/store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {initTestEnvironment} from '@app/testing';
+
+import {ClientPageFacade} from '../../store/client_page_facade';
 
 import {FlowPicker} from './flow_picker';
 
 
 initTestEnvironment();
 
-function highlighted(): jasmine.AsymmetricMatcher<unknown> {
+function highlighted(): jasmine.AsymmetricMatcher<HTMLElement> {
   return {
     asymmetricMatch: (el: HTMLElement) => !el.classList.contains('faded'),
     jasmineToString: () => 'highlighted',
@@ -25,22 +28,24 @@ function withText(text: string) {
 function makeFlowDescriptors(): ReadonlyMap<string, FlowDescriptor> {
   return newFlowDescriptorMap(
       {
-        name: 'ClientSideFileFinder',
-        friendlyName: 'Get File',
+        name: 'CollectSingleFile',
+        friendlyName: 'Collect Single File',
         category: 'Filesystem',
       },
       {
-        name: 'ListProcesses',
-        friendlyName: 'Get Processes',
-        category: 'OS',
+        name: 'CollectBrowserHistory',
+        friendlyName: 'Collect Browser History',
+        category: 'Browser',
       });
 }
 
 describe('FlowPicker Component', () => {
-  let flowFacade: FlowFacadeMock;
+  let configFacade: ConfigFacadeMock;
+  let clientPageFacade: ClientPageFacadeMock;
 
   beforeEach(async(() => {
-    flowFacade = mockFlowFacade();
+    configFacade = mockConfigFacade();
+    clientPageFacade = mockClientPageFacade();
 
     TestBed
         .configureTestingModule({
@@ -48,7 +53,10 @@ describe('FlowPicker Component', () => {
             NoopAnimationsModule,
           ],
 
-          providers: [{provide: FlowFacade, useValue: flowFacade}]
+          providers: [
+            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: ClientPageFacade, useFactory: () => clientPageFacade}
+          ]
         })
         .compileComponents();
   }));
@@ -57,23 +65,21 @@ describe('FlowPicker Component', () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    expect(flowFacade.listFlowDescriptors).toHaveBeenCalled();
-    flowFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
+    configFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('Get File');
-    expect(text).toContain('Get Processes');
+    expect(text).toContain('Collect Single File');
+    expect(text).toContain('Collect Browser History');
     expect(text).toContain('Filesystem');
-    expect(text).toContain('OS');
+    expect(text).toContain('Browser');
   });
 
   it('highlights all FlowDescriptors with no text input', () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    expect(flowFacade.listFlowDescriptors).toHaveBeenCalled();
-    flowFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
+    configFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
     fixture.detectChanges();
 
     const btns: NodeListOf<HTMLButtonElement> =
@@ -87,9 +93,8 @@ describe('FlowPicker Component', () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    expect(flowFacade.listFlowDescriptors).toHaveBeenCalled();
 
-    flowFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
+    configFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
     fixture.detectChanges();
 
     fixture.componentInstance.textInput.setValue('file');
@@ -97,39 +102,40 @@ describe('FlowPicker Component', () => {
 
     const btns: HTMLButtonElement[] =
         Array.from(fixture.nativeElement.querySelectorAll('button'));
-    expect(btns.find(withText('Get File'))).toEqual(highlighted());
-    expect(btns.find(withText('Get Processes'))).not.toEqual(highlighted());
+    expect(btns.find(withText('Collect Single File'))).toEqual(highlighted());
+    expect(btns.find(withText('Collect Browser History')))
+        .not.toEqual(highlighted());
   });
 
   it('selects a Flow on click', () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    expect(flowFacade.listFlowDescriptors).toHaveBeenCalled();
-    flowFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
+    configFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
     fixture.detectChanges();
     const btns: HTMLButtonElement[] =
         Array.from(fixture.nativeElement.querySelectorAll('button'));
-    btns.find(withText('Get File'))!.click();
-    expect(flowFacade.selectFlow).toHaveBeenCalledWith('ClientSideFileFinder');
+    btns.find(withText('Collect Single File'))!.click();
+    expect(clientPageFacade.startFlowConfiguration)
+        .toHaveBeenCalledWith('CollectSingleFile');
   });
 
   it('selects a Flow on enter press', () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    expect(flowFacade.listFlowDescriptors).toHaveBeenCalled();
-    flowFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
+    configFacade.flowDescriptorsSubject.next(makeFlowDescriptors());
     fixture.detectChanges();
 
-    fixture.componentInstance.textInput.setValue('process');
+    fixture.componentInstance.textInput.setValue('browser');
     fixture.detectChanges();
 
     // Calling submit() unexpectedly reloads the page, which causes tests to
     // fail. Dispatching the submit event manually works, so does production.
     fixture.componentInstance.form.nativeElement.dispatchEvent(
         new Event('submit'));
-    expect(flowFacade.selectFlow).toHaveBeenCalledWith('ListProcesses');
+    expect(clientPageFacade.startFlowConfiguration)
+        .toHaveBeenCalledWith('CollectBrowserHistory');
   });
 
   it('can unselect flows', () => {
@@ -137,17 +143,18 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
 
     const fds = makeFlowDescriptors();
-    flowFacade.flowDescriptorsSubject.next(fds);
-    flowFacade.selectedFlowSubject.next(fds.get('ListProcesses'));
+    configFacade.flowDescriptorsSubject.next(fds);
+    clientPageFacade.selectedFlowDescriptorSubject.next(
+        fds.get('CollectBrowserHistory'));
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('Get Processes');
+    expect(text).toContain('Collect Browser History');
 
     // TODO(user): Preferrably, we would test the actual UI and not only the
     //  underlying controller method. Removing of MatChip is hard to trigger,
     //  somehow manual KeyboardEvents are not processed in order.
     fixture.componentInstance.unselectFlow();
-    expect(flowFacade.unselectFlow).toHaveBeenCalled();
+    expect(clientPageFacade.stopFlowConfiguration).toHaveBeenCalled();
   });
 });

@@ -6,6 +6,8 @@ import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 // SECTION: Defining checks.
 // -------------------------
 // Checks define a broad issue (e.g. system files with lax permissions).

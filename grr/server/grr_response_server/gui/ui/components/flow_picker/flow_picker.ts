@@ -1,10 +1,21 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {FlowDescriptor} from '@app/lib/models/flow';
 import {combineLatest, fromEvent, Subject} from 'rxjs';
 import {filter, map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
-import {FlowFacade} from '../../store/flow_facade';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ConfigFacade} from '../../store/config_facade';
+import {FORMS} from '../flow_args_form/sub_forms';
+
+// During early development of UI v2, we don't want to display all legacy flows.
+// These flows have no form, so displaying them only clutters the UI for the
+// user. Instead, only show flows that have a form implemented.
+const FLOW_DESCRIPTORS_WITH_FORM = new Set(Object.keys(FORMS));
+
+function flowDescriptorHasForm(fd: FlowDescriptor): boolean {
+  return FLOW_DESCRIPTORS_WITH_FORM.has(fd.name);
+}
 
 function groupByCategory(entries: FlowEntry[]):
     ReadonlyMap<string, ReadonlyArray<FlowEntry>> {
@@ -47,17 +58,19 @@ function highlightWith(highlightQuery: string):
   styleUrls: ['./flow_picker.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FlowPicker implements OnInit, OnDestroy, AfterViewInit {
+export class FlowPicker implements OnDestroy, AfterViewInit {
   private readonly unsubscribe$ = new Subject<void>();
+
   readonly textInput = new FormControl('');
   @ViewChild('form') form!: ElementRef<HTMLFormElement>;
 
-  readonly textInput$ = this.textInput.valueChanges.pipe(
+  private readonly textInput$ = this.textInput.valueChanges.pipe(
       startWith(''),
   );
 
-  readonly flowDescriptors$ = this.flowFacade.flowDescriptors$.pipe(
+  private readonly flowDescriptors$ = this.configFacade.flowDescriptors$.pipe(
       map(fds => Array.from(fds.values())),
+      map(fds => fds.filter(flowDescriptorHasForm)),
   );
 
   readonly flowEntries$ =
@@ -67,15 +80,12 @@ export class FlowPicker implements OnInit, OnDestroy, AfterViewInit {
               map(groupByCategory),
           );
 
-  readonly selectedFlow$ = this.flowFacade.selectedFlow$;
+  readonly selectedFlow$ = this.clientPageFacade.selectedFlowDescriptor$;
 
   constructor(
-      private readonly flowFacade: FlowFacade,
+      private readonly configFacade: ConfigFacade,
+      private readonly clientPageFacade: ClientPageFacade,
   ) {}
-
-  ngOnInit() {
-    this.flowFacade.listFlowDescriptors();
-  }
 
   ngAfterViewInit() {
     fromEvent(this.form.nativeElement, 'submit')
@@ -94,11 +104,11 @@ export class FlowPicker implements OnInit, OnDestroy, AfterViewInit {
   }
 
   unselectFlow() {
-    this.flowFacade.unselectFlow();
+    this.clientPageFacade.stopFlowConfiguration();
   }
 
   selectFlow(name: string) {
-    this.flowFacade.selectFlow(name);
+    this.clientPageFacade.startFlowConfiguration(name);
   }
 
   ngOnDestroy() {

@@ -1,0 +1,23 @@
+<div [formGroup]="form">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Absolute path</mat-label>
+    <input matInput placeholder="" formControlName="path" class="monospace">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w33">
+    <mat-label>Maximum file size</mat-label>
+    <input matInput byteInput placeholder="" formControlName="maxSizeBytes" class="monospace">
+
+    <mat-hint>
+      Will collect at most {{ formattedBytesAtUnit$ | async }}
+      <a href="https://en.wikipedia.org/wiki/{{ unit$ | async }}"
+        target="_blank">{{ unit$ | async }}</a>
+      <span *ngIf="formattedRawBytes$ | async as formattedRawBytes">
+        = {{ formattedRawBytes }} bytes
+      </span>
+    </mat-hint>
+    <mat-error *ngIf="form.get('maxSizeBytes')?.hasError('required')">
+      Valid byte size is required, e.g. 512 MiB, 10 GB
+    </mat-error>
+  </mat-form-field>
+</div>

@@ -8,6 +8,8 @@ import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message HttpRequest {
   optional string raw_headers = 1;
   optional string user_agent = 2;

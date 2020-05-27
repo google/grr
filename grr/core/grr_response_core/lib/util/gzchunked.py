@@ -40,7 +40,7 @@ def Serialize(
         chunked.Write(filedesc, data)  # pytype: disable=wrong-arg-types
         buf_entry_count += 1
 
-        if len(buf.getvalue()) >= chunk_size:
+        if buf.tell() >= chunk_size:
           break
 
     if buf_entry_count == 0:

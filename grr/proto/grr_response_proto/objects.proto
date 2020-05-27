@@ -7,6 +7,8 @@ import "grr_response_proto/sysinfo.proto";
 import "grr_response_proto/user.proto";
 
 
+package grr;
+
 message ClientLabel {
   optional string name = 1;
   optional string owner = 2 [(sem_type) = {

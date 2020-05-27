@@ -1,5 +1,3 @@
-import 'jasmine';
-
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {async, discardPeriodicTasks, fakeAsync, inject, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';

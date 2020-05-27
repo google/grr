@@ -11,9 +11,9 @@ import logging
 import grpc
 
 from grr_response_core import config
-from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_utils
 from grr_response_server import frontend_lib

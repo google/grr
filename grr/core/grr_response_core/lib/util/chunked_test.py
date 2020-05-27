@@ -64,12 +64,24 @@ class ReadTest(absltest.TestCase):
     with self.assertRaises(ValueError):
       chunked.Read(buf)
 
-  def testContentTooShort(self):
+  def testMalformedInputSeekable(self):
+    buf = io.BytesIO(b"\xff" * 1024)
+
+    with self.assertRaisesRegex(ValueError, "Malformed input"):
+      chunked.Read(buf)
+
+  def testMalformedInputUnseekable(self):
+
+    class UnseekableBytesIO(io.BytesIO):
+
+      def seekable(self) -> bool:
+        return False
+
     buf = io.BytesIO()
     chunked.Write(buf, b"foobarbaz")
 
-    buf = io.BytesIO(buf.getvalue()[:-2])
-    with self.assertRaises(ValueError):
+    buf = UnseekableBytesIO(buf.getvalue()[:-2])
+    with self.assertRaisesRegex(ValueError, "Malformed input"):
       chunked.Read(buf)
 
 

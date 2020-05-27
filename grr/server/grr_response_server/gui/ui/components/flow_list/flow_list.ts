@@ -2,11 +2,11 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {Flow, FlowDescriptor, FlowListEntry} from '../../lib/models/flow';
-import {ClientFacade} from '../../store/client_facade';
-import {FlowDescriptorMap} from '../../store/flow/flow_reducers';
-import {FlowFacade} from '../../store/flow_facade';
+import {Flow, FlowDescriptor, FlowDescriptorMap, FlowListEntry, FlowResultsQuery} from '../../lib/models/flow';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ConfigFacade} from '../../store/config_facade';
 import {FlowMenuAction} from '../flow_details/flow_details';
+
 
 
 interface FlowListEntryWithDescriptor extends FlowListEntry {
@@ -32,25 +32,29 @@ function withDescriptor(fds: FlowDescriptorMap):
 export class FlowList {
   readonly entries$: Observable<ReadonlyArray<FlowListEntryWithDescriptor>> =
       combineLatest([
-        this.clientFacade.flowListEntries$,
-        this.flowFacade.flowDescriptors$,
+        this.clientPageFacade.flowListEntries$,
+        this.configFacade.flowDescriptors$,
       ]).pipe(map(([flows, fds]) => flows.map(withDescriptor(fds))));
 
   constructor(
-      private readonly flowFacade: FlowFacade,
-      private readonly clientFacade: ClientFacade,
+      private readonly configFacade: ConfigFacade,
+      private readonly clientPageFacade: ClientPageFacade,
   ) {}
 
   toggleFlowExpansion(flowId: string) {
-    this.clientFacade.toggleFlowExpansion(flowId);
+    this.clientPageFacade.toggleFlowExpansion(flowId);
+  }
+
+  queryFlowResults(flowId: string, query: FlowResultsQuery) {
+    this.clientPageFacade.queryFlowResults(query);
   }
 
   triggerFlowAction(flow: Flow, event: FlowMenuAction) {
     if (event === FlowMenuAction.DUPLICATE) {
-      this.flowFacade.selectFlow(flow.name, flow.args);
+      this.clientPageFacade.startFlowConfiguration(flow.name, flow.args);
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (event === FlowMenuAction.CANCEL) {
-      this.clientFacade.cancelFlow(flow.clientId, flow.flowId);
+      this.clientPageFacade.cancelFlow(flow.clientId, flow.flowId);
     }
   }
 

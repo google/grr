@@ -13,6 +13,8 @@ import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message CollectArtifactDependenciesArgs {
   repeated string artifact_list = 1 [(sem_type) = {
     description: "A list of Artifact names to collect dependencies for.",

@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 
 from absl import app
 
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_proto import jobs_pb2
@@ -159,17 +160,8 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_paths.GlobExpression
 
-  USER_ACCOUNT = dict(
-      username=u"user",
-      full_name=u"John Smith",
-      comment=u"This is a user",
-      last_logon=10000,
-      domain=u"Some domain name",
-      homedir=u"/home/user",
-      sid=u"some sid")
-
   def GenerateSample(self, number=0):
-    return self.rdfvalue_class("/home/%%User.username%%/*{}".format(number))
+    return self.rdfvalue_class("/home/%%users.username%%/*{}".format(number))
 
   def testGroupingInterpolation(self):
     glob_expression = rdf_paths.GlobExpression()
@@ -186,7 +178,7 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testValidation(self):
     glob_expression = rdf_paths.GlobExpression(
-        "/home/%%Users.username%%/**/.mozilla/")
+        "/home/%%users.username%%/**/.mozilla/")
     glob_expression.Validate()
 
     glob_expression = rdf_paths.GlobExpression("/home/**/**")
@@ -267,6 +259,40 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertFalse(regex.Match("/foo/bar2/blah.com"))
     self.assertFalse(regex.Match("/foO/bAr2/blah.com"))
     self.assertFalse(regex.Match("/foo/bar2/blah.COM"))
+
+  def testGlobExpressionSplitsIntoExplainableComponents(self):
+    kb = rdf_client.KnowledgeBase(users=[
+        rdf_client.User(homedir="/home/foo"),
+        rdf_client.User(homedir="/home/bar"),
+        rdf_client.User(homedir="/home/baz"),
+    ])
+
+    # Test for preservation of **/ because it behaves different to **.
+    ge = rdf_paths.GlobExpression("/foo/**/{bar,baz}/bar?/.*baz")
+    components = ge.ExplainComponents(2, kb)
+    self.assertEqual(
+        [c.glob_expression for c in components],
+        ["/foo/", "**/", "{bar,baz}", "/bar", "?", "/.", "*", "baz"])
+
+    ge = rdf_paths.GlobExpression("/foo/**bar")
+    components = ge.ExplainComponents(2, kb)
+    self.assertEqual([c.glob_expression for c in components],
+                     ["/foo/", "**", "bar"])
+
+    ge = rdf_paths.GlobExpression("/foo/**10bar")
+    components = ge.ExplainComponents(2, kb)
+    self.assertEqual([c.glob_expression for c in components],
+                     ["/foo/", "**10", "bar"])
+
+    ge = rdf_paths.GlobExpression("/{foo,bar,baz}")
+    components = ge.ExplainComponents(2, kb)
+    self.assertEqual(components[1].examples, ["foo", "bar"])
+
+    ge = rdf_paths.GlobExpression("%%users.homedir%%/foo")
+    components = ge.ExplainComponents(2, kb)
+    self.assertEqual([c.glob_expression for c in components],
+                     ["%%users.homedir%%", "/foo"])
+    self.assertEqual(components[0].examples, ["/home/foo", "/home/bar"])
 
 
 def main(argv):

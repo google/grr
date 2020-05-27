@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# Lint as: python3
 """Utility functions and classes for GRR API client library."""
 from __future__ import absolute_import
 from __future__ import division
@@ -27,6 +28,7 @@ from grr_response_proto.api import config_pb2
 from grr_response_proto.api import cron_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import hunt_pb2
+from grr_response_proto.api import metadata_pb2
 from grr_response_proto.api import output_plugin_pb2
 from grr_response_proto.api import reflection_pb2
 from grr_response_proto.api import stats_pb2
@@ -170,6 +172,7 @@ def UrnStringToHuntId(urn):
 
 
 TYPE_URL_PREFIX = "type.googleapis.com/"
+GRR_PACKAGE_NAME = metadata_pb2.DESCRIPTOR.package
 
 
 def GetTypeUrl(proto):
@@ -186,6 +189,15 @@ def TypeUrlToMessage(type_url):
                      (TYPE_URL_PREFIX, type_url))
 
   full_name = type_url[len(TYPE_URL_PREFIX):]
+
+  # In open-source, proto files used not to have a package specified. Because
+  # the API can be used with some legacy flows and hunts as well, we need to
+  # make sure that we are still able to work with the old data.
+  #
+  # After some grace period, this code should be removed.
+  if not full_name.startswith(GRR_PACKAGE_NAME):
+    full_name = f"{GRR_PACKAGE_NAME}.{full_name}"
+
   try:
     return symbol_database.Default().GetSymbol(full_name)()
   except KeyError as e:
@@ -226,6 +238,7 @@ def RegisterProtoDescriptors(db, *additional_descriptors):
   db.RegisterFileDescriptor(cron_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(flow_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(hunt_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(metadata_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(output_plugin_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)

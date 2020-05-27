@@ -351,79 +351,137 @@ class CacheGrep(flow_base.FlowBase):
       self.SendReply(response.stat_entry)
 
 
-class BrowserHistoryFlowArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for BrowserHistoryFlow."""
-  protobuf = flows_pb2.BrowserHistoryFlowArgs
+class CollectBrowserHistoryArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for CollectBrowserHistory."""
+  protobuf = flows_pb2.CollectBrowserHistoryArgs
 
 
-class BrowserHistoryFlow(flow_base.FlowBase):
+# Working around the RDFStructs limitation: the only way to use a top-level
+# enum is to reference it through the class that has a field of that enum's
+# type.
+Browser = CollectBrowserHistoryArgs.Browser
+
+
+class CollectBrowserHistoryResult(rdf_structs.RDFProtoStruct):
+  """Result item to be returned by CollectBrowserHistory."""
+  protobuf = flows_pb2.CollectBrowserHistoryResult
+  rdf_deps = [
+      rdf_client_fs.StatEntry,
+  ]
+
+
+class BrowserProgress(rdf_structs.RDFProtoStruct):
+  """Single browser progress for CollectBrowserHistoryProgress."""
+  protobuf = flows_pb2.BrowserProgress
+
+
+class CollectBrowserHistoryProgress(rdf_structs.RDFProtoStruct):
+  """Progress for CollectBrowserHistory."""
+  protobuf = flows_pb2.CollectBrowserHistoryProgress
+  rdf_deps = [BrowserProgress]
+
+  @property
+  def has_errors(self) -> bool:
+    return any(i.status == BrowserProgress.Status.ERROR for i in self.browsers)
+
+  @property
+  def errors_summary(self) -> str:
+    summary = []
+    for item in self.browsers:
+      if item.status == BrowserProgress.Status.ERROR:
+        summary.append(f"{item.browser.name}: {item.description}")
+
+    return "\n".join(summary)
+
+
+class CollectBrowserHistory(flow_base.FlowBase):
   """Convenience Flow to collect brower history artifacts."""
 
   friendly_name = "Browser History"
   category = "/Browser/"
-  args_type = BrowserHistoryFlowArgs
-  behaviours = flow_base.BEHAVIOUR_BASIC
+  args_type = CollectBrowserHistoryArgs
+  progress_type = CollectBrowserHistoryProgress
+  # This is a flow intended for the GRR UI v2.
+  behaviours = flow_base.BEHAVIOUR_DEBUG
+
+  BROWSER_TO_ARTIFACTS_MAP = {
+      Browser.CHROME: ["ChromeHistory"],
+      Browser.FIREFOX: ["FirefoxHistory"],
+      Browser.INTERNET_EXPLORER: ["InternetExplorerHistory"],
+      Browser.OPERA: ["OperaHistory"],
+      Browser.SAFARI: ["SafariHistory"],
+  }
+
+  def GetProgress(self) -> CollectBrowserHistoryProgress:
+    return self.state.progress
 
   def Start(self):
-    super(BrowserHistoryFlow, self).Start()
+    super(CollectBrowserHistory, self).Start()
 
-    if not (self.args.collect_chrome or self.args.collect_firefox or
-            self.args.collect_internet_explorer or self.args.collect_opera or
-            self.args.collect_safari):
+    if not self.args.browsers:
       raise flow_base.FlowError("Need to collect at least one type of history.")
+
+    if Browser.UNDEFINED in self.args.browsers:
+      raise flow_base.FlowError("UNDEFINED is not a valid browser type to use.")
+
+    if len(self.args.browsers) != len(set(self.args.browsers)):
+      raise flow_base.FlowError(
+          "Duplicate browser entries are not allowed in the arguments.")
+
+    self.state.progress = CollectBrowserHistoryProgress()
 
     # Start a sub-flow for every browser to split results and progress in
     # the user interface more cleanly.
-
-    if self.args.collect_chrome:
-      self.CallFlow(
+    for browser in self.args.browsers:
+      flow_id = self.CallFlow(
           collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=["ChromeHistory"],
+          artifact_list=self.BROWSER_TO_ARTIFACTS_MAP[browser],
           apply_parsers=False,
+          request_data={"browser": browser},
           next_state=self.ProcessArtifactResponses.__name__)
-
-    if self.args.collect_firefox:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=["FirefoxHistory"],
-          apply_parsers=False,
-          next_state=self.ProcessArtifactResponses.__name__)
-
-    if self.args.collect_internet_explorer:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=["InternetExplorerHistory"],
-          apply_parsers=False,
-          next_state=self.ProcessArtifactResponses.__name__)
-
-    if self.args.collect_opera:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=["OperaHistory"],
-          apply_parsers=False,
-          next_state=self.ProcessArtifactResponses.__name__)
-
-    if self.args.collect_safari:
-      self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=["SafariHistory"],
-          apply_parsers=False,
-          next_state=self.ProcessArtifactResponses.__name__)
+      self.state.progress.browsers.append(
+          BrowserProgress(
+              browser=browser,
+              status=BrowserProgress.Status.IN_PROGRESS,
+              flow_id=flow_id))
 
   def ProcessArtifactResponses(
       self,
       responses: flow_responses.Responses[rdf_client_fs.StatEntry]) -> None:
-    for response in responses:
-      self.SendReply(response)
 
-    if not responses.success:
-      raise flow_base.FlowError(responses.status)
+    browser = Browser.FromInt(responses.request_data["browser"])
+    for bp in self.state.progress.browsers:
+      if bp.browser != browser:
+        continue
+
+      if not responses.success:
+        bp.status = BrowserProgress.Status.ERROR
+        bp.description = responses.status.error_message
+      else:
+        bp.status = BrowserProgress.Status.SUCCESS
+        bp.num_collected_files = len(responses)
+
+      break
+
+    for response in responses:
+      self.SendReply(
+          CollectBrowserHistoryResult(browser=browser, stat_entry=response),
+          tag=browser.name)
+
+  def End(self, responses):
+    del responses  # Unused.
+
+    p = self.GetProgress()
+    if p.has_errors:
+      raise flow_base.FlowError(
+          f"Errors were encountered during collection: {p.errors_summary}")
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
-    return BrowserHistoryFlowArgs(
-        collect_chrome=True,
-        collect_firefox=True,
-        collect_internet_explorer=True,
-        collect_opera=True,
-        collect_safari=True)
+    return CollectBrowserHistoryArgs(browsers=[
+        Browser.CHROME,
+        Browser.FIREFOX,
+        Browser.INTERNET_EXPLORER,
+        Browser.OPERA,
+        Browser.SAFARI,
+    ])

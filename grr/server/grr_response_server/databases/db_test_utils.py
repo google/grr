@@ -170,5 +170,5 @@ def InitializeClient(db_obj, client_id=None):
     for _ in range(16):
       client_id += random.choice("0123456789abcdef")
 
-  db_obj.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+  db_obj.WriteClientMetadata(client_id, fleetspeak_enabled=False)
   return client_id

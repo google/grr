@@ -19,9 +19,9 @@ import pytsk3
 import yara
 
 from grr_response_client import actions
+from grr_response_client import communicator
 from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
-from grr_response_core.lib import communicator
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue

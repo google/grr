@@ -30,15 +30,6 @@ class UserTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   rdfvalue_class = rdf_client.User
 
-  USER_ACCOUNT = dict(
-      username=u"user",
-      full_name=u"John Smith",
-      comment=u"This is a user",
-      last_logon=10000,
-      domain=u"Some domain name",
-      homedir=u"/home/user",
-      sid=u"some sid")
-
   def GenerateSample(self, number=0):
     result = rdf_client.User(username="user%s" % number)
     result.desktop = "User Desktop %s" % number

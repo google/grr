@@ -1,5 +1,10 @@
-mat-card {
+@use '~material-theme' as c;
+
+.container {
   padding: 0;
+  background-color: c.mat-color(c.$background, app-bar);
+  border: 1px solid c.mat-color(c.$foreground, divider-light);
+  border-radius: 8px;
 
   .header-wrapper {
     :hover {
@@ -10,16 +15,20 @@ mat-card {
       padding: 24px;
       display: flex;
 
-      .flow-info {
+      .flow-header {
         flex-grow: 1;
 
         .flow-title {
+          font-family: c.$google-sans-display-family;
           font-size: 115%;
           font-weight: 500;
           color: #6d6d6d;
         }
 
         .flow-info {
+          display: flex;
+          align-items: center;
+
           margin-top: .85em;
           font-size: 85%;
           color: #8c8c8c;
@@ -30,12 +39,10 @@ mat-card {
 
           .user-name {
             padding-left: .4em;
-            position: relative;
-            top: 1px;
           }
 
           .start-time {
-            padding-left: .4em;
+            padding-left: 1em;
             color: #8c8c8c;
           }
         }
@@ -44,7 +51,7 @@ mat-card {
       .menu-button {
         position: relative;
         top: -15px;
-        left: -20px;
+        left: 20px;
 
         .menu-icon {
           opacity: .2;
@@ -54,10 +61,5 @@ mat-card {
         }
       }
     }
-  }
-
-  .content-wrapper {
-    padding-left: 24px;
-    padding-right: 24px;
   }
 }

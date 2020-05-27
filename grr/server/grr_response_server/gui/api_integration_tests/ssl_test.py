@@ -143,7 +143,9 @@ class ApiSslWithoutCABundleTest(ApiSslServerTestBase):
   def testConnectionFails(self):
     client_id = self.SetupClient(0)
 
-    api = grr_api.InitHttp(api_endpoint=self.__class__.ssl_endpoint)
+    # TODO: Enable version validation.
+    api = grr_api.InitHttp(
+        api_endpoint=self.__class__.ssl_endpoint, validate_version=False)
     with self.assertRaises(requests.exceptions.SSLError):
       api.Client(client_id=client_id).Get()
 
@@ -153,8 +155,11 @@ class ApiSslWithEnvVarWithoutMergingTest(ApiSslServerTestBase):
   def testConnectionFails(self):
     client_id = self.SetupClient(0)
 
+    # TODO: Enable version validation.
     api = grr_api.InitHttp(
-        api_endpoint=self.__class__.ssl_endpoint, trust_env=False)
+        api_endpoint=self.__class__.ssl_endpoint,
+        trust_env=False,
+        validate_version=False)
     with self.assertRaises(requests.exceptions.SSLError):
       api.Client(client_id=client_id).Get()
 
@@ -232,9 +237,11 @@ class ApiSslProxyTest(ApiSslServerTestBase):
   def testProxyConnection(self):
     client_id = self.SetupClient(0)
 
+    # TODO: Enable version validation.
     api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint,
-        proxies={"https": "localhost:%d" % self.proxy_port})
+        proxies={"https": "localhost:%d" % self.proxy_port},
+        validate_version=False)
     with self.assertRaises(requests.exceptions.ConnectionError):
       api.Client(client_id=client_id).Get()
 

@@ -8,6 +8,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message PackageRepository {
   optional string id = 1 [(sem_type) = {
     description: "Repository id (as referenced by client)",

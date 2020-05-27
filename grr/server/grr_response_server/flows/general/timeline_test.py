@@ -13,6 +13,7 @@ from absl.testing import absltest
 from grr_response_client.client_actions import timeline as timeline_action
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
+from grr_response_proto import timeline_pb2
 from grr_response_server.flows.general import timeline as timeline_flow
 from grr.test_lib import action_mocks
 from grr.test_lib import filesystem_test_lib
@@ -104,7 +105,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
   # TODO(hanuszczak): Add tests for symlinks.
   # TODO(hanuszczak): Add tests for timestamps.
 
-  def _Collect(self, root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
+  def _Collect(self, root: bytes) -> Iterator[timeline_pb2.TimelineEntry]:
     args = rdf_timeline.TimelineArgs(root=root)
 
     flow_id = flow_test_lib.TestFlowHelper(
@@ -116,7 +117,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
-    return timeline_flow.Entries(client_id=self.client_id, flow_id=flow_id)
+    return timeline_flow.ProtoEntries(client_id=self.client_id, flow_id=flow_id)
 
 
 if __name__ == "__main__":

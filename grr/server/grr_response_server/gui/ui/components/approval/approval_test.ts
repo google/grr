@@ -4,8 +4,10 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
-import {ApprovalConfig, Client, ClientApproval} from '../../lib/models/client';
-import {ClientFacade} from '../../store/client_facade';
+import {Client, ClientApproval} from '../../lib/models/client';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ConfigFacade} from '../../store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 
 import {Approval} from './approval';
 
@@ -24,22 +26,20 @@ function makeClient(args: Partial<Client> = {}): Client {
 
 describe('Approval Component', () => {
   let selectedClient$: Subject<Client>;
-  let approvalConfig$: Subject<ApprovalConfig>;
   let latestApproval$: Subject<ClientApproval>;
-  let clientFacade: Partial<ClientFacade>;
+  let clientPageFacade: Partial<ClientPageFacade>;
+  let configFacade: ConfigFacadeMock;
 
   beforeEach(async(() => {
     selectedClient$ = new Subject();
-    approvalConfig$ = new Subject();
     latestApproval$ = new Subject();
-    clientFacade = {
+    clientPageFacade = {
       selectedClient$,
-      approvalConfig$,
       latestApproval$,
       requestApproval: jasmine.createSpy('requestApproval'),
-      fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig'),
       listClientApprovals: jasmine.createSpy('listClientApprovals'),
     };
+    configFacade = mockConfigFacade();
 
     TestBed
         .configureTestingModule({
@@ -47,7 +47,10 @@ describe('Approval Component', () => {
             NoopAnimationsModule,
           ],
 
-          providers: [{provide: ClientFacade, useValue: clientFacade}]
+          providers: [
+            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+            {provide: ConfigFacade, useFactory: () => configFacade}
+          ]
         })
         .compileComponents();
   }));
@@ -57,7 +60,7 @@ describe('Approval Component', () => {
     fixture.detectChanges();
 
     selectedClient$.next(makeClient());
-    approvalConfig$.next({});
+    configFacade.approvalConfigSubject.next({});
 
     fixture.componentInstance.form.patchValue(
         {approvers: 'rick,jerry', reason: 'sample reason'});
@@ -66,7 +69,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientFacade.requestApproval).toHaveBeenCalledWith({
+    expect(clientPageFacade.requestApproval).toHaveBeenCalledWith({
       clientId: 'C.1234',
       approvers: ['rick', 'jerry'],
       reason: 'sample reason',
@@ -80,9 +83,8 @@ describe('Approval Component', () => {
 
     selectedClient$.next(makeClient());
 
-    expect(clientFacade.fetchApprovalConfig).toHaveBeenCalled();
-
-    approvalConfig$.next({optionalCcEmail: 'foo@example.org'});
+    configFacade.approvalConfigSubject.next(
+        {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -95,7 +97,8 @@ describe('Approval Component', () => {
 
     selectedClient$.next(makeClient());
 
-    approvalConfig$.next({optionalCcEmail: 'foo@example.org'});
+    configFacade.approvalConfigSubject.next(
+        {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
     fixture.componentInstance.form.patchValue(
@@ -105,7 +108,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientFacade.requestApproval)
+    expect(clientPageFacade.requestApproval)
         .toHaveBeenCalledWith(
             jasmine.objectContaining({cc: ['foo@example.org']}));
   });
@@ -116,7 +119,8 @@ describe('Approval Component', () => {
 
     selectedClient$.next(makeClient());
 
-    approvalConfig$.next({optionalCcEmail: 'foo@example.org'});
+    configFacade.approvalConfigSubject.next(
+        {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
     fixture.componentInstance.form.patchValue(
@@ -126,7 +130,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientFacade.requestApproval)
+    expect(clientPageFacade.requestApproval)
         .toHaveBeenCalledWith(jasmine.objectContaining({cc: []}));
   });
 

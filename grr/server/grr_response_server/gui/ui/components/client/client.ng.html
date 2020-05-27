@@ -1,18 +1,34 @@
 <div *ngIf="client$ | async as client">
   <div class="client-header mat-body-1">
-    {{client.knowledgeBase.os}}
-    <h2 class="mat-h2">{{client.knowledgeBase.fqdn}}</h2>
-    {{client.lastSeenAt}} <br>
-    {{client.clientId}}
-    <mat-chip-list>
-      <mat-chip
-          *ngFor="let label of client.labels">
-        {{label.name}}
-      </mat-chip>
-    </mat-chip-list>
+    <div class="fqdn-chips">
+      <div class="fqdn">
+        <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
+      </div>
+      <div class="chips">
+        <mat-chip-list>
+          <mat-chip *ngFor="let label of client.labels">
+            {{label.name}}
+          </mat-chip>
+        </mat-chip-list>
+      </div>
+    </div>
+    <div class="client-id">
+      <span class="mat-h5">{{client.clientId}}</span>
+    </div>
+    <div class="os">
+       {{client.knowledgeBase.os}}
+    </div>
+    <div class="last-seen">
+      Last seen: {{client.lastSeenAt | date:'MM/dd/yyyy hh:mm:ss':'utc'}} UTC
+    </div>
   </div>
-
-  <approval></approval>
-  <flow-form></flow-form>
-  <flow-list></flow-list>
+  <div class="client-approval">
+    <approval></approval>
+  </div>
+  <div class="client-start-flow">
+    <flow-form></flow-form>
+  </div>
+  <div class="client-flows">
+    <flow-list></flow-list>
+  </div>
 </div>

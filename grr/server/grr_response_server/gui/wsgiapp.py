@@ -27,6 +27,7 @@ from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
 
 from grr_response_core import config
+from grr_response_core.config import contexts
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
@@ -283,7 +284,8 @@ class AdminUIApp(object):
     del request  # Unused.
 
     context = {
-        "is_development": "Debug Context" in config.CONFIG.context,
+        "is_development": contexts.DEBUG_CONTEXT in config.CONFIG.context,
+        "is_test": contexts.TEST_CONTEXT in config.CONFIG.context,
     }
 
     env = jinja2.Environment(

@@ -1,8 +1,8 @@
-<mat-card>
+<div class="container mat-body-1">
   <div class="header-wrapper" (click)="triggerExpansionToggle()">
     <div class="header">
       <!-- Basic flow information. -->
-      <div class="flow-info">
+      <div class="flow-header">
         <div class="flow-title">{{flowDescriptor?.friendlyName || flow.name}}</div>
         <div class="flow-info">
           <mat-icon class="user-icon">account_circle</mat-icon>
@@ -39,4 +39,4 @@
     <template #detailsContainer></template>
   </div>
 
-</mat-card>
+</div>

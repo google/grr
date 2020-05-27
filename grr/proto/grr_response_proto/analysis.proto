@@ -8,6 +8,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 // A graph is a way to represent data.
 message Sample {
   optional string label = 1;

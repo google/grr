@@ -116,7 +116,7 @@ class ListDirectory(flow_base.FlowBase):
 
     # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
     # This conditional should be removed after that date.
-    if self.client_version >= 3221:
+    if not self.client_version or self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(
           pathspec=self.args.pathspec, follow_symlink=True)
@@ -606,7 +606,7 @@ class GlobLogic(object):
 
               # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
               # This conditional should be removed after that date.
-              if self.client_version >= 3221:
+              if not self.client_version or self.client_version >= 3221:
                 stub = server_stubs.GetFileStat
                 request = rdf_client_action.GetFileStatRequest(
                     pathspec=pathspec,

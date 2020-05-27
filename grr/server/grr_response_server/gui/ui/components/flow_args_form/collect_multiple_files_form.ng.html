@@ -1,0 +1,12 @@
+<div [formGroup]="form">
+  <mat-form-field appearance="outline" style="width: 100%;">
+    <mat-label>Path expression</mat-label>
+    <input matInput placeholder="" formControlName="pathExpression" class="monospace">
+    <mat-hint *ngIf="explanation$ | async as components">
+      Resolves to:
+      <span *ngFor="let component of components" class="monospace">{{
+        component.examples ? component.examples[0] : component.globExpression
+      }}</span>
+    </mat-hint>
+  </mat-form-field>
+</div>

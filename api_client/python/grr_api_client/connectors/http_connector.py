@@ -8,9 +8,11 @@ from __future__ import unicode_literals
 import collections
 import json
 import logging
-
+from typing import Optional
+from typing import Tuple
 from urllib import parse as urlparse
 
+import pkg_resources
 import requests
 
 from werkzeug import routing
@@ -21,9 +23,13 @@ from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils
 
+from grr_response_proto.api import metadata_pb2
 from grr_response_proto.api import reflection_pb2
 
 logger = logging.getLogger(__name__)
+
+
+VersionTuple = Tuple[int, int, int, int]
 
 
 class Error(Exception):
@@ -44,7 +50,8 @@ class HttpConnector(connector.Connector):
                verify=True,
                cert=None,
                trust_env=True,
-               page_size=None):
+               page_size=None,
+               validate_version=True):
     super(HttpConnector, self).__init__()
 
     self.api_endpoint = api_endpoint
@@ -57,6 +64,12 @@ class HttpConnector(connector.Connector):
 
     self.csrf_token = None
     self.api_methods = {}
+
+    self._server_version = None  # type: Optional[VersionTuple]
+    self._api_client_version = None  # type: Optional[VersionTuple]
+
+    if validate_version:
+      self._ValidateVersion()
 
   def _GetCSRFToken(self):
     logger.debug("Fetching CSRF token from %s...", self.api_endpoint)
@@ -131,6 +144,47 @@ class HttpConnector(connector.Connector):
     parsed_endpoint_url = urlparse.urlparse(self.api_endpoint)
     self.urls = self.handlers_map.bind(
         parsed_endpoint_url.netloc, url_scheme=parsed_endpoint_url.scheme)
+
+  def _FetchVersion(self) -> Optional[metadata_pb2.ApiGetGrrVersionResult]:
+    """Fetches version information about the GRR server.
+
+    Note that it might be the case that the server version is so old that it
+    does not have the method for retrieving server version. In such case, the
+    method will return `None`.
+
+    Returns:
+      A message with version descriptor (if possible).
+    """
+    headers = {
+        "x-csrftoken": self.csrf_token,
+        "x-requested-with": "XMLHttpRequest",
+    }
+
+    cookies = {
+        "csrftoken": self.csrf_token,
+    }
+
+    with requests.Session() as session:
+      session.trust_env = self.trust_env
+      response = session.get(
+          url=f"{self.api_endpoint}/api/v2/metadata/version",
+          headers=headers,
+          cookies=cookies,
+          auth=self.auth,
+          proxies=self.proxies,
+          verify=self.verify,
+          cert=self.cert)
+
+    try:
+      self._CheckResponseStatus(response)
+    except errors.Error:
+      return None
+
+    result = metadata_pb2.ApiGetGrrVersionResult()
+    json_str = response.content.decode("utf-8").lstrip(self.JSON_PREFIX)
+    json_format.Parse(json_str, result, ignore_unknown_fields=True)
+
+    return result
 
   def _InitializeIfNeeded(self):
     if not self.csrf_token:
@@ -295,3 +349,58 @@ class HttpConnector(connector.Connector):
       session.close()
 
     return utils.BinaryChunkIterator(chunks=GenerateChunks(), on_close=Close)
+
+  def _ValidateVersion(self):
+    """Validates that the API client is compatible the GRR server.
+
+    In case version is impossible to validate (e.g. we are not running from
+    a PIP package), this function does nothing and skips validation.
+
+    Raises:
+      VersionMismatchError: If the API client is incompatible with the server.
+    """
+    api_client_version = self.api_client_version
+    server_version = self.server_version
+    if api_client_version is None or server_version is None:
+      # If either of the versions is unspecified, we cannot properly validate.
+      return
+
+    if api_client_version < server_version:
+      raise errors.VersionMismatchError(
+          server_version=server_version, api_client_version=api_client_version)
+
+  @property
+  def server_version(self) -> Optional[VersionTuple]:
+    """Retrieves (lazily) the version server tuple."""
+    if self._server_version is None:
+      version = self._FetchVersion()
+      if version is None:
+        return None
+
+      self._server_version = (
+          version.major,
+          version.minor,
+          version.revision,
+          version.release,
+      )
+
+    return self._server_version
+
+  @property
+  def api_client_version(self) -> Optional[VersionTuple]:
+    """Retrieves (lazily) the API client version tuple (if possible)."""
+    if self._api_client_version is None:
+      try:
+        distribution = pkg_resources.get_distribution("grr_api_client")
+      except pkg_resources.DistributionNotFound:
+        # Distribution might not be available if we are not running from within
+        # a PIP package. In such case, it is not possible to retrieve version.
+        return None
+
+      (major, minor, revision, release) = distribution.version.split(".")
+      major, minor, revision = int(major), int(minor), int(revision)
+      release = int(release.lstrip("post"))
+
+      self._api_client_version = (major, minor, revision, release)
+
+    return self._api_client_version

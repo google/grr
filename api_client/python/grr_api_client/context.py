@@ -6,7 +6,6 @@ from __future__ import unicode_literals
 
 import itertools
 
-
 from grr_api_client import utils
 
 

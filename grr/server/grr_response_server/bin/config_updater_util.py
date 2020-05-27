@@ -26,6 +26,7 @@ import pkg_resources
 from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
+from google.protobuf import text_format
 from grr_api_client import errors as api_errors
 from grr_api_client import root as api_root
 from grr_response_client_builder import repacking
@@ -35,6 +36,10 @@ from grr_response_server import access_control
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
 from grr_response_server.bin import config_updater_keys_util
+from fleetspeak.src.config.proto.fleetspeak_config import config_pb2
+from fleetspeak.src.server.grpcservice.proto.fleetspeak_grpcservice import grpcservice_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import server_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import services_pb2
 
 try:
   # Importing readline enables the raw_input calls to have history etc.
@@ -127,6 +132,17 @@ def RetryBoolQuestion(question_text, default_bool):
   prompt_suff = "[Yn]" if default_bool else "[yN]"
   return RetryQuestion("%s %s: " % (question_text, prompt_suff), "[yY]|[nN]",
                        default_val)[0].upper() == "Y"
+
+
+def RetryIntQuestion(question_text: str, default_int: int) -> int:
+  return int(RetryQuestion(question_text, "^[0-9]+$", str(default_int)))
+
+
+def GetPassword(question_text: str) -> str:
+  # TODO(hanuszczak): Incorrect type specification for `getpass`.
+  # pytype: disable=wrong-arg-types
+  return getpass.getpass(prompt=question_text)
+  # pytype: enable=wrong-arg-types
 
 
 def ConfigureHostnames(config, external_hostname: Optional[Text] = None):
@@ -264,13 +280,10 @@ def ConfigureMySQLDatastore(config):
     db_options["Mysql.username"] = RetryQuestion(
         "MySQL Username", "[A-Za-z0-9-@]+$", config["Mysql.database_username"])
     db_options["Mysql.database_username"] = db_options["Mysql.username"]
-    # TODO(hanuszczak): Incorrect type specification for `getpass`.
-    # pytype: disable=wrong-arg-types
-    db_options["Mysql.password"] = getpass.getpass(
-        prompt="Please enter password for database user %s: " %
+    db_options["Mysql.password"] = GetPassword(
+        "Please enter password for database user %s: " %
         db_options["Mysql.username"])
     db_options["Mysql.database_password"] = db_options["Mysql.password"]
-    # pytype: enable=wrong-arg-types
 
     use_ssl = RetryBoolQuestion("Configure SSL connections for MySQL?", False)
     if use_ssl:
@@ -299,6 +312,151 @@ def ConfigureMySQLDatastore(config):
 
   for option, value in db_options.items():
     config.Set(option, value)
+
+
+class FleetspeakConfig:
+  """Wraps the bundled fleetspeak configuratiom."""
+
+  def __init__(self):
+
+    self.use_fleetspeak: bool = False
+    self.external_hostname: str = None
+    self.admin_port = 4444
+    self.grr_port = 11111
+    self.https_port = 4443
+    self.mysql_username: str = None
+    self.mysql_host: str = None
+    self.mysql_port = 3306
+    self.mysql_database: str = None
+
+  def Prompt(self, config):
+    """Sets up the in-memory configuration interactively."""
+
+    self.use_fleetspeak = RetryBoolQuestion(
+        "Use Fleetspeak (next generation communication framework)?", True)
+
+    if self.use_fleetspeak:
+
+      try:
+        self.external_hostname = socket.gethostname()
+      except (OSError, IOError):
+        self.external_hostname = ""
+        print("Sorry, we couldn't guess your hostname.\n")
+
+      self.external_hostname = RetryQuestion(
+          "Please enter your hostname e.g. "
+          "grr.example.com", "^[\\.A-Za-z0-9-]+$", self.external_hostname)
+
+      self.https_port = RetryIntQuestion("Fleetspeak public HTTPS port",
+                                         self.https_port)
+
+      self.mysql_host = RetryQuestion("Fleetspeak MySQL Host",
+                                      "^[\\.A-Za-z0-9-]+$",
+                                      config["Mysql.host"])
+      self.mysql_port = RetryIntQuestion("Fleetspeak MySQL Port",
+                                         self.mysql_port)
+      self.mysql_database = RetryQuestion("Fleetspeak MySQL Database",
+                                          "^[A-Za-z0-9-]+$", "fleetspeak")
+      self.mysql_username = RetryQuestion("Fleetspeak MySQL Username",
+                                          "[A-Za-z0-9-@]+$",
+                                          config["Mysql.database_username"])
+
+      self.mysql_password = GetPassword(
+          "Please enter password for database user %s: " % self.mysql_username)
+
+  def Write(self, config):
+    if self.use_fleetspeak:
+      self._WriteEnabled(config)
+    else:
+      self._WriteDisabled(config)
+
+  def _WriteDisabled(self, config):
+
+    config.Set("Server.fleetspeak_enabled", False)
+    config.Set("Client.fleetspeak_enabled", False)
+    config.Set("ClientBuilder.fleetspeak_bundled", False)
+    config.Set("Server.fleetspeak_server", "")
+
+    with open("/etc/fleetspeak-server/disabled", "w") as f:
+      f.write("The existence of this file disables the "
+              "fleetspeak-server.service systemd unit.\n")
+
+  def _WriteEnabled(self, config):
+    """Applies the in-memory configuration for the use_fleetspeak case."""
+
+    def ConfigPath(*args):
+      return os.path.join("/etc/fleetspeak-server", *args)
+
+    service_config = services_pb2.ServiceConfig(name="GRR", factory="GRPC")
+    grpc_config = grpcservice_pb2.Config(
+        target="localhost:{}".format(self.grr_port), insecure=True)
+    service_config.config.Pack(grpc_config)
+    server_conf = server_pb2.ServerConfig(services=[service_config])
+    server_conf.broadcast_poll_time.seconds = 1
+
+    with open(ConfigPath("server.services.config"), "w") as f:
+      f.write(text_format.MessageToString(server_conf))
+
+    cp = config_pb2.Config()
+    cp.configuration_name = "Fleetspeak"
+    cp.components_config.mysql_data_source_name = (
+        "{user}:@tcp({host}:{port})/{db}".format(
+            user=self.mysql_username,
+            host=self.mysql_host,
+            port=self.mysql_port,
+            db=self.mysql_database))
+    cp.components_config.https_config.listen_address = "{}:{}".format(
+        self.external_hostname, self.https_port)
+    cp.components_config.https_config.disable_streaming = True
+    cp.components_config.admin_config.listen_address = "localhost:{}".format(
+        self.admin_port)
+    cp.public_host_port.append(cp.components_config.https_config.listen_address)
+    cp.server_component_configuration_file = ConfigPath(
+        "server.components.config")
+    cp.trusted_cert_file = ConfigPath("trusted_cert.pem")
+    cp.trusted_cert_key_file = ConfigPath("trusted_cert_key.pem")
+    cp.server_cert_file = ConfigPath("server_cert.pem")
+    cp.server_cert_key_file = ConfigPath("server_cert_key.pem")
+    cp.linux_client_configuration_file = ConfigPath("linux_client.config")
+    cp.windows_client_configuration_file = ConfigPath("windows_client.config")
+    cp.darwin_client_configuration_file = ConfigPath("darwin_client.config")
+
+    p = subprocess.Popen(["fleetspeak-config", "-config", "/dev/stdin"],
+                         stdin=subprocess.PIPE)
+    p.communicate(input=text_format.MessageToString(cp).encode())
+    if p.wait() != 0:
+      raise RuntimeError("fleetspeak-config command failed.")
+
+    subprocess.check_call(
+        ["chown", "-R", "fleetspeak:fleetspeak", "/etc/fleetspeak-server"])
+
+    try:
+      os.unlink("/etc/fleetspeak-server/disabled")
+    except FileNotFoundError:
+      pass
+
+    config.Set("Server.fleetspeak_enabled", True)
+    config.Set("Client.fleetspeak_enabled", True)
+    config.Set("ClientBuilder.fleetspeak_bundled", True)
+    config.Set(
+        "Target:Linux", {
+            "ClientBuilder.fleetspeak_client_config":
+                cp.linux_client_configuration_file
+        })
+    config.Set(
+        "Target:Windows", {
+            "ClientBuilder.fleetspeak_client_config":
+                cp.windows_client_configuration_file
+        })
+    config.Set(
+        "Target:Darwin", {
+            "ClientBuilder.fleetspeak_client_config":
+                cp.darwin_client_configuration_file
+        })
+    config.Set("Server.fleetspeak_server",
+               cp.components_config.admin_config.listen_address)
+    config.Set("FleetspeakFrontend Context",
+               {"Server.fleetspeak_message_listen_address": grpc_config.target})
 
 
 def ConfigureDatastore(config):
@@ -501,6 +659,8 @@ def Initialize(config=None,
 
   print("\nStep 1: Setting Basic Configuration Parameters")
   print("We are now going to configure the server using a bunch of questions.")
+  fs_config = FleetspeakConfig()
+  fs_config.Prompt(config)
   ConfigureDatastore(config)
   ConfigureUrls(config, external_hostname=external_hostname)
   ConfigureEmails(config)
@@ -518,6 +678,7 @@ def Initialize(config=None,
   else:
     config_updater_keys_util.GenerateKeys(config)
 
+  fs_config.Write(config)
   FinalizeConfigInit(
       config,
       admin_password=admin_password,
@@ -526,19 +687,23 @@ def Initialize(config=None,
       prompt=True)
 
 
-def InitializeNoPrompt(config=None,
-                       external_hostname: Optional[Text] = None,
-                       admin_password: Optional[Text] = None,
-                       mysql_hostname: Optional[Text] = None,
-                       mysql_port: Optional[int] = None,
-                       mysql_username: Optional[Text] = None,
-                       mysql_password: Optional[Text] = None,
-                       mysql_db: Optional[Text] = None,
-                       mysql_client_key_path: Optional[Text] = None,
-                       mysql_client_cert_path: Optional[Text] = None,
-                       mysql_ca_cert_path: Optional[Text] = None,
-                       redownload_templates: bool = False,
-                       repack_templates: bool = True):
+def InitializeNoPrompt(
+    config=None,
+    external_hostname: Optional[Text] = None,
+    admin_password: Optional[Text] = None,
+    mysql_hostname: Optional[Text] = None,
+    mysql_port: Optional[int] = None,
+    mysql_username: Optional[Text] = None,
+    mysql_password: Optional[Text] = None,
+    mysql_db: Optional[Text] = None,
+    mysql_client_key_path: Optional[Text] = None,
+    mysql_client_cert_path: Optional[Text] = None,
+    mysql_ca_cert_path: Optional[Text] = None,
+    redownload_templates: bool = False,
+    repack_templates: bool = True,
+    use_fleetspeak: bool = False,
+    mysql_fleetspeak_db: Optional[Text] = None,
+):
   """Initialize GRR with no prompts.
 
   Args:
@@ -555,6 +720,8 @@ def InitializeNoPrompt(config=None,
     mysql_ca_cert_path: The path name of the CA certificate file.
     redownload_templates: Indicates whether templates should be re-downloaded.
     repack_templates: Indicates whether templates should be re-packed.
+    use_fleetspeak: Whether to use Fleetspeak.
+    mysql_fleetspeak_db: Name of the MySQL database to use for Fleetspeak.
 
   Raises:
     ValueError: if required flags are not provided, or if the config has
@@ -619,6 +786,17 @@ def InitializeNoPrompt(config=None,
   for key, value in config_dict.items():
     config.Set(key, value)
   config_updater_keys_util.GenerateKeys(config)
+
+  fs_config = FleetspeakConfig()
+  fs_config.use_fleetspeak = use_fleetspeak
+  fs_config.external_hostname = external_hostname
+  fs_config.mysql_username = mysql_username
+  fs_config.mysql_host = mysql_hostname
+  if mysql_port:
+    fs_config.mysql_port = mysql_port
+  fs_config.mysql_database = mysql_fleetspeak_db
+  fs_config.Write(config)
+
   FinalizeConfigInit(
       config,
       admin_password=admin_password,
@@ -748,11 +926,7 @@ def _GetUserTypeAndPassword(username, password=None, is_admin=False):
   else:
     user_type = api_root.GrrUser.USER_TYPE_STANDARD
   if password is None:
-    # TODO
-    # pytype: disable=wrong-arg-types
-    password = getpass.getpass(prompt="Please enter password for user '%s':" %
-                               username)
-    # pytype: enable=wrong-arg-types
+    password = GetPassword("Please enter password for user '%s':" % username)
   return user_type, password
 
 
@@ -790,11 +964,8 @@ def SwitchToRelDB(config):
   else:
     username = RetryQuestion("MySQL Username", "[A-Za-z0-9-@]+$",
                              config["Mysql.database_username"])
-    # TODO(hanuszczak): Incorrect type specification for `getpass`.
-    # pytype: disable=wrong-arg-types
-    password = getpass.getpass(
-        prompt="Please enter password for database user %s: " % username)
-    # pytype: enable=wrong-arg-types
+    password = GetPassword("Please enter password for database user %s: " %
+                           username)
 
   config.Set("Mysql.username", username)
   config.Set("Mysql.password", password)

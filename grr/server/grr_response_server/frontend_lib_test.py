@@ -20,7 +20,6 @@ from grr_response_client import comms
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core import config
-from grr_response_core.lib import communicator
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -29,6 +28,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
+from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import flow

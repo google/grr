@@ -1,0 +1,78 @@
+@use '~material-theme' as c;
+
+.download {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+
+  color: c.mat-color(c.$foreground);
+  font-size: 90%;
+  font-style: italic;
+
+  button {
+    margin-left: 1.5em;
+  }
+}
+
+.row-list {
+  margin-bottom: .15em;
+
+  .row {
+    .header {
+      border-top: 1px solid c.mat-color(c.$foreground, divider-light);
+      padding: .5em 24px;
+
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .title, .in-progress, .success, .warning, .error {
+        display: flex;
+        align-items: center;
+        margin-right: .5em;
+
+        .material-icons {
+          position: relative;
+          top: -1px;
+        }
+      }
+
+      .title {
+        font-family: c.$google-sans-display-family;
+
+        .arrow-icon {
+          font-size: 36px;
+        }
+      }
+
+      .success {
+        color: c.mat-color(c.$foreground, text);
+        font-size: 90%;
+
+        .material-icons {
+          color: green;
+          margin-left: .5em;
+        }
+      }
+
+      .warning {
+        color: c.mat-color(c.$warn, darker);
+        font-size: 90%;
+
+        .material-icons {
+          color: c.mat-color(c.$warn);
+          margin-left: .5em;
+        }
+      }
+
+      .error {
+        color: c.mat-color(c.$danger);
+        font-size: 90%;
+
+        .material-icons {
+          margin-left: .5em;
+        }
+      }
+    }
+  }
+}

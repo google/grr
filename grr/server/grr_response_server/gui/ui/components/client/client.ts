@@ -3,7 +3,7 @@ import {ActivatedRoute} from '@angular/router';
 import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
-import {ClientFacade} from '../../store/client_facade';
+import {ClientPageFacade} from '../../store/client_page_facade';
 
 /**
  * Component displaying the details and actions for a single Client.
@@ -18,18 +18,18 @@ export class Client implements OnInit, OnDestroy {
       map(params => params.get('id')),
       filter((id): id is string => id !== null));
 
-  readonly client$ = this.clientFacade.selectedClient$;
+  readonly client$ = this.clientPageFacade.selectedClient$;
 
   private readonly unsubscribe$ = new Subject<void>();
 
   constructor(
       private readonly route: ActivatedRoute,
-      private readonly clientFacade: ClientFacade,
+      private readonly clientPageFacade: ClientPageFacade,
   ) {}
 
   ngOnInit() {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
-      this.clientFacade.selectClient(id);
+      this.clientPageFacade.selectClient(id);
     });
   }
 

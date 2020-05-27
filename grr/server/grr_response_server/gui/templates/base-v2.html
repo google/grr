@@ -13,6 +13,10 @@
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
+  <script>
+    window.__IS_GRR_TEST = {{ 'true' if is_test else 'false' }};
+    window.__IS_GRR_DEVELOPMENT = {{ 'true' if is_development else 'false' }};
+  </script>
   <app-root></app-root>
   <script src="/static/dist/v2/runtime.js" type="module"></script>
   <script src="/static/dist/v2/polyfills.js" type="module"></script>

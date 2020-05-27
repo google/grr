@@ -10,7 +10,9 @@ import * as selectors from './user/user_selectors';
 
 
 /** Facade for flow-related API calls. */
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class UserFacade {
   constructor(private readonly store: Store<UserState>) {}
 

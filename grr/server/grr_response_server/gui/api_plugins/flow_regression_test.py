@@ -423,6 +423,20 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
       self.Check("ListFlowDescriptors")
 
 
+class ApiExplainGlobExpressionHandlerTest(
+    api_regression_test_lib.ApiRegressionTest):
+
+  api_method = "ExplainGlobExpression"
+  handler = flow_plugin.ApiExplainGlobExpressionHandler
+
+  def Run(self):
+    client_id = self.SetupClient(0)
+    self.Check(
+        "ExplainGlobExpression",
+        args=flow_plugin.ApiExplainGlobExpressionArgs(
+            client_id=client_id, glob_expression="/foo/*"))
+
+
 def main(argv):
   api_regression_test_lib.main(argv)
 

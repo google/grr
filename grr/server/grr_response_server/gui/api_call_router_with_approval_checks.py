@@ -21,6 +21,7 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import yara as api_yara
@@ -410,6 +411,15 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   ) -> api_yara.ApiUploadYaraSignatureHandler:
     return self.delegate.UploadYaraSignature(args, token=token)
 
+  def ExplainGlobExpression(
+      self,
+      args: api_flow.ApiExplainGlobExpressionArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiExplainGlobExpressionHandler:
+    # ExplainGlobExpression only exposes the KnowledgeBase, which does not need
+    # approval.
+    return self.delegate.ExplainGlobExpression(args, token=token)
+
   # Cron jobs methods.
   # =================
   #
@@ -789,6 +799,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can get the docs.
 
     return self.delegate.ListApiMethods(args, token=token)
+
+  def GetGrrVersion(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_metadata.ApiGetGrrVersionHandler:
+    # Everybody can get version of the GRR server.
+    return self.delegate.GetGrrVersion(args, token=token)
 
 
 # This class is kept here for backwards compatibility only.

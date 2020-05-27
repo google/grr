@@ -4,6 +4,8 @@ import "grr_response_proto/api/user.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 // Method arguments and results.
 
 message ApiCreateGrrUserArgs {

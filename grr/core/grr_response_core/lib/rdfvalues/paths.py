@@ -20,22 +20,20 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import itertools
 import posixpath
 import re
 
+from typing import Sequence
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
-
-INTERPOLATED_REGEX = re.compile(r"%%([^%]+?)%%")
-
-# Grouping pattern: e.g. {test.exe,foo.doc,bar.txt}
-GROUPING_PATTERN = re.compile("{([^}]+,[^}]+)}")
 
 
 class PathSpec(rdf_structs.RDFProtoStruct):
@@ -277,6 +275,29 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     return client_urn.Add("/".join(result))
 
 
+def _unique(iterable):
+  """Returns a list of unique values in preserved order."""
+  return list(collections.OrderedDict.fromkeys(iterable))
+
+
+class GlobComponentExplanation(rdf_structs.RDFProtoStruct):
+  """A sub-part of a GlobExpression with examples."""
+  protobuf = flows_pb2.GlobComponentExplanation
+
+
+# Grouping pattern: e.g. {test.exe,foo.doc,bar.txt}
+GROUPING_PATTERN = re.compile("{([^}]+,[^}]+)}")
+
+_VAR_PATTERN = re.compile("(" + "|".join([r"%%\w+%%", r"%%\w+\.\w+%%"]) + ")")
+
+_REGEX_SPLIT_PATTERN = re.compile(
+    "(" + "|".join(["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")")
+
+_COMPONENT_SPLIT_PATTERN = re.compile("(" + "|".join([
+    r"{[^}]+,[^}]+}", r"\?", r"\*\*\d*/?", r"\*", r"%%\w+%%", r"%%\w+\.\w+%%"
+]) + ")")
+
+
 class GlobExpression(rdfvalue.RDFString):
   """A glob expression for a client path.
 
@@ -320,7 +341,7 @@ class GlobExpression(rdfvalue.RDFString):
 
       # Expand the attribute into the set of possibilities:
       alternatives = match.group(1).split(",")
-      components.append(set(alternatives))
+      components.append(_unique(alternatives))
       offset = match.end()
 
     components.append([pattern[offset:]])
@@ -345,8 +366,35 @@ class GlobExpression(rdfvalue.RDFString):
     else:
       return re.escape(part)
 
-  REGEX_SPLIT_PATTERN = re.compile(
-      "(" + "|".join(["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")")
+  def ExplainComponents(self, example_count: int,
+                        knowledge_base) -> Sequence[GlobComponentExplanation]:
+    """Returns a list of GlobComponentExplanations with examples."""
+    parts = _COMPONENT_SPLIT_PATTERN.split(self._value)
+    components = []
+
+    for glob_part in parts:
+      if not glob_part:
+        continue
+
+      component = GlobComponentExplanation(glob_expression=glob_part)
+
+      if GROUPING_PATTERN.match(glob_part):
+        examples = self.InterpolateGrouping(glob_part)
+      elif _VAR_PATTERN.match(glob_part):
+        # Examples for variable substitutions might not be 100 % accurate,
+        # because the scope is not shared between two variables. Thus,
+        # if a GlobExpression uses %%users.a%% and %%users.b%%, the underlying
+        # user might be different for a and b. For the sake of explaining
+        # possible values, this should still be enough.
+        examples = artifact_utils.InterpolateKbAttributes(
+            glob_part, knowledge_base)
+      else:
+        examples = []
+
+      component.examples = list(itertools.islice(examples, example_count))
+      components.append(component)
+
+    return components
 
   def AsRegEx(self):
     """Return the current glob as a simple regex.
@@ -356,7 +404,7 @@ class GlobExpression(rdfvalue.RDFString):
     Returns:
       A RegularExpression() object.
     """
-    parts = self.__class__.REGEX_SPLIT_PATTERN.split(self._value)
+    parts = _REGEX_SPLIT_PATTERN.split(self._value)
     result = u"".join(self._ReplaceRegExPart(p) for p in parts)
 
     return rdf_standard.RegularExpression(u"(?i)\\A%s\\Z" % result)

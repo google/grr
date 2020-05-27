@@ -9,7 +9,9 @@ import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+
 import {FlowDetails} from './flow_details';
+import {HelpersModule} from './helpers/module';
 import {PluginsModule} from './plugins/module';
 
 
@@ -32,6 +34,7 @@ import {PluginsModule} from './plugins/module';
     MatInputModule,
     MatCardModule,
     PluginsModule,
+    HelpersModule,
   ],
   declarations: [
     FlowDetails,

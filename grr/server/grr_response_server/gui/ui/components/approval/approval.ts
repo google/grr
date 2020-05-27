@@ -4,7 +4,8 @@ import {Subject} from 'rxjs';
 import {map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
 import {ClientApproval} from '../../lib/models/client';
-import {ClientFacade} from '../../store/client_facade';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ConfigFacade} from '../../store/config_facade';
 
 /**
  * Component to request approval for the current client.
@@ -22,9 +23,8 @@ export class Approval implements OnDestroy {
     ccEnabled: new FormControl(true),
   });
 
-  readonly ccEmail$ = this.clientFacade.approvalConfig$.pipe(
-      map(config => config ? config.optionalCcEmail : undefined),
-  );
+  readonly ccEmail$ = this.configFacade.approvalConfig$.pipe(
+      map(config => config.optionalCcEmail));
 
   latestApproval?: ClientApproval;
 
@@ -32,17 +32,18 @@ export class Approval implements OnDestroy {
   private readonly unsubscribe$ = new Subject<void>();
 
   constructor(
-      private readonly clientFacade: ClientFacade,
+      private readonly clientPageFacade: ClientPageFacade,
+      private readonly configFacade: ConfigFacade,
       private readonly cdr: ChangeDetectorRef,
   ) {
     this.submit$
         .pipe(
             takeUntil(this.unsubscribe$),
             withLatestFrom(
-                this.form.valueChanges, this.clientFacade.selectedClient$,
+                this.form.valueChanges, this.clientPageFacade.selectedClient$,
                 this.ccEmail$))
         .subscribe(([_, form, client, ccEmail]) => {
-          this.clientFacade.requestApproval({
+          this.clientPageFacade.requestApproval({
             clientId: client.clientId,
             approvers: form.approvers.trim().split(/[, ]+/),
             reason: form.reason,
@@ -50,9 +51,7 @@ export class Approval implements OnDestroy {
           });
         });
 
-    this.clientFacade.fetchApprovalConfig();
-
-    this.clientFacade.latestApproval$.pipe(takeUntil(this.unsubscribe$))
+    this.clientPageFacade.latestApproval$.pipe(takeUntil(this.unsubscribe$))
         .subscribe(a => {
           this.latestApproval = a;
           this.cdr.markForCheck();

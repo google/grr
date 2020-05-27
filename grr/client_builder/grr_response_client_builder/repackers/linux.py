@@ -27,6 +27,15 @@ class LinuxClientRepacker(build.ClientRepacker):
   def _GenerateDPKGFiles(self, template_path):
     """Generates the files needed by dpkg-buildpackage."""
 
+    fleetspeak_enabled = config.CONFIG.Get(
+        "Client.fleetspeak_enabled", context=self.context)
+    fleetspeak_bundled = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_bundled", context=self.context)
+
+    if fleetspeak_bundled and not fleetspeak_enabled:
+      raise build.BuildError("ClientBuilder.fleetspeak_bundled requires "
+                             "Client.fleetspeak_enabled to be set.")
+
     # Rename the generated binaries to the correct name.
     template_binary_dir = os.path.join(template_path, "dist/debian/grr-client")
     package_name = config.CONFIG.Get(
@@ -51,6 +60,17 @@ class LinuxClientRepacker(build.ClientRepacker):
 
     deb_in_dir = os.path.join(template_path, "dist/debian/debian.in/")
 
+    if not os.path.isdir(deb_in_dir):
+      # This is an universal (fleetspeak + legacy) template.
+      # In prior versions, debian.in used to contain different files for a
+      # fleetspeak-enabled and legacy template respectively.
+      if fleetspeak_enabled:
+        deb_in_dir = os.path.join(template_path,
+                                  "dist/debian/fleetspeak-debian.in/")
+      else:
+        deb_in_dir = os.path.join(template_path,
+                                  "dist/debian/legacy-debian.in/")
+
     build_helpers.GenerateDirectory(
         deb_in_dir,
         os.path.join(template_path, "dist/debian"),
@@ -61,70 +81,108 @@ class LinuxClientRepacker(build.ClientRepacker):
     utils.EnsureDirExists(
         os.path.join(template_path, "dist/debian/%s/usr/sbin" % package_name))
 
-    if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
-      self._GenerateFleetspeakConfig(template_path)
-      shutil.rmtree(deb_in_dir)
-      shutil.rmtree(os.path.join(template_path, "dist", "fleetspeak"))
-      return
+    if fleetspeak_enabled:
+      if fleetspeak_bundled:
+        self._GenerateFleetspeakConfig(template_path,
+                                       "/etc/fleetspeak-client/textservices")
+        self._GenerateBundledFleetspeakFiles(
+            os.path.join(template_path, "dist/bundled-fleetspeak"),
+            os.path.join(template_path, "dist/debian", package_name))
 
-    # Generate the nanny template. This only exists from client version 3.1.2.5
-    # onwards.
-    if config.CONFIG["Template.version_numeric"] >= 3125:
+        shutil.copy(
+            config.CONFIG.Get(
+                "ClientBuilder.fleetspeak_client_config", context=self.context),
+            os.path.join(template_path, "dist", "debian", package_name,
+                         "etc/fleetspeak-client/client.config"))
+
+        for filename in (package_name + ".postinst", package_name + ".postrm"):
+          os.remove(os.path.join(template_path, "dist", "debian", filename))
+
+      else:
+        fleetspeak_service_dir = config.CONFIG.Get(
+            "ClientBuilder.fleetspeak_service_dir", context=self.context)
+        self._GenerateFleetspeakConfig(template_path, fleetspeak_service_dir)
+    else:
+      # Generate the nanny template.
+      # This exists from client version 3.1.2.5 onwards.
       build_helpers.GenerateFile(
           os.path.join(target_binary_dir, "nanny.sh.in"),
           os.path.join(target_binary_dir, "nanny.sh"),
           context=self.context)
 
-    # Generate the upstart template.
-    build_helpers.GenerateFile(
-        os.path.join(template_path, "dist/debian/upstart.in/grr-client.conf"),
-        os.path.join(template_path, "dist/debian/%s.upstart" % package_name),
-        context=self.context)
+      # Generate the upstart template.
+      build_helpers.GenerateFile(
+          os.path.join(template_path, "dist/debian/upstart.in/grr-client.conf"),
+          os.path.join(template_path, "dist/debian/%s.upstart" % package_name),
+          context=self.context)
 
-    # Generate the initd template. The init will not run if it detects upstart
-    # is present.
-    build_helpers.GenerateFile(
-        os.path.join(template_path, "dist/debian/initd.in/grr-client"),
-        os.path.join(template_path, "dist/debian/%s.init" % package_name),
-        context=self.context)
+      # Generate the initd template. The init will not run if it detects upstart
+      # is present.
+      build_helpers.GenerateFile(
+          os.path.join(template_path, "dist/debian/initd.in/grr-client"),
+          os.path.join(template_path, "dist/debian/%s.init" % package_name),
+          context=self.context)
 
-    # Generate the systemd unit file.
-    build_helpers.GenerateFile(
-        os.path.join(template_path,
-                     "dist/debian/systemd.in/grr-client.service"),
-        os.path.join(template_path, "dist/debian/%s.service" % package_name),
-        context=self.context)
+      # Generate the systemd unit file.
+      build_helpers.GenerateFile(
+          os.path.join(template_path,
+                       "dist/debian/systemd.in/grr-client.service"),
+          os.path.join(template_path, "dist/debian/%s.service" % package_name),
+          context=self.context)
 
     # Clean up the template dirs.
-    shutil.rmtree(deb_in_dir)
-    shutil.rmtree(os.path.join(template_path, "dist/debian/upstart.in"))
-    shutil.rmtree(os.path.join(template_path, "dist/debian/initd.in"))
-    shutil.rmtree(os.path.join(template_path, "dist/debian/systemd.in"))
+    # Some of the dirs might be missing in older template versions, so removing
+    # conditionally.
+    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/debian.in"))
+    self._RmTreeIfExists(
+        os.path.join(template_path, "dist/debian/fleetspeak-debian.in"))
+    self._RmTreeIfExists(
+        os.path.join(template_path, "dist/debian/legacy-debian.in"))
+    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/upstart.in"))
+    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/initd.in"))
+    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/systemd.in"))
+    self._RmTreeIfExists(os.path.join(template_path, "dist/fleetspeak"))
+    self._RmTreeIfExists(os.path.join(template_path, "dist/bundled-fleetspeak"))
+
+  def _RmTreeIfExists(self, path):
+    if os.path.exists(path):
+      shutil.rmtree(path)
 
   # pytype: enable=wrong-arg-types
 
-  def _GenerateFleetspeakConfig(self, build_dir):
+  def _GenerateFleetspeakConfig(self, build_dir, dest_config_dir):
     """Generates a Fleetspeak config for GRR in the debian build dir."""
+    # We need to strip leading /'s or .join will ignore everything that comes
+    # before it.
+    dest_config_dir = dest_config_dir.lstrip("/")
     source_config = os.path.join(
         build_dir, "dist", "fleetspeak",
         os.path.basename(
             config.CONFIG.Get(
                 "ClientBuilder.fleetspeak_config_path", context=self.context)))
-    fleetspeak_service_dir = config.CONFIG.Get(
-        "ClientBuilder.fleetspeak_service_dir", context=self.context)
-    package_name = config.CONFIG.Get(
-        "ClientBuilder.package_name", context=self.context)
-    dest_config_dir = os.path.join(build_dir, "dist", "debian", package_name,
-                                   fleetspeak_service_dir[1:])
-    utils.EnsureDirExists(dest_config_dir)
-    dest_config_path = os.path.join(
+    dest_config = os.path.join(
+        build_dir, "dist", "debian",
+        config.CONFIG.Get("ClientBuilder.package_name", context=self.context),
         dest_config_dir,
         config.CONFIG.Get(
             "Client.fleetspeak_unsigned_config_fname", context=self.context))
+    utils.EnsureDirExists(os.path.dirname(dest_config))
     build_helpers.GenerateFile(
         input_filename=source_config,
-        output_filename=dest_config_path,
+        output_filename=dest_config,
         context=self.context)
+
+  def _GenerateBundledFleetspeakFiles(self, src_dir, dst_dir):
+    files = [
+        "etc/fleetspeak-client/communicator.txt",
+        "lib/systemd/system/fleetspeak-client.service",
+        "usr/bin/fleetspeak-client",
+    ]
+    for filename in files:
+      src = os.path.join(src_dir, filename)
+      dst = os.path.join(dst_dir, filename)
+      utils.EnsureDirExists(os.path.dirname(dst))
+      shutil.copy(src, dst)
 
   def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template and create a .deb."""

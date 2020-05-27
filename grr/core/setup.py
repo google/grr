@@ -156,7 +156,6 @@ setup_args = dict(
         "pytz==2019.3",
         "PyYAML==5.1.2",
         "requests==2.22.0",
-        "typing==3.7.4.1",
         "virtualenv==16.7.5",
         "wheel==0.33.6",
         "yara-python==3.10.0",

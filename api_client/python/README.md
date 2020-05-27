@@ -67,7 +67,7 @@ for client in search_result:
   client_id = client.client_id
   client_last_seen_at = client.data.last_seen_at
   result[client_id] = client_last_seen_at
-print result
+print(result)
 ```
 
 ## Example: add *"suspicious"* label to all clients with a given hostname
@@ -163,7 +163,7 @@ Print client IDs of all the clients known to GRR:
 
 ```
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
-  --exec_code 'print "\n".join(c.client_id for c in grrapi.SearchClients(""))' \
+  --exec_code 'print("\n".join(c.client_id for c in grrapi.SearchClients("")))' \
   http://localhost:1234
 ```
 
@@ -197,6 +197,6 @@ Print all results of a particular flow in a text-protobuf format:
 
 ```
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
-  --exec_code 'for r in grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").ListResults(): print str(r.payload)' \
+  --exec_code 'for r in grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").ListResults(): print(str(r.payload))' \
   http://localhost:1234
 ```

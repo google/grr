@@ -19,7 +19,7 @@ describe('UserMenu Component', () => {
     currentUser$ = new Subject();
     userFacade = {
       currentUser$,
-      fetchCurrentUser: jasmine.createSpy('listFlowDescriptors'),
+      fetchCurrentUser: jasmine.createSpy('fetchCurrentUser'),
     };
 
     TestBed

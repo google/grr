@@ -85,7 +85,8 @@ def InitHttp(api_endpoint=None,
              proxies=None,
              verify=None,
              cert=None,
-             trust_env=True):
+             trust_env=True,
+             validate_version=True):
   """Inits an GRR API object with a HTTP connector."""
 
   connector = http_connector.HttpConnector(
@@ -95,6 +96,7 @@ def InitHttp(api_endpoint=None,
       proxies=proxies,
       verify=verify,
       cert=cert,
-      trust_env=trust_env)
+      trust_env=trust_env,
+      validate_version=validate_version)
 
   return GrrApi(connector=connector)

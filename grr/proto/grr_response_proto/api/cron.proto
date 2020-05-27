@@ -6,6 +6,8 @@ import "grr_response_proto/flows.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 //
 // Entities.
 //

@@ -1,11 +1,14 @@
-<h2 class="mat-h2">Collect</h2>
-<mat-card>
-  <flow-picker></flow-picker>
+<h1 class="mat-h1">Collection</h1>
 
-  <form #form>
-    <flow-args-form [flowDescriptor]="selectedFlow"></flow-args-form>
-    <button *ngIf="selectedFlow" mat-flat-button color="primary" type="submit">
-      Start
-    </button>
-  </form>
-</mat-card>
+<flow-picker></flow-picker>
+
+<form #form>
+  <flow-args-form [flowDescriptor]="selectedFD$ | async"></flow-args-form>
+
+  <mat-error *ngIf="error$ | async as error">{{error}}</mat-error>
+
+  <button *ngIf="selectedFD$ | async" mat-flat-button color="primary"
+  type="submit" [disabled]="disabled$ | async">
+    Start
+  </button>
+</form>

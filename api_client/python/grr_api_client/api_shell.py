@@ -43,6 +43,11 @@ class GrrApiShellArgParser(argparse.ArgumentParser):
         action="store_true",
         help="If set, don't verify server's SSL certificate.")
     self.add_argument(
+        "--no-check-version",
+        dest="no_check_version",
+        action="store_true",
+        help="Skip server version compatibility check")
+    self.add_argument(
         "--debug",
         dest="debug",
         action="store_true",
@@ -78,15 +83,12 @@ def main(argv=None):
   if flags.basic_auth_username:
     auth = (flags.basic_auth_username, flags.basic_auth_password or "")
 
-  verify = True
-  if flags.no_check_certificate:
-    verify = False
-
   grrapi = api.InitHttp(
       api_endpoint=flags.api_endpoint,
       page_size=flags.page_size,
       auth=auth,
-      verify=verify)
+      verify=not flags.no_check_certificate,
+      validate_version=not flags.no_check_version)
 
   if flags.exec_code and flags.exec_file:
     print("--exec_code --exec_file flags can't be supplied together")

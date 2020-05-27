@@ -1,15 +1,53 @@
 @import '~@angular/material/theming';
 
 // Angular Material theme definition.
+$primary: mat-palette($mat-blue, 900, 600, 400);
+$accent: mat-palette($mat-green, A700, A400, A200);
+$warn: mat-palette($mat-amber);
+$success: mat-palette($mat-green);
+$danger: mat-palette($mat-red);
 
-// Include non-theme styles for core.
-@include mat-core();
+// See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L712
+// and https://stackoverflow.com/questions/43438305/how-to-change-font-color-of-primary-palette-in-angular-material2/46157803#46157803
+$_grr-foreground: (
+  logo: mat-color($mat-grey, 600),  // custom GRR property
+  text: mat-color($mat-grey, 900),
+  divider-light: mat-color($mat-grey, 300),  // custom GRR property
+  divider: mat-color($mat-grey, 600),
+  dividers: mat-color($mat-grey, 600),
+);
+// See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L674
+$_grr-background: (
+  app-bar: white,
+  darker-background: #f7f8f9,  // custom GRR property
+  shadow: rgba(0, 0, 0, 0.5),  // custom GRR property
+);
+$_theme: mat-light-theme($primary, $accent, $warn);
+$theme: map-merge($_theme,
+  (
+    foreground: map-merge(map-get($_theme, foreground), $_grr-foreground),
+    background: map-merge(map-get($_theme, background), $_grr-background),
+  ));
 
-$primary: mat-palette($mat-indigo);
-$accent: mat-palette($mat-pink, A200, A100, A400);
-$warn: mat-palette($mat-red);
+$foreground: map-get($theme, foreground);
+$background: map-get($theme, background);
 
-$theme: mat-light-theme($primary, $accent, $warn);
-
-// Include all theme-styles for the components based on the current theme.
-@include angular-material-theme($theme);
+$google-sans-display-family: Google Sans Display, 'Helvetica Neue', sans-serif;
+$google-sans-family: Google Sans, 'Helvetica Neue', sans-serif;
+$roboto-family: Roboto, 'Helvetica Neue', sans-serif;
+$google-sans-display-family-str: 'Google Sans Display, "Helvetica Neue", sans-serif';
+$google-sans-family-str: 'Google Sans, "Helvetica Neue", sans-serif';
+$roboto-family-str: 'Roboto, "Helvetica Neue", sans-serif';
+$custom-typography: mat-typography-config(
+  $display-1:  mat-typography-level(64px, 76px, 400, $google-sans-display-family-str, normal),
+  $display-2:  mat-typography-level(56px, 64px, 400, $google-sans-display-family-str, normal),
+  $display-3:  mat-typography-level(44px, 52px, 400, $google-sans-display-family-str, normal),
+  $headline: mat-typography-level(18px, 24px, 400, $google-sans-family-str, normal),
+  $title: mat-typography-level(16px, 24px, 500, $roboto-family-str, .2px),
+  $subheading-1:  mat-typography-level(14px, 20px, 500, $google-sans-family-str, .25px),
+  $subheading-2:  mat-typography-level(16px, 24px, 500, $google-sans-family-str, .1px),
+  $body-1:     mat-typography-level(14px, 20px, 400, $roboto-family-str, .2px),
+  $body-2:     mat-typography-level(16px, 24px, 400, $roboto-family-str, .1px),
+  $caption:    mat-typography-level(12px, 16px, 400, $roboto-family-str, .3px),
+);
+@include angular-material-typography($custom-typography);

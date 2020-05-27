@@ -15,9 +15,9 @@ import requests
 
 from grr_response_client import client_stats
 from grr_response_client import comms
+from grr_response_client import communicator
 from grr_response_client.client_actions import admin
 from grr_response_core import config
-from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action

@@ -1,0 +1,46 @@
+@use '~material-theme' as c;
+
+table {
+  font-size: 80%;
+  width: 100%;
+
+  th {
+    font-weight: normal;
+    text-align: left;
+    padding-bottom: 1.5em;
+  }
+
+  th, td {
+    vertical-align: top;
+  }
+
+  tbody {
+    td {
+      border-bottom: 1px solid c.mat-color(c.$foreground, divider);
+      padding-top: .5em;
+      padding-bottom: .5em;
+    }
+
+    tr:last-child td {
+      border-bottom: none !important;
+    }
+  }
+
+  .path {
+    min-width: 200px;
+    width: 30%;
+  }
+
+  .timestamp {
+    width: 10%;
+  }
+
+  .number {
+    width: 10%;
+  }
+}
+
+button.load-more {
+  width: 100%;
+  margin-bottom: .5em;
+}

@@ -8,8 +8,8 @@ from absl import app
 import mock
 
 from grr_response_client import comms
+from grr_response_client import communicator
 from grr_response_client import fleetspeak_client
-from grr_response_core.lib import communicator
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2

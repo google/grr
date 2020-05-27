@@ -118,7 +118,7 @@ class ApiListApiMethodsResult(rdf_structs.RDFProtoStruct):
 class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
   """Renders HTTP API docs sources."""
 
-  TYPE_URL_PATTERN = "type.googleapis.com/%s"
+  TYPE_URL_PATTERN = "type.googleapis.com/grr.%s"
 
   result_type = ApiListApiMethodsResult
 

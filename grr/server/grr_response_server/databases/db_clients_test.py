@@ -173,6 +173,7 @@ class DatabaseTestClientsMixin(object):
     # Typical update on client ping.
     d.WriteClientMetadata(
         client_id,
+        fleetspeak_enabled=True,
         last_ping=rdfvalue.RDFDatetime(200000000000),
         last_clock=rdfvalue.RDFDatetime(210000000000),
         last_ip=rdf_client_network.NetworkAddress(

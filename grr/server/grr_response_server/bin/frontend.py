@@ -25,10 +25,10 @@ from grr_response_server import server_plugins
 
 from grr_response_core import config
 from grr_response_core.config import server as config_server
-from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
+from grr_response_server import communicator
 from grr_response_server import frontend_lib
 from grr_response_server import server_logging
 from grr_response_server import server_startup

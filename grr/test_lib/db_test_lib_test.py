@@ -7,6 +7,7 @@ from absl.testing import absltest
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
+from grr_response_server import blob_store
 from grr_response_server.databases import db as abstract_db
 from grr.test_lib import db_test_lib
 
@@ -59,6 +60,42 @@ class WithDatabaseTest(absltest.TestCase):
 
     TestMethod(self, "foo")  # pylint: disable=no-value-for-parameter
     TestMethod(self, "bar")  # pylint: disable=no-value-for-parameter
+
+
+class WithDatabaseBlobstore(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testBlobstoreIsProvided(self, db: abstract_db.Database):
+    del db  # Unused.
+
+    @db_test_lib.WithDatabaseBlobstore
+    def TestMethod(bs: blob_store.BlobStore):
+      self.assertIsInstance(bs, blob_store.BlobStore)
+
+    TestMethod()  # pylint: disable=no-value-for-parameter
+
+  @db_test_lib.WithDatabase
+  def testBlobstoreWorks(self, db: abstract_db.Database):
+    del db  # Unused.
+
+    @db_test_lib.WithDatabaseBlobstore
+    def TestMethod(bs: blob_store.BlobStore):
+      blob_id = bs.WriteBlobWithUnknownHash(b"foobarbaz")
+      self.assertEqual(bs.ReadBlob(blob_id), b"foobarbaz")
+
+    TestMethod()  # pylint: disable=no-value-for-parameter
+
+  @db_test_lib.WithDatabase
+  def testPassesArguments(self, db: abstract_db.Database):
+    del db  # Unused.
+
+    @db_test_lib.WithDatabaseBlobstore
+    def TestMethod(self, data: bytes, bs: blob_store.BlobStore):
+      blob_id = bs.WriteBlobWithUnknownHash(data)
+      self.assertEqual(bs.ReadBlob(blob_id), data)
+
+    TestMethod(self, b"quux")  # pylint: disable=no-value-for-parameter
+    TestMethod(self, b"norf")  # pylint: disable=no-value-for-parameter
 
 
 if __name__ == "__main__":

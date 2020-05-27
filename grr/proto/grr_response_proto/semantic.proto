@@ -3,6 +3,8 @@ syntax = "proto2";
 import "google/protobuf/descriptor.proto"; // for FieldOptions
 
 
+package grr;
+
 message SemanticDescriptor {
   // The semantic name of the SemanticValue contained in this field.
   optional string type = 1;

@@ -5,66 +5,174 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
+import contextlib
 import os
 
 from absl import app
+import mock
 
+from grr_response_client import vfs
+from grr_response_client.vfs_handlers import files as vfs_files
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import temp
+from grr_response_server import flow_base
 from grr_response_server.flows import file
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
-EXPECTED_HASHES = {
-    "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",
-                 "264eb6ff97fc6c37c5dd4b150cb0a797",
-                 "91c8d6287a095a6fa6437dac50ffe3fe5c5e0d06dff"
-                 "3ae830eedfce515ad6451"),
-    "dpkg.log": ("531b1cfdd337aa1663f7361b2fd1c8fe43137f4a",
-                 "26973f265ce5ecc1f86bc413e65bfc1d",
-                 "48303a1e7ceec679f6d417b819f42779575ffe8eabf"
-                 "9c880d286a1ee074d8145"),
-    "dpkg_false.log": ("a2c9cc03c613a44774ae97ed6d181fe77c13e01b",
-                       "ab48f3548f311c77e75ac69ac4e696df",
-                       "a35aface4b45e3f1a95b0df24efc50e14fbedcaa6a7"
-                       "50ba32358eaaffe3c4fb0")
-}
+
+TestFile = collections.namedtuple("TestFile", ["path", "sha1"])
+
+
+@contextlib.contextmanager
+def SetUpTestFiles():
+  with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
+    file_bar_path = temp.TempFilePath(dir=temp_dirpath, prefix="bar")
+    with open(file_bar_path, "w") as fd:
+      fd.write("bar")
+
+    file_baz_path = temp.TempFilePath(dir=temp_dirpath, prefix="baz")
+    with open(file_baz_path, "w") as fd:
+      fd.write("baz")
+
+    file_foo_path = temp.TempFilePath(dir=temp_dirpath, prefix="foo")
+    with open(file_foo_path, "w") as fd:
+      fd.write("foo")
+
+    yield {
+        "bar":
+            TestFile(
+                path=file_bar_path,
+                sha1="62cdb7020ff920e5aa642c3d4066950dd1f01f4d"),
+        "baz":
+            TestFile(
+                path=file_baz_path,
+                sha1="bbe960a25ea311d21d40669e93df2003ba9b90a2"),
+        "foo":
+            TestFile(
+                path=file_foo_path,
+                sha1="0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33")
+    }
+
+
+class _UseOSForTSKFile(vfs_files.File):
+  supported_pathtype = rdf_paths.PathSpec.PathType.TSK
+
+
+class _FailingOSFile(vfs_files.File):
+  supported_pathtype = rdf_paths.PathSpec.PathType.OS
+
+  def Read(self, length=None):
+    raise IOError("mock error")
+
+
+def _PatchVfs():
+  return mock.patch.dict(
+      vfs.VFS_HANDLERS, {
+          _UseOSForTSKFile.supported_pathtype: _UseOSForTSKFile,
+          _FailingOSFile.supported_pathtype: _FailingOSFile,
+      })
 
 
 class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super().setUp()
-    self.fixture_path = os.path.join(self.base_path, "searching")
     self.client_id = self.SetupClient(0)
     self.client_mock = action_mocks.FileFinderClientMockWithTimestamps()
 
-  def testCollectSingleFileReturnsFile(self):
-    path = os.path.join(self.fixture_path, "auth.log")
+    stack = contextlib.ExitStack()
+    self.files = stack.enter_context(SetUpTestFiles())
+    self.addCleanup(stack.close)
 
+  def testCollectSingleFileReturnsFile(self):
     flow_id = flow_test_lib.TestFlowHelper(
         file.CollectSingleFile.__name__,
         self.client_mock,
         client_id=self.client_id,
-        path=path,
+        path=self.files["bar"].path,
         token=self.token)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
-    self.assertEqual(results[0].stat.pathspec.path, path)
-    self.assertEqual(results[0].stat.pathspec.pathtype, "OS")
-    self.assertEqual(str(results[0].hash.sha1), EXPECTED_HASHES["auth.log"][0])
-    self.assertEqual(str(results[0].hash.md5), EXPECTED_HASHES["auth.log"][1])
-    self.assertEqual(
-        str(results[0].hash.sha256), EXPECTED_HASHES["auth.log"][2])
+    self.assertEqual(results[0].stat.pathspec.path, self.files["bar"].path)
+    self.assertEqual(results[0].stat.pathspec.pathtype,
+                     rdf_paths.PathSpec.PathType.OS)
+    self.assertEqual(str(results[0].hash.sha1), self.files["bar"].sha1)
 
   def testFileNotFoundRaisesError(self):
-    with self.assertRaisesRegexp(RuntimeError, "Error while fetching file."):
+    with self.assertRaisesRegex(RuntimeError, "File not found"):
       flow_test_lib.TestFlowHelper(
           file.CollectSingleFile.__name__,
           self.client_mock,
           client_id=self.client_id,
           path="/nonexistent",
           token=self.token)
+
+  def testFetchIsRetriedWithTskOnWindows(self):
+    with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
+      with _PatchVfs():
+        flow_id = flow_test_lib.TestFlowHelper(
+            file.CollectSingleFile.__name__,
+            self.client_mock,
+            client_id=self.client_id,
+            path=self.files["bar"].path,
+            token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].stat.pathspec.path, self.files["bar"].path)
+    self.assertEqual(results[0].stat.pathspec.pathtype,
+                     rdf_paths.PathSpec.PathType.TSK)
+    self.assertEqual(str(results[0].hash.sha1), self.files["bar"].sha1)
+
+  def testRaisesAfterRetryOnFailedFetchOnWindows(self):
+    with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
+      with mock.patch.object(vfs, "VFSOpen", side_effect=IOError("mock err")):
+        with self.assertRaisesRegex(RuntimeError, r"mock err.*bar.*TSK"):
+          flow_test_lib.TestFlowHelper(
+              file.CollectSingleFile.__name__,
+              self.client_mock,
+              client_id=self.client_id,
+              path=self.files["bar"].path,
+              token=self.token)
+
+
+class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
+
+  def setUp(self):
+    super().setUp()
+    self.client_id = self.SetupClient(0)
+    self.client_mock = action_mocks.FileFinderClientMockWithTimestamps()
+
+    stack = contextlib.ExitStack()
+    self.files = stack.enter_context(SetUpTestFiles())
+    self.addCleanup(stack.close)
+    self.fixture_path = os.path.dirname(self.files["bar"].path)
+
+  def testCollectMultipleFilesReturnsFiles(self):
+    path = os.path.join(self.fixture_path, "b*")
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        file.CollectMultipleFiles.__name__,
+        self.client_mock,
+        client_id=self.client_id,
+        path_expressions=[path],
+        token=self.token)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertLen(results[0].files, 2)
+
+    for f in results[0].files:
+      self.assertEqual(f.stat.pathspec.pathtype, rdf_paths.PathSpec.PathType.OS)
+      if f.stat.pathspec.path == os.path.join(self.files["bar"].path):
+        self.assertEqual(str(f.hash.sha1), self.files["bar"].sha1)
+      else:
+        self.assertEqual(f.stat.pathspec.path, self.files["baz"].path)
+        self.assertEqual(str(f.hash.sha1), self.files["baz"].sha1)
 
 
 def main(argv):

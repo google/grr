@@ -9,6 +9,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message OutputPluginDescriptor {
   optional string plugin_name = 1
       [(sem_type) = { description: "The name of the output plugin." }];

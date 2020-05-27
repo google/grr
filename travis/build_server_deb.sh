@@ -37,8 +37,19 @@ function export_build_vars() {
   export SERVER_SDIST="$(ls local_pypi | grep -e 'grr-response-server-.*\.zip')"
 }
 
+function download_fleetspeak() {
+  rm -rf fs fleetspeak-server-bin
+  mkdir fs
+  cd fs
+  pip download fleetspeak-server-bin
+  unzip fleetspeak_server_bin*.whl
+  cd ..
+  mv fs/fleetspeak_server_bin-*.data/data/fleetspeak-server-bin .
+}
+
 create_changelog
 export_build_vars
+download_fleetspeak
 rm -f ../grr-server_*.tar.gz
 rm -rf gcs_upload_dir
 dpkg-buildpackage -us -uc

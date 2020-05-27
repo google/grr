@@ -5,6 +5,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 //
 // Entities.
 //

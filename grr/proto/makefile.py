@@ -45,7 +45,11 @@ def MakeProto():
 
   # Find all the .proto files.
   protos_to_compile = []
-  for (root, _, files) in os.walk(cwd):
+  for (root, dirs, files) in os.walk(cwd):
+    # Make sure an accidental .eggs cache is ignored.
+    if ".eggs" in dirs:
+      dirs.remove(".eggs")
+
     for filename in files:
       full_filename = os.path.join(root, filename)
       if full_filename.endswith(".proto"):

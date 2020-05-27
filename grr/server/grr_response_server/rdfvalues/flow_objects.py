@@ -112,6 +112,11 @@ class FlowResult(rdf_structs.RDFProtoStruct):
         payload=self.payload)
 
 
+class FlowError(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowError
+  rdf_deps = [rdfvalue.RDFDatetime]
+
+
 class FlowLogEntry(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FlowLogEntry
   rdf_deps = [

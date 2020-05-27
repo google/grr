@@ -8,10 +8,10 @@ from __future__ import unicode_literals
 from absl import app
 import mock
 
-from grr_response_core.lib import communicator
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import fleetspeak_utils

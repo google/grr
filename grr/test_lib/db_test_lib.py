@@ -11,6 +11,7 @@ import mock
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
+from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_mixin
 from grr_response_server.databases import mem
@@ -63,5 +64,31 @@ def WithDatabase(func):
     db = abstract_db.DatabaseValidationWrapper(mem.InMemoryDB())
     with mock.patch.object(data_store, "REL_DB", db):
       func(*(args + (db,)), **kwargs)
+
+  return Wrapper
+
+
+def WithDatabaseBlobstore(func):
+  """A decorator for blobstore-dependent test methods.
+
+  This decorator is intended for tests that need to access blobstore in their
+  code. It wil also augment the test function signature so that the blobstore
+  object is provided and can be manipulated.
+
+  The created test blobstore will use currently active relational database as a
+  backend.
+
+  Args:
+    func: A test method to be decorated.
+
+  Returns:
+    A blobstore-aware function.
+  """
+
+  @functools.wraps(func)
+  def Wrapper(*args, **kwargs):
+    blobstore = db_blob_store.DbBlobStore()
+    with mock.patch.object(data_store, "BLOBS", blobstore):
+      func(*(args + (blobstore,)), **kwargs)
 
   return Wrapper

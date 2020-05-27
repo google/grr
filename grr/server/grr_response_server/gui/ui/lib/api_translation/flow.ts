@@ -1,6 +1,6 @@
-import {ApiFlow, ApiFlowDescriptor} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState} from '@app/lib/api/api_interfaces';
 import {createDate, createUnknownObject} from '@app/lib/api_translation/primitive';
-import {Flow, FlowDescriptor} from '@app/lib/models/flow';
+import {Flow, FlowDescriptor, FlowResult, FlowState} from '@app/lib/models/flow';
 
 /** Constructs a FlowDescriptor from the corresponding API data structure */
 export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
@@ -23,6 +23,14 @@ export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
   return result;
 }
 
+function translateApiFlowState(state: ApiFlowState): FlowState {
+  if (state === ApiFlowState.RUNNING) {
+    return FlowState.RUNNING;
+  } else {
+    return FlowState.FINISHED;
+  }
+}
+
 /** Constructs a Flow from the corresponding API data structure. */
 export function translateFlow(apiFlow: ApiFlow): Flow {
   if (!apiFlow.flowId) throw new Error('flowId attribute is missing.');
@@ -32,6 +40,7 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
   }
   if (!apiFlow.startedAt) throw new Error('startedAt attribute is missing.');
   if (!apiFlow.name) throw new Error('name attribute is missing.');
+  if (!apiFlow.state) throw new Error('state attribute missing');
 
   return {
     flowId: apiFlow.flowId,
@@ -42,5 +51,20 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
     creator: apiFlow.creator || 'unknown',
     args: createUnknownObject(apiFlow.args),
     progress: createUnknownObject(apiFlow.progress),
+    state: translateApiFlowState(apiFlow.state),
+  };
+}
+
+/** Construct a FlowResult model object, corresponding to ApiFlowResult.  */
+export function translateFlowResult(apiFlowResult: ApiFlowResult): FlowResult {
+  if (!apiFlowResult.payload) throw new Error('payload attribute is missing.');
+  if (!apiFlowResult.timestamp) {
+    throw new Error('timestamp attribute is missing.');
+  }
+
+  return {
+    payload: createUnknownObject(apiFlowResult.payload),
+    tag: apiFlowResult.tag ?? '',
+    timestamp: createDate(apiFlowResult.timestamp),
   };
 }

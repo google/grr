@@ -4,9 +4,11 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {DefaultDetails} from '@app/components/flow_details/plugins/default_details';
 import {MultiGetFileDetails} from '@app/components/flow_details/plugins/multi_get_file_details';
+import {Plugin} from '@app/components/flow_details/plugins/plugin';
 import {FlowDescriptor, FlowListEntry, flowListEntryFromFlow} from '@app/lib/models/flow';
 import {newFlowListEntry} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
+
 import {FlowDetailsModule} from './module';
 
 import {FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
@@ -21,12 +23,19 @@ initTestEnvironment();
 // hook:
 // https://stackoverflow.com/questions/37408801/testing-ngonchanges-lifecycle-hook-in-angular-2
 @Component({
-  template:
-      '<flow-details [flowListEntry]="flowListEntry" [flowDescriptor]="flowDescriptor"></flow-details>'
+  template: `
+<flow-details
+    [flowListEntry]="flowListEntry"
+    [flowDescriptor]="flowDescriptor"
+
+    (flowResultsQuery)="flowResultsQueryTriggered($event)">
+</flow-details>`
 })
 class TestHostComponent {
   flowListEntry: FlowListEntry|undefined;
   flowDescriptor: FlowDescriptor|undefined;
+
+  flowResultsQueryTriggered = jasmine.createSpy('flowResultsQueryTriggered');
 }
 
 describe('FlowDetails Component', () => {
@@ -58,9 +67,9 @@ describe('FlowDetails Component', () => {
   }
 
   const SAMPLE_FLOW_LIST_ENTRY = Object.freeze(newFlowListEntry({
-    flowId: '',
-    lastActiveAt: new Date('2019-09-23T01:00:00+0000'),
-    startedAt: new Date('2019-08-23T01:00:00+0000'),
+    flowId: '42',
+    lastActiveAt: new Date('2019-09-23T12:00:00+0000'),
+    startedAt: new Date('2019-08-23T12:00:00+0000'),
     name: 'SampleFlow',
     creator: 'testuser',
   }));
@@ -77,7 +86,7 @@ describe('FlowDetails Component', () => {
 
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('SampleFlow');
-    expect(text).toContain('Aug 22, 2019');
+    expect(text).toContain('Aug 23, 2019');
     expect(text).toContain('testuser');
   });
 
@@ -118,6 +127,28 @@ describe('FlowDetails Component', () => {
     expect(fixture.debugElement.query(By.directive(DefaultDetails))).toBeNull();
     expect(fixture.debugElement.query(By.directive(MultiGetFileDetails)))
         .not.toBeNull();
+  });
+
+  it('propagates flowResultsQuery event from the plugin', () => {
+    const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
+    const plugin = fixture.debugElement.query(By.directive(DefaultDetails))
+                       .componentInstance as Plugin;
+
+    plugin.queryFlowResults({
+      offset: 0,
+      count: 100,
+      withType: 'someType',
+      withTag: 'someTag',
+    });
+
+    expect(fixture.componentInstance.flowResultsQueryTriggered)
+        .toHaveBeenCalledWith({
+          flowId: SAMPLE_FLOW_LIST_ENTRY.flow.flowId,
+          withType: 'someType',
+          withTag: 'someTag',
+          offset: 0,
+          count: 100,
+        });
   });
 
   afterEach(() => {

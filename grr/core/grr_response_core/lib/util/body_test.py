@@ -5,14 +5,14 @@ import io
 
 from absl.testing import absltest
 
-from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import body
+from grr_response_proto import timeline_pb2
 
 
 class StreamTest(absltest.TestCase):
 
   def testSingle(self):
-    entry = rdf_timeline.TimelineEntry()
+    entry = timeline_pb2.TimelineEntry()
     entry.path = "/foo/bar/baz".encode("utf-8")
     entry.mode = 0o100644
     entry.size = 42
@@ -33,7 +33,7 @@ class StreamTest(absltest.TestCase):
     entries = []
 
     for idx in range(100):
-      entry = rdf_timeline.TimelineEntry()
+      entry = timeline_pb2.TimelineEntry()
       entry.path = "/foo/bar/baz{}".format(idx).encode("utf-8")
       entry.size = idx
 
@@ -52,7 +52,7 @@ class StreamTest(absltest.TestCase):
   def testChunks(self):
     entries = []
     for idx in range(1024):
-      entry = rdf_timeline.TimelineEntry()
+      entry = timeline_pb2.TimelineEntry()
       entry.path = "/foo/bar{}".format(idx).encode("utf-8")
 
       entries.append(entry)
@@ -70,7 +70,7 @@ class StreamTest(absltest.TestCase):
       self.assertEqual(row[1].encode("utf-8"), entries[idx].path)
 
   def testUnicode(self):
-    entry = rdf_timeline.TimelineEntry()
+    entry = timeline_pb2.TimelineEntry()
     entry.path = "/zażółć/gęślą/jaźń/💪".encode("utf-8")
 
     content = b"".join(body.Stream(iter([entry]))).decode("utf-8")
@@ -80,8 +80,24 @@ class StreamTest(absltest.TestCase):
     self.assertLen(rows, 1)
     self.assertEqual(rows[0][1].encode("utf-8"), entry.path)
 
-  # TODO(hanuszczak): Add tests for paths with `|` after making sure what is the
-  # proper way of handling this in the body format.
+  def testHandlesDelimiterQuotesAndLineTerminatorsInPath(self):
+
+    def _Test(c):
+      entry = timeline_pb2.TimelineEntry()
+      entry.path = f"/foo{c}bar".encode("utf-8")
+
+      content = b"".join(body.Stream(iter([entry]))).decode("utf-8")
+      reader = csv.reader(io.StringIO(content), delimiter="|")
+
+      rows = list(reader)
+      self.assertLen(rows, 1)
+      self.assertEqual(rows[0][1].encode("utf-8"), entry.path)
+
+    _Test("|")
+    _Test("\"")
+    _Test("\n")
+    _Test("\r")
+    _Test("|\"\n\r")
 
 
 if __name__ == "__main__":

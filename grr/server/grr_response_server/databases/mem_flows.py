@@ -695,26 +695,30 @@ class InMemoryDBFlowMixin(object):
       time.sleep(0.2)
 
   @utils.Synchronized
-  def WriteFlowResults(self, results):
-    """Writes flow results for a given flow."""
-    for r in results:
-      dest = self.flow_results.setdefault((r.client_id, r.flow_id), [])
-      to_write = r.Copy()
+  def _WriteFlowResultsOrErrors(self, container, items):
+    for i in items:
+      dest = container.setdefault((i.client_id, i.flow_id), [])
+      to_write = i.Copy()
       to_write.timestamp = rdfvalue.RDFDatetime.Now()
       dest.append(to_write)
 
+  def WriteFlowResults(self, results):
+    """Writes flow results for a given flow."""
+    self._WriteFlowResultsOrErrors(self.flow_results, results)
+
   @utils.Synchronized
-  def ReadFlowResults(self,
-                      client_id,
-                      flow_id,
-                      offset,
-                      count,
-                      with_tag=None,
-                      with_type=None,
-                      with_substring=None):
-    """Reads flow results of a given flow using given query options."""
+  def _ReadFlowResultsOrErrors(self,
+                               container,
+                               client_id,
+                               flow_id,
+                               offset,
+                               count,
+                               with_tag=None,
+                               with_type=None,
+                               with_substring=None):
+    """Reads flow results/errors of a given flow using given query options."""
     results = sorted(
-        [x.Copy() for x in self.flow_results.get((client_id, flow_id), [])],
+        [x.Copy() for x in container.get((client_id, flow_id), [])],
         key=lambda r: r.timestamp)
 
     # This is done in order to pass the tests that try to deserialize
@@ -743,6 +747,25 @@ class InMemoryDBFlowMixin(object):
 
     return results[offset:offset + count]
 
+  def ReadFlowResults(self,
+                      client_id,
+                      flow_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    """Reads flow results of a given flow using given query options."""
+    return self._ReadFlowResultsOrErrors(
+        self.flow_results,
+        client_id,
+        flow_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type,
+        with_substring=with_substring)
+
   @utils.Synchronized
   def CountFlowResults(self, client_id, flow_id, with_tag=None, with_type=None):
     """Counts flow results of a given flow using given query options."""
@@ -760,6 +783,57 @@ class InMemoryDBFlowMixin(object):
     """Returns counts of flow results grouped by result type."""
     result = collections.Counter()
     for hr in self.ReadFlowResults(client_id, flow_id, 0, sys.maxsize):
+      key = compatibility.GetName(hr.payload.__class__)
+      result[key] += 1
+
+    return result
+
+  def WriteFlowErrors(self, errors):
+    """Writes flow errors for a given flow."""
+    # Errors are similar to results, as they represent a somewhat related
+    # concept. Error is a kind of a negative result. Given the structural
+    # similarity, we can share large chunks of implementation between
+    # errors and results DB code.
+    self._WriteFlowResultsOrErrors(self.flow_errors, errors)
+
+  def ReadFlowErrors(self,
+                     client_id,
+                     flow_id,
+                     offset,
+                     count,
+                     with_tag=None,
+                     with_type=None):
+    """Reads flow errors of a given flow using given query options."""
+    # Errors are similar to results, as they represent a somewhat related
+    # concept. Error is a kind of a negative result. Given the structural
+    # similarity, we can share large chunks of implementation between
+    # errors and results DB code.
+    return self._ReadFlowResultsOrErrors(
+        self.flow_errors,
+        client_id,
+        flow_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type)
+
+  @utils.Synchronized
+  def CountFlowErrors(self, client_id, flow_id, with_tag=None, with_type=None):
+    """Counts flow errors of a given flow using given query options."""
+    return len(
+        self.ReadFlowErrors(
+            client_id,
+            flow_id,
+            0,
+            sys.maxsize,
+            with_tag=with_tag,
+            with_type=with_type))
+
+  @utils.Synchronized
+  def CountFlowErrorsByType(self, client_id, flow_id):
+    """Returns counts of flow errors grouped by error type."""
+    result = collections.Counter()
+    for hr in self.ReadFlowErrors(client_id, flow_id, 0, sys.maxsize):
       key = compatibility.GetName(hr.payload.__class__)
       result[key] += 1
 

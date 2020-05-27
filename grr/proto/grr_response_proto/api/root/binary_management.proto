@@ -5,6 +5,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message ApiUploadGrrBinaryArgs {
   optional ApiGrrBinary.Type type = 1 [(sem_type) = {
     description: "Binary type. Together with path it identifies the binary."

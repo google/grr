@@ -428,8 +428,6 @@ def main(args):
           raise RuntimeError("ClientBuilder.install_dir must be set.")
         if not grr_config.CONFIG.Get("ClientBuilder.fleetspeak_plist_path"):
           raise RuntimeError("ClientBuilder.fleetspeak_plist_path must be set.")
-      grr_config.CONFIG.Set("ClientBuilder.client_path",
-                            "grr_response_client.grr_fs_client")
     TemplateBuilder().BuildTemplate(context=context, output=args.output)
   elif args.subparser_name == "repack":
     if args.debug_build:

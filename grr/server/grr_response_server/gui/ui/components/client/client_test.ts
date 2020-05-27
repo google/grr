@@ -4,9 +4,9 @@ import {ActivatedRoute} from '@angular/router';
 import {Subject} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
-import {ClientFacade} from '../../store/client_facade';
-import {FlowFacade} from '../../store/flow_facade';
-import {FlowFacadeMock, mockFlowFacade} from '../../store/flow_facade_test_util';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ConfigFacade} from '../../store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 import {GrrStoreModule} from '../../store/store_module';
 import {initTestEnvironment} from '../../testing';
 
@@ -19,12 +19,12 @@ initTestEnvironment();
 
 describe('Client Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
-  let facade: ClientFacade;
-  let flowFacade: FlowFacadeMock;
+  let facade: ClientPageFacade;
+  let configFacade: ConfigFacadeMock;
 
   beforeEach(async(() => {
     paramsSubject = new Subject();
-    flowFacade = mockFlowFacade();
+    configFacade = mockConfigFacade();
 
     TestBed
         .configureTestingModule({
@@ -40,13 +40,13 @@ describe('Client Component', () => {
                 paramMap: paramsSubject,
               },
             },
-            {provide: FlowFacade, useValue: flowFacade},
+            {provide: ConfigFacade, useFactory: () => configFacade},
           ],
 
         })
         .compileComponents();
 
-    facade = TestBed.inject(ClientFacade);
+    facade = TestBed.inject(ClientPageFacade);
   }));
 
   it('loads client information on route change', () => {

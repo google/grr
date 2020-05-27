@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import logging
 import sys
-from typing import Text
+from typing import ContextManager, Iterable, Optional, Text, Type
 
 import mock
 
@@ -550,3 +550,35 @@ def GetFlowState(client_id, flow_id):
 def GetFlowObj(client_id, flow_id):
   rdf_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
   return rdf_flow
+
+
+def GetFlowProgress(client_id, flow_id):
+  flow_obj = GetFlowObj(client_id, flow_id)
+  flow_cls = registry.FlowRegistry.FlowClassByName(flow_obj.flow_class_name)
+  return flow_cls(flow_obj).GetProgress()
+
+
+def AddResultsToFlow(client_id: str,
+                     flow_id: str,
+                     payloads: Iterable[rdf_structs.RDFProtoStruct],
+                     tag: Optional[str] = None) -> None:
+  """Adds results with given payloads to a given flow."""
+  data_store.REL_DB.WriteFlowResults([
+      rdf_flow_objects.FlowResult(
+          client_id=client_id, flow_id=flow_id, tag=tag, payload=payload)
+      for payload in payloads
+  ])
+
+
+def FlowProgressOverride(
+    flow_cls: Type[flow_base.FlowBase],
+    value: rdf_structs.RDFProtoStruct) -> ContextManager[None]:
+  """Returns a context manager overriding flow class's progress reporting."""
+  return mock.patch.object(flow_cls, "GetProgress", return_value=value)
+
+
+def MarkFlowAsFinished(client_id: str, flow_id: str) -> None:
+  """Marks the given flow as finished without executing it."""
+  flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  flow_obj.flow_state = flow_obj.FlowState.FINISHED
+  data_store.REL_DB.WriteFlowObject(flow_obj)

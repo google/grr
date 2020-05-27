@@ -12,8 +12,11 @@ from __future__ import unicode_literals
 from absl import app
 from absl import flags
 
+from grr_response_core import config
 from grr_response_core.config import server as config_server
 
+from grr_response_server import server_startup
+from grr_response_server.bin import fleetspeak_frontend
 from grr_response_server.bin import frontend
 from grr_response_server.bin import worker
 from grr_response_server.gui import admin_ui
@@ -48,7 +51,11 @@ def main(argv):
 
   # Start as a frontend that clients communicate with.
   elif flags.FLAGS.component.startswith("frontend"):
-    frontend.main([argv])
+    server_startup.Init()
+    if config.CONFIG["Server.fleetspeak_enabled"]:
+      fleetspeak_frontend.main([argv])
+    else:
+      frontend.main([argv])
 
   # Start as an AdminUI.
   elif flags.FLAGS.component.startswith("admin_ui"):

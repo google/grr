@@ -1253,6 +1253,53 @@
       "url": "/api/hunts/H:123456"
     }
   ],
+  "ApiExplainGlobExpressionHandler": [
+    {
+      "api_method": "ExplainGlobExpression",
+      "method": "POST",
+      "request_payload": {
+        "glob_expression": "/foo/*"
+      },
+      "response": {
+        "components": [
+          {
+            "type": "GlobComponentExplanation",
+            "value": {
+              "examples": [],
+              "glob_expression": {
+                "type": "unicode",
+                "value": "/foo/"
+              }
+            }
+          },
+          {
+            "type": "GlobComponentExplanation",
+            "value": {
+              "examples": [],
+              "glob_expression": {
+                "type": "unicode",
+                "value": "*"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiExplainGlobExpressionHandlerTest_http_v1",
+      "type_stripped_response": {
+        "components": [
+          {
+            "examples": [],
+            "glob_expression": "/foo/"
+          },
+          {
+            "examples": [],
+            "glob_expression": "*"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/glob-expressions:explain"
+    }
+  ],
   "ApiForceRunCronJobHandler": [
     {
       "api_method": "ForceRunCronJob",

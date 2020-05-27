@@ -32,6 +32,8 @@ syntax = "proto2";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message PwEntry {
   enum PwStore {
     UNKNOWN = 0;

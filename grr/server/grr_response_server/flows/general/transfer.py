@@ -6,8 +6,8 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import stat
+from typing import Any, Optional
 import zlib
-
 
 from grr_response_core.lib import constants
 from grr_response_core.lib import rdfvalue
@@ -28,6 +28,7 @@ from grr_response_server import message_handlers
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -80,7 +81,7 @@ class GetFile(flow_base.FlowBase):
 
     # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
     # This conditional should be removed after that date.
-    if self.client_version >= 3221:
+    if not self.client_version or self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(
           pathspec=self.args.pathspec, follow_symlink=True)
@@ -330,7 +331,7 @@ class MultiGetFileLogic(object):
 
     # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
     # This conditional should be removed after that date.
-    if self.client_version >= 3221:
+    if not self.client_version or self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
       request.follow_symlink = True
@@ -406,7 +407,8 @@ class MultiGetFileLogic(object):
         found in the filestore.
     """
 
-  def _FileFetchFailed(self, index):
+  def _FileFetchFailed(self, index: int,
+                       status: Optional[rdf_flow_objects.FlowStatus]):
     """Remove pathspec for this index and call the FileFetchFailed method."""
 
     pathspec, request_data = self._RemoveCompletedPathspec(index)
@@ -417,15 +419,19 @@ class MultiGetFileLogic(object):
     self.state.files_failed += 1
 
     # Report the request_data for this flow's caller.
-    self.FileFetchFailed(pathspec, request_data=request_data)
+    self.FileFetchFailed(pathspec, request_data=request_data, status=status)
 
-  def FileFetchFailed(self, pathspec, request_data=None):
+  def FileFetchFailed(self,
+                      pathspec: rdf_paths.PathSpec,
+                      request_data: Any = None,
+                      status: Optional[rdf_flow_objects.FlowStatus] = None):
     """This method will be called when stat or hash requests fail.
 
     Args:
       pathspec: Pathspec of a file that failed to be fetched.
       request_data: Arbitrary dictionary that was passed to the corresponding
         StartFileFetch call.
+      status: FlowStatus that contains more error details.
     """
 
   def _StoreStat(self, responses):
@@ -434,7 +440,7 @@ class MultiGetFileLogic(object):
     if not responses.success:
       self.Log("Failed to stat file: %s", responses.status)
       # Report failure.
-      self._FileFetchFailed(index)
+      self._FileFetchFailed(index, status=responses.status)
       return
 
     tracker = self.state.pending_hashes[index]
@@ -447,7 +453,7 @@ class MultiGetFileLogic(object):
       self.Log("Failed to hash file: %s", responses.status)
       self.state.pending_hashes.pop(index, None)
       # Report the error.
-      self._FileFetchFailed(index)
+      self._FileFetchFailed(index, status=responses.status)
       return
 
     self.state.files_hashed += 1
@@ -478,7 +484,7 @@ class MultiGetFileLogic(object):
       tracker = self.state.pending_hashes[index]
     except KeyError:
       # Hashing the file failed, but we did stat it.
-      self._FileFetchFailed(index)
+      self._FileFetchFailed(index, status=responses.status)
       return
 
     tracker["hash_obj"] = hash_obj
@@ -616,7 +622,7 @@ class MultiGetFileLogic(object):
     if not responses.success or not hash_response:
       urn = file_tracker["stat_entry"].pathspec.AFF4Path(self.client_urn)
       self.Log("Failed to read %s: %s", urn, responses.status)
-      self._FileFetchFailed(index)
+      self._FileFetchFailed(index, status=responses.status)
       return
 
     file_tracker.setdefault("hash_list", []).append(hash_response)
@@ -678,7 +684,7 @@ class MultiGetFileLogic(object):
 
     # Failed to read the file - ignore it.
     if not responses.success:
-      self._FileFetchFailed(index)
+      self._FileFetchFailed(index, status=responses.status)
       return
 
     response = responses.First()
@@ -827,7 +833,7 @@ class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
 
     self.SendReply(stat_entry)
 
-  def FileFetchFailed(self, pathspec, request_data=None):
+  def FileFetchFailed(self, pathspec, request_data=None, status=None):
     """This method will be called when stat or hash requests fail."""
     self.state.pathspecs_progress[
         request_data].status = PathSpecProgress.Status.FAILED

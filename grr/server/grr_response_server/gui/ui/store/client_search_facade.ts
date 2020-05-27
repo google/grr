@@ -13,7 +13,9 @@ import * as selectors from './client_search/client_search_selectors';
  * implementation (i.e. switch to websocket-based push-notifications instead of
  * HTTP GET polling) without updating the code using it.
  */
-@Injectable()
+@Injectable({
+  providedIn: 'root',
+})
 export class ClientSearchFacade {
   /**
    * An observable emitting the list of fetched Clients on every search.

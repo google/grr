@@ -17,7 +17,7 @@ class Responses(Iterable[T]):
   """An object encapsulating all the responses to a request."""
 
   def __init__(self):
-    self.status = None
+    self.status = None  # type: Optional[rdf_flow_objects.FlowStatus]
     self.success = True
     self.request = None
     self.responses = []

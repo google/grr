@@ -227,81 +227,86 @@ class MockArtifactCollectorFlow(collectors.ArtifactCollectorFlow):
                   path=f"/home/foo/{artifact_name}")))
 
 
-class BrowserHistoryFlowTest(flow_test_lib.FlowTestsBaseclass):
+class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super().setUp()
     self.client_id = self.SetupClient(0)
 
-  def _RunBrowserHistoryFlow(self, **kwargs):
-    flow_args = webhistory.BrowserHistoryFlowArgs(**kwargs)
+  def _RunCollectBrowserHistory(self, **kwargs):
+    flow_args = webhistory.CollectBrowserHistoryArgs(**kwargs)
     flow_id = flow_test_lib.StartAndRunFlow(
-        webhistory.BrowserHistoryFlow,
+        webhistory.CollectBrowserHistory,
         creator=self.token.username,
         client_mock=action_mocks.ActionMock(),
         client_id=self.client_id,
         flow_args=flow_args)
 
-    return flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    return flow_id, results, progress
+
+  def _CheckProgressNotSetExceptForOne(self, progress, browser):
+    self.assertLen(progress.browsers, 1)
+    self.assertEqual(progress.browsers[0].browser, browser)
+    self.assertEqual(progress.browsers[0].status,
+                     webhistory.BrowserProgress.Status.SUCCESS)
 
   def testCollectsChromeArtifacts(self):
     with mock.patch.object(collectors, "ArtifactCollectorFlow",
                            MockArtifactCollectorFlow):
-      results = self._RunBrowserHistoryFlow(collect_chrome=True)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].pathspec.path, "/home/foo/ChromeHistory")
+      flow_id, results, progress = self._RunCollectBrowserHistory(
+          browsers=[webhistory.Browser.CHROME])
 
-  def testCollectsFirefoxArtifacts(self):
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].browser, webhistory.Browser.CHROME)
+    self.assertEqual(["/home/foo/ChromeHistory"],
+                     [r.stat_entry.pathspec.path for r in results])
+    self.assertEqual(
+        list(flow_test_lib.GetFlowResultsByTag(self.client_id, flow_id).keys()),
+        ["CHROME"])
+
+    self.assertLen(progress.browsers, 1)
+    self.assertEqual(progress.browsers[0].browser, webhistory.Browser.CHROME)
+    self.assertEqual(progress.browsers[0].status,
+                     webhistory.BrowserProgress.Status.SUCCESS)
+    self.assertEqual(progress.browsers[0].num_collected_files, 1)
+
+  def testCollectsChromeInternetExplorerAndSafariArtifacts(self):
     with mock.patch.object(collectors, "ArtifactCollectorFlow",
                            MockArtifactCollectorFlow):
-      results = self._RunBrowserHistoryFlow(collect_firefox=True)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].pathspec.path, "/home/foo/FirefoxHistory")
+      flow_id, results, progress = self._RunCollectBrowserHistory(browsers=[
+          webhistory.Browser.CHROME, webhistory.Browser.INTERNET_EXPLORER,
+          webhistory.Browser.SAFARI
+      ])
 
-  def testCollectsInternetExplorerArtifacts(self):
-    with mock.patch.object(collectors, "ArtifactCollectorFlow",
-                           MockArtifactCollectorFlow):
-      results = self._RunBrowserHistoryFlow(collect_internet_explorer=True)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].pathspec.path,
-                     "/home/foo/InternetExplorerHistory")
+    # MockArtifactCollectorFlow will produce a single stat entry with a
+    # pathspec /home/foo/<artifact name> for each artifact scheduled for
+    # collection. Hence, by looking at results we can make sure that
+    # all artifacts were scheduled for collection.
+    pathspecs = [r.stat_entry.pathspec for r in results]
+    self.assertCountEqual(
+        ["ChromeHistory", "InternetExplorerHistory", "SafariHistory"],
+        [p.Basename() for p in pathspecs])
+    # Check that tags for all browsers are present in the results set.
+    self.assertCountEqual(
+        flow_test_lib.GetFlowResultsByTag(self.client_id, flow_id).keys(),
+        ["CHROME", "INTERNET_EXPLORER", "SAFARI"])
 
-  def testCollectsOperaArtifacts(self):
-    with mock.patch.object(collectors, "ArtifactCollectorFlow",
-                           MockArtifactCollectorFlow):
-      results = self._RunBrowserHistoryFlow(collect_opera=True)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].pathspec.path, "/home/foo/OperaHistory")
+    self.assertLen(progress.browsers, 3)
+    self.assertCountEqual([
+        webhistory.Browser.CHROME, webhistory.Browser.INTERNET_EXPLORER,
+        webhistory.Browser.SAFARI
+    ], [bp.browser for bp in progress.browsers])
+    for bp in progress.browsers:
+      self.assertEqual(bp.status, webhistory.BrowserProgress.Status.SUCCESS)
+      self.assertEqual(bp.num_collected_files, 1)
 
-  def testCollectsSafariArtifacts(self):
-    with mock.patch.object(collectors, "ArtifactCollectorFlow",
-                           MockArtifactCollectorFlow):
-      results = self._RunBrowserHistoryFlow(collect_safari=True)
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].pathspec.path, "/home/foo/SafariHistory")
-
-  def testCollectsMultipleArtifacts(self):
-    with mock.patch.object(collectors, "ArtifactCollectorFlow",
-                           MockArtifactCollectorFlow):
-      results = self._RunBrowserHistoryFlow(
-          collect_safari=True,
-          collect_firefox=True,
-          collect_opera=True,
-          collect_internet_explorer=True,
-          collect_chrome=True)
-
-    self.assertLen(results, 5)
-    paths = [r.pathspec.path for r in results]
-    self.assertCountEqual(paths, [
-        "/home/foo/SafariHistory", "/home/foo/FirefoxHistory",
-        "/home/foo/OperaHistory", "/home/foo/InternetExplorerHistory",
-        "/home/foo/ChromeHistory"
-    ])
-
-  def testFailsForAllArgumentsFalse(self):
-    with self.assertRaisesRegexp(
+  def testFailsForEmptyBrowsersList(self):
+    with self.assertRaisesRegex(
         RuntimeError, "Need to collect at least one type of history."):
-      self._RunBrowserHistoryFlow()
+      self._RunCollectBrowserHistory()
 
 
 def main(argv):

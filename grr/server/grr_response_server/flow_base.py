@@ -398,7 +398,7 @@ class FlowBase(metaclass=FlowRegistry):
 
     flow_cls = FlowRegistry.FlowClassByName(flow_name)
 
-    flow.StartFlow(
+    return flow.StartFlow(
         client_id=self.rdf_flow.client_id,
         flow_cls=flow_cls,
         parent_flow_obj=self,

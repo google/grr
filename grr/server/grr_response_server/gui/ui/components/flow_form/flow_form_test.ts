@@ -1,12 +1,14 @@
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowFormModule} from '@app/components/flow_form/module';
-import {Client} from '@app/lib/models/client';
-import {ClientFacade} from '@app/store/client_facade';
-import {FlowFacade} from '@app/store/flow_facade';
-import {FlowFacadeMock, mockFlowFacade} from '@app/store/flow_facade_test_util';
+import {CollectBrowserHistoryArgsBrowser} from '@app/lib/api/api_interfaces';
+import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ConfigFacade} from '@app/store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
+
+import {newClient, newFlowDescriptor} from '../../lib/models/model_test_util';
+import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 
 import {FlowForm} from './flow_form';
 
@@ -18,17 +20,12 @@ function getSubmit<T>(fixture: ComponentFixture<T>) {
 }
 
 describe('FlowForm Component', () => {
-  let selectedClient$: Subject<Client>;
-  let flowFacade: FlowFacadeMock;
-  let clientFacade: Partial<ClientFacade>;
+  let configFacade: ConfigFacadeMock;
+  let clientPageFacade: ClientPageFacadeMock;
 
   beforeEach(async(() => {
-    selectedClient$ = new Subject();
-    flowFacade = mockFlowFacade();
-    clientFacade = {
-      selectedClient$,
-      startFlow: jasmine.createSpy('startFlow'),
-    };
+    configFacade = mockConfigFacade();
+    clientPageFacade = mockClientPageFacade();
 
     TestBed
         .configureTestingModule({
@@ -38,8 +35,8 @@ describe('FlowForm Component', () => {
           ],
 
           providers: [
-            {provide: FlowFacade, useValue: flowFacade},
-            {provide: ClientFacade, useValue: clientFacade},
+            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
           ]
         })
         .compileComponents();
@@ -51,7 +48,7 @@ describe('FlowForm Component', () => {
 
     expect(getSubmit(fixture)).toBeNull();
 
-    flowFacade.selectedFlowSubject.next();
+    clientPageFacade.selectedFlowDescriptorSubject.next();
     expect(getSubmit(fixture)).toBeNull();
   });
 
@@ -59,18 +56,7 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    flowFacade.selectedFlowSubject.next({
-      name: 'BrowserHistoryFlow',
-      friendlyName: 'Browser History',
-      category: 'Browser',
-      defaultArgs: {
-        collectChrome: true,
-        collectFirefox: true,
-        collectInternetExplorer: true,
-        collectOpera: true,
-        collectSafari: true,
-      }
-    });
+    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor());
     fixture.detectChanges();
 
     expect(getSubmit(fixture)).toBeTruthy();
@@ -80,34 +66,34 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    selectedClient$.next({
-      clientId: 'C.1234',
-      fleetspeakEnabled: true,
-      knowledgeBase: {},
-      labels: []
-    });
-    flowFacade.selectedFlowSubject.next({
-      name: 'BrowserHistoryFlow',
-      friendlyName: 'Browser History',
-      category: 'Browser',
+    clientPageFacade.selectedClientSubject.next(newClient());
+    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor({
+      name: 'CollectBrowserHistory',
       defaultArgs: {
-        collectChrome: true,
-        collectFirefox: true,
-        collectInternetExplorer: true,
-        collectOpera: true,
-        collectSafari: true,
+        browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
       }
-    });
+    }));
     fixture.detectChanges();
 
     getSubmit(fixture).click();
-    expect(clientFacade.startFlow)
-        .toHaveBeenCalledWith('C.1234', 'BrowserHistoryFlow', {
-          collectChrome: true,
-          collectFirefox: true,
-          collectInternetExplorer: true,
-          collectOpera: true,
-          collectSafari: true,
-        });
+    expect(clientPageFacade.startFlow).toHaveBeenCalledWith({
+      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+    });
+  });
+
+  it('shows errors when flow submit fails', () => {
+    const fixture = TestBed.createComponent(FlowForm);
+    fixture.detectChanges();
+
+    clientPageFacade.selectedClientSubject.next(newClient());
+    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor());
+    fixture.detectChanges();
+
+    clientPageFacade.startFlowStateSubject.next(
+        {state: 'error', error: 'foobazzle rapidly disintegrated'});
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.innerText)
+        .toContain('foobazzle rapidly disintegrated');
   });
 });

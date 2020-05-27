@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ComponentFactoryResolver, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {DEFAULT_FORM, FORMS} from '@app/components/flow_args_form/sub_forms';
-import {Observable, Subject} from 'rxjs';
+import {Observable, ReplaySubject, Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {FlowDescriptor} from '../../lib/models/flow';
@@ -16,9 +16,12 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
 
   @Input() flowDescriptor?: FlowDescriptor;
 
-  private readonly flowArgValuesSubject = new Subject<unknown>();
+  private readonly flowArgValuesSubject = new ReplaySubject<unknown>(1);
   @Output()
   readonly flowArgValues$: Observable<unknown> = this.flowArgValuesSubject;
+
+  private readonly validSubject = new ReplaySubject<boolean>(1);
+  @Output() readonly valid$: Observable<boolean> = this.validSubject;
 
   @ViewChild('formContainer', {read: ViewContainerRef, static: true})
   formContainer!: ViewContainerRef;
@@ -56,6 +59,10 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
     component.instance.formValues$.pipe(takeUntil(this.unsubscribe$))
         .subscribe(values => {
           this.flowArgValuesSubject.next(values);
+        });
+    component.instance.status$.pipe(takeUntil(this.unsubscribe$))
+        .subscribe(status => {
+          this.validSubject.next(status === 'VALID');
         });
   }
 

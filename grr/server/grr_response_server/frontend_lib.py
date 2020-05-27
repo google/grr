@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import logging
 import time
 
-from grr_response_core.lib import communicator
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -19,6 +18,7 @@ from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
 from grr_response_server import access_control
+from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import message_handlers

@@ -1249,9 +1249,10 @@ class MySQLDBFlowMixin(object):
       self.flow_processing_request_handler_thread = None
 
   @mysql_utils.WithTransaction()
-  def WriteFlowResults(self, results, cursor=None):
-    """Writes flow results for a given flow."""
-    query = ("INSERT INTO flow_results "
+  def _WriteFlowResultsOrErrors(self, table_name, results, cursor=None):
+    """Writes flow results/errors for a given flow."""
+
+    query = (f"INSERT INTO {table_name} "
              "(client_id, flow_id, hunt_id, timestamp, payload, type, tag) "
              "VALUES ")
     templates = []
@@ -1279,21 +1280,27 @@ class MySQLDBFlowMixin(object):
       raise db.AtLeastOneUnknownFlowError(
           [(r.client_id, r.flow_id) for r in results], cause=e)
 
+  def WriteFlowResults(self, results):
+    """Writes flow results for a given flow."""
+    self._WriteFlowResultsOrErrors("flow_results", results)
+
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadFlowResults(self,
-                      client_id,
-                      flow_id,
-                      offset,
-                      count,
-                      with_tag=None,
-                      with_type=None,
-                      with_substring=None,
-                      cursor=None):
-    """Reads flow results of a given flow using given query options."""
+  def _ReadFlowResultsOrErrors(self,
+                               table_name,
+                               result_cls,
+                               client_id,
+                               flow_id,
+                               offset,
+                               count,
+                               with_tag=None,
+                               with_type=None,
+                               with_substring=None,
+                               cursor=None):
+    """Reads flow results/errors of a given flow using given query options."""
 
     query = ("SELECT payload, type, UNIX_TIMESTAMP(timestamp), tag "
-             "FROM flow_results "
-             "FORCE INDEX (flow_results_by_client_id_flow_id_timestamp) "
+             f"FROM {table_name} "
+             f"FORCE INDEX ({table_name}_by_client_id_flow_id_timestamp) "
              "WHERE client_id = %s AND flow_id = %s ")
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
 
@@ -1325,7 +1332,7 @@ class MySQLDBFlowMixin(object):
             type_name=payload_type, value=serialized_payload)
 
       timestamp = mysql_utils.TimestampToRDFDatetime(ts)
-      result = rdf_flow_objects.FlowResult(payload=payload, timestamp=timestamp)
+      result = result_cls(payload=payload, timestamp=timestamp)
       if tag:
         result.tag = tag
 
@@ -1333,17 +1340,38 @@ class MySQLDBFlowMixin(object):
 
     return ret
 
+  def ReadFlowResults(self,
+                      client_id,
+                      flow_id,
+                      offset,
+                      count,
+                      with_tag=None,
+                      with_type=None,
+                      with_substring=None):
+    """Reads flow results of a given flow using given query options."""
+    return self._ReadFlowResultsOrErrors(
+        "flow_results",
+        rdf_flow_objects.FlowResult,
+        client_id,
+        flow_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type,
+        with_substring=with_substring)
+
   @mysql_utils.WithTransaction(readonly=True)
-  def CountFlowResults(self,
-                       client_id,
-                       flow_id,
-                       with_tag=None,
-                       with_type=None,
-                       cursor=None):
-    """Counts flow results of a given flow using given query options."""
+  def _CountFlowResultsOrErrors(self,
+                                table_name,
+                                client_id,
+                                flow_id,
+                                with_tag=None,
+                                with_type=None,
+                                cursor=None):
+    """Counts flow results/errors of a given flow using given query options."""
     query = ("SELECT COUNT(*) "
-             "FROM flow_results "
-             "FORCE INDEX (flow_results_by_client_id_flow_id_timestamp) "
+             f"FROM {table_name} "
+             f"FORCE INDEX ({table_name}_by_client_id_flow_id_timestamp) "
              "WHERE client_id = %s AND flow_id = %s ")
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
 
@@ -1358,11 +1386,24 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
+  def CountFlowResults(self, client_id, flow_id, with_tag=None, with_type=None):
+    """Counts flow results of a given flow using given query options."""
+    return self._CountFlowResultsOrErrors(
+        "flow_results",
+        client_id,
+        flow_id,
+        with_tag=with_tag,
+        with_type=with_type)
+
   @mysql_utils.WithTransaction(readonly=True)
-  def CountFlowResultsByType(self, client_id, flow_id, cursor=None):
-    """Returns counts of flow results grouped by result type."""
-    query = ("SELECT type, COUNT(*) FROM flow_results "
-             "FORCE INDEX (flow_results_by_client_id_flow_id_timestamp) "
+  def _CountFlowResultsOrErrorsByType(self,
+                                      table_name,
+                                      client_id,
+                                      flow_id,
+                                      cursor=None):
+    """Returns counts of flow results/errors grouped by result type."""
+    query = (f"SELECT type, COUNT(*) FROM {table_name} "
+             f"FORCE INDEX ({table_name}_by_client_id_flow_id_timestamp) "
              "WHERE client_id = %s AND flow_id = %s "
              "GROUP BY type")
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
@@ -1370,6 +1411,63 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query, args)
 
     return dict(cursor.fetchall())
+
+  def CountFlowResultsByType(self, client_id, flow_id):
+    """Returns counts of flow results grouped by result type."""
+    return self._CountFlowResultsOrErrorsByType("flow_results", client_id,
+                                                flow_id)
+
+  def WriteFlowErrors(self, errors):
+    """Writes flow errors for a given flow."""
+    # Errors are similar to results, as they represent a somewhat related
+    # concept. Error is a kind of a negative result. Given the structural
+    # similarity, we can share large chunks of implementation between
+    # errors and results DB code.
+    self._WriteFlowResultsOrErrors("flow_errors", errors)
+
+  def ReadFlowErrors(self,
+                     client_id,
+                     flow_id,
+                     offset,
+                     count,
+                     with_tag=None,
+                     with_type=None):
+    """Reads flow errors of a given flow using given query options."""
+    # Errors are similar to results, as they represent a somewhat related
+    # concept. Error is a kind of a negative result. Given the structural
+    # similarity, we can share large chunks of implementation between
+    # errors and results DB code.
+    return self._ReadFlowResultsOrErrors(
+        "flow_errors",
+        rdf_flow_objects.FlowError,
+        client_id,
+        flow_id,
+        offset,
+        count,
+        with_tag=with_tag,
+        with_type=with_type)
+
+  def CountFlowErrors(self, client_id, flow_id, with_tag=None, with_type=None):
+    """Counts flow errors of a given flow using given query options."""
+    # Errors are similar to results, as they represent a somewhat related
+    # concept. Error is a kind of a negative result. Given the structural
+    # similarity, we can share large chunks of implementation between
+    # errors and results DB code.
+    return self._CountFlowResultsOrErrors(
+        "flow_errors",
+        client_id,
+        flow_id,
+        with_tag=with_tag,
+        with_type=with_type)
+
+  def CountFlowErrorsByType(self, client_id, flow_id):
+    """Returns counts of flow errors grouped by error type."""
+    # Errors are similar to results, as they represent a somewhat related
+    # concept. Error is a kind of a negative result. Given the structural
+    # similarity, we can share large chunks of implementation between
+    # errors and results DB code.
+    return self._CountFlowResultsOrErrorsByType("flow_errors", client_id,
+                                                flow_id)
 
   @mysql_utils.WithTransaction()
   def WriteFlowLogEntries(self, entries, cursor=None):

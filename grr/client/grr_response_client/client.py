@@ -18,6 +18,7 @@ from grr_response_client import client_plugins
 # pylint: enable=unused-import
 from grr_response_client import client_startup
 from grr_response_client import comms
+from grr_response_client import fleetspeak_client
 from grr_response_client import installer
 from grr_response_core import config
 from grr_response_core.config import contexts
@@ -74,6 +75,10 @@ def main(unused_args):
   if flags.FLAGS.install:
     installer.RunInstaller()
     sys.exit(0)
+
+  if config.CONFIG["Client.fleetspeak_enabled"]:
+    fleetspeak_client.GRRFleetspeakClient().Run()
+    return
 
   errors = config.CONFIG.Validate(["Client", "CA", "Logging"])
 

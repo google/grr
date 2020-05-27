@@ -1,6 +1,8 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {Plugin as FlowDetailsPlugin} from '@app/components/flow_details/plugins/plugin';
-import {Flow, FlowDescriptor, FlowListEntry} from '@app/lib/models/flow';
+import {Flow, FlowDescriptor, FlowListEntry, FlowResultsQuery} from '@app/lib/models/flow';
+import {Subject} from 'rxjs';
+import {takeUntil} from 'rxjs/operators';
 
 import {FLOW_DETAILS_DEFAULT_PLUGIN, FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
 
@@ -23,7 +25,12 @@ export enum FlowMenuAction {
   styleUrls: ['./flow_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FlowDetails implements OnChanges {
+export class FlowDetails implements OnChanges, OnDestroy {
+  private readonly detailsComponentUnsubscribe$ = new Subject<void>();
+
+  private detailsComponent: ComponentRef<FlowDetailsPlugin>|undefined;
+
+
   flowMenuAction = FlowMenuAction;
 
   /**
@@ -42,14 +49,18 @@ export class FlowDetails implements OnChanges {
   @Output() expansionToggle = new EventEmitter<void>();
 
   /**
+   * Event that is triggered when additional flow results data is needed to
+   * be flow plugin.
+   */
+  @Output() flowResultsQuery = new EventEmitter<FlowResultsQuery>();
+
+  /**
    * Event that is triggered when a flow context menu action is selected.
    */
   @Output() menuActionTriggered = new EventEmitter<FlowMenuAction>();
 
   @ViewChild('detailsContainer', {read: ViewContainerRef, static: true})
   detailsContainer!: ViewContainerRef;
-
-  private detailsComponent: ComponentRef<FlowDetailsPlugin>|undefined;
 
   constructor(
       private readonly componentFactoryResolver: ComponentFactoryResolver,
@@ -65,10 +76,27 @@ export class FlowDetails implements OnChanges {
         FLOW_DETAILS_DEFAULT_PLUGIN;
     // Only recreate the component if the component class has changed.
     if (componentClass !== this.detailsComponent?.instance.constructor) {
+      this.detailsComponentUnsubscribe$.next();
+
       const factory =
           this.componentFactoryResolver.resolveComponentFactory(componentClass);
       this.detailsContainer.clear();
       this.detailsComponent = this.detailsContainer.createComponent(factory);
+
+      // Propagate the flowResultsQuery event upwards.
+      this.detailsComponent.instance.flowResultsQuery
+          .pipe(
+              takeUntil(this.detailsComponentUnsubscribe$),
+              )
+          .subscribe(e => {
+            const flowId =
+                this.detailsComponent?.instance.flowListEntry.flow.flowId;
+            if (!flowId) {
+              throw new Error(
+                  'Logic error: can\'t determine flow id for a query.');
+            }
+            this.flowResultsQuery.emit({flowId, ...e});
+          });
     }
 
     if (!this.detailsComponent) {
@@ -110,5 +138,10 @@ export class FlowDetails implements OnChanges {
 
   triggerMenuEvent(action: FlowMenuAction) {
     this.menuActionTriggered.emit(action);
+  }
+
+  ngOnDestroy() {
+    this.detailsComponentUnsubscribe$.next();
+    this.detailsComponentUnsubscribe$.complete();
   }
 }

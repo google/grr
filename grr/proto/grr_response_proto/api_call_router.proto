@@ -5,6 +5,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message ApiAuthorization {
   optional string router = 1 [(sem_type) = {
     description: "api_call_router.ApiCallRouter class name that this "

@@ -12,6 +12,7 @@ from typing import Iterable, Optional, Type
 
 
 from grr_response_core import config
+from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
@@ -22,6 +23,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
+from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
 from grr_response_server import flow
@@ -30,6 +32,7 @@ from grr_response_server import instant_output_plugin
 from grr_response_server import notification
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
+from grr_response_server.flows.general import collectors
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
@@ -324,6 +327,8 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
     self.payload_type = compatibility.GetName(p.__class__)
     self.payload = p
     self.timestamp = result.timestamp
+    if result.tag:
+      self.tag = result.tag
 
     return self
 
@@ -446,13 +451,111 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         str(args.flow_id),
         args.offset,
         args.count or db.MAX_COUNT,
-        with_substring=args.filter or None)
+        with_substring=args.filter or None,
+        with_tag=args.with_tag or None)
     total_count = data_store.REL_DB.CountFlowResults(
         str(args.client_id), str(args.flow_id))
     wrapped_items = [ApiFlowResult().InitFromFlowResult(r) for r in results]
 
     return ApiListFlowResultsResult(
         items=wrapped_items, total_count=total_count)
+
+
+class ApiListParsedFlowResultsArgs(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for the arguments of the method for parsing flow results."""
+
+  protobuf = flow_pb2.ApiListParsedFlowResultsArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
+
+
+class ApiListParsedFlowResultsResult(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for the results of the method for parsing flow results."""
+
+  protobuf = flow_pb2.ApiListParsedFlowResultsResult
+  rdf_deps = [
+      ApiFlowResult,
+  ]
+
+
+class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
+  """An API handler for the method for on-demand parsing of flow results."""
+
+  args_type = ApiListParsedFlowResultsArgs
+  result_type = ApiListParsedFlowResultsResult
+
+  _FLOW_RESULTS_BATCH_SIZE = 5000
+  _TAG_ARTIFACT_NAME = re.compile(r"artifact:(?P<name>\w+)")
+
+  def Handle(
+      self,
+      args: ApiListParsedFlowResultsArgs,
+      token: access_control.ACLToken,
+  ) -> ApiListParsedFlowResultsResult:
+    client_id = str(args.client_id)
+    flow_id = str(args.flow_id)
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    if flow_obj.flow_class_name != collectors.ArtifactCollectorFlow.__name__:
+      message = "Not an artifact-collector flow: {}"
+      raise ValueError(message.format(flow_obj.flow_class_name))
+
+    if flow_obj.args.apply_parsers:
+      message = "Flow already parsed its results"
+      raise ValueError(message)
+
+    flow_results = data_store.REL_DB.ReadFlowResults(
+        client_id=client_id,
+        flow_id=flow_id,
+        offset=args.offset,
+        count=args.count)
+
+    # We determine results collection timestamp as the maximum of timestamps of
+    # individual flow results. We cannot use just the flow timestamp for this,
+    # because flows can be modified, affecting the timestamp. We also don't want
+    # to use flow start time, because it can be to "early" to do parsing.
+    if flow_results:
+      flow_results_timestamp = max([_.timestamp for _ in flow_results])
+    else:
+      flow_results_timestamp = None
+
+    flow_results_by_artifact = {}
+
+    for flow_result in flow_results:
+      artifact_name_match = self._TAG_ARTIFACT_NAME.match(flow_result.tag)
+      if artifact_name_match is None:
+        continue
+
+      artifact_name = artifact_name_match["name"]
+      artifact_results = flow_results_by_artifact.setdefault(artifact_name, [])
+      artifact_results.append(flow_result)
+
+    knowledge_base = flow_obj.persistent_data["knowledge_base"]
+
+    result = ApiListParsedFlowResultsResult()
+
+    for artifact_name, flow_results in flow_results_by_artifact.items():
+      factory = parsers.ArtifactParserFactory(artifact_name)
+
+      applicator = artifact.ParserApplicator(
+          factory,
+          client_id=client_id,
+          knowledge_base=knowledge_base,
+          timestamp=flow_results_timestamp)
+      applicator.Apply([flow_result.payload for flow_result in flow_results])
+
+      for response in applicator.Responses():
+        item = ApiFlowResult()
+        item.payload_type = response.__class__.__name__
+        item.payload = response
+        item.tag = f"artifact:{artifact_name}"
+        result.items.Append(item)
+
+      result.errors.Extend(map(str, applicator.Errors()))
+
+    return result
 
 
 class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):
@@ -1100,3 +1203,35 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name, content_generator=content_generator)
+
+
+class ApiExplainGlobExpressionArgs(rdf_structs.RDFProtoStruct):
+  """Args for ApiExplainGlobExpressionHandler."""
+  protobuf = flow_pb2.ApiExplainGlobExpressionArgs
+  rdf_deps = [
+      client.ApiClientId,
+  ]
+
+
+class ApiExplainGlobExpressionResult(rdf_structs.RDFProtoStruct):
+  """Results of ApiExplainGlobExpressionHandler."""
+  protobuf = flow_pb2.ApiExplainGlobExpressionResult
+  rdf_deps = [
+      rdf_paths.GlobComponentExplanation,
+  ]
+
+
+class ApiExplainGlobExpressionHandler(api_call_handler_base.ApiCallHandler):
+  """Gives examples for the components of a GlobExpression."""
+
+  args_type = ApiExplainGlobExpressionArgs
+  result_type = ApiExplainGlobExpressionResult
+
+  def Handle(self, args, token=None):
+    ge = rdf_paths.GlobExpression(args.glob_expression)
+    ge.Validate()
+
+    kb = data_store_utils.GetClientKnowledgeBase(str(args.client_id))
+    components = ge.ExplainComponents(args.example_count, kb)
+
+    return ApiExplainGlobExpressionResult(components=components)

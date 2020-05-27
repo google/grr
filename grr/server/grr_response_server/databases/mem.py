@@ -97,6 +97,8 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.flow_processing_requests = {}
     # Maps (client_id, flow_id) to [FlowResult].
     self.flow_results = {}
+    # Maps (client_id, flow_id) to [FlowError].
+    self.flow_errors = {}
     # Maps (client_id, flow_id) to [FlowLogEntry].
     self.flow_log_entries = {}
     self.flow_output_plugin_log_entries = {}

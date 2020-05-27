@@ -8,6 +8,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 message ClientActionRunnerArgs {
   optional string action = 1 [(sem_type) = {
     description: "Action to run.",

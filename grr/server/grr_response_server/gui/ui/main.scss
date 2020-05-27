@@ -1,5 +1,11 @@
 @import "material-theme";
 
+// Initialize Angular material theme.
+// Include non-theme styles for core.
+@include mat-core($custom-typography);
+// Include all theme-styles for the components based on the current theme.
+@include angular-material-theme($theme);
+
 app,
 body,
 html {
@@ -7,4 +13,16 @@ html {
   height: 100%;
   margin: 0;
   width: 100%;
+}
+
+.flow-details-summary-actions {
+  position: absolute;
+  left: 0;
+  right: 48px;
+  top: 3.5em;
+}
+
+.monospace,
+.mat-input-element.monospace {
+  font-family: 'Roboto Mono', monospace;
 }

@@ -279,6 +279,9 @@ config_lib.DEFINE_string(
     "The Fleetspeak server message listen address, formatted like "
     "localhost:6061.")
 
+config_lib.DEFINE_bool("Server.fleetspeak_enabled", False,
+                       "Whether to enable fleetspeak on the server side.")
+
 config_lib.DEFINE_string(
     "Server.fleetspeak_server", "",
     "The Fleetspeak server address, formatted like localhost:6062.")

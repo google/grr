@@ -1,10 +1,7 @@
-/**
- * @fileoverview NgRx actions for the client store.
- */
-
+import {Dictionary} from '@ngrx/entity';
 import {createAction, props} from '@ngrx/store';
-import {ApprovalConfig, ApprovalRequest, Client, ClientApproval} from '@app/lib/models/client';
-import {Flow} from '@app/lib/models/flow';
+import {ApprovalRequest, Client, ClientApproval} from '@app/lib/models/client';
+import {Flow, FlowListEntry, FlowResultSet, FlowResultsQuery} from '@app/lib/models/flow';
 
 /** Triggers fetching a client and marking it as selected. */
 export const select = createAction(
@@ -34,15 +31,6 @@ export const requestApproval = createAction(
 export const requestApprovalComplete = createAction(
     '[Client API] RequestApproval Complete',
     props<{approval: ClientApproval}>());
-
-/** Triggers loading static configuration values for the approval. */
-export const fetchApprovalConfig = createAction('[Client] FetchApprovalConfig');
-
-/** Dispatched when an approval configuration has been loaded. */
-export const fetchApprovalConfigComplete = createAction(
-    '[Client API] FetchApprovalConfig Complete',
-    props<{approvalConfig: ApprovalConfig}>(),
-);
 
 /** Triggers the fetching of a client by its ID. */
 export const listApprovals = createAction(
@@ -74,13 +62,19 @@ export const listFlowsComplete = createAction(
 /** Triggers starting of a Flow on a Client. */
 export const startFlow = createAction(
     '[Client] Start Flow',
-    props<{clientId: string, flowName: string, flowArgs: unknown}>(),
+    props<{flowArgs: unknown}>(),
 );
 
 /** Dispatched when a Flow has been started per user request. */
 export const startFlowComplete = createAction(
     '[Client API] Start Flow Complete',
     props<{flow: Flow}>(),
+);
+
+/** Dispatched when a Flow has been started per user request. */
+export const startFlowFailed = createAction(
+    '[Client API] Start Flow Failed',
+    props<{error: string}>(),
 );
 
 /** Dispatched when a flow expansion setting should be toggled. */
@@ -99,4 +93,49 @@ export const cancelFlow = createAction(
 export const cancelFlowComplete = createAction(
     '[Client API] Cancel Flow Complete',
     props<{flow: Flow}>(),
+);
+
+/** Dispatched to update flows on a given client. */
+export const updateFlows = createAction(
+    '[Client] Update Flows',
+    props<{clientId: string}>(),
+);
+
+/** Dispatched when updated flows are fetched. */
+export const updateFlowsComplete = createAction(
+    '[Client API] Update Flows Complete',
+    props<{flows: Flow[]}>(),
+);
+
+/** Dispatched when a Flow has been selected. */
+export const startFlowConfiguration = createAction(
+    '[Flow Form] Start Flow Configuration',
+    props<{name: string, initialArgs?: unknown}>(),
+);
+
+/** Dispatched when the Flow selection is removed. */
+export const stopFlowConfiguration =
+    createAction('[Flow Form] Stop Flow Configuration');
+
+/** Dispatched to update flow results. */
+export const listFlowResults = createAction(
+    '[Client] List Flow Results',
+    props<{query: FlowResultsQuery}>(),
+);
+
+/** Dispatched when an list flow results response is received from the API. */
+export const listFlowResultsComplete = createAction(
+    '[Client API] List Flow Results Complete',
+    props<{resultSet: FlowResultSet}>());
+
+/** Dispatched to update results of multiple flows. */
+export const updateFlowsResults = createAction(
+    '[Client] Update Flows Results',
+    props<{clientId: string, flowListEntries: Dictionary<FlowListEntry>}>(),
+);
+
+/** Dispatched when results of multiple flows update is received. */
+export const updateFlowsResultsComplete = createAction(
+    '[Client API] Update Flows Results Complete',
+    props<{results: ReadonlyArray<FlowResultSet>}>(),
 );

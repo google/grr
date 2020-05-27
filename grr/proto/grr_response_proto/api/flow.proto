@@ -9,6 +9,8 @@ import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 //
 // Entities.
 //
@@ -119,6 +121,9 @@ message ApiFlowResult {
     description: "Timestamp indicating when result was written to the data "
                  "store."
   }];
+  optional string tag = 4 [(sem_type) = {
+    description: "Custom tag providing additional context about the result."
+  }];
 }
 
 message ApiFlowLog {
@@ -187,6 +192,9 @@ message ApiListFlowResultsArgs {
     description: "Return only results whose string representation "
                  "contains given substring."
   }];
+  optional string with_tag = 6 [(sem_type) = {
+    description: "Return only results that have a matching tag."
+  }];
 }
 
 message ApiListFlowResultsResult {
@@ -194,6 +202,42 @@ message ApiListFlowResultsResult {
       [(sem_type) = { description: "The flow results." }];
   optional int64 total_count = 2
       [(sem_type) = { description: "Total count of items." }];
+}
+
+// Arguments for the API method that parses results of the artifact collection
+// flow on the fly.
+message ApiListParsedFlowResultsArgs {
+  // An identifier of the client of the flow to parse the responses for.
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
+
+  // An identifier of the flow to parse the responses for.
+  optional string flow_id = 2 [(sem_type) = { type: "ApiFlowId" }];
+
+  // An offset of the flow results to parse.
+  optional uint64 offset = 3;
+
+  // Number of flow results to parse.
+  //
+  // Note that the number of parsed responses can be different as a single flow
+  // result can be parsed into zero or more items.
+  optional uint64 count = 4;
+}
+
+// Results of the API method that parses results of the artifact collection flow
+// on the fly.
+message ApiListParsedFlowResultsResult {
+  // A collection of parsed flow results.
+  //
+  // Note that a single original flow response can result in multiple parsed
+  // flow responses.
+  repeated ApiFlowResult items = 1;
+
+  // A collection of parse errors.
+  //
+  // Note that having some values here does not necessarily mean that no items
+  // are returned: parsing one response can lead to an error, but parsing other
+  // one can succeed.
+  repeated string errors = 2;
 }
 
 message ApiListFlowLogsArgs {
@@ -339,4 +383,14 @@ message ApiGetExportedFlowResultsArgs {
       [(sem_type) = { type: "ApiFlowId", description: "Flow id." }];
   optional string plugin_name = 3
       [(sem_type) = { description: "Instant output plugin name." }];
+}
+
+message ApiExplainGlobExpressionArgs {
+  optional string glob_expression = 1;
+  optional uint32 example_count = 2;
+  optional string client_id = 3 [(sem_type) = { type: "ApiClientId" }];
+}
+
+message ApiExplainGlobExpressionResult {
+  repeated GlobComponentExplanation components = 1;
 }

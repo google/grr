@@ -9,6 +9,8 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
 
+package grr;
+
 // Represent a timestamp specification.
 message TimestampSpec {
   enum Type {

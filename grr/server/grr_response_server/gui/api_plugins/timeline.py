@@ -71,7 +71,7 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
       client_id: Text,
       flow_id: Text,
   ) -> api_call_handler_base.ApiBinaryStream:
-    entries = timeline.Entries(client_id=client_id, flow_id=flow_id)
+    entries = timeline.ProtoEntries(client_id=client_id, flow_id=flow_id)
     content = body.Stream(entries)
 
     filename = "timeline_{}.body".format(flow_id)

@@ -396,7 +396,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
 
         # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
         # This conditional should be removed after that date.
-        if self.client_version >= 3221:
+        if not self.client_version or self.client_version >= 3221:
           stub = server_stubs.GetFileStat
           request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
         else:
@@ -861,7 +861,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
       result.downloaded_file = stat_entry
       self.SendReply(result)
 
-  def FileFetchFailed(self, pathspec, request_data=None):
+  def FileFetchFailed(self, pathspec, request_data=None, status=None):
     """See MultiGetFileLogic."""
     if not request_data:
       raise RuntimeError("Expected non-empty request_data")

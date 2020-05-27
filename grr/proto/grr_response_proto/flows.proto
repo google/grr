@@ -11,6 +11,8 @@ import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
 
 
+package grr;
+
 message CloudMetadataRequest {
   optional string bios_version_regex = 1;
   optional string service_name_regex = 2;
@@ -1059,12 +1061,54 @@ message ChromeHistoryArgs {
   }];
 }
 
-message BrowserHistoryFlowArgs {
-  optional bool collect_chrome = 1;
-  optional bool collect_firefox = 2;
-  optional bool collect_internet_explorer = 3;
-  optional bool collect_opera = 4;
-  optional bool collect_safari = 5;
+enum Browser {
+  UNDEFINED = 0;
+  CHROME = 1;
+  FIREFOX = 2;
+  INTERNET_EXPLORER = 3;
+  OPERA = 4;
+  SAFARI = 5;
+}
+
+// Next field ID: 7
+message CollectBrowserHistoryArgs {
+  repeated Browser browsers = 6;
+}
+
+message CollectBrowserHistoryResult {
+  optional Browser browser = 1;
+  optional StatEntry stat_entry = 2;
+}
+
+// Next id: 6
+message BrowserProgress {
+  optional Browser browser = 5;
+  enum Status {
+    UNDEFINED = 0;
+    IN_PROGRESS = 1;
+    SUCCESS = 2;
+    ERROR = 3;
+  }
+  optional Status status = 1;
+  optional string description = 2 [(sem_type) = {
+    description: "A description complementing the browser's status. "
+                 "Only expected to be set on error."
+  }];
+  optional uint32 num_collected_files = 3 [(sem_type) = {
+    description: "Number of files collected for this browser. "
+                 "Only expected to be set on success."
+  }];
+  optional string flow_id = 4 [(sem_type) = {
+    description: "Flow id of the flow responsible for collecting files for "
+                 "this particular browser. Each browser's history is "
+                 "collected by a separate flow, hence flow_id will be "
+                 "unique for every browser."
+  }];
+}
+
+// Next id: 7
+message CollectBrowserHistoryProgress {
+  repeated BrowserProgress browsers = 6;
 }
 
 // The following messages are for SUID flows which are designed to control
@@ -1896,6 +1940,11 @@ message FileFinderResult {
   }];
 }
 
+message CollectedFile {
+  optional StatEntry stat = 1;
+  optional Hash hash = 2;
+}
+
 message CollectSingleFileArgs {
   optional string path = 1;
   optional uint64 max_size_bytes = 2 [(sem_type) = { type: "ByteSize" }];
@@ -1904,6 +1953,17 @@ message CollectSingleFileArgs {
 message CollectSingleFileResult {
   optional StatEntry stat = 1;
   optional Hash hash = 2;
+}
+
+message CollectMultipleFilesArgs {
+  repeated string path_expressions = 1 [(sem_type) = {
+    type: "GlobExpression",
+    description: "Files matching any of these expressions will be collected",
+  }];
+}
+
+message CollectMultipleFilesResult {
+  repeated CollectedFile files = 1;
 }
 
 // Next field ID: 4
@@ -2525,6 +2585,17 @@ message FlowResult {
   optional google.protobuf.Any payload = 3;
 }
 
+message FlowError {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional string hunt_id = 3;
+  optional uint64 timestamp = 4 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  optional string tag = 5;
+  optional google.protobuf.Any payload = 6;
+}
+
 // Next id: 6
 message FlowLogEntry {
   optional string client_id = 3;
@@ -2685,3 +2756,8 @@ message FlowOutputPluginLogEntry {
 }
 
 message EmptyFlowArgs {}
+
+message GlobComponentExplanation {
+  optional string glob_expression = 1;
+  repeated string examples = 2;
+}

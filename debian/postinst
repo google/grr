@@ -14,6 +14,8 @@ set -e
 
 case "$1" in
     configure)
+      adduser --system fleetspeak
+      groupadd --system -f fleetspeak
       if [ "$DEBIAN_FRONTEND" != noninteractive ]; then
 
         echo "#################################################################"

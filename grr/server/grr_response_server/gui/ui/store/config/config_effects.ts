@@ -1,7 +1,3 @@
-/**
- * @fileoverview NgRx effects for the flow store.
- */
-
 import {Injectable} from '@angular/core';
 import {Actions, Effect, ofType} from '@ngrx/effects';
 import {Action} from '@ngrx/store';
@@ -10,11 +6,11 @@ import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable} from 'rxjs';
 import {map, switchMap} from 'rxjs/operators';
 
-import * as actions from './flow_actions';
+import * as actions from './config_actions';
 
-/** Effects for the flow store. */
+/** Effects for the Config store. */
 @Injectable({providedIn: 'root'})
-export class FlowEffects {
+export class ConfigEffects {
   constructor(
       private readonly actions$: Actions,
       private readonly httpApiService: HttpApiService,
@@ -27,5 +23,13 @@ export class FlowEffects {
       map(flowDescriptors => flowDescriptors.map(translateFlowDescriptor)),
       map(flowDescriptors =>
               actions.listFlowDescriptorsComplete({flowDescriptors})),
+  );
+
+  @Effect()
+  fetchApprovalConfig$: Observable<Action> = this.actions$.pipe(
+      ofType(actions.fetchApprovalConfig),
+      switchMap(() => this.httpApiService.fetchApprovalConfig()),
+      map(approvalConfig =>
+              actions.fetchApprovalConfigComplete({approvalConfig})),
   );
 }

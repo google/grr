@@ -21,6 +21,7 @@ from grr_response_server.gui.api_plugins import config as api_config
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -671,6 +672,17 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_yara.ApiUploadYaraSignatureHandler:
     raise NotImplementedError()
 
+  @Category("Flows")
+  @ArgsType(api_flow.ApiExplainGlobExpressionArgs)
+  @ResultType(api_flow.ApiExplainGlobExpressionResult)
+  @Http("POST", "/api/clients/<client_id>/glob-expressions:explain")
+  def ExplainGlobExpression(
+      self,
+      args: api_flow.ApiExplainGlobExpressionArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiExplainGlobExpressionHandler:
+    raise NotImplementedError()
+
   # Cron jobs methods.
   # =================
   #
@@ -1296,6 +1308,18 @@ class ApiCallRouterStub(ApiCallRouter):
   def ListApiMethods(self, args, token=None):
     """List all available API methods."""
 
+    raise NotImplementedError()
+
+  @Category("Metadata")
+  @ResultType(api_metadata.ApiGetGrrVersionResult)
+  @Http("GET", "/api/metadata/version")
+  @NoAuditLogRequired()
+  def GetGrrVersion(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_metadata.ApiGetGrrVersionHandler:
+    """Returns version of the GRR server."""
     raise NotImplementedError()
 
 

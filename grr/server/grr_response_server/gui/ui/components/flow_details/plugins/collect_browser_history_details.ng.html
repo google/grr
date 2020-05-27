@@ -1,0 +1,60 @@
+<div *ngIf="(hasProgress$ | async) === false">
+  The flow didn't report its progress. It's either a legacy flow or it
+  did run before progress reporting was introduced as a feature.
+</div>
+
+<div *ngIf="hasProgress$ | async">
+  <div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED && (totalFiles$ | async) > 0">
+    Total {{ totalFiles$ | async | i18nPlural: {'=1': '1 file', 'other': '# files'} }}
+    <button mat-flat-button color="primary">Download all</button>
+  </div>
+
+  <div class="row-list" *ngIf="(flowListEntry$ | async).isExpanded">
+    <!-- Note: without trackBy, ngFor would recreate DOM for each row every time
+         the flow list is updated. Given periodical updates, this would not
+         only be a waste of CPU, but would also lead to visible artifacts:
+         a progress spinner will be restarting every time the flow list update
+         is done. -->
+    <div class="row" *ngFor="let row of browserRows$ | async; trackBy: trackByRowName">
+      <div class="header" (click)="rowClicked(row)">
+        <div class="title">
+          <span *ngIf="row.progress.numCollectedFiles > 0 " class="material-icons arrow-icon">
+            {{ expandedRows[row.name] ? 'arrow_drop_down' : 'arrow_right' }}
+          </span>
+          <span>{{ row.friendlyName }}</span>
+        </div>
+
+        <div class="error" *ngIf="row.progress.status === 'ERROR'">
+          {{ row.progress.description }}
+          <span class="material-icons">error</span>
+        </div>
+
+        <div class="in-progress" *ngIf="row.progress.status === 'IN_PROGRESS'">
+          <mat-progress-spinner mode="indeterminate" diameter="20" strokeWidth="1"></mat-progress-spinner>
+        </div>
+
+        <div class="success" *ngIf="row.progress.status === 'SUCCESS' && row.progress.numCollectedFiles > 0">
+          {{ row.progress.numCollectedFiles | i18nPlural: {'=1': '1 file', 'other': '# files'} }} collected
+          <span class="material-icons">check_circle</span>
+        </div>
+
+        <div class="warning" *ngIf="row.progress.status === 'SUCCESS' && row.progress.numCollectedFiles === 0">
+            No files collected
+            <span class="material-icons">warning</span>
+        </div>
+      </div>
+
+      <div class="results" *ngIf="row.progress.numCollectedFiles > 0 && expandedRows[row.name]">
+        <file-results-table
+          *ngIf="row.results"
+          [results]="row.results"
+          [totalCount]="row.progress.numCollectedFiles"
+          (loadMore)="loadMore(row)">
+        </file-results-table>
+        <div *ngIf="row.fetchInProgress" class="results-in-progress">
+          <mat-progress-bar mode="buffer"></mat-progress-bar>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

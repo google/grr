@@ -1,16 +1,34 @@
-import {HttpClient, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
+import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-import {Observable} from 'rxjs';
-import {map, shareReplay, switchMap, take} from 'rxjs/operators';
+import {from, Observable, throwError} from 'rxjs';
+import {catchError, map, mergeMap, shareReplay, switchMap, take} from 'rxjs/operators';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
 
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiFlow, ApiFlowDescriptor, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowsResult, ApiSearchClientArgs, ApiSearchClientResult} from './api_interfaces';
 
+/**
+ * Parameters of the listResultsForFlow call.
+ */
+export interface FlowResultsParams {
+  readonly flowId: string;
+  readonly offset: number;
+  readonly count: number;
+  readonly withType?: string;
+  readonly withTag?: string;
+}
+
+/**
+ * Flow results array attributed to a particular flow id and request params.
+ */
+export interface FlowResultsWithSourceParams {
+  readonly params: FlowResultsParams;
+  readonly results: ReadonlyArray<ApiFlowResult>;
+}
 
 /**
  * Common prefix for all API calls.
  */
-const URL_PREFIX = '/api/v2';
+export const URL_PREFIX = '/api/v2';
 
 /** Interceptor that enables the sending of cookies for all HTTP requests. */
 @Injectable()
@@ -31,7 +49,7 @@ export class HttpApiService {
   /**
    * Searches for clients using given API arguments.
    */
-  searchClients(args: ApiSearchClientArgs): Observable<ApiSearchClientResult> {
+  searchClients(args: ApiSearchClientsArgs): Observable<ApiSearchClientResult> {
     const params = new HttpParams().set('query', args.query || '');
     if (args.offset) {
       params.set('offset', args.offset.toString());
@@ -106,16 +124,58 @@ export class HttpApiService {
     const minStartedAt = (Date.now() - 1000 * 60 * 60 * 24 * 180) * 1000;
     const params = new HttpParams({
       fromObject: {
-        count: '100',
-        offset: '0',
-        min_started_at: minStartedAt.toString(),
-        top_flows_only: '1',
+        'count': '100',
+        'offset': '0',
+        'min_started_at': minStartedAt.toString(),
+        'top_flows_only': '1',
       }
     });
+
     return this.http
         .get<ApiListFlowsResult>(
             `${URL_PREFIX}/clients/${clientId}/flows`, {params})
         .pipe(map(res => res.items));
+  }
+
+  /** Lists results of the given flow. */
+  listResultsForFlow(clientId: string, params: FlowResultsParams):
+      Observable<ReadonlyArray<ApiFlowResult>> {
+    const options: {[key: string]: string} = {};
+    if (params.withTag) {
+      options['with_tag'] = params.withTag;
+    }
+    if (params.withType) {
+      options['with_type'] = params.withType;
+    }
+
+    const httpParams = new HttpParams({
+      fromObject: {
+        'offset': params.offset.toString(),
+        'count': params.count.toString(),
+        ...options,
+      }
+    });
+
+    return this.http
+        .get<ApiListFlowResultsResult>(
+            `${URL_PREFIX}/clients/${clientId}/flows/${params.flowId}/results`,
+            {params: httpParams})
+        .pipe(map(res => res.items ?? []));
+  }
+
+  /** Lists results for multiple flows and results params. */
+  batchListResultsForFlow(
+      clientId: string, paramsList: ReadonlyArray<FlowResultsParams>):
+      Observable<FlowResultsWithSourceParams> {
+    return from(paramsList)
+        .pipe(
+            mergeMap((params) => {
+              return this.listResultsForFlow(clientId, params)
+                  .pipe(
+                      map((results) => ({results, params})),
+                  );
+            }),
+        );
   }
 
   /** Starts a Flow on the given Client. */
@@ -137,8 +197,13 @@ export class HttpApiService {
               }
             })),
         switchMap((request: ApiCreateFlowArgs) => {
-          return this.http.post<ApiFlow>(
-              `${URL_PREFIX}/clients/${clientId}/flows`, request);
+          return this.http
+              .post<ApiFlow>(`${URL_PREFIX}/clients/${clientId}/flows`, request)
+              .pipe(
+                  catchError(
+                      (e: HttpErrorResponse) =>
+                          throwError(new Error(e.error.message ?? e.message))),
+              );
         }),
     );
   }
@@ -153,6 +218,17 @@ export class HttpApiService {
   /** Fetches the current user. */
   fetchCurrentUser(): Observable<ApiGrrUser> {
     return this.http.get<ApiGrrUser>(`${URL_PREFIX}/users/me`);
+  }
+
+  /** Explains a GlobExpression. */
+  explainGlobExpression(
+      clientId: string, globExpression: string,
+      {exampleCount}: {exampleCount: number}):
+      Observable<ReadonlyArray<GlobComponentExplanation>> {
+    const url = `${URL_PREFIX}/clients/${clientId}/glob-expressions:explain`;
+    const args: ApiExplainGlobExpressionArgs = {globExpression, exampleCount};
+    return this.http.post<ApiExplainGlobExpressionResult>(url, args).pipe(
+        map(result => result.components ?? []));
   }
 }
 

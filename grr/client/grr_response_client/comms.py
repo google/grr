@@ -92,9 +92,9 @@ from grr_response_client import actions
 from grr_response_client import client_actions
 from grr_response_client import client_stats
 from grr_response_client import client_utils
+from grr_response_client import communicator
 from grr_response_client.client_actions import admin
 from grr_response_core import config
-from grr_response_core.lib import communicator
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
@@ -1402,5 +1402,5 @@ class ClientCommunicator(communicator.Communicator):
     if common_name == self.server_name:
       return self.server_public_key
 
-    raise communicator.UnknownClientCertError(
+    raise communicator.UnknownServerCertError(
         "Client wants to talk to %s, not %s" % (common_name, self.server_name))

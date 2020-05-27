@@ -3,8 +3,14 @@
 # Uncomment this to turn on verbose mode.
 # export DH_VERBOSE=1
 
+ifeq "%(ClientBuilder.fleetspeak_bundled)" "True"
+  WITH_SYSTEMD = --with systemd
+else
+  WITH_SYSTEMD =
+endif
+
 %:
-	dh $@
+	dh $@ ${WITH_SYSTEMD}
 
 override_dh_clean:
 	# Nothing to do here, directory is already wiped and set up.

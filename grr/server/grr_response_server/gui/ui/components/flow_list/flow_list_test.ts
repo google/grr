@@ -1,13 +1,14 @@
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowListModule} from '@app/components/flow_list/module';
+import {Client} from '@app/lib/models/client';
 import {FlowListEntry} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
-import {ClientFacade} from '@app/store/client_facade';
-import {FlowFacade} from '@app/store/flow_facade';
-import {FlowFacadeMock, mockFlowFacade} from '@app/store/flow_facade_test_util';
+import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ConfigFacade} from '@app/store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
+import {ReplaySubject, Subject} from 'rxjs';
 import {FlowList} from './flow_list';
 
 
@@ -17,13 +18,19 @@ initTestEnvironment();
 
 describe('FlowList Component', () => {
   let flowListEntries$: Subject<ReadonlyArray<FlowListEntry>>;
-  let flowFacade: FlowFacadeMock;
-  let clientFacade: Partial<ClientFacade>;
+  let selectedClient$: ReplaySubject<Client>;
+  let configFacade: ConfigFacadeMock;
+  let clientPageFacade: Partial<ClientPageFacade>;
 
   beforeEach(async(() => {
     flowListEntries$ = new Subject();
-    flowFacade = mockFlowFacade();
-    clientFacade = {flowListEntries$};
+    selectedClient$ = new ReplaySubject(1);
+    configFacade = mockConfigFacade();
+    clientPageFacade = {
+      flowListEntries$,
+      selectedClient$,
+      updateFlows: jasmine.createSpy('updateFlows'),
+    };
 
     TestBed
         .configureTestingModule({
@@ -33,8 +40,8 @@ describe('FlowList Component', () => {
           ],
 
           providers: [
-            {provide: FlowFacade, useValue: flowFacade},
-            {provide: ClientFacade, useValue: clientFacade},
+            {provide: ConfigFacade, useValue: configFacade},
+            {provide: ClientPageFacade, useValue: clientPageFacade},
           ]
         })
         .compileComponents();
@@ -44,7 +51,7 @@ describe('FlowList Component', () => {
     const fixture = TestBed.createComponent(FlowList);
     fixture.detectChanges();
 
-    flowFacade.flowDescriptorsSubject.next(newFlowDescriptorMap(
+    configFacade.flowDescriptorsSubject.next(newFlowDescriptorMap(
         {
           name: 'ClientFileFinder',
           friendlyName: 'Client Side File Finder',
@@ -77,7 +84,7 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     // Flows won't be displayed until descriptors are fetched.
-    flowFacade.flowDescriptorsSubject.next(newFlowDescriptorMap());
+    configFacade.flowDescriptorsSubject.next(newFlowDescriptorMap());
 
     flowListEntries$.next([
       newFlowListEntry({
@@ -94,5 +101,36 @@ describe('FlowList Component', () => {
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('ClientFileFinder');
     expect(text).toContain('KeepAlive');
+  });
+
+  it('updates flow list on a change in observable', () => {
+    const fixture = TestBed.createComponent(FlowList);
+    fixture.detectChanges();
+
+    // Flows won't be displayed until descriptors are fetched.
+    configFacade.flowDescriptorsSubject.next(newFlowDescriptorMap());
+
+    flowListEntries$.next([
+      newFlowListEntry({
+        name: 'KeepAlive',
+        creator: 'morty',
+      }),
+    ]);
+    fixture.detectChanges();
+
+    let text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain('KeepAlive');
+
+    flowListEntries$.next([
+      newFlowListEntry({
+        name: 'ClientFileFinder',
+        creator: 'rick',
+      }),
+    ]);
+    fixture.detectChanges();
+
+    text = fixture.debugElement.nativeElement.textContent;
+    expect(text).not.toContain('KeepAlive');
+    expect(text).toContain('ClientFileFinder');
   });
 });
