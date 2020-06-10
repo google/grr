@@ -1,4 +1,4 @@
-import .reusable_panels
+from grr_grafanalib_dashboards import reusable_panels
 
 DATA_SOURCE = "grr-server"
 ACTIVE_PROCESSES_CONDITION = 1

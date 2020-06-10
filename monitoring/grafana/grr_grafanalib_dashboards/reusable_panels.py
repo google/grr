@@ -3,7 +3,7 @@ from grafanalib.core import (
     LowerThan, OP_AND, Row, RTYPE_SUM,
     Target, TimeRange
 )
-import .config
+from grr_grafanalib_dashboards import config
 
 def number_of_active_processes_graph(grr_component):
     return Graph(
