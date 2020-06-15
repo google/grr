@@ -14,7 +14,7 @@ You may now visit the given sample dashboards by browsing to `cd grr_grafanalib_
 This folder will contain all the individual dashboards for each GRR server component. In order to generate these dashboards
 to a format that is importable by a Grafana instance, you may run `generate-dashboards <grr_component_name>.dashboard.py`,
 for example: `generate-dashboards frontends.dashboard.py`.
-After running this command, new files will be created in the folder with the names `<grr_component_name>.dashboard.json`. This
+After running this command, new files will be created in the folder with the names `<grr_component_name>.json`. This
 JSON file can be imported to your Grafana instance by browsing to the [Import](http://localhost:3000/dashboard/import) page,
 clicking the button "Upload .json file" and proceeding with the instructions.
 
