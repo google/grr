@@ -1,7 +1,7 @@
 from grafanalib.core import (
     Dashboard, Graph, Row, Target
 )
-from grr_grafanalib_dashboards import add_data_source
+from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.config import PANELS
 
 GRR_COMPONENT = "worker"

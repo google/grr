@@ -13,9 +13,6 @@ setup_args = dict(
     #     "sdist": Sdist,
     # },
     packages=setuptools.find_packages(),
-    # entry_points={
-    #     "console_scripts": ["grr_api_shell = grr_api_client.api_shell:main",]
-    # },
     install_requires=[
         "grafanalib==0.5.7",
     ],
