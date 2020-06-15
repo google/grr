@@ -12,13 +12,9 @@ import {map} from 'rxjs/operators';
   styleUrls: ['./user_menu.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class UserMenu implements OnInit {
+export class UserMenu {
   readonly currentUserName$: Observable<string> =
       this.userFacade.currentUser$.pipe(map(user => user.name));
 
   constructor(private readonly userFacade: UserFacade) {}
-
-  ngOnInit() {
-    this.userFacade.fetchCurrentUser();
-  }
 }

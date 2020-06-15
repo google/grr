@@ -3615,7 +3615,6 @@ class DatabaseValidationWrapper(Database):
 
   def WriteFlowObject(self, flow_obj, allow_update=True):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
-    precondition.AssertType(flow_obj.create_time, rdfvalue.RDFDatetime)
     precondition.AssertType(allow_update, bool)
     return self.delegate.WriteFlowObject(flow_obj, allow_update=allow_update)
 

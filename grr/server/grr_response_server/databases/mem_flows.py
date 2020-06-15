@@ -230,8 +230,13 @@ class InMemoryDBFlowMixin(object):
     if not allow_update and key in self.flows:
       raise db.FlowExistsError(flow_obj.client_id, flow_obj.flow_id)
 
+    now = rdfvalue.RDFDatetime.Now()
+
     clone = flow_obj.Copy()
-    clone.last_update_time = rdfvalue.RDFDatetime.Now()
+    clone.last_update_time = now
+    if clone.create_time is None:
+      clone.create_time = now
+
     self.flows[key] = clone
 
   @utils.Synchronized
@@ -317,8 +322,19 @@ class InMemoryDBFlowMixin(object):
       raise db.UnknownFlowError(client_id, flow_id)
 
     if flow_obj != db.Database.unchanged:
-      self.flows[(client_id, flow_id)] = flow_obj
-      flow = flow_obj
+      new_flow = flow_obj.Copy()
+
+      # Some fields cannot be updated.
+      new_flow.client_id = flow.client_id
+      new_flow.flow_id = flow.flow_id
+      new_flow.long_flow_id = flow.long_flow_id
+      new_flow.parent_flow_id = flow.parent_flow_id
+      new_flow.parent_hunt_id = flow.parent_hunt_id
+      new_flow.flow_class_name = flow.flow_class_name
+      new_flow.creator = flow.creator
+
+      self.flows[(client_id, flow_id)] = new_flow
+      flow = new_flow
 
     if flow_state != db.Database.unchanged:
       flow.flow_state = flow_state

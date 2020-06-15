@@ -75,10 +75,12 @@ setup_args = dict(
     install_requires=[
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "cryptography==2.8",
-        "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
         "requests==2.22.0",
         "Werkzeug==0.16.0",
     ],
+    extra_requires={
+        "shell": ["ipython==7.2.0",],
+    },
     data=["version.ini"])
 
 setup(**setup_args)

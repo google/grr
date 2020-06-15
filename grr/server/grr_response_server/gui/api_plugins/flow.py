@@ -973,7 +973,9 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         ApiFlow().InitFromFlowObject(
             f_data, with_args=True, with_progress=True) for f_data in top_flows
     ]
-    result.sort(key=lambda f: f.started_at, reverse=True)
+    # TODO(hanuszczak): Consult with the team what should we do in case of flows
+    # with missing information.
+    result.sort(key=lambda f: f.started_at or 0, reverse=True)
     result = result[args.offset:]
     if args.count:
       result = result[:args.count]
@@ -1009,7 +1011,9 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     result = [
         f for f in api_flow_dict.values() if f.flow_id not in child_flow_ids
     ]
-    result.sort(key=lambda f: f.started_at, reverse=True)
+    # TODO(hanuszczak): Consult with the team what should we do in case of flows
+    # with missing information.
+    result.sort(key=lambda f: f.started_at or 0, reverse=True)
     result = result[args.offset:]
     if args.count:
       result = result[:args.count]

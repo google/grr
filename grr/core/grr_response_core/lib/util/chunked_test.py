@@ -61,28 +61,22 @@ class ReadTest(absltest.TestCase):
 
   def testIncorrectSizeTag(self):
     buf = io.BytesIO(b"\x00\xff\xee")
-    with self.assertRaises(ValueError):
+    with self.assertRaises(chunked.IncorrectSizeTagError):
       chunked.Read(buf)
 
-  def testMalformedInputSeekable(self):
+  def testMalformedInpuWithMaxChunkSizeSet(self):
     buf = io.BytesIO(b"\xff" * 1024)
 
-    with self.assertRaisesRegex(ValueError, "Malformed input"):
-      chunked.Read(buf)
+    with self.assertRaises(chunked.ChunkSizeTooBigError):
+      chunked.Read(buf, max_chunk_size=1024)
 
-  def testMalformedInputUnseekable(self):
+  def testMalformedInputWithoutMaxChunkSizeSet(self):
+    buf1 = io.BytesIO()
+    chunked.Write(buf1, b"foobarbaz")
 
-    class UnseekableBytesIO(io.BytesIO):
-
-      def seekable(self) -> bool:
-        return False
-
-    buf = io.BytesIO()
-    chunked.Write(buf, b"foobarbaz")
-
-    buf = UnseekableBytesIO(buf.getvalue()[:-2])
-    with self.assertRaisesRegex(ValueError, "Malformed input"):
-      chunked.Read(buf)
+    buf2 = io.BytesIO(buf1.getvalue()[:-2])
+    with self.assertRaises(chunked.ChunkTruncatedError):
+      chunked.Read(buf2)
 
 
 class ReadAllTest(absltest.TestCase):
@@ -106,6 +100,12 @@ class ReadAllTest(absltest.TestCase):
 
     buf.seek(0, io.SEEK_SET)
     self.assertEqual(list(chunked.ReadAll(buf)), [b"foo", b"bar", b"quux"])
+
+  def testMalformedInputWithMaxChunkSizeSet(self):
+    buf = io.BytesIO(b"\xff" * 1024)
+
+    with self.assertRaises(chunked.ChunkSizeTooBigError):
+      list(chunked.ReadAll(buf, max_chunk_size=1024))
 
 
 class EncodeTest(absltest.TestCase):

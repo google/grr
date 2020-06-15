@@ -15,21 +15,25 @@
 }
 
 .row-list {
-  margin-bottom: .15em;
+  margin-bottom: 0.15em;
 
   .row {
     .header {
       border-top: 1px solid c.mat-color(c.$foreground, divider-light);
-      padding: .5em 24px;
+      padding: 0.5em 24px;
 
       display: flex;
       justify-content: space-between;
       align-items: center;
 
-      .title, .in-progress, .success, .warning, .error {
+      .title,
+      .in-progress,
+      .success,
+      .warning,
+      .error {
         display: flex;
         align-items: center;
-        margin-right: .5em;
+        margin-right: 0.5em;
 
         .material-icons {
           position: relative;
@@ -51,7 +55,7 @@
 
         .material-icons {
           color: green;
-          margin-left: .5em;
+          margin-left: 0.5em;
         }
       }
 
@@ -61,7 +65,7 @@
 
         .material-icons {
           color: c.mat-color(c.$warn);
-          margin-left: .5em;
+          margin-left: 0.5em;
         }
       }
 
@@ -70,7 +74,7 @@
         font-size: 90%;
 
         .material-icons {
-          margin-left: .5em;
+          margin-left: 0.5em;
         }
       }
     }

@@ -72,7 +72,7 @@
 //
 
 a {
-  cursor:pointer;
+  cursor: pointer;
 }
 
 label {
@@ -140,11 +140,11 @@ label.btn {
 
     &.annotation {
       position: absolute;
-      font-size: 1.0em;
+      font-size: 1em;
       bottom: 2px;
       right: 4px;
       color: $color-grr-blue;
-      opacity: .8;
+      opacity: 0.8;
     }
   }
 }
@@ -155,7 +155,6 @@ label.btn {
     line-height: 32px;
   }
 }
-
 
 //
 //
@@ -201,8 +200,6 @@ label.btn {
 .navbar-text p {
   margin: 0;
 }
-
-
 
 //
 //
@@ -256,8 +253,6 @@ label.btn {
     }
   }
 }
-
-
 
 //
 //
@@ -354,10 +349,8 @@ label.btn {
 }
 
 .high-modal > .modal-dialog {
-  max-height: 600px
+  max-height: 600px;
 }
-
-
 
 //
 //
@@ -369,12 +362,12 @@ label.btn {
   margin-left: 180px;
   margin-right: 1em;
 
-  input[type=text] {
+  input[type='text'] {
     width: 70%;
     min-width: 230px;
   }
 
-  input[type=checkbox] {
+  input[type='checkbox'] {
     width: auto;
   }
 
@@ -390,7 +383,7 @@ label.btn {
     }
   }
 
-  input[type=number] {
+  input[type='number'] {
     width: 190px;
   }
 
@@ -399,7 +392,7 @@ label.btn {
       width: 230px;
     }
 
-    input[type=text] {
+    input[type='text'] {
       width: 100%;
     }
   }
@@ -425,8 +418,6 @@ input.unset,
 select.unset {
   background-color: $color-pristine;
 }
-
-
 
 //
 //
@@ -466,8 +457,6 @@ div[grr-splitter] {
   overflow-x: hidden;
   position: relative;
 }
-
-
 
 //
 //
@@ -512,8 +501,6 @@ tr.tree_hidden {
   display: none;
 }
 
-
-
 //
 //
 // Proto tables styling
@@ -528,7 +515,7 @@ tr.tree_hidden {
 }
 
 .proto_header {
-  font-weight:bold;
+  font-weight: bold;
 }
 
 .proto_key {
@@ -565,8 +552,6 @@ tr.tree_hidden {
   color: $color-proto-error;
 }
 
-
-
 //
 //
 // Documentation
@@ -583,7 +568,7 @@ tr.tree_hidden {
   margin-bottom: 2em;
 
   p.lead {
-    margin-bottom: .25em;
+    margin-bottom: 0.25em;
   }
 
   .query-parameters {
@@ -613,8 +598,6 @@ tr.tree_hidden {
   }
 }
 
-
-
 //
 //
 // Common styles
@@ -637,7 +620,7 @@ tr.tree_hidden {
 .toolbar-search-box {
   position: absolute;
   right: 0;
-  width: 300px
+  width: 300px;
 }
 
 .form-horizontal .form-group {
@@ -694,7 +677,7 @@ tr.tree_hidden {
 }
 
 .half-transparent {
-  opacity: .5;
+  opacity: 0.5;
 }
 
 .full-width {
@@ -872,7 +855,7 @@ div.sort-dialog div.filter {
 
 pre.inline {
   display: inline;
-  font-family: $font-monospace
+  font-family: $font-monospace;
 }
 
 select.artifact_list {
@@ -898,7 +881,6 @@ abbr[title],
   margin-bottom: 1em;
 }
 
-
 //
 //
 // Overwrite Angular UI styles
@@ -921,7 +903,6 @@ abbr[title],
 ul.dropdown-menu[uib-typeahead-popup] {
   z-index: 1100; // ensure autocomplete is always shown above other UI elements
 }
-
 
 //
 //

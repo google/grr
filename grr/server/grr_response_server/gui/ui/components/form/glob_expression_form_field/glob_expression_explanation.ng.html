@@ -1,0 +1,3 @@
+<span *ngFor="let component of explanation$ | async" class="monospace">{{
+  component.examples ? component.examples[0] : component.globExpression
+}}</span>

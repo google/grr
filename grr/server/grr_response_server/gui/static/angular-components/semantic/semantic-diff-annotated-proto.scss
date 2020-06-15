@@ -2,7 +2,7 @@ grr-semantic-diff-annotated-proto {
   div.repeated.diff_changed,
   table.diff-changed > tbody > tr > td,
   tr.diff-changed > td {
-    background: $color-diff-changed
+    background: $color-diff-changed;
   }
 
   div.repeated.diff-added,

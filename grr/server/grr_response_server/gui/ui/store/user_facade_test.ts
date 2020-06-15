@@ -33,21 +33,26 @@ describe('UserFacade', () => {
     userFacade = TestBed.inject(UserFacade);
   });
 
-  it('calls the API on fetchCurrentUser', () => {
-    userFacade.fetchCurrentUser();
+  it('calls the API on first currentUser subscription', () => {
+    userFacade.currentUser$.subscribe();
     expect(httpApiService.fetchCurrentUser).toHaveBeenCalled();
   });
 
+  it('does not call the API on second currentUser subscription', () => {
+    userFacade.currentUser$.subscribe();
+    userFacade.currentUser$.subscribe();
+    expect(httpApiService.fetchCurrentUser).toHaveBeenCalledTimes(1);
+  });
+
   it('correctly emits the API result in currentUser$', (done) => {
-    userFacade.fetchCurrentUser();
-    apiFetchCurrentUser$.next({
-      username: 'test',
-    });
     userFacade.currentUser$.subscribe((user) => {
       expect(user).toEqual({
         name: 'test',
       });
       done();
+    });
+    apiFetchCurrentUser$.next({
+      username: 'test',
     });
   });
 });

@@ -271,12 +271,12 @@ class MySQLDBFlowMixin(object):
 
     query = """
     INSERT INTO flows (client_id, flow_id, long_flow_id, parent_flow_id,
-                       parent_hunt_id, flow, flow_state,
+                       parent_hunt_id, name, creator, flow, flow_state,
                        next_request_to_process, pending_termination, timestamp,
                        network_bytes_sent, user_cpu_time_used_micros,
                        system_cpu_time_used_micros, num_replies_sent, last_update)
     VALUES (%(client_id)s, %(flow_id)s, %(long_flow_id)s, %(parent_flow_id)s,
-            %(parent_hunt_id)s, %(flow)s, %(flow_state)s,
+            %(parent_hunt_id)s, %(name)s, %(creator)s, %(flow)s, %(flow_state)s,
             %(next_request_to_process)s, %(pending_termination)s,
             FROM_UNIXTIME(%(timestamp)s),
             %(network_bytes_sent)s, %(user_cpu_time_used_micros)s,
@@ -295,14 +295,26 @@ class MySQLDBFlowMixin(object):
     system_cpu_time_used_micros = db_utils.SecondsToMicros(
         flow_obj.cpu_time_used.system_cpu_time)
 
+    # TODO(hanuszczak): Consider using `now` always, not only when the flow does
+    # not specify it itself. Flow object should not control when it was really
+    # created. As long as it has not been written to the database, it doesn't
+    # really exist yet. It also introduces a possibility of the object "lying"
+    # about its creation time which might or might not be an issue.
+    if flow_obj.create_time is None:
+      timestamp = mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
+    else:
+      timestamp = mysql_utils.RDFDatetimeToTimestamp(flow_obj.create_time)
+
     args = {
         "client_id": db_utils.ClientIDToInt(flow_obj.client_id),
         "flow_id": db_utils.FlowIDToInt(flow_obj.flow_id),
         "long_flow_id": flow_obj.long_flow_id,
+        "name": flow_obj.flow_class_name,
+        "creator": flow_obj.creator,
         "flow": flow_obj.SerializeToBytes(),
         "flow_state": int(flow_obj.flow_state),
         "next_request_to_process": flow_obj.next_request_to_process,
-        "timestamp": mysql_utils.RDFDatetimeToTimestamp(flow_obj.create_time),
+        "timestamp": timestamp,
         "network_bytes_sent": flow_obj.network_bytes_sent,
         "num_replies_sent": flow_obj.num_replies_sent,
         "user_cpu_time_used_micros": user_cpu_time_used_micros,
@@ -335,56 +347,96 @@ class MySQLDBFlowMixin(object):
 
   def _FlowObjectFromRow(self, row):
     """Generates a flow object from a database row."""
+    datetime = mysql_utils.TimestampToRDFDatetime
+    cpu_time = db_utils.MicrosToSeconds
 
-    flow, fs, cci, pt, nr, pd, po, ps, uct, sct, nbs, nrs, ts, lut = row
+    # pyformat: disable
+    (client_id, flow_id, long_flow_id, parent_flow_id, parent_hunt_id,
+     name, creator,
+     flow, flow_state,
+     client_crash_info,
+     pending_termination,
+     next_request_to_process,
+     processing_deadline, processing_on, processing_since,
+     user_cpu_time, system_cpu_time, network_bytes_sent, num_replies_sent,
+     timestamp, last_update_timestamp) = row
+    # pyformat: enable
 
     flow_obj = rdf_flow_objects.Flow.FromSerializedBytes(flow)
-    if fs not in [None, rdf_flow_objects.Flow.FlowState.UNSET]:
-      flow_obj.flow_state = fs
-    if cci is not None:
-      cc_cls = rdf_client.ClientCrash
-      flow_obj.client_crash_info = cc_cls.FromSerializedBytes(cci)
-    if pt is not None:
-      pt_cls = rdf_flow_objects.PendingFlowTermination
-      flow_obj.pending_termination = pt_cls.FromSerializedBytes(pt)
-    if nr:
-      flow_obj.next_request_to_process = nr
-    if pd is not None:
-      flow_obj.processing_deadline = mysql_utils.TimestampToRDFDatetime(pd)
-    if po is not None:
-      flow_obj.processing_on = po
-    if ps is not None:
-      flow_obj.processing_since = mysql_utils.TimestampToRDFDatetime(ps)
-    flow_obj.cpu_time_used.user_cpu_time = db_utils.MicrosToSeconds(uct)
-    flow_obj.cpu_time_used.system_cpu_time = db_utils.MicrosToSeconds(sct)
-    flow_obj.network_bytes_sent = nbs
-    if nrs:
-      flow_obj.num_replies_sent = nrs
-    flow_obj.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
-    flow_obj.last_update_time = mysql_utils.TimestampToRDFDatetime(lut)
+
+    # We treat column values as the source of truth, not the proto.
+    flow_obj.client_id = db_utils.IntToClientID(client_id)
+    flow_obj.flow_id = db_utils.IntToFlowID(flow_id)
+    flow_obj.long_flow_id = long_flow_id
+
+    if parent_flow_id is not None:
+      flow_obj.parent_flow_id = db_utils.IntToFlowID(parent_flow_id)
+    if parent_hunt_id is not None:
+      flow_obj.parent_hunt_id = db_utils.IntToHuntID(parent_hunt_id)
+    if name is not None:
+      flow_obj.flow_class_name = name
+    if creator is not None:
+      flow_obj.creator = creator
+    if flow_state not in [None, rdf_flow_objects.Flow.FlowState.UNSET]:
+      flow_obj.flow_state = flow_state
+    if client_crash_info is not None:
+      deserialize = rdf_client.ClientCrash.FromSerializedBytes
+      flow_obj.client_crash_info = deserialize(client_crash_info)
+    if pending_termination is not None:
+      deserialize = rdf_flow_objects.PendingFlowTermination.FromSerializedBytes
+      flow_obj.pending_termination = deserialize(pending_termination)
+    if next_request_to_process:
+      flow_obj.next_request_to_process = next_request_to_process
+    if processing_deadline is not None:
+      flow_obj.processing_deadline = datetime(processing_deadline)
+    if processing_on is not None:
+      flow_obj.processing_on = processing_on
+    if processing_since is not None:
+      flow_obj.processing_since = datetime(processing_since)
+    flow_obj.cpu_time_used.user_cpu_time = cpu_time(user_cpu_time)
+    flow_obj.cpu_time_used.system_cpu_time = cpu_time(system_cpu_time)
+    flow_obj.network_bytes_sent = network_bytes_sent
+    if num_replies_sent:
+      flow_obj.num_replies_sent = num_replies_sent
+    flow_obj.last_update_time = datetime(last_update_timestamp)
+
+    # In case the create time is not stored in the serialized flow (which might
+    # be the case), we fallback to the timestamp information stored in the
+    # column.
+    if flow_obj.create_time is None:
+      flow_obj.create_time = datetime(timestamp)
 
     return flow_obj
 
-  FLOW_DB_FIELDS = ("flow, "
-                    "flow_state, "
-                    "client_crash_info, "
-                    "pending_termination, "
-                    "next_request_to_process, "
-                    "UNIX_TIMESTAMP(processing_deadline), "
-                    "processing_on, "
-                    "UNIX_TIMESTAMP(processing_since), "
-                    "user_cpu_time_used_micros, "
-                    "system_cpu_time_used_micros, "
-                    "network_bytes_sent, "
-                    "num_replies_sent, "
-                    "UNIX_TIMESTAMP(timestamp), "
-                    "UNIX_TIMESTAMP(last_update) ")
+  FLOW_DB_FIELDS = ", ".join((
+      "client_id",
+      "flow_id",
+      "long_flow_id",
+      "parent_flow_id",
+      "parent_hunt_id",
+      "name",
+      "creator",
+      "flow",
+      "flow_state",
+      "client_crash_info",
+      "pending_termination",
+      "next_request_to_process",
+      "UNIX_TIMESTAMP(processing_deadline)",
+      "processing_on",
+      "UNIX_TIMESTAMP(processing_since)",
+      "user_cpu_time_used_micros",
+      "system_cpu_time_used_micros",
+      "network_bytes_sent",
+      "num_replies_sent",
+      "UNIX_TIMESTAMP(timestamp)",
+      "UNIX_TIMESTAMP(last_update)",
+  ))
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowObject(self, client_id, flow_id, cursor=None):
     """Reads a flow object from the database."""
-    query = ("SELECT " + self.FLOW_DB_FIELDS +
-             "FROM flows WHERE client_id=%s AND flow_id=%s")
+    query = (f"SELECT {self.FLOW_DB_FIELDS} "
+             f"FROM flows WHERE client_id=%s AND flow_id=%s")
     cursor.execute(
         query,
         [db_utils.ClientIDToInt(client_id),
@@ -421,7 +473,7 @@ class MySQLDBFlowMixin(object):
     if not include_child_flows:
       conditions.append("parent_flow_id IS NULL")
 
-    query = "SELECT {} FROM flows".format(self.FLOW_DB_FIELDS)
+    query = f"SELECT {self.FLOW_DB_FIELDS} FROM flows"
     if conditions:
       query += " WHERE " + " AND ".join(conditions)
 
@@ -431,8 +483,8 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadChildFlowObjects(self, client_id, flow_id, cursor=None):
     """Reads flows that were started by a given flow from the database."""
-    query = ("SELECT " + self.FLOW_DB_FIELDS +
-             "FROM flows WHERE client_id=%s AND parent_flow_id=%s")
+    query = (f"SELECT {self.FLOW_DB_FIELDS} "
+             f"FROM flows WHERE client_id=%s AND parent_flow_id=%s")
     cursor.execute(
         query,
         [db_utils.ClientIDToInt(client_id),
@@ -446,8 +498,8 @@ class MySQLDBFlowMixin(object):
                              processing_time,
                              cursor=None):
     """Marks a flow as being processed on this worker and returns it."""
-    query = ("SELECT " + self.FLOW_DB_FIELDS +
-             "FROM flows WHERE client_id=%s AND flow_id=%s")
+    query = (f"SELECT {self.FLOW_DB_FIELDS} "
+             f"FROM flows WHERE client_id=%s AND flow_id=%s")
     cursor.execute(
         query,
         [db_utils.ClientIDToInt(client_id),

@@ -77,6 +77,8 @@ def main(argv):
   server_startup.Init()
   for handler in logging.getLogger().handlers:
     handler.addFilter(E2ELogFilter())
+    handler.setLevel(logging.INFO)
+
   data_store.default_token = access_control.ACLToken(
       username=getpass.getuser(), reason="End-to-end tests")
   test_runner = runner.E2ETestRunner(

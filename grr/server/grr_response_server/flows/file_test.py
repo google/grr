@@ -29,15 +29,15 @@ TestFile = collections.namedtuple("TestFile", ["path", "sha1"])
 @contextlib.contextmanager
 def SetUpTestFiles():
   with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
-    file_bar_path = temp.TempFilePath(dir=temp_dirpath, prefix="bar")
+    file_bar_path = os.path.join(temp_dirpath, "bar")
     with open(file_bar_path, "w") as fd:
       fd.write("bar")
 
-    file_baz_path = temp.TempFilePath(dir=temp_dirpath, prefix="baz")
+    file_baz_path = os.path.join(temp_dirpath, "baz")
     with open(file_baz_path, "w") as fd:
       fd.write("baz")
 
-    file_foo_path = temp.TempFilePath(dir=temp_dirpath, prefix="foo")
+    file_foo_path = os.path.join(temp_dirpath, "foo")
     with open(file_foo_path, "w") as fd:
       fd.write("foo")
 

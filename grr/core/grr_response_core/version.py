@@ -33,7 +33,7 @@ def Version():
 
   version_ini = VersionPath()
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(version_ini)
   return dict(
       packageversion=config.get("Version", "packageversion"),

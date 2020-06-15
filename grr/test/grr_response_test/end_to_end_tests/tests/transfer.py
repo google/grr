@@ -92,3 +92,21 @@ class TestTransferWindows(test_base.AbstractFileTransferTest):
       self.RunFlowAndWait("GetFile", args=args)
 
     self.CheckPEMagic(path)
+
+  def testGetFileNTFS(self):
+    args = self.grr_api.types.CreateFlowArgs("GetFile")
+    args.pathspec.path = "C:\\Windows\\regedit.exe"
+    args.pathspec.pathtype = args.pathspec.NTFS
+
+    f = self.RunFlowAndWait("GetFile", args=args)
+    results = list(f.ListResults())
+    self.assertNotEmpty(results)
+
+    stat_entry = results[0].payload
+    path = self.NTFSPathspecToVFSPath(stat_entry.pathspec)
+
+    # Run GetFile again to make sure the path gets updated.
+    with self.WaitForFileRefresh(path):
+      self.RunFlowAndWait("GetFile", args=args)
+
+    self.CheckPEMagic(path)

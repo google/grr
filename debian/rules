@@ -59,6 +59,8 @@ override_dh_perl:
 override_dh_strip:
 	dh_strip --exclude=ffi
 
+# Removing fleetspeak-client-bin in this rule to conserve space.
+# A fleetspeak client installation is obsolete in the server DEB.
 override_dh_virtualenv:
 	dh_virtualenv --python python3 \
 		--use-system-packages \
@@ -70,7 +72,8 @@ override_dh_virtualenv:
 		--preinstall "${LOCAL_DEB_PYINDEX}/${API_SDIST}" \
 		--preinstall "${LOCAL_DEB_PYINDEX}/${TEMPLATES_SDIST}" \
 		--preinstall "${LOCAL_DEB_PYINDEX}/${CLIENT_BUILDER_SDIST}" \
-		--preinstall "${LOCAL_DEB_PYINDEX}/${SERVER_SDIST}" \
+		--preinstall "${LOCAL_DEB_PYINDEX}/${SERVER_SDIST}"
+	rm -r debian/grr-server/usr/share/grr-server/fleetspeak-client-bin
 
 override_dh_shlibdeps:
 	dh_shlibdeps -Xcygrpc.cpython

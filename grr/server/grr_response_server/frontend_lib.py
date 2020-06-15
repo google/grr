@@ -10,7 +10,6 @@ import time
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -49,7 +48,6 @@ FRONTEND_REQUEST_LATENCY = metrics.Event(
 GRR_FRONTENDSERVER_HANDLE_TIME = metrics.Event("grr_frontendserver_handle_time")
 GRR_FRONTENDSERVER_HANDLE_NUM = metrics.Counter("grr_frontendserver_handle_num")
 GRR_MESSAGES_SENT = metrics.Counter("grr_messages_sent")
-GRR_PUB_KEY_CACHE = metrics.Counter("grr_pub_key_cache", fields=[("type", str)])
 GRR_UNIQUE_CLIENTS = metrics.Counter("grr_unique_clients")
 
 
@@ -58,18 +56,10 @@ class ServerCommunicator(communicator.Communicator):
 
   def __init__(self, certificate, private_key):
     super().__init__(certificate=certificate, private_key=private_key)
-    self.pub_key_cache = utils.FastStore(max_size=50000)
     self.common_name = self.certificate.GetCN()
 
   def _GetRemotePublicKey(self, common_name):
     remote_client_id = common_name.Basename()
-    try:
-      # See if we have this client already cached.
-      remote_key = self.pub_key_cache.Get(remote_client_id)
-      GRR_PUB_KEY_CACHE.Increment(fields=["hits"])
-      return remote_key
-    except KeyError:
-      GRR_PUB_KEY_CACHE.Increment(fields=["misses"])
 
     try:
       md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
@@ -85,9 +75,7 @@ class ServerCommunicator(communicator.Communicator):
       logging.error("Stored cert mismatch for %s", common_name)
       raise communicator.UnknownClientCertError("Stored cert mismatch")
 
-    pub_key = cert.GetPublicKey()
-    self.pub_key_cache.Put(common_name, pub_key)
-    return pub_key
+    return cert.GetPublicKey()
 
   def VerifyMessageSignature(self, response_comms, packed_message_list, cipher,
                              cipher_verified, api_version, remote_public_key):
