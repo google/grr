@@ -1,4 +1,12 @@
 from grr_grafanalib_dashboards import reusable_panels
 
+# The data source name is specified after Grafana is set up
+# and it can be visited at localhost:3000.
+# In GRR Monitoring docs, we suggest naming it "grr-server", but if it's
+# not the case, change it here.
 GRAFANA_DATA_SOURCE = "grr-server"
+
+# An alert will be fired if the number of active processes (of any
+# GRR server component) is below this number.
+# This alert will be triggered once this condition holds for 10 seconds.
 ACTIVE_PROCESSES_ALERTING_CONDITION = 1
