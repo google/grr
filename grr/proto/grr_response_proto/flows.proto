@@ -2667,6 +2667,7 @@ message Flow {
   optional string parent_flow_id = 4;
   optional string parent_hunt_id = 31;
   optional uint64 parent_request_id = 5;
+  // TODO(hanuszczak): `long_flow_id` is data duplication. Consider removing it.
   optional string long_flow_id = 6;
   optional google.protobuf.Any args = 7;
   optional AttributedDict persistent_data = 8;

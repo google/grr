@@ -166,7 +166,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
         set(zip_fd.namelist()),
         {"%s/MANIFEST" % prefix,
          "%s/ExportedFile_from_StatEntry.sql" % prefix})
-    parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
+    parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(parsed_manifest,
                      {"export_stats": {
                          "StatEntry": {
@@ -260,7 +260,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedProcess_from_Process.sql" % prefix
         })
 
-    parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
+    parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(
         parsed_manifest, {
             "export_stats": {

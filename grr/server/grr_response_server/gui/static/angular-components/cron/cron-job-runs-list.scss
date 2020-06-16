@@ -1,13 +1,13 @@
 grr-cron-job-runs-list {
-  tr td[name=backtrace] span {
+  tr td[name='backtrace'] span {
     display: inline-block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 20em
+    max-width: 20em;
   }
 
-  tr.row-selected td[name=backtrace] span {
+  tr.row-selected td[name='backtrace'] span {
     display: inline;
     white-space: inherit;
     overflow: inherit;

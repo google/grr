@@ -292,6 +292,7 @@ class MySQLDBPathMixin(object):
 
       query = """
         UPDATE client_paths
+        FORCE INDEX (PRIMARY)
         SET last_stat_entry_timestamp = FROM_UNIXTIME(%s)
         WHERE {}
       """.format(" OR ".join([condition] * len(stat_entry_values)))
@@ -312,6 +313,7 @@ class MySQLDBPathMixin(object):
 
       query = """
         UPDATE client_paths
+        FORCE INDEX (PRIMARY)
         SET last_hash_entry_timestamp = FROM_UNIXTIME(%s)
         WHERE {}
       """.format(" OR ".join([condition] * len(hash_entry_values)))

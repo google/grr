@@ -132,7 +132,8 @@ def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen:
 
   popen_args = [binary_path] + args
   print("Starting binary: " + " ".join(popen_args))
-  process = subprocess.Popen(popen_args)
+  process = subprocess.Popen(
+      popen_args, bufsize=0, stdout=None, stderr=subprocess.STDOUT)
 
   def KillOnExit():
     if process.poll() is None:
@@ -147,9 +148,9 @@ def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen:
 def _StartComponent(main_package: str, args: List[str]) -> subprocess.Popen:
   """Starts a new process with a given component.
 
-  This starts a Python interpreter with a "-m" argument followed by
-  the main package name, thus effectively executing the main()
-  function of a given package.
+  This starts a Python interpreter with a "-u" argument (to turn off output
+  buffering) and with a "-m" argument followed by the main package name, thus
+  effectively executing the main() function of a given package.
 
   Args:
     main_package: Main package path.
@@ -159,9 +160,10 @@ def _StartComponent(main_package: str, args: List[str]) -> subprocess.Popen:
   Returns:
     Popen object corresponding to a started process.
   """
-  popen_args = [sys.executable, "-m", main_package] + args
+  popen_args = [sys.executable, "-u", "-m", main_package] + args
   print("Starting %s component: %s" % (main_package, " ".join(popen_args)))
-  process = subprocess.Popen(popen_args)
+  process = subprocess.Popen(
+      popen_args, bufsize=0, stdout=None, stderr=subprocess.STDOUT)
   print("Component %s pid: %d" % (main_package, process.pid))
 
   def KillOnExit():
@@ -313,7 +315,7 @@ def InitFleetspeakConfigs(
   service_conf = system_pb2.ClientServiceConfig(name="GRR", factory="Daemon")
   payload = daemonservice_config_pb2.Config()
   payload.argv.extend([
-      sys.executable, "-m",
+      sys.executable, "-u", "-m",
       "grr_response_client.grr_fs_client",
       "--config", grr_configs.client_config
   ])

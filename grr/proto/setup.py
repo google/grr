@@ -121,9 +121,6 @@ setup_args = dict(
     install_requires=[
         PROTOBUF,
     ],
-    setup_requires=[
-        GRPCIO_TOOLS,
-    ],
     data=["version.ini"])
 
 setup(**setup_args)

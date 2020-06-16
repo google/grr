@@ -60,7 +60,7 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedFile/from_StatEntry.csv" % prefix
         ]))
 
-    parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
+    parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(parsed_manifest,
                      {"export_stats": {
                          "StatEntry": {
@@ -118,7 +118,7 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedProcess/from_Process.csv" % prefix
         ]))
 
-    parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
+    parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(
         parsed_manifest, {
             "export_stats": {

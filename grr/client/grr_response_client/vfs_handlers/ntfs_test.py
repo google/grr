@@ -4,7 +4,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+import platform
 import stat
+import tempfile
+import unittest
 
 from absl import app
 
@@ -24,6 +27,7 @@ NUMBERS_TXT_FILE_REF = 281474976710720
 A_B1_C1_D_FILE_REF = 281474976710728
 READ_ONLY_FILE_TXT_FILE_REF = 844424930132043
 HIDDEN_FILE_TXT_FILE_REF = 562949953421388
+CHINESE_FILE_FILE_REF = 844424930132045
 
 # Default st_mode flags for files and directories
 S_DEFAULT_FILE = (stat.S_IFREG | stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
@@ -46,6 +50,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
     # -rwxrwxrwx 1 root root    7 Apr  7 15:48 ./ads/ads.txt:two
     # -rwxrwxrwx 1 root root    0 Apr  8 22:14 ./hidden_file.txt
     # -rwxrwxrwx 1 root root    0 Apr  8 22:14 ./read_only_file.txt
+    # -rwxrwxrwx 1 root root   26 Jun 10 15:34 '入乡随俗 海外春节别样过法.txt'
 
     ntfs_img_path = os.path.join(self.base_path, "ntfs.img")
     return rdf_paths.PathSpec(
@@ -118,6 +123,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
         "numbers.txt",
         "read_only_file.txt",
         "hidden_file.txt",
+        "入乡随俗 海外春节别样过法.txt",
     ]
     self.assertSameElements(names, expected_names)
 
@@ -208,6 +214,22 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
             st_mode=(stat.S_IFREG | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
                      | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH),
             st_size=0,
+        ),
+        rdf_client_fs.StatEntry(
+            pathspec=self._GetNTFSPathSpec(
+                "/入乡随俗 海外春节别样过法.txt",
+                inode=CHINESE_FILE_FILE_REF,
+                path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
+            st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-06-10 13:34:36"),
+            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-06-10 13:34:36"),
+            st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-06-10 13:34:36"),
+            st_ctime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+                "2020-06-10 13:34:36"),
+            st_mode=S_DEFAULT_FILE,
+            st_size=26,
         ),
     ]
     self.assertEqual(files, expected_files)
@@ -329,6 +351,28 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
         "/ignore", inode=ADS_ADS_TXT_FILE_REF, stream_name="ONE")
     fd = vfs.VFSOpen(pathspec)
     self.assertEqual(fd.Read(100), b"Bar..\n")
+
+  def testNTFSReadUnicode(self):
+    pathspec = self._GetNTFSPathSpec("/入乡随俗 海外春节别样过法.txt")
+    fd = vfs.VFSOpen(pathspec)
+    expected = "Chinese news\n中国新闻\n".encode("utf-8")
+    self.assertEqual(fd.Read(100), expected)
+
+
+@unittest.skipIf(platform.system() != "Windows", "This test is Windows-only.")
+class NTFSNativeWindowsTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
+  """Runs tests against actual files on the local NTFS filesystem."""
+
+  def testNTFSReadUnicode(self):
+    with tempfile.TemporaryDirectory() as tmp_dir:
+      path = os.path.join(tmp_dir, "入乡随俗 海外春节别样过法")
+      file_data = "中国新闻"
+      with open(path, "w", encoding="utf-8") as f:
+        f.write(file_data)
+      pathspec = rdf_paths.PathSpec(
+          path=path, pathtype=rdf_paths.PathSpec.PathType.NTFS)
+      fd = vfs.VFSOpen(pathspec)
+      self.assertEqual(fd.Read(100).decode("utf-8"), file_data)
 
 
 def main(argv):

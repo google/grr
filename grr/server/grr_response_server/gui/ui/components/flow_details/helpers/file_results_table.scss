@@ -10,15 +10,16 @@ table {
     padding-bottom: 1.5em;
   }
 
-  th, td {
+  th,
+  td {
     vertical-align: top;
   }
 
   tbody {
     td {
       border-bottom: 1px solid c.mat-color(c.$foreground, divider);
-      padding-top: .5em;
-      padding-bottom: .5em;
+      padding-top: 0.5em;
+      padding-bottom: 0.5em;
     }
 
     tr:last-child td {
@@ -42,5 +43,5 @@ table {
 
 button.load-more {
   width: 100%;
-  margin-bottom: .5em;
+  margin-bottom: 0.5em;
 }
