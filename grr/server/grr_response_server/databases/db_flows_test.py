@@ -239,6 +239,7 @@ class DatabaseTestFlowMixin(object):
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
         flow_id=flow_id,
+        long_flow_id=f"{client_id}/{flow_id}",
         next_request_to_process=4,
         create_time=rdfvalue.RDFDatetime.Now())
     self.db.WriteFlowObject(rdf_flow)
@@ -310,6 +311,142 @@ class DatabaseTestFlowMixin(object):
     read_flow_after_update = self.db.ReadFlowObject(client_id, flow_id)
 
     self.assertEqual(read_flow_after_update.next_request_to_process, 4)
+
+  def testFlowTimestamp(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    before_timestamp = rdfvalue.RDFDatetime.Now()
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    self.db.WriteFlowObject(flow_obj)
+
+    after_timestamp = rdfvalue.RDFDatetime.Now()
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertBetween(flow_obj.create_time, before_timestamp, after_timestamp)
+
+  def testFlowTimestampWithMissingCreationTime(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    before_timestamp = rdfvalue.RDFDatetime.Now()
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.create_time = None
+    self.db.WriteFlowObject(flow_obj)
+
+    after_timestamp = rdfvalue.RDFDatetime.Now()
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertBetween(flow_obj.create_time, before_timestamp, after_timestamp)
+
+  def testFlowNameWithMissingNameInProtobuf(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.flow_class_name = "Quux"
+    self.db.WriteFlowObject(flow_obj)
+
+    flow_obj.flow_class_name = None
+    self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.flow_class_name, "Quux")
+
+  def testFlowKeyMetadataUnchangable(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.long_flow_id = f"{client_id}/{flow_id}"
+    self.db.WriteFlowObject(flow_obj)
+
+    flow_obj.client_id = "C.0123456789ABCDEF"
+    flow_obj.flow_id = "0B43F0000"
+    flow_obj.long_flow_id = f"{flow_obj.client_id}/{flow_obj.flow_id}"
+    self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.client_id, client_id)
+    self.assertEqual(flow_obj.flow_id, flow_id)
+    self.assertEqual(flow_obj.long_flow_id, f"{client_id}/{flow_id}")
+
+  def testFlowParentMetadataUnchangable(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.parent_flow_id = "0B43F000"
+    flow_obj.parent_hunt_id = "48151623"
+    self.db.WriteFlowObject(flow_obj)
+
+    flow_obj.parent_flow_id = "08133780"
+    flow_obj.parent_hunt_id = "01081080"
+    self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.parent_flow_id, "0B43F000")
+    self.assertEqual(flow_obj.parent_hunt_id, "48151623")
+
+  def testFlowNameUnchangable(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.flow_class_name = "Quux"
+    self.db.WriteFlowObject(flow_obj)
+
+    flow_obj.flow_class_name = "Norf"
+    self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.flow_class_name, "Quux")
+
+  def testFlowCreatorUnchangable(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.creator = "norf"
+    self.db.WriteFlowObject(flow_obj)
+
+    flow_obj.creator = "thud"
+    self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.creator, "norf")
+
+  def testFlowCreatorUnsetInProtobuf(self):
+    client_id = "C.0123456789012345"
+    flow_id = "0F00B430"
+
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+
+    flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
+    flow_obj.creator = "norf"
+    self.db.WriteFlowObject(flow_obj)
+
+    flow_obj.creator = None
+    self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
+
+    flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.creator, "norf")
 
   def testReadAllFlowObjects(self):
     client_id_1 = "C.1111111111111111"

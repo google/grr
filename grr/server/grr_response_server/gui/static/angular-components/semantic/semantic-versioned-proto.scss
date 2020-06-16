@@ -8,19 +8,19 @@ grr-semantic-versioned-proto {
   tr td > .proto_history {
     opacity: 0;
     width: 1em;
-    padding-top: .1em;
-    padding-bottom: .1em;
-    padding-left: .25em;
-    padding-right: .25em;
+    padding-top: 0.1em;
+    padding-bottom: 0.1em;
+    padding-left: 0.25em;
+    padding-right: 0.25em;
     background: $color-proto-background;
   }
 
   tr:hover td > .proto_history {
-    opacity: .15;
+    opacity: 0.15;
   }
 
   td:hover > .proto_history {
-    opacity: 1.0 !important;
-    transition-delay: .25s;
+    opacity: 1 !important;
+    transition-delay: 0.25s;
   }
 }

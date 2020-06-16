@@ -58,7 +58,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedFile/from_StatEntry.yaml" % prefix
         })
 
-    parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
+    parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(parsed_manifest,
                      {"export_stats": {
                          "StatEntry": {
@@ -66,7 +66,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
                          }
                      }})
 
-    parsed_output = yaml.load(
+    parsed_output = yaml.safe_load(
         zip_fd.read("%s/ExportedFile/from_StatEntry.yaml" % prefix))
     self.assertLen(parsed_output, 10)
     for i in range(10):
@@ -108,7 +108,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedProcess/from_Process.yaml" % prefix
         })
 
-    parsed_manifest = yaml.load(zip_fd.read("%s/MANIFEST" % prefix))
+    parsed_manifest = yaml.safe_load(zip_fd.read("%s/MANIFEST" % prefix))
     self.assertEqual(
         parsed_manifest, {
             "export_stats": {
@@ -121,7 +121,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             }
         })
 
-    parsed_output = yaml.load(
+    parsed_output = yaml.safe_load(
         zip_fd.read("%s/ExportedFile/from_StatEntry.yaml" % prefix))
     self.assertLen(parsed_output, 1)
 
@@ -135,7 +135,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertEqual(parsed_output[0]["urn"],
                      "aff4:/%s/fs/os/foo/bar" % self.client_id)
 
-    parsed_output = yaml.load(
+    parsed_output = yaml.safe_load(
         zip_fd.read("%s/ExportedProcess/from_Process.yaml" % prefix))
     self.assertLen(parsed_output, 1)
     self.assertEqual(parsed_output[0]["pid"], "42")
@@ -153,7 +153,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedFile/from_StatEntry.yaml" % prefix
         })
 
-    parsed_output = yaml.load(
+    parsed_output = yaml.safe_load(
         zip_fd.open("%s/ExportedFile/from_StatEntry.yaml" % prefix))
 
     self.assertLen(parsed_output, 1)
@@ -172,7 +172,7 @@ class YamlInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
 
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: responses})
-    parsed_output = yaml.load(
+    parsed_output = yaml.safe_load(
         zip_fd.open("%s/ExportedFile/from_StatEntry.yaml" % prefix))
     self.assertLen(parsed_output, num_rows)
     for i in range(num_rows):

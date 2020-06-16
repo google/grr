@@ -19,7 +19,6 @@ describe('UserMenu Component', () => {
     currentUser$ = new Subject();
     userFacade = {
       currentUser$,
-      fetchCurrentUser: jasmine.createSpy('fetchCurrentUser'),
     };
 
     TestBed
@@ -37,7 +36,6 @@ describe('UserMenu Component', () => {
     const fixture = TestBed.createComponent(UserMenu);
     fixture.detectChanges();
 
-    expect(userFacade.fetchCurrentUser).toHaveBeenCalled();
     currentUser$.next({
       name: 'test',
     });

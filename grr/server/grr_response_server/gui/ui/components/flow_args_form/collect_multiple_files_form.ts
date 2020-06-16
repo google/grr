@@ -1,9 +1,7 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
+import {FormArray, FormControl, FormGroup} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {ExplainGlobExpressionService} from '@app/lib/service/explain_glob_expression_service/explain_glob_expression_service';
-import {Subject} from 'rxjs';
-import {map, shareReplay, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {map, shareReplay} from 'rxjs/operators';
 
 import {CollectMultipleFilesArgs} from '../../lib/api/api_interfaces';
 import {ClientPageFacade} from '../../store/client_page_facade';
@@ -13,55 +11,51 @@ import {ClientPageFacade} from '../../store/client_page_facade';
   selector: 'collect-multiple-files-form',
   templateUrl: './collect_multiple_files_form.ng.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [ExplainGlobExpressionService],
 })
 export class CollectMultipleFilesForm extends
-    FlowArgumentForm<CollectMultipleFilesArgs> implements OnInit, OnDestroy {
-  private readonly unsubscribe$ = new Subject<void>();
-
+    FlowArgumentForm<CollectMultipleFilesArgs> implements OnInit {
   readonly form = new FormGroup({
-    pathExpression: new FormControl(),
+    pathExpressions: new FormArray([]),
   });
 
   @Output()
   readonly formValues$ = this.form.valueChanges.pipe(
-      map(values => ({
-            pathExpressions: [values.pathExpression],
-          })),
       shareReplay(1),
   );
 
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
-  readonly explanation$ = this.globExpressionService.explanation$;
+  readonly clientId$ = this.clientPageFacade.selectedClient$.pipe(
+      map(client => client?.clientId),
+  );
 
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
-      private readonly globExpressionService: ExplainGlobExpressionService,
   ) {
     super();
   }
 
   ngOnInit() {
-    this.form.patchValue({
-      pathExpression: this.defaultFlowArgs.pathExpressions?.length ?
-          this.defaultFlowArgs.pathExpressions[0] :
-          '',
+    const pathExpressions = this.defaultFlowArgs.pathExpressions?.length ?
+        this.defaultFlowArgs.pathExpressions :
+        [''];
+
+    pathExpressions.forEach(() => {
+      this.addPathExpression();
     });
 
-    this.formValues$
-        .pipe(
-            withLatestFrom(this.clientPageFacade.selectedClient$),
-            takeUntil(this.unsubscribe$),
-            )
-        .subscribe(([values, client]) => {
-          this.globExpressionService.explain(
-              client.clientId, values.pathExpressions[0]);
-        });
+    this.form.patchValue({pathExpressions});
   }
 
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
+  get pathExpressions(): FormArray {
+    return this.form.get('pathExpressions') as FormArray;
+  }
+
+  addPathExpression() {
+    this.pathExpressions.push(new FormControl());
+  }
+
+  removePathExpression(index: number) {
+    this.pathExpressions.removeAt(index);
   }
 }

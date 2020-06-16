@@ -286,6 +286,8 @@ class E2ETestRunner(object):
     millis_elapsed = None
     while num_attempts < self._max_test_attempts:
       start_time = time.time()
+      logging.info("Starting %s (attempt %d out of %d).", test_name,
+                   num_attempts + 1, self._max_test_attempts)
       result = unittest_runner.run(test)
       millis_elapsed = int((time.time() - start_time) * 1000)
       num_attempts += 1
@@ -298,6 +300,9 @@ class E2ETestRunner(object):
                        self._api_retry_period_secs)
           time.sleep(self._api_retry_period_secs)
         continue
+      else:
+        logging.info("%s (attempt %d) finished successfully.", test_name,
+                     num_attempts)
 
       if num_attempts > 1 and self._appveyor_messages_endpoint:
         appveyor_msg = "Flaky test %s passed after %d attempts." % (

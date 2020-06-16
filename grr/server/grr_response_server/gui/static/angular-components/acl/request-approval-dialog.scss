@@ -1,11 +1,11 @@
 grr-request-approval-dialog {
-  div.controls > input[type=checkbox] {
+  div.controls > input[type='checkbox'] {
     display: inline-block;
-    margin-top: .75em;
-    margin-bottom: .75em;
+    margin-top: 0.75em;
+    margin-bottom: 0.75em;
   }
 
-  select[name=acl_recent_reasons] {
+  select[name='acl_recent_reasons'] {
     width: 70%;
   }
 }

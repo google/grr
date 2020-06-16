@@ -29,9 +29,9 @@ grr-user-notification-item {
       color: $color-default-font;
       background: $color-notification-highlight-color;
       border: 2px solid $color-default-background;
-      transition: border .5s ease, background-color .5 ease;
+      transition: border 0.5s ease, background-color 0.5 ease;
     }
-  };
+  }
 
   .notification-icon i {
     position: absolute;
@@ -54,7 +54,7 @@ grr-user-notification-item {
   grr-timestamp {
     margin: 3px 0 0 0;
     padding: 0;
-    font-size: .8em;
+    font-size: 0.8em;
     display: block;
     color: $color-no-link-color;
   }
@@ -78,7 +78,7 @@ grr-user-notification-item {
       left: 5px;
       top: 5px;
       font-family: FontAwesome;
-      font-size: .75em;
+      font-size: 0.75em;
       color: $color-infoline-color;
     }
   }
@@ -90,7 +90,6 @@ grr-user-notification-item {
     background-color: $color-no-link-color;
     color: $color-default-font-inverted;
     padding: 3px 5px;
-    font-size: .8em;
+    font-size: 0.8em;
   }
-
 }

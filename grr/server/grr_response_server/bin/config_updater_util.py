@@ -325,6 +325,7 @@ class FleetspeakConfig:
     self.grr_port = 11111
     self.https_port = 4443
     self.mysql_username: str = None
+    self.mysql_password: str = None
     self.mysql_host: str = None
     self.mysql_port = 3306
     self.mysql_database: str = None
@@ -333,7 +334,7 @@ class FleetspeakConfig:
     """Sets up the in-memory configuration interactively."""
 
     self.use_fleetspeak = RetryBoolQuestion(
-        "Use Fleetspeak (next generation communication framework)?", True)
+        "Use Fleetspeak (next generation communication framework)?", False)
 
     if self.use_fleetspeak:
 
@@ -350,25 +351,45 @@ class FleetspeakConfig:
       self.https_port = RetryIntQuestion("Fleetspeak public HTTPS port",
                                          self.https_port)
 
-      self.mysql_host = RetryQuestion("Fleetspeak MySQL Host",
-                                      "^[\\.A-Za-z0-9-]+$",
-                                      config["Mysql.host"])
-      self.mysql_port = RetryIntQuestion("Fleetspeak MySQL Port",
-                                         self.mysql_port)
-      self.mysql_database = RetryQuestion("Fleetspeak MySQL Database",
-                                          "^[A-Za-z0-9-]+$", "fleetspeak")
-      self.mysql_username = RetryQuestion("Fleetspeak MySQL Username",
-                                          "[A-Za-z0-9-@]+$",
-                                          config["Mysql.database_username"])
-
-      self.mysql_password = GetPassword(
-          "Please enter password for database user %s: " % self.mysql_username)
+      self._PromptMySQL(config)
 
   def Write(self, config):
     if self.use_fleetspeak:
       self._WriteEnabled(config)
     else:
       self._WriteDisabled(config)
+
+  def _PromptMySQLOnce(self, config):
+    """Prompt the MySQL configuration once."""
+    self.mysql_host = RetryQuestion("Fleetspeak MySQL Host",
+                                    "^[\\.A-Za-z0-9-]+$", self.mysql_host or
+                                    config["Mysql.host"])
+    self.mysql_port = RetryIntQuestion(
+        "Fleetspeak MySQL Port (local socket currently not supported)",
+        self.mysql_port)
+    self.mysql_database = RetryQuestion("Fleetspeak MySQL Database",
+                                        "^[A-Za-z0-9-]+$",
+                                        self.mysql_database or "fleetspeak")
+    self.mysql_username = RetryQuestion(
+        "Fleetspeak MySQL Username", "[A-Za-z0-9-@]+$", self.mysql_username or
+        config["Mysql.database_username"])
+
+    self.mysql_password = GetPassword(
+        f"Please enter password for database user {self.mysql_username}: ")
+
+  def _PromptMySQL(self, config):
+    """Prompts the MySQL configuration, retrying if the configuration is invalid."""
+    while True:
+      self._PromptMySQLOnce(config)
+      if self._CheckMySQLConnection():
+        print("Successfully connected to MySQL with the given configuration.")
+        return
+      else:
+        print("Error: Could not connect to MySQL with the given configuration.")
+        retry = RetryBoolQuestion("Do you want to retry MySQL configuration?",
+                                  True)
+        if not retry:
+          raise ConfigInitError()
 
   def _WriteDisabled(self, config):
 
@@ -457,6 +478,26 @@ class FleetspeakConfig:
                cp.components_config.admin_config.listen_address)
     config.Set("FleetspeakFrontend Context",
                {"Server.fleetspeak_message_listen_address": grpc_config.target})
+
+  def _CheckMySQLConnection(self):
+    """Checks the MySQL configuration by attempting a connection."""
+    db_options = {
+        "Mysql.host": self.mysql_host,
+        "Mysql.port": self.mysql_port,
+        "Mysql.database_name": self.mysql_database,
+        "Mysql.database_username": self.mysql_username,
+        "Mysql.database_password": self.mysql_password,
+    }
+    # In Python, localhost is automatically mapped to connecting via the UNIX
+    # domain socket.
+    # However, for Go we require a TCP connection at the moment.
+    # So if the host is localhost, try to connect to 127.0.0.1 to force TCP.
+    if db_options["Mysql.host"] == "localhost":
+      db_options_localhost = dict(db_options)
+      db_options_localhost["Mysql.host"] = "127.0.0.1"
+      if CheckMySQLConnection(db_options_localhost):
+        return True
+    return CheckMySQLConnection(db_options)
 
 
 def ConfigureDatastore(config):

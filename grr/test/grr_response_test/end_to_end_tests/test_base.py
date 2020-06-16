@@ -229,6 +229,14 @@ class AbstractFileTransferTest(EndToEndTest):
 
     return path
 
+  def NTFSPathspecToVFSPath(self, pathspec):
+    path = "fs/ntfs/"
+    while pathspec.path:
+      path += pathspec.path
+      pathspec = pathspec.nested_path
+
+    return path
+
   def CheckMacMagic(self, path):
     data = self.ReadFromFile(path, 10)
 

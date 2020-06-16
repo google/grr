@@ -13,8 +13,6 @@ import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expre
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 import {GrrStoreModule} from '../../store/store_module';
-
-import {CollectMultipleFilesForm} from './collect_multiple_files_form';
 import {FlowArgsForm} from './flow_args_form';
 
 
@@ -281,15 +279,9 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
            TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
        fixture.detectChanges();
 
-       // Providing the input to the HTML input field directly would be a more
-       // accurate test, but for unknown reasons the test does not pick up the
-       // input field value. It works fine in the browser though.
-       //  Resorting to manipulating the form directly for now. ¯\_(ツ)_/¯
-       const form =
-           fixture.debugElement.query(By.directive(CollectMultipleFilesForm))
-               .componentInstance;
-       expect(form).toBeDefined();
-       form.form.patchValue({pathExpression: '/home/{foo,bar}'});
+       const input = fixture.debugElement.query(By.css('input')).nativeElement;
+       input.value = '/home/{foo,bar}';
+       input.dispatchEvent(new Event('input'));
 
        tick(1000);
        fixture.detectChanges();
@@ -314,5 +306,91 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
 
     const text = fixture.debugElement.nativeElement.innerText;
     expect(text).toContain('/home/foo');
+  });
+
+  it('allows adding path expressions', (done) => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    clientPageFacade.selectedClientSubject.next(newClient({
+      clientId: 'C.1234',
+    }));
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
+    fixture.detectChanges();
+
+
+    let inputs = fixture.debugElement.queryAll(By.css('input'));
+    expect(inputs.length).toEqual(1);
+
+    const addButton =
+        fixture.debugElement.query(By.css('#button-add-path-expression'));
+    addButton.nativeElement.click();
+    fixture.detectChanges();
+
+    inputs = fixture.debugElement.queryAll(By.css('input'));
+    expect(inputs.length).toEqual(2);
+
+    inputs[0].nativeElement.value = '/0';
+    inputs[0].nativeElement.dispatchEvent(new Event('input'));
+
+    inputs[1].nativeElement.value = '/1';
+    inputs[1].nativeElement.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
+        (values) => {
+          expect(values).toEqual({pathExpressions: ['/0', '/1']});
+          done();
+        });
+  });
+
+  it('allows removing path expressions', (done) => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    clientPageFacade.selectedClientSubject.next(newClient({
+      clientId: 'C.1234',
+    }));
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
+    fixture.detectChanges();
+
+
+    let inputs = fixture.debugElement.queryAll(By.css('input'));
+    expect(inputs.length).toEqual(1);
+
+    const addButton =
+        fixture.debugElement.query(By.css('#button-add-path-expression'));
+    addButton.nativeElement.click();
+    fixture.detectChanges();
+
+    inputs = fixture.debugElement.queryAll(By.css('input'));
+    expect(inputs.length).toEqual(2);
+
+    inputs[0].nativeElement.value = '/0';
+    inputs[0].nativeElement.dispatchEvent(new Event('input'));
+
+    inputs[1].nativeElement.value = '/1';
+    inputs[1].nativeElement.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const removeButtons =
+        fixture.debugElement.queryAll(By.css('button[aria-label=\'Remove\']'));
+    expect(removeButtons.length).toEqual(2);
+
+    removeButtons[1].nativeElement.click();
+    fixture.detectChanges();
+
+    inputs = fixture.debugElement.queryAll(By.css('input'));
+    expect(inputs.length).toEqual(1);
+
+    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
+        (values) => {
+          expect(values).toEqual({pathExpressions: ['/0']});
+          done();
+        });
   });
 });
