@@ -1,6 +1,7 @@
 from grafanalib.core import Dashboard, Graph, Row, Target
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
+from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
 
 GRR_COMPONENT = "frontend"
 
@@ -45,4 +46,4 @@ dashboard = Dashboard(
   ],
 ).auto_panel_ids()
 
-dashboard = add_data_source(dashboard)
+dashboard = add_data_source(dashboard, GRAFANA_DATA_SOURCE)
