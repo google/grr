@@ -34,11 +34,26 @@ def number_of_active_processes_graph(grr_component):
 
 def avg_cpu_usage_percentage(grr_component):
     return Graph(
-        title="CPU Usage",
+        title="Average CPU Usage",
         targets=[
             Target(
                 expr='avg(rate(process_cpu_seconds_total{{job="grr_{}"}}[30s])) * 100'.format(grr_component),
                 legendFormat="Average Process CPU Usage in %",
+            ),
+        ],
+        )
+
+def avg_process_memory_bytes(grr_component):
+    return Graph(
+        title="Average Process Memory Bytes",
+        targets=[
+            Target(
+                expr='avg(process_resident_memory_bytes{{job="grr_{}"}})'.format(grr_component),
+                legendFormat="Resident Memory",
+            ),
+            Target(
+                expr='avg(process_virtual_memory_bytes{{job="grr_{}"}})'.format(grr_component),
+                legendFormat="Virtual Memory",
             ),
         ],
         )
