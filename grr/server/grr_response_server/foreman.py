@@ -33,12 +33,16 @@ class Foreman(object):
     """Will return True if hunt's task was assigned to this client before."""
     flow_id = hunt_id
     try:
-      data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-      return True
+      cur_flow = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     except db.UnknownFlowError:
-      pass
+      return False
 
-    return False
+    if cur_flow.parent_hunt_id != hunt_id:
+      raise RuntimeError(
+          "Cannot start Hunt {} on {} because unrelated {} already exists."
+          .format(hunt_id, client_id, cur_flow.long_flow_id))
+
+    return True
 
   def _RunAction(self, rule, client_id):
     """Run all the actions specified in the rule.

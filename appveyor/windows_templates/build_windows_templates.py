@@ -165,16 +165,6 @@ class WindowsTemplateBuilder(object):
       subprocess.check_call([self.virtualenv_python32] + cmd +
                             ["--upgrade", "pip>=8.1.1"])
 
-    # Workaround for https://github.com/pypa/setuptools/issues/1963
-
-    subprocess.check_call(
-        [self.virtualenv_python64] + cmd +
-        ["--upgrade", "--force-reinstall", "setuptools<45.0.0"])
-    if args.build_32:
-      subprocess.check_call(
-          [self.virtualenv_python32] + cmd +
-          ["--upgrade", "--force-reinstall", "setuptools<45.0.0"])
-
   def GitCheckoutGRR(self):
     os.chdir(args.build_dir)
     subprocess.check_call(
