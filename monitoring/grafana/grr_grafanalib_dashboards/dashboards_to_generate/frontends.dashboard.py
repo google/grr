@@ -1,6 +1,6 @@
 from grafanalib.core import Dashboard, Graph, Row, Target
 from grr_grafanalib_dashboards.util import add_data_source
-from grr_grafanalib_dashboards.config import PANELS
+from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
 
 GRR_COMPONENT = "frontend"
 
@@ -8,7 +8,7 @@ dashboard = Dashboard(
   title="{}s Dashboard".format(GRR_COMPONENT).title(),
   rows=[
     Row(panels=[
-      panel(GRR_COMPONENT) for panel in PANELS
+      panel(GRR_COMPONENT) for panel in GENERAL_PANELS
     ]
     ),
     Row(panels=[

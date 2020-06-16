@@ -12,7 +12,7 @@ def number_of_active_processes_graph(grr_component):
     ],
     alert=Alert(
       name="Number of Active Processes alert",
-      message="The number of active {} processes is below {}".format(grr_component.capitalize(), config.ACTIVE_PROCESSES_CONDITION),
+      message="The number of active {} processes is below {}".format(grr_component.capitalize(), config.ACTIVE_PROCESSES_ALERTING_CONDITION),
       alertConditions=[
         AlertCondition(
           Target(
@@ -20,7 +20,7 @@ def number_of_active_processes_graph(grr_component):
             legendFormat="Active Processes",
           ),
           timeRange=TimeRange("10s", "now"),
-          evaluator=LowerThan(config.ACTIVE_PROCESSES_CONDITION),
+          evaluator=LowerThan(config.ACTIVE_PROCESSES_ALERTING_CONDITION),
           operator=OP_AND,
           reducerType=RTYPE_SUM
         )
@@ -38,3 +38,5 @@ def avg_cpu_usage_percentage(grr_component):
       ),
     ],
   )
+
+GENERAL_PANELS = [number_of_active_processes_graph, avg_cpu_usage_percentage]
