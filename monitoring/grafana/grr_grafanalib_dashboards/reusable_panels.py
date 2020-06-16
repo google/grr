@@ -42,3 +42,14 @@ def avg_cpu_usage_percentage(grr_component):
             ),
         ],
         )
+
+def db_request_latency(grr_component):
+    return Graph(
+        title="Database Request Latency",
+        targets=[
+            Target(
+                expr='sum(rate(db_request_latency_sum{{job="grr_{0}"}}[5m])) / sum(rate(db_request_latency_count{{job="grr_{0}"}}[5m]))'.format(grr_component),
+                legendFormat="Latency",
+            ),
+        ],
+        )
