@@ -18,8 +18,8 @@ dashboard = Dashboard(
             title="API Method Latency Rate",
             targets=[
                 Target(
-                    expr='sum(rate(api_method_latency_sum[5m])) / sum(rate(api_method_latency_count[5m]))',
-                    legendFormat="Latency",
+                    expr='rate(api_method_latency_sum[5m]) / rate(api_method_latency_count[5m])',
+                    legendFormat="Latency - Method: {{method_name}}",
                 ),
             ],
             ),
@@ -27,7 +27,7 @@ dashboard = Dashboard(
             title="API Access Probe Latency",
             targets=[
                 Target(
-                    expr='sum(rate(api_access_probe_latency_sum[5m])) / sum(rate(api_access_probe_latency_count[5m]))',
+                    expr='rate(api_access_probe_latency_sum[5m]) / rate(api_access_probe_latency_count[5m])',
                     legendFormat="Latency",
                 ),
             ],

@@ -43,17 +43,13 @@ def avg_cpu_usage_percentage(grr_component):
         ],
         )
 
-def avg_process_memory_bytes(grr_component):
+def sum_process_memory_bytes(grr_component):
     return Graph(
-        title="Average Process Memory Bytes",
+        title="Sum of Process Memory Bytes (across all instances)",
         targets=[
             Target(
-                expr='avg(process_resident_memory_bytes{{job="grr_{}"}})'.format(grr_component),
+                expr='sum(process_resident_memory_bytes{{job="grr_{}"}})'.format(grr_component),
                 legendFormat="Resident Memory",
-            ),
-            Target(
-                expr='avg(process_virtual_memory_bytes{{job="grr_{}"}})'.format(grr_component),
-                legendFormat="Virtual Memory",
             ),
         ],
         )
@@ -63,8 +59,8 @@ def db_request_latency(grr_component):
         title="Database Request Latency",
         targets=[
             Target(
-                expr='sum(rate(db_request_latency_sum{{job="grr_{0}"}}[5m])) / sum(rate(db_request_latency_count{{job="grr_{0}"}}[5m]))'.format(grr_component),
-                legendFormat="Latency",
+                expr='rate(db_request_latency_sum{{job="grr_{0}"}}[5m]) / rate(db_request_latency_count{{job="grr_{0}"}}[5m])'.format(grr_component),
+                legendFormat="Latency - Call: {{call}}",
             ),
         ],
         )

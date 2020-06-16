@@ -305,12 +305,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(rate(db_request_latency_sum{job=\"grr_worker\"}[5m])) / sum(rate(db_request_latency_count{job=\"grr_worker\"}[5m]))",
+              "expr": "rate(db_request_latency_sum{job=\"grr_worker\"}[5m]) / rate(db_request_latency_count{job=\"grr_worker\"}[5m])",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Latency",
+              "legendFormat": "Latency - Call: {{call}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -401,7 +401,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "avg(process_resident_memory_bytes{job=\"grr_worker\"})",
+              "expr": "sum(process_resident_memory_bytes{job=\"grr_worker\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -411,24 +411,11 @@
               "refId": "",
               "step": 10,
               "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "avg(process_virtual_memory_bytes{job=\"grr_worker\"})",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "Virtual Memory",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Average Process Memory Bytes",
+          "title": "Sum of Process Memory Bytes (across all instances)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
