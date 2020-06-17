@@ -1,4 +1,4 @@
-from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange
+from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis
 from grr_grafanalib_dashboards import config
 
 def number_of_active_processes_graph(grr_component):
@@ -37,6 +37,9 @@ def avg_cpu_usage_percentage(grr_component):
         legendFormat="Average Process CPU Usage in %",
       ),
     ],
+    yAxes=YAxes(
+      left=YAxis(max=105)
+    ),
   )
 
 def sum_process_memory_bytes(grr_component):
