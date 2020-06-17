@@ -1,6 +1,7 @@
 from grafanalib.core import Dashboard, Graph, Row, Target
 from grr_grafanalib_dashboards.util import add_data_source
-from grr_grafanalib_dashboards.config import PANELS
+from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
+from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
 
 GRR_COMPONENT = "admin_ui"
 
@@ -8,7 +9,7 @@ dashboard = Dashboard(
     title="{}s Dashboard".format(GRR_COMPONENT).title().split("_"),
     rows=[
         Row(panels=[
-            panel(GRR_COMPONENT) for panel in PANELS
+            panel(GRR_COMPONENT) for panel in GENERAL_PANELS
         ]
         ),
         Row(panels=[
@@ -34,4 +35,4 @@ dashboard = Dashboard(
     ],
 ).auto_panel_ids()
 
-dashboard = add_data_source(dashboard)
+dashboard = add_data_source(dashboard, GRAFANA_DATA_SOURCE)

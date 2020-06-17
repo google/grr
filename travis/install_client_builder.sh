@@ -7,8 +7,6 @@ set -e
 
 source "${HOME}/INSTALL/bin/activate"
 pip install --upgrade pip wheel six setuptools
-# Workaround for https://github.com/pypa/setuptools/issues/1963
-pip install --upgrade --force-reinstall "setuptools<45.0.0"
 
 # Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
 unset _JAVA_OPTIONS

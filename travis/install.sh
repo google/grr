@@ -9,7 +9,7 @@ pip install --upgrade pip wheel six setuptools nodeenv
 
 # Install the latest version of nodejs. Some packages
 # may not be compatible with the version.
-nodeenv -p --prebuilt --node=12.11.1
+nodeenv -p --prebuilt --node=12.18.0
 
 # Pull in changes to activate made by nodeenv
 source "${HOME}/INSTALL/bin/activate"

@@ -223,7 +223,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Average CPU Usage",
+          "title": "CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -305,12 +305,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "rate(db_request_latency_sum{job=\"grr_admin_ui\"}[5m]) / rate(db_request_latency_count{job=\"grr_admin_ui\"}[5m])",
+              "expr": "sum(process_resident_memory_bytes{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Latency - Call: {{call}}",
+              "legendFormat": "Resident Memory",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -319,7 +319,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Database Request Latency",
+          "title": "Sum of Process Memory Bytes (across all instances)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -401,12 +401,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(process_resident_memory_bytes{job=\"grr_admin_ui\"})",
+              "expr": "rate(db_request_latency_sum{job=\"grr_admin_ui\"}[5m]) / rate(db_request_latency_count{job=\"grr_admin_ui\"}[5m])",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Resident Memory",
+              "legendFormat": "Latency - Call: {{call}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -415,7 +415,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Sum of Process Memory Bytes (across all instances)",
+          "title": "Database Request Latency",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -608,7 +608,7 @@
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Latency",
+              "legendFormat": "Latency - Method: {{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -693,7 +693,10 @@
     ]
   },
   "timezone": "utc",
-  "title": "Admin_Uis Dashboard",
+  "title": [
+    "Admin",
+    "Uis Dashboard"
+  ],
   "uid": null,
   "version": 0
 }
