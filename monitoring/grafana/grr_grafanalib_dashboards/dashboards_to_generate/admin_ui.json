@@ -238,10 +238,10 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": null,
               "label": null,
               "logBase": 1,
-              "max": null,
+              "max": 105,
               "min": 0,
               "show": true
             },
