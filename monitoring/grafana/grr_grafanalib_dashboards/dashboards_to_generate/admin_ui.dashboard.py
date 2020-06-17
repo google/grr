@@ -1,13 +1,11 @@
-from grafanalib.core import (
-    Dashboard, Graph, Row, Target
-)
+from grafanalib.core import Dashboard, Graph, Row, Target
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.config import PANELS
 
 GRR_COMPONENT = "admin_ui"
 
 dashboard = Dashboard(
-    title="{}s Dashboard".format(GRR_COMPONENT).title(),
+    title="{}s Dashboard".format(GRR_COMPONENT).title().split("_"),
     rows=[
         Row(panels=[
             panel(GRR_COMPONENT) for panel in PANELS
@@ -28,7 +26,7 @@ dashboard = Dashboard(
             targets=[
                 Target(
                     expr='rate(api_access_probe_latency_sum[5m]) / rate(api_access_probe_latency_count[5m])',
-                    legendFormat="Latency",
+                    legendFormat="Latency - Method: {{method_name}}",
                 ),
             ],
             ),
