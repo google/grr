@@ -14,19 +14,6 @@ dashboard = Dashboard(
         ]
         ),
         Row(panels=[
-          Graph(
-            title="Outstanding Tasks vs. Number of Threads",
-            targets=[
-                Target(
-                    expr='sum(threadpool_outstanding_tasks{{job="grr_{}"}})'.format(GRR_COMPONENT),
-                    legendFormat="Outstanding Tasks",
-                ),
-                Target(
-                    expr='sum(threadpool_threads{{job="grr_{}"}})'.format(GRR_COMPONENT),
-                    legendFormat="Threads",
-                ),
-            ],
-            ),
             Graph(
             title="Successful Flows vs. Failed Flows Rate",
             targets=[

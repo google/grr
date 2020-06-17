@@ -64,3 +64,18 @@ def db_request_latency(grr_component):
             ),
         ],
         )
+
+def threadpool_outstanding_tasks_vs_threads_num(grr_component):
+  return Graph(
+    title="Outstanding Tasks vs. Number of Threads",
+    targets=[
+      Target(
+        expr='sum(threadpool_outstanding_tasks{{job="grr_{}"}})'.format(grr_component),
+        legendFormat="Outstanding Tasks",
+      ),
+      Target(
+        expr='sum(threadpool_threads{{job="grr_{}"}})'.format(grr_component),
+        legendFormat="Threads",
+      ),
+    ],
+    ),

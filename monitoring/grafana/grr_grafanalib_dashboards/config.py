@@ -7,4 +7,5 @@ PANELS = [
     reusable_panels.avg_cpu_usage_percentage,
     reusable_panels.db_request_latency,
     reusable_panels.sum_process_memory_bytes,
+    # reusable_panels.threadpool_outstanding_tasks_vs_threads_num,
     ]
