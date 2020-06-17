@@ -31,6 +31,20 @@ dashboard = Dashboard(
           ),
         ],
       ),
+      # This graph will work only for non-Fleetspeak GRR deployment
+      Graph(
+        title="Frontends Bandwidth Rate",
+        targets=[
+          Target(
+            expr='sum(rate(frontend_in_bytes)[1m])',
+            legendFormat="Frontends In Bytes",
+          ),
+          Target(
+            expr='sum(rate(frontend_out_bytes)[1m])',
+            legendFormat="Frontends Out Bytes",
+          ),
+        ],
+      ),
       ]
     ),
     Row(panels=[
