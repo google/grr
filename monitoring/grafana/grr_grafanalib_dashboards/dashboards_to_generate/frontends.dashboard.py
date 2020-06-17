@@ -43,6 +43,15 @@ dashboard = Dashboard(
                     ),
                 ],
             ),
+            Graph(
+                title="Well Known Flows Requests",
+                targets=[
+                    Target(
+                        expr='sum(well_known_flow_requests_total)',
+                        legendFormat="Total number of requests",
+                    ),
+                ],
+            ),
         ]),
     ],
 ).auto_panel_ids()
