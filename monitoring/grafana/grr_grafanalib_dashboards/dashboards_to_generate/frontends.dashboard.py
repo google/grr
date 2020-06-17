@@ -17,7 +17,7 @@ dashboard = Dashboard(
         title="QPS",
         targets=[
           Target(
-            expr='sum(rate({}_request_count_total[1m]))'.format(GRR_COMPONENT),
+            expr='sum(rate(frontend_request_count_total[1m]))',
             legendFormat="Requests",
           ),
         ],
@@ -38,7 +38,7 @@ dashboard = Dashboard(
         title="Active Tasks Count",
         targets=[
           Target(
-            expr='sum({}_active_count)'.format(GRR_COMPONENT),
+            expr='sum(frontend_active_count)',
             legendFormat="Active Tasks",
           ),
         ],
