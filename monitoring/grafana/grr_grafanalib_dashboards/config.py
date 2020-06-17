@@ -4,6 +4,8 @@ from grr_grafanalib_dashboards import reusable_panels
 # and it can be visited at localhost:3000.
 # In GRR Monitoring docs, we suggest naming it "grr-server", but if it's
 # not the case, change it here.
+# For reference, take a look at the docs here:
+# https://grr-doc.readthedocs.io/en/latest/maintaining-and-tuning/monitoring.html#example-visualization-and-alerting-setup
 GRAFANA_DATA_SOURCE = "grr-server"
 
 # An alert will be fired if the number of active processes (of any
