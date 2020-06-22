@@ -31,21 +31,16 @@ dashboard = Dashboard(
           ),
         ],
       ),
-      # This graph will work only for non-Fleetspeak GRR deployment
       Graph(
-        title="Frontends Bandwidth Rate",
+        title="RSA Operations Rate",
         targets=[
           Target(
-            expr='sum(rate(frontend_in_bytes)[1m])',
-            legendFormat="Frontends In Bytes",
-          ),
-          Target(
-            expr='sum(rate(frontend_out_bytes)[1m])',
-            legendFormat="Frontends Out Bytes",
+            expr='sum(rate(grr_rsa_operations_total[10m]))',
+            legendFormat="Operations Rate",
           ),
         ],
       ),
-      ]
+    ]
     ),
     Row(panels=[
       Graph(
@@ -58,17 +53,59 @@ dashboard = Dashboard(
         ],
       ),
       Graph(
-        title="Well Known Flows Requests",
+        title="Well Known Flows Requests Rate",
         targets=[
           Target(
-            expr='sum(well_known_flow_requests_total)',
-            legendFormat="Total number of requests",
+            expr='sum(rate(well_known_flow_requests_total[10m]))',
+            legendFormat="Rate of requests",
+          ),
+        ],
+      ),
+      Graph(
+        title="Client Unknown Errors Rate",
+        targets=[
+          Target(
+            expr='sum(rate(grr_client_unknown_total[10m]))',
+            legendFormat="Rate of errors",
+          ),
+        ],
+      ),
+      Graph(
+        title="Decoding Errors Rate",
+        targets=[
+          Target(
+            expr='sum(rate(grr_decoding_error_total[10m]))',
+            legendFormat="Rate of errors",
           ),
         ],
       ),
     ]
     ),
-  ],
+    Row(panels=[
+      Graph(
+        title="Decryption Errors Rate",
+        targets=[
+          Target(
+            expr='sum(rate(grr_decryption_error_total[10m]))',
+            legendFormat="Rate of errors",
+          ),
+        ],
+      ),
+      Graph(
+        title="Authenticated vs. Unauthenticated Messages Rate",
+        targets=[
+          Target(
+            expr='sum(rate(grr_authenticated_messages_total[10m]))',
+            legendFormat="Rate of authenticated messages",
+          ),
+          Target(
+            expr='sum(rate(grr_unauthenticated_messages_total[10m]))',
+            legendFormat="Rate of unauthenticated errors",
+          ),
+        ],
+      ),
+    ]),
+  ]
 ).auto_panel_ids()
 
 dashboard = add_data_source(dashboard, GRAFANA_DATA_SOURCE)
