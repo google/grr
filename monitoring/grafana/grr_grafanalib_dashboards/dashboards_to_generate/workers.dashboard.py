@@ -26,8 +26,6 @@ dashboard = Dashboard(
           ),
         ],
       ),
-    ]),
-    Row(panels=[
       Graph(
         title="Threadpool Latency Rate vs. Queuing Time Rate",
         targets=[
