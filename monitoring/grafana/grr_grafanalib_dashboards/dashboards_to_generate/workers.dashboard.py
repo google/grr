@@ -17,11 +17,11 @@ dashboard = Dashboard(
         title="Successful Flows Rate vs. Failed Flows Rate",
         targets=[
           Target(
-            expr='sum(rate(flow_completions_total{job="grr_worker"}[5m]))',
+            expr='sum(rate(flow_completions_total{job="grr_worker"}[10m]))',
             legendFormat="Successes",
           ),
           Target(
-            expr='sum(rate(flow_errors_total{job="grr_worker"}[5m]))',
+            expr='sum(rate(flow_errors_total{job="grr_worker"}[10m]))',
             legendFormat="Failures",
           ),
         ],
@@ -32,11 +32,11 @@ dashboard = Dashboard(
         title="Threadpool Latency Rate vs. Queuing Time Rate",
         targets=[
           Target(
-            expr='sum(rate(threadpool_working_time_sum{job="grr_worker"}[5m])) / sum(rate(threadpool_working_time_count{job="grr_worker"}[5m]))',
+            expr='sum(rate(threadpool_working_time_sum{job="grr_worker"}[10m])) / sum(rate(threadpool_working_time_count{job="grr_worker"}[10m]))',
             legendFormat="Latency",
           ),
           Target(
-            expr='sum(rate(threadpool_queueing_time_sum{job="grr_worker"}[5m])) / sum(rate(threadpool_queueing_time_count{job="grr_worker"}[5m]))',
+            expr='sum(rate(threadpool_queueing_time_sum{job="grr_worker"}[10m])) / sum(rate(threadpool_queueing_time_count{job="grr_worker"}[10m]))',
             legendFormat="Queueing Time",
           ),
         ],

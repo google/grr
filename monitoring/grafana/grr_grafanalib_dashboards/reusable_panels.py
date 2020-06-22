@@ -57,7 +57,7 @@ def db_request_latency(grr_component):
     title="Database Request Latency",
     targets=[
       Target(
-        expr='rate(db_request_latency_sum{{job="grr_{0}"}}[5m]) / rate(db_request_latency_count{{job="grr_{0}"}}[5m])'.format(grr_component),
+        expr='rate(db_request_latency_sum{{job="grr_{0}"}}[10m]) / rate(db_request_latency_count{{job="grr_{0}"}}[10m])'.format(grr_component),
         legendFormat="Latency - Call: {{call}}",
       ),
     ])

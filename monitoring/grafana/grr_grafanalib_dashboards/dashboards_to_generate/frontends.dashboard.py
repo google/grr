@@ -26,7 +26,7 @@ dashboard = Dashboard(
         title="Request Latency Rate",
         targets=[
           Target(
-            expr='sum(rate(frontend_request_latency_sum[5m])) / sum(rate(frontend_request_latency_count[5m]))',
+            expr='sum(rate(frontend_request_latency_sum[10m])) / sum(rate(frontend_request_latency_count[10m]))',
             legendFormat="Latency",
           ),
         ],
