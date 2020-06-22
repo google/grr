@@ -86,11 +86,43 @@ def threadpool_outstanding_tasks_vs_threads_num(grr_component):
       ),
     ])
 
+def threadpool_cpu_usa(grr_component):
+  return Graph(
+    title="Threadpool Average CPU Usage",
+    targets=[
+      Target(
+        expr='avg(rate(threadpool_cpu_use_total{{job="grr_{}"}}[30s])) * 100'.format(grr_component),
+        legendFormat="Average Process CPU Usage in %",
+      ),
+    ],
+    yAxes=YAxes(
+      left=YAxis(max=105)
+    ),
+  )
+
+def client_crashes(grr_component):
+  return Graph(
+    title="GRR Client Crashes",
+    targets=[
+      Target(
+        expr='sum(rate(grr_client_crashes_total{{job="grr_{}"}}[10m]))'.format(grr_component),
+        legendFormat="Rate of Client crashes",
+      ),
+    ])
+
+# Each array will be parsed as a row in the dashboard.
+# Don't add more than 4 per row.
 GENERAL_PANELS = [
-  # number_of_active_processes_graph, 
-  # avg_cpu_usage_percentage,
-  sum_process_memory_bytes,
-  db_request_latency,
+  [
+    number_of_active_processes_graph,
+    avg_cpu_usage_percentage,
+    sum_process_memory_bytes,
+    db_request_latency,
+  ],
+  [
   threadpool_outstanding_tasks_vs_threads_num,
   db_request_errors,
+  threadpool_cpu_usa,
+  client_crashes,
+  ],
 ]

@@ -8,10 +8,10 @@ GRR_COMPONENT = "admin_ui"
 dashboard = Dashboard(
   title="{}s Dashboard".format(GRR_COMPONENT).title().split("_"),
   rows=[
-    Row(panels=[
-      panel(GRR_COMPONENT) for panel in GENERAL_PANELS
-      ]
-    ),
+    Row(panels=[panel(GRR_COMPONENT) for panel in row]) 
+    for row in GENERAL_PANELS
+    ] +
+    [
     Row(panels=[
       Graph(
         title="API Method Latency Rate",

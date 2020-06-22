@@ -8,10 +8,10 @@ GRR_COMPONENT = "worker"
 dashboard = Dashboard(
   title="{}s Dashboard".format(GRR_COMPONENT).title(),
   rows=[
-    Row(panels=[
-      panel(GRR_COMPONENT) for panel in GENERAL_PANELS
-    ]
-    ),
+    Row(panels=[panel(GRR_COMPONENT) for panel in row]) 
+    for row in GENERAL_PANELS
+    ] +
+    [
     Row(panels=[
       Graph(
         title="Successful Flows Rate vs. Failed Flows Rate",

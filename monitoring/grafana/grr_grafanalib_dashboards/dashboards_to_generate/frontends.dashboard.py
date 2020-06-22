@@ -8,11 +8,11 @@ GRR_COMPONENT = "frontend"
 dashboard = Dashboard(
   title="{}s Dashboard".format(GRR_COMPONENT).title(),
   rows=[
-    Row(panels=[
-      panel(GRR_COMPONENT) for panel in GENERAL_PANELS
-      ]
-    ),
-    Row(panels=[
+    Row(panels=[panel(GRR_COMPONENT) for panel in row]) 
+    for row in GENERAL_PANELS
+    ] +
+    [
+      Row(panels=[
       Graph(
         title="QPS",
         targets=[
