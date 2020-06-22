@@ -78,24 +78,24 @@ setup_args = dict(
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=[
-        "absl-py==0.8.0",
+        "absl-py==0.9.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "pyinstaller==3.5",
-        "libfsntfs-python==20200223",
+        "PyInstaller==3.6",
+        "libfsntfs-python==20200506",
     ],
     extras_require={
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
-            "WMI==1.4.9",
-            "pywin32==224",
+            "WMI==1.5.1",
+            "pywin32==228",
         ],
     },
 )
 
 if platform.system() == "Linux":
-  setup_args["install_requires"].append("chipsec==1.4.4")
+  setup_args["install_requires"].append("chipsec==1.5.1")
 
 if platform.system() != "Windows":
-  setup_args["install_requires"].append("xattr==0.9.6")
+  setup_args["install_requires"].append("xattr==0.9.7")
 
 setup(**setup_args)

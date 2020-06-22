@@ -67,10 +67,10 @@ setup_args = dict(
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=[
-        "distro==1.4.0",
+        "distro==1.5.0",
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "pyinstaller==3.5",
+        "PyInstaller==3.6",
         "fleetspeak-client-bin==0.1.7.1",
     ],
 

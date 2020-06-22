@@ -35,6 +35,17 @@ from grr_response_server import server_logging
 from grr_response_server.gui import http_api
 from grr_response_server.gui import webauth
 
+# pylint: disable=g-import-not-at-top
+try:
+  # Werkzeug 0.16.0
+  from werkzeug.wsgi import SharedDataMiddleware
+  from werkzeug.wsgi import DispatcherMiddleware
+except ImportError:
+  # Werkzeug 1.0.1
+  from werkzeug.middleware.shared_data import SharedDataMiddleware
+  from werkzeug.middleware.dispatcher import DispatcherMiddleware
+# pylint: enable=g-import-not-at-top
+
 CSRF_DELIMITER = b":"
 CSRF_TOKEN_DURATION = rdfvalue.Duration.From(10, rdfvalue.HOURS)
 
@@ -363,7 +374,7 @@ window.location = '%s' + friendly_hash;
 
   def WSGIHandler(self):
     """Returns GRR's WSGI handler."""
-    sdm = werkzeug_wsgi.SharedDataMiddleware(self, {
+    sdm = SharedDataMiddleware(self, {
         "/": config.CONFIG["AdminUI.document_root"],
     })
     # Use DispatcherMiddleware to make sure that SharedDataMiddleware is not
@@ -373,7 +384,7 @@ window.location = '%s' + friendly_hash;
     # SharedDataMiddleware may fail early while trying to convert the
     # URL into the file path and not dispatch the call further to our own
     # WSGI handler.
-    return werkzeug_wsgi.DispatcherMiddleware(self, {
+    return DispatcherMiddleware(self, {
         "/static": sdm,
     })
 

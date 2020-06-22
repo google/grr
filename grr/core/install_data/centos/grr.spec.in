@@ -23,7 +23,7 @@ AutoReqProv: no
 cp -R \%{_builddir}/* \%{buildroot}
 DIR="\%{buildroot}%(ClientBuilder.daemon_link)"
 mkdir -p "$\(dirname ${DIR}\)"
-ln -s %(ClientBuilder.target_dir)/%(Client.binary_name) \%{buildroot}%(ClientBuilder.daemon_link)
+ln -s %(ClientBuilder.target_dir)/wrapper.sh \%{buildroot}%(ClientBuilder.daemon_link)
 
 %clean
 

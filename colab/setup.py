@@ -70,9 +70,9 @@ setup(
     install_requires=[
         "grr_api_client==%s" % VERSION.get("Version", "packagedepends"),
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        "humanize==0.5.1",
-        "ipaddress==1.0.22",
-        "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.2.0"),
-        "numpy==1.16.4",
-        "pandas==0.24.1",
+        "humanize==2.4.0",
+        "ipaddress==1.0.23",
+        "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.15.0"),
+        "numpy==1.18.5",
+        "pandas==1.0.4",
     ])

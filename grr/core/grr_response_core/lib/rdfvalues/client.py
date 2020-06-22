@@ -558,9 +558,15 @@ class Uname(rdf_structs.RDFProtoStruct):
 
     # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
     if pep425tags:
+      try:
+        # 0.33.6
+        pep_platform = pep425tags.get_platform()
+      except TypeError:
+        # 0.34.2
+        pep_platform = pep425tags.get_platform(None)
       pep425tag = "%s%s-%s-%s" % (
           pep425tags.get_abbr_impl(), pep425tags.get_impl_ver(),
-          str(pep425tags.get_abi_tag()).lower(), pep425tags.get_platform())
+          str(pep425tags.get_abi_tag()).lower(), pep_platform)
     else:
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)

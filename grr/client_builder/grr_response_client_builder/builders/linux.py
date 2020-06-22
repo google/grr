@@ -65,6 +65,11 @@ def _CopyNonFleetspeakDpkgFiles(dist_dir, package_dir):
                            "install_data/debian/dpkg_client/nanny.sh.in"),
       dist_dir)
 
+  # Copy the wrapper script.
+  shutil.copy(
+      package.ResourcePath("grr-response-core", "install_data/wrapper.sh.in"),
+      dist_dir)
+
   # Copy files needed for dpkg-buildpackage.
   shutil.copytree(
       config_lib.Resource().Filter("install_data/debian/dpkg_client/debian"),
@@ -168,6 +173,13 @@ class DebianClientBuilder(build.ClientBuilder):
     _MakeZip(self.package_dir, output_file)
 
 
+def _CopyCommonRpmFiles(dist_dir):
+  # Copy the wrapper script.
+  shutil.copy(
+      package.ResourcePath("grr-response-core", "install_data/wrapper.sh.in"),
+      dist_dir)
+
+
 def _CopyFleetspeakRpmFiles(package_dir, context=None):
   """Copies Fleetspeak-enabled RPM files into the template folder."""
   if context is None:
@@ -242,6 +254,7 @@ class CentosClientBuilder(build.ClientBuilder):
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
 
     _StripLibraries(output_dir)
+    _CopyCommonRpmFiles(output_dir)
     if self.fleetspeak_enabled:
       _CopyFleetspeakRpmFiles(self.package_dir, context=self.context)
     else:

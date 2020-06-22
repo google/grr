@@ -104,6 +104,9 @@ def main(argv):
   if flags.FLAGS.config_osquery_path:
     config.CONFIG.Set("Osquery.path", flags.FLAGS.config_osquery_path)
 
+  # All tests should work fine with a tight (15 secs) unresponsive kill period.
+  config.CONFIG.Set("Nanny.unresponsive_kill_period", 15)
+
   config_updater_keys_util.GenerateKeys(config.CONFIG)
   config.CONFIG.Write()
 

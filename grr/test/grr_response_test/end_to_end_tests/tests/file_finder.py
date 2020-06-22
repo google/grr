@@ -196,6 +196,35 @@ class TestFileFinderOSDarwin(test_base.AbstractFileTransferTest):
   def testCFF(self):
     self._testCollection("ClientFileFinder")
 
+  def _testRandomDevice(self, flow):
+    # Reading from /dev/urandom is an interesting test,
+    # since the hash can't be precalculated and GRR will
+    # be forced to use server-side generated hash. It triggers
+    # branches in the code that are not triggered when collecting
+    # ordinary files.
+    # Reading 400 megabytes to put additional load on the client send-queues
+    # and activate the heartbeating logic.
+    len_to_read = 1024 * 1024 * 400
+    args = self.grr_api.types.CreateFlowArgs(flow)
+
+    args.paths.append("/dev/urandom")
+    args.action.action_type = args.action.DOWNLOAD
+    args.action.download.max_size = len_to_read
+    args.process_non_regular_files = True
+
+    with self.WaitForFileCollection("fs/os/dev/urandom"):
+      self.RunFlowAndWait(flow, args=args)
+
+    f = self.client.File("fs/os/dev/urandom").Get()
+    self.assertEqual(f.data.last_collected_size, len_to_read)
+    self.assertEqual(f.data.hash.num_bytes, len_to_read)
+
+  def testRandomDevice(self):
+    self._testRandomDevice("FileFinder")
+
+  def testCFFRandomDevice(self):
+    self._testRandomDevice("ClientFileFinder")
+
 
 class TestFileFinderOSLinux(test_base.AbstractFileTransferTest):
   """Test for FileFinder on Linux machines."""
@@ -248,7 +277,9 @@ class TestFileFinderOSLinux(test_base.AbstractFileTransferTest):
     # be forced to use server-side generated hash. It triggers
     # branches in the code that are not triggered when collecting
     # ordinary files.
-    len_to_read = 1024
+    # Reading 400 megabytes to put additional load on the client send-queues
+    # and activate the heartbeating logic.
+    len_to_read = 1024 * 1024 * 400
     args = self.grr_api.types.CreateFlowArgs(flow)
 
     args.paths.append("/dev/urandom")
