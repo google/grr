@@ -41,6 +41,15 @@ dashboard = Dashboard(
           ),
         ],
       ),
+      Graph(
+        title="Rate of Flow States a GRR Worker has moved through",
+        targets=[
+          Target(
+            expr='rate(grr_worker_states_run_total{job="grr_worker"}[10m])',
+            legendFormat="Rate of Fow States moved through",
+          ),
+        ],
+      ),
     ]),
   ],
 ).auto_panel_ids()
