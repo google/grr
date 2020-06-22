@@ -62,6 +62,16 @@ def db_request_latency(grr_component):
       ),
     ])
 
+def db_request_errors(grr_component):
+  return Graph(
+    title="Database Request Errors Rate",
+    targets=[
+      Target(
+        expr='rate(db_request_errors_total{{job="grr_{0}"}}[10m])'.format(grr_component),
+        legendFormat="Request Error Rate - Call: {{call}}",
+      ),
+    ])
+
 def threadpool_outstanding_tasks_vs_threads_num(grr_component):
   return Graph(
     title="Outstanding Tasks vs. Number of Threads",
@@ -77,9 +87,10 @@ def threadpool_outstanding_tasks_vs_threads_num(grr_component):
     ])
 
 GENERAL_PANELS = [
-  number_of_active_processes_graph, 
-  avg_cpu_usage_percentage,
+  # number_of_active_processes_graph, 
+  # avg_cpu_usage_percentage,
   sum_process_memory_bytes,
   db_request_latency,
-  # threadpool_outstanding_tasks_vs_threads_num,
+  threadpool_outstanding_tasks_vs_threads_num,
+  db_request_errors,
 ]
