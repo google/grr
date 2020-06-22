@@ -23,6 +23,19 @@ dashboard = Dashboard(
         ],
       ),
       Graph(
+        title="API Calls Created Rate by Status",
+        targets=[
+          Target(
+            expr='sum(rate(api_method_latency_created{status="SUCCESS"}[10m]))',
+            legendFormat="Successful Calls Rate",
+          ),
+          Target(
+            expr='sum(rate(api_method_latency_created{status!="SUCCESS"}[10m]))',
+            legendFormat="Unsuccessful Calls Rate",
+          ),
+        ],
+      ),
+      Graph(
         title="API Access Probe Latency",
         targets=[
           Target(
