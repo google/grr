@@ -52,9 +52,9 @@ def sum_process_memory_bytes(grr_component):
       ),
     ])
 
-def db_request_latency(grr_component):
+def db_operations_latency(grr_component):
   return Graph(
-    title="Database Request Latency",
+    title="Database Operations Latency",
     targets=[
       Target(
         expr='rate(db_request_latency_sum{{job="grr_{0}"}}[10m]) / rate(db_request_latency_count{{job="grr_{0}"}}[10m])'.format(grr_component),
@@ -62,13 +62,13 @@ def db_request_latency(grr_component):
       ),
     ])
 
-def db_request_errors(grr_component):
+def db_operations_errors(grr_component):
   return Graph(
-    title="Database Request Errors Rate",
+    title="Database Operations Errors Rate",
     targets=[
       Target(
         expr='rate(db_request_errors_total{{job="grr_{0}"}}[10m])'.format(grr_component),
-        legendFormat="Request Error Rate - Call: {{call}}",
+        legendFormat="Operations Error Rate - Call: {{call}}",
       ),
     ])
 
@@ -110,19 +110,19 @@ def client_crashes(grr_component):
       ),
     ])
 
-# Each array will be parsed as a row in the dashboard.
-# Don't add more than 4 per row.
+# Each sublist will be parsed as a row in the dashboard.
+# Don't add more than 4 panels per row.
 GENERAL_PANELS = [
   [
     number_of_active_processes_graph,
     avg_cpu_usage_percentage,
     sum_process_memory_bytes,
-    db_request_latency,
+    client_crashes,
   ],
   [
-  threadpool_outstanding_tasks_vs_threads_num,
-  db_request_errors,
-  threadpool_cpu_usa,
-  client_crashes,
+    threadpool_outstanding_tasks_vs_threads_num,
+    threadpool_cpu_usa,
+    db_operations_errors,
+    db_operations_latency,
   ],
 ]
