@@ -6,7 +6,7 @@ from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
 GRR_COMPONENT = "admin_ui"
 
 dashboard = Dashboard(
-  title="{}s Dashboard".format(GRR_COMPONENT).title().split("_"),
+  title="{}s Dashboard".format(GRR_COMPONENT).title().replace("_", " "),
   rows=[
     Row(panels=[panel(GRR_COMPONENT) for panel in row]) 
     for row in GENERAL_PANELS
