@@ -4,6 +4,12 @@ that will help you get started quickly introducing monitoring capabilities to yo
 
 Quick Start
 -----------
+Before generating the dashboards on your own, note that you may find the sample
+dashboard in importable JSON format inside the folder
+`grr/monitoring/grafana/grr_grafanalib_dashboards/dashboards_for_use`. From
+there you may import the sample dashboards without re-generating them to your
+Grafana instance. Only if you wish to generate the dashboards, proceed.
+
 First, make sure to activate the virtual environment of your GRR installtion (if you use one), and have Grafana and [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/#starting-prometheus)
 running on your GRR deployment. To run Prometheus and Grafana with GRR, check out the [monitoring section](https://grr-doc.readthedocs.io/en/latest/maintaining-and-tuning/monitoring.html)
 of the documentation.
