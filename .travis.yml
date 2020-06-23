@@ -145,14 +145,23 @@ matrix:
         - >-
           sudo docker exec "${DOCKER_CONTAINER}"
           yum remove -y sqlite-devel || true
+        - >-
+          sudo docker exec "${DOCKER_CONTAINER}"
+          curl -s -o /etc/yum.repos.d/devtools-2.repo
+          https://people.centos.org/tru/devtools-2/devtools-2.repo
+        - >-
+          sudo docker exec "${DOCKER_CONTAINER}"
+          yum install -y
+          devtoolset-2-gcc devtoolset-2-binutils
+          devtoolset-2-gcc-c++
       install:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          travis/install_client_builder.sh
+          scl enable devtoolset-2 travis/install_client_builder.sh
       script:
         - >-
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}"
-          travis/build_templates.sh
+          scl enable devtoolset-2 travis/build_templates.sh
         - >-
           ${HOME}/GCS_VENV/bin/python
           travis/upload_build_results_to_gcs.py

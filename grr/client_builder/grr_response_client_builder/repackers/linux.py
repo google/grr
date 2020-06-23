@@ -81,6 +81,13 @@ class LinuxClientRepacker(build.ClientRepacker):
     utils.EnsureDirExists(
         os.path.join(template_path, "dist/debian/%s/usr/sbin" % package_name))
 
+    if os.path.exists(os.path.join(target_binary_dir, "wrapper.sh.in")):
+      build_helpers.GenerateFile(
+          os.path.join(target_binary_dir, "wrapper.sh.in"),
+          os.path.join(target_binary_dir, "wrapper.sh"),
+          context=self.context)
+      os.chmod(os.path.join(target_binary_dir, "wrapper.sh"), 0o755)
+
     if fleetspeak_enabled:
       if fleetspeak_bundled:
         self._GenerateFleetspeakConfig(template_path,
@@ -400,6 +407,14 @@ class CentosClientRepacker(LinuxClientRepacker):
       client_arch = config.CONFIG.Get("Template.arch", context=self.context)
       if client_arch == "amd64":
         client_arch = "x86_64"
+
+      # Create wrapper script
+      if os.path.exists(os.path.join(target_binary_dir, "wrapper.sh.in")):
+        build_helpers.GenerateFile(
+            os.path.join(target_binary_dir, "wrapper.sh.in"),
+            os.path.join(target_binary_dir, "wrapper.sh"),
+            context=self.context)
+        os.chmod(os.path.join(target_binary_dir, "wrapper.sh"), 0o755)
 
       command = [
           rpmbuild_binary, "--define", "_topdir " + rpm_root_dir, "--target",

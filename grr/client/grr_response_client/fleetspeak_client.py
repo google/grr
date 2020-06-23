@@ -84,11 +84,17 @@ class GRRFleetspeakClient(object):
     # The client worker does all the real work here.
     # In particular, we delegate sending messages to Fleetspeak to a separate
     # threading.Thread here.
-    self._threads["Worker"] = comms.GRRClientWorker(
-        out_queue=_FleetspeakQueueForwarder(self._sender_queue),
+    out_queue = _FleetspeakQueueForwarder(self._sender_queue)
+    worker = self._threads["Worker"] = comms.GRRClientWorker(
+        out_queue=out_queue,
         heart_beat_cb=heart_beat_cb,
         internal_nanny_monitoring=internal_nanny_monitoring,
         client=self)
+    # TODO(user): this is an ugly way of passing the heartbeat callback to
+    # the queue. Refactor the heartbeat callback initialization logic so that
+    # this won't be needed.
+    out_queue.heart_beat_cb = worker.Heartbeat
+
     self._threads["Foreman"] = self._CreateThread(self._ForemanOp)
     self._threads["Sender"] = self._CreateThread(self._SendOp)
     self._threads["Receiver"] = self._CreateThread(self._ReceiveOp)
@@ -232,9 +238,23 @@ class _FleetspeakQueueForwarder(object):
       sender_queue: queue.Queue
     """
     self._sender_queue = sender_queue
+    self.heart_beat_cb = lambda: None
 
-  def Put(self, grr_msg, **_):
-    self._sender_queue.put(grr_msg)
+  def Put(self, grr_msg, block=True, timeout=None):
+    """Places a message in the queue."""
+    if not block:
+      self._sender_queue.put(grr_msg, block=False)
+    else:
+      t0 = time.time()
+      while not timeout or (time.time() - t0 < timeout):
+        self.heart_beat_cb()
+        try:
+          self._sender_queue.put(grr_msg, timeout=1)
+          return
+        except queue.Full:
+          continue
+
+      raise queue.Full
 
   def Get(self):
     raise NotImplementedError("This implementation only supports input.")

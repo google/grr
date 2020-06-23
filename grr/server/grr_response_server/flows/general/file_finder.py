@@ -337,9 +337,15 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
           fetch_file = True
 
         if fetch_file:
+          pathspec = response.stat_entry.pathspec.Copy()
+          # If the file size is reported as zero and we're processing
+          # non-regular files, let's assume we're dealing with a
+          # device file and use download.max_size as a size override.
+          if (not response.stat_entry.st_size and
+              self.args.process_non_regular_files):
+            pathspec.file_size_override = self.args.action.download.max_size
           self.StartFileFetch(
-              response.stat_entry.pathspec,
-              request_data=dict(original_result=response))
+              pathspec, request_data=dict(original_result=response))
 
   def ReceiveFileStat(self, responses):
     if "original_result" not in responses.request_data:

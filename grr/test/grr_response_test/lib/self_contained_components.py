@@ -5,6 +5,7 @@
 import atexit
 import collections
 import os
+import platform
 import shutil
 import signal
 import subprocess
@@ -319,6 +320,13 @@ def InitFleetspeakConfigs(
       "grr_response_client.grr_fs_client",
       "--config", grr_configs.client_config
   ])
+
+  # TODO(user): remove this condition when Fleetspeak is used as a nanny
+  # on all platforms.
+  if platform.system() == "Windows":
+    payload.monitor_heartbeats = True
+    payload.heartbeat_unresponsive_grace_period_seconds = 45
+    payload.heartbeat_unresponsive_kill_period_seconds = 15
   service_conf.config.Pack(payload)
 
   os.mkdir(TempPath("textservices"))
@@ -482,20 +490,20 @@ def RunRepackTemplate(
 
 def RunUploadExe(server_config_path: str,
                  exe_path: str,
-                 platform: str,
+                 platform_str: str,
                  component_options: Optional[ComponentOptions] = None) -> str:
   """Runs 'grr_config_upater upload_exe' to upload a binary to GRR."""
   p = _StartComponent(
       "grr_response_server.bin.config_updater",
       _GetServerComponentArgs(server_config_path) +
       _ComponentOptionsToArgs(component_options) + [
-          "upload_exe", "--file", exe_path, "--platform", platform,
+          "upload_exe", "--file", exe_path, "--platform", platform_str,
           "--upload_subdirectory", "test"
       ])
   if p.wait() != 0:
     raise RuntimeError("RunUploadExe execution failed.")
 
-  return "%s/test/%s" % (platform, os.path.basename(exe_path))
+  return "%s/test/%s" % (platform_str, os.path.basename(exe_path))
 
 
 _PROCESS_CHECK_INTERVAL = 0.1

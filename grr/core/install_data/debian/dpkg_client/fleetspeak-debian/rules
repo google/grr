@@ -22,7 +22,7 @@ override_dh_prep:
 	# Nothing to do here, directory is already wiped and set up.
 
 override_dh_link:
-	dh_link "%(ClientBuilder.target_dir)/%(Client.binary_name)" "%(ClientBuilder.daemon_link)"
+	dh_link "%(ClientBuilder.target_dir)/wrapper.sh" "%(ClientBuilder.daemon_link)"
 
 override_dh_strip:
 	# Necessary otherwise the PyInstaller build executables will not run

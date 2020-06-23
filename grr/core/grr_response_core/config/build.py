@@ -136,7 +136,9 @@ if platform.system\(\).lower\(\) == 'linux':
 
 a = Analysis\(
     [client_path],
-    hiddenimports=CHIPSEC_IMPORTS,
+    # TODO\(https://github.com/pypa/setuptools/issues/1963\): py2_warn is
+    # a workaround. Revisit in the future, whether this is needed.
+    hiddenimports=CHIPSEC_IMPORTS + ["pkg_resources.py2_warn"],
     hookspath=None\)
 
 # Remove some optional libraries that would be packed but serve no purpose.
