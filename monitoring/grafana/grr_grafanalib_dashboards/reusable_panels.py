@@ -91,8 +91,8 @@ def threadpool_cpu_usa(grr_component):
     title="Threadpool Average CPU Usage",
     targets=[
       Target(
-        expr='avg(rate(threadpool_cpu_use_total{{job="grr_{}"}}[30s])) * 100'.format(grr_component),
-        legendFormat="Average Process CPU Usage in %",
+        expr='avg(rate(threadpool_cpu_use{{job="grr_{}"}}[30s])) * 100'.format(grr_component),
+        legendFormat="Average Process CPU Usage in % (over all jobs & pools)",
       ),
     ],
     yAxes=YAxes(
