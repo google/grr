@@ -15,11 +15,13 @@ import mock
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
@@ -31,10 +33,14 @@ class DatabaseTestFlowMixin(object):
   This mixin adds methods to test the handling of flows.
   """
 
-  def _SetupClientAndFlow(self, client_id=None, **additional_flow_args):
+  def _SetupClient(self, client_id=None):
     client_id = client_id or u"C.1234567890123456"
-    flow_id = flow.RandomFlowId()
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    return client_id
+
+  def _SetupClientAndFlow(self, client_id=None, **additional_flow_args):
+    client_id = self._SetupClient(client_id)
+    flow_id = flow.RandomFlowId()
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
@@ -44,6 +50,10 @@ class DatabaseTestFlowMixin(object):
     self.db.WriteFlowObject(rdf_flow)
 
     return client_id, flow_id
+
+  def _SetupUser(self, username="foo"):
+    self.db.WriteGRRUser(username)
+    return username
 
   def testClientActionRequestStorage(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -2797,5 +2807,124 @@ class DatabaseTestFlowMixin(object):
         4,
     )
 
+  def _SetupScheduledFlow(self, **kwargs):
+    merged_kwargs = {
+        "scheduled_flow_id": flow.RandomFlowId(),
+        "flow_name": "CollectSingleFile",
+        "flow_args": rdf_file_finder.CollectSingleFileArgs(),
+        "runner_args": rdf_flow_runner.FlowRunnerArgs(network_bytes_limit=1024),
+        **kwargs
+    }
+
+    sf = rdf_flow_objects.ScheduledFlow(**merged_kwargs)
+    self.db.WriteScheduledFlow(sf)
+    return sf
+
+  def testListScheduledFlowsInitiallyEmpty(self):
+    client_id = self._SetupClient()
+    username = self._SetupUser()
+    self.assertEmpty(self.db.ListScheduledFlows(client_id, username))
+
+  def testWriteScheduledFlow(self):
+    client_id = self._SetupClient()
+    username = self._SetupUser()
+
+    sf = self._SetupScheduledFlow(client_id=client_id, creator=username)
+    self.assertEqual([sf], self.db.ListScheduledFlows(client_id, username))
+
+  def testListScheduledFlowsFiltersCorrectly(self):
+    client_id1 = self._SetupClient("C.0000000000000001")
+    client_id2 = self._SetupClient("C.0000000000000002")
+    client_id3 = self._SetupClient("C.0000000000000003")
+
+    username1 = self._SetupUser("u1")
+    username2 = self._SetupUser("u2")
+    username3 = self._SetupUser("u3")
+
+    sf11a = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    sf11b = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    sf12 = self._SetupScheduledFlow(client_id=client_id1, creator=username2)
+    sf21 = self._SetupScheduledFlow(client_id=client_id2, creator=username1)
+    sf22 = self._SetupScheduledFlow(client_id=client_id2, creator=username2)
+
+    self.assertCountEqual([sf11a, sf11b],
+                          self.db.ListScheduledFlows(client_id1, username1))
+    self.assertEqual([sf12], self.db.ListScheduledFlows(client_id1, username2))
+    self.assertEqual([sf21], self.db.ListScheduledFlows(client_id2, username1))
+    self.assertEqual([sf22], self.db.ListScheduledFlows(client_id2, username2))
+
+    self.assertEmpty(
+        self.db.ListScheduledFlows("C.1234123412341234", username1))
+    self.assertEmpty(self.db.ListScheduledFlows(client_id1, "nonexistent"))
+    self.assertEmpty(
+        self.db.ListScheduledFlows("C.1234123412341234", "nonexistent"))
+    self.assertEmpty(self.db.ListScheduledFlows(client_id3, username1))
+    self.assertEmpty(self.db.ListScheduledFlows(client_id1, username3))
+
+  def testWriteScheduledFlowRaisesForUnknownClient(self):
+    self._SetupClient()
+    username = self._SetupUser()
+
+    with self.assertRaises(db.UnknownClientError):
+      self._SetupScheduledFlow(client_id="C.1234123412341234", creator=username)
+
+    self.assertEmpty(self.db.ListScheduledFlows("C.1234123412341234", username))
+
+  def testWriteScheduledFlowRaisesForUnknownUser(self):
+    client_id = self._SetupClient()
+    self._SetupUser()
+
+    with self.assertRaises(db.UnknownGRRUserError):
+      self._SetupScheduledFlow(client_id=client_id, creator="nonexistent")
+
+    self.assertEmpty(self.db.ListScheduledFlows(client_id, "nonexistent"))
+
+  def testDeleteScheduledFlowRemovesScheduledFlow(self):
+    client_id = self._SetupClient()
+    username = self._SetupUser()
+
+    sf1 = self._SetupScheduledFlow(client_id=client_id, creator=username)
+    sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username)
+
+    self.db.DeleteScheduledFlow(client_id, username, sf1.scheduled_flow_id)
+
+    self.assertEqual([sf2], self.db.ListScheduledFlows(client_id, username))
+
+  def testDeleteScheduledFlowRaisesForUnknownScheduledFlow(self):
+    client_id = self._SetupClient()
+    username = self._SetupUser()
+
+    self._SetupScheduledFlow(
+        scheduled_flow_id="1", client_id=client_id, creator=username)
+
+    with self.assertRaises(db.UnknownScheduledFlowError) as e:
+      self.db.DeleteScheduledFlow(client_id, username, "2")
+
+    self.assertEqual(e.exception.client_id, client_id)
+    self.assertEqual(e.exception.creator, username)
+    self.assertEqual(e.exception.scheduled_flow_id, "2")
+
+    with self.assertRaises(db.UnknownScheduledFlowError):
+      self.db.DeleteScheduledFlow(client_id, "nonexistent", "1")
+
+    with self.assertRaises(db.UnknownScheduledFlowError):
+      self.db.DeleteScheduledFlow("C.1234123412341234", username, "1")
+
+  def testDeleteUserDeletesScheduledFlows(self):
+    client_id = self._SetupClient()
+    client_id2 = self._SetupClient()
+    username1 = self._SetupUser("u1")
+    username2 = self._SetupUser("u2")
+
+    self._SetupScheduledFlow(client_id=client_id, creator=username1)
+    self._SetupScheduledFlow(client_id=client_id, creator=username1)
+    self._SetupScheduledFlow(client_id=client_id2, creator=username1)
+    sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username2)
+
+    self.db.DeleteGRRUser(username1)
+
+    self.assertEmpty(self.db.ListScheduledFlows(client_id, username1))
+    self.assertEmpty(self.db.ListScheduledFlows(client_id2, username1))
+    self.assertEqual([sf2], self.db.ListScheduledFlows(client_id, username2))
 
 # This file is a test library and thus does not require a __main__ block.

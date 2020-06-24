@@ -269,6 +269,20 @@ class UnknownFlowError(NotFoundError):
                     (self.client_id, self.flow_id))
 
 
+class UnknownScheduledFlowError(NotFoundError):
+  """Raised when a nonexistent ScheduledFlow is accessed."""
+
+  def __init__(self, client_id, creator, scheduled_flow_id, cause=None):
+    super().__init__(client_id, creator, scheduled_flow_id, cause=cause)
+
+    self.client_id = client_id
+    self.creator = creator
+    self.scheduled_flow_id = scheduled_flow_id
+
+    self.message = "ScheduledFlow {}/{}/{} does not exist.".format(
+        self.client_id, self.creator, self.scheduled_flow_id)
+
+
 class UnknownHuntError(NotFoundError):
 
   def __init__(self, hunt_id, cause=None):
@@ -2858,6 +2872,39 @@ class Database(metaclass=abc.ABCMeta):
       `True` if the blob identifier refers to a YARA signature.
     """
 
+  @abc.abstractmethod
+  def WriteScheduledFlow(
+      self, scheduled_flow: rdf_flow_objects.ScheduledFlow) -> None:
+    """Inserts or updates the ScheduledFlow in the database.
+
+    Args:
+      scheduled_flow: the ScheduledFlow to insert.
+
+    Raises:
+      UnknownClientError: if no client with client_id exists.
+      UnknownGRRUserError: if creator does not exist as user.
+    """
+
+  @abc.abstractmethod
+  def DeleteScheduledFlow(self, client_id: str, creator: str,
+                          scheduled_flow_id: str) -> None:
+    """Deletes the ScheduledFlow from the database.
+
+    Args:
+      client_id: The ID of the client of the ScheduledFlow.
+      creator: The username of the user who created the ScheduledFlow.
+      scheduled_flow_id: The ID of the ScheduledFlow.
+
+    Raises:
+      UnknownScheduledFlowError: if no such ScheduledFlow exists.
+    """
+
+  @abc.abstractmethod
+  def ListScheduledFlows(
+      self, client_id: str,
+      creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+    """Lists all ScheduledFlows for the client and creator."""
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -4230,6 +4277,28 @@ class DatabaseValidationWrapper(Database):
   ) -> bool:
     _ValidateBlobID(blob_id)
     return self.delegate.VerifyYaraSignatureReference(blob_id)
+
+  def WriteScheduledFlow(
+      self, scheduled_flow: rdf_flow_objects.ScheduledFlow) -> None:
+    _ValidateStringId("scheduled_flow_id", scheduled_flow.scheduled_flow_id)
+    _ValidateUsername(scheduled_flow.creator)
+    precondition.ValidateClientId(scheduled_flow.client_id)
+    return self.delegate.WriteScheduledFlow(scheduled_flow)
+
+  def DeleteScheduledFlow(self, client_id: str, creator: str,
+                          scheduled_flow_id: str) -> None:
+    precondition.ValidateClientId(client_id)
+    _ValidateUsername(creator)
+    _ValidateStringId("scheduled_flow_id", scheduled_flow_id)
+    return self.delegate.DeleteScheduledFlow(client_id, creator,
+                                             scheduled_flow_id)
+
+  def ListScheduledFlows(
+      self, client_id: str,
+      creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+    precondition.ValidateClientId(client_id)
+    _ValidateUsername(creator)
+    return self.delegate.ListScheduledFlows(client_id, creator)
 
 
 def _ValidateEnumType(value, expected_enum_type):

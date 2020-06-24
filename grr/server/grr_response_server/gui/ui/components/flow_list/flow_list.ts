@@ -41,10 +41,6 @@ export class FlowList {
       private readonly clientPageFacade: ClientPageFacade,
   ) {}
 
-  toggleFlowExpansion(flowId: string) {
-    this.clientPageFacade.toggleFlowExpansion(flowId);
-  }
-
   queryFlowResults(flowId: string, query: FlowResultsQuery) {
     this.clientPageFacade.queryFlowResults(query);
   }
@@ -54,7 +50,7 @@ export class FlowList {
       this.clientPageFacade.startFlowConfiguration(flow.name, flow.args);
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (event === FlowMenuAction.CANCEL) {
-      this.clientPageFacade.cancelFlow(flow.clientId, flow.flowId);
+      this.clientPageFacade.cancelFlow(flow.flowId);
     }
   }
 

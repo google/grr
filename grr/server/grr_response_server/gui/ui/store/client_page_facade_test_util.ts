@@ -6,8 +6,7 @@ import {ReplaySubject, Subject} from 'rxjs';
 
 import {Client} from '../lib/models/client';
 
-import {StartFlowState} from './client_page/client_page_reducers';
-import {ClientPageFacade} from './client_page_facade';
+import {ClientPageFacade, StartFlowState} from './client_page_facade';
 
 export declare interface ClientPageFacadeMock extends
     Partial<ClientPageFacade> {

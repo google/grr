@@ -64,23 +64,9 @@ describe('multi-get-file-details component', () => {
     },
   }));
 
-  it('shows short version when isExpanded is false', () => {
+  it('shows information about collected files', () => {
     const fixture = TestBed.createComponent(MultiGetFileDetails);
     fixture.componentInstance.flowListEntry = FLOW_LIST_ENTRY;
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('Processed 0 out of 2');
-    expect(fixture.nativeElement.innerText).toContain('First path');
-    expect(fixture.nativeElement.innerText).toContain('/path1');
-    expect(fixture.nativeElement.innerText).not.toContain('/path2');
-  });
-
-  it('shows full version when isExpanded is true', () => {
-    const fixture = TestBed.createComponent(MultiGetFileDetails);
-    fixture.componentInstance.flowListEntry = {
-      ...FLOW_LIST_ENTRY,
-      isExpanded: true,
-    };
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('Processed 0 out of 2');

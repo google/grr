@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from absl import app
 
+from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -19,11 +20,13 @@ class NotificationTest(test_lib.GRRBaseTest):
   def testNotifyDoesNotNotifySystemUsers(self):
     # Implicitly test that Notify does not throw Exception because system users
     # might not exist in the database.
+    username = cronjobs.CRON_JOB_USERNAME
+
     notification.Notify(
-        "Cron", rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
+        username, rdf_objects.UserNotification.Type.TYPE_CLIENT_INTERROGATED,
         "Fake discovery message", rdf_objects.ObjectReference())
 
-    self.assertEmpty(data_store.REL_DB.ReadUserNotifications("Cron"))
+    self.assertEmpty(data_store.REL_DB.ReadUserNotifications(username))
 
 
 def main(argv):

@@ -1,58 +1,59 @@
 @use '~material-theme' as c;
 
 .container {
+  // This allows using "position: absolute" in plugins implementation (used
+  // for positioning additional flow controls with the
+  // flow-details-summary-actions class.
+  position: relative;
+
   padding: 0;
   background-color: c.mat-color(c.$background, app-bar);
   border: 1px solid c.mat-color(c.$foreground, divider-light);
   border-radius: 8px;
 
   .header-wrapper {
-    :hover {
-      background-color: #f0f0f0;
-    }
-
     .header {
-      padding: 24px;
+      padding: 18px 0 18px 24px;
       display: flex;
 
       .flow-header {
         flex-grow: 1;
 
+        display: flex;
+        align-items: center;
+
         .flow-title {
           font-family: c.$google-sans-display-family;
-          font-size: 115%;
-          font-weight: 500;
-          color: #6d6d6d;
+          font-size: 105%;
+          color: c.mat-color(c.$foreground, text);
         }
 
         .flow-info {
-          display: flex;
-          align-items: center;
-
-          margin-top: 0.85em;
+          flex-grow: 1;
+          padding-left: 1.5em;
+          padding-top: 2px;
           font-size: 85%;
-          color: #8c8c8c;
+          color: c.mat-color(c.$foreground, text-light);
+        }
 
-          .user-icon {
-            vertical-align: middle;
+        .flow-status {
+          padding-top: 6px;
+
+          .in-progress {
+            color: c.mat-color(c.$foreground, in-progress);
           }
 
-          .user-name {
-            padding-left: 0.4em;
+          .error {
+            color: c.mat-color(c.$foreground, danger);
           }
 
-          .start-time {
-            padding-left: 1em;
-            color: #8c8c8c;
+          .success {
+            color: c.mat-color(c.$foreground, success);
           }
         }
       }
 
       .menu-button {
-        position: relative;
-        top: -15px;
-        left: 20px;
-
         .menu-icon {
           opacity: 0.2;
           font-size: 250%;

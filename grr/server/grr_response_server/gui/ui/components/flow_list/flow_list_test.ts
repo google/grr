@@ -29,7 +29,6 @@ describe('FlowList Component', () => {
     clientPageFacade = {
       flowListEntries$,
       selectedClient$,
-      updateFlows: jasmine.createSpy('updateFlows'),
     };
 
     TestBed

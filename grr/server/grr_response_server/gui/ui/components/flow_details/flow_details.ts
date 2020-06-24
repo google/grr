@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {Plugin as FlowDetailsPlugin} from '@app/components/flow_details/plugins/plugin';
-import {Flow, FlowDescriptor, FlowListEntry, FlowResultsQuery} from '@app/lib/models/flow';
+import {Flow, FlowDescriptor, FlowListEntry, FlowResultsQuery, FlowState} from '@app/lib/models/flow';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
@@ -30,7 +30,7 @@ export class FlowDetails implements OnChanges, OnDestroy {
 
   private detailsComponent: ComponentRef<FlowDetailsPlugin>|undefined;
 
-
+  flowState = FlowState;
   flowMenuAction = FlowMenuAction;
 
   /**
@@ -42,11 +42,6 @@ export class FlowDetails implements OnChanges, OnDestroy {
    * if a flow got renamed on the backend).
    */
   @Input() flowDescriptor!: FlowDescriptor;
-
-  /**
-   * Event that is triggered when a user expands the details view.
-   */
-  @Output() expansionToggle = new EventEmitter<void>();
 
   /**
    * Event that is triggered when additional flow results data is needed to
@@ -126,14 +121,6 @@ export class FlowDetails implements OnChanges, OnDestroy {
 
   get flow(): Flow {
     return this.flowListEntry.flow;
-  }
-
-  get isExpanded(): boolean {
-    return this.flowListEntry.isExpanded;
-  }
-
-  triggerExpansionToggle() {
-    this.expansionToggle.emit();
   }
 
   triggerMenuEvent(action: FlowMenuAction) {

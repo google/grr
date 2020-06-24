@@ -15,10 +15,7 @@
     <div class="item">Failed: {{ progress.numFailed }}</div>
   </div>
 
-  <div *ngIf="!flowListEntry.isExpanded" class="first-path">
-    First path: {{ args.pathspecs.length > 0 ? pathSpecToPath(args.pathspecs[0]) : ''}}
-  </div>
-  <div *ngIf="flowListEntry.isExpanded">
+  <div>
     <div *ngFor="let pathStatus of progress.pathspecsProgress">
       <div class="path">{{ pathSpecToPath(pathStatus.pathspec) }}</div>
       <div class="status">{{ pathStatus.status }}</div>

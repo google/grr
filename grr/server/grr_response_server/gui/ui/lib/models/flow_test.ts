@@ -1,4 +1,4 @@
-import {buildUpdateResultsQueries, findFlowListEntryResultSet, FlowListEntry, FlowResultSet, FlowResultSetState, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
+import {findFlowListEntryResultSet, FlowListEntry, FlowResultSet, FlowResultSetState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {newFlowListEntry} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '../../testing';
 
@@ -222,99 +222,5 @@ describe('findFlowListEntryResultSet()', () => {
   it('correctly finds tagged typed result set', () => {
     expect(findFlowListEntryResultSet(fle, 'someType', 'someTag'))
         .toBe(resultSet2);
-  });
-});
-
-describe('buildUpdateResultsQueries()', () => {
-  const sampleFlowId = '42';
-
-  function sampleFlowListEntry(
-      flowState: FlowState, resultSetPartial: Partial<FlowResultSet> = {}) {
-    const fle = newFlowListEntry({
-      flowId: sampleFlowId,
-      state: flowState,
-    });
-
-    // Make sure there is a result set present in the FlowListEntry.
-    // Otherwise there won't be anything to update.
-    return updateFlowListEntryResultSet(fle, {
-      sourceQuery: {
-        flowId: fle.flow.flowId,
-        offset: 0,
-        count: 10,
-      },
-      items: [],
-      state: FlowResultSetState.FETCHED,
-      ...resultSetPartial,
-    });
-  }
-
-  it('does not include completed flows', () => {
-    const fle = sampleFlowListEntry(FlowState.FINISHED);
-    const fleMap = {
-      [fle.flow.flowId]: fle,
-    };
-
-    const queries = buildUpdateResultsQueries({}, fleMap);
-    expect(queries.length).toBe(0);
-  });
-
-  it('includes running flows', () => {
-    const fle = sampleFlowListEntry(FlowState.RUNNING);
-    const fleMap = {
-      [fle.flow.flowId]: fle,
-    };
-
-    const queries = buildUpdateResultsQueries({}, fleMap);
-    expect(queries.length).toBe(1);
-  });
-
-  it('includes completed flows that were running in previous update', () => {
-    const fle = sampleFlowListEntry(FlowState.FINISHED);
-    const fleMap = {
-      [fle.flow.flowId]: fle,
-    };
-    const prevFleMap = {
-      [fle.flow.flowId]: sampleFlowListEntry(FlowState.RUNNING),
-    };
-
-    const queries = buildUpdateResultsQueries(prevFleMap, fleMap);
-    expect(queries.length).toBe(1);
-  });
-
-  it('does not include queries for result sets that are full', () => {
-    const fle = sampleFlowListEntry(FlowState.RUNNING, {
-      items: new Array(10),
-    });
-    const fleMap = {
-      [fle.flow.flowId]: fle,
-    };
-
-    const queries = buildUpdateResultsQueries({}, fleMap);
-    expect(queries.length).toBe(0);
-  });
-
-  it('includes queries for result sets that are not full', () => {
-    const fle = sampleFlowListEntry(FlowState.RUNNING, {
-      items: new Array(9),
-    });
-    const fleMap = {
-      [fle.flow.flowId]: fle,
-    };
-
-    const queries = buildUpdateResultsQueries({}, fleMap);
-    expect(queries.length).toBe(1);
-  });
-
-  it('does not include queries for results sets in IN_PROGRESS state', () => {
-    const fle = sampleFlowListEntry(FlowState.RUNNING, {
-      state: FlowResultSetState.IN_PROGRESS,
-    });
-    const fleMap = {
-      [fle.flow.flowId]: fle,
-    };
-
-    const queries = buildUpdateResultsQueries({}, fleMap);
-    expect(queries.length).toBe(0);
   });
 });

@@ -9,8 +9,7 @@ import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
-
-import {GrrStoreModule} from '../../store/store_module';
+import {ApiModule} from '@app/lib/api/module';
 
 import {Home} from './home';
 import {HomeRoutingModule} from './routing';
@@ -38,7 +37,7 @@ import {SearchBox} from './search_box';
 
     // GRR modules.
     HomeRoutingModule,
-    GrrStoreModule,
+    ApiModule,
   ],
   declarations: [Home, SearchBox],
 })

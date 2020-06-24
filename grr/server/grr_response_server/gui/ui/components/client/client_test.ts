@@ -1,13 +1,13 @@
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
+import {ApiModule} from '@app/lib/api/module';
 import {Subject} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
-import {GrrStoreModule} from '../../store/store_module';
 import {initTestEnvironment} from '../../testing';
 
 import {Client as ClientComponent} from './client';
@@ -29,9 +29,9 @@ describe('Client Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            ClientModule,
-            GrrStoreModule,
+            ApiModule,
             NoopAnimationsModule,
+            ClientModule,
           ],
           providers: [
             {

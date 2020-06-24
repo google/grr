@@ -5,11 +5,11 @@
   justify-content: flex-end;
   align-items: center;
 
-  color: c.mat-color(c.$foreground);
   font-size: 90%;
-  font-style: italic;
+  color: c.mat-color(c.$foreground, text-light);
 
   button {
+    border-color: c.mat-color(c.$foreground, divider-light);
     margin-left: 1.5em;
   }
 }

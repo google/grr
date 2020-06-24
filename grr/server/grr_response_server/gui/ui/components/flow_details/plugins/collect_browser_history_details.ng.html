@@ -5,11 +5,11 @@
 
 <div *ngIf="hasProgress$ | async">
   <div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED && (totalFiles$ | async) > 0">
-    Total {{ totalFiles$ | async | i18nPlural: {'=1': '1 file', 'other': '# files'} }}
-    <button mat-flat-button color="primary">Download all</button>
+    <span class="num-files">{{ totalFiles$ | async | i18nPlural: {'=1': '1 file', 'other': '# files'} }}</span>
+    <button mat-stroked-button color="primary">Download all</button>
   </div>
 
-  <div class="row-list" *ngIf="(flowListEntry$ | async).isExpanded">
+  <div class="row-list">
     <!-- Note: without trackBy, ngFor would recreate DOM for each row every time
          the flow list is updated. Given periodical updates, this would not
          only be a waste of CPU, but would also lead to visible artifacts:

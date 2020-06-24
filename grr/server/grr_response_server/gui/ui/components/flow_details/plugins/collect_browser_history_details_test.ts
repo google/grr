@@ -126,11 +126,11 @@ describe('collect-browser-history-details component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('Total 42 files');
+    expect(fixture.nativeElement.innerText).toContain('42 files');
     expect(fixture.nativeElement.innerText).toContain('Download all');
   });
 
-  it('shows per-browser details in expanded state only', () => {
+  it('shows per-browser details', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
       browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
@@ -149,13 +149,6 @@ describe('collect-browser-history-details component', () => {
       state: FlowState.RUNNING,
     });
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).not.toContain('Chrome');
-
-    fixture.componentInstance.flowListEntry = {
-      ...fixture.componentInstance.flowListEntry,
-      isExpanded: true,
-    };
-    fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toContain('Chrome');
   });
 
@@ -172,14 +165,12 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry(
-        {
-          name: 'CollectBrowserHistory',
-          args,
-          progress,
-          state: FlowState.FINISHED,
-        },
-        true);
+    fixture.componentInstance.flowListEntry = newFlowListEntry({
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.FINISHED,
+    });
     fixture.detectChanges();
 
     expect(
@@ -200,14 +191,12 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry(
-        {
-          name: 'CollectBrowserHistory',
-          args,
-          progress,
-          state: FlowState.FINISHED,
-        },
-        true);
+    fixture.componentInstance.flowListEntry = newFlowListEntry({
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.FINISHED,
+    });
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('.error')).nativeElement.innerText)
@@ -227,14 +216,12 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry(
-        {
-          name: 'CollectBrowserHistory',
-          args,
-          progress,
-          state: FlowState.FINISHED,
-        },
-        true);
+    fixture.componentInstance.flowListEntry = newFlowListEntry({
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.FINISHED,
+    });
     fixture.detectChanges();
 
     expect(
@@ -254,14 +241,12 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry(
-        {
-          name: 'CollectBrowserHistory',
-          args,
-          progress,
-          state: FlowState.RUNNING,
-        },
-        true);
+    fixture.componentInstance.flowListEntry = newFlowListEntry({
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.RUNNING,
+    });
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('.in-progress')).nativeElement)
@@ -281,14 +266,12 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry(
-        {
-          name: 'CollectBrowserHistory',
-          args,
-          progress,
-          state: FlowState.FINISHED,
-        },
-        true);
+    fixture.componentInstance.flowListEntry = newFlowListEntry({
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.FINISHED,
+    });
     fixture.detectChanges();
 
     fixture.componentInstance.flowResultsQuery.subscribe(

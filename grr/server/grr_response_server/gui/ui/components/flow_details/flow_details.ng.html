@@ -1,15 +1,27 @@
 <div class="container mat-body-1">
-  <div class="header-wrapper" (click)="triggerExpansionToggle()">
+  <div class="header-wrapper">
     <div class="header">
       <!-- Basic flow information. -->
       <div class="flow-header">
         <div class="flow-title">{{flowDescriptor?.friendlyName || flow.name}}</div>
         <div class="flow-info">
-          <mat-icon class="user-icon">account_circle</mat-icon>
           <span class="user-name">{{flow.creator}}</span>
+          –
           <span class="start-time">{{flow.startedAt | date}}</span>
         </div>
+        <div class="flow-status">
+          <span *ngIf="flow.state === flowState.RUNNING">
+            <mat-icon class="in-progress">watch_later</mat-icon>
+          </span>
+          <span *ngIf="flow.state === flowState.ERROR">
+            <mat-icon class="error">error</mat-icon>
+          </span>
+          <span *ngIf="flow.state === flowState.FINISHED">
+            <mat-icon class="success">check_circle</mat-icon>
+          </span>
+        </div>
       </div>
+
 
       <!-- Flow context menu. -->
       <button class="menu-button" [matMenuTriggerFor]="menu" mat-icon-button aria-label="Flow menu">

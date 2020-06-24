@@ -258,3 +258,10 @@ def GRRMessageFromClientActionRequest(request):
       # Legacy clients will fail if the task id is not set.
       # TODO(amoser): Remove task ids after April 2021.
       generate_task_id=True)
+
+
+class ScheduledFlow(rdf_structs.RDFProtoStruct):
+  """A scheduled flow, to be executed after approval has been granted."""
+  protobuf = flows_pb2.ScheduledFlow
+
+  rdf_deps = [rdf_flow_runner.FlowRunnerArgs, rdfvalue.RDFDatetime]

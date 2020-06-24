@@ -37,7 +37,6 @@ describe('Approval Component', () => {
       selectedClient$,
       latestApproval$,
       requestApproval: jasmine.createSpy('requestApproval'),
-      listClientApprovals: jasmine.createSpy('listClientApprovals'),
     };
     configFacade = mockConfigFacade();
 

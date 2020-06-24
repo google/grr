@@ -2762,3 +2762,15 @@ message GlobComponentExplanation {
   optional string glob_expression = 1;
   repeated string examples = 2;
 }
+
+message ScheduledFlow {
+  optional string scheduled_flow_id = 1;
+  optional string client_id = 2;
+  optional string creator = 3;
+  optional string flow_name = 4;
+  optional google.protobuf.Any flow_args = 5;
+  optional FlowRunnerArgs runner_args = 6;
+  optional uint64 create_time = 7 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+}

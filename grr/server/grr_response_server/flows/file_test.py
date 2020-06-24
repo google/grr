@@ -121,7 +121,8 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
             path=self.files["bar"].path,
             token=self.token)
 
-    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+        results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+
     self.assertLen(results, 1)
     self.assertEqual(results[0].stat.pathspec.path, self.files["bar"].path)
     self.assertEqual(results[0].stat.pathspec.pathtype,

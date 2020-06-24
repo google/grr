@@ -21,7 +21,7 @@ class TestTimelineLinux(test_base.EndToEndTest):
 
   def testUsrBin(self):
     args = self.grr_api.types.CreateFlowArgs("TimelineFlow")
-    args.root = "/bin".encode("utf-8")
+    args.root = "/bin/".encode("utf-8")
 
     flow = self.RunFlowAndWait("TimelineFlow", args=args)
 

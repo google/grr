@@ -6,7 +6,6 @@
       [flowListEntry]="entry"
       [flowDescriptor]="entry.descriptor"
       (flowResultsQuery)="queryFlowResults(entry.flow.flowId, $event)"
-      (expansionToggle)="toggleFlowExpansion(entry.flow.flowId)"
       (menuActionTriggered)="triggerFlowAction(entry.flow, $event)">
     </flow-details>
   </div>

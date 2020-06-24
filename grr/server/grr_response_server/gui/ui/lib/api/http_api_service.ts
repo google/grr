@@ -163,21 +163,6 @@ export class HttpApiService {
         .pipe(map(res => res.items ?? []));
   }
 
-  /** Lists results for multiple flows and results params. */
-  batchListResultsForFlow(
-      clientId: string, paramsList: ReadonlyArray<FlowResultsParams>):
-      Observable<FlowResultsWithSourceParams> {
-    return from(paramsList)
-        .pipe(
-            mergeMap((params) => {
-              return this.listResultsForFlow(clientId, params)
-                  .pipe(
-                      map((results) => ({results, params})),
-                  );
-            }),
-        );
-  }
-
   /** Starts a Flow on the given Client. */
   startFlow(clientId: string, flowName: string, flowArgs: AnyObject):
       Observable<ApiFlow> {

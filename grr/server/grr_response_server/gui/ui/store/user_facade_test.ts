@@ -1,7 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {ApiGrrUser} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {GrrStoreModule} from '@app/store/store_module';
 import {UserFacade} from '@app/store/user_facade';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
@@ -21,9 +20,7 @@ describe('UserFacade', () => {
     };
 
     TestBed.configureTestingModule({
-      imports: [
-        GrrStoreModule,
-      ],
+      imports: [],
       providers: [
         UserFacade,
         {provide: HttpApiService, useValue: httpApiService},

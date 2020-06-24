@@ -3,6 +3,7 @@ import {fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowArgsFormModule} from '@app/components/flow_args_form/module';
+import {ApiModule} from '@app/lib/api/module';
 import {initTestEnvironment} from '@app/testing';
 import {ReplaySubject, Subject} from 'rxjs';
 
@@ -12,7 +13,7 @@ import {newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
-import {GrrStoreModule} from '../../store/store_module';
+
 import {FlowArgsForm} from './flow_args_form';
 
 
@@ -61,8 +62,8 @@ function setUp() {
       .configureTestingModule({
         imports: [
           NoopAnimationsModule,
+          ApiModule,
           FlowArgsFormModule,
-          GrrStoreModule,
         ],
         declarations: [
           TestHostComponent,
@@ -247,8 +248,8 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
+            ApiModule,
             FlowArgsFormModule,
-            GrrStoreModule,
           ],
           declarations: [
             TestHostComponent,

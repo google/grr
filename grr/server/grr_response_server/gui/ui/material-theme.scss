@@ -11,12 +11,14 @@ $danger: mat-palette($mat-red);
 // and https://stackoverflow.com/questions/43438305/how-to-change-font-color-of-primary-palette-in-angular-material2/46157803#46157803
 $_grr-foreground: (
   logo: mat-color($mat-grey, 600),
-  // custom GRR property
-    text: mat-color($mat-grey, 900),
+  text: mat-color($mat-grey, 900),
+  text-light: mat-color($mat-grey, 600),
   divider-light: mat-color($mat-grey, 300),
-  // custom GRR property
-    divider: mat-color($mat-grey, 600),
+  divider: mat-color($mat-grey, 600),
   dividers: mat-color($mat-grey, 600),
+  success: mat-color($mat-green, 700),
+  danger: mat-color($mat-red, 700),
+  in-progress: mat-color($mat-yellow, 700),
 );
 // See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L674
 $_grr-background: (

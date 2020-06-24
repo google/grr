@@ -39,10 +39,9 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
   };
 }
 
-export function newFlowListEntry(
-    partialFlow: Partial<Flow> = {},
-    isExpanded: boolean = false): FlowListEntry {
-  return flowListEntryFromFlow(newFlow(partialFlow), isExpanded);
+export function newFlowListEntry(partialFlow: Partial<Flow> = {}):
+    FlowListEntry {
+  return flowListEntryFromFlow(newFlow(partialFlow));
 }
 
 export function newFlowDescriptor(args: Partial<FlowDescriptor> = {}):

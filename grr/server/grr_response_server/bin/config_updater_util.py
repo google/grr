@@ -8,8 +8,11 @@ from __future__ import unicode_literals
 
 import argparse
 import getpass
+import grp
 import os
+import pwd
 import re
+import shutil
 import socket
 import subprocess
 import sys
@@ -329,15 +332,21 @@ class FleetspeakConfig:
     self.mysql_host: str = None
     self.mysql_port = 3306
     self.mysql_database: str = None
+    self.config_dir = "/etc/fleetspeak-server"
 
   def Prompt(self, config):
     """Sets up the in-memory configuration interactively."""
 
-    self.use_fleetspeak = RetryBoolQuestion(
-        "Use Fleetspeak (next generation communication framework)?", False)
+    if self._IsFleetspeakPresent():
+      self.use_fleetspeak = RetryBoolQuestion(
+          "Use Fleetspeak (next generation communication framework)?", False)
+    else:
+      self.use_fleetspeak = False
+      print("Fleetspeak (optional next generation communication framework) "
+            "seems to be missing.")
+      print("Skipping Fleetspeak configuration.\n")
 
     if self.use_fleetspeak:
-
       try:
         self.external_hostname = socket.gethostname()
       except (OSError, IOError):
@@ -358,6 +367,16 @@ class FleetspeakConfig:
       self._WriteEnabled(config)
     else:
       self._WriteDisabled(config)
+
+  def _ConfigPath(self, *path_components: str) -> str:
+    return os.path.join(self.config_dir, *path_components)
+
+  def _IsFleetspeakPresent(self) -> bool:
+    if not os.path.exists(self._ConfigPath()):
+      return False
+    if not shutil.which("fleetspeak-config"):
+      return False
+    return True
 
   def _PromptMySQLOnce(self, config):
     """Prompt the MySQL configuration once."""
@@ -398,15 +417,13 @@ class FleetspeakConfig:
     config.Set("ClientBuilder.fleetspeak_bundled", False)
     config.Set("Server.fleetspeak_server", "")
 
-    with open("/etc/fleetspeak-server/disabled", "w") as f:
-      f.write("The existence of this file disables the "
-              "fleetspeak-server.service systemd unit.\n")
+    if self._IsFleetspeakPresent():
+      with open(self._ConfigPath("disabled"), "w") as f:
+        f.write("The existence of this file disables the "
+                "fleetspeak-server.service systemd unit.\n")
 
   def _WriteEnabled(self, config):
     """Applies the in-memory configuration for the use_fleetspeak case."""
-
-    def ConfigPath(*args):
-      return os.path.join("/etc/fleetspeak-server", *args)
 
     service_config = services_pb2.ServiceConfig(name="GRR", factory="GRPC")
     grpc_config = grpcservice_pb2.Config(
@@ -415,7 +432,7 @@ class FleetspeakConfig:
     server_conf = server_pb2.ServerConfig(services=[service_config])
     server_conf.broadcast_poll_time.seconds = 1
 
-    with open(ConfigPath("server.services.config"), "w") as f:
+    with open(self._ConfigPath("server.services.config"), "w") as f:
       f.write(text_format.MessageToString(server_conf))
 
     cp = config_pb2.Config()
@@ -432,15 +449,17 @@ class FleetspeakConfig:
     cp.components_config.admin_config.listen_address = "localhost:{}".format(
         self.admin_port)
     cp.public_host_port.append(cp.components_config.https_config.listen_address)
-    cp.server_component_configuration_file = ConfigPath(
+    cp.server_component_configuration_file = self._ConfigPath(
         "server.components.config")
-    cp.trusted_cert_file = ConfigPath("trusted_cert.pem")
-    cp.trusted_cert_key_file = ConfigPath("trusted_cert_key.pem")
-    cp.server_cert_file = ConfigPath("server_cert.pem")
-    cp.server_cert_key_file = ConfigPath("server_cert_key.pem")
-    cp.linux_client_configuration_file = ConfigPath("linux_client.config")
-    cp.windows_client_configuration_file = ConfigPath("windows_client.config")
-    cp.darwin_client_configuration_file = ConfigPath("darwin_client.config")
+    cp.trusted_cert_file = self._ConfigPath("trusted_cert.pem")
+    cp.trusted_cert_key_file = self._ConfigPath("trusted_cert_key.pem")
+    cp.server_cert_file = self._ConfigPath("server_cert.pem")
+    cp.server_cert_key_file = self._ConfigPath("server_cert_key.pem")
+    cp.linux_client_configuration_file = self._ConfigPath("linux_client.config")
+    cp.windows_client_configuration_file = self._ConfigPath(
+        "windows_client.config")
+    cp.darwin_client_configuration_file = self._ConfigPath(
+        "darwin_client.config")
 
     p = subprocess.Popen(["fleetspeak-config", "-config", "/dev/stdin"],
                          stdin=subprocess.PIPE)
@@ -448,11 +467,14 @@ class FleetspeakConfig:
     if p.wait() != 0:
       raise RuntimeError("fleetspeak-config command failed.")
 
-    subprocess.check_call(
-        ["chown", "-R", "fleetspeak:fleetspeak", "/etc/fleetspeak-server"])
+    if (os.geteuid() == 0 and pwd.getpwnam("fleetspeak") and
+        grp.getgrnam("fleetspeak")):
+      subprocess.check_call(
+          ["chown", "-R", "fleetspeak:fleetspeak",
+           self._ConfigPath()])
 
     try:
-      os.unlink("/etc/fleetspeak-server/disabled")
+      os.unlink(self._ConfigPath("disabled"))
     except FileNotFoundError:
       pass
 

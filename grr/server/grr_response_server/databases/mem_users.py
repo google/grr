@@ -80,6 +80,10 @@ class InMemoryDBUsersMixin(object):
     except KeyError:
       pass  # No notifications to delete for this user.
 
+    for sf in list(self.scheduled_flows.values()):
+      if sf.creator == username:
+        self.DeleteScheduledFlow(sf.client_id, username, sf.scheduled_flow_id)
+
     try:
       del self.users[username]
     except KeyError:

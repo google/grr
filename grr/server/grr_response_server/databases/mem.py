@@ -111,6 +111,8 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.hunt_output_plugins_states = {}
     self.signed_binary_references = {}
     self.client_graph_series = {}
+    # Maps (client_id, creator, scheduled_flow_id) to ScheduledFlow.
+    self.scheduled_flows = {}
 
   @utils.Synchronized
   def ClearTestDB(self):

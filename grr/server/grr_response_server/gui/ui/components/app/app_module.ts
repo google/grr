@@ -8,6 +8,7 @@ import {ClientModule} from '@app/components/client/module';
 import {ClientSearchModule} from '@app/components/client_search/module';
 import {HomeModule} from '@app/components/home/module';
 import {UserMenuModule} from '@app/components/user_menu/module';
+import {ApiModule} from '@app/lib/api/module';
 
 import {App} from './app';
 import {AppRoutingModule} from './routing';
@@ -20,6 +21,7 @@ const ANGULAR_MATERIAL_MODULES = [
 ];
 
 const GRR_MODULES = [
+  ApiModule,
   ClientSearchModule,
   ClientModule,
   HomeModule,

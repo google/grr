@@ -1,14 +1,86 @@
 import {Injectable} from '@angular/core';
+import {ComponentStore} from '@ngrx/component-store';
 import {Store} from '@ngrx/store';
-import {Observable} from 'rxjs';
-import {filter, shareReplay, tap} from 'rxjs/operators';
+import {HttpApiService} from '@app/lib/api/http_api_service';
+import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
+import {Observable, of} from 'rxjs';
+import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ApprovalConfig} from '../lib/models/client';
-import {FlowDescriptorMap} from '../lib/models/flow';
+import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 
-import * as actions from './config/config_actions';
-import {ConfigState} from './config/config_reducers';
-import * as selectors from './config/config_selectors';
+
+/** The state of the Config. */
+export interface ConfigState {
+  flowDescriptors?: FlowDescriptorMap;
+  approvalConfig?: ApprovalConfig;
+}
+
+/** ComponentStore implementation for the config facade. */
+@Injectable({
+  providedIn: 'root',
+})
+export class ConfigStore extends ComponentStore<ConfigState> {
+  constructor(private readonly httpApiService: HttpApiService) {
+    super({});
+  }
+
+  private readonly updateFlowDescriptors =
+      this.updater<ReadonlyArray<FlowDescriptor>>((state, descriptors) => {
+        return {
+          ...state,
+          flowDescriptors: new Map(descriptors.map(fd => [fd.name, fd])),
+        };
+      });
+
+  private readonly updateApprovalConfig =
+      this.updater<ApprovalConfig>((state, approvalConfig) => {
+        return {...state, approvalConfig};
+      });
+
+  private readonly listFlowDescriptors = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.httpApiService.listFlowDescriptors()),
+          map(apiDescriptors => apiDescriptors.map(translateFlowDescriptor)),
+          tap(descriptors => {
+            this.updateFlowDescriptors(descriptors);
+          }),
+          ));
+
+  private readonly fetchApprovalConfig = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.httpApiService.fetchApprovalConfig()),
+          tap(approvalConfig => {
+            this.updateApprovalConfig(approvalConfig);
+          }),
+          ));
+
+  /** An observable emitting available flow descriptors. */
+  readonly flowDescriptors$ = of(undefined).pipe(
+      // Ensure that the query is done on subscription.
+      tap(() => {
+        this.listFlowDescriptors();
+      }),
+      switchMap(() => this.select(state => state.flowDescriptors)),
+      filter(
+          (descriptors): descriptors is FlowDescriptorMap =>
+              descriptors !== undefined),
+      shareReplay(1),  // Ensure that the query is done just once.
+  );
+
+  /** An observable emitting the approval configuration. */
+  readonly approvalConfig$ = of(undefined).pipe(
+      // Ensure that the query is done on subscription.
+      tap(() => {
+        this.fetchApprovalConfig();
+      }),
+      switchMap(() => this.select(state => state.approvalConfig)),
+      filter(
+          (approvalConfig): approvalConfig is ApprovalConfig =>
+              approvalConfig !== undefined),
+      shareReplay(1),  // Ensure that the query is done just once.
+  );
+}
 
 
 /** Facade to retrieve general purpose configuration and backend data. */
@@ -16,31 +88,13 @@ import * as selectors from './config/config_selectors';
   providedIn: 'root',
 })
 export class ConfigFacade {
-  constructor(private readonly store: Store<ConfigState>) {}
+  constructor(private readonly store: ConfigStore) {}
 
+  /** An observable emitting available flow descriptors. */
   readonly flowDescriptors$: Observable<FlowDescriptorMap> =
-      this.store.select(selectors.flowDescriptors)
-          .pipe(
-              tap((fds) => {
-                // When FlowDescriptors have not been loaded yet, trigger the
-                // loading as a side-effect of this subscription.
-                if (fds === undefined) {
-                  this.store.dispatch(actions.listFlowDescriptors());
-                }
-              }),
-              filter((fds): fds is FlowDescriptorMap => fds !== undefined),
-              shareReplay(1),
-          );
+      this.store.flowDescriptors$;
 
+  /** An observable emitting the approval configuration. */
   readonly approvalConfig$: Observable<ApprovalConfig> =
-      this.store.select(selectors.approvalConfig)
-          .pipe(
-              tap((approvalConfig) => {
-                if (approvalConfig === undefined) {
-                  this.store.dispatch(actions.fetchApprovalConfig());
-                }
-              }),
-              filter((ac): ac is ApprovalConfig => ac !== undefined),
-              shareReplay(1),
-          );
+      this.store.approvalConfig$;
 }

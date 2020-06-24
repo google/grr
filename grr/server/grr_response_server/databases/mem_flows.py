@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 
-from typing import List, Optional, Text
+from typing import List, Optional, Sequence, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -942,3 +942,40 @@ class InMemoryDBFlowMixin(object):
             0,
             sys.maxsize,
             with_type=with_type))
+
+  @utils.Synchronized
+  def WriteScheduledFlow(
+      self, scheduled_flow: rdf_flow_objects.ScheduledFlow) -> None:
+    """See base class."""
+    if scheduled_flow.client_id not in self.metadatas:
+      raise db.UnknownClientError(scheduled_flow.client_id)
+
+    if scheduled_flow.creator not in self.users:
+      raise db.UnknownGRRUserError(scheduled_flow.creator)
+
+    full_id = (scheduled_flow.client_id, scheduled_flow.creator,
+               scheduled_flow.scheduled_flow_id)
+    self.scheduled_flows[full_id] = scheduled_flow.Copy()
+
+  @utils.Synchronized
+  def DeleteScheduledFlow(self, client_id: str, creator: str,
+                          scheduled_flow_id: str) -> None:
+    """See base class."""
+    try:
+      self.scheduled_flows.pop((client_id, creator, scheduled_flow_id))
+    except KeyError:
+      raise db.UnknownScheduledFlowError(
+          client_id=client_id,
+          creator=creator,
+          scheduled_flow_id=scheduled_flow_id)
+
+  @utils.Synchronized
+  def ListScheduledFlows(
+      self, client_id: str,
+      creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+    """See base class."""
+    return [
+        sf.Copy()
+        for sf in self.scheduled_flows.values()
+        if sf.client_id == client_id and sf.creator == creator
+    ]

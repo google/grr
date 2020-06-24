@@ -2,9 +2,9 @@ import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
+import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
 import {ClientSearchFacade} from '@app/store/client_search_facade';
-import {GrrStoreModule} from '@app/store/store_module';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
@@ -38,9 +38,9 @@ describe('ClientSearch Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            ClientSearchModule,
-            GrrStoreModule,        // For the ClientSearchFacade.
             NoopAnimationsModule,  // This makes test faster and more stable.
+            ApiModule,
+            ClientSearchModule,
             RouterTestingModule,
           ],
           providers: [{

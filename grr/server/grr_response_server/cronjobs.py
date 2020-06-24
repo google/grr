@@ -38,6 +38,8 @@ CRON_JOB_TIMEOUT = metrics.Counter(
 CRON_JOB_LATENCY = metrics.Event(
     "cron_job_latency", fields=[("cron_job_id", str)])
 
+CRON_JOB_USERNAME = "GRRCron"
+
 
 class Error(Exception):
   pass
@@ -68,7 +70,7 @@ class CronJobBase(metaclass=CronJobRegistry):
   def __init__(self, run_state, job):
     self.run_state = run_state
     self.job = job
-    self.token = access_control.ACLToken(username="Cron")
+    self.token = access_control.ACLToken(username=CRON_JOB_USERNAME)
 
   @abc.abstractmethod
   def Run(self):
@@ -578,7 +580,7 @@ class RunHunt(CronJobBase):
     hunt.CreateAndStartHunt(
         self.job.args.hunt_cron_action.flow_name,
         self.job.args.hunt_cron_action.flow_args,
-        "Cron",
+        CRON_JOB_USERNAME,
         avg_cpu_seconds_per_client_limit=hra.avg_cpu_seconds_per_client_limit,
         avg_network_bytes_per_client_limit=anbpcl,
         avg_results_per_client_limit=hra.avg_results_per_client_limit,

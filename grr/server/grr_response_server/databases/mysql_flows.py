@@ -8,7 +8,7 @@ from __future__ import unicode_literals
 import logging
 import threading
 import time
-from typing import List, Optional, Text
+from typing import List, Optional, Sequence, Text
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_errors
@@ -1690,3 +1690,19 @@ class MySQLDBFlowMixin(object):
 
     cursor.execute(query, args)
     return cursor.fetchone()[0]
+
+  def WriteScheduledFlow(
+      self, scheduled_flow: rdf_flow_objects.ScheduledFlow) -> None:
+    """See base class."""
+    raise NotImplementedError()
+
+  def DeleteScheduledFlow(self, client_id: str, creator: str,
+                          scheduled_flow_id: str) -> None:
+    """See base class."""
+    raise NotImplementedError()
+
+  def ListScheduledFlows(
+      self, client_id: str,
+      creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+    """See base class."""
+    raise NotImplementedError()

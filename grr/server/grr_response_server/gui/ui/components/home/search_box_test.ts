@@ -4,6 +4,7 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ApiClient, ApiSearchClientResult} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
+import {ApiModule} from '@app/lib/api/module';
 import {initTestEnvironment} from '@app/testing';
 import {of} from 'rxjs';
 
@@ -54,8 +55,9 @@ describe('SearchBox Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            HomeModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
+            HomeModule,
+            ApiModule,
           ],
           providers: [{provide: HttpApiService, useValue: httpApiService}],
 
