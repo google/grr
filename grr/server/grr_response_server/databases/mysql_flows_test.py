@@ -15,29 +15,7 @@ from grr.test_lib import test_lib
 class MysqlFlowTest(db_flows_test.DatabaseTestFlowMixin,
                     mysql_test.MysqlTestBase, absltest.TestCase):
 
-  def testListScheduledFlowsInitiallyEmpty(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testWriteScheduledFlow(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testListScheduledFlowsFiltersCorrectly(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testWriteScheduledFlowRaisesForUnknownClient(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testWriteScheduledFlowRaisesForUnknownUser(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testDeleteScheduledFlowRemovesScheduledFlow(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testDeleteScheduledFlowRaisesForUnknownScheduledFlow(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
-
-  def testDeleteUserDeletesScheduledFlows(self):
-    pass  # TODO: Implement scheduling of flows pre-approval.
+  pass
 
 
 if __name__ == "__main__":

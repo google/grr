@@ -14,6 +14,7 @@ import MySQLdb
 from MySQLdb.constants import ER as mysql_errors
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -24,6 +25,7 @@ from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -1691,18 +1693,114 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query, args)
     return cursor.fetchone()[0]
 
-  def WriteScheduledFlow(
-      self, scheduled_flow: rdf_flow_objects.ScheduledFlow) -> None:
+  @mysql_utils.WithTransaction()
+  def WriteScheduledFlow(self,
+                         scheduled_flow: rdf_flow_objects.ScheduledFlow,
+                         cursor=None) -> None:
     """See base class."""
-    raise NotImplementedError()
+    sf = scheduled_flow
 
-  def DeleteScheduledFlow(self, client_id: str, creator: str,
-                          scheduled_flow_id: str) -> None:
+    args = {
+        "client_id": db_utils.ClientIDToInt(sf.client_id),
+        "creator_username_hash": mysql_utils.Hash(sf.creator),
+        "scheduled_flow_id": db_utils.FlowIDToInt(sf.scheduled_flow_id),
+        "flow_name": sf.flow_name,
+        "flow_args": sf.flow_args.SerializeToBytes(),
+        "runner_args": sf.runner_args.SerializeToBytes(),
+        "create_time": mysql_utils.RDFDatetimeToTimestamp(sf.create_time),
+        "error": sf.error,
+    }
+
+    vals = mysql_utils.NamedPlaceholders(args)
+    vals = vals.replace("%(create_time)s", "FROM_UNIXTIME(%(create_time)s)")
+
+    query = """
+      REPLACE INTO scheduled_flows {cols}
+      VALUES {vals}
+    """.format(
+        cols=mysql_utils.Columns(args), vals=vals)
+
+    try:
+      cursor.execute(query, args)
+    except MySQLdb.IntegrityError as error:
+      if "creator_username_hash" in str(error):
+        raise db.UnknownGRRUserError(sf.creator, cause=error)
+      elif "client_id" in str(error):
+        raise db.UnknownClientError(sf.client_id, cause=error)
+      raise
+
+  @mysql_utils.WithTransaction()
+  def DeleteScheduledFlow(self,
+                          client_id: str,
+                          creator: str,
+                          scheduled_flow_id: str,
+                          cursor=None) -> None:
     """See base class."""
-    raise NotImplementedError()
 
+    cursor.execute(
+        """
+      DELETE FROM
+        scheduled_flows
+      WHERE
+        client_id = %s AND
+        creator_username_hash = %s AND
+        scheduled_flow_id = %s
+      """, [
+          db_utils.ClientIDToInt(client_id),
+          mysql_utils.Hash(creator),
+          db_utils.FlowIDToInt(scheduled_flow_id),
+      ])
+
+    if cursor.rowcount == 0:
+      raise db.UnknownScheduledFlowError(
+          client_id=client_id,
+          creator=creator,
+          scheduled_flow_id=scheduled_flow_id)
+
+  @mysql_utils.WithTransaction(readonly=True)
   def ListScheduledFlows(
-      self, client_id: str,
-      creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+      self,
+      client_id: str,
+      creator: str,
+      cursor=None) -> Sequence[rdf_flow_objects.ScheduledFlow]:
     """See base class."""
-    raise NotImplementedError()
+
+    query = """
+      SELECT
+        sf.client_id, u.username, sf.scheduled_flow_id, sf.flow_name,
+        sf.flow_args, sf.runner_args, UNIX_TIMESTAMP(sf.create_time), sf.error
+      FROM
+        scheduled_flows sf
+      LEFT JOIN
+        grr_users u
+      ON
+        u.username_hash = sf.creator_username_hash
+      WHERE
+        client_id = %s AND
+        creator_username_hash = %s"""
+
+    args = [
+        db_utils.ClientIDToInt(client_id),
+        mysql_utils.Hash(creator),
+    ]
+
+    cursor.execute(query, args)
+
+    results = []
+
+    for row in cursor.fetchall():
+      flow_class = registry.FlowRegistry.FlowClassByName(row[3])
+      flow_args = flow_class.args_type.FromSerializedBytes(row[4])
+      runner_args = rdf_flow_runner.FlowRunnerArgs.FromSerializedBytes(row[5])
+
+      results.append(
+          rdf_flow_objects.ScheduledFlow(
+              client_id=db_utils.IntToClientID(row[0]),
+              creator=row[1],
+              scheduled_flow_id=db_utils.IntToFlowID(row[2]),
+              flow_name=row[3],
+              flow_args=flow_args,
+              runner_args=runner_args,
+              create_time=mysql_utils.TimestampToRDFDatetime(row[6]),
+              error=row[7]))
+    return results

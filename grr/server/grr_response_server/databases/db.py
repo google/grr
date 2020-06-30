@@ -220,8 +220,8 @@ class UnknownRuleError(NotFoundError):
 class UnknownGRRUserError(NotFoundError):
   """An error thrown when no user is found for a given username."""
 
-  def __init__(self, username):
-    super().__init__(username)
+  def __init__(self, username, cause=None):
+    super().__init__(username, cause=cause)
     self.username = username
 
     self.message = "Cannot find user with username %r" % self.username

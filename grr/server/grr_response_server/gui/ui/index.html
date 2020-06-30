@@ -2,23 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>GRR UI v2</title>
   <base href="/">
 
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+  <link rel="shortcut icon" href="/static/images/favicon.ico" />
 
   <!-- Needed for Material icons -->
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-
-  <!-- Material Theme CSS -->
-  <link rel="stylesheet" href="material-theme.css">
-
-  <!-- Global styles -->
-  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+  <script>
+    window.__IS_GRR_TEST = false;
+    window.__IS_GRR_DEVELOPMENT = true;
+  </script>
   <app-root></app-root>
-  <script src="/app_bundle.js"></script>
 </body>
 </html>

@@ -20,6 +20,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import compatibility
 from grr_response_server import flow
 from grr_response_server.databases import db
+from grr_response_server.flows import file
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
@@ -2809,10 +2810,18 @@ class DatabaseTestFlowMixin(object):
 
   def _SetupScheduledFlow(self, **kwargs):
     merged_kwargs = {
-        "scheduled_flow_id": flow.RandomFlowId(),
-        "flow_name": "CollectSingleFile",
-        "flow_args": rdf_file_finder.CollectSingleFileArgs(),
-        "runner_args": rdf_flow_runner.FlowRunnerArgs(network_bytes_limit=1024),
+        "scheduled_flow_id":
+            flow.RandomFlowId(),
+        "flow_name":
+            file.CollectSingleFile.__name__,
+        "flow_args":
+            rdf_file_finder.CollectSingleFileArgs(
+                max_size_bytes=random.randint(0, 10)),
+        "runner_args":
+            rdf_flow_runner.FlowRunnerArgs(
+                network_bytes_limit=random.randint(0, 10)),
+        "create_time":
+            rdfvalue.RDFDatetime.Now(),
         **kwargs
     }
 
@@ -2825,11 +2834,55 @@ class DatabaseTestFlowMixin(object):
     username = self._SetupUser()
     self.assertEmpty(self.db.ListScheduledFlows(client_id, username))
 
-  def testWriteScheduledFlow(self):
+  def testWriteScheduledFlowPersistsAllFields(self):
+    client_id = self._SetupClient()
+    username = self._SetupUser()
+
+    sf = self._SetupScheduledFlow(
+        client_id=client_id,
+        creator=username,
+        scheduled_flow_id="1234123421342134",
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/baz"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(network_bytes_limit=1024),
+        create_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42),
+        error="foobazzle disintegrated")
+
+    results = self.db.ListScheduledFlows(client_id, username)
+    self.assertEqual([sf], results)
+
+    result = results[0]
+    self.assertEqual(result.client_id, client_id)
+    self.assertEqual(result.creator, username)
+    self.assertEqual(result.scheduled_flow_id, "1234123421342134")
+    self.assertEqual(result.flow_name, file.CollectSingleFile.__name__)
+    self.assertEqual(result.flow_args.path, "/baz")
+    self.assertEqual(result.runner_args.network_bytes_limit, 1024)
+    self.assertEqual(result.create_time,
+                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(42))
+    self.assertEqual(result.error, "foobazzle disintegrated")
+
+  def testWriteMultipleScheduledFlows(self):
+    client_id = self._SetupClient()
+    username = self._SetupUser()
+
+    sf1 = self._SetupScheduledFlow(client_id=client_id, creator=username)
+    sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username)
+
+    self.assertCountEqual([sf1, sf2],
+                          self.db.ListScheduledFlows(client_id, username))
+
+  def testWriteScheduledFlowUpdatesExistingEntry(self):
     client_id = self._SetupClient()
     username = self._SetupUser()
 
     sf = self._SetupScheduledFlow(client_id=client_id, creator=username)
+    sf = self._SetupScheduledFlow(
+        client_id=client_id,
+        creator=username,
+        scheduled_flow_id=sf.scheduled_flow_id,
+        error="foobar")
+
     self.assertEqual([sf], self.db.ListScheduledFlows(client_id, username))
 
   def testListScheduledFlowsFiltersCorrectly(self):
@@ -2883,12 +2936,34 @@ class DatabaseTestFlowMixin(object):
     client_id = self._SetupClient()
     username = self._SetupUser()
 
-    sf1 = self._SetupScheduledFlow(client_id=client_id, creator=username)
-    sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username)
+    sf = self._SetupScheduledFlow(client_id=client_id, creator=username)
 
-    self.db.DeleteScheduledFlow(client_id, username, sf1.scheduled_flow_id)
+    self.db.DeleteScheduledFlow(client_id, username, sf.scheduled_flow_id)
 
-    self.assertEqual([sf2], self.db.ListScheduledFlows(client_id, username))
+    self.assertEmpty(self.db.ListScheduledFlows(client_id, username))
+
+  def testDeleteScheduledFlowDoesNotRemoveUnrelatedEntries(self):
+    client_id1 = self._SetupClient("C.0000000000000001")
+    client_id2 = self._SetupClient("C.0000000000000002")
+    username1 = self._SetupUser("u1")
+    username2 = self._SetupUser("u2")
+
+    sf111 = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    sf112 = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
+    sf211 = self._SetupScheduledFlow(
+        client_id=client_id2,
+        creator=username1,
+        scheduled_flow_id=sf111.scheduled_flow_id)
+    sf121 = self._SetupScheduledFlow(
+        client_id=client_id1,
+        creator=username2,
+        scheduled_flow_id=sf111.scheduled_flow_id)
+
+    self.db.DeleteScheduledFlow(client_id1, username1, sf111.scheduled_flow_id)
+
+    self.assertEqual([sf112], self.db.ListScheduledFlows(client_id1, username1))
+    self.assertEqual([sf211], self.db.ListScheduledFlows(client_id2, username1))
+    self.assertEqual([sf121], self.db.ListScheduledFlows(client_id1, username2))
 
   def testDeleteScheduledFlowRaisesForUnknownScheduledFlow(self):
     client_id = self._SetupClient()
@@ -2926,5 +3001,6 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ListScheduledFlows(client_id, username1))
     self.assertEmpty(self.db.ListScheduledFlows(client_id2, username1))
     self.assertEqual([sf2], self.db.ListScheduledFlows(client_id, username2))
+
 
 # This file is a test library and thus does not require a __main__ block.

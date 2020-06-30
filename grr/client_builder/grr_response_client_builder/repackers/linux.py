@@ -360,7 +360,12 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(target_binary_dir, client_binary_name))
         # pytype: enable=wrong-arg-types
 
-      if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
+      # TODO: Bundled fleetspeak is not yet supported on CentOS.
+      # When running from a fleetspeak_bundled server, assume that the template
+      # is a legacy template and generate a non-fleetspeak installer for now.
+      if (config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context)
+          and not config.CONFIG.Get(
+              "ClientBuilder.fleetspeak_bundled", context=self.context)):
         self._GenerateFleetspeakConfig(template_dir, rpm_build_dir)
         if not config.CONFIG.Get(
             "Client.fleetspeak_service_name", context=self.context):
