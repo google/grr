@@ -73,6 +73,15 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      Graph(
+        title="Client Polls Rate per Type",
+        targets=[
+          Target(
+            expr='sum by (poll_type) (rate(fleetspeak_server_client_polls_total[10m]))',
+            legendFormat="Poll Type: {{poll_type}}",
+          ),
+        ]
+      ),
       ]
     ),
   ]
