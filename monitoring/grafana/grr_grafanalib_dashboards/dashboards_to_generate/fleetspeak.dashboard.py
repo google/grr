@@ -69,7 +69,16 @@ dashboard = Dashboard(
         targets=[
           Target(
             expr='sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_count{errored="true"}[10m]))',
-            legendFormat="Operations Error Rate - Operation: {{operation}}",
+            legendFormat="Operation: {{operation}}",
+          ),
+        ]
+      ),
+      Graph(
+        title="Successful Datastore Operations Rate per Operation",
+        targets=[
+          Target(
+            expr='sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_count{errored="false"}[10m]))',
+            legendFormat="Operation: {{operation}}",
           ),
         ]
       ),
