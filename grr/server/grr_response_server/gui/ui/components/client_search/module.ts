@@ -5,6 +5,7 @@ import {RouterModule} from '@angular/router';
 
 import {ClientSearch} from './client_search';
 import {ClientSearchRoutingModule} from './routing';
+import { TimestampModule } from '../timestamp/module';
 
 /**
  * Module for the client search results page and related components.
@@ -20,6 +21,7 @@ import {ClientSearchRoutingModule} from './routing';
 
     // GRR modules.
     ClientSearchRoutingModule,
+    TimestampModule,
   ],
   declarations: [
     ClientSearch,

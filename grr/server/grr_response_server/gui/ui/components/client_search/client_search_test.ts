@@ -113,7 +113,7 @@ describe('ClientSearch Component', () => {
     // Check the first data row.
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.1234', 'foo.unknown', '10/23/19, 12:19 AM']);
+        .toEqual(['C.1234', 'foo.unknown', 'Oct 23 \'19 at 00:19']);
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
