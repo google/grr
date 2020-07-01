@@ -95,11 +95,11 @@ dashboard = Dashboard(
     ),
     Row(panels=[
       Graph(
-        title="Messages Ingested per Service, per Source",
+        title="Messages Ingested per Destination Service Name",
         targets=[
           Target(
-            expr='sum by (message_type, source_service_name) (rate(fleetspeak_messages_ingested_total[10m]))',
-            legendFormat="Service (Message Type): {{message_type}} | Source: {{source_service_name}}",
+            expr='sum by (destination_service_name) (rate(fleetspeak_messages_ingested_total[10m]))',
+            legendFormat="{{destination_service_name}}",
           ),
         ]
       ),
