@@ -4,7 +4,7 @@ that will help you get started quickly introducing monitoring capabilities to yo
 
 Quick Start
 -----------
-Before generating the dashboards on your own, note that you may find the sample
+Before generating the dashboards on your own, note that you can find the sample
 dashboard in importable JSON format inside the folder
 `grr/monitoring/grafana/grr_grafanalib_dashboards/dashboards_for_use`. From
 there you may import the sample dashboards without re-generating them to your
@@ -12,7 +12,8 @@ Grafana instance. Only if you wish to generate the dashboards, proceed.
 
 **Please note the following edge case**: the panel "API Calls Count Rate by other statuses (not
   SUCCESS)" inside the AdminUI dashboard will *not* show a spike in the graph
-  given a single HTTP API call, where the status of the call is not SUCCESS.
+  when there is only one data point present (only a single API call of a given
+  method was made), where the status of the call is not SUCCESS.
   This is due to the way Prometheus' function [rate()](https://prometheus.io/docs/prometheus/latest/querying/functions/#rate) works.
 
 First, make sure to activate the virtual environment of your GRR installtion (if you use one), and have Grafana and [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/#starting-prometheus)

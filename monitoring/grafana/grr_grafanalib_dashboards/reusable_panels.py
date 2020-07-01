@@ -86,7 +86,7 @@ def threadpool_outstanding_tasks_vs_threads_num(grr_component):
       ),
     ])
 
-def threadpool_cpu_usa(grr_component):
+def threadpool_cpu_usage(grr_component):
   return Graph(
     title="Threadpool Average CPU Usage",
     targets=[
@@ -121,7 +121,7 @@ GENERAL_PANELS = [
   ],
   [
     threadpool_outstanding_tasks_vs_threads_num,
-    threadpool_cpu_usa,
+    threadpool_cpu_usage,
     db_operations_errors,
     db_operations_latency,
   ],
