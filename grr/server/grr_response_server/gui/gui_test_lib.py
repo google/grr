@@ -193,10 +193,15 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     atexit.register(GRRSeleniumTest._TearDownSelenium)
     GRRSeleniumTest.base_url = ("http://localhost:%s" % port)
 
-
-    # pylint: disable=unreachable
-    os.environ.pop("http_proxy", None)
     options = webdriver.ChromeOptions()
+    prefs = {
+        "profile.content_settings.exceptions.clipboard": {
+            f"{GRRSeleniumTest.base_url},*": {
+                "setting": 1,
+            },
+        },
+    }
+    options.add_experimental_option("prefs", prefs)
 
     if flags.FLAGS.chrome_binary_path:
       options.binary_location = flags.FLAGS.chrome_binary_path
@@ -209,6 +214,10 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     if flags.FLAGS.disable_chrome_sandboxing:
       options.add_argument("--no-sandbox")
+
+
+    # pylint: disable=unreachable
+    os.environ.pop("http_proxy", None)
 
     if flags.FLAGS.chrome_driver_path:
       GRRSeleniumTest.driver = webdriver.Chrome(
@@ -482,6 +491,10 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def GetAttribute(self, target, attribute):
     element = self.WaitUntil(self.GetVisibleElement, target)
     return element.get_attribute(attribute)
+
+  def GetClipboard(self):
+    return self.GetJavaScriptValue(
+        "return await navigator.clipboard.readText();")
 
   def IsUserNotificationPresent(self, contains_string):
     self.Click("css=#notification_button")

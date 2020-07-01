@@ -2773,4 +2773,5 @@ message ScheduledFlow {
   optional uint64 create_time = 7 [(sem_type) = {
     type: "RDFDatetime",
   }];
+  optional string error = 8;
 }

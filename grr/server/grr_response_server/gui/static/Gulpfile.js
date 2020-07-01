@@ -52,7 +52,7 @@ const closureCompilerPath =
 
 const closureCompilerFlags = {
   compilation_level: 'WHITESPACE_ONLY',
-  dependency_mode: 'STRICT',
+  dependency_mode: 'PRUNE',
   jscomp_off: [
     'checkTypes',
     'checkVars',

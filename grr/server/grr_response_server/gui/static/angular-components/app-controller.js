@@ -148,5 +148,14 @@ $['jstree']['_themes'] = '/static/third-party/jstree/themes/';
  */
 jQuery['migrateMute'] = true;
 
+// This is necessary since otherwise jstree doesn't work with jQuery 3.5.1.
+// See https://jquery.com/upgrade-guide/3.5/
+(
+    /** @suppress {missingProperties} JSC_INEXISTENT_PROPERTY */
+    function() {
+      if ('UNSAFE_restoreLegacyHtmlPrefilter' in jQuery) {
+        jQuery.UNSAFE_restoreLegacyHtmlPrefilter();
+      }
+    })();
 
 exports.appControllerModule.controller('GrrUiAppController', function() {});

@@ -77,22 +77,44 @@ describe('file tree view directive', () => {
 
     jsTree.one('load_node.jstree', () => {
       expect(jsTree.find('[role=treeitem]').length).toBe(1);
-      expect(jsTree.find('[role=treeitem]').attr('id')).toBe('_fs');
+      const treeitem_id = jsTree.find('[role=treeitem]').attr('id');
+      if (treeitem_id == "_fs_anchor") {
+        // jstree 3.3.10
+        expect(jsTree.find('[role=treeitem]').attr('id')).toBe('_fs_anchor');
 
-      // Trigger loading of children of fs.
-      browserTriggerEvent(jsTree.find('#_fs a'), 'click');
-      jsTree.one('open_node.jstree', () => {
-        expect(getChildNodeTexts(jsTree, 'li#_fs')).toEqual(['os', 'tsk']);
-
-        // Trigger loading of children of fs/os.
-        browserTriggerEvent(jsTree.find('#_fs-os a'), 'click');
+        // Trigger loading of children of fs.
+        browserTriggerEvent(jsTree.find('#_fs_anchor'), 'click');
         jsTree.one('open_node.jstree', () => {
-          expect(getChildNodeTexts(jsTree, 'li#_fs-os')).toEqual(['dir1', 'dir2', 'dir3']);
-          expect(jsTree.find('[role=treeitem]').length).toBe(6); // There should be six tree nodes in total.
-          done();
+          expect(getChildNodeTexts(jsTree, 'li#_fs ul.jstree-children')).toEqual(['os', 'tsk']);
+
+          // Trigger loading of children of fs/os.
+          browserTriggerEvent(jsTree.find('#_fs-os_anchor'), 'click');
+          jsTree.one('open_node.jstree', () => {
+            expect(getChildNodeTexts(jsTree, 'li#_fs-os ul.jstree-children')).toEqual(['dir1', 'dir2', 'dir3']);
+            expect(jsTree.find('[role=treeitem]').length).toBe(6); // There should be six tree nodes in total.
+            done();
+          });
+          $rootScope.$apply();
         });
-        $rootScope.$apply();
-      });
+      } else {
+        // jstree 3.3.8
+        expect(jsTree.find('[role=treeitem]').attr('id')).toBe('_fs');
+
+        // Trigger loading of children of fs.
+        browserTriggerEvent(jsTree.find('#_fs a'), 'click');
+        jsTree.one('open_node.jstree', () => {
+          expect(getChildNodeTexts(jsTree, 'li#_fs')).toEqual(['os', 'tsk']);
+
+          // Trigger loading of children of fs/os.
+          browserTriggerEvent(jsTree.find('#_fs-os a'), 'click');
+          jsTree.one('open_node.jstree', () => {
+            expect(getChildNodeTexts(jsTree, 'li#_fs-os')).toEqual(['dir1', 'dir2', 'dir3']);
+            expect(jsTree.find('[role=treeitem]').length).toBe(6); // There should be six tree nodes in total.
+            done();
+          });
+          $rootScope.$apply();
+        });
+      }
       $rootScope.$apply();
     });
   });

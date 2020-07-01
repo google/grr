@@ -27,6 +27,8 @@ from __future__ import unicode_literals
 import logging
 import traceback
 
+from typing import Sequence
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
@@ -298,3 +300,98 @@ def StartFlow(client_id=None,
     flow_obj.FlushQueuedMessages()
 
   return rdf_flow.flow_id
+
+
+def ScheduleFlow(client_id: str, creator: str, flow_name, flow_args,
+                 runner_args) -> rdf_flow_objects.ScheduledFlow:
+  """Schedules a Flow on the client, to be started upon approval grant."""
+
+  scheduled_flow = rdf_flow_objects.ScheduledFlow(
+      client_id=client_id,
+      creator=creator,
+      scheduled_flow_id=RandomFlowId(),
+      flow_name=flow_name,
+      flow_args=flow_args,
+      runner_args=runner_args,
+      create_time=rdfvalue.RDFDatetime.Now())
+
+  data_store.REL_DB.WriteScheduledFlow(scheduled_flow)
+
+  return scheduled_flow
+
+
+def UnscheduleFlow(client_id: str, creator: str,
+                   scheduled_flow_id: str) -> None:
+  """Unschedules and deletes a previously scheduled flow."""
+  data_store.REL_DB.DeleteScheduledFlow(
+      client_id=client_id, creator=creator, scheduled_flow_id=scheduled_flow_id)
+
+
+def ListScheduledFlows(
+    client_id: str, creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
+  """Lists all scheduled flows of a user on a client."""
+  return data_store.REL_DB.ListScheduledFlows(
+      client_id=client_id, creator=creator)
+
+
+def StartScheduledFlows(client_id: str, creator: str) -> None:
+  """Starts all scheduled flows of a user on a client.
+
+  This function delegates to StartFlow() to start the actual flow. If an error
+  occurs during StartFlow(), the ScheduledFlow is not deleted, but it is
+  updated by writing the `error` field to the database. The exception is NOT
+  re-raised and the next ScheduledFlow is attempted to be started.
+
+  Args:
+    client_id: The ID of the client of the ScheduledFlows.
+    creator: The username of the user who created the ScheduledFlows.
+
+  Raises:
+    UnknownClientError: if no client with client_id exists.
+    UnknownGRRUserError: if creator does not exist as user.
+  """
+  # Validate existence of Client and User. Data races are not an issue - no
+  # flows get started in any case.
+  data_store.REL_DB.ReadClientMetadata(client_id)
+  data_store.REL_DB.ReadGRRUser(creator)
+
+  scheduled_flows = ListScheduledFlows(client_id, creator)
+  for sf in scheduled_flows:
+    try:
+      flow_id = _StartScheduledFlow(sf)
+      logging.info("Started Flow %s/%s from ScheduledFlow %s", client_id,
+                   flow_id, sf.scheduled_flow_id)
+    except Exception:  # pylint: disable=broad-except
+      logging.exception("Cannot start ScheduledFlow %s %s/%s from %s",
+                        sf.flow_name, sf.client_id, sf.scheduled_flow_id,
+                        sf.creator)
+
+
+def _StartScheduledFlow(scheduled_flow: rdf_flow_objects.ScheduledFlow) -> str:
+  """Starts a Flow from a ScheduledFlow and deletes the ScheduledFlow."""
+  sf = scheduled_flow
+  ra = scheduled_flow.runner_args
+
+  try:
+    flow_id = StartFlow(
+        client_id=sf.client_id,
+        creator=sf.creator,
+        flow_args=sf.flow_args,
+        flow_cls=registry.FlowRegistry.FlowClassByName(sf.flow_name),
+        output_plugins=ra.output_plugins,
+        start_at=rdfvalue.RDFDatetime.Now(),
+        cpu_limit=ra.cpu_limit,
+        network_bytes_limit=ra.network_bytes_limit,
+        # TODO(user): runtime_limit is missing in FlowRunnerArgs.
+    )
+  except Exception as e:
+    scheduled_flow.error = str(e)
+    data_store.REL_DB.WriteScheduledFlow(scheduled_flow)
+    raise
+
+  data_store.REL_DB.DeleteScheduledFlow(
+      client_id=scheduled_flow.client_id,
+      creator=scheduled_flow.creator,
+      scheduled_flow_id=scheduled_flow.scheduled_flow_id)
+
+  return flow_id

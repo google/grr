@@ -8,9 +8,7 @@ from __future__ import unicode_literals
 
 import argparse
 import getpass
-import grp
 import os
-import pwd
 import re
 import shutil
 import socket
@@ -51,6 +49,7 @@ except ImportError:
   # readline is not bundled with Python on Windows. Simply ignoring failing
   # import then.
   pass
+
 
 # These control retry behavior when checking that GRR can connect to
 # MySQL during config initialization.
@@ -466,6 +465,12 @@ class FleetspeakConfig:
     p.communicate(input=text_format.MessageToString(cp).encode())
     if p.wait() != 0:
       raise RuntimeError("fleetspeak-config command failed.")
+
+    # These modules don't exist on Windows, so importing locally.
+    # pylint: disable=g-import-not-at-top
+    import grp
+    import pwd
+    # pylint: enable=g-import-not-at-top
 
     if (os.geteuid() == 0 and pwd.getpwnam("fleetspeak") and
         grp.getgrnam("fleetspeak")):

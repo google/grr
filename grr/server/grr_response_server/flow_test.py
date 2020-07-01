@@ -5,6 +5,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import random
+
 from absl import app
 
 import mock
@@ -12,14 +14,18 @@ import mock
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
+from grr_response_server.databases import db
+from grr_response_server.flows import file
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -513,6 +519,192 @@ class FlowOutputPluginsTest(BasicFlowTest):
 
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+
+class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
+
+  def SetupUser(self, username="u0"):
+    data_store.REL_DB.WriteGRRUser(username)
+    return username
+
+  def ScheduleFlow(self, **kwargs):
+    merged_kwargs = {
+        "flow_name":
+            file.CollectSingleFile.__name__,
+        "flow_args":
+            rdf_file_finder.CollectSingleFileArgs(
+                path="/foo{}".format(random.randint(0, 1000))),
+        "runner_args":
+            rdf_flow_runner.FlowRunnerArgs(cpu_limit=random.randint(0, 60)),
+        **kwargs
+    }
+
+    return flow.ScheduleFlow(**merged_kwargs)
+
+  def testScheduleFlowCreatesMultipleScheduledFlows(self):
+    client_id0 = self.SetupClient(0)
+    client_id1 = self.SetupClient(1)
+    username0 = self.SetupUser("u0")
+    username1 = self.SetupUser("u1")
+
+    sf0 = self.ScheduleFlow(client_id=client_id0, creator=username0)
+    sf1 = self.ScheduleFlow(client_id=client_id0, creator=username0)
+    sf2 = self.ScheduleFlow(client_id=client_id1, creator=username0)
+    sf3 = self.ScheduleFlow(client_id=client_id0, creator=username1)
+
+    self.assertEqual([sf0, sf1], flow.ListScheduledFlows(client_id0, username0))
+    self.assertEqual([sf2], flow.ListScheduledFlows(client_id1, username0))
+    self.assertEqual([sf3], flow.ListScheduledFlows(client_id0, username1))
+
+  def testStartScheduledFlowsCreatesFlow(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    self.ScheduleFlow(
+        client_id=client_id,
+        creator=username,
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+
+    flow.StartScheduledFlows(client_id, username)
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
+    self.assertLen(flows, 1)
+
+    self.assertEqual(flows[0].client_id, client_id)
+    self.assertEqual(flows[0].creator, username)
+    self.assertEqual(flows[0].flow_class_name, file.CollectSingleFile.__name__)
+    self.assertEqual(flows[0].args.path, "/foo")
+    self.assertEqual(flows[0].flow_state,
+                     rdf_flow_objects.Flow.FlowState.RUNNING)
+    self.assertEqual(flows[0].cpu_limit, 60)
+
+  def testStartScheduledFlowsDeletesScheduledFlows(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    self.ScheduleFlow(client_id=client_id, creator=username)
+    self.ScheduleFlow(client_id=client_id, creator=username)
+
+    flow.StartScheduledFlows(client_id, username)
+    self.assertEmpty(flow.ListScheduledFlows(client_id, username))
+
+  def testStartScheduledFlowsSucceedsWithoutScheduledFlows(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    flow.StartScheduledFlows(client_id, username)
+
+  def testStartScheduledFlowsFailsForUnknownClient(self):
+    self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    with self.assertRaises(db.UnknownClientError):
+      flow.StartScheduledFlows("C.1234123412341234", username)
+
+  def testStartScheduledFlowsFailsForUnknownUser(self):
+    client_id = self.SetupClient(0)
+    self.SetupUser("u0")
+
+    with self.assertRaises(db.UnknownGRRUserError):
+      flow.StartScheduledFlows(client_id, "nonexistent")
+
+  def testStartScheduledFlowsStartsMultipleFlows(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    self.ScheduleFlow(client_id=client_id, creator=username)
+    self.ScheduleFlow(client_id=client_id, creator=username)
+
+    flow.StartScheduledFlows(client_id, username)
+
+  def testStartScheduledFlowsHandlesErrorInFlowConstructor(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    self.ScheduleFlow(
+        client_id=client_id,
+        creator=username,
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+
+    with mock.patch.object(
+        file.CollectSingleFile, "__init__",
+        side_effect=ValueError("foobazzle")):
+      flow.StartScheduledFlows(client_id, username)
+
+    self.assertEmpty(data_store.REL_DB.ReadAllFlowObjects(client_id))
+
+    scheduled_flows = flow.ListScheduledFlows(client_id, username)
+    self.assertLen(scheduled_flows, 1)
+    self.assertIn("foobazzle", scheduled_flows[0].error)
+
+  def testStartScheduledFlowsHandlesErrorInFlowArgsValidation(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    self.ScheduleFlow(
+        client_id=client_id,
+        creator=username,
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+
+    with mock.patch.object(
+        rdf_file_finder.CollectSingleFileArgs,
+        "Validate",
+        side_effect=ValueError("foobazzle")):
+      flow.StartScheduledFlows(client_id, username)
+
+    self.assertEmpty(data_store.REL_DB.ReadAllFlowObjects(client_id))
+
+    scheduled_flows = flow.ListScheduledFlows(client_id, username)
+    self.assertLen(scheduled_flows, 1)
+    self.assertIn("foobazzle", scheduled_flows[0].error)
+
+  def testStartScheduledFlowsContinuesNextOnFailure(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    self.ScheduleFlow(
+        client_id=client_id,
+        creator=username,
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+
+    self.ScheduleFlow(
+        client_id=client_id,
+        creator=username,
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+
+    with mock.patch.object(
+        rdf_file_finder.CollectSingleFileArgs,
+        "Validate",
+        side_effect=[ValueError("foobazzle"), mock.DEFAULT]):
+      flow.StartScheduledFlows(client_id, username)
+
+    self.assertLen(data_store.REL_DB.ReadAllFlowObjects(client_id), 1)
+    self.assertLen(flow.ListScheduledFlows(client_id, username), 1)
+
+  def testUnscheduleFlowCorrectlyRemovesScheduledFlow(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    sf1 = self.ScheduleFlow(client_id=client_id, creator=username)
+    sf2 = self.ScheduleFlow(client_id=client_id, creator=username)
+
+    flow.UnscheduleFlow(client_id, username, sf1.scheduled_flow_id)
+
+    self.assertEqual([sf2], flow.ListScheduledFlows(client_id, username))
+
+    flow.StartScheduledFlows(client_id, username)
+
+    self.assertLen(data_store.REL_DB.ReadAllFlowObjects(client_id), 1)
 
 
 def main(argv):
