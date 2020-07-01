@@ -7,8 +7,9 @@ Quick Start
 Before generating the dashboards on your own, note that you can find the sample
 dashboard in importable JSON format inside the folder
 `grr/monitoring/grafana/grr_grafanalib_dashboards/dashboards_for_use`. From
-there you may import the sample dashboards without re-generating them to your
-Grafana instance. Only if you wish to generate the dashboards, proceed.
+there you can import the sample dashboards without re-generating them to your
+Grafana instance. Follow the instructions below if you want to rebuild or
+customize the dashboards.
 
 **Please note the following edge case**: the panel "API Calls Count Rate by other statuses (not
   SUCCESS)" inside the AdminUI dashboard will *not* show a spike in the graph
@@ -22,9 +23,9 @@ of the documentation.
 Then, go to the grafana directory using `cd grr/moniroing/grafana`.
 Now use `pip install .` to install the grr-grafanalib-module package. This will install `grafanalib` to your environment as well.
 
-You may now visit the given sample dashboards by browsing to `cd grr_grafanalib_dashboards/dashboards_to_generate`.
+You can now visit the given sample dashboards by browsing to `cd grr_grafanalib_dashboards/dashboards_to_generate`.
 This folder will contain all the individual dashboards for each GRR server component. In order to generate these dashboards
-to a format that is importable by a Grafana instance, you may run `generate-dashboards <grr_component_name>.dashboard.py`,
+to a format that is importable by a Grafana instance, run `generate-dashboards <grr_component_name>.dashboard.py`,
 for example: `generate-dashboards frontends.dashboard.py`.
 After running this command, new files will be created in the folder with the names `<grr_component_name>.json`. This
 JSON file can be imported to your Grafana instance by browsing to the [Import](http://localhost:3000/dashboard/import) page,
