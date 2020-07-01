@@ -84,6 +84,18 @@ dashboard = Dashboard(
       ),
       ]
     ),
+    Row(panels=[
+      Graph(
+        title="Messages Ingested per Service, per Source",
+        targets=[
+          Target(
+            expr='sum by (message_type, source_service_name) (rate(fleetspeak_messages_ingested_total[10m]))',
+            legendFormat="Service (Message Type): {{message_type}} | Source: {{source_service_name}}",
+          ),
+        ]
+      ),
+      ]
+    )
   ]
 ).auto_panel_ids()
 
