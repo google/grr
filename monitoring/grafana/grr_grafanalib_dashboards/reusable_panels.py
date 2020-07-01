@@ -100,16 +100,6 @@ def threadpool_cpu_usage(grr_component):
     ),
   )
 
-def client_crashes(grr_component):
-  return Graph(
-    title="GRR Client Crashes",
-    targets=[
-      Target(
-        expr='sum(rate(grr_client_crashes_total{{job="grr_{}"}}[10m]))'.format(grr_component),
-        legendFormat="Rate of Client crashes",
-      ),
-    ])
-
 # Each sublist will be parsed as a row in the dashboard.
 # Don't add more than 4 panels per row.
 GENERAL_PANELS = [
@@ -117,7 +107,6 @@ GENERAL_PANELS = [
     number_of_active_processes_graph,
     avg_cpu_usage_percentage,
     sum_process_memory_bytes,
-    client_crashes,
   ],
   [
     threadpool_outstanding_tasks_vs_threads_num,

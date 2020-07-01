@@ -40,6 +40,15 @@ dashboard = Dashboard(
           ),
         ],
       ),
+      Graph(
+        title="GRR Client Crashes",
+        targets=[
+          Target(
+            expr='sum(rate(grr_client_crashes_total{job="grr_frontend"}[10m]))',
+            legendFormat="Rate of Client crashes",
+          ),
+        ],
+      )
     ]
     ),
   ]
