@@ -8,49 +8,43 @@ GRR_COMPONENT = "worker"
 dashboard = Dashboard(
   title="{}s Dashboard".format(GRR_COMPONENT).title(),
   rows=[
-    Row(panels=[
-      panel(GRR_COMPONENT) for panel in GENERAL_PANELS
-    ]
-    ),
+    Row(panels=[panel(GRR_COMPONENT) for panel in row]) 
+    for row in GENERAL_PANELS
+    ] +
+    [
     Row(panels=[
       Graph(
-        title="Outstanding Tasks vs. Number of Threads",
+        title="Successful Flows Rate vs. Failed Flows Rate",
         targets=[
           Target(
-            expr='sum(threadpool_outstanding_tasks{{job="grr_{}"}})'.format(GRR_COMPONENT),
-            legendFormat="Outstanding Tasks",
-          ),
-          Target(
-            expr='sum(threadpool_threads{{job="grr_{}"}})'.format(GRR_COMPONENT),
-            legendFormat="Threads",
-          ),
-          ],
-      ),
-      Graph(
-        title="Successful Flows vs. Failed Flows Rate",
-        targets=[
-          Target(
-            expr='sum(rate(flow_completions_total{{job="grr_{}"}}[5m]))'.format(GRR_COMPONENT),
+            expr='sum(rate(flow_completions_total{job="grr_worker"}[10m]))',
             legendFormat="Successes",
           ),
           Target(
-            expr='sum(rate(flow_errors_total{{job="grr_{}"}}[5m]))'.format(GRR_COMPONENT),
+            expr='sum(rate(flow_errors_total{job="grr_worker"}[10m]))',
             legendFormat="Failures",
           ),
         ],
       ),
-    ]),
-    Row(panels=[
       Graph(
-        title="Threadpool Latency vs. Queuing Time Rate",
+        title="Threadpool Latency Rate vs. Queuing Time Rate",
         targets=[
           Target(
-            expr='sum(rate(threadpool_working_time_sum{{job="grr_{0}"}}[5m])) / sum(rate(threadpool_working_time_count{{job="grr_{0}"}}[5m]))'.format(GRR_COMPONENT),
+            expr='sum(rate(threadpool_working_time_sum{job="grr_worker"}[10m])) / sum(rate(threadpool_working_time_count{job="grr_worker"}[10m]))',
             legendFormat="Latency",
           ),
           Target(
-            expr='sum(rate(threadpool_queueing_time_sum{{job="grr_{0}"}}[5m])) / sum(rate(threadpool_queueing_time_count{{job="grr_{0}"}}[5m]))'.format(GRR_COMPONENT),
+            expr='sum(rate(threadpool_queueing_time_sum{job="grr_worker"}[10m])) / sum(rate(threadpool_queueing_time_count{job="grr_worker"}[10m]))',
             legendFormat="Queueing Time",
+          ),
+        ],
+      ),
+      Graph(
+        title="Rate of Flow States a GRR Worker has moved through",
+        targets=[
+          Target(
+            expr='rate(grr_worker_states_run_total{job="grr_worker"}[10m])',
+            legendFormat="Rate of Fow States moved through",
           ),
         ],
       ),
