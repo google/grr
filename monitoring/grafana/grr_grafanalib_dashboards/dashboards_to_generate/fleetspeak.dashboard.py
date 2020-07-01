@@ -69,7 +69,7 @@ dashboard = Dashboard(
         targets=[
           Target(
             expr='sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_count{errored="true"}[10m]))',
-            legendFormat="Operation: {{operation}}",
+            legendFormat="{{operation}}",
           ),
         ]
       ),
@@ -78,7 +78,7 @@ dashboard = Dashboard(
         targets=[
           Target(
             expr='sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_count{errored="false"}[10m]))',
-            legendFormat="Operation: {{operation}}",
+            legendFormat="{{operation}}",
           ),
         ]
       ),
@@ -87,7 +87,7 @@ dashboard = Dashboard(
         targets=[
           Target(
             expr='sum by (poll_type) (rate(fleetspeak_server_client_polls_total[10m]))',
-            legendFormat="Poll Type: {{poll_type}}",
+            legendFormat="{{poll_type}}",
           ),
         ]
       ),
