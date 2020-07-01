@@ -1,23 +1,38 @@
 @use '~material-theme' as c;
 
 table {
-  font-size: 80%;
+  border-spacing: 0;
+  color: c.mat-color(c.$foreground, text-light);
+  font-size: 14px;
+  padding: 1em 0;
   width: 100%;
 
   th {
-    font-weight: normal;
+    border-bottom: none !important;
+    font-weight: 500;
     text-align: left;
     padding-bottom: 1.5em;
   }
 
   th,
   td {
+    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+    padding-right: 1.5em;
     vertical-align: top;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-left: 24px;
+  }
+
+  th:last-child,
+  td:last-child {
+    padding-right: 24px;
   }
 
   tbody {
     td {
-      border-bottom: 1px solid c.mat-color(c.$foreground, divider);
       padding-top: 0.5em;
       padding-bottom: 0.5em;
     }
@@ -28,8 +43,30 @@ table {
   }
 
   .path {
+    word-break: break-word;
     min-width: 200px;
     width: 30%;
+
+    .copy-button {
+      font-size: 16px;
+      visibility: hidden;
+
+      line-height: 18px !important;
+      height: 18px !important;
+      width: 18px !important;
+
+      mat-icon {
+        font-size: 16px;
+      }
+    }
+
+    &:hover .copy-button {
+      visibility: visible;
+    }
+  }
+
+  .number {
+    white-space: nowrap;
   }
 
   .timestamp {

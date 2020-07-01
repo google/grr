@@ -380,6 +380,7 @@ export declare interface StatEntry {
   readonly stAtime?: string;
   readonly stMtime?: string;
   readonly stCtime?: string;
+  readonly stCrtime?: string;
 
   readonly stBlocks?: number;
   readonly stBlksize?: number;

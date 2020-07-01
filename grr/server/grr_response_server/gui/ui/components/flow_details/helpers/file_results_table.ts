@@ -37,6 +37,7 @@ declare interface TableRow {
   readonly atime?: Date;
   readonly mtime?: Date;
   readonly ctime?: Date;
+  readonly btime?: Date;
 }
 
 
@@ -74,6 +75,7 @@ export class FileResultsTable {
             atime: createOptionalDateSeconds(e.statEntry.stAtime),
             mtime: createOptionalDateSeconds(e.statEntry.stMtime),
             ctime: createOptionalDateSeconds(e.statEntry.stCtime),
+            btime: createOptionalDateSeconds(e.statEntry.stCrtime),
           };
         });
       }));

@@ -2,25 +2,29 @@
   <thead>
     <tr>
       <th class="path">Path</th>
+      <th class="hash">Hash</th>
       <th class="number">Mode</th>
-      <th class="number">Uid</th>
-      <th class="number">Gid</th>
       <th class="number">Size</th>
       <th class="timestamp">A-time</th>
       <th class="timestamp">M-time</th>
       <th class="timestamp">C-time</th>
+      <th class="timestamp">B-time</th>
     </tr>
   </thead>
   <tbody>
     <tr *ngFor="let r of rows$ | async; trackBy: trackByRowIndex">
-      <td class="path">{{ r.path }}</td>
+      <td class="path">
+        {{ r.path }}&nbsp;<button class="copy-button" [cdkCopyToClipboard]="r.path" mat-icon-button aria-label="Copy path to clipboard">
+          <mat-icon class="menu-icon">content_copy</mat-icon>
+        </button>
+      </td>
+      <td class="hash"></td>
       <td class="number">{{ r.mode | fileMode }}</td>
-      <td class="number">{{ r.uid }}</td>
-      <td class="number">{{ r.gid }}</td>
       <td class="number">{{ r.size }}</td>
       <td class="timestamp">{{ r.atime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
       <td class="timestamp">{{ r.mtime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
       <td class="timestamp">{{ r.ctime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
+      <td class="timestamp">{{ r.btime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
     </tr>
   </tbody>
 </table>

@@ -21,6 +21,11 @@ html {
   top: 1.6em;
 }
 
+.flow-details-summary-aligned {
+  position: absolute;
+  right: 86px;
+}
+
 .monospace,
 .mat-input-element.monospace {
   font-family: 'Roboto Mono', monospace;

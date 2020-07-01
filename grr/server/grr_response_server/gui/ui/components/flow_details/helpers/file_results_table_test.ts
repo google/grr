@@ -65,12 +65,11 @@ describe('FileResultsTable Component', () => {
       stMode: '420',  // 0644
       stDev: 16777220 + index,
       stNlink: 1 + index,
-      stUid: 237586 + index,
-      stGid: 89939 + index,
       stSize: `${index + 1}42`,
       stAtime: `${index + 1}40000`,
       stMtime: `${index + 1}400000`,
       stCtime: `${index + 1}4000000`,
+      stCrtime: `${index + 1}40000000`,
     };
   }
 
@@ -85,14 +84,14 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(2);
 
     const cells = rows[1].querySelectorAll('td');
-    expect(cells[0].innerText).toBe('/home/foo/bar/0');
-    expect(cells[1].innerText).toBe('-rw-r--r--');
-    expect(cells[2].innerText).toBe('237586');
-    expect(cells[3].innerText).toBe('89939');
-    expect(cells[4].innerText).toBe('142');
-    expect(cells[5].innerText).toBe('1970-01-02 02:53:20');
-    expect(cells[6].innerText).toBe('1970-01-17 04:53:20');
-    expect(cells[7].innerText).toBe('1970-06-12 12:53:20');
+    expect(cells[0].innerText.trim()).toBe('/home/foo/bar/0');
+    // No support for hashes yet, ignoring cell #1.
+    expect(cells[2].innerText).toBe('-rw-r--r--');
+    expect(cells[3].innerText).toBe('142');
+    expect(cells[4].innerText).toBe('1970-01-02 02:53:20');
+    expect(cells[5].innerText).toBe('1970-01-17 04:53:20');
+    expect(cells[6].innerText).toBe('1970-06-12 12:53:20');
+    expect(cells[7].innerText).toBe('1974-06-09 08:53:20');
   });
 
   it('correctly presents 2 rows', () => {
@@ -109,24 +108,24 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(3);
 
     let cells = rows[1].querySelectorAll('td');
-    expect(cells[0].innerText).toBe('/home/foo/bar/0');
-    expect(cells[1].innerText).toBe('-rw-r--r--');
-    expect(cells[2].innerText).toBe('237586');
-    expect(cells[3].innerText).toBe('89939');
-    expect(cells[4].innerText).toBe('142');
-    expect(cells[5].innerText).toBe('1970-01-02 02:53:20');
-    expect(cells[6].innerText).toBe('1970-01-17 04:53:20');
-    expect(cells[7].innerText).toBe('1970-06-12 12:53:20');
+    expect(cells[0].innerText.trim()).toBe('/home/foo/bar/0');
+    // No support for hashes yet, ignoring cell #1.
+    expect(cells[2].innerText).toBe('-rw-r--r--');
+    expect(cells[3].innerText).toBe('142');
+    expect(cells[4].innerText).toBe('1970-01-02 02:53:20');
+    expect(cells[5].innerText).toBe('1970-01-17 04:53:20');
+    expect(cells[6].innerText).toBe('1970-06-12 12:53:20');
+    expect(cells[7].innerText).toBe('1974-06-09 08:53:20');
 
     cells = rows[2].querySelectorAll('td');
-    expect(cells[0].innerText).toBe('/home/foo/bar/1');
-    expect(cells[1].innerText).toBe('-rw-r--r--');
-    expect(cells[2].innerText).toBe('237587');
-    expect(cells[3].innerText).toBe('89940');
-    expect(cells[4].innerText).toBe('242');
-    expect(cells[5].innerText).toBe('1970-01-03 06:40:00');
-    expect(cells[6].innerText).toBe('1970-01-28 06:40:00');
-    expect(cells[7].innerText).toBe('1970-10-05 06:40:00');
+    expect(cells[0].innerText.trim()).toBe('/home/foo/bar/1');
+    // No support for hashes yet, ignoring cell #1.
+    expect(cells[2].innerText).toBe('-rw-r--r--');
+    expect(cells[3].innerText).toBe('242');
+    expect(cells[4].innerText).toBe('1970-01-03 06:40:00');
+    expect(cells[5].innerText).toBe('1970-01-28 06:40:00');
+    expect(cells[6].innerText).toBe('1970-10-05 06:40:00');
+    expect(cells[7].innerText).toBe('1977-08-09 06:40:00');
   });
 
 
