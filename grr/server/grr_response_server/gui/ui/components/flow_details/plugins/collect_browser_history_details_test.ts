@@ -226,7 +226,7 @@ describe('collect-browser-history-details component', () => {
 
     expect(
         fixture.debugElement.query(By.css('.success')).nativeElement.innerText)
-        .toContain('42 files collected');
+        .toContain('42 files');
   });
 
   it('shows a spinner on per-browser in-progress state', () => {

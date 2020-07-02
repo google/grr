@@ -1,16 +1,26 @@
 @use '~material-theme' as c;
 
+$files-counter-offset: 135px;
+$header-left-padding: 24px;
+
 .download {
   display: flex;
   justify-content: flex-end;
   align-items: center;
 
   font-size: 90%;
+  font-weight: 400;
   color: c.mat-color(c.$foreground, text-light);
 
   button {
     border-color: c.mat-color(c.$foreground, divider-light);
     margin-left: 1.5em;
+  }
+
+  .num-files {
+    position: absolute;
+    right: $files-counter-offset;
+    white-space: nowrap;
   }
 }
 
@@ -19,12 +29,25 @@
 
   .row {
     .header {
+      cursor: pointer;
+
+      position: relative;
+      bottom: -2px;
+      &:hover {
+        background-color: c.mat-color(c.$primary, 100, 0.15);
+      }
+
       border-top: 1px solid c.mat-color(c.$foreground, divider-light);
-      padding: 0.5em 24px;
+      padding: 0.5em 0 0.5em $header-left-padding;
 
       display: flex;
-      justify-content: space-between;
       align-items: center;
+
+      .row-text {
+        position: relative;
+        right: $files-counter-offset;
+        white-space: nowrap;
+      }
 
       .title,
       .in-progress,
@@ -33,7 +56,6 @@
       .error {
         display: flex;
         align-items: center;
-        margin-right: 0.5em;
 
         .material-icons {
           position: relative;
@@ -42,7 +64,9 @@
       }
 
       .title {
+        flex-grow: 1;
         font-family: c.$google-sans-display-family;
+        font-weight: 400;
 
         .arrow-icon {
           font-size: 36px;
@@ -50,11 +74,11 @@
       }
 
       .success {
-        color: c.mat-color(c.$foreground, text);
+        color: c.mat-color(c.$foreground, text-light);
         font-size: 90%;
 
         .material-icons {
-          color: green;
+          color: c.mat-color(c.$foreground, success);
           margin-left: 0.5em;
         }
       }
@@ -77,6 +101,17 @@
           margin-left: 0.5em;
         }
       }
+
+      .expansion-indicator {
+        color: c.mat-color(c.$foreground, divider);
+        font-size: 30px;
+        text-align: center;
+        width: 40px;
+      }
+    }
+
+    .results-in-progress {
+      padding: 0.5em 24px;
     }
   }
 }

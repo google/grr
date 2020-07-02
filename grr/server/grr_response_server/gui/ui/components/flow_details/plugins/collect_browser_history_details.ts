@@ -116,7 +116,7 @@ export class CollectBrowserHistoryDetails extends Plugin {
       name: progress.browser,
       friendlyName,
       progress,
-      fetchInProgress: resultSet?.state === FlowResultSetState.IN_PROGRESS,
+      fetchInProgress: resultSet?.state !== FlowResultSetState.FETCHED,
       results: resultSet?.items.map((i) => {
         return flowFileResultFromStatEntry(
             (i.payload as CollectBrowserHistoryResult).statEntry!);

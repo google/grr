@@ -97,9 +97,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
       self.Click("css=.flow-title:contains('Browser History')")
-      self.WaitUntil(
-          self.IsElementPresent,
-          "css=.row:contains('Chrome') .success:contains('1 file collected')")
+      self.WaitUntil(self.IsElementPresent,
+                     "css=.row:contains('Chrome') .success:contains('1 file')")
       # Check that other browsers are not shown.
       self.WaitUntilNot(self.IsElementPresent, "css=.row:contains('Opera')")
       self.WaitUntilNot(self.IsElementPresent, "css=.row:contains('Safari')")
@@ -257,6 +256,45 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       # Check that the "load more" button disappears when everything is loaded.
       self.WaitUntilNot(self.IsElementPresent,
                         "css=button:contains('Load more')")
+
+  def testAllowsCopyingResultPathToClipboard(self):
+    flow_args = webhistory.CollectBrowserHistoryArgs(
+        browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
+    flow_id = flow_test_lib.StartFlow(
+        webhistory.CollectBrowserHistory,
+        creator=self.token.username,
+        client_id=self.client_id,
+        flow_args=flow_args)
+
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id, [_GenResults(webhistory.Browser.CHROME, 0)],
+        tag="CHROME")
+
+    with flow_test_lib.FlowProgressOverride(
+        webhistory.CollectBrowserHistory,
+        webhistory.CollectBrowserHistoryProgress(browsers=[
+            webhistory.BrowserProgress(
+                browser=webhistory.Browser.CHROME,
+                status=webhistory.BrowserProgress.Status.SUCCESS,
+                num_collected_files=1,
+            ),
+        ])):
+      self.Open(f"/v2/clients/{self.client_id}")
+      # Expand the flow.
+      self.Click("css=.flow-title:contains('Browser History')")
+      # Expand the browser.
+      self.Click("css=div.title:contains('Chrome')")
+      # Hover and click on the copy button.
+      self.MoveMouseTo(
+          "css=.results tr:nth(1):contains('/home/foo/chrome-0') td.path")
+      # Click on the now visible button.
+      self.Click(
+          "css=.results tr:nth(1):contains('/home/foo/chrome-0') td.path "
+          "button.copy-button")
+
+      clip_value = self.GetClipboard()
+      self.assertEqual(clip_value, "/home/foo/chrome-0")
 
   def testDisplaysAndHidesResultsForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(browsers=[

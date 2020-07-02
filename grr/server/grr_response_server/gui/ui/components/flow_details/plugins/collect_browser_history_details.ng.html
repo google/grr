@@ -18,14 +18,13 @@
     <div class="row" *ngFor="let row of browserRows$ | async; trackBy: trackByRowName">
       <div class="header" (click)="rowClicked(row)">
         <div class="title">
-          <span *ngIf="row.progress.numCollectedFiles > 0 " class="material-icons arrow-icon">
-            {{ expandedRows[row.name] ? 'arrow_drop_down' : 'arrow_right' }}
-          </span>
           <span>{{ row.friendlyName }}</span>
         </div>
 
         <div class="error" *ngIf="row.progress.status === 'ERROR'">
-          {{ row.progress.description }}
+          <div class="flow-details-summary-aligned">
+            <span class="row-text">{{ row.progress.description }}</span>
+          </div>
           <span class="material-icons">error</span>
         </div>
 
@@ -34,13 +33,23 @@
         </div>
 
         <div class="success" *ngIf="row.progress.status === 'SUCCESS' && row.progress.numCollectedFiles > 0">
-          {{ row.progress.numCollectedFiles | i18nPlural: {'=1': '1 file', 'other': '# files'} }} collected
+          <div class="flow-details-summary-aligned">
+            <span class="row-text">{{ row.progress.numCollectedFiles | i18nPlural: {'=1': '1 file', 'other': '# files'} }}</span>
+          </div>
           <span class="material-icons">check_circle</span>
         </div>
 
         <div class="warning" *ngIf="row.progress.status === 'SUCCESS' && row.progress.numCollectedFiles === 0">
-            No files collected
-            <span class="material-icons">warning</span>
+          <div class="flow-details-summary-aligned">
+            <span class="row-text">No files collected</span>
+          </div>
+          <span class="material-icons">warning</span>
+        </div>
+
+        <div class="expansion-indicator">
+          <span *ngIf="row.progress.numCollectedFiles > 0 " class="material-icons arrow-icon">
+            {{ expandedRows[row.name] ? 'keyboard_arrow_down' : 'keyboard_arrow_right' }}
+          </span>
         </div>
       </div>
 
