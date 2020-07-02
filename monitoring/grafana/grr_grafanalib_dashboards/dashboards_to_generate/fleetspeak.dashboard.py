@@ -103,6 +103,23 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      Graph(
+        title="Client Poll Latency",
+        targets=[
+          Target(
+            expr='sum(rate(fleetspeak_server_client_polls_operation_time_latency_sum[10m])) / sum(rate(fleetspeak_server_client_polls_operation_time_latency_count[10m]))',
+            legendFormat="Operation Time",
+          ),
+          Target(
+            expr='sum(rate(fleetspeak_server_client_polls_read_time_latency_sum[10m])) / sum(rate(fleetspeak_server_client_polls_read_time_latency_count[10m]))',
+            legendFormat="Read Time",
+          ),
+          Target(
+            expr='sum(rate(fleetspeak_server_client_polls_write_time_latency_sum[10m])) / sum(rate(fleetspeak_server_client_polls_write_time_latency_count[10m]))',
+            legendFormat="Write Time",
+          ),
+        ]
+      ),
       ]
     ),
     Row(panels=[
