@@ -9,6 +9,8 @@ import {DatePipe} from '@angular/common';
 initTestEnvironment();
 
 describe('Timestamp Component', () => {
+  const ABSOLUTE_FORMAT: string = "MMM d \''yy 'at' HH:mm";
+
   beforeEach(async(() => {
     TestBed
       .configureTestingModule({
@@ -54,7 +56,6 @@ describe('Timestamp Component', () => {
     let date = new Date();
     date.setMinutes(date.getMinutes() - 3);
     date.setHours(date.getHours() - 3);
-
     componentInstance.date = date;
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('div').innerText).toEqual('3h3min ago');
@@ -75,7 +76,7 @@ describe('Timestamp Component', () => {
       .toEqual('yesterday at ' + new DatePipe('en').transform(date, 'HH:mm'));
   });
 
-  it('shows "MMM d \'yy at HH:mm" for dates older than 48 hours', () => {
+  it('shows absolute timstamp for dates older than 48 hours', () => {
     const fixture = TestBed.createComponent(Timestamp);
     const componentInstance = fixture.componentInstance;
 
@@ -86,6 +87,20 @@ describe('Timestamp Component', () => {
     componentInstance.date = date;
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('div').innerText)
-      .toEqual(new DatePipe('en').transform(date, "MMM d \''yy 'at' HH:mm"));
+      .toEqual(new DatePipe('en').transform(date, ABSOLUTE_FORMAT));
+  });
+
+  it('shows absolute timestamp when absoluteOnly parameter is set', () => {
+    const fixture = TestBed.createComponent(Timestamp);
+    const componentInstance = fixture.componentInstance;
+
+    let date = new Date();
+    date.setMinutes(date.getMinutes() - 3);
+
+    componentInstance.date = date;
+    componentInstance.absoluteOnly = true;
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('div').innerText)
+      .toEqual(new DatePipe('en').transform(date, ABSOLUTE_FORMAT));
   });
 });
