@@ -133,6 +133,15 @@ dashboard = Dashboard(
         ]
       ),
       Graph(
+        title="Average Message Processing Latency per Service",
+        targets=[
+          Target(
+            expr='sum by (service) (rate(fleetspeak_server_messages_processed_latency_sum[10m])) / sum by (service) (rate(fleetspeak_server_messages_processed_latency_count[10m]))',
+            legendFormat="{{service}}",
+          ),
+        ]
+      ),
+      Graph(
         title="Payload Bytes Saved per Service",
         targets=[
           Target(
