@@ -16,7 +16,7 @@
         <mat-icon *ngIf="!isOnline(client.lastSeenAt)"
                   class="offline-icon">highlight_off</mat-icon>
         <span>{{ client.knowledgeBase.fqdn }}</span> |
-        <small>{{ client.lastSeenAt ? (client.lastSeenAt | date:'short':'UTC') : '-' }}</small>
+        <small><timestamp [date]="client.lastSeenAt" tooltipDisabled="true"></timestamp></small>
       </mat-option>
     </div>
   </mat-autocomplete>
