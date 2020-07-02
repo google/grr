@@ -82,12 +82,24 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      ]
+    ),
+    Row(panels=[
       Graph(
         title="Client Polls Rate per Type",
         targets=[
           Target(
             expr='sum by (poll_type) (rate(fleetspeak_server_client_polls_total[10m]))',
             legendFormat="{{poll_type}}",
+          ),
+        ]
+      ),
+      Graph(
+        title="Client Polls Errors Rate per Status",
+        targets=[
+          Target(
+            expr='sum by (http_status_code) (rate(fleetspeak_server_client_polls_total{http_status_code="^(4|5).*"}[10m]))',
+            legendFormat="{{http_status_code}}",
           ),
         ]
       ),
