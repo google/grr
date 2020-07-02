@@ -11,9 +11,13 @@ export class RelativeTimestampPipe extends
   readonly oneHour = 3600000; // One hour in millis
   readonly oneMin = 60000; // One minute in millis
 
-  transform(date: Date, args?: any): any {
+  transform(date: Date, absoluteOnly: any): any {
     if (date === undefined) {
       return "-";
+    }
+
+    if (absoluteOnly) {
+      return this.getAbsoluteTimestamp(date);
     }
 
     var currentDate = new Date();
@@ -37,6 +41,10 @@ export class RelativeTimestampPipe extends
       return super.transform(date, "'yesterday at' HH':'mm");
     }
 
+    return this.getAbsoluteTimestamp(date);
+  }
+
+  getAbsoluteTimestamp(date: Date): any {
     return super.transform(date, "MMM d \''yy 'at' HH:mm");
   }
 }

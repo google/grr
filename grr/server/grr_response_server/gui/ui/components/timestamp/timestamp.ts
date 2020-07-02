@@ -1,7 +1,7 @@
 import {Component, Input, ViewEncapsulation} from '@angular/core';
 
 /**
- * Shows a formatted timestamp, based on the date received as parameter 
+ * Shows a formatted timestamp, based on the date received as parameter
  */
 @Component({
   selector: 'timestamp',
@@ -11,4 +11,6 @@ import {Component, Input, ViewEncapsulation} from '@angular/core';
 })
 export class Timestamp {
   @Input() date?: Date;
+  @Input() absoluteOnly: boolean = false;
+  @Input() tooltipDisabled: boolean = false;
 }
