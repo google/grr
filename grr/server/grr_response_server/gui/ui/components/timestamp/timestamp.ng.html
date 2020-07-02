@@ -2,6 +2,7 @@
   matTooltip="{{date | date:'yyyy-MM-dd HH:mm:ss':'utc'}} UTC"
   matTooltipPosition="above"
   matTooltipClass="tooltip"
-  matTooltipDisabled="{{tooltipDisabled}}">
+  matTooltipDisabled="{{tooltipDisabled}}"
+  [style.border-bottom]="tooltipDisabled ? '0px' : '1px dotted rgb(126, 126, 126)'">
   {{date | relativeTimestamp: absoluteOnly}}
 </div>
