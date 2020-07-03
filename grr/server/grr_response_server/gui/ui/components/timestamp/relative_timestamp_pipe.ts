@@ -1,50 +1,49 @@
 import {Pipe, PipeTransform} from '@angular/core';
-import {DatePipe} from '@angular/common';
+import {DateTime} from 'luxon';
 
 @Pipe({
   name: 'relativeTimestamp'
 })
-export class RelativeTimestampPipe extends
-  DatePipe implements PipeTransform {
-
+export class RelativeTimestampPipe implements PipeTransform {
   readonly oneDay = 86400000; // One day in millis
   readonly oneHour = 3600000; // One hour in millis
   readonly oneMin = 60000; // One minute in millis
 
-  transform(date: Date, absoluteOnly: any): any {
-    if (date === undefined) {
+  transform(jsDate: Date, absoluteOnly: boolean): any {
+    if (jsDate === undefined) {
       return "-";
     }
+
+    const date = DateTime.fromJSDate(jsDate);
 
     if (absoluteOnly) {
       return this.getAbsoluteTimestamp(date);
     }
 
-    var currentDate = new Date();
-    var timeDifference = currentDate.getTime() - date.getTime();
-    var relativeDate = new Date();
-    relativeDate.setTime(timeDifference);
+    const now = DateTime.local();
+    const timeElapsed = now.diff(date, "milliseconds").as("milliseconds");
 
-    if (timeDifference < this.oneMin / 2) {
+    if (timeElapsed < this.oneMin / 2) {
       return "Just now";
     }
 
-    if (timeDifference < this.oneHour) {
-      return super.transform(relativeDate, "m'min ago'");
+    if (timeElapsed < this.oneHour) {
+      return Math.round(timeElapsed / this.oneMin) + "min ago";
     }
 
-    if (timeDifference < this.oneDay) {
-      return super.transform(relativeDate, "H'h'm'min ago'");
+    if (timeElapsed < this.oneDay) {
+      return Math.round(timeElapsed / this.oneHour) + "h" +
+        Math.round((timeElapsed % this.oneHour) / this.oneMin) + "min ago";
     }
 
-    if (timeDifference < this.oneDay * 2) {
-      return super.transform(date, "'yesterday at' HH':'mm");
+    if (now.startOf("day").diff(date, "days").as("days") < 0) {
+      return "yesterday at " + date.toLocaleString(DateTime.TIME_SIMPLE);
     }
 
     return this.getAbsoluteTimestamp(date);
   }
 
-  getAbsoluteTimestamp(date: Date): any {
-    return super.transform(date, "MMM d \''yy 'at' HH:mm");
+  getAbsoluteTimestamp(date: DateTime): any {
+    return date.toLocaleString(DateTime.DATETIME_MED);
   }
 }

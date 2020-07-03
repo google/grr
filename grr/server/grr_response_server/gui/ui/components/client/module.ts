@@ -23,7 +23,7 @@ import {TimestampModule} from '../timestamp/module';
     ApprovalModule,
     FlowFormModule,
     FlowListModule,
-    TimestampModule   
+    TimestampModule,
   ],
   declarations: [
     Client,

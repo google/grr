@@ -39,7 +39,7 @@ import {TimestampModule} from '../timestamp/module';
     // GRR modules.
     HomeRoutingModule,
     ApiModule,
-    TimestampModule
+    TimestampModule,
   ],
   declarations: [Home, SearchBox],
 })

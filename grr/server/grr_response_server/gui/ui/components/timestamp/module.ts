@@ -11,15 +11,15 @@ import {MatTooltipModule} from '@angular/material/tooltip';
   imports: [
     // Angular builtin modules.
     CommonModule,
-    MatTooltipModule
+    MatTooltipModule,
   ],
   declarations: [
     Timestamp,
-    RelativeTimestampPipe
+    RelativeTimestampPipe,
   ],
   exports: [
     Timestamp,
-    RelativeTimestampPipe
+    RelativeTimestampPipe,
   ],
 })
 export class TimestampModule {

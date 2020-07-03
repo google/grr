@@ -54,11 +54,12 @@ describe('Timestamp Component', () => {
     const componentInstance = fixture.componentInstance;
 
     let date = new Date();
-    date.setMinutes(date.getMinutes() - 3);
-    date.setHours(date.getHours() - 3);
+    date.setTime(date.getTime() - 1000 * 60 * 60 * 3);
+    // date.setMinutes(date.getMinutes() - 3);
+    // date.setHours(date.getHours() - 3);
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('div').innerText).toEqual('3h3min ago');
+    expect(fixture.nativeElement.querySelector('div').innerText).toEqual('3h0min ago');
   });
 
 
@@ -76,7 +77,7 @@ describe('Timestamp Component', () => {
       .toEqual('yesterday at ' + new DatePipe('en').transform(date, 'HH:mm'));
   });
 
-  it('shows absolute timstamp for dates older than 48 hours', () => {
+  it('shows absolute timestamp for dates older than 48 hours', () => {
     const fixture = TestBed.createComponent(Timestamp);
     const componentInstance = fixture.componentInstance;
 
