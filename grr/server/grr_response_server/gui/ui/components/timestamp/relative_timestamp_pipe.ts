@@ -8,6 +8,7 @@ export class RelativeTimestampPipe implements PipeTransform {
   readonly oneDay = 86400000; // One day in millis
   readonly oneHour = 3600000; // One hour in millis
   readonly oneMin = 60000; // One minute in millis
+  readonly oneSecond = 1000; // One second in millis
 
   transform(jsDate: Date, absoluteOnly: boolean): any {
     if (jsDate === undefined) {
@@ -27,17 +28,21 @@ export class RelativeTimestampPipe implements PipeTransform {
       return "Just now";
     }
 
+    if (timeElapsed < this.oneMin) {
+      return Math.floor(timeElapsed / this.oneSecond) + " seconds ago";
+    }
+
     if (timeElapsed < this.oneHour) {
-      return Math.round(timeElapsed / this.oneMin) + "min ago";
+      return Math.floor(timeElapsed / this.oneMin) + "min ago";
     }
 
     if (timeElapsed < this.oneDay) {
-      return Math.round(timeElapsed / this.oneHour) + "h" +
-        Math.round((timeElapsed % this.oneHour) / this.oneMin) + "min ago";
+      return Math.floor(timeElapsed / this.oneHour) + "h" +
+        Math.floor((timeElapsed % this.oneHour) / this.oneMin) + "min ago";
     }
 
-    if (now.startOf("day").diff(date, "days").as("days") < 0) {
-      return "yesterday at " + date.toLocaleString(DateTime.TIME_SIMPLE);
+    if (now.startOf("day").diff(date, "milliseconds").as("milliseconds") < this.oneDay) {
+      return "yesterday at " + date.toLocaleString(DateTime.TIME_24_SIMPLE);
     }
 
     return this.getAbsoluteTimestamp(date);

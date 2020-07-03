@@ -10,6 +10,8 @@ import {Subject} from 'rxjs';
 
 import {ClientSearch} from './client_search';
 import {ClientSearchModule} from './module';
+import {formatDate} from '@angular/common';
+import {RelativeTimestampPipe} from '../timestamp/relative_timestamp_pipe';
 
 
 
@@ -36,22 +38,22 @@ describe('ClientSearch Component', () => {
     paramsSubject = new Subject();
 
     TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,  // This makes test faster and more stable.
-            ApiModule,
-            ClientSearchModule,
-            RouterTestingModule,
-          ],
-          providers: [{
-            provide: ActivatedRoute,
-            useValue: {
-              paramMap: paramsSubject,
-            },
-          }],
+      .configureTestingModule({
+        imports: [
+          NoopAnimationsModule,  // This makes test faster and more stable.
+          ApiModule,
+          ClientSearchModule,
+          RouterTestingModule,
+        ],
+        providers: [{
+          provide: ActivatedRoute,
+          useValue: {
+            paramMap: paramsSubject,
+          },
+        }],
 
-        })
-        .compileComponents();
+      })
+      .compileComponents();
 
     facade = TestBed.inject(ClientSearchFacade);
   }));
@@ -112,11 +114,11 @@ describe('ClientSearch Component', () => {
     expect(rows.length).toBe(3);
     // Check the first data row.
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
-               .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.1234', 'foo.unknown', 'Oct 23 \'19 at 00:19']);
+      .map((e: Element) => (e as HTMLElement).innerText))
+      .toEqual(['C.1234', 'foo.unknown', new RelativeTimestampPipe().transform(new Date(1571789996678), false)]);
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
-               .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.5678', 'bar.unknown', '-']);
+      .map((e: Element) => (e as HTMLElement).innerText))
+      .toEqual(['C.5678', 'bar.unknown', '-']);
   });
 });
