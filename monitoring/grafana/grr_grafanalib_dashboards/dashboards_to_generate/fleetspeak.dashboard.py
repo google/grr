@@ -145,7 +145,7 @@ dashboard = Dashboard(
         title="Payload Bytes Saved per Service",
         targets=[
           Target(
-            expr='sum by (service) (rate(fleetspeak_messages_saved_payload_size[10m]))',
+            expr='sum by (service) (rate(fleetspeak_messages_saved_payload_bytes_size[10m]))',
             legendFormat="{{service}}",
           ),
         ]
