@@ -19,7 +19,7 @@
        {{client.knowledgeBase.os}}
     </div>
     <div class="last-seen">
-      Last seen: {{client.lastSeenAt | date:'MM/dd/yyyy hh:mm:ss':'utc'}} UTC
+      Last seen: <timestamp [date]="client.lastSeenAt" absoluteOnly="true"></timestamp>
     </div>
   </div>
   <div class="client-approval">
