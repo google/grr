@@ -39,7 +39,7 @@ describe('Timestamp Component', () => {
     expect(componentInstance).toBeTruthy();
   });
 
-  it('shows "Just now" for dates less than 1min ago', () => {
+  it('shows "Just now" for dates less than 30 seconds ago', () => {
     const fixture = TestBed.createComponent(Timestamp);
     const componentInstance = fixture.componentInstance;
     const JUST_NOW = 'Just now';
@@ -157,14 +157,12 @@ describe('Timestamp Component', () => {
     let date = new Date('2020-06-29T23:59:59.999');
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+    expect(fixture.nativeElement.innerText).toEqual('Jun 29, 2020, 11:59 PM');
 
     date = new Date('1620-06-20T12:59:59.999');
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+    expect(fixture.nativeElement.innerText).toEqual('Jun 20, 1620, 12:59 PM');
   });
 
   it('shows absolute timestamp when absoluteOnly parameter is set', () => {
@@ -177,34 +175,30 @@ describe('Timestamp Component', () => {
     componentInstance.date = date;
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+      .toEqual('Jul 1, 2020, 12:59 PM');
 
     // 50 seconds ago
     date = new Date('2020-07-01T12:59:09.999');
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+    expect(fixture.nativeElement.innerText).toEqual('Jul 1, 2020, 12:59 PM');
 
     // 10min ago
     date = new Date('2020-07-01T12:50:59.999');
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+    expect(fixture.nativeElement.innerText).toEqual('Jul 1, 2020, 12:50 PM');
 
     // 9h10min ago
     date = new Date('2020-07-01T03:50:59.999');
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+    expect(fixture.nativeElement.innerText).toEqual('Jul 1, 2020, 3:50 AM');
 
     // yesterday at 03:50
     date = new Date('2020-06-30T03:50:59.999');
     componentInstance.date = date;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText)
-      .toEqual(DateTime.fromJSDate(date).toLocaleString(DateTime.DATETIME_MED));
+    expect(fixture.nativeElement.innerText).toEqual('Jun 30, 2020, 3:50 AM');
   });
 });

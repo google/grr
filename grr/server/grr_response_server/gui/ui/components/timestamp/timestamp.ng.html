@@ -3,6 +3,6 @@
   matTooltipPosition="above"
   matTooltipClass="tooltip"
   matTooltipDisabled="{{!tooltipEnabled}}"
-  [style.border-bottom]="tooltipEnabled ? '1px dotted rgb(126, 126, 126)' : '0px'">
+  [style.border-bottom]="tooltipEnabled ? '1px dotted rgb(126, 126, 126)' : 'none'">
   {{date | relativeTimestamp: absoluteOnly}}
 </div>

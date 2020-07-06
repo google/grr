@@ -5,14 +5,14 @@ import {DateTime} from 'luxon';
   name: 'relativeTimestamp'
 })
 export class RelativeTimestampPipe implements PipeTransform {
-  readonly oneDay = 86400000; // One day in millis
-  readonly oneHour = 3600000; // One hour in millis
-  readonly oneMin = 60000; // One minute in millis
-  readonly oneSecond = 1000; // One second in millis
+  private static readonly ONE_DAY_IN_MILLIS = 86400000;
+  private static readonly ONE_HOUR_IN_MILLIS = 3600000;
+  private static readonly ONE_MIN_IN_MILLIS = 60000;
+  private static readonly ONE_SECOND_IN_MILLIS = 1000;
 
-  transform(jsDate: Date, absoluteOnly: boolean): any {
+  transform(jsDate: Date, absoluteOnly: boolean): string {
     if (jsDate === undefined) {
-      return "-";
+      return '-';
     }
 
     const date = DateTime.fromJSDate(jsDate);
@@ -22,27 +22,30 @@ export class RelativeTimestampPipe implements PipeTransform {
     }
 
     const now = DateTime.local();
-    const timeElapsed = now.diff(date, "milliseconds").as("milliseconds");
+    const timeElapsed = now.diff(date, 'milliseconds').as('milliseconds');
 
-    if (timeElapsed < this.oneMin / 2) {
+    if (timeElapsed < RelativeTimestampPipe.ONE_MIN_IN_MILLIS / 2) {
       return "Just now";
     }
 
-    if (timeElapsed < this.oneMin) {
-      return Math.floor(timeElapsed / this.oneSecond) + " seconds ago";
+    if (timeElapsed < RelativeTimestampPipe.ONE_MIN_IN_MILLIS) {
+      return `${Math.floor(timeElapsed / RelativeTimestampPipe.ONE_SECOND_IN_MILLIS)} seconds ago`;
     }
 
-    if (timeElapsed < this.oneHour) {
-      return Math.floor(timeElapsed / this.oneMin) + "min ago";
+    if (timeElapsed < RelativeTimestampPipe.ONE_HOUR_IN_MILLIS) {
+      return `${Math.floor(timeElapsed / RelativeTimestampPipe.ONE_MIN_IN_MILLIS)}min ago`;
     }
 
-    if (timeElapsed < this.oneDay) {
-      return Math.floor(timeElapsed / this.oneHour) + "h" +
-        Math.floor((timeElapsed % this.oneHour) / this.oneMin) + "min ago";
+    if (timeElapsed < RelativeTimestampPipe.ONE_DAY_IN_MILLIS) {
+      let timeDiff = now.diff(date, ['hours', 'minutes']);
+
+      return `${timeDiff.hours}h${Math.floor(timeDiff.minutes)}min ago`
     }
 
-    if (now.startOf("day").diff(date, "milliseconds").as("milliseconds") < this.oneDay) {
-      return "yesterday at " + date.toLocaleString(DateTime.TIME_24_SIMPLE);
+    let yesterdayDate = now.minus({days: 1});
+    if (yesterdayDate.hasSame(date, 'year') && yesterdayDate.hasSame(date, 'month') &&
+      yesterdayDate.hasSame(date, 'day')) {
+      return `yesterday at ${date.toLocaleString(DateTime.TIME_24_SIMPLE)}`;
     }
 
     return this.getAbsoluteTimestamp(date);
