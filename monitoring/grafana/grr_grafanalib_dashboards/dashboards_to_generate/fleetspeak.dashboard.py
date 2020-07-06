@@ -64,7 +64,7 @@ dashboard = Dashboard(
           ),
         ]
       ),
-      Heatmap( # dist
+      Heatmap(
         title="Datastore Latency",
         targets=[
           Target(
@@ -99,6 +99,9 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      ]
+    ),
+    Row(panels=[
       Graph(
         title="Successful Datastore Operations Rate per Operation",
         targets=[
@@ -108,9 +111,6 @@ dashboard = Dashboard(
           ),
         ]
       ),
-      ]
-    ),
-    Row(panels=[
       Graph(
         title="Client Polls Rate per Type",
         targets=[
@@ -176,9 +176,6 @@ dashboard = Dashboard(
           ),
         ]
       ),
-      ]
-    ),
-    Row(panels=[
       Graph(
         title="Messages Ingested per Destination Service",
         targets=[
@@ -188,6 +185,9 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      ]
+    ),
+    Row(panels=[
       Graph(
         title="Average Message Processing Latency per Service",
         targets=[
@@ -215,8 +215,7 @@ dashboard = Dashboard(
           ),
         ]
       ),
-      ]
-    )
+    ])
   ]
 ).auto_panel_ids()
 
