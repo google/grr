@@ -1,0 +1,8 @@
+<div class="timestamp"
+  matTooltip="{{date | date:'yyyy-MM-dd HH:mm:ss':'utc'}} UTC"
+  matTooltipPosition="above"
+  matTooltipClass="tooltip"
+  matTooltipDisabled="{{!tooltipEnabled}}"
+  [style.border-bottom]="tooltipEnabled ? '1px dotted rgb(126, 126, 126)' : 'none'">
+  {{date | relativeTimestamp: absoluteOnly}}
+</div>
