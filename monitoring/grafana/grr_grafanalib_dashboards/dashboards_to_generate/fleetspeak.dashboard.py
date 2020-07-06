@@ -159,6 +159,15 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      Graph(
+        title="Payload Bytes Ingested per Destination Service",
+        targets=[
+          Target(
+            expr='sum by (destination_service) (rate(fleetspeak_messages_ingested_payload_bytes_size[10m]))',
+            legendFormat="{{destination_service}}",
+          ),
+        ]
+      ),
       ]
     )
   ]
