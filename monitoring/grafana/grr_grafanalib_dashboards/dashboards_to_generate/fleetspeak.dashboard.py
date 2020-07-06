@@ -1,4 +1,4 @@
-from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis
+from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, Heatmap, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.config import ACTIVE_PROCESSES_ALERTING_CONDITION
 
@@ -56,11 +56,37 @@ dashboard = Dashboard(
     ),
     Row(panels=[
       Graph(
+        title="Datastore Latency per Operation",
+        targets=[
+          Target(
+            expr='sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_sum[10m]) / rate(fleetspeak_server_datastore_operations_completed_latency_count[10m]))',
+            legendFormat="{{operation}}",
+          ),
+        ]
+      ),
+      Heatmap( # dist
         title="Datastore Latency",
         targets=[
           Target(
-            expr='rate(fleetspeak_server_datastore_operations_completed_latency_sum[10m]) / rate(fleetspeak_server_datastore_operations_completed_latency_count[10m])',
-            legendFormat="Latency - Operation: {{operation}}",
+            expr='sum(rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])) by (le)',
+          ),
+        ],
+        legend={'show': True},
+      ),
+      Graph(
+        title="Datastore Latency Distribution",
+        targets=[
+          Target(
+            expr='histogram_quantile(0.5, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))',
+            legendFormat="50th percentile",
+          ),
+          Target(
+            expr='histogram_quantile(0.9, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))',
+            legendFormat="90th percentile",
+          ),
+          Target(
+            expr='histogram_quantile(0.99, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))',
+            legendFormat="99th percentile",
           ),
         ]
       ),
