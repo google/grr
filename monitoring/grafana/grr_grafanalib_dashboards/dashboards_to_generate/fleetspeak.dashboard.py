@@ -188,12 +188,29 @@ dashboard = Dashboard(
       ]
     ),
     Row(panels=[
-      Graph(
-        title="Average Message Processing Latency per Service",
+      Heatmap(
+        title="Message Processing Latency",
         targets=[
           Target(
-            expr='sum by (service) (rate(fleetspeak_server_messages_processed_latency_sum[10m])) / sum by (service) (rate(fleetspeak_server_messages_processed_latency_count[10m]))',
-            legendFormat="{{service}}",
+            expr='sum(rate(fleetspeak_server_messages_processed_latency_bucket[10m])) by (le)',
+          ),
+        ],
+        legend={'show': True},
+      ),
+      Graph(
+        title="Message Processing Latency Distribution per Service",
+        targets=[
+          Target(
+            expr='histogram_quantile(0.5, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))',
+            legendFormat="50th percentile - {{service}}",
+          ),
+          Target(
+            expr='histogram_quantile(0.9, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))',
+            legendFormat="90th percentile - {{service}}",
+          ),
+          Target(
+            expr='histogram_quantile(0.99, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))',
+            legendFormat="99th percentile - {{service}}",
           ),
         ]
       ),
