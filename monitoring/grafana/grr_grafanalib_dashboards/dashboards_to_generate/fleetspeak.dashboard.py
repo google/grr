@@ -129,20 +129,41 @@ dashboard = Dashboard(
           ),
         ]
       ),
-      Graph(
+      Heatmap(
         title="Client Poll Latency",
         targets=[
           Target(
-            expr='sum(rate(fleetspeak_server_client_polls_operation_time_latency_sum[10m])) / sum(rate(fleetspeak_server_client_polls_operation_time_latency_count[10m]))',
-            legendFormat="Operation Time",
+            expr='sum(rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])) by (le)',
+          ),
+        ],
+        legend={'show': True},
+      ),
+      ]
+    ),
+    Row(panels=[
+      Graph(
+        title="Client Poll Latency Distribution",
+        targets=[
+          Target(
+            expr='histogram_quantile(0.5, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))',
+            legendFormat="50th percentile",
           ),
           Target(
-            expr='sum(rate(fleetspeak_server_client_polls_read_time_latency_sum[10m])) / sum(rate(fleetspeak_server_client_polls_read_time_latency_count[10m]))',
-            legendFormat="Read Time",
+            expr='histogram_quantile(0.9, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))',
+            legendFormat="90th percentile",
           ),
           Target(
-            expr='sum(rate(fleetspeak_server_client_polls_write_time_latency_sum[10m])) / sum(rate(fleetspeak_server_client_polls_write_time_latency_count[10m]))',
-            legendFormat="Write Time",
+            expr='histogram_quantile(0.99, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))',
+            legendFormat="99th percentile",
+          ),
+        ]
+      ),
+      Graph(
+        title="Client Poll Operation Time Latency per Poll Type",
+        targets=[
+          Target(
+            expr='sum by (poll_type) (rate(fleetspeak_server_client_polls_operation_time_latency_sum[10m]) / rate(fleetspeak_server_client_polls_operation_time_latency_count[10m]))',
+            legendFormat="{{poll_type}}",
           ),
         ]
       ),
