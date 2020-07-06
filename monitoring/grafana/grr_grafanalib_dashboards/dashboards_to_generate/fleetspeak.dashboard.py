@@ -120,6 +120,15 @@ dashboard = Dashboard(
           ),
         ]
       ),
+      Graph(
+        title="Client Polls Rate per Cache",
+        targets=[
+          Target(
+            expr='sum by (cache_hit) (rate(fleetspeak_server_client_polls_total[10m]))',
+            legendFormat="Hit: {{cache_hit}}",
+          ),
+        ]
+      ),
       ]
     ),
     Row(panels=[
