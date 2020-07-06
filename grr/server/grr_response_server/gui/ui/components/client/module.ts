@@ -9,6 +9,7 @@ import {ApprovalModule} from '../approval/module';
 
 import {Client} from './client';
 import {ClientRoutingModule} from './routing';
+import {TimestampModule} from '../timestamp/module';
 
 /**
  * Module for the client details component.
@@ -22,6 +23,7 @@ import {ClientRoutingModule} from './routing';
     ApprovalModule,
     FlowFormModule,
     FlowListModule,
+    TimestampModule,
   ],
   declarations: [
     Client,
