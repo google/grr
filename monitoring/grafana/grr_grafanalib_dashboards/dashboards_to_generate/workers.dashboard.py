@@ -43,7 +43,7 @@ dashboard = Dashboard(
         title="Rate of Flow States a GRR Worker has moved through by GRR Worker Instance",
         targets=[
           Target(
-            expr='rate(grr_worker_states_run_total{job="grr_worker"}[10m])',
+            expr='sum by (instance) (rate(grr_worker_states_run_total{job="grr_worker"}[10m]))',
             legendFormat="{{instance}}",
           ),
         ],

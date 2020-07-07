@@ -1036,7 +1036,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "rate(grr_worker_states_run_total{job=\"grr_worker\"}[10m])",
+              "expr": "sum by (instance) (rate(grr_worker_states_run_total{job=\"grr_worker\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
