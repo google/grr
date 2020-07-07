@@ -54,21 +54,21 @@ def sum_process_memory_bytes(grr_component):
 
 def db_operations_latency(grr_component):
   return Graph(
-    title="Database Operations Latency",
+    title="Database Operations Latency by Call",
     targets=[
       Target(
-        expr='rate(db_request_latency_sum{{job="grr_{0}"}}[10m]) / rate(db_request_latency_count{{job="grr_{0}"}}[10m])'.format(grr_component),
-        legendFormat="Latency - Call: {{call}}",
+        expr='sum by (call) (rate(db_request_latency_sum{{job="grr_{0}"}}[10m]) / rate(db_request_latency_count{{job="grr_{0}"}}[10m]))'.format(grr_component),
+        legendFormat="{{call}}",
       ),
     ])
 
 def db_operations_errors(grr_component):
   return Graph(
-    title="Database Operations Errors Rate",
+    title="Database Operations Errors Rate by Call",
     targets=[
       Target(
-        expr='rate(db_request_errors_total{{job="grr_{0}"}}[10m])'.format(grr_component),
-        legendFormat="Operations Error Rate - Call: {{call}}",
+        expr='sum by (call) (rate(db_request_errors_total{{job="grr_{0}"}}[10m]))'.format(grr_component),
+        legendFormat="{{call}}",
       ),
     ])
 

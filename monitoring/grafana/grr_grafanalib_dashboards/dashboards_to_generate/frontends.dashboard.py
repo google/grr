@@ -32,11 +32,11 @@ dashboard = Dashboard(
         ],
       ),
       Graph(
-        title="Well Known Flows Requests Rate",
+        title="Well Known Flows Requests Rate by Flow",
         targets=[
           Target(
-            expr='rate(well_known_flow_requests_total[10m])',
-            legendFormat="Flow: {{flow}}",
+            expr='sum by (flow) (rate(well_known_flow_requests_total[10m]))',
+            legendFormat="{{flow}}",
           ),
         ],
       ),
