@@ -41,11 +41,11 @@ dashboard = Dashboard(
         ],
       ),
       Graph(
-        title="API Access Probe Latency",
+        title="API Access Probe Latency by Method",
         targets=[
           Target(
-            expr='rate(api_access_probe_latency_sum[10m]) / rate(api_access_probe_latency_count[10m])',
-            legendFormat="Latency - Method: {{method_name}}",
+            expr='sum by (method_name) (rate(api_access_probe_latency_sum[10m]) / rate(api_access_probe_latency_count[10m]))',
+            legendFormat="{{method_name}}",
           ),
         ],
       ),
