@@ -64,11 +64,11 @@ def db_operations_latency(grr_component):
 
 def db_operations_errors(grr_component):
   return Graph(
-    title="Database Operations Errors Rate",
+    title="Database Operations Errors Rate by Call",
     targets=[
       Target(
-        expr='rate(db_request_errors_total{{job="grr_{0}"}}[10m])'.format(grr_component),
-        legendFormat="Operations Error Rate - Call: {{call}}",
+        expr='sum by (call) (rate(db_request_errors_total{{job="grr_{0}"}}[10m]))'.format(grr_component),
+        legendFormat="{{call}}",
       ),
     ])
 
