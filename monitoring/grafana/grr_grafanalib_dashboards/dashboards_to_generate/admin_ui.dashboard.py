@@ -14,16 +14,16 @@ dashboard = Dashboard(
     [
     Row(panels=[
       Graph(
-        title="API Method Latency Rate",
+        title="API Method Latency Rate by Method",
         targets=[
           Target(
-            expr='rate(api_method_latency_sum[10m]) / rate(api_method_latency_count[10m])',
-            legendFormat="Latency - Method: {{method_name}}",
+            expr='sum by (method_name) (rate(api_method_latency_sum[10m]) / rate(api_method_latency_count[10m]))',
+            legendFormat="{{method_name}}",
           ),
         ],
       ),
       Graph(
-        title="API Calls Count Rate by Status SUCCESS",
+        title="API Calls Count Rate with Status SUCCESS",
         targets=[
           Target(
             expr='sum(rate(api_method_latency_count{status="SUCCESS"}[10m]))',
@@ -32,20 +32,20 @@ dashboard = Dashboard(
         ],
       ),
       Graph(
-        title="API Calls Count Rate by other statuses (not SUCCESS)",
+        title="API Calls Count Rate with other statuses (not SUCCESS) by Method",
         targets=[
           Target(
-            expr='rate(api_method_latency_count{status!="SUCCESS"}[10m])',
-            legendFormat="Unsuccessful Calls Rate",
+            expr='sum by (method_name) (rate(api_method_latency_count{status!="SUCCESS"}[10m]))',
+            legendFormat="{{method_name}}",
           ),
         ],
       ),
       Graph(
-        title="API Access Probe Latency",
+        title="API Access Probe Latency by Method",
         targets=[
           Target(
-            expr='rate(api_access_probe_latency_sum[10m]) / rate(api_access_probe_latency_count[10m])',
-            legendFormat="Latency - Method: {{method_name}}",
+            expr='sum by (method_name) (rate(api_access_probe_latency_sum[10m]) / rate(api_access_probe_latency_count[10m]))',
+            legendFormat="{{method_name}}",
           ),
         ],
       ),
