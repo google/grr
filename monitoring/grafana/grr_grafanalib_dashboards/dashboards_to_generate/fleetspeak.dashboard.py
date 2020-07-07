@@ -65,7 +65,7 @@ dashboard = Dashboard(
         ]
       ),
       Heatmap(
-        title="Datastore Latency",
+        title="Datastore Latency Distribution",
         targets=[
           Target(
             expr='sum(rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])) by (le)',
@@ -74,7 +74,7 @@ dashboard = Dashboard(
         legend={'show': True},
       ),
       Graph(
-        title="Datastore Latency Distribution",
+        title="Datastore Latency Quantiles",
         targets=[
           Target(
             expr='histogram_quantile(0.5, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))',
@@ -130,7 +130,7 @@ dashboard = Dashboard(
         ]
       ),
       Heatmap(
-        title="Client Poll Latency",
+        title="Client Poll Latency Distribution",
         targets=[
           Target(
             expr='sum(rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])) by (le)',
@@ -142,7 +142,7 @@ dashboard = Dashboard(
     ),
     Row(panels=[
       Graph(
-        title="Client Poll Latency Distribution",
+        title="Client Poll Latency Quantiles",
         targets=[
           Target(
             expr='histogram_quantile(0.5, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))',
@@ -189,7 +189,7 @@ dashboard = Dashboard(
     ),
     Row(panels=[
       Heatmap(
-        title="Message Processing Latency",
+        title="Message Processing Latency Distribution",
         targets=[
           Target(
             expr='sum(rate(fleetspeak_server_messages_processed_latency_bucket[10m])) by (le)',
@@ -198,7 +198,7 @@ dashboard = Dashboard(
         legend={'show': True},
       ),
       Graph(
-        title="Message Processing Latency Distribution per Service",
+        title="Message Processing Latency Quantiles per Service",
         targets=[
           Target(
             expr='histogram_quantile(0.5, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))',
