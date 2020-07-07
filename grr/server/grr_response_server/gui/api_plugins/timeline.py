@@ -112,17 +112,22 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError(message)
 
     filename = f"timelines_{hunt_id}.zip"
-    content = self._Generate(hunt_id)
+    content = self._Generate(hunt_id, args.format)
     return api_call_handler_base.ApiBinaryStream(filename, content)
 
-  def _Generate(self, hunt_id: Text) -> Iterator[bytes]:
+  def _Generate(
+      self,
+      hunt_id: Text,
+      format: ApiGetCollectedTimelineArgs.Format
+  ) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
-    yield from self._GenerateTimelines(hunt_id, zipgen)
+    yield from self._GenerateTimelines(hunt_id, format, zipgen)
     yield zipgen.Close()
 
   def _GenerateTimelines(
       self,
       hunt_id: Text,
+      format: ApiGetCollectedTimelineArgs.Format,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
     offset = 0
@@ -142,7 +147,8 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
         flow_id = flow.flow_id
         fqdn = client_fqdns[client_id]
 
-        yield from self._GenerateTimeline(client_id, flow_id, fqdn, zipgen)
+        yield from self._GenerateTimeline(client_id, flow_id, fqdn, format,
+                                          zipgen)
 
       if len(flows) < _FLOW_BATCH_SIZE:
         break
@@ -152,15 +158,22 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       client_id: Text,
       flow_id: Text,
       fqdn: Text,
+      format: ApiGetCollectedTimelineArgs.Format,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
     args = ApiGetCollectedTimelineArgs()
     args.client_id = client_id
     args.flow_id = flow_id
-    # TODO(hanuszczak): Add support for other formats.
-    args.format = ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED  # pytype: disable=attribute-error
+    args.format = format
 
-    filename = f"{client_id}_{fqdn}.gzchunked"
+    if format == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:
+      filename = f"{client_id}_{fqdn}.gzchunked"
+    elif format == ApiGetCollectedTimelineArgs.Format.BODY:  # pytype: disable=attribute-error
+      filename = f"{client_id}_{fqdn}.body"
+    else:
+      message = "Incorrect timeline export format: {}".format(format)
+      raise ValueError(message)
+
     yield zipgen.WriteFileHeader(filename)
 
     for chunk in self._handler.Handle(args).GenerateContent():

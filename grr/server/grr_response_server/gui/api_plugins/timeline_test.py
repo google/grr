@@ -206,6 +206,83 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
+  def testBodyMultipleClients(self):
+    client_id_1 = db_test_utils.InitializeClient(data_store.REL_DB)
+    client_id_2 = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id_1
+    snapshot.knowledge_base.fqdn = "bar.quux.com"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id_2
+    snapshot.knowledge_base.fqdn = "bar.quuz.com"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_id = "B1C2E3D4F5"
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.client_ids = [client_id_1, client_id_2]
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    entry_1 = rdf_timeline.TimelineEntry()
+    entry_1.path = "/bar/baz/quux".encode("utf-8")
+    entry_1.ino = 5926273453
+    entry_1.size = 13373
+    entry_1.atime_ns = 111 * 10**9
+    entry_1.mtime_ns = 222 * 10**9
+    entry_1.ctime_ns = 333 * 10**9
+
+    entry_2 = rdf_timeline.TimelineEntry()
+    entry_2.path = "/bar/baz/quuz".encode("utf-8")
+    entry_2.ino = 6037384564
+    entry_2.size = 13374
+    entry_2.atime_ns = 777 * 10**9
+    entry_2.mtime_ns = 888 * 10**9
+    entry_2.ctime_ns = 999 * 10**9
+
+    _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
+    _WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
+
+    args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+
+    content = b"".join(self.handler.Handle(args).GenerateContent())
+    buffer = io.BytesIO(content)
+
+    with zipfile.ZipFile(buffer, mode="r") as archive:
+      client_filename_1 = f"{client_id_1}_bar.quux.com.body"
+      with archive.open(client_filename_1, mode="r") as file:
+        content_file = file.read().decode("utf-8")
+
+        rows = list(csv.reader(io.StringIO(content_file), delimiter="|"))
+        self.assertLen(rows, 1)
+        self.assertEqual(rows[0][1], "/bar/baz/quux")
+        self.assertEqual(rows[0][2], "5926273453")
+        self.assertEqual(rows[0][6], "13373")
+        self.assertEqual(rows[0][7], "111")
+        self.assertEqual(rows[0][8], "222")
+        self.assertEqual(rows[0][9], "333")
+
+      client_filename_2 = f"{client_id_2}_bar.quuz.com.body"
+      with archive.open(client_filename_2, mode="r") as file:
+        content_file = file.read().decode("utf-8")
+
+        rows = list(csv.reader(io.StringIO(content_file), delimiter="|"))
+        self.assertLen(rows, 1)
+        self.assertEqual(rows[0][1], "/bar/baz/quuz")
+        self.assertEqual(rows[0][2], "6037384564")
+        self.assertEqual(rows[0][6], "13374")
+        self.assertEqual(rows[0][7], "777")
+        self.assertEqual(rows[0][8], "888")
+        self.assertEqual(rows[0][9], "999")
+
   def testRawGzchunkedMultipleClients(self):
     client_id_1 = db_test_utils.InitializeClient(data_store.REL_DB)
     client_id_2 = db_test_utils.InitializeClient(data_store.REL_DB)
@@ -243,6 +320,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = hunt_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
 
     content = b"".join(self.handler.Handle(args).GenerateContent())
     buffer = io.BytesIO(content)
