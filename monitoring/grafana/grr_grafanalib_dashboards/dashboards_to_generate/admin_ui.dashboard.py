@@ -14,11 +14,11 @@ dashboard = Dashboard(
     [
     Row(panels=[
       Graph(
-        title="API Method Latency Rate",
+        title="API Method Latency Rate by Method",
         targets=[
           Target(
-            expr='rate(api_method_latency_sum[10m]) / rate(api_method_latency_count[10m])',
-            legendFormat="Latency - Method: {{method_name}}",
+            expr='sum by (method_name) (rate(api_method_latency_sum[10m]) / rate(api_method_latency_count[10m]))',
+            legendFormat="{{method_name}}",
           ),
         ],
       ),
