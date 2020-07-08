@@ -141,6 +141,7 @@ dashboard = Dashboard(
           ),
         ],
         legend={'show': True},
+        yAxis=YAxis(format=SECONDS_FORMAT),
       ),
       ]
     ),
@@ -160,7 +161,10 @@ dashboard = Dashboard(
             expr='histogram_quantile(0.99, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))',
             legendFormat="99th percentile",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Client Poll Operation Time Latency per Poll Type",
@@ -169,7 +173,10 @@ dashboard = Dashboard(
             expr='sum by (poll_type) (rate(fleetspeak_server_client_polls_operation_time_latency_sum[10m]) / rate(fleetspeak_server_client_polls_operation_time_latency_count[10m]))',
             legendFormat="{{poll_type}}",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Client Polls Rate per Cache",
@@ -178,7 +185,10 @@ dashboard = Dashboard(
             expr='sum by (cache_hit) (rate(fleetspeak_server_client_polls_total[10m]))',
             legendFormat="Hit: {{cache_hit}}",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Messages Ingested per Destination Service",
