@@ -1,4 +1,4 @@
-from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, Heatmap, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis
+from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, Heatmap, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.config import ACTIVE_PROCESSES_ALERTING_CONDITION
 
@@ -62,7 +62,10 @@ dashboard = Dashboard(
             expr='sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_sum[10m]) / rate(fleetspeak_server_datastore_operations_completed_latency_count[10m]))',
             legendFormat="{{operation}}",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Heatmap(
         title="Datastore Latency Distribution",
@@ -71,6 +74,7 @@ dashboard = Dashboard(
             expr='sum(rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])) by (le)',
           ),
         ],
+        yAxis=YAxis(format=SECONDS_FORMAT),
         legend={'show': True},
       ),
       Graph(
