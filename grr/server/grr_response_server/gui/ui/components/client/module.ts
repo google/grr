@@ -10,6 +10,7 @@ import {ApprovalModule} from '../approval/module';
 import {Client} from './client';
 import {ClientRoutingModule} from './routing';
 import {TimestampModule} from '../timestamp/module';
+import { StatusChip } from './status_chip';
 
 /**
  * Module for the client details component.
@@ -27,6 +28,7 @@ import {TimestampModule} from '../timestamp/module';
   ],
   declarations: [
     Client,
+    StatusChip,
   ],
 })
 export class ClientModule {
