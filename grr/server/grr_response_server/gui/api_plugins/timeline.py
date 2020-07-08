@@ -111,6 +111,11 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       message = f"Hunt '{hunt_id}' is not a timeline hunt"
       raise ValueError(message)
 
+    if (args.format != ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED) and (
+        args.format != ApiGetCollectedTimelineArgs.Format.BODY):
+      message = f"Incorrect timeline export format {args.format}"
+      raise ValueError(message)
+
     filename = f"timelines_{hunt_id}.zip"
     content = self._Generate(hunt_id, args.format)
     return api_call_handler_base.ApiBinaryStream(filename, content)
@@ -118,7 +123,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
   def _Generate(
       self,
       hunt_id: Text,
-      format: ApiGetCollectedTimelineArgs.Format
+      format: ApiGetCollectedTimelineArgs.Format,
   ) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
     yield from self._GenerateTimelines(hunt_id, format, zipgen)
@@ -168,10 +173,11 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
     if format == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:
       filename = f"{client_id}_{fqdn}.gzchunked"
-    elif format == ApiGetCollectedTimelineArgs.Format.BODY:  # pytype: disable=attribute-error
+    elif format == ApiGetCollectedTimelineArgs.Format.BODY:
       filename = f"{client_id}_{fqdn}.body"
     else:
-      message = "Incorrect timeline export format: {}".format(format)
+      message = "Unknown file extension for timeline export format: {}".format(
+          format)
       raise ValueError(message)
 
     yield zipgen.WriteFileHeader(filename)

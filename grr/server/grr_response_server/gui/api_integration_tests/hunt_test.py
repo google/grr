@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import csv
 import io
+import stat
 import zipfile
 
 from absl import app
@@ -331,7 +332,7 @@ class ApiClientLibHuntTest(
 
         self.assertEqual(rows[0][1], "/bar/baz/quux")
         self.assertEqual(rows[0][2], "5926273453")
-        self.assertEqual(rows[0][3], "?rw-rw-r--")
+        self.assertEqual(rows[0][3], stat.filemode(0o664))
         self.assertEqual(rows[0][6], "13373")
         self.assertEqual(rows[0][7], "111")
         self.assertEqual(rows[0][8], "222")
@@ -339,7 +340,7 @@ class ApiClientLibHuntTest(
 
         self.assertEqual(rows[1][1], "/bar/baz/quuz")
         self.assertEqual(rows[1][2], "6037384564")
-        self.assertEqual(rows[1][3], "?rwxrwxrwx")
+        self.assertEqual(rows[1][3], stat.filemode(0o777))
         self.assertEqual(rows[1][6], "13374")
         self.assertEqual(rows[1][7], "777")
         self.assertEqual(rows[1][8], "888")
@@ -374,13 +375,21 @@ class ApiClientLibHuntTest(
 
     entry_1 = rdf_timeline.TimelineEntry()
     entry_1.path = "/foo/bar".encode("utf-8")
+    entry_1.ino = 7890178901
     entry_1.size = 4815162342
-    entry_1.mode = 0o664
+    entry_1.atime_ns = 123 * 10**9
+    entry_1.mtime_ns = 234 * 10**9
+    entry_1.ctime_ns = 567 * 10**9
+    entry_1.mode = 0o654
 
     entry_2 = rdf_timeline.TimelineEntry()
     entry_2.path = "/foo/baz".encode("utf-8")
+    entry_1.ino = 8765487654
     entry_2.size = 1337
-    entry_2.mode = 0o777
+    entry_1.atime_ns = 987 * 10**9
+    entry_1.mtime_ns = 876 * 10**9
+    entry_1.ctime_ns = 765 * 10**9
+    entry_2.mode = 0o757
 
     entries = [entry_1, entry_2]
     blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))

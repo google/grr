@@ -2,6 +2,7 @@
 # Lint as: python3
 import csv
 import io
+import stat
 import random
 from typing import Optional
 from typing import Sequence
@@ -202,6 +203,26 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = hunt_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+
+    with self.assertRaises(ValueError):
+      self.handler.Handle(args)
+
+  def testRaisesOnIncorrectFormat(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    hunt_id = "B1C2E3D4F5"
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.client_ids = [client_id]
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.UNSPECIFIED
 
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
@@ -236,7 +257,8 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry_1.size = 13373
     entry_1.atime_ns = 111 * 10**9
     entry_1.mtime_ns = 222 * 10**9
-    entry_1.ctime_ns = 333 * 10**9
+    entry_1.ctime_ns = 333 * 10 ** 9
+    entry_1.mode = 0o664
 
     entry_2 = rdf_timeline.TimelineEntry()
     entry_2.path = "/bar/baz/quuz".encode("utf-8")
@@ -244,7 +266,8 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry_2.size = 13374
     entry_2.atime_ns = 777 * 10**9
     entry_2.mtime_ns = 888 * 10**9
-    entry_2.ctime_ns = 999 * 10**9
+    entry_2.ctime_ns = 999 * 10 ** 9
+    entry_2.mode = 0o777
 
     _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
     _WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
@@ -265,6 +288,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
         self.assertLen(rows, 1)
         self.assertEqual(rows[0][1], "/bar/baz/quux")
         self.assertEqual(rows[0][2], "5926273453")
+        self.assertEqual(rows[0][3], stat.filemode(0o664))
         self.assertEqual(rows[0][6], "13373")
         self.assertEqual(rows[0][7], "111")
         self.assertEqual(rows[0][8], "222")
@@ -278,6 +302,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
         self.assertLen(rows, 1)
         self.assertEqual(rows[0][1], "/bar/baz/quuz")
         self.assertEqual(rows[0][2], "6037384564")
+        self.assertEqual(rows[0][3], stat.filemode(0o777))
         self.assertEqual(rows[0][6], "13374")
         self.assertEqual(rows[0][7], "777")
         self.assertEqual(rows[0][8], "888")
@@ -309,11 +334,21 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     entry_1 = rdf_timeline.TimelineEntry()
     entry_1.path = "foo_1".encode("utf-8")
+    entry_1.ino = 5432154321
     entry_1.size = 13371
+    entry_1.atime_ns = 122 * 10**9
+    entry_1.mtime_ns = 233 * 10**9
+    entry_1.ctime_ns = 344 * 10**9
+    entry_1.mode = 0o663
 
     entry_2 = rdf_timeline.TimelineEntry()
     entry_2.path = "foo_2".encode("utf-8")
+    entry_1.ino = 7654376543
     entry_2.size = 13372
+    entry_1.atime_ns = 788 * 10**9
+    entry_1.mtime_ns = 899 * 10**9
+    entry_1.ctime_ns = 900 * 10**9
+    entry_1.mode = 0o763
 
     _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
     _WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
