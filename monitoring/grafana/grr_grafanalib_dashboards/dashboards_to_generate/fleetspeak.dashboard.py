@@ -179,7 +179,7 @@ dashboard = Dashboard(
         ),
       ),
       Graph(
-        title="Client Polls Rate per Cache",
+        title="Client Polls Rate per Cache Status",
         targets=[
           Target(
             expr='sum by (cache_hit) (rate(fleetspeak_server_client_polls_total[10m]))',
