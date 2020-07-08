@@ -209,6 +209,7 @@ dashboard = Dashboard(
             expr='sum(rate(fleetspeak_server_messages_processed_latency_bucket[10m])) by (le)',
           ),
         ],
+        yAxis=YAxis(format=SECONDS_FORMAT),
         legend={'show': True},
       ),
       Graph(
@@ -226,7 +227,10 @@ dashboard = Dashboard(
             expr='histogram_quantile(0.99, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))',
             legendFormat="99th percentile - {{service}}",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Payload Bytes Saved per Service",
