@@ -45,11 +45,11 @@ dashboard = Dashboard(
         targets=[
           Target(
             expr='avg(rate(process_cpu_seconds_total{job="fleetspeak"}[30s])) * 100',
-            legendFormat="Average Process CPU Usage in %",
+            legendFormat="Average Process CPU Usage",
           ),
         ],
         yAxes=YAxes(
-          left=YAxis(max=105)
+          left=YAxis(max=105, format="percent")
         ),
       ),
     ]
