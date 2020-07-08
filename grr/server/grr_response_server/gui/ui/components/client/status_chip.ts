@@ -33,7 +33,7 @@ export class StatusChip implements OnChanges {
       return StatusChip.STATUS_OFFLINE;
     }
 
-    let timeDiff = DateTime.local()
+    const timeDiff = DateTime.local()
       .diff(DateTime.fromJSDate(this.lastSeen), 'minutes').as('minutes');
     if (timeDiff < StatusChip.ONLINE_TRESHOLD_MINUTES) {
       return StatusChip.STATUS_ONLINE;

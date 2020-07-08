@@ -8,8 +8,7 @@ import {Component} from '@angular/core';
 
 // TestHostComponent is needed in order to trigger change detection in the
 // underlying status observable. Creating a standalone status-chip
-// instance with createComponent doesn't trigger the ngOnChanges lifecycle
-// hook:
+// instance doesn't trigger the ngOnChanges lifecycle hook:
 // https://stackoverflow.com/questions/37408801/testing-ngonchanges-lifecycle-hook-in-angular-2
 @Component({
   template: `<status-chip [lastSeen]="lastSeen"></status-chip>`
@@ -21,8 +20,8 @@ class TestHostComponent {
 initTestEnvironment();
 
 describe('Status Chip Component', () => {
-  const ONLINE = 'Online';
-  const OFFLINE = 'Offline';
+  const STATUS_ONLINE = 'Online';
+  const STATUS_OFFLINE = 'Offline';
 
   beforeEach(async(() => {
     TestBed
@@ -58,19 +57,19 @@ describe('Status Chip Component', () => {
 
     componentInstance.lastSeen = new Date('2020-07-01T12:59:45');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(ONLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
 
     componentInstance.lastSeen = new Date('2020-07-01T12:50:45');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(ONLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
 
     componentInstance.lastSeen = new Date('2020-07-01T12:45:00.001');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(ONLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
 
     componentInstance.lastSeen = new Date('2020-07-01T12:45:00.000');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).not.toEqual(ONLINE);
+    expect(fixture.nativeElement.innerText).not.toEqual(STATUS_ONLINE);
   });
 
   it('shows "Offline" for users last seen more than 15 minutes ago', () => {
@@ -80,15 +79,15 @@ describe('Status Chip Component', () => {
 
     componentInstance.lastSeen = new Date('2020-07-01T12:45:00.000');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(OFFLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
 
     componentInstance.lastSeen = new Date('2020-07-01T12:40:15');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(OFFLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
 
     componentInstance.lastSeen = new Date('1623-07-01T12:59:00.001');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(OFFLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
   });
 
   it('updates the status from "Online" to "Offline" as time passes by', () => {
@@ -98,11 +97,11 @@ describe('Status Chip Component', () => {
 
     componentInstance.lastSeen = new Date('2020-07-01T12:45:01.000');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(ONLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
 
     jasmine.clock().tick(1000);
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(OFFLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
   });
 
   it('updates the status from "Offline" to "Online" when lastSeen updates', () => {
@@ -112,10 +111,10 @@ describe('Status Chip Component', () => {
 
     componentInstance.lastSeen = new Date('2020-07-01T12:00:00.000');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(OFFLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
 
     componentInstance.lastSeen = new Date('2020-07-01T13:00:00');
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual(ONLINE);
+    expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
   });
 });
