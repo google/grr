@@ -17,15 +17,15 @@ export class OnlineChip implements OnChanges {
   private static readonly ONLINE_TRESHOLD_MINUTES = 15;
 
   @Input() lastSeen?: Date;
-  private lastSeenChange$ = new Subject<void>();
+  private readonly lastSeenChange$ = new Subject<void>();
 
   // status observable that updates every second and when lastSeen changes
   status$ = merge(interval(1000), this.lastSeenChange$).pipe(
-    map(_ => this.getStatus())
+    map(() => this.getStatus())
   );
 
-  ngOnChanges(_changes: SimpleChanges): void {
-    this.lastSeenChange$.next()
+  ngOnChanges(changes: SimpleChanges): void {
+    this.lastSeenChange$.next();
   }
 
   getStatus(): string {

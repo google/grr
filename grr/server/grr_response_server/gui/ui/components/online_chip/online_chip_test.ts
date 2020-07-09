@@ -50,7 +50,7 @@ describe('Status Chip Component', () => {
     expect(componentInstance).toBeTruthy();
   });
 
-  it('shows "Online" for users last seen up to 15 minutes ago', () => {
+  it('shows "Online" for clients last seen up to 15 minutes ago', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     const componentInstance = fixture.componentInstance;
     fixture.detectChanges();
@@ -72,7 +72,7 @@ describe('Status Chip Component', () => {
     expect(fixture.nativeElement.innerText).not.toEqual(STATUS_ONLINE);
   });
 
-  it('shows "Offline" for users last seen more than 15 minutes ago', () => {
+  it('shows "Offline" for clients last seen more than 15 minutes ago', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     const componentInstance = fixture.componentInstance;
     fixture.detectChanges();
@@ -90,7 +90,7 @@ describe('Status Chip Component', () => {
     expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
   });
 
-  it('updates the status from "Online" to "Offline" as time passes by', () => {
+  it('updates the status from "Online" to "Offline" when time crosses the treshold', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     const componentInstance = fixture.componentInstance;
     fixture.detectChanges();
