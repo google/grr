@@ -10,6 +10,6 @@ import {Component, Input} from '@angular/core';
 })
 export class Timestamp {
   @Input() date?: Date;
-  @Input() absoluteOnly: boolean = false;
+  @Input() completeFormat: boolean = false;
   @Input() tooltipEnabled: boolean = true;
 }
