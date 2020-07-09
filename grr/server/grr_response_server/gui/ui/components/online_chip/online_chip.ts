@@ -1,5 +1,5 @@
 import {Component, Input, ChangeDetectionStrategy, OnChanges, SimpleChanges} from '@angular/core';
-import {DateTime} from 'luxon';
+import {DateTime, Duration} from 'luxon';
 import {interval, Subject, merge} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -14,7 +14,7 @@ import {map} from 'rxjs/operators';
 export class OnlineChip implements OnChanges {
   private static readonly STATUS_OFFLINE = 'offline';
   private static readonly STATUS_ONLINE = 'online';
-  private static readonly ONLINE_TRESHOLD_MINUTES = 15;
+  private static readonly ONLINE_TRESHOLD = Duration.fromMillis(1000 * 60 * 15); // 15 minutes
 
   @Input() lastSeen?: Date;
   private readonly lastSeenChange$ = new Subject<void>();
@@ -33,9 +33,8 @@ export class OnlineChip implements OnChanges {
       return OnlineChip.STATUS_OFFLINE;
     }
 
-    const timeDiff = DateTime.local()
-      .diff(DateTime.fromJSDate(this.lastSeen), 'minutes').as('minutes');
-    if (timeDiff < OnlineChip.ONLINE_TRESHOLD_MINUTES) {
+    const lastSeenLuxon = DateTime.fromJSDate(this.lastSeen);
+    if (lastSeenLuxon.diffNow().negate() < OnlineChip.ONLINE_TRESHOLD) {
       return OnlineChip.STATUS_ONLINE;
     } else {
       return OnlineChip.STATUS_OFFLINE;
