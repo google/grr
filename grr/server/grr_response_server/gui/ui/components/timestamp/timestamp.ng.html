@@ -1,8 +1,18 @@
-<div class="timestamp"
-  matTooltip="{{date | date:'yyyy-MM-dd HH:mm:ss':'utc'}} UTC"
+<div *ngIf="date !== undefined; else dateUndefined"
+  class="timestamp"
+  [matTooltip]="date | relativeTimestamp"
   matTooltipPosition="above"
   matTooltipClass="tooltip"
-  matTooltipDisabled="{{!tooltipEnabled}}"
-  [style.border-bottom]="tooltipEnabled ? '1px dotted rgb(126, 126, 126)' : 'none'">
-  {{date | relativeTimestamp: absoluteOnly}}
+  [matTooltipDisabled]="completeFormat || !tooltipEnabled"
+  [style.border-bottom]="(completeFormat || !tooltipEnabled) ? 'none' : '1px dotted rgb(126, 126, 126)'">
+  {{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}
+
+  <div class="inline_relative" *ngIf="completeFormat">
+    {{date | relativeTimestamp}}
+    <button mat-icon-button class="copy_button"
+      [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone">
+      <mat-icon aria-label="Copy">content_copy</mat-icon>
+    </button>
+  </div>
 </div>
+<ng-template #dateUndefined><span>Unknown</span></ng-template>
