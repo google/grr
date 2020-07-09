@@ -115,10 +115,10 @@ describe('ClientSearch Component', () => {
     // Check the first data row.
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
       .map((e: Element) => (e as HTMLElement).innerText))
-      .toEqual(['C.1234', 'foo.unknown', new RelativeTimestampPipe().transform(new Date(1571789996678), false)]);
+      .toEqual(['C.1234', 'foo.unknown', '2019-10-23 00:19:56 UTC']);
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
       .map((e: Element) => (e as HTMLElement).innerText))
-      .toEqual(['C.5678', 'bar.unknown', '-']);
+      .toEqual(['C.5678', 'bar.unknown', '- UTC']);
   });
 });
