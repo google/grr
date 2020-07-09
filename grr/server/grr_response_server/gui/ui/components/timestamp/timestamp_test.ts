@@ -4,6 +4,7 @@ import {initTestEnvironment} from '@app/testing';
 
 import {TimestampModule} from './module';
 import {Timestamp} from './timestamp';
+import {By} from '@angular/platform-browser';
 
 initTestEnvironment();
 
@@ -35,6 +36,12 @@ describe('Timestamp Component', () => {
     expect(componentInstance).toBeTruthy();
   });
 
+  it('shows "Unknown" when no date is provided', () => {
+    const fixture = TestBed.createComponent(Timestamp);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.innerText).toEqual('Unknown');
+  });
+
   it('only shows short timestamp by default', () => {
     const fixture = TestBed.createComponent(Timestamp);
     const componentInstance = fixture.componentInstance;
@@ -53,6 +60,7 @@ describe('Timestamp Component', () => {
     componentInstance.date = date;
     componentInstance.completeFormat = true;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual('2020-07-01 12:50:00 UTC 10 minutes ago content_copy');
+    expect(fixture.debugElement.query(By.css('.timestamp')).nativeElement.innerText)
+      .toEqual('2020-07-01 12:50:00 UTC 10 minutes ago content_copy');
   });
 });

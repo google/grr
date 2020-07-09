@@ -1,7 +1,6 @@
 @use '~material-theme' as c;
 
 .timestamp {
-  position: relative;
   display: inline-block;
 }
 
@@ -15,5 +14,5 @@
 }
 
 .copy_button {
-  color: #5F6368;
+  color: c.mat-color(c.$foreground, icon-grey);
 }

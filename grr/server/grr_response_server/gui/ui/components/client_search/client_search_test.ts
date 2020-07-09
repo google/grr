@@ -119,6 +119,6 @@ describe('ClientSearch Component', () => {
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
       .map((e: Element) => (e as HTMLElement).innerText))
-      .toEqual(['C.5678', 'bar.unknown', '- UTC']);
+      .toEqual(['C.5678', 'bar.unknown', 'Unknown']);
   });
 });

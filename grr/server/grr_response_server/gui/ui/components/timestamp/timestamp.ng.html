@@ -1,4 +1,5 @@
-<div class="timestamp"
+<div *ngIf="date !== undefined; else dateUndefined"
+  class="timestamp"
   [matTooltip]="date | relativeTimestamp"
   matTooltipPosition="above"
   matTooltipClass="tooltip"
@@ -8,16 +9,10 @@
 
   <div class="inline_relative" *ngIf="completeFormat">
     {{date | relativeTimestamp}}
-
     <button mat-icon-button class="copy_button"
-      (click)="copyTooltip.show()"
       [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone">
-
-      <div matTooltip="Copied!"
-        #copyTooltip="matTooltip"
-        matTooltipPosition="above">
-      </div>
       <mat-icon aria-label="Copy">content_copy</mat-icon>
     </button>
   </div>
 </div>
+<ng-template #dateUndefined><span>Unknown</span></ng-template>
