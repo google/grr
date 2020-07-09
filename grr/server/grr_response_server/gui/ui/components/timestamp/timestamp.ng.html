@@ -5,5 +5,19 @@
   [matTooltipDisabled]="completeFormat || !tooltipEnabled"
   [style.border-bottom]="(completeFormat || !tooltipEnabled) ? 'none' : '1px dotted rgb(126, 126, 126)'">
   {{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}
-  <div class="inline_relative" *ngIf="completeFormat">{{date | relativeTimestamp}}</div>
+
+  <div class="inline_relative" *ngIf="completeFormat">
+    {{date | relativeTimestamp}}
+
+    <button mat-icon-button class="copy_button"
+      (click)="copyTooltip.show()"
+      [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone">
+
+      <div matTooltip="Copied!"
+        #copyTooltip="matTooltip"
+        matTooltipPosition="above">
+      </div>
+      <mat-icon>content_copy</mat-icon>
+    </button>
+  </div>
 </div>
