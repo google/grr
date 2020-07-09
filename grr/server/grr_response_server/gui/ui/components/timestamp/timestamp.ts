@@ -12,4 +12,5 @@ export class Timestamp {
   @Input() date?: Date;
   @Input() completeFormat: boolean = false;
   @Input() tooltipEnabled: boolean = true;
+  timezone: string = 'UTC'
 }

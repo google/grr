@@ -4,6 +4,6 @@
   matTooltipClass="tooltip"
   [matTooltipDisabled]="completeFormat || !tooltipEnabled"
   [style.border-bottom]="(completeFormat || !tooltipEnabled) ? 'none' : '1px dotted rgb(126, 126, 126)'">
-  {{ date | date:'yyyy-MM-dd HH:mm:ss':'utc' }} UTC
-  <div class="inline_relative" *ngIf="completeFormat">{{ date | relativeTimestamp }}</div>
+  {{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}
+  <div class="inline_relative" *ngIf="completeFormat">{{date | relativeTimestamp}}</div>
 </div>
