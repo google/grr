@@ -1,9 +1,9 @@
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
-import {ClientModule} from './module';
-import {StatusChip} from './status_chip';
 import {Component} from '@angular/core';
+import {OnlineChipModule} from './module';
+import {OnlineChip} from './online_chip';
 
 
 // TestHostComponent is needed in order to trigger change detection in the
@@ -11,7 +11,7 @@ import {Component} from '@angular/core';
 // instance doesn't trigger the ngOnChanges lifecycle hook:
 // https://stackoverflow.com/questions/37408801/testing-ngonchanges-lifecycle-hook-in-angular-2
 @Component({
-  template: `<status-chip [lastSeen]="lastSeen"></status-chip>`
+  template: `<online-chip [lastSeen]="lastSeen"></online-chip>`
 })
 class TestHostComponent {
   lastSeen?: Date;
@@ -27,10 +27,10 @@ describe('Status Chip Component', () => {
     TestBed
       .configureTestingModule({
         imports: [
-          ClientModule,
+          OnlineChipModule,
           NoopAnimationsModule,  // This makes test faster and more stable.
         ],
-        declarations: [StatusChip, TestHostComponent]
+        declarations: [OnlineChip, TestHostComponent]
       })
       .compileComponents();
   }));

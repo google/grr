@@ -6,7 +6,7 @@
       </div>
       <div class="chips">
         <mat-chip-list>
-          <status-chip [lastSeen]="client.lastSeenAt"></status-chip>
+          <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
           <mat-chip *ngFor="let label of client.labels">
             {{label.name}}
           </mat-chip>

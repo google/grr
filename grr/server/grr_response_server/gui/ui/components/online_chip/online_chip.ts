@@ -7,11 +7,11 @@ import {map} from 'rxjs/operators';
  * Component displaying the status of a Client in a material chip.
  */
 @Component({
-  selector: 'status-chip',
-  templateUrl: './status_chip.ng.html',
+  selector: 'online-chip',
+  templateUrl: './online_chip.ng.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class StatusChip implements OnChanges {
+export class OnlineChip implements OnChanges {
   private static readonly STATUS_OFFLINE = 'offline';
   private static readonly STATUS_ONLINE = 'online';
   private static readonly ONLINE_TRESHOLD_MINUTES = 15;
@@ -30,15 +30,15 @@ export class StatusChip implements OnChanges {
 
   getStatus(): string {
     if (this.lastSeen === undefined) {
-      return StatusChip.STATUS_OFFLINE;
+      return OnlineChip.STATUS_OFFLINE;
     }
 
     const timeDiff = DateTime.local()
       .diff(DateTime.fromJSDate(this.lastSeen), 'minutes').as('minutes');
-    if (timeDiff < StatusChip.ONLINE_TRESHOLD_MINUTES) {
-      return StatusChip.STATUS_ONLINE;
+    if (timeDiff < OnlineChip.ONLINE_TRESHOLD_MINUTES) {
+      return OnlineChip.STATUS_ONLINE;
     } else {
-      return StatusChip.STATUS_OFFLINE;
+      return OnlineChip.STATUS_OFFLINE;
     }
   }
 }

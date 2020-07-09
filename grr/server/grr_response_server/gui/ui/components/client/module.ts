@@ -10,7 +10,7 @@ import {ApprovalModule} from '../approval/module';
 import {Client} from './client';
 import {ClientRoutingModule} from './routing';
 import {TimestampModule} from '../timestamp/module';
-import {StatusChip} from './status_chip';
+import {OnlineChipModule} from '../online_chip/module';
 
 /**
  * Module for the client details component.
@@ -25,10 +25,10 @@ import {StatusChip} from './status_chip';
     FlowFormModule,
     FlowListModule,
     TimestampModule,
+    OnlineChipModule,
   ],
   declarations: [
     Client,
-    StatusChip,
   ],
 })
 export class ClientModule {
