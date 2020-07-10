@@ -6,8 +6,8 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateApproval, translateClient} from '@app/lib/api_translation/client';
 import {translateFlow, translateFlowResult} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
-import {combineLatest, Observable, of, timer} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+import {combineLatest, Observable, of, timer, Subject, merge, interval} from 'rxjs';
+import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom, mergeAll} from 'rxjs/operators';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 import {ConfigFacade} from './config_facade';
 
@@ -155,12 +155,24 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
+  /** A variable to check if selectedClient$ has subscribers */
+  clientSubscribed: Boolean = false;
+
+  /** Stops polling updates for selectedClient$ */
+  deselectClient() {
+    this.clientSubscribed = false;
+  }
+
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
-      this.select(state => state.client)
-          .pipe(
-              filter((client): client is Client => client !== undefined),
-          );
+      combineLatest(
+        interval(this.configService.config.selectedClientPollingIntervalMs)
+          .pipe(filter(() => this.clientSubscribed === true)),
+        this.select(state => state.client)
+      ).pipe(
+          map(([i, client]) => client),
+          filter((client): client is Client => client !== undefined),
+      );
 
   /** An observable emitting the client id of the selected client. */
   readonly selectedClientId$: Observable<string> =
@@ -255,6 +267,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           map(apiClient => translateClient(apiClient)),
           tap(client => {
             this.updateSelectedClient(client);
+            this.clientSubscribed = true;
             // Automatically fetch existing approvals.
             this.listApprovals();
           }),
@@ -430,6 +443,11 @@ export class ClientPageFacade {
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
     this.store.selectClient(clientId);
+  }
+
+  /** Stops polling updates for selectedClient$ */
+  deselectClient() {
+    this.store.deselectClient();
   }
 
   /** Requests an approval for the currently selected client. */

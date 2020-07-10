@@ -16,6 +16,7 @@ declare global {
 declare interface Config {
   flowListPollingIntervalMs: number;
   flowResultsPollingIntervalMs: number;
+  selectedClientPollingIntervalMs: number;
 }
 
 /**
@@ -30,11 +31,13 @@ export class ConfigService {
       return {
         flowListPollingIntervalMs: 100,
         flowResultsPollingIntervalMs: 100,
+        selectedClientPollingIntervalMs: 100,
       };
     } else {
       return {
         flowListPollingIntervalMs: 5000,
         flowResultsPollingIntervalMs: 5000,
+        selectedClientPollingIntervalMs: 5000,
       };
     }
   }
