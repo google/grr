@@ -14,7 +14,7 @@ import {map} from 'rxjs/operators';
 export class OnlineChip implements OnChanges {
   private static readonly STATUS_OFFLINE = 'offline';
   private static readonly STATUS_ONLINE = 'online';
-  private static readonly ONLINE_TRESHOLD = Duration.fromMillis(1000 * 60 * 15); // 15 minutes
+  private static readonly ONLINE_TRESHOLD = Duration.fromObject({minutes: 15});
 
   @Input() lastSeen?: Date;
   private readonly lastSeenChange$ = new Subject<void>();
