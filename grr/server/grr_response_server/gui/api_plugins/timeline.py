@@ -176,8 +176,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
     elif format == ApiGetCollectedTimelineArgs.Format.BODY:
       filename = f"{client_id}_{fqdn}.body"
     else:
-      message = "Unknown file extension for timeline export format: {}".format(
-          format)
+      message = f"Unknown file extension for timeline export format: {format}"
       raise ValueError(message)
 
     yield zipgen.WriteFileHeader(filename)
