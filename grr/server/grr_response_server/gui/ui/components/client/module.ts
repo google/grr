@@ -11,6 +11,8 @@ import {Client} from './client';
 import {ClientRoutingModule} from './routing';
 import {TimestampModule} from '../timestamp/module';
 import {OnlineChipModule} from '../online_chip/module';
+import {MatIconModule} from '@angular/material/icon';
+import {MatButtonModule} from '@angular/material/button';
 
 /**
  * Module for the client details component.
@@ -26,6 +28,8 @@ import {OnlineChipModule} from '../online_chip/module';
     FlowListModule,
     TimestampModule,
     OnlineChipModule,
+    MatIconModule,
+    MatButtonModule,
   ],
   declarations: [
     Client,
