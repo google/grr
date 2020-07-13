@@ -158,7 +158,12 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
       combineLatest(
-        interval(this.configService.config.selectedClientPollingIntervalMs),
+        interval(this.configService.config.selectedClientPollingIntervalMs)
+          .pipe(
+            switchMapTo(this.select(state => state.client)),
+            filter((client): client is Client => client !== undefined),
+            tap(client => this.selectClient(client.clientId))
+          ),
         this.select(state => state.client)
       ).pipe(
           map(([i, client]) => client),
@@ -176,7 +181,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   readonly selectedClientIdChanged$ = this.selectedClientId$.pipe(
       distinctUntilChanged(),
       // selectedClientId$ will always replay the latest value.
-      // Consequently - we need to skip it.
+      // Consequently - we need to skip  it.
       skip(1),
   );
 
