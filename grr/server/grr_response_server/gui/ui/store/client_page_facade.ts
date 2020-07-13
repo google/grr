@@ -155,19 +155,10 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  /** A variable to check if selectedClient$ has subscribers */
-  clientSubscribed: Boolean = false;
-
-  /** Stops polling updates for selectedClient$ */
-  deselectClient() {
-    this.clientSubscribed = false;
-  }
-
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
       combineLatest(
-        interval(this.configService.config.selectedClientPollingIntervalMs)
-          .pipe(filter(() => this.clientSubscribed === true)),
+        interval(this.configService.config.selectedClientPollingIntervalMs),
         this.select(state => state.client)
       ).pipe(
           map(([i, client]) => client),
@@ -267,7 +258,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           map(apiClient => translateClient(apiClient)),
           tap(client => {
             this.updateSelectedClient(client);
-            this.clientSubscribed = true;
             // Automatically fetch existing approvals.
             this.listApprovals();
           }),
@@ -443,11 +433,6 @@ export class ClientPageFacade {
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
     this.store.selectClient(clientId);
-  }
-
-  /** Stops polling updates for selectedClient$ */
-  deselectClient() {
-    this.store.deselectClient();
   }
 
   /** Requests an approval for the currently selected client. */

@@ -36,6 +36,5 @@ export class Client implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
-    this.clientPageFacade.deselectClient();
   }
 }
