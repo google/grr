@@ -181,7 +181,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   readonly selectedClientIdChanged$ = this.selectedClientId$.pipe(
       distinctUntilChanged(),
       // selectedClientId$ will always replay the latest value.
-      // Consequently - we need to skip  it.
+      // Consequently - we need to skip it.
       skip(1),
   );
 
