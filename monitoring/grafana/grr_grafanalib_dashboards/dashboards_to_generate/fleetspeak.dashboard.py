@@ -1,4 +1,4 @@
-from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, Heatmap, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT
+from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, Heatmap, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT, BYTES_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.config import ACTIVE_PROCESSES_ALERTING_CONDITION
 
@@ -239,7 +239,10 @@ dashboard = Dashboard(
             expr='sum by (service) (rate(fleetspeak_messages_saved_payload_bytes_size[10m]))',
             legendFormat="{{service}}",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=BYTES_FORMAT)
+        ),
       ),
       Graph(
         title="Payload Bytes Ingested per Destination Service",
@@ -248,7 +251,10 @@ dashboard = Dashboard(
             expr='sum by (destination_service) (rate(fleetspeak_messages_ingested_payload_bytes_size[10m]))',
             legendFormat="{{destination_service}}",
           ),
-        ]
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=BYTES_FORMAT)
+        ),
       ),
     ])
   ]
