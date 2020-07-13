@@ -111,7 +111,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       message = f"Hunt '{hunt_id}' is not a timeline hunt"
       raise ValueError(message)
 
-    if (args.format != ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED) and (
+    if (args.format != ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED and
         args.format != ApiGetCollectedTimelineArgs.Format.BODY):
       message = f"Incorrect timeline export format {args.format}"
       raise ValueError(message)
@@ -176,8 +176,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
     elif format == ApiGetCollectedTimelineArgs.Format.BODY:
       filename = f"{client_id}_{fqdn}.body"
     else:
-      message = f"Unknown file extension for timeline export format: {format}"
-      raise ValueError(message)
+      raise AssertionError()
 
     yield zipgen.WriteFileHeader(filename)
 
