@@ -32,6 +32,7 @@ export type StartFlowState = {
 
 interface ClientPageState {
   readonly client?: Client;
+  readonly clientId: string;
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
@@ -58,6 +59,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       private readonly configFacade: ConfigFacade,
   ) {
     super({
+      clientId: '',
       approvals: {},
       approvalSequence: [],
       flowListEntries: {},
@@ -72,6 +74,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         return {
           ...state,
           client,
+        };
+      });
+
+  // Reducer updating the selected client.
+  readonly selectClient =
+      this.updater<string>((state, clientId) => {
+        return {
+          ...state,
+          clientId,
         };
       });
 
@@ -158,11 +169,9 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
       combineLatest(
-        interval(this.configService.config.selectedClientPollingIntervalMs)
+        timer(0, this.configService.config.selectedClientPollingIntervalMs)
           .pipe(
-            switchMapTo(this.select(state => state.client)),
-            filter((client): client is Client => client !== undefined),
-            tap(client => this.selectClient(client.clientId))
+            tap(() => this.fetchClient())
           ),
         this.select(state => state.client)
       ).pipe(
@@ -194,13 +203,16 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** An observable emitting the latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
-      this.select(state => {
-        // Approvals are expected to be in reversed chronological order.
-        const foundId = state.approvalSequence.find(
-            approvalId =>
-                state.approvals[approvalId].status.type !== 'expired');
-        return foundId ? state.approvals[foundId] : undefined;
-      });
+      of(undefined).pipe(
+          tap(() => this.listApprovals()),
+          switchMapTo(this.select(state => {
+              // Approvals are expected to be in reversed chronological order.
+              const foundId = state.approvalSequence.find(
+                  approvalId =>
+                      state.approvals[approvalId].status.type !== 'expired');
+              return foundId ? state.approvals[foundId] : undefined;
+          }))
+      );
 
   private readonly flowListEntriesImpl$:
       Observable<ReadonlyArray<FlowListEntry>> = this.select(state => {
@@ -255,18 +267,18 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           );
 
   /** An effect fetching a client with a given id and updating the state. */
-  readonly selectClient = this.effect<string>(
+  readonly fetchClient = this.effect<void>(
       obs$ => obs$.pipe(
+          switchMapTo(this.select(state => state.clientId)),
           switchMap(clientId => {
             return this.httpApiService.fetchClient(clientId);
           }),
           map(apiClient => translateClient(apiClient)),
           tap(client => {
             this.updateSelectedClient(client);
-            // Automatically fetch existing approvals.
-            this.listApprovals();
           }),
           ));
+
 
   /** An effect querying results of a given flow. */
   private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
