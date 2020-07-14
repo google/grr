@@ -13,6 +13,7 @@ import {TimestampModule} from '../timestamp/module';
 import {OnlineChipModule} from '../online_chip/module';
 import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
+import {ClientAddLabelDialogModule} from '../client_add_label_dialog/module';
 
 /**
  * Module for the client details component.
@@ -30,6 +31,7 @@ import {MatButtonModule} from '@angular/material/button';
     OnlineChipModule,
     MatIconModule,
     MatButtonModule,
+    ClientAddLabelDialogModule,
   ],
   declarations: [
     Client,

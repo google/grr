@@ -1,0 +1,11 @@
+<h1 mat-dialog-title>Adding a label</h1>
+<div mat-dialog-content>
+  <p>You can add a new label or select from existing labels.</p>
+  <mat-form-field>
+    <input matInput [(ngModel)]="label">
+  </mat-form-field>
+</div>
+<div mat-dialog-actions>
+  <button mat-button (click)="onCancelClick()">Cancel</button>
+  <button mat-button [mat-dialog-close]="label" cdkFocusInitial>Add label</button>
+</div>

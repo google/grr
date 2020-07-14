@@ -4,6 +4,8 @@ import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
+import {MatDialog} from '@angular/material/dialog';
+import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
 /**
  * Component displaying the details and actions for a single Client.
@@ -25,11 +27,22 @@ export class Client implements OnInit, OnDestroy {
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
+      public dialog: MatDialog,
   ) {}
 
   ngOnInit() {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
       this.clientPageFacade.selectClient(id);
+    });
+  }
+
+  openAddLabelDialog() {
+    const addLabelDialog = this.dialog.open(ClientAddLabelDialog);
+
+    addLabelDialog.afterClosed().subscribe(newLabel => {
+      if (newLabel !== undefined && newLabel !== '') {
+        this.addLabel(newLabel);
+      }
     });
   }
 
