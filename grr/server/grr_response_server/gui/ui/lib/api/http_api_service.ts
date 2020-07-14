@@ -219,7 +219,6 @@ export class HttpApiService {
   addClientLabel(clientId: string, label: string): Observable<ApiAddClientLabel> {
     const url = `${URL_PREFIX}/clients/labels/add`;
     return this.http.post<ApiAddClientLabel>(url, {client_ids: [clientId], labels: [label]})
-    .pipe(tap((res) => {console.log(res);}))
   }
 }
 
