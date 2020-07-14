@@ -1,11 +1,12 @@
-<h1 mat-dialog-title>Adding a label</h1>
-<div mat-dialog-content>
+<div mat-dialog-title class="title">Adding a label</div>
+<div mat-dialog-content class="content">
   <p>You can add a new label or select from existing labels.</p>
-  <mat-form-field>
-    <input matInput [(ngModel)]="label">
+  <mat-form-field class="label-field" appearance="outline">
+    <mat-label>Start typing label name</mat-label>
+    <input matInput [(ngModel)]="label" cdkFocusInitial (keyup.enter)="onAddClick()">
   </mat-form-field>
 </div>
-<div mat-dialog-actions>
-  <button mat-button (click)="onCancelClick()">Cancel</button>
-  <button mat-button [mat-dialog-close]="label" cdkFocusInitial>Add label</button>
+<div mat-dialog-actions class="actions">
+  <button mat-button color="primary" (click)="onCancelClick()">Cancel</button>
+  <button mat-button color="primary" (click)="onAddClick()">Add label</button>
 </div>
