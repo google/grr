@@ -11,3 +11,8 @@ message ApiGetGrrVersionResult {
   optional uint32 revision = 3;
   optional uint32 release = 4;
 }
+
+// A message type representing the OpenAPI description of the entire API.
+message ApiGetOpenApiDescriptionResult {
+  optional string placeholder = 1;
+}

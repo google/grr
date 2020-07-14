@@ -37,3 +37,25 @@ class ApiGetGrrVersionHandler(api_call_handler_base.ApiCallHandler):
     result.revision = version_dict["revision"]
     result.release = version_dict["release"]
     return result
+
+
+class ApiGetOpenApiDescriptionResult(rdf_structs.RDFProtoStruct):
+  protobuf = metadata_pb2.ApiGetOpenApiDescriptionResult
+
+
+class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
+  """Renders a description of the API using the OpenAPI specification."""
+
+  args_type = None
+  result_type = ApiGetOpenApiDescriptionResult
+
+  def Handle(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> ApiGetOpenApiDescriptionResult:
+
+    result = ApiGetOpenApiDescriptionResult()
+    result.placeholder = "Work in progress."
+
+    return result

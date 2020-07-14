@@ -808,6 +808,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can get version of the GRR server.
     return self.delegate.GetGrrVersion(args, token=token)
 
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    # Everybody can get the OpenAPI description.
+    return self.delegate.GetOpenApiDescription(args, token=token)
+
 
 # This class is kept here for backwards compatibility only.
 # TODO(user): Remove EOQ42017

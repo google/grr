@@ -1322,6 +1322,19 @@ class ApiCallRouterStub(ApiCallRouter):
     """Returns version of the GRR server."""
     raise NotImplementedError()
 
+  @Category("Metadata")
+  @ResultType(api_metadata.ApiGetOpenApiDescriptionResult)
+  @Http("GET", "/api/metadata/openapi")
+  @NoAuditLogRequired()
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    """Returns a description of the API following the OpenAPI specification."""
+
+    raise NotImplementedError()
+
 
 class DisabledApiCallRouter(ApiCallRouterStub):
   pass
