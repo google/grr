@@ -33,6 +33,10 @@ export class Client implements OnInit, OnDestroy {
     });
   }
 
+  addLabel(label: string) {
+    this.clientPageFacade.addClientLabel(label);
+  }
+
   ngOnDestroy() {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();

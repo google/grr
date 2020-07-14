@@ -20,12 +20,12 @@ interface FlowInConfiguration {
 /** State of a flow being started. */
 export type StartFlowState = {
   readonly state: 'request_not_sent'
-}|{
+} | {
   readonly state: 'request_sent',
-}|{
+} | {
   readonly state: 'success',
   readonly flow: Flow,
-}|{
+} | {
   readonly state: 'error',
   readonly error: string,
 };
@@ -53,9 +53,9 @@ interface ClientPageState {
 })
 export class ClientPageStore extends ComponentStore<ClientPageState> {
   constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly configService: ConfigService,
-      private readonly configFacade: ConfigFacade,
+    private readonly httpApiService: HttpApiService,
+    private readonly configService: ConfigService,
+    private readonly configFacade: ConfigFacade,
   ) {
     super({
       approvals: {},
@@ -68,27 +68,27 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   // Reducer updating the selected client.
   private readonly updateSelectedClient =
-      this.updater<Client>((state, client) => {
-        return {
-          ...state,
-          client,
-        };
-      });
+    this.updater<Client>((state, client) => {
+      return {
+        ...state,
+        client,
+      };
+    });
 
   // Reducer updating the requested approval.
   private readonly updateApprovals =
-      this.updater<ClientApproval[]>((state, approvals) => {
-        const approvalsMap: {[key: string]: ClientApproval} = {};
-        for (const approval of approvals) {
-          approvalsMap[approval.approvalId] = approval;
-        }
+    this.updater<ClientApproval[]>((state, approvals) => {
+      const approvalsMap: {[key: string]: ClientApproval} = {};
+      for (const approval of approvals) {
+        approvalsMap[approval.approvalId] = approval;
+      }
 
-        return {
-          ...state,
-          approvals: approvalsMap,
-          approvalSequence: approvals.map(a => a.approvalId),
-        };
-      });
+      return {
+        ...state,
+        approvals: approvalsMap,
+        approvalSequence: approvals.map(a => a.approvalId),
+      };
+    });
 
   private updateFlowsFn(state: ClientPageState, flows: Flow[]) {
     const flowsToUpdate: FlowListEntry[] = flows.map((f) => {
@@ -118,21 +118,21 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   // Reducer updating flow results.
   private readonly updateFlowResults =
-      this.updater<FlowResultSet>((state, resultSet) => {
-        const fle = state.flowListEntries[resultSet.sourceQuery.flowId];
-        if (!fle) {
-          // Assuming that there's no such flow in the list anymore.
-          return state;
-        }
+    this.updater<FlowResultSet>((state, resultSet) => {
+      const fle = state.flowListEntries[resultSet.sourceQuery.flowId];
+      if (!fle) {
+        // Assuming that there's no such flow in the list anymore.
+        return state;
+      }
 
-        return {
-          ...state,
-          flowListEntries: {
-            ...state.flowListEntries,
-            [fle.flow.flowId]: updateFlowListEntryResultSet(fle, resultSet),
-          },
-        };
-      });
+      return {
+        ...state,
+        flowListEntries: {
+          ...state.flowListEntries,
+          [fle.flow.flowId]: updateFlowListEntryResultSet(fle, resultSet),
+        },
+      };
+    });
 
   // Reducer updating state after a flow is started.
   private readonly updateStartedFlow = this.updater<Flow>((state, flow) => {
@@ -145,143 +145,143 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   // Updates the state after a flow scheduling fails with a given error.
   private readonly updateStartFlowFailure =
-      this.updater<string>((state, error) => {
-        return {
-          ...state,
-          startFlowState: {
-            state: 'error',
-            error,
-          },
-        };
-      });
+    this.updater<string>((state, error) => {
+      return {
+        ...state,
+        startFlowState: {
+          state: 'error',
+          error,
+        },
+      };
+    });
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
-      this.select(state => state.client)
-          .pipe(
-              filter((client): client is Client => client !== undefined),
-          );
+    this.select(state => state.client)
+      .pipe(
+        filter((client): client is Client => client !== undefined),
+      );
 
   /** An observable emitting the client id of the selected client. */
   readonly selectedClientId$: Observable<string> =
-      this.selectedClient$.pipe(map(client => client.clientId));
+    this.selectedClient$.pipe(map(client => client.clientId));
 
   /**
    * An observable that is triggered when selected client id changes.
    * Won't emit anything on subscription.
    */
   readonly selectedClientIdChanged$ = this.selectedClientId$.pipe(
-      distinctUntilChanged(),
-      // selectedClientId$ will always replay the latest value.
-      // Consequently - we need to skip it.
-      skip(1),
+    distinctUntilChanged(),
+    // selectedClientId$ will always replay the latest value.
+    // Consequently - we need to skip it.
+    skip(1),
   );
 
   /** An observable emitting current flow configuration. */
   readonly flowInConfiguration$: Observable<FlowInConfiguration> =
-      this.select(state => state.flowInConfiguration)
-          .pipe(
-              filter((fic): fic is FlowInConfiguration => fic !== undefined),
-          );
+    this.select(state => state.flowInConfiguration)
+      .pipe(
+        filter((fic): fic is FlowInConfiguration => fic !== undefined),
+      );
 
   /** An observable emitting the latest non-expired approval. */
-  readonly latestApproval$: Observable<ClientApproval|undefined> =
-      this.select(state => {
-        // Approvals are expected to be in reversed chronological order.
-        const foundId = state.approvalSequence.find(
-            approvalId =>
-                state.approvals[approvalId].status.type !== 'expired');
-        return foundId ? state.approvals[foundId] : undefined;
-      });
+  readonly latestApproval$: Observable<ClientApproval | undefined> =
+    this.select(state => {
+      // Approvals are expected to be in reversed chronological order.
+      const foundId = state.approvalSequence.find(
+        approvalId =>
+          state.approvals[approvalId].status.type !== 'expired');
+      return foundId ? state.approvals[foundId] : undefined;
+    });
 
   private readonly flowListEntriesImpl$:
-      Observable<ReadonlyArray<FlowListEntry>> = this.select(state => {
-        return state.flowListEntrySequence.map(id => state.flowListEntries[id]);
-      });
+    Observable<ReadonlyArray<FlowListEntry>> = this.select(state => {
+      return state.flowListEntrySequence.map(id => state.flowListEntries[id]);
+    });
 
   /** An observable emitting current flow list entries. */
   readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =
-      combineLatest([
-        timer(0, this.configService.config.flowListPollingIntervalMs)
-            .pipe(tap(() => {
-              this.listFlows();
-            })),
-        this.flowListEntriesImpl$
-      ])
-          .pipe(
-              map(([i, entries]) => entries),
-              distinctUntilChanged(),
-          );
+    combineLatest([
+      timer(0, this.configService.config.flowListPollingIntervalMs)
+        .pipe(tap(() => {
+          this.listFlows();
+        })),
+      this.flowListEntriesImpl$
+    ])
+      .pipe(
+        map(([i, entries]) => entries),
+        distinctUntilChanged(),
+      );
 
   /** An observable emitting the start flow state. */
   readonly startFlowState$: Observable<StartFlowState> =
-      this.select(state => state.startFlowState);
+    this.select(state => state.startFlowState);
 
   /** An observable emitting the selected flow descriptor. */
-  readonly selectedFlowDescriptor$: Observable<FlowDescriptor|undefined> =
-      this.select(state => state.flowInConfiguration)
-          .pipe(
-              withLatestFrom(this.configFacade.flowDescriptors$),
-              map(([selectedFlow, fds]) => {
-                if (selectedFlow === undefined) {
-                  return undefined;
-                }
+  readonly selectedFlowDescriptor$: Observable<FlowDescriptor | undefined> =
+    this.select(state => state.flowInConfiguration)
+      .pipe(
+        withLatestFrom(this.configFacade.flowDescriptors$),
+        map(([selectedFlow, fds]) => {
+          if (selectedFlow === undefined) {
+            return undefined;
+          }
 
-                const fd = fds.get(selectedFlow.name);
-                if (fd === undefined) {
-                  throw new Error(
-                      `Selected Flow ${selectedFlow.name} is not found.`);
-                }
+          const fd = fds.get(selectedFlow.name);
+          if (fd === undefined) {
+            throw new Error(
+              `Selected Flow ${selectedFlow.name} is not found.`);
+          }
 
-                return {
-                  ...fd,
-                  defaultArgs: selectedFlow.initialArgs ?? fd.defaultArgs,
-                };
-              }),
-              // Generally, selectedFlow$ emits `undefined` as first value to
-              // indicate that no flow has been selected. We use startWith() to
-              // immediately emit this, even though flowDescriptors$ is still
-              // waiting for the API result.
-              startWith(undefined),
-              shareReplay(1),
-          );
+          return {
+            ...fd,
+            defaultArgs: selectedFlow.initialArgs ?? fd.defaultArgs,
+          };
+        }),
+        // Generally, selectedFlow$ emits `undefined` as first value to
+        // indicate that no flow has been selected. We use startWith() to
+        // immediately emit this, even though flowDescriptors$ is still
+        // waiting for the API result.
+        startWith(undefined),
+        shareReplay(1),
+      );
 
   /** An effect fetching a client with a given id and updating the state. */
   readonly selectClient = this.effect<string>(
-      obs$ => obs$.pipe(
-          switchMap(clientId => {
-            return this.httpApiService.fetchClient(clientId);
-          }),
-          map(apiClient => translateClient(apiClient)),
-          tap(client => {
-            this.updateSelectedClient(client);
-            // Automatically fetch existing approvals.
-            this.listApprovals();
-          }),
-          ));
+    obs$ => obs$.pipe(
+      switchMap(clientId => {
+        return this.httpApiService.fetchClient(clientId);
+      }),
+      map(apiClient => translateClient(apiClient)),
+      tap(client => {
+        this.updateSelectedClient(client);
+        // Automatically fetch existing approvals.
+        this.listApprovals();
+      }),
+    ));
 
   /** An effect querying results of a given flow. */
   private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
-      obs$ => obs$.pipe(
-          takeUntil(this.selectedClientIdChanged$),
-          withLatestFrom(this.selectedClientId$),
-          exhaustMap(([query, clientId]) => {
-            return combineLatest([
-              of(query),
-              this.httpApiService.listResultsForFlow(clientId, query),
-            ]);
-          }),
-          map(([query, flowResults]) => {
-            return {
-              sourceQuery: query,
-              state: FlowResultSetState.FETCHED,
-              items: flowResults.map(translateFlowResult),
-            } as FlowResultSet;
-          }),
-          tap((flowResultSet) => {
-            this.updateFlowResults(flowResultSet);
-          }),
-          ));
+    obs$ => obs$.pipe(
+      takeUntil(this.selectedClientIdChanged$),
+      withLatestFrom(this.selectedClientId$),
+      exhaustMap(([query, clientId]) => {
+        return combineLatest([
+          of(query),
+          this.httpApiService.listResultsForFlow(clientId, query),
+        ]);
+      }),
+      map(([query, flowResults]) => {
+        return {
+          sourceQuery: query,
+          state: FlowResultSetState.FETCHED,
+          items: flowResults.map(translateFlowResult),
+        } as FlowResultSet;
+      }),
+      tap((flowResultSet) => {
+        this.updateFlowResults(flowResultSet);
+      }),
+    ));
 
   /**
    * Triggers flow results query. Results will be automatically updated until
@@ -289,80 +289,80 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
    */
   queryFlowResults(query: FlowResultsQuery) {
     const fleSelector =
-        this.select((state) => state.flowListEntries[query.flowId]);
+      this.select((state) => state.flowListEntries[query.flowId]);
 
     return combineLatest([
-             timer(0, this.configService.config.flowResultsPollingIntervalMs),
-             fleSelector,
-           ])
-        .pipe(
-            takeUntil(this.selectedClientIdChanged$),
-            takeWhile(([i, fle]) => fle !== undefined),
-            // Inclusive: the line below will trigger one more time, once
-            // the flow state becomes FINISHED. This guarantees that results
-            // will be updated correctly.
-            takeWhile(
-                ([i, fle]) => fle.flow.state !== FlowState.FINISHED, true),
-            map(([i, fle]) => i),
-            distinctUntilChanged(),
-            tap(() => {
-              this.queryFlowResultsImpl(query);
-            }),
-            )
-        .subscribe();
+      timer(0, this.configService.config.flowResultsPollingIntervalMs),
+      fleSelector,
+    ])
+      .pipe(
+        takeUntil(this.selectedClientIdChanged$),
+        takeWhile(([i, fle]) => fle !== undefined),
+        // Inclusive: the line below will trigger one more time, once
+        // the flow state becomes FINISHED. This guarantees that results
+        // will be updated correctly.
+        takeWhile(
+          ([i, fle]) => fle.flow.state !== FlowState.FINISHED, true),
+        map(([i, fle]) => i),
+        distinctUntilChanged(),
+        tap(() => {
+          this.queryFlowResultsImpl(query);
+        }),
+      )
+      .subscribe();
   }
 
   /** An effect requesting a new client approval. */
   readonly requestApproval = this.effect<ApprovalRequest>(
-      obs$ => obs$.pipe(
-          switchMap(approvalRequest => {
-            return this.httpApiService.requestApproval(approvalRequest);
-          }),
-          map(apiApproval => translateApproval(apiApproval)),
-          tap(approval => {
-            this.updateApprovals([approval]);
-          }),
-          ));
+    obs$ => obs$.pipe(
+      switchMap(approvalRequest => {
+        return this.httpApiService.requestApproval(approvalRequest);
+      }),
+      map(apiApproval => translateApproval(apiApproval)),
+      tap(approval => {
+        this.updateApprovals([approval]);
+      }),
+    ));
 
   /** Starts a flow with given arguments. */
   readonly startFlow = this.effect<unknown>(
-      obs$ => obs$.pipe(
-          withLatestFrom(this.selectedClientId$, this.flowInConfiguration$),
-          concatMap(([flowArgs, clientId, flowInConfiguration]) => {
-            return this.httpApiService.startFlow(
-                clientId, flowInConfiguration.name, flowArgs as AnyObject);
-          }),
-          map(translateFlow),
-          tap(flow => {
-            this.updateStartedFlow(flow);
-          }),
-          catchError((error: Error) => {
-            this.updateStartFlowFailure(error.message);
-            return of(undefined);
-          }),
-          ));
+    obs$ => obs$.pipe(
+      withLatestFrom(this.selectedClientId$, this.flowInConfiguration$),
+      concatMap(([flowArgs, clientId, flowInConfiguration]) => {
+        return this.httpApiService.startFlow(
+          clientId, flowInConfiguration.name, flowArgs as AnyObject);
+      }),
+      map(translateFlow),
+      tap(flow => {
+        this.updateStartedFlow(flow);
+      }),
+      catchError((error: Error) => {
+        this.updateStartFlowFailure(error.message);
+        return of(undefined);
+      }),
+    ));
 
   /** Cancels given flow. */
   readonly cancelFlow = this.effect<string>(
-      obs$ => obs$.pipe(
-          withLatestFrom(this.selectedClientId$),
-          concatMap(([flowId, clientId]) => {
-            return this.httpApiService.cancelFlow(clientId, flowId);
-          }),
-          map(translateFlow),
-          tap((flow) => {
-            this.updateFlows([flow]);
-          }),
-          ));
+    obs$ => obs$.pipe(
+      withLatestFrom(this.selectedClientId$),
+      concatMap(([flowId, clientId]) => {
+        return this.httpApiService.cancelFlow(clientId, flowId);
+      }),
+      map(translateFlow),
+      tap((flow) => {
+        this.updateFlows([flow]);
+      }),
+    ));
 
   private readonly startFlowConfigurationImpl =
-      this.updater<[string, unknown]>((state, [name, initialArgs]) => {
-        return {
-          ...state,
-          flowInConfiguration: {name, initialArgs},
-          startFlowState: {state: 'request_not_sent'},
-        };
-      });
+    this.updater<[string, unknown]>((state, [name, initialArgs]) => {
+      return {
+        ...state,
+        flowInConfiguration: {name, initialArgs},
+        startFlowState: {state: 'request_not_sent'},
+      };
+    });
 
   /** Starts the process of flow configuration in the UI. */
   startFlowConfiguration(name: string, initialArgs?: unknown) {
@@ -380,25 +380,34 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   // An effect to list approvals.
   private readonly listApprovals = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.selectedClientId$),
-          switchMap(clientId => this.httpApiService.listApprovals(clientId)),
-          map(apiApprovals => apiApprovals.map(translateApproval)),
-          tap(approvals => {
-            this.updateApprovals(approvals);
-          })));
+    obs$ => obs$.pipe(
+      switchMapTo(this.selectedClientId$),
+      switchMap(clientId => this.httpApiService.listApprovals(clientId)),
+      map(apiApprovals => apiApprovals.map(translateApproval)),
+      tap(approvals => {
+        this.updateApprovals(approvals);
+      })));
 
   // An effect to list flows.
   private readonly listFlows = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.selectedClientId$),
-          exhaustMap(
-              clientId => this.httpApiService.listFlowsForClient(clientId)),
-          map(apiFlows => apiFlows.map(translateFlow)),
-          tap(flows => {
-            this.updateFlows(flows);
-          }),
-          ));
+    obs$ => obs$.pipe(
+      switchMapTo(this.selectedClientId$),
+      exhaustMap(
+        clientId => this.httpApiService.listFlowsForClient(clientId)),
+      map(apiFlows => apiFlows.map(translateFlow)),
+      tap(flows => {
+        this.updateFlows(flows);
+      }),
+    ));
+
+  // An effect to add a label to the selected client
+  readonly addClientLabel = this.effect<string>(
+    obs$ => obs$.pipe(
+      withLatestFrom(this.selectedClientId$),
+      map(([label, clientId]) => {
+        this.httpApiService.addClientLabel(clientId, label);
+      }),
+    ));
 }
 
 /** Facade for client-related API calls. */
@@ -412,20 +421,20 @@ export class ClientPageFacade {
   readonly selectedClient$: Observable<Client> = this.store.selectedClient$;
 
   /** An observable emitting latest non-expired approval. */
-  readonly latestApproval$: Observable<ClientApproval|undefined> =
-      this.store.latestApproval$;
+  readonly latestApproval$: Observable<ClientApproval | undefined> =
+    this.store.latestApproval$;
 
   /** An observable emitting current flow entries. */
   readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =
-      this.store.flowListEntries$;
+    this.store.flowListEntries$;
 
   /** An observable emitting the state of a flow being started. */
   readonly startFlowState$: Observable<StartFlowState> =
-      this.store.startFlowState$;
+    this.store.startFlowState$;
 
   /** An observable emitting currently selected flow descriptor. */
-  readonly selectedFlowDescriptor$: Observable<FlowDescriptor|undefined> =
-      this.store.selectedFlowDescriptor$;
+  readonly selectedFlowDescriptor$: Observable<FlowDescriptor | undefined> =
+    this.store.selectedFlowDescriptor$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
@@ -460,5 +469,9 @@ export class ClientPageFacade {
   /** Stops the flow configuration process. */
   stopFlowConfiguration() {
     this.store.stopFlowConfiguration();
+  }
+
+  addClientLabel(label: string) {
+    this.store.addClientLabel(label);
   }
 }

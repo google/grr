@@ -2,8 +2,8 @@ import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, 
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {from, Observable, throwError} from 'rxjs';
-import {catchError, map, mergeMap, shareReplay, switchMap, take} from 'rxjs/operators';
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
+import {catchError, map, mergeMap, shareReplay, switchMap, take, tap} from 'rxjs/operators';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, ApiClientLabel, ApiAddClientLabel} from './api_interfaces';
 
 
 /**
@@ -214,6 +214,12 @@ export class HttpApiService {
     const args: ApiExplainGlobExpressionArgs = {globExpression, exampleCount};
     return this.http.post<ApiExplainGlobExpressionResult>(url, args).pipe(
         map(result => result.components ?? []));
+  }
+
+  addClientLabel(clientId: string, label: string): Observable<ApiAddClientLabel> {
+    const url = `${URL_PREFIX}/clients/labels/add`;
+    return this.http.post<ApiAddClientLabel>(url, {client_ids: [clientId], labels: [label]})
+    .pipe(tap((res) => {console.log(res);}))
   }
 }
 
