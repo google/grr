@@ -280,9 +280,12 @@ class HuntBase(object):
         hunt_id=self.hunt_id, plugin_name=plugin_name)
     return self._context.SendStreamingRequest("GetExportedHuntResults", args)
 
-  def GetCollectedTimelines(self):
+  def GetCollectedTimelines(
+      self,
+      format=timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED):
     args = timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = self.hunt_id
+    args.format = format
 
     return self._context.SendStreamingRequest("GetCollectedHuntTimelines", args)
 

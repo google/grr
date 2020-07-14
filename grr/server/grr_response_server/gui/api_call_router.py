@@ -948,13 +948,17 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Hunts")
   @ArgsType(api_timeline.ApiGetCollectedHuntTimelinesArgs)
   @ResultBinaryStream()
-  @Http("GET", "/api/hunts/<hunt_id>/timelines")
+  @Http("GET", "/api/hunts/<hunt_id>/timelines/<format>")
   def GetCollectedHuntTimelines(
       self,
       args: api_timeline.ApiGetCollectedHuntTimelinesArgs,
       token: Optional[access_control.ACLToken] = None,
   ) -> api_timeline.ApiGetCollectedHuntTimelinesHandler:
-    """Exports results of a timeline hunt as a ZIP archive."""
+    """Exports results of a timeline hunt.
+
+    The results are exported as a ZIP archive whose files follow the specified
+    format.
+    """
     raise NotImplementedError()
 
   # Stats metrics methods.
