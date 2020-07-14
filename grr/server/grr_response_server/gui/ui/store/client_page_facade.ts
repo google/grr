@@ -402,12 +402,11 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   // An effect to add a label to the selected client
   readonly addClientLabel = this.effect<string>(
-    obs$ => obs$.pipe(
-      withLatestFrom(this.selectedClientId$),
-      map(([label, clientId]) => {
-        this.httpApiService.addClientLabel(clientId, label);
-      }),
-    ));
+      obs$ => obs$.pipe(
+        withLatestFrom(this.selectedClientId$),
+        switchMap(([label, clientId]) =>
+          this.httpApiService.addClientLabel(clientId, label)),
+      ));
 }
 
 /** Facade for client-related API calls. */
