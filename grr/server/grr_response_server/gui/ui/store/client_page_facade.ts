@@ -429,6 +429,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         withLatestFrom(this.selectedClientId$),
         switchMap(([label, clientId]) =>
           this.httpApiService.addClientLabel(clientId, label)),
+        tap(() => this.fetchClient()),
       ));
 }
 
