@@ -486,4 +486,65 @@ describe('ClientPageFacade', () => {
          done();
        });
      });
+
+  it('fetches client data only after selectedClient$ is subscribed to', fakeAsync(() => {
+    expect(httpApiService.fetchClient).not.toHaveBeenCalled();
+    clientPageFacade.selectedClient$.subscribe();
+
+    // This is needed since selected client is updated in a timer loop
+    // and the first call is scheduled after 0 milliseconds (meaning it
+    // will happen right after it was scheduled, but still asynchronously).
+    tick(1);
+    discardPeriodicTasks();
+    expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
+  }));
+
+  it('polls and updates selectedClient$ periodically', fakeAsync(() => {
+    clientPageFacade.selectedClient$.subscribe();
+
+    tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
+    discardPeriodicTasks();
+
+    // First call happens at 0, next one at selectedClientPollingIntervalMs
+    // and the next one at selectedClientPollingIntervalMs * 2.
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(3);
+  }));
+
+  it('polls and updates selectedClient$ when another client is selected', fakeAsync(() => {
+    clientPageFacade.selectedClient$.subscribe();
+
+    // This is needed since selected client is updated in a timer loop
+    // and the first call is scheduled after 0 milliseconds (meaning it
+    // will happen right after it was scheduled, but still asynchronously).
+    tick(1);
+    discardPeriodicTasks();
+
+    expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
+
+    clientPageFacade.selectClient('C.5678');
+    tick(1);
+    discardPeriodicTasks();
+
+    expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.5678');
+  }));
+
+  it('stops updating selectedClient$ when unsubscribed from it', fakeAsync(() => {
+    const subscribtion = clientPageFacade.selectedClient$.subscribe();
+
+    // This is needed since selected client is updated in a timer loop
+    // and the first call is scheduled after 0 milliseconds (meaning it
+    // will happen right after it was scheduled, but still asynchronously).
+    tick(1);
+    discardPeriodicTasks();
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+
+    subscribtion.unsubscribe();
+    // Fast forward for another 2 polling intervals, to check if
+    // the client is still fetched or not after unsubscribe.
+    // The number of calls to fetchClient() should stay the same
+    tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
+    discardPeriodicTasks();
+
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+  }));
 });
