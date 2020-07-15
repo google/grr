@@ -7,7 +7,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {combineLatest, Observable, of, timer, Subject, merge, interval} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom, mergeAll} from 'rxjs/operators';
+import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom, mergeAll, mergeMap} from 'rxjs/operators';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 import {ConfigFacade} from './config_facade';
 
@@ -32,7 +32,7 @@ export type StartFlowState = {
 
 interface ClientPageState {
   readonly client?: Client;
-  readonly clientId: string;
+  readonly clientId?: string;
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
@@ -59,7 +59,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       private readonly configFacade: ConfigFacade,
   ) {
     super({
-      clientId: '',
       approvals: {},
       approvalSequence: [],
       flowListEntries: {},
@@ -68,7 +67,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     });
   }
 
-  // Reducer updating the selected client.
+  /** Reducer updating the selected client. */
   private readonly updateSelectedClient =
       this.updater<Client>((state, client) => {
         return {
@@ -77,7 +76,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  // Reducer updating the selected client.
+  /** Reducer updating the clientId in the store's state. */
   readonly selectClient =
       this.updater<string>((state, clientId) => {
         return {
@@ -86,7 +85,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  // Reducer updating the requested approval.
+  /** Reducer updating the requested approval. */
   private readonly updateApprovals =
       this.updater<ClientApproval[]>((state, approvals) => {
         const approvalsMap: {[key: string]: ClientApproval} = {};
@@ -124,10 +123,10 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       flowListEntrySequence: sortedFlows.map(f => f.flowId),
     };
   }
-  // Reducer updating flows.
+  /** Reducer updating flows. */
   private readonly updateFlows = this.updater<Flow[]>(this.updateFlowsFn);
 
-  // Reducer updating flow results.
+  /** Reducer updating flow results. */
   private readonly updateFlowResults =
       this.updater<FlowResultSet>((state, resultSet) => {
         const fle = state.flowListEntries[resultSet.sourceQuery.flowId];
@@ -145,7 +144,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  // Reducer updating state after a flow is started.
+  /** Reducer updating state after a flow is started. */
   private readonly updateStartedFlow = this.updater<Flow>((state, flow) => {
     return {
       ...this.updateFlowsFn(state, [flow]),
@@ -154,7 +153,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     };
   });
 
-  // Updates the state after a flow scheduling fails with a given error.
+  /** Updates the state after a flow scheduling fails with a given error. */
   private readonly updateStartFlowFailure =
       this.updater<string>((state, error) => {
         return {
@@ -267,10 +266,11 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           );
 
   /** An effect fetching a client with a given id and updating the state. */
-  readonly fetchClient = this.effect<void>(
+  private readonly fetchClient = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.select(state => state.clientId)),
-          switchMap(clientId => {
+          filter((clientId): clientId is string => clientId !== undefined),
+          mergeMap(clientId => {
             return this.httpApiService.fetchClient(clientId);
           }),
           map(apiClient => translateClient(apiClient)),
@@ -398,7 +398,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     };
   });
 
-  // An effect to list approvals.
+  /** An effect to list approvals. */
   private readonly listApprovals = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.selectedClientId$),
@@ -408,7 +408,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.updateApprovals(approvals);
           })));
 
-  // An effect to list flows.
+  /** An effect to list flows. */
   private readonly listFlows = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.selectedClientId$),
