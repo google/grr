@@ -1,21 +1,23 @@
 import {NgModule} from '@angular/core';
-import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDialogModule} from '@angular/material/dialog';
 import {ClientAddLabelDialog} from './client_add_label_dialog';
 import {MatInputModule} from '@angular/material/input';
-import {FormsModule} from '@angular/forms';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {CommonModule} from '@angular/common';
 
 /**
  * Module for the client details component.
  */
 @NgModule({
   imports: [
-    MatIconModule,
+    CommonModule,
     MatButtonModule,
     MatDialogModule,
     MatInputModule,
-    FormsModule,
+    MatAutocompleteModule,
+    ReactiveFormsModule,
   ],
   declarations: [
     ClientAddLabelDialog,

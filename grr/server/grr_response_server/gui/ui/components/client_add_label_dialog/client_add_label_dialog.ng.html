@@ -3,7 +3,19 @@
   <p>You can add a new label or select from existing labels.</p>
   <mat-form-field class="label-field" appearance="outline">
     <mat-label>Start typing label name</mat-label>
-    <input matInput [(ngModel)]="label" cdkFocusInitial (keyup.enter)="onAddClick()">
+    <input matInput
+      cdkFocusInitial
+      (keyup.enter)="onAddClick()"
+      [formControl]="newLabelInputControl"
+      [matAutocomplete]="auto">
+
+    <mat-autocomplete #auto="matAutocomplete">
+      <mat-option *ngFor="let option of filteredCurrentLabels | async" [value]="option">
+        {{option}}
+      </mat-option>
+    </mat-autocomplete>
+
+    <mat-error *ngIf="newLabelInputControl.invalid">This label is already present!</mat-error>
   </mat-form-field>
 </div>
 <div mat-dialog-actions class="actions">
