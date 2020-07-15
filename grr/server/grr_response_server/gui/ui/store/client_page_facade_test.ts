@@ -517,8 +517,6 @@ describe('ClientPageFacade', () => {
     // and the first call is scheduled after 0 milliseconds (meaning it
     // will happen right after it was scheduled, but still asynchronously).
     tick(1);
-    discardPeriodicTasks();
-
     expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
 
     clientPageFacade.selectClient('C.5678');
@@ -535,7 +533,6 @@ describe('ClientPageFacade', () => {
     // and the first call is scheduled after 0 milliseconds (meaning it
     // will happen right after it was scheduled, but still asynchronously).
     tick(1);
-    discardPeriodicTasks();
     expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
 
     subscribtion.unsubscribe();
