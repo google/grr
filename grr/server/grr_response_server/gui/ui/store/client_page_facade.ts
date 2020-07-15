@@ -1,13 +1,13 @@
 import {Injectable} from '@angular/core';
-import {ComponentStore} from '@ngrx/component-store';
 import {ConfigService} from '@app/components/config/config';
 import {AnyObject} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateApproval, translateClient} from '@app/lib/api_translation/client';
 import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
+import {ComponentStore} from '@ngrx/component-store';
 import {combineLatest, Observable, of, timer} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 import {isNonNull} from '../lib/preconditions';
@@ -39,6 +39,7 @@ export type StartFlowState = {
 
 interface ClientPageState {
   readonly client?: Client;
+  readonly clientId?: string;
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
@@ -76,7 +77,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     });
   }
 
-  // Reducer updating the selected client.
+  /** Reducer updating the selected client. */
   private readonly updateSelectedClient =
       this.updater<Client>((state, client) => {
         return {
@@ -85,7 +86,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  // Reducer updating the requested approval.
+  /** Reducer updating the clientId in the store's state. */
+  readonly selectClient = this.updater<string>((state, clientId) => {
+    return {
+      ...state,
+      clientId,
+    };
+  });
+
+  /** Reducer updating the requested approval. */
   private readonly updateApprovals =
       this.updater<ClientApproval[]>((state, approvals) => {
         const approvalsMap: {[key: string]: ClientApproval} = {};
@@ -123,7 +132,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       flowListEntrySequence: sortedFlows.map(f => f.flowId),
     };
   }
-  // Reducer updating flows.
+  /** Reducer updating flows. */
   private readonly updateFlows = this.updater<Flow[]>(this.updateFlowsFn);
 
   private readonly updateScheduledFlows =
@@ -132,7 +141,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                                       scheduledFlows,
                                     }));
 
-  // Reducer updating flow results.
+  /** Reducer updating flow results. */
   private readonly updateFlowResults =
       this.updater<FlowResultSet>((state, resultSet) => {
         const fle = state.flowListEntries[resultSet.sourceQuery.flowId];
@@ -150,7 +159,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  // Reducer updating state after a flow is started.
+  /** Reducer updating state after a flow is started. */
   private readonly updateStartedFlow = this.updater<Flow>((state, flow) => {
     return {
       ...this.updateFlowsFn(state, [flow]),
@@ -179,7 +188,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  // Updates the state after a flow scheduling fails with a given error.
+  /** Updates the state after a flow scheduling fails with a given error. */
   private readonly updateStartFlowFailure =
       this.updater<string>((state, error) => {
         return {
@@ -193,11 +202,20 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
-      this.select(state => state.client).pipe(filter(isNonNull));
+      combineLatest(
+          timer(0, this.configService.config.selectedClientPollingIntervalMs)
+              .pipe(tap(() => this.fetchClient())),
+          this.select(state => state.client))
+          .pipe(
+              map(([i, client]) => client),
+              filter((client): client is Client => client !== undefined),
+          );
 
   /** An observable emitting the client id of the selected client. */
   readonly selectedClientId$: Observable<string> =
-      this.selectedClient$.pipe(map(client => client.clientId));
+      this.select(state => state.clientId)
+          .pipe(
+              filter((clientId): clientId is string => clientId !== undefined));
 
   /**
    * An observable that is triggered when selected client id changes.
@@ -216,13 +234,14 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** An observable emitting the latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
-      this.select(state => {
-        // Approvals are expected to be in reversed chronological order.
-        const foundId = state.approvalSequence.find(
-            approvalId =>
-                state.approvals[approvalId].status.type !== 'expired');
-        return foundId ? state.approvals[foundId] : undefined;
-      });
+      of(undefined).pipe(
+          tap(() => this.listApprovals()), switchMapTo(this.select(state => {
+            // Approvals are expected to be in reversed chronological order.
+            const foundId = state.approvalSequence.find(
+                approvalId =>
+                    state.approvals[approvalId].status.type !== 'expired');
+            return foundId ? state.approvals[foundId] : undefined;
+          })));
 
   private readonly flowListEntriesImpl$:
       Observable<ReadonlyArray<FlowListEntry>> = this.select(state => {
@@ -292,18 +311,19 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           );
 
   /** An effect fetching a client with a given id and updating the state. */
-  readonly selectClient = this.effect<string>(
+  private readonly fetchClient = this.effect<void>(
       obs$ => obs$.pipe(
-          switchMap(clientId => {
+          switchMapTo(this.select(state => state.clientId)),
+          filter((clientId): clientId is string => clientId !== undefined),
+          mergeMap(clientId => {
             return this.httpApiService.fetchClient(clientId);
           }),
           map(apiClient => translateClient(apiClient)),
           tap(client => {
             this.updateSelectedClient(client);
-            // Automatically fetch existing approvals.
-            this.listApprovals();
           }),
           ));
+
 
   /** An effect querying results of a given flow. */
   private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
@@ -454,7 +474,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     };
   });
 
-  // An effect to list approvals.
+  /** An effect to list approvals. */
   private readonly listApprovals = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.selectedClientId$),
@@ -464,7 +484,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.updateApprovals(approvals);
           })));
 
-  // An effect to list flows.
+  /** An effect to list flows. */
   private readonly listFlows = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.selectedClientId$),
