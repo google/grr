@@ -180,7 +180,10 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** An observable emitting the client id of the selected client. */
   readonly selectedClientId$: Observable<string> =
-      this.selectedClient$.pipe(map(client => client.clientId));
+        this.select(state => state.clientId)
+        .pipe(
+          filter((clientId): clientId is string => clientId !== undefined)
+        );
 
   /**
    * An observable that is triggered when selected client id changes.
