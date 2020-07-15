@@ -2,7 +2,7 @@ import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/test
 import {ConfigService} from '@app/components/config/config';
 import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ClientApproval} from '@app/lib/models/client';
+import {ClientApproval, Client} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
@@ -11,6 +11,7 @@ import {of, Subject} from 'rxjs';
 
 import {ConfigFacade} from './config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
+
 
 initTestEnvironment();
 
@@ -544,4 +545,39 @@ describe('ClientPageFacade', () => {
 
     expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
   }));
+
+  it('updates selectedClient$ with changed client data when underlying API client data changes.',
+    fakeAsync((done : DoneFn) => {
+      const expectedClients: Client[] = [
+        {
+          clientId: 'C.1234',
+          fleetspeakEnabled: false,
+          knowledgeBase: {},
+          labels: []
+        },
+        {
+          clientId: 'C.5678',
+          fleetspeakEnabled: true,
+          knowledgeBase: {},
+          labels: []
+        },
+      ];
+
+      apiFetchClient$.next({
+        clientId: 'C.5678',
+        fleetspeakEnabled: true,
+      })
+
+      let i = 0;
+      clientPageFacade.selectedClient$.subscribe(client => {
+          expect(client).toEqual(expectedClients[i]);
+          i++;
+          if (i === expectedClients.length) {
+            done();
+          }
+      });
+
+      tick(configService.config.selectedClientPollingIntervalMs * (expectedClients.length - 1) + 1);
+      discardPeriodicTasks();
+    }));
 });
