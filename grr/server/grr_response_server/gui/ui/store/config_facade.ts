@@ -6,14 +6,16 @@ import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
-import {ApprovalConfig} from '../lib/models/client';
+import {ApprovalConfig, ClientLabel} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
+import {translateClientLabel} from '@app/lib/api_translation/client';
 
 
 /** The state of the Config. */
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
+  clientsLabels: ClientLabel[];
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -22,7 +24,9 @@ export interface ConfigState {
 })
 export class ConfigStore extends ComponentStore<ConfigState> {
   constructor(private readonly httpApiService: HttpApiService) {
-    super({});
+    super({
+      clientsLabels: [],
+    });
   }
 
   private readonly updateFlowDescriptors =
@@ -36,6 +40,11 @@ export class ConfigStore extends ComponentStore<ConfigState> {
   private readonly updateApprovalConfig =
       this.updater<ApprovalConfig>((state, approvalConfig) => {
         return {...state, approvalConfig};
+      });
+
+  private readonly updateClientsLabels =
+      this.updater<ClientLabel[]>((state, clientsLabels) => {
+        return {...state, clientsLabels};
       });
 
   private readonly listFlowDescriptors = this.effect<void>(
@@ -55,6 +64,14 @@ export class ConfigStore extends ComponentStore<ConfigState> {
           }),
           ));
 
+  private readonly fetchClientsLabels = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.httpApiService.fetchAllClientsLabels()),
+          map(apiClientsLabels =>
+              apiClientsLabels.map(translateClientLabel)),
+          tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
+        ));
+        
   /** An observable emitting available flow descriptors. */
   readonly flowDescriptors$ = of(undefined).pipe(
       // Ensure that the query is done on subscription.
@@ -80,6 +97,12 @@ export class ConfigStore extends ComponentStore<ConfigState> {
               approvalConfig !== undefined),
       shareReplay(1),  // Ensure that the query is done just once.
   );
+
+  /** An observable emitting a list of all clients labels. */
+  readonly clientsLabels$ = of(undefined).pipe(
+      tap(() => this.fetchClientsLabels()),
+      switchMapTo(this.select(state => state.clientsLabels)),
+  );
 }
 
 
@@ -97,4 +120,8 @@ export class ConfigFacade {
   /** An observable emitting the approval configuration. */
   readonly approvalConfig$: Observable<ApprovalConfig> =
       this.store.approvalConfig$;
+
+  /** An observable emitting a list of all clients labels. */
+  readonly clientsLabels$: Observable<ClientLabel[]> =
+      this.store.clientsLabels$;
 }

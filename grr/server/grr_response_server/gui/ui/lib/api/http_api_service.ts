@@ -3,7 +3,7 @@ import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
 import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, ApiAddClientsLabelsArgs} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, ApiAddClientsLabelsArgs, ApiClientLabel} from './api_interfaces';
 
 
 /**
@@ -218,7 +218,12 @@ export class HttpApiService {
 
   addClientLabel(clientId: string, label: string): Observable<ApiAddClientsLabelsArgs> {
     const url = `${URL_PREFIX}/clients/labels/add`;
-    return this.http.post<ApiAddClientsLabelsArgs>(url, {client_ids: [clientId], labels: [label]})
+    return this.http.post<ApiAddClientsLabelsArgs>(url, {client_ids: [clientId], labels: [label]});
+  }
+
+  fetchAllClientsLabels(): Observable<ApiClientLabel[]> {
+    const url = `${URL_PREFIX}/clients/labels`;
+    return this.http.get<ApiClientLabel[]>(url);
   }
 }
 
