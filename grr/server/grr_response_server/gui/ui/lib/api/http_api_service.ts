@@ -1,9 +1,9 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-import {from, Observable, throwError} from 'rxjs';
-import {catchError, map, mergeMap, shareReplay, switchMap, take, tap} from 'rxjs/operators';
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, ApiClientLabel, ApiAddClientLabel} from './api_interfaces';
+import {Observable, throwError} from 'rxjs';
+import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, ApiAddClientsLabelsArgs} from './api_interfaces';
 
 
 /**
@@ -216,9 +216,9 @@ export class HttpApiService {
         map(result => result.components ?? []));
   }
 
-  addClientLabel(clientId: string, label: string): Observable<ApiAddClientLabel> {
+  addClientLabel(clientId: string, label: string): Observable<ApiAddClientsLabelsArgs> {
     const url = `${URL_PREFIX}/clients/labels/add`;
-    return this.http.post<ApiAddClientLabel>(url, {client_ids: [clientId], labels: [label]})
+    return this.http.post<ApiAddClientsLabelsArgs>(url, {client_ids: [clientId], labels: [label]})
   }
 }
 

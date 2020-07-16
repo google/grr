@@ -37,9 +37,9 @@ export declare interface ApiClientLabel {
 }
 
 /**
- * AddClientLabel proto mapping.
+ * AddClientsLabelsArgs proto mapping.
  */
-export declare interface ApiAddClientLabel {
+export declare interface ApiAddClientsLabelsArgs {
   readonly client_ids: string[];
   readonly labels: string[];
 }
