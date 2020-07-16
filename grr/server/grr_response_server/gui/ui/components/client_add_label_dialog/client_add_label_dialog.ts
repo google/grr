@@ -18,7 +18,7 @@ export class ClientAddLabelDialog {
       map(value => this.filter(value))
     );
 
-  constructor(private dialogRef: MatDialogRef<ClientAddLabelDialog>,
+  constructor(readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
     @Inject(MAT_DIALOG_DATA) private clientLabels: ReadonlyArray<ClientLabel>) {}
 
   private filter(value: string): string[] {
@@ -31,6 +31,9 @@ export class ClientAddLabelDialog {
 
   labelPresentValidator(): ValidatorFn {
     return (control: AbstractControl): {[key: string]: any} | null => {
+      if (control.value === undefined) {
+        return null;
+      }
       const input = control.value.toLowerCase();
       const matchingLabels = this.clientLabels
         .map(clientLabel => clientLabel.name)
@@ -44,7 +47,7 @@ export class ClientAddLabelDialog {
   }
 
   onCancelClick(): void {
-    this.dialogRef.close();
+    this.dialogRef.close(undefined);
   }
 
   onAddClick(): void {
