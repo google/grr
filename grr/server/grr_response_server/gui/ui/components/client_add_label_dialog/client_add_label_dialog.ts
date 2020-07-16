@@ -37,9 +37,9 @@ export class ClientAddLabelDialog {
       const input = control.value.toLowerCase();
       const matchingLabels = this.clientLabels
         .map(clientLabel => clientLabel.name)
-        .filter(label => label.toLowerCase() === input);
+        .find(label => label.toLowerCase() === input);
 
-      if (matchingLabels.length > 0) {
+      if (matchingLabels !== undefined) {
         return {'alreadyPresentLabel': {value: control.value}};
       }
       return null;

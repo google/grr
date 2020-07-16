@@ -15,10 +15,11 @@
       </mat-option>
     </mat-autocomplete>
 
-    <mat-error *ngIf="newLabelInputControl.invalid">This label is already present!</mat-error>
+    <mat-error *ngIf="newLabelInputControl.hasError('alreadyPresentLabel')">This label is already present!</mat-error>
   </mat-form-field>
 </div>
 <div mat-dialog-actions class="actions">
   <button id="cancel" mat-button color="primary" (click)="onCancelClick()">Cancel</button>
-  <button id="add" mat-button color="primary" (click)="onAddClick()">Add label</button>
+  <button id="add" mat-button color="primary" (click)="onAddClick()"
+    [disabled]="newLabelInputControl.invalid">Add label</button>
 </div>
