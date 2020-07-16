@@ -15,7 +15,7 @@ import {translateClientLabel} from '@app/lib/api_translation/client';
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
-  clientsLabels: ClientLabel[];
+  clientsLabels?: ClientLabel[];
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -24,9 +24,7 @@ export interface ConfigState {
 })
 export class ConfigStore extends ComponentStore<ConfigState> {
   constructor(private readonly httpApiService: HttpApiService) {
-    super({
-      clientsLabels: [],
-    });
+    super({});
   }
 
   private readonly updateFlowDescriptors =
@@ -71,7 +69,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
               apiClientsLabels.map(translateClientLabel)),
           tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
         ));
-        
+
   /** An observable emitting available flow descriptors. */
   readonly flowDescriptors$ = of(undefined).pipe(
       // Ensure that the query is done on subscription.
@@ -102,6 +100,8 @@ export class ConfigStore extends ComponentStore<ConfigState> {
   readonly clientsLabels$ = of(undefined).pipe(
       tap(() => this.fetchClientsLabels()),
       switchMapTo(this.select(state => state.clientsLabels)),
+      filter((clientsLabels): clientsLabels is ClientLabel[] =>
+          clientsLabels !== undefined),
   );
 }
 
