@@ -3,6 +3,7 @@
 """A module with API methods related to the GRR metadata."""
 import json
 
+from urllib import parse as urlparse
 from typing import Optional
 
 from grr_response_core import version
@@ -63,11 +64,30 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     nodes = path.split("/")
     for node in nodes:
       if len(node) > 0 and node[0] == '<' and node[-1] == '>':
-        node = node[1:-1]
-        arg = node.split(":")[-1] # Werkzeug type converter might be specified.
-        path_args.append(arg)
+        path_args.append(node)
 
     return path_args
+
+  def _SimplifyPath(self, path: str) -> str:
+    """Keep only fixed parts and parameter names from Werkzeug URL patterns."""
+
+    nodes = path.split("/")
+    if len(nodes) == 0:
+      return ""
+
+    simple_nodes = []
+    for node in nodes:
+      if len(node) > 0 and node[0] == '<' and node[-1] == '>':
+        node = node[1:-1]
+        node = node.split(":")[-1] # Werkzeug type converter might be specified.
+        node = f"<{node}>"
+      simple_nodes.append(node)
+
+    simple_path = '/'.join(simple_nodes)
+    if len(simple_path) > 0 and simple_path[-1] == '/':
+      simple_path = simple_path[:-1]
+
+    return simple_path
 
   def Handle(
       self,
@@ -112,24 +132,26 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for router_method in router_methods.values():
       for http_method, path, strip_root_types in router_method.http_methods:
-        if path not in paths_obj:
-          paths_obj[path] = dict()
+        simple_path = self._SimplifyPath(path)
+        if simple_path not in paths_obj:
+          paths_obj[simple_path] = dict()
 
         # The Path Object associated with the current path.
-        path_obj = paths_obj[path]
+        path_obj = paths_obj[simple_path]
 
         # The Operation Object associated with the current http method.
         operation_obj = dict()
         operation_obj["tags"] = [router_method.category]
         operation_obj["description"] = router_method.doc
-        operation_obj["operationId"] = f"{http_method}_{path}_" \
-                                       f"{router_method.name}"
+        operation_obj["operationId"] = \
+          urlparse.quote(f"{http_method}-{path.replace('/', '-').replace('<','_').replace('>','_').replace(':', '-')}-{router_method.name}")
         operation_obj["parameters"] = []
         if router_method.args_type:
           type_infos = router_method.args_type().type_infos
         else:
           type_infos = []
-        path_args = self._GetPathArgsFromPath(path)
+
+        path_args = self._GetPathArgsFromPath(simple_path)
         path_args = set(path_args)
 
         # TODO: Instead of defining parameter schemas here (and potentially
