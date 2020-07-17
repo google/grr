@@ -68,7 +68,7 @@ describe('Client Add Label Dialog', () => {
   });
 
   it('closes and returns a string with the added label when "Add" button is clicked', () => {
-    component.newLabelInputControl.setValue('newlabel');
+    component.labelInputControl.setValue('newlabel');
     const addButton = fixture.debugElement.query(By.css('#add'));
     (addButton.nativeElement as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -76,7 +76,7 @@ describe('Client Add Label Dialog', () => {
   });
 
   it('closes and returns a string with the added label when on Enter event', () => {
-    component.newLabelInputControl.setValue('newlabel');
+    component.labelInputControl.setValue('newlabel');
     const inputForm = fixture.debugElement.query(By.css('input'));
     (inputForm.nativeElement as HTMLInputElement)
       .dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter'}));
@@ -85,7 +85,7 @@ describe('Client Add Label Dialog', () => {
   });
 
   it('doesn\'t allow adding the same label again', () => {
-    component.newLabelInputControl.setValue('label1');
+    component.labelInputControl.setValue('label1');
     const addButton = fixture.debugElement.query(By.css('#add'));
     (addButton.nativeElement as HTMLButtonElement).click();
     fixture.detectChanges();
@@ -100,13 +100,10 @@ describe('Client Add Label Dialog', () => {
 
   it('updates existing labels list upon input change', (done) => {
     let i = 0;
-    component.filteredLabels.subscribe(labels => {
+    component.suggestedLabels$.subscribe(labels => {
       switch (i) {
         case 0:
-          expect(labels).toEqual(['label1', 'unusedlabel', 'testlabel']);
-          break;
-        case 1:
-          expect(labels).toEqual(['testlabel']);
+          expect(labels).toEqual(['unusedlabel']);
           break;
         default:
           expect(labels).toEqual([]);
@@ -114,9 +111,9 @@ describe('Client Add Label Dialog', () => {
       }
       i++;
     });
-    component.newLabelInputControl.setValue('test');
+    component.labelInputControl.setValue('label');
     fixture.detectChanges();
-    component.newLabelInputControl.setValue('newlabel');
+    component.labelInputControl.setValue('label2');
     fixture.detectChanges();
   });
 });

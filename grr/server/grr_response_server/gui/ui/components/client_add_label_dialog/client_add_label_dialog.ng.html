@@ -6,21 +6,28 @@
     <input matInput
       cdkFocusInitial
       (keyup.enter)="onAddClick()"
-      [formControl]="newLabelInputControl"
+      [formControl]="labelInputControl"
       [matAutocomplete]="auto">
 
     <mat-autocomplete #auto="matAutocomplete">
-      <mat-option *ngFor="let option of filteredLabels | async" [value]="option">
-        {{option}}
-        <ng-template [ngIf]="clientHasLabel(option)">already present</ng-template>
+      <mat-option *ngFor="let label of suggestedLabels$ | async" [value]="label">
+        <small>{{label}}</small>
       </mat-option>
-    </mat-autocomplete>
+      <!-- If the input label already exists, announce to the user! -->
+      <mat-option *ngIf="labelInputControl.hasError('alreadyPresentLabel')" [value]="labelInputControl.value">
+        <small>{{labelInputControl.value}} already present!</small>
+      </mat-option>
+      <!-- Suggest creating a new label, if so (default option) -->
+      <mat-option *ngIf="isNewLabel$ | async" [value]="labelInputControl.value">
+        <small>Add new label "{{labelInputControl.value.trim()}}"</small>
+      </mat-option>
+     </mat-autocomplete>
 
-    <mat-error *ngIf="newLabelInputControl.hasError('alreadyPresentLabel')">This label is already present!</mat-error>
+    <mat-error *ngIf="labelInputControl.hasError('alreadyPresentLabel')">This label is already present!</mat-error>
   </mat-form-field>
 </div>
 <div mat-dialog-actions class="actions">
   <button id="cancel" mat-button color="primary" (click)="onCancelClick()">Cancel</button>
   <button id="add" mat-button color="primary" (click)="onAddClick()"
-    [disabled]="newLabelInputControl.invalid">Add label</button>
+    [disabled]="labelInputControl.invalid">Add label</button>
 </div>
