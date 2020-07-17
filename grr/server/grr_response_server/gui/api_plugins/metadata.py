@@ -40,6 +40,8 @@ class ApiGetGrrVersionHandler(api_call_handler_base.ApiCallHandler):
 
 
 class ApiGetOpenApiDescriptionResult(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for the OpenAPI description of the GRR API."""
+
   protobuf = metadata_pb2.ApiGetOpenApiDescriptionResult
 
 
@@ -54,6 +56,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> ApiGetOpenApiDescriptionResult:
+    """Handles requests for getting the OpenAPI description of the GRR API."""
 
     result = ApiGetOpenApiDescriptionResult()
     result.placeholder = "Work in progress."
