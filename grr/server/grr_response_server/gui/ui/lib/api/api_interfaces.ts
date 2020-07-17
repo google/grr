@@ -10,7 +10,7 @@
 
 export declare interface AnyObject {
   '@type'?: string;
-  [key: string]: undefined|null|string|number|boolean|object;
+  [key: string]: undefined | null | string | number | boolean | object;
 }
 
 /**
@@ -18,7 +18,7 @@ export declare interface AnyObject {
  * JSON because JS loses precision for big numeric types. During
  * deserialization, both decimal strings and numbers are accepted.
  */
-export type DecimalString = string|number;
+export type DecimalString = string | number;
 
 /**
  * KnowledgeBase proto mapping.
@@ -36,6 +36,9 @@ export declare interface ApiClientLabel {
   readonly name?: string;
 }
 
+export declare interface ApiClientsLabels {
+  readonly items?: ApiClientLabel[];
+}
 /**
  * AddClientsLabelsArgs proto mapping.
  */
