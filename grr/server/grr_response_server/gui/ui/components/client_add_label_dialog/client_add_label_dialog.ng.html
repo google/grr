@@ -15,10 +15,10 @@
       </mat-option>
       <!-- If the input label already exists, announce to the user! -->
       <mat-option *ngIf="labelInputControl.hasError('alreadyPresentLabel')" [value]="labelInputControl.value">
-        <small>{{labelInputControl.value}} already present!</small>
+        <small>Label "{{labelInputControl.value.trim()}}" already present!</small>
       </mat-option>
       <!-- Suggest creating a new label, if so (default option) -->
-      <mat-option *ngIf="isNewLabel$ | async" [value]="labelInputControl.value">
+      <mat-option *ngIf="isNewLabel$ | async" [value]="labelInputControl.value.trim()">
         <small>Add new label "{{labelInputControl.value.trim()}}"</small>
       </mat-option>
      </mat-autocomplete>
