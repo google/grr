@@ -1331,7 +1331,16 @@ class ApiCallRouterStub(ApiCallRouter):
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
-    """Returns a description of the API following the OpenAPI specification."""
+    """Returns a description of the API following the OpenAPI specification.
+
+    Args:
+      args: None, this API method does not require any arguments.
+      token: access_control.ACLToken used for ACL verification.
+
+    Returns:
+      An ApiGetOpenApiDescriptionHandler object whose Handle method is used to
+      create and return the OpenAPI description of the GRR API.
+    """
 
     raise NotImplementedError()
 

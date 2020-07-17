@@ -813,7 +813,10 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
-    # Everybody can get the OpenAPI description.
+    """Returns a description of the API following the OpenAPI specification.
+
+    Everybody can get the OpenAPI description.
+    """
     return self.delegate.GetOpenApiDescription(args, token=token)
 
 
