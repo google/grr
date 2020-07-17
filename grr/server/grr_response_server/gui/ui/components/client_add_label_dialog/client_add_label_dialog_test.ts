@@ -197,20 +197,4 @@ describe('Client Add Label Dialog', () => {
     component.labelInputControl.setValue('label19');
     fixture.detectChanges();
   });
-
-  it('autocompletes the input field when a suggested option is clicked', () => {
-    const inputElement =
-      fixture.debugElement.query(By.css('input')).nativeElement;
-    inputElement.dispatchEvent(new Event('focusin'));
-    inputElement.value = 'unused';
-    inputElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-
-    const options = overlayContainerElement.querySelectorAll('mat-option');
-    expect(options.length).toBe(2); // ['unusedlabel', 'Add new label "unused"']
-    options.item(0).dispatchEvent(new Event('click'));
-    fixture.detectChanges();
-
-    expect(inputElement.value).toEqual('unusedlabel');
-  });
 });
