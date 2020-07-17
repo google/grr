@@ -7,6 +7,8 @@ import {ClientAddLabelDialog} from './client_add_label_dialog';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MatDialogModule, MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {ClientLabel} from '@app/lib/models/client';
+import {ConfigFacade} from '@app/store/config_facade';
+import {mockConfigFacade, ConfigFacadeMock} from '@app/store/config_facade_test_util';
 
 initTestEnvironment();
 
@@ -17,9 +19,13 @@ describe('Client Add Label Dialog', () => {
     {owner: '', name: 'label1'},
     {owner: '', name: 'testlabel'}
   ];
+
+  let configFacadeMock: ConfigFacadeMock;
   let dialogCloseSpy: jasmine.Spy;
 
   beforeEach(async(() => {
+    configFacadeMock = mockConfigFacade();
+
     TestBed
       .configureTestingModule({
         declarations: [ClientAddLabelDialog],
@@ -32,6 +38,7 @@ describe('Client Add Label Dialog', () => {
         providers: [
           {provide: MatDialogRef, useValue: {close(value: string | undefined) {} }},
           {provide: MAT_DIALOG_DATA, useValue: clientLabels},
+          {provide: ConfigFacade, useValue: configFacadeMock}
         ],
       })
       .compileComponents();
@@ -41,6 +48,11 @@ describe('Client Add Label Dialog', () => {
     fixture = TestBed.createComponent(ClientAddLabelDialog);
     component = fixture.componentInstance;
     dialogCloseSpy = spyOn(component.dialogRef, 'close');
+    configFacadeMock.clientsLabelsSubject.next([
+      {owner: '', name: 'label1'},
+      {owner: '', name: 'unusedlabel'},
+      {owner: '', name: 'testlabel'},
+    ])
     fixture.detectChanges();
   });
 
@@ -88,10 +100,10 @@ describe('Client Add Label Dialog', () => {
 
   it('updates existing labels list upon input change', (done) => {
     let i = 0;
-    component.filteredCurrentLabels.subscribe(labels => {
+    component.filteredLabels.subscribe(labels => {
       switch (i) {
         case 0:
-          expect(labels).toEqual(['label1', 'testlabel']);
+          expect(labels).toEqual(['label1', 'unusedlabel', 'testlabel']);
           break;
         case 1:
           expect(labels).toEqual(['testlabel']);

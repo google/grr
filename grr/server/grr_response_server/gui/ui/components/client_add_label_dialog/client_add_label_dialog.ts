@@ -2,8 +2,9 @@ import {Component, OnInit, Inject} from '@angular/core';
 import {MatDialogRef, MAT_DIALOG_DATA} from '@angular/material/dialog';
 import {FormControl, ValidatorFn, AbstractControl} from '@angular/forms';
 import {Observable} from 'rxjs';
-import {startWith, map} from 'rxjs/operators';
+import {startWith, map, combineLatest} from 'rxjs/operators';
 import {ClientLabel} from '@app/lib/models/client';
+import {ConfigFacade} from '@app/store/config_facade';
 
 @Component({
   selector: 'client-add-label-dialog',
@@ -11,20 +12,25 @@ import {ClientLabel} from '@app/lib/models/client';
   styleUrls: ['./client_add_label_dialog.scss'],
 })
 export class ClientAddLabelDialog {
-  newLabelInputControl = new FormControl('', this.labelPresentValidator());
-  filteredCurrentLabels: Observable<string[]> = this.newLabelInputControl.valueChanges
+  readonly newLabelInputControl = new FormControl('', this.labelPresentValidator());
+  private readonly existingLabels$ = this.configFacade.clientsLabels$;
+  readonly filteredLabels: Observable<string[]> = this.newLabelInputControl.valueChanges
     .pipe(
       startWith(''),
-      map(value => this.filter(value))
+      combineLatest(this.existingLabels$),
+      map(([input, existingLabels]) => this.filter(input, existingLabels))
     );
 
-  constructor(readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
-    @Inject(MAT_DIALOG_DATA) private clientLabels: ReadonlyArray<ClientLabel>) {}
+  constructor(
+    readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
+    @Inject(MAT_DIALOG_DATA) private clientLabels: ReadonlyArray<ClientLabel>,
+    private readonly configFacade: ConfigFacade
+  ) {}
 
-  private filter(value: string): string[] {
+  private filter(value: string, existingLabels: ClientLabel[]): string[] {
     const filterValue = value.toLowerCase();
 
-    return this.clientLabels
+    return existingLabels
       .map(clientLabel => clientLabel.name)
       .filter(label => label.toLowerCase().includes(filterValue));
   }
@@ -34,16 +40,25 @@ export class ClientAddLabelDialog {
       if (control.value === undefined) {
         return null;
       }
-      const input = control.value.toLowerCase();
-      const matchingLabels = this.clientLabels
-        .map(clientLabel => clientLabel.name)
-        .find(label => label.toLowerCase() === input);
 
-      if (matchingLabels !== undefined) {
+      if (this.clientHasLabel(control.value)) {
         return {'alreadyPresentLabel': {value: control.value}};
       }
+
       return null;
     };
+  }
+
+  clientHasLabel(label: string): boolean {
+    const matchingLabels = this.clientLabels
+      .map(clientLabel => clientLabel.name)
+      .find(labelItem => labelItem.toLowerCase() === label.toLowerCase());
+
+    if (matchingLabels !== undefined) {
+      return true;
+    }
+
+    return false;
   }
 
   onCancelClick(): void {
