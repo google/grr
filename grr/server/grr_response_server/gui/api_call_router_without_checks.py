@@ -423,5 +423,4 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
-    """Returns a description of the API following the OpenAPI specification."""
-    return api_metadata.ApiGetOpenApiDescriptionHandler()
+    return api_metadata.ApiGetOpenApiDescriptionHandler(self)
