@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
-import {ActivatedRoute, Router} from '@angular/router';
+import {ActivatedRoute} from '@angular/router';
 import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
@@ -9,11 +9,11 @@ import {ClientPageFacade} from '../../store/client_page_facade';
  * Component displaying the details and actions for a single Client.
  */
 @Component({
-  templateUrl: './client.ng.html',
-  styleUrls: ['./client.scss'],
+  templateUrl: './client_details.ng.html',
+  styleUrls: ['./client_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Client implements OnInit, OnDestroy {
+export class ClientDetails implements OnInit, OnDestroy {
   private readonly id$ = this.route.paramMap.pipe(
     map(params => params.get('id')),
     filter((id): id is string => id !== null));
@@ -25,17 +25,12 @@ export class Client implements OnInit, OnDestroy {
   constructor(
     private readonly route: ActivatedRoute,
     private readonly clientPageFacade: ClientPageFacade,
-    private readonly router: Router,
   ) {}
 
   ngOnInit() {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
       this.clientPageFacade.selectClient(id);
     });
-  }
-
-  goToClientDetailsPage() {
-    this.router.navigate(['details'], {relativeTo: this.route});
   }
 
   ngOnDestroy() {

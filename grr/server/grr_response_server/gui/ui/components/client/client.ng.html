@@ -22,6 +22,9 @@
     <div class="last-seen">
       Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
     </div>
+    <div class="goto-details">
+      <button mat-stroked-button  (click)="goToClientDetailsPage()">Client details</button>
+    </div>
   </div>
   <div class="client-approval">
     <approval></approval>
