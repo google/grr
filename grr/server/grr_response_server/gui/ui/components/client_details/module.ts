@@ -2,6 +2,8 @@ import {NgModule} from '@angular/core';
 import {RouterModule} from '@angular/router';
 import {ClientDetails} from './client_details';
 import {ClientDetailsRoutingModule} from './routing';
+import {MatIconModule} from '@angular/material/icon';
+import {CommonModule} from '@angular/common';
 
 
 /**
@@ -9,8 +11,10 @@ import {ClientDetailsRoutingModule} from './routing';
  */
 @NgModule({
   imports: [
+    CommonModule,
     RouterModule,
     ClientDetailsRoutingModule,
+    MatIconModule,
   ],
   declarations: [
     ClientDetails,

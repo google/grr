@@ -1,0 +1,14 @@
+@use '~material-theme' as c;
+
+.header {
+  margin-top: 1em;
+  text-align: center;
+
+  mat-icon {
+    transform: scale(2);
+  }
+
+  .client-id {
+    color: c.mat-color(c.$foreground, text-light);
+  }
+}
