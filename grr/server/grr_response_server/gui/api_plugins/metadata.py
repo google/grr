@@ -57,6 +57,28 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def __init__(self, router):
     self.router = router
 
+  def _SimplifyPathNode(self, node: str) -> str:
+    if len(node) > 0 and node[0] == '<' and node[-1] == '>':
+      node = node[1:-1]
+      node = node.split(":")[-1]
+      node = f"{{{node}}}"
+
+    return node
+
+  def _SimplifyPath(self, path: str) -> str:
+    """Keep only fixed parts and parameter names from Werkzeug URL patterns.
+
+    The OpenAPI specification requires that parameters are surrounded by { }
+    which are added in _SimplifyPathNode.
+    """
+
+    nodes = path.split("/")
+    simple_nodes = [self._SimplifyPathNode(node) for node in nodes]
+
+    simple_path = '/'.join(simple_nodes)
+
+    return simple_path
+
   def _GetPathArgsFromPath(self, path: str) -> [str]:
     """Extract path parameters from a Werkzeug Rule URL."""
     path_args = []
@@ -64,30 +86,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     nodes = path.split("/")
     for node in nodes:
       if len(node) > 0 and node[0] == '<' and node[-1] == '>':
-        path_args.append(node)
+        simple_node = self._SimplifyPathNode(node)
+        simple_node = simple_node[1:-1]
+        path_args.append(simple_node)
 
     return path_args
-
-  def _SimplifyPath(self, path: str) -> str:
-    """Keep only fixed parts and parameter names from Werkzeug URL patterns."""
-
-    nodes = path.split("/")
-    if len(nodes) == 0:
-      return ""
-
-    simple_nodes = []
-    for node in nodes:
-      if len(node) > 0 and node[0] == '<' and node[-1] == '>':
-        node = node[1:-1]
-        node = node.split(":")[-1] # Werkzeug type converter might be specified.
-        node = f"<{node}>"
-      simple_nodes.append(node)
-
-    simple_path = '/'.join(simple_nodes)
-    if len(simple_path) > 0 and simple_path[-1] == '/':
-      simple_path = simple_path[:-1]
-
-    return simple_path
 
   def Handle(
       self,
@@ -130,9 +133,18 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     paths_obj = dict()
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
-    for router_method in router_methods.values():
+    # TODO: Delete this when done:
+    i_method = 0
+    for router_method_name in router_methods:
+      if i_method == 5:
+        break
+      i_method += 1
+      router_method = router_methods[router_method_name]
       for http_method, path, strip_root_types in router_method.http_methods:
         simple_path = self._SimplifyPath(path)
+        path_args = self._GetPathArgsFromPath(path)
+        path_args = set(path_args)
+
         if simple_path not in paths_obj:
           paths_obj[simple_path] = dict()
 
@@ -141,18 +153,17 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         # The Operation Object associated with the current http method.
         operation_obj = dict()
-        operation_obj["tags"] = [router_method.category]
+        operation_obj["tags"] = [router_method.category, router_method_name]
         operation_obj["description"] = router_method.doc
+        # TODO: Do we want a specific format for the operationId?
         operation_obj["operationId"] = \
-          urlparse.quote(f"{http_method}-{path.replace('/', '-').replace('<','_').replace('>','_').replace(':', '-')}-{router_method.name}")
+          urlparse.quote(
+            f"{http_method}-{path.replace('/', '-').replace('<', '_').replace('>', '_').replace(':', '-')}-{router_method.name}")
         operation_obj["parameters"] = []
         if router_method.args_type:
           type_infos = router_method.args_type().type_infos
         else:
           type_infos = []
-
-        path_args = self._GetPathArgsFromPath(simple_path)
-        path_args = set(path_args)
 
         # TODO: Instead of defining parameter schemas here (and potentially
         # duplicating definitions, do it in two passes of the method arguments:
@@ -164,9 +175,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           # The Parameter Object used to describe the parameter.
           parameter_obj = dict()
           parameter_obj["name"] = type_info.name
-          if type_info.name in path_args:
+          if parameter_obj["name"] in path_args:
+            # parameter_obj["name"] = f"<{type_info.name}>"
             parameter_obj["in"] = "path"
-            # TODO: Check how Python's True gets serialized to JSON.
             parameter_obj["required"] = True
           elif http_method.upper() in ["GET", "HEAD"]:
             parameter_obj["in"] = "query"
@@ -195,14 +206,53 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           schema_obj["type"] = "object"
           schema_obj["properties"] = dict()
           for type_info in body_parameters:
-            schema_obj["properties"][type_info.name] = {"type": "string"}
+            schema_obj["properties"][type_info.name] = {"type": "string"} # TODO: Use proper types / ref.
 
           media_obj["schema"] = schema_obj
           request_body_obj["content"]["application/json"] = media_obj
-          request_body_obj["content"]["multipart/form-data"] = media_obj
 
           operation_obj["requestBody"] = request_body_obj
 
+        # The Responses Object which describes the reponses associated with
+        # HTTP response codes.
+        responses_obj = dict()
+
+        resp_success_obj = dict()
+        if router_method.result_type \
+            and router_method.result_type != "BinaryStream":
+          type_infos = router_method.result_type().type_infos
+          result_type_name = router_method.result_type.__name__
+        else: # "BinaryStream" string or None.
+          type_infos = []
+          result_type_name = router_method.result_type
+
+        resp_success_obj["description"] = \
+          f"The call to the {router_method_name} API method returns " \
+          f"successfully an object of type {result_type_name}."
+        resp_success_obj["content"] = dict()
+
+        media_obj = dict()
+        schema_obj = dict()
+        schema_obj["type"] = "object"
+        schema_obj["properties"] = dict()
+
+        for type_info in type_infos:
+          schema_obj["properties"][type_info.name] = {"type": "string"} # TODO: Use proper types / ref.
+
+        media_obj["schema"] = schema_obj
+
+        if router_method.result_type == "BinaryStream":
+          resp_success_obj["content"]["application/octet-stream"] = media_obj
+        else:
+          resp_success_obj["content"]["application/json"] = media_obj
+        responses_obj["200"] = resp_success_obj
+
+        resp_default_obj = dict()
+        resp_default_obj["description"] = \
+          f"The call to the {router_method_name} API method did not succeed."
+        responses_obj["default"] = resp_default_obj
+
+        operation_obj["responses"] = responses_obj
 
         path_obj[http_method.lower()] = operation_obj
 
