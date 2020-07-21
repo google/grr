@@ -22,6 +22,7 @@ describe('Client Add Label Dialog', () => {
   ];
 
   let configFacadeMock: ConfigFacadeMock;
+  const dialogRefMock = {close(value: string | undefined) {} };
   let dialogCloseSpy: jasmine.Spy;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
@@ -39,7 +40,7 @@ describe('Client Add Label Dialog', () => {
           MatDialogModule,
         ],
         providers: [
-          {provide: MatDialogRef, useValue: {close(value: string | undefined) {} }},
+          {provide: MatDialogRef, useValue: dialogRefMock},
           {provide: MAT_DIALOG_DATA, useValue: clientLabels},
           {provide: ConfigFacade, useValue: configFacadeMock}
         ],
@@ -59,7 +60,7 @@ describe('Client Add Label Dialog', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(ClientAddLabelDialog);
     component = fixture.componentInstance;
-    dialogCloseSpy = spyOn(component.dialogRef, 'close');
+    dialogCloseSpy = spyOn(dialogRefMock, 'close');
     configFacadeMock.clientsLabelsSubject.next([
       {owner: '', name: 'label1'},
       {owner: '', name: 'unusedlabel'},

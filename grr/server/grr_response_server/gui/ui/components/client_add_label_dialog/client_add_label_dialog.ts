@@ -1,8 +1,8 @@
-import {Component, OnInit, Inject} from '@angular/core';
+import {Component, Inject} from '@angular/core';
 import {MatDialogRef, MAT_DIALOG_DATA} from '@angular/material/dialog';
 import {FormControl, ValidatorFn, AbstractControl} from '@angular/forms';
 import {Observable} from 'rxjs';
-import {startWith, map, combineLatest, filter} from 'rxjs/operators';
+import {map, filter, withLatestFrom} from 'rxjs/operators';
 import {ClientLabel} from '@app/lib/models/client';
 import {ConfigFacade} from '@app/store/config_facade';
 
@@ -13,8 +13,8 @@ import {ConfigFacade} from '@app/store/config_facade';
 })
 export class ClientAddLabelDialog {
   constructor(
-    readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
-    @Inject(MAT_DIALOG_DATA) private clientLabels: ReadonlyArray<ClientLabel>,
+    private readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
+    @Inject(MAT_DIALOG_DATA) private readonly clientLabels: ReadonlyArray<ClientLabel>,
     private readonly configFacade: ConfigFacade
   ) {}
 
@@ -29,7 +29,7 @@ export class ClientAddLabelDialog {
     .pipe(
       filter((input): input is string | String => input !== undefined),
       map(input => input.trim()),
-      combineLatest(this.allClientsLabels$.pipe(
+      withLatestFrom(this.allClientsLabels$.pipe(
         map(clientsLabels => clientsLabels.map(clientLabel => clientLabel.name)),
       )),
     );
@@ -41,7 +41,7 @@ export class ClientAddLabelDialog {
     .pipe(
       map(([input, allLabels]) => {
         if (input === '') return false;
-        return allLabels.find(label => input === label) === undefined;
+        return !allLabels.includes(input);
       }),
     );
 
@@ -54,7 +54,7 @@ export class ClientAddLabelDialog {
         if (input === '') return [];
         return allLabels.filter(label => label.includes(input));
       }),
-      map(filteredLabels => filteredLabels.filter((label) => this.clientHasLabel(label) === false))
+      map(filteredLabels => filteredLabels.filter((label) => !this.clientHasLabel(label)))
     );
 
   private clientHasLabel(label: string): boolean {
