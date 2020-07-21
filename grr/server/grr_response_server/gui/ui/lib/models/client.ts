@@ -11,6 +11,16 @@ export interface KnowledgeBase {
   readonly os?: string;
 }
 
+export interface AgentInfo {
+  readonly clientName: string;
+  readonly clientVersion: number;
+  readonly revision: number;
+  readonly buildTime: string;
+  readonly clientBinaryName: string;
+  readonly clientDescription: string;
+  readonly labels: string[];
+}
+
 /**
  * Client Label.
  */
@@ -27,6 +37,8 @@ export interface Client {
   readonly clientId: string;
   /** Whether the client communicates with GRR through Fleetspeak. */
   readonly fleetspeakEnabled: boolean;
+  /** Metadata about the GRR client */
+  readonly agentInfo: AgentInfo;
   /** Client's knowledge base. */
   readonly knowledgeBase: KnowledgeBase;
   // TODO(user): Replace `Date` type with immutable date type.

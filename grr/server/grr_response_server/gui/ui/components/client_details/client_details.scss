@@ -12,3 +12,12 @@
     color: c.mat-color(c.$foreground, text-light);
   }
 }
+
+.section {
+  .section-title {
+    font-weight: bold;
+  }
+  td {
+    padding-right: 1em;
+  }
+}

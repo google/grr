@@ -10,7 +10,7 @@
 
 export declare interface AnyObject {
   '@type'?: string;
-  [key: string]: undefined|null|string|number|boolean|object;
+  [key: string]: undefined | null | string | number | boolean | object;
 }
 
 /**
@@ -18,14 +18,76 @@ export declare interface AnyObject {
  * JSON because JS loses precision for big numeric types. During
  * deserialization, both decimal strings and numbers are accepted.
  */
-export type DecimalString = string|number;
+export type DecimalString = string | number;
+
+declare interface ApiUser {
+  readonly username?: string;
+  // readonly temp?: string;
+  // readonly desktop?: string;
+  // readonly last_logon?: number;
+  // readonly full_name?: string;
+  // readonly userdomain?: string;
+  // readonly sid?: string;
+  // readonly userprofile?: string;
+  // readonly appdata?: string;
+  // readonly localappdata?: string;
+  // readonly internet_cache?: string;
+  // readonly cookies?: string;
+  // readonly recent?: string;
+  // readonly personal?: string;
+  // readonly startup?: string;
+  // readonly localappdata_low?: string;
+  // readonly homedir?: string;
+  // readonly uid?: number;
+  // readonly gid?: number;
+  // readonly shell?: string;
+  // readonly gids?: number[];
+}
 
 /**
  * KnowledgeBase proto mapping.
  */
 export declare interface ApiKnowledgeBase {
+  readonly users?: ApiUser[];
   readonly fqdn?: string;
+  readonly time_zone?: string;
+
   readonly os?: string;
+  readonly os_major_version?: number;
+  readonly os_minor_version?: number;
+  readonly environ_path?: string;
+  readonly environ_temp?: string;
+
+  // // Linux related
+  // readonly os_release?: string;
+
+  // // Windows related:
+  // readonly environ_allusersappdata?: string;
+  // readonly environ_allusersprofile?: string;
+  // readonly environ_commonprogramfiles?: string;
+  // readonly environ_commonprogramfilesx86?: string;
+  // readonly environ_comspec?: string;
+  // readonly environ_driverdata?: string;
+  // readonly environ_profilesdirectory?: string;
+  // readonly environ_programfiles?: string;
+  // readonly environ_programdata?: string;
+  // readonly environ_programfilesx86?: string;
+  // readonly environ_systemdrive?: string;
+  // readonly environ_systemroot?: string;
+  // readonly environ_windir?: string;
+  // readonly current_control_set?: string;
+  // readonly code_page?: string;
+  // readonly domain?: string;
+}
+
+export declare interface ApiClientInformation {
+  readonly clientName?: string;
+  readonly clientVersion?: number;
+  readonly revision?: number;
+  readonly buildTime?: string;
+  readonly clientBinaryName?: string;
+  readonly clientDescription?: string;
+  readonly labels?: string[];
 }
 
 /**
@@ -44,7 +106,7 @@ export declare interface ApiClient {
   readonly urn?: string;
 
   readonly fleetspeakEnabled?: boolean;
-
+  readonly agentInfo?: ApiClientInformation;
   readonly knowledgeBase?: ApiKnowledgeBase;
 
   readonly firstSeenAt?: string;

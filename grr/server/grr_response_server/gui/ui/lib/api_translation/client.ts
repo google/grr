@@ -2,8 +2,8 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase} from '../models/client';
+import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation} from '../api/api_interfaces';
+import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo} from '../models/client';
 
 import {createOptionalDate} from './primitive';
 
@@ -21,6 +21,18 @@ function createClientLabel(label: ApiClientLabel): ClientLabel {
   return {owner: label.owner, name: label.name};
 }
 
+function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
+  return {
+    clientName: apiAgentInfo.clientName || 'Unknown',
+    clientVersion: apiAgentInfo.clientVersion || 0,
+    revision: apiAgentInfo.revision || 0,
+    buildTime: apiAgentInfo.buildTime || 'Unknown',
+    clientBinaryName: apiAgentInfo.clientBinaryName || 'Unknown',
+    clientDescription: apiAgentInfo.clientDescription || 'Unknown',
+    labels: apiAgentInfo.labels || [],
+  }
+}
+
 /**
  * Constructs a Client object from the corresponding API data structure.
  */
@@ -30,6 +42,7 @@ export function translateClient(client: ApiClient): Client {
   return {
     clientId: client.clientId,
     fleetspeakEnabled: client.fleetspeakEnabled || false,
+    agentInfo: createAgentInfo(client.agentInfo || {}),
     labels: (client.labels || []).map(createClientLabel),
     knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
     firstSeenAt: createOptionalDate(client.firstSeenAt),
