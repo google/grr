@@ -13,6 +13,22 @@ export declare interface AnyObject {
   [key: string]: undefined | null | string | number | boolean | object;
 }
 
+export declare interface RdfValueFieldDescriptor {
+  readonly name?: string;
+  readonly doc?: string;
+  readonly friendlyName?: string;
+}
+
+export declare interface RdfValueDescriptor {
+  readonly name?: string;
+  readonly doc?: string;
+  readonly fields?: ReadonlyArray<RdfValueFieldDescriptor>;
+}
+
+export declare interface ApiAllRdfValues {
+  readonly items?: ReadonlyArray<RdfValueDescriptor>;
+}
+
 /**
  * int64, fixed64, and DecimalString in Protobuf are serialized as string in
  * JSON because JS loses precision for big numeric types. During
@@ -44,6 +60,22 @@ declare interface ApiUser {
   // readonly gids?: number[];
 }
 
+/**
+ * Network address proto mapping
+ */
+export declare interface ApiNetworkAddress {
+  readonly addressType?: string;
+  readonly packedBytes?: string;
+}
+
+/**
+ * Network Interface proto mapping
+ */
+export declare interface ApiInterface {
+  readonly macAddress?: string;
+  readonly ifname?: string;
+  readonly addresses?: ReadonlyArray<ApiNetworkAddress>;
+}
 /**
  * KnowledgeBase proto mapping.
  */
@@ -124,6 +156,7 @@ export declare interface ApiClient {
   readonly knowledgeBase?: ApiKnowledgeBase;
 
   readonly osInfo?: ApiUname;
+  readonly interfaces?: ReadonlyArray<ApiInterface>;
 
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;

@@ -8,12 +8,14 @@ import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operat
 
 import {ApprovalConfig} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
+import {RdfValueDescriptor} from '@app/lib/api/api_interfaces';
 
 
 /** The state of the Config. */
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
+  rdfDescriptors?: ReadonlyArray<RdfValueDescriptor>;
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -38,6 +40,11 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         return {...state, approvalConfig};
       });
 
+  private readonly updateRdfDescriptors =
+      this.updater<ReadonlyArray<RdfValueDescriptor>>((state, rdfDescriptors) => {
+        return {...state, rdfDescriptors};
+      });
+
   private readonly listFlowDescriptors = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.httpApiService.listFlowDescriptors()),
@@ -54,6 +61,13 @@ export class ConfigStore extends ComponentStore<ConfigState> {
             this.updateApprovalConfig(approvalConfig);
           }),
           ));
+
+  private readonly fetchRdfDescriptors = this.effect<void>(
+      obs$ => obs$.pipe(
+        switchMapTo(this.httpApiService.fetchAllRdfDescriptors()),
+        tap(rdfDescriptors => this.updateRdfDescriptors(rdfDescriptors)),
+      )
+  );
 
   /** An observable emitting available flow descriptors. */
   readonly flowDescriptors$ = of(undefined).pipe(
@@ -80,6 +94,17 @@ export class ConfigStore extends ComponentStore<ConfigState> {
               approvalConfig !== undefined),
       shareReplay(1),  // Ensure that the query is done just once.
   );
+
+  /** An observable emitting the RDF value descriptors */
+  readonly rdfDescriptors$ = of(undefined).pipe(
+    // Ensure that the query is done on subscription.
+    tap(() => this.fetchRdfDescriptors()),
+    switchMap(() => this.select(state => state.rdfDescriptors)),
+    filter(
+      (rdfDescriptors): rdfDescriptors is ReadonlyArray<RdfValueDescriptor> =>
+        rdfDescriptors !== undefined),
+    shareReplay(1), // Ensure that the query is done just once.
+  )
 }
 
 
@@ -97,4 +122,8 @@ export class ConfigFacade {
   /** An observable emitting the approval configuration. */
   readonly approvalConfig$: Observable<ApprovalConfig> =
       this.store.approvalConfig$;
+
+  /** An observable emitting the RDF value descriptors */
+  readonly rdfDescriptors$: Observable<ReadonlyArray<RdfValueDescriptor>> =
+      this.store.rdfDescriptors$;
 }

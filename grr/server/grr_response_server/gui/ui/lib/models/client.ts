@@ -14,6 +14,23 @@ export interface KnowledgeBase {
 }
 
 /**
+ * Network address proto mapping
+ */
+export declare interface ApiNetworkAddress {
+  readonly addressType?: string;
+  readonly packedBytes?: string;
+}
+
+/**
+ * Network Interface proto mapping
+ */
+export declare interface ApiInterface {
+  readonly macAddress?: string;
+  readonly ifname?: string;
+  readonly addresses?: ReadonlyArray<ApiNetworkAddress>;
+}
+
+/**
  * System information
  */
 export interface OsInfo {
