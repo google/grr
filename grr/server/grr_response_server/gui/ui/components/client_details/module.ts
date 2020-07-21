@@ -4,6 +4,7 @@ import {ClientDetails} from './client_details';
 import {ClientDetailsRoutingModule} from './routing';
 import {MatIconModule} from '@angular/material/icon';
 import {CommonModule} from '@angular/common';
+import {TimestampModule} from '../timestamp/module';
 
 
 /**
@@ -15,6 +16,7 @@ import {CommonModule} from '@angular/common';
     RouterModule,
     ClientDetailsRoutingModule,
     MatIconModule,
+    TimestampModule,
   ],
   declarations: [
     ClientDetails,

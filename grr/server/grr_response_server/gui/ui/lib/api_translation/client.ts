@@ -2,8 +2,8 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo} from '../models/client';
+import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname} from '../api/api_interfaces';
+import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo} from '../models/client';
 
 import {createOptionalDate} from './primitive';
 
@@ -11,6 +11,8 @@ function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
   return {
     os: kb.os,
     fqdn: kb.fqdn,
+    osMajorVersion: kb.osMajorVersion,
+    osMinorVersion: kb.osMinorVersion,
   };
 }
 
@@ -33,6 +35,22 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   }
 }
 
+function createOsInfo(apiUname: ApiUname): OsInfo {
+  return {
+    system: apiUname.system || 'Unknown',
+    node: apiUname.node || 'Unknown',
+    release: apiUname.release || 'Unknown',
+    version: apiUname.version || 'Unknown',
+    machine: apiUname.machine || 'Unknown',
+    kernel: apiUname.kernel || 'Unknown',
+    fqdn: apiUname.fqdn || 'Unknown',
+    installDate: createOptionalDate(apiUname.installDate),
+    libcVer: apiUname.libcVer || 'Unknown',
+    architecture: apiUname.architecture || 'Unknown',
+    pep425tag: apiUname.pep425tag || 'Unknown',
+  }
+}
+
 /**
  * Constructs a Client object from the corresponding API data structure.
  */
@@ -45,6 +63,7 @@ export function translateClient(client: ApiClient): Client {
     agentInfo: createAgentInfo(client.agentInfo || {}),
     labels: (client.labels || []).map(createClientLabel),
     knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
+    osInfo: createOsInfo(client.osInfo || {}),
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),

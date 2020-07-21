@@ -9,35 +9,83 @@
     <table class="section">
       <div class="section-title">Agent info</div>
       <tr>
-        <td>Client name</td>
-        <td>{{client.agentInfo.clientName}}</td>
+        <td class="description">Client name</td>
+        <td class="value">{{client.agentInfo.clientName}}</td>
       </tr>
       <tr>
-        <td>Client version</td>
-        <td>{{client.agentInfo.clientVersion}}</td>
+        <td class="description">Client version</td>
+        <td class="value">{{client.agentInfo.clientVersion}}</td>
       </tr>
       <tr>
-        <td>Build time</td>
-        <td>{{client.agentInfo.buildTime}}</td>
+        <td class="description">Build time</td>
+        <td class="value">{{client.agentInfo.buildTime}}</td>
       </tr>
       <tr>
-        <td>Client binary name</td>
-        <td>{{client.agentInfo.clientBinaryName}}</td>
+        <td class="description">Client binary name</td>
+        <td class="value">{{client.agentInfo.clientBinaryName}}</td>
       </tr>
       <tr>
-        <td>Client description</td>
-        <td>{{client.agentInfo.clientDescription}}</td>
+        <td class="description">Client description</td>
+        <td class="value">{{client.agentInfo.clientDescription}}</td>
       </tr>
       <tr>
-        <td>Labels</td>
-        <td>{{client.agentInfo.labels}}</td>
+        <td class="description">Labels</td>
+        <td class="value">{{client.agentInfo.labels}}</td>
+      </tr>
+    </table>
+
+    <br>
+    <table class="section">
+      <div class="section-title">OS Info</div>
+      <tr>
+        <td class="description">System</td>
+        <td class="value">{{client.osInfo.system}}</td>
+      </tr>
+      <tr>
+        <td class="description">Release</td>
+        <td class="value">{{client.osInfo.release}}</td>
+      </tr>
+      <tr>
+        <td class="description">Version</td>
+        <td class="value">{{client.osInfo.version}}</td>
+      </tr>
+      <tr>
+        <td class="description">Machine</td>
+        <td class="value">{{client.osInfo.machine}}</td>
+      </tr>
+      <tr>
+        <td class="description">Kernel</td>
+        <td class="value">{{client.osInfo.kernel}}</td>
+      </tr>
+      <tr>
+        <td class="description">FQDN</td>
+        <td class="value">{{client.osInfo.fqdn}}</td>
+      </tr>
+      <tr>
+        <td class="description">OS</td>
+        <td class="value">{{client.knowledgeBase.os}}</td>
+      </tr>
+      <tr>
+        <td class="description">OS major version</td>
+        <td class="value">{{client.knowledgeBase.osMajorVersion}}</td>
+      </tr>
+      <tr>
+        <td class="description">OS minor version</td>
+        <td class="value">{{client.knowledgeBase.osMinorVersion}}</td>
+      </tr>
+      <tr>
+        <td class="description">Install date</td>
+        <td class="value"><timestamp [date]="client.osInfo.installDate"></timestamp></td>
       </tr>
     </table>
 
     <br>
     <table class="section">
       <div class="section-title"></div>
-
+      <tr>
+        <td class="description"></td>
+        <td class="value"></td>
+      </tr>
     </table>
 
   </div>

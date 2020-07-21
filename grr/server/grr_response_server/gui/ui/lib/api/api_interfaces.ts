@@ -50,18 +50,15 @@ declare interface ApiUser {
 export declare interface ApiKnowledgeBase {
   readonly users?: ApiUser[];
   readonly fqdn?: string;
-  readonly time_zone?: string;
+  readonly timeZone?: string;
 
   readonly os?: string;
-  readonly os_major_version?: number;
-  readonly os_minor_version?: number;
-  readonly environ_path?: string;
-  readonly environ_temp?: string;
+  readonly osMajorVersion?: number;
+  readonly osMinorVersion?: number;
+  readonly environPath?: string;
+  readonly environTemp?: string;
 
-  // // Linux related
   // readonly os_release?: string;
-
-  // // Windows related:
   // readonly environ_allusersappdata?: string;
   // readonly environ_allusersprofile?: string;
   // readonly environ_commonprogramfiles?: string;
@@ -99,6 +96,23 @@ export declare interface ApiClientLabel {
 }
 
 /**
+ * ApiUname proto mapping.
+ */
+export declare interface ApiUname {
+  readonly system?: string;
+  readonly node?: string;
+  readonly release?: string;
+  readonly version?: string;
+  readonly machine?: string;
+  readonly kernel?: string;
+  readonly fqdn?: string;
+  readonly installDate?: string;
+  readonly libcVer?: string;
+  readonly architecture?: string;
+  readonly pep425tag?: string;
+}
+
+/**
  * ApiClient proto mapping.
  */
 export declare interface ApiClient {
@@ -108,6 +122,8 @@ export declare interface ApiClient {
   readonly fleetspeakEnabled?: boolean;
   readonly agentInfo?: ApiClientInformation;
   readonly knowledgeBase?: ApiKnowledgeBase;
+
+  readonly osInfo?: ApiUname;
 
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;

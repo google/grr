@@ -9,8 +9,30 @@ export interface KnowledgeBase {
   /** Client's FQDN. */
   readonly fqdn?: string;
   readonly os?: string;
+  readonly osMajorVersion?: number;
+  readonly osMinorVersion?: number;
 }
 
+/**
+ * System information
+ */
+export interface OsInfo {
+  readonly system: string;
+  readonly node: string;
+  readonly release: string;
+  readonly version: string;
+  readonly machine: string;
+  readonly kernel: string;
+  readonly fqdn: string;
+  readonly installDate?: Date;
+  readonly libcVer: string;
+  readonly architecture: string;
+  readonly pep425tag: string;
+}
+
+/**
+ * Info about the agent running on the client.
+ */
 export interface AgentInfo {
   readonly clientName: string;
   readonly clientVersion: number;
@@ -41,6 +63,8 @@ export interface Client {
   readonly agentInfo: AgentInfo;
   /** Client's knowledge base. */
   readonly knowledgeBase: KnowledgeBase;
+  /** Data about the system of the client */
+  readonly osInfo: OsInfo;
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
@@ -91,7 +115,7 @@ export interface Invalid {
 }
 
 /** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
+export type ClientApprovalStatus = Valid | Pending | Expired | Invalid;
 
 /** Approval for Client access. */
 export interface ClientApproval {

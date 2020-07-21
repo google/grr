@@ -17,7 +17,12 @@
   .section-title {
     font-weight: bold;
   }
-  td {
-    padding-right: 1em;
+
+  .description {
+    width: 10em;
+  }
+
+  .value {
+    width: 10em;
   }
 }
