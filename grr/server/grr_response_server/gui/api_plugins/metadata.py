@@ -2,6 +2,7 @@
 # Lint as: python3
 """A module with API methods related to the GRR metadata."""
 import json
+import inspect
 
 from urllib import parse as urlparse
 from typing import Optional
@@ -56,6 +57,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def __init__(self, router):
     self.router = router
+    self.openapi_obj = None # The main OpenAPI description object.
+    self.schema_objs = None
 
   def _SimplifyPathNode(self, node: str) -> str:
     if len(node) > 0 and node[0] == '<' and node[-1] == '>':
@@ -92,12 +95,139 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     return path_args
 
+  def _GetTypeName(self, t):
+    if inspect.isclass(t):
+      return t.__name__
+
+    return str(t) # Cover "BinaryStream" and None.
+
+  def _SetMetadata(self):
+    oas_version = "3.0.3"
+    self.openapi_obj["openapi"] = oas_version
+
+    # The Info Object "info" field.
+    info_obj = dict()
+    info_obj["title"] = "GRR Rapid Response API"
+    info_obj["description"] = "GRR Rapid Response is an incident response " \
+                              "framework focused on remote live forensics."
+
+    contact_obj = dict()
+    contact_obj["name"] = "GRR GitHub Repository"
+    contact_obj["url"] = "https://github.com/google/grr"
+    info_obj["contact"] = contact_obj
+
+    license_obj = dict()
+    license_obj["name"] = "Apache 2.0"
+    license_obj["url"] = "http://www.apache.org/licenses/LICENSE-2.0"
+    info_obj["license"] = license_obj
+
+    version_dict = version.Version()
+    info_obj["version"] = f"{version_dict['major']}.{version_dict['minor']}." \
+                          f"{version_dict['revision']}." \
+                          f"{version_dict['release']}"
+    self.openapi_obj["info"] = info_obj
+
+    self.openapi_obj["servers"] = []
+    server_obj = dict()
+    server_obj["url"] = "/"
+    server_obj["description"] = "Root path of the GRR API"
+    self.openapi_obj["servers"].append(server_obj)
+
+  def _AddPrimitiveTypesSchemas(self):
+    """Creates OpenAPI schemas for RDF primitives."""
+    # TODO: Implement.
+    pass
+
+  def _ExtractSchema(self, t, visiting):
+    if t is None:
+      raise ValueError(f"Trying to extract schema for None type.")
+
+    t_name = self._GetTypeName(t)
+    if t_name in self.schema_objs:
+      return self.schema_objs[t_name]
+
+    if t_name in visiting:
+      raise RuntimeError(
+        f"Types definitions cycle detected: \"{t_name}\" is already on stack.")
+
+    # Check if primitive type.
+    # TODO: If primitive types schemas are added in _ExtractSchemasssssss, then they should be treated by the "if" above.
+
+    schema_obj = dict()
+    schema_obj["type"] = "object"
+    schema_obj["properties"] = dict()
+    visiting.add(t_name)
+
+    # TODO: The following is semi-pseudocode. Make sure the members names are right.
+    for type_info in t.type_infos():
+      schema_obj["properties"][type_info.name] = self._ExtractSchema(type_info.type, visiting)
+
+    visiting.remove(t_name)  # Not really useful, but for completeness.
+
+    self.schema_objs[t_name] = schema_obj
+
+    return schema_obj
+
+  def _ExtractSchemas(self):
+    # TODO 1: Traverse Router methods and extract a args_type_name/result_type_name -> Type dictionary = types
+    # TODO 2: Traverse the types dictionary and for each value (type) declare its fields in an OpenAPI schema object, eventually by recursively declaring types of fields.
+
+    # type_classes = dict()  # Class name -> Class.
+
+    # router_methods = self.router.__class__.GetAnnotatedMethods()
+    # for method_metadata in router_methods.values():
+    #   args_type = method_metadata.args_type
+    #   type_classes[self._GetTypeName(args_type)] = args_type
+    #
+    #   result_type = method_metadata.result_type
+    #   type_classes[self._GetTypeName(result_type)] = result_type
+
+    self.schema_objs = dict()  # Holds OpenAPI representations of types.
+    visiting = set()  # Holds state of types extraction (white/gray nodes).
+    self._AddPrimitiveTypesSchemas()
+
+
+    router_methods = self.router.__class__.GetAnnotatedMethods()
+    for method_metadata in router_methods.values():
+      args_type = method_metadata.args_type
+      args_type_name = self._GetTypeName(args_type)
+      if args_type_name not in self.schema_objs:
+        self._ExtractSchema(args_type, visiting)
+
+      result_type = method_metadata.result_type
+      result_type_name = self._GetTypeName(result_type)
+      if result_type_name not in self.schema_objs:
+        self._ExtractSchema(result_type, visiting)
+
+  def _SetEndpoints(self):
+    self._ExtractSchemas()
+    # TODO: Set the path objects using $refs to the extracted schemas.
+
+    pass
+
   def Handle(
       self,
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> ApiGetOpenApiDescriptionResult:
-    """Handles requests for getting the OpenAPI description of the GRR API."""
+    result = ApiGetOpenApiDescriptionResult()
+
+    if self.openapi_obj is not None:
+      result.openapi_description = json.dumps(self.openapi_obj)
+      return result
+
+    self.openapi_obj = dict()
+    self._SetMetadata()
+    self._SetEndpoints()
+
+    result.openapi_description = json.dumps(self.openapi_obj)
+    return result
+
+  def Handle_old(
+      self,
+      args: None,
+      token: Optional[access_control.ACLToken] = None,
+  ) -> ApiGetOpenApiDescriptionResult:
 
     result = ApiGetOpenApiDescriptionResult()
 
@@ -133,12 +263,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     paths_obj = dict()
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
-    # TODO: Delete this when done:
-    i_method = 0
     for router_method_name in router_methods:
-      if i_method == 5:
-        break
-      i_method += 1
       router_method = router_methods[router_method_name]
       for http_method, path, strip_root_types in router_method.http_methods:
         simple_path = self._SimplifyPath(path)
