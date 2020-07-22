@@ -340,8 +340,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return self.schema_objs[t_name]
 
     if t_name in visiting:
-      raise RuntimeError(
-        f"Types definitions cycle detected: \"{t_name}\" is already on stack.")
+      # raise RuntimeError(
+      #   f"Types definitions cycle detected: \"{t_name}\" is already on stack.")
+      # TODO: Treat cycles better?
+      return
 
     if isinstance(t, Descriptor):
       return self._ExtractMessageSchema(t, visiting)
@@ -364,14 +366,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     for method_metadata in router_methods.values():
       args_type = method_metadata.args_type
       if args_type:
-        if issubclass(args_type, rdf_structs.RDFProtoStruct):
+        if inspect.isclass(args_type) \
+            and issubclass(args_type, rdf_structs.RDFProtoStruct):
           self._ExtractSchema(args_type.protobuf.DESCRIPTOR, visiting)
         else:
           self._ExtractSchema(args_type, visiting)
 
       result_type = method_metadata.result_type
       if result_type:
-        if issubclass(result_type, rdf_structs.RDFProtoStruct):
+        if inspect.isclass(result_type) \
+            and issubclass(result_type, rdf_structs.RDFProtoStruct):
           self._ExtractSchema(result_type.protobuf.DESCRIPTOR, visiting)
         else:
           self._ExtractSchema(result_type, visiting)
@@ -393,6 +397,19 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     components_obj["schemas"] = schemas_obj
 
     self.openapi_obj["components"] = components_obj
+
+  def _GetSchemaOrReferenceObject(self, type_name: str):
+    if self.schema_objs is None:
+      raise ValueError("Called _GetSchemaOrReferenceObject before extracting "
+                       "schemas.")
+
+    if type_name in self.primitive_types_names:
+      schema_obj = self.schema_objs[type_name]
+      return schema_obj
+
+    reference_obj = dict()
+    reference_obj["$ref"] = f"#/components/schemas/{type_name}"
+    return reference_obj
 
   def _SetEndpoints(self):
     # The Paths Object "paths" field of the root OpenAPI object.
@@ -428,10 +445,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         operation_obj["parameters"] = []
         field_descriptors = []
         if router_method.args_type:
-          if not issubclass(router_method.args_type,
-                            rdf_structs.RDFProtoStruct):
+          if (not inspect.isclass(router_method.args_type)) or \
+              (not issubclass(router_method.args_type, rdf_structs.RDFProtoStruct)):
             raise TypeError("Router method args type is not a RDFProtoStruct "
-                            "subtype.")
+                            "subclass.")
           field_descriptors = router_method.args_type.protobuf.DESCRIPTOR.fields
 
         body_parameters = []
@@ -449,12 +466,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
             body_parameters.append(field_d)
             continue
 
-          # The Reference Object used to describe the type of the parameter.
-          # We use a reference to a schema object we've already created.
           field_type_name = self._GetTypeName(field_d)
-          reference_obj = dict()
-          reference_obj["$ref"] = f"#/components/schemas/{field_type_name}"
-          parameter_obj["schema"] = reference_obj
+          schema_or_ref_obj = self._GetSchemaOrReferenceObject(field_type_name)
+          parameter_obj["schema"] = schema_or_ref_obj
 
           operation_obj["parameters"].append(parameter_obj)
 
@@ -469,19 +483,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           schema_obj["properties"] = dict()
           for field_d in body_parameters:
             field_name = field_d.name
-            message_descriptor = field_d.message_type  # None if not Message.
-            enum_descriptor = field_d.enum_type  # None if not Enum.
-            descriptor = message_descriptor or enum_descriptor
-
-            if descriptor:
-              schema_obj["properties"][field_name] = \
-                {"$ref": f"#/components/schemas/"
-                         f"{self._GetTypeName(descriptor)}"}
-            else:
-              # This is a "primitive" type field. It doesn't really have a
-              # schema, just an OpenAPI type and format.
-              schema_obj["properties"][field_name] = \
-                self.schema_objs[self.proto_primitive_types_names[field_d.type]]
+            field_type_name = self._GetTypeName(field_d)
+            schema_or_ref_obj = \
+              self._GetSchemaOrReferenceObject(field_type_name)
+            schema_obj["properties"][field_name] = schema_or_ref_obj
 
           media_obj["schema"] = schema_obj
           request_body_obj["content"]["application/json"] = media_obj
@@ -495,7 +500,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         # Building the Response Object for the 200 HTTP code.
         resp_success_obj = dict()
         if router_method.result_type:
-          if issubclass(router_method.result_type, rdf_structs.RDFProtoStruct):
+          if inspect.isclass(router_method.result_type) and \
+              issubclass(router_method.result_type, rdf_structs.RDFProtoStruct):
             result_type_name = \
               self._GetTypeName(router_method.result_type.protobuf.DESCRIPTOR)
           else:
@@ -506,13 +512,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
               f"and it returned an instance of {result_type_name}."
 
           media_obj = dict()
-          if result_type_name in self.primitive_types_names:
-            schema_obj = self.schema_objs[result_type_name]
-            media_obj["schema"] = schema_obj
-          else:
-            reference_obj = dict()
-            reference_obj["$ref"] = f"#/components/schemas/{result_type_name}"
-            media_obj["schema"] = reference_obj
+          schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
+          media_obj["schema"] = schema_or_ref_obj
 
           resp_success_obj["content"] = dict()
           if router_method.result_type == "BinaryStream":
@@ -534,6 +535,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         path_obj[http_method.lower()] = operation_obj
 
     self.openapi_obj["paths"] = paths_obj
+    print(f"primitive_types_names={self.primitive_types_names}")
 
 
   def Handle(
@@ -554,168 +556,4 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self._SetEndpoints()
 
     result.openapi_description = json.dumps(self.openapi_obj)
-    return result
-
-  def Handle_old(
-      self,
-      args: None,
-      token: Optional[access_control.ACLToken] = None,
-  ) -> ApiGetOpenApiDescriptionResult:
-
-    result = ApiGetOpenApiDescriptionResult()
-
-    oas_version = "3.0.3" #TODO: Don't hard code it.
-
-    # The main OpenAPI description object.
-    root_obj = dict()
-    root_obj["openapi"] = oas_version
-
-    # The Info Object "info" field.
-    info_obj = dict()
-    info_obj["title"] = "GRR Rapid Response API"
-    info_obj["description"] = "GRR Rapid Response is an incident response " \
-                              "framework focused on remote live forensics."
-
-    contact_obj = dict()
-    contact_obj["name"] = "GRR GitHub Repository"
-    contact_obj["url"] = "https://github.com/google/grr"
-    info_obj["contact"] = contact_obj
-
-    license_obj = dict()
-    license_obj["name"] = "Apache 2.0"
-    license_obj["url"] = "http://www.apache.org/licenses/LICENSE-2.0"
-    info_obj["license"] = license_obj
-
-    version_dict = version.Version()
-    info_obj["version"] = f"{version_dict['major']}.{version_dict['minor']}." \
-                          f"{version_dict['revision']}." \
-                          f"{version_dict['release']}"
-    root_obj["info"] = info_obj
-
-    # The Paths Object "paths" field.
-    paths_obj = dict()
-
-    router_methods = self.router.__class__.GetAnnotatedMethods()
-    for router_method_name in router_methods:
-      router_method = router_methods[router_method_name]
-      for http_method, path, strip_root_types in router_method.http_methods:
-        simple_path = self._SimplifyPath(path)
-        path_args = self._GetPathArgsFromPath(path)
-        path_args = set(path_args)
-
-        if simple_path not in paths_obj:
-          paths_obj[simple_path] = dict()
-
-        # The Path Object associated with the current path.
-        path_obj = paths_obj[simple_path]
-
-        # The Operation Object associated with the current http method.
-        operation_obj = dict()
-        operation_obj["tags"] = [router_method.category, router_method_name]
-        operation_obj["description"] = router_method.doc
-        # TODO: Do we want a specific format for the operationId?
-        operation_obj["operationId"] = \
-          urlparse.quote(
-            f"{http_method}-{path.replace('/', '-').replace('<', '_').replace('>', '_').replace(':', '-')}-{router_method.name}")
-        operation_obj["parameters"] = []
-        if router_method.args_type:
-          type_infos = router_method.args_type().type_infos
-        else:
-          type_infos = []
-
-        # TODO: Instead of defining parameter schemas here (and potentially
-        # duplicating definitions, do it in two passes of the method arguments:
-        # first define all the schemas in the "components" field of the OpenAPI
-        # object (root) and then, in the second pass, just reference the
-        # required types.
-        body_parameters = []
-        for type_info in type_infos:
-          # The Parameter Object used to describe the parameter.
-          parameter_obj = dict()
-          parameter_obj["name"] = type_info.name
-          if parameter_obj["name"] in path_args:
-            # parameter_obj["name"] = f"<{type_info.name}>"
-            parameter_obj["in"] = "path"
-            parameter_obj["required"] = True
-          elif http_method.upper() in ["GET", "HEAD"]:
-            parameter_obj["in"] = "query"
-          else:
-            body_parameters.append(type_info)
-            continue
-
-          # The Schema Object used to describe the type of the parameter.
-          schema_obj = dict()
-          schema_obj["type"] = "string"
-          parameter_obj["schema"] = schema_obj
-          # TODO: Investigate more about style.
-          parameter_obj["style"] = "simple"
-
-          operation_obj["parameters"].append(parameter_obj)
-
-        if body_parameters:
-          # The Request Body Object which describes data sent in the message
-          # body.
-          request_body_obj = dict()
-          request_body_obj["content"] = dict()
-          # TODO: Not all requests sending a message body will use JSON.
-          # They might use multipart/form-data and send a file?
-          media_obj = dict()
-          schema_obj = dict()
-          schema_obj["type"] = "object"
-          schema_obj["properties"] = dict()
-          for type_info in body_parameters:
-            schema_obj["properties"][type_info.name] = {"type": "string"} # TODO: Use proper types / ref.
-
-          media_obj["schema"] = schema_obj
-          request_body_obj["content"]["application/json"] = media_obj
-
-          operation_obj["requestBody"] = request_body_obj
-
-        # The Responses Object which describes the reponses associated with
-        # HTTP response codes.
-        responses_obj = dict()
-
-        resp_success_obj = dict()
-        if router_method.result_type \
-            and router_method.result_type != "BinaryStream":
-          type_infos = router_method.result_type().type_infos
-          result_type_name = router_method.result_type.__name__
-        else: # "BinaryStream" string or None.
-          type_infos = []
-          result_type_name = router_method.result_type
-
-        resp_success_obj["description"] = \
-          f"The call to the {router_method_name} API method returns " \
-          f"successfully an object of type {result_type_name}."
-        resp_success_obj["content"] = dict()
-
-        media_obj = dict()
-        schema_obj = dict()
-        schema_obj["type"] = "object"
-        schema_obj["properties"] = dict()
-
-        for type_info in type_infos:
-          schema_obj["properties"][type_info.name] = {"type": "string"} # TODO: Use proper types / ref.
-
-        media_obj["schema"] = schema_obj
-
-        if router_method.result_type == "BinaryStream":
-          resp_success_obj["content"]["application/octet-stream"] = media_obj
-        else:
-          resp_success_obj["content"]["application/json"] = media_obj
-        responses_obj["200"] = resp_success_obj
-
-        resp_default_obj = dict()
-        resp_default_obj["description"] = \
-          f"The call to the {router_method_name} API method did not succeed."
-        responses_obj["default"] = resp_default_obj
-
-        operation_obj["responses"] = responses_obj
-
-        path_obj[http_method.lower()] = operation_obj
-
-    root_obj["paths"] = paths_obj
-
-    result.openapi_description = json.dumps(root_obj)
-
     return result
