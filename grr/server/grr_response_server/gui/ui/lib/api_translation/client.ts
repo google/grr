@@ -2,8 +2,8 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo} from '../models/client';
+import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser} from '../api/api_interfaces';
+import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User} from '../models/client';
 
 import {createOptionalDate} from './primitive';
 
@@ -51,6 +51,18 @@ function createOsInfo(apiUname: ApiUname): OsInfo {
   }
 }
 
+function createUser(apiUser: ApiUser): User {
+  return {
+    username: apiUser.username || '',
+    fullName: apiUser.fullName || '',
+    lastLogon: createOptionalDate(apiUser.lastLogon),
+    uid: apiUser.uid || 0,
+    gid: apiUser.gid || 0,
+    shell: apiUser.shell || '',
+    homedir: apiUser.homedir || '',
+  }
+}
+
 /**
  * Constructs a Client object from the corresponding API data structure.
  */
@@ -64,6 +76,7 @@ export function translateClient(client: ApiClient): Client {
     labels: (client.labels || []).map(createClientLabel),
     knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
     osInfo: createOsInfo(client.osInfo || {}),
+    users: (client.users || []).map(createUser),
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),

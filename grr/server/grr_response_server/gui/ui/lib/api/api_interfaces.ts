@@ -36,12 +36,16 @@ export declare interface ApiAllRdfValues {
  */
 export type DecimalString = string | number;
 
-declare interface ApiUser {
+export declare interface ApiUser {
   readonly username?: string;
+  readonly lastLogon?: string;
+  readonly fullName?: string;
+  readonly homedir?: string;
+  readonly uid?: number;
+  readonly gid?: number;
+  readonly shell?: string;
   // readonly temp?: string;
   // readonly desktop?: string;
-  // readonly last_logon?: number;
-  // readonly full_name?: string;
   // readonly userdomain?: string;
   // readonly sid?: string;
   // readonly userprofile?: string;
@@ -53,10 +57,6 @@ declare interface ApiUser {
   // readonly personal?: string;
   // readonly startup?: string;
   // readonly localappdata_low?: string;
-  // readonly homedir?: string;
-  // readonly uid?: number;
-  // readonly gid?: number;
-  // readonly shell?: string;
   // readonly gids?: number[];
 }
 
@@ -80,15 +80,14 @@ export declare interface ApiInterface {
  * KnowledgeBase proto mapping.
  */
 export declare interface ApiKnowledgeBase {
-  readonly users?: ApiUser[];
   readonly fqdn?: string;
   readonly timeZone?: string;
 
   readonly os?: string;
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
-  readonly environPath?: string;
-  readonly environTemp?: string;
+  // readonly environPath?: string;
+  // readonly environTemp?: string;
 
   // readonly os_release?: string;
   // readonly environ_allusersappdata?: string;
@@ -157,7 +156,7 @@ export declare interface ApiClient {
 
   readonly osInfo?: ApiUname;
   readonly interfaces?: ReadonlyArray<ApiInterface>;
-
+  readonly users?: ReadonlyArray<ApiUser>;
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;
   readonly lastBootedAt?: string;

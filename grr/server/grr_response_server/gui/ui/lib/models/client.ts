@@ -12,9 +12,21 @@ export interface KnowledgeBase {
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
 }
+/**
+ * User
+ */
+export interface User {
+  readonly username: string;
+  readonly lastLogon?: Date;
+  readonly fullName: string;
+  readonly homedir: string;
+  readonly uid: number;
+  readonly gid: number;
+  readonly shell: string;
+}
 
 /**
- * Network address proto mapping
+ * Network address
  */
 export declare interface ApiNetworkAddress {
   readonly addressType?: string;
@@ -22,7 +34,7 @@ export declare interface ApiNetworkAddress {
 }
 
 /**
- * Network Interface proto mapping
+ * Network Interface
  */
 export declare interface ApiInterface {
   readonly macAddress?: string;
@@ -82,6 +94,8 @@ export interface Client {
   readonly knowledgeBase: KnowledgeBase;
   /** Data about the system of the client */
   readonly osInfo: OsInfo;
+  /** Users on the client */
+  readonly users: ReadonlyArray<User>
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
