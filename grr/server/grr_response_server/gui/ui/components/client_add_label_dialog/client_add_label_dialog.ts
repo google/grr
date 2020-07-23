@@ -54,20 +54,16 @@ export class ClientAddLabelDialog {
         if (input === '') return [];
         return allLabels.filter(label => label.includes(input));
       }),
-      map(filteredLabels => filteredLabels.filter((label) => !this.clientHasLabel(label)))
+      map(filteredLabels =>
+        filteredLabels.filter(label => !this.clientHasLabel(label))
+      ),
     );
 
   private clientHasLabel(label: string): boolean {
     const trimmedLabel = label.trim();
-    const matchingLabel = this.clientLabels
+    return this.clientLabels
       .map(clientLabel => clientLabel.name)
-      .find(labelItem => labelItem === trimmedLabel);
-
-    if (matchingLabel !== undefined) {
-      return true;
-    }
-
-    return false;
+      .includes(trimmedLabel);
   }
 
   private labelValidator(): ValidatorFn {
