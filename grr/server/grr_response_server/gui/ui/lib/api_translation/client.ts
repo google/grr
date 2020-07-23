@@ -14,6 +14,9 @@ function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
   };
 }
 
+/**
+ * Translate ApiClientLabel to ClientLabel model.
+ */
 export function translateClientLabel(label: ApiClientLabel): ClientLabel {
   let owner = '';
 
