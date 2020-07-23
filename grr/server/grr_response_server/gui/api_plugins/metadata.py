@@ -131,15 +131,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return self._GetTypeName(t.type)
 
     if isinstance(t, Descriptor):
-      return t.name
+      return t.full_name
 
     if isinstance(t, EnumDescriptor):
-      return t.name
+      return t.full_name
 
     if inspect.isclass(t):
       return t.__name__
 
-    if isinstance(t, int):
+    if isinstance(t, int): # It's a protobuf.Descriptor.type value.
       return self.proto_primitive_types_names[t]
 
     return str(t) # Cover "BinaryStream" and None.
@@ -325,7 +325,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         schema_obj["properties"][field_name] = \
           self._ExtractSchema(field_descriptor.type, visiting)
 
-    visiting.remove(t_name)  # Not really useful, but here for completeness.
+    visiting.remove(t_name)
     self.schema_objs[t_name] = schema_obj
 
     return schema_obj
@@ -340,9 +340,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return self.schema_objs[t_name]
 
     if t_name in visiting:
-      # raise RuntimeError(
-      #   f"Types definitions cycle detected: \"{t_name}\" is already on stack.")
-      # TODO: Treat cycles better?
+      # Dependency cycle.
       return
 
     if isinstance(t, Descriptor):
@@ -431,8 +429,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         # The Operation Object associated with the current http method.
         operation_obj = dict()
-        operation_obj["tags"] = [router_method.category, router_method_name]
-        operation_obj["description"] = router_method.doc
+        operation_obj["tags"] = [router_method.category or "NoCategory",
+                                 router_method_name,]
+        operation_obj["description"] = router_method.doc or "No description."
         url_path = path.\
           replace('/', '-').\
           replace('<', '_').\
@@ -445,8 +444,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         operation_obj["parameters"] = []
         field_descriptors = []
         if router_method.args_type:
-          if (not inspect.isclass(router_method.args_type)) or \
-              (not issubclass(router_method.args_type, rdf_structs.RDFProtoStruct)):
+          if not (
+              inspect.isclass(router_method.args_type) and
+              issubclass(router_method.args_type, rdf_structs.RDFProtoStruct)
+          ):
             raise TypeError("Router method args type is not a RDFProtoStruct "
                             "subclass.")
           field_descriptors = router_method.args_type.protobuf.DESCRIPTOR.fields
