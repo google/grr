@@ -418,6 +418,87 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     reference_obj["$ref"] = f"#/components/schemas/{type_name}"
     return reference_obj
 
+  def _GetParameters(self, path_params, query_params):
+    parameters = []
+
+    path_params = set(path_params)
+    query_params = set(query_params)
+    for field_d in path_params | query_params:
+      parameter_obj = dict()
+      parameter_obj["name"] = field_d.name
+      if field_d in path_params:
+        parameter_obj["in"] = "path"
+        parameter_obj["required"] = True
+      else:
+        parameter_obj["in"] = "query"
+
+      schema_or_ref_obj = \
+        self._GetSchemaOrReferenceObject(self._GetTypeName(field_d))
+      parameter_obj["schema"] = schema_or_ref_obj
+
+      parameters.append(parameter_obj)
+
+    return parameters
+
+  def _GetRequestBody(self, body_params):
+    request_body_obj = dict()
+    request_body_obj["content"] = dict()
+
+    media_obj = dict()
+
+    schema_obj = dict()
+    schema_obj["type"] = "object"
+    schema_obj["properties"] = dict()
+    for field_d in body_params:
+      field_name = field_d.name
+      schema_or_ref_obj = \
+        self._GetSchemaOrReferenceObject(self._GetTypeName(field_d))
+      schema_obj["properties"][field_name] = schema_or_ref_obj
+
+    media_obj["schema"] = schema_obj
+
+    request_body_obj["content"]["application/json"] = media_obj
+
+    return request_body_obj
+
+  def _GetResponseObject200(self, result_type, router_method_name):
+    resp_success_obj = dict()
+
+    if result_type:
+      if inspect.isclass(result_type) and \
+          issubclass(result_type, rdf_structs.RDFProtoStruct):
+        result_type_name = \
+          self._GetTypeName(result_type.protobuf.DESCRIPTOR)
+      else:
+        result_type_name = self._GetTypeName(result_type)
+
+      resp_success_obj["description"] \
+        = f"The call to the {router_method_name} API method succeeded " \
+          f"and it returned an instance of {result_type_name}."
+
+      media_obj = dict()
+      schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
+      media_obj["schema"] = schema_or_ref_obj
+
+      resp_success_obj["content"] = dict()
+      if result_type == "BinaryStream":
+        resp_success_obj["content"]["application/octet-stream"] = media_obj
+      else:
+        resp_success_obj["content"]["application/json"] = media_obj
+    else:
+      resp_success_obj["description"] \
+        = f"The call to the {router_method_name} API method succeeded."
+
+    return resp_success_obj
+
+  def _GetResponseObjectDefault(self, router_method_name):
+    resp_default_obj = dict()
+
+    resp_default_obj["description"] = \
+      f"The call to the {router_method_name} API method did not succeed."
+
+    return resp_default_obj
+
   def _SetEndpoints(self):
     # The Paths Object "paths" field of the root OpenAPI object.
     paths_obj = dict()
@@ -449,7 +530,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           urlparse.quote(f"{http_method}-{url_path}-{router_method.name}")
 
         # Parameters extraction.
-        operation_obj["parameters"] = []
         field_descriptors = []
         if router_method.args_type:
           if not (
@@ -460,92 +540,39 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
                             "subclass.")
           field_descriptors = router_method.args_type.protobuf.DESCRIPTOR.fields
 
-        body_parameters = []
+        # Triage fields into params: path, query and part of the request body.
+        path_params = []
+        query_params = []
+        body_params = []
         for field_d in field_descriptors:
-          # The Parameter Object used to describe the current parameter.
-          parameter_obj = dict()
-          parameter_obj["name"] = field_d.name
-          if parameter_obj["name"] in path_args:
-            parameter_obj["in"] = "path"
-            parameter_obj["required"] = True
-          elif http_method.upper() in ["GET", "HEAD"]:
-            parameter_obj["in"] = "query"
+          if field_d.name in path_args:
+            path_params.append(field_d)
+          elif http_method.upper() in ("GET", "HEAD"):
+            query_params.append(field_d)
           else:
-            # This parameter will be added to the Request Body Object.
-            body_parameters.append(field_d)
-            continue
+            body_params.append(field_d)
 
-          field_type_name = self._GetTypeName(field_d)
-          schema_or_ref_obj = self._GetSchemaOrReferenceObject(field_type_name)
-          parameter_obj["schema"] = schema_or_ref_obj
+        operation_obj["parameters"] = self._GetParameters(path_params,
+                                                          query_params)
 
-          operation_obj["parameters"].append(parameter_obj)
-
-        if body_parameters:
-          # The Request Body Object which describes data sent in the message
-          # body.
-          request_body_obj = dict()
-          request_body_obj["content"] = dict()
-          media_obj = dict()
-          schema_obj = dict()
-          schema_obj["type"] = "object"
-          schema_obj["properties"] = dict()
-          for field_d in body_parameters:
-            field_name = field_d.name
-            field_type_name = self._GetTypeName(field_d)
-            schema_or_ref_obj = \
-              self._GetSchemaOrReferenceObject(field_type_name)
-            schema_obj["properties"][field_name] = schema_or_ref_obj
-
-          media_obj["schema"] = schema_obj
-          request_body_obj["content"]["application/json"] = media_obj
-
-          operation_obj["requestBody"] = request_body_obj
+        if body_params:
+          # The Request Body Object for data sent in the HTTP message body.
+          operation_obj["requestBody"] = self._GetRequestBody(body_params)
 
         # The Responses Object which describes the responses associated with
         # HTTP response codes.
         responses_obj = dict()
-
-        # Building the Response Object for the 200 HTTP code.
-        resp_success_obj = dict()
-        if router_method.result_type:
-          if inspect.isclass(router_method.result_type) and \
-              issubclass(router_method.result_type, rdf_structs.RDFProtoStruct):
-            result_type_name = \
-              self._GetTypeName(router_method.result_type.protobuf.DESCRIPTOR)
-          else:
-            result_type_name = self._GetTypeName(router_method.result_type)
-
-          resp_success_obj["description"] \
-            = f"The call to the {router_method_name} API method succeeded " \
-              f"and it returned an instance of {result_type_name}."
-
-          media_obj = dict()
-          schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
-          media_obj["schema"] = schema_or_ref_obj
-
-          resp_success_obj["content"] = dict()
-          if router_method.result_type == "BinaryStream":
-            resp_success_obj["content"]["application/octet-stream"] = media_obj
-          else:
-            resp_success_obj["content"]["application/json"] = media_obj
-        else:
-          resp_success_obj["description"] \
-            = f"The call to the {router_method_name} API method succeeded."
-        responses_obj["200"] = resp_success_obj
-
-        resp_default_obj = dict()
-        resp_default_obj["description"] = \
-          f"The call to the {router_method_name} API method did not succeed."
-        responses_obj["default"] = resp_default_obj
+        responses_obj["200"] = \
+          self._GetResponseObject200(router_method.result_type,
+                                     router_method_name)
+        responses_obj["default"] = \
+          self._GetResponseObjectDefault(router_method_name)
 
         operation_obj["responses"] = responses_obj
 
         path_obj[http_method.lower()] = operation_obj
 
     self.openapi_obj["paths"] = paths_obj
-    print(f"primitive_types_names={self.primitive_types_names}")
-
 
   def Handle(
       self,
