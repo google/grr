@@ -81,6 +81,29 @@
 
     <br>
     <table class="section">
+      <div class="section-title">Network interfaces</div>
+      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces">
+      <tr>
+        <td class="description">Interface Name</td>
+        <td class="value">{{interface.interfaceName}}</td>
+      </tr>
+      <tr>
+        <td class="description">MAC</td>
+        <td class="value">{{interface.macAddress}}</td>
+      </tr>
+      <tr>
+        <td class="description">IP Addresses</td>
+        <td class="value">
+          <ng-template ngFor let-address [ngForOf]="interface.addresses">
+            <div>{{address.ipAddress}}</div>
+          </ng-template>
+        </td>
+      </tr>
+    </ng-template>
+    </table>
+
+    <br>
+    <table class="section">
       <div class="section-title"></div>
       <tr>
         <td class="description"></td>

@@ -553,12 +553,16 @@ describe('ClientPageFacade', () => {
           clientId: 'C.1234',
           fleetspeakEnabled: false,
           knowledgeBase: {},
+          users: [],
+          networkInterfaces: [],
           labels: []
         },
         {
           clientId: 'C.5678',
           fleetspeakEnabled: true,
           knowledgeBase: {},
+          users: [],
+          networkInterfaces: [],
           labels: []
         },
       ];

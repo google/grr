@@ -19,6 +19,8 @@ export function newClient(args: Partial<Client> = {}): Client {
     clientId: 'C.1234567890',
     fleetspeakEnabled: true,
     knowledgeBase: {},
+    users: [],
+    networkInterfaces: [],
     labels: [],
     ...args,
   };

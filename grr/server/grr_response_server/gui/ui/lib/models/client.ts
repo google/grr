@@ -59,6 +59,17 @@ export interface OsInfo {
   readonly pep425tag: string;
 }
 
+export interface NetworkAddress {
+  readonly addressType: string;
+  readonly ipAddress: string;
+}
+
+export interface NetworkInterface {
+  readonly macAddress: string;
+  readonly interfaceName: string;
+  readonly addresses: ReadonlyArray<NetworkAddress>;
+}
+
 /**
  * Info about the agent running on the client.
  */
@@ -89,13 +100,15 @@ export interface Client {
   /** Whether the client communicates with GRR through Fleetspeak. */
   readonly fleetspeakEnabled: boolean;
   /** Metadata about the GRR client */
-  readonly agentInfo: AgentInfo;
+  readonly agentInfo?: AgentInfo;
   /** Client's knowledge base. */
   readonly knowledgeBase: KnowledgeBase;
   /** Data about the system of the client */
-  readonly osInfo: OsInfo;
+  readonly osInfo?: OsInfo;
   /** Users on the client */
-  readonly users: ReadonlyArray<User>
+  readonly users: ReadonlyArray<User>;
+  /** Network interfaces of the client */
+  readonly networkInterfaces: ReadonlyArray<NetworkInterface>;
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;

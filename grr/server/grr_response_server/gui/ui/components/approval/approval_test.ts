@@ -19,6 +19,8 @@ function makeClient(args: Partial<Client> = {}): Client {
     clientId: 'C.1234',
     fleetspeakEnabled: true,
     knowledgeBase: {},
+    users: [],
+    networkInterfaces: [],
     labels: [],
     ...args,
   };

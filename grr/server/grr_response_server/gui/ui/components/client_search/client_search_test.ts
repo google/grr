@@ -91,6 +91,8 @@ describe('ClientSearch Component', () => {
         knowledgeBase: {
           fqdn: 'foo.unknown',
         },
+        users: [],
+        networkInterfaces: [],
         lastSeenAt: new Date(1571789996678),
         labels: [],
       },
@@ -100,6 +102,8 @@ describe('ClientSearch Component', () => {
         knowledgeBase: {
           fqdn: 'bar.unknown',
         },
+        users: [],
+        networkInterfaces: [],
         labels: [],
       },
     ]);

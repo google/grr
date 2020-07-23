@@ -1,6 +1,6 @@
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
 import {Subject} from 'rxjs';
 
@@ -27,24 +27,25 @@ describe('Client Component', () => {
     configFacade = mockConfigFacade();
 
     TestBed
-        .configureTestingModule({
-          imports: [
-            ApiModule,
-            NoopAnimationsModule,
-            ClientModule,
-          ],
-          providers: [
-            {
-              provide: ActivatedRoute,
-              useValue: {
-                paramMap: paramsSubject,
-              },
+      .configureTestingModule({
+        imports: [
+          ApiModule,
+          NoopAnimationsModule,
+          ClientModule,
+        ],
+        providers: [
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: paramsSubject,
             },
-            {provide: ConfigFacade, useFactory: () => configFacade},
-          ],
+          },
+          {provide: ConfigFacade, useFactory: () => configFacade},
+          {provide: Router, useValue: {}},
+        ],
 
-        })
-        .compileComponents();
+      })
+      .compileComponents();
 
     facade = TestBed.inject(ClientPageFacade);
   }));
@@ -77,6 +78,8 @@ describe('Client Component', () => {
       knowledgeBase: {
         fqdn: 'foo.unknown',
       },
+      users: [],
+      networkInterfaces: [],
       lastSeenAt: new Date(1571789996678),
       labels: [],
     });

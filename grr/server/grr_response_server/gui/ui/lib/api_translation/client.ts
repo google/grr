@@ -2,10 +2,10 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User} from '../models/client';
+import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress} from '../api/api_interfaces';
+import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress} from '../models/client';
 
-import {createOptionalDate} from './primitive';
+import {createOptionalDate, createIpv4Address, decodeBase64, createMacAddress, createIpv6Address} from './primitive';
 
 function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
   return {
@@ -23,7 +23,8 @@ function createClientLabel(label: ApiClientLabel): ClientLabel {
   return {owner: label.owner, name: label.name};
 }
 
-function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
+function createOptionalAgentInfo(apiAgentInfo?: ApiClientInformation): AgentInfo | undefined {
+  if (apiAgentInfo === undefined) return undefined;
   return {
     clientName: apiAgentInfo.clientName || 'Unknown',
     clientVersion: apiAgentInfo.clientVersion || 0,
@@ -35,7 +36,9 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   }
 }
 
-function createOsInfo(apiUname: ApiUname): OsInfo {
+function createOptionalOsInfo(apiUname?: ApiUname ): OsInfo | undefined {
+  if (apiUname === undefined) return undefined;
+
   return {
     system: apiUname.system || 'Unknown',
     node: apiUname.node || 'Unknown',
@@ -63,6 +66,28 @@ function createUser(apiUser: ApiUser): User {
   }
 }
 
+function createNetworkAddress(apiNetAddress: ApiNetworkAddress): NetworkAddress {
+  let addressType = 'IPv4'
+  if (apiNetAddress.addressType === 'INET6') {
+    addressType = 'IPv6';
+  }
+
+  const addressBytes = decodeBase64(apiNetAddress.packedBytes);
+
+  return {
+    addressType: addressType,
+    ipAddress: (addressType === 'IPv4') ? createIpv4Address(addressBytes) : createIpv6Address(addressBytes),
+  }
+}
+
+function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
+  return {
+    macAddress: createMacAddress(decodeBase64(apiInterface.macAddress)),
+    interfaceName: apiInterface.ifname || '',
+    addresses: (apiInterface.addresses || []).map(createNetworkAddress),
+  }
+}
+
 /**
  * Constructs a Client object from the corresponding API data structure.
  */
@@ -72,11 +97,12 @@ export function translateClient(client: ApiClient): Client {
   return {
     clientId: client.clientId,
     fleetspeakEnabled: client.fleetspeakEnabled || false,
-    agentInfo: createAgentInfo(client.agentInfo || {}),
+    agentInfo: createOptionalAgentInfo(client.agentInfo),
     labels: (client.labels || []).map(createClientLabel),
     knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
-    osInfo: createOsInfo(client.osInfo || {}),
+    osInfo: createOptionalOsInfo(client.osInfo),
     users: (client.users || []).map(createUser),
+    networkInterfaces: (client.interfaces || []).map(createNetworkInterface),
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),
