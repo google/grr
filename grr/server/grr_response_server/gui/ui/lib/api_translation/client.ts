@@ -18,9 +18,19 @@ function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
  * Translate ApiClientLabel to ClientLabel model.
  */
 export function translateClientLabel(label: ApiClientLabel): ClientLabel {
+  let owner = '';
+
+  if (!label.name) throw new Error('name attribute is missing.');
+  if (label.owner) owner = label.owner;
+
+  return {owner: owner, name: label.name};
+}
+
+function createClientLabel(label: ApiClientLabel): ClientLabel {
+  if (!label.owner) throw new Error('owner attribute is missing.');
   if (!label.name) throw new Error('name attribute is missing.');
 
-  return {name: label.name};
+  return {owner: label.owner, name: label.name};
 }
 
 /**
@@ -32,7 +42,7 @@ export function translateClient(client: ApiClient): Client {
   return {
     clientId: client.clientId,
     fleetspeakEnabled: client.fleetspeakEnabled || false,
-    labels: (client.labels || []).map(translateClientLabel),
+    labels: (client.labels || []).map(createClientLabel),
     knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
