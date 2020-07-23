@@ -66,21 +66,21 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.schema_objs = None
 
     self.proto_primitive_types_names = {
-      1: "protobuf2.TYPE_DOUBLE",
-      2: "protobuf2.TYPE_FLOAT",
-      3: "protobuf2.TYPE_INT64",
-      4: "protobuf2.TYPE_UINT64",
-      5: "protobuf2.TYPE_INT32",
-      6: "protobuf2.TYPE_FIXED64",
-      7: "protobuf2.TYPE_FIXED32",
-      8: "protobuf2.TYPE_BOOL",
-      9: "protobuf2.TYPE_STRING",
-      12: "protobuf2.TYPE_BYTES",
-      13: "protobuf2.TYPE_UINT32",
-      15: "protobuf2.TYPE_SFIXED32",
-      16: "protobuf2.TYPE_SFIXED64",
-      17: "protobuf2.TYPE_SINT32",
-      18: "protobuf2.TYPE_SINT64",
+      protobuf2.TYPE_DOUBLE: "protobuf2.TYPE_DOUBLE",
+      protobuf2.TYPE_FLOAT: "protobuf2.TYPE_FLOAT",
+      protobuf2.TYPE_INT64: "protobuf2.TYPE_INT64",
+      protobuf2.TYPE_UINT64: "protobuf2.TYPE_UINT64",
+      protobuf2.TYPE_INT32: "protobuf2.TYPE_INT32",
+      protobuf2.TYPE_FIXED64: "protobuf2.TYPE_FIXED64",
+      protobuf2.TYPE_FIXED32: "protobuf2.TYPE_FIXED32",
+      protobuf2.TYPE_BOOL: "protobuf2.TYPE_BOOL",
+      protobuf2.TYPE_STRING: "protobuf2.TYPE_STRING",
+      protobuf2.TYPE_BYTES: "protobuf2.TYPE_BYTES",
+      protobuf2.TYPE_UINT32: "protobuf2.TYPE_UINT32",
+      protobuf2.TYPE_SFIXED32: "protobuf2.TYPE_SFIXED32",
+      protobuf2.TYPE_SFIXED64: "protobuf2.TYPE_SFIXED64",
+      protobuf2.TYPE_SINT32: "protobuf2.TYPE_SINT32",
+      protobuf2.TYPE_SINT64: "protobuf2.TYPE_SINT64",
     }
     self.primitive_types_names = \
       list(self.proto_primitive_types_names.values()) \
@@ -316,14 +316,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
       if descriptor:
         self._ExtractSchema(descriptor, visiting)
-        schema_obj["properties"][field_name] = \
-          {"$ref": f"#/components/schemas/"
-                   f"{self._GetTypeName(descriptor)}"}
+
+      schema_or_ref_obj = \
+        self._GetSchemaOrReferenceObject(self._GetTypeName(field_descriptor))
+      if field_descriptor.label == protobuf2.LABEL_REPEATED:
+        schema_obj["properties"][field_name] = {
+          "type": "array",
+          "items": schema_or_ref_obj,
+        }
       else:
-        # This should be a "primitive" type field. We don't reference it, but
-        # use the "schema" we have created for it in _AddPrimitiveTypesSchemas.
-        schema_obj["properties"][field_name] = \
-          self._ExtractSchema(field_descriptor.type, visiting)
+        schema_obj["properties"][field_name] = schema_or_ref_obj
 
     visiting.remove(t_name)
     self.schema_objs[t_name] = schema_obj
@@ -397,6 +399,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.openapi_obj["components"] = components_obj
 
   def _GetSchemaOrReferenceObject(self, type_name: str):
+    """Returns a Schema Object if primitive type, else a Reference Object.
+
+    Primitive, not composite types don't have an actual schema, but rather an
+    equivalent OpenAPI representation that gets returned for them.
+    More complex types are expected to have been previously defined as OpenAPI
+    components and are used through OpenAPI references.
+    """
     if self.schema_objs is None:
       raise ValueError("Called _GetSchemaOrReferenceObject before extracting "
                        "schemas.")
@@ -429,8 +438,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         # The Operation Object associated with the current http method.
         operation_obj = dict()
-        operation_obj["tags"] = [router_method.category or "NoCategory",
-                                 router_method_name,]
+        operation_obj["tags"] = [router_method.category or "NoCategory",]
         operation_obj["description"] = router_method.doc or "No description."
         url_path = path.\
           replace('/', '-').\
