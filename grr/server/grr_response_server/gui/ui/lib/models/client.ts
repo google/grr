@@ -15,7 +15,7 @@ export interface KnowledgeBase {
  * Client Label.
  */
 export interface ClientLabel {
-  readonly owner: string;
+  // Omitting owner, as the API doesn't actually send it
   readonly name: string;
 }
 

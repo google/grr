@@ -38,8 +38,8 @@ describe('Client API Translation', () => {
       lastBootedAt: new Date(1571789996680),
       lastClock: new Date(1571789996681),
       labels: [
-        {name: 'a', owner: 'ao'},
-        {name: 'b', owner: 'bo'},
+        {name: 'a'},
+        {name: 'b'},
       ],
     };
     expect(translateClient(apiClient)).toEqual(client);
