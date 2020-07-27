@@ -60,7 +60,7 @@ class MetadataTypesHierarchyLeaf(rdf_structs.RDFProtoStruct):
 
 
 class DummyApiCallRouter(api_call_router.ApiCallRouter):
-  """Dummy ApiCallRouter implementation user for Metadata testing."""
+  """Dummy ApiCallRouter implementation used for Metadata testing."""
 
   @api_call_router.ArgsType(MetadataSimpleMessage)
   @api_call_router.Http("GET", "/metadata_test/method1/<metadata_id>")
@@ -81,6 +81,24 @@ class DummyApiCallRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http("GET", "/metadata_test/method3")
   def Method3PrimitiveTypes(self, args, token=None):
     """Method 3 description."""
+
+  @api_call_router.ArgsType(MetadataRepeatedFieldMessage)
+  @api_call_router.Http("GET", "/metadata_test/method4")
+  @api_call_router.Http("POST", "/metadata_test/method4")
+  def Method4RepeatedField(self, args, token=None):
+    """Method 4 description."""
+
+  @api_call_router.ArgsType(MetadataEnumFieldMessage)
+  @api_call_router.Http("GET", "/metadata_test/method5")
+  @api_call_router.Http("POST", "/metadata_test/method5")
+  def Method5EnumField(self, args, token=None):
+    """Method 5 description."""
+
+  @api_call_router.ArgsType(MetadataTypesHierarchyRoot)
+  @api_call_router.ResultType(MetadataTypesHierarchyLeaf)
+  @api_call_router.Http("GET", "/metadata_test/method6")
+  def Method6TypeReferences(self, args, token=None):
+    """Method 6 description."""
 
 
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -118,13 +136,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
         operation_obj = \
           self.openapi_desc_dict["paths"][simple_path][http_method]
-        # paths_obj = self.openapi_desc_dict.get("paths")
-        # self.assertIsNotNone(paths_obj)
-        #
-        # path_obj = paths_obj.get(simple_path)
-        # self.assertIsNotNone(path_obj)
-        #
-        # operation_obj = path_obj.get(http_method)
+
         self.assertIsNotNone(operation_obj)
 
   def testRouteArgsSeparationInPathQueryBody(self):
@@ -178,10 +190,6 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
         request_body_obj = operation_obj.get("requestBody")
         if request_body_obj:
-          # self.assertIsNotNone(request_body_obj.get("content"))
-          # media_obj = request_body_obj["content"].get("application/json")
-          # self.assertIsNotNone(media_obj)
-          # schema_obj = media_obj["schema"]
           schema_obj = request_body_obj["content"]["application/json"]["schema"]
           for param_name in schema_obj["properties"]:
             openapi_body_params.add(param_name)
@@ -284,71 +292,86 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertDictEqual(expected, openapi_primitives)
 
-  def testOpenApiTypeReferences(self):
-    # TODO:
-    pass
+  def testRepetitiveField(self):
+    # Test the GET route. The repeated field should be a query parameter.
+    params = (self.openapi_desc_dict.get("paths").get("/metadata_test/method4")
+              .get("get").get("parameters"))
+    self.assertEqual(len(params), 1)
 
-# class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
-#   """Test for ApiListApiMethodsHandler."""
-#
-#   def setUp(self):
-#     super(ApiListApiMethodsHandlerTest, self).setUp()
-#     self.router = DummyApiCallRouter()
-#     self.handler = reflection_plugin.ApiListApiMethodsHandler(self.router)
-#
-#   def testRendersMethodWithArgsCorrectly(self):
-#     result = self.handler.Handle(None, token=self.token)
-#
-#     method = [
-#         item for item in result.items
-#         if item.name == "SomeRandomMethodWithArgsType"
-#     ][0]
-#     self.assertEqual(method.doc, "Doc 1.")
-#
-#     self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
-#     self.assertEqual(
-#         method.args_type_descriptor.AsPrimitiveProto().default.type_url,
-#         "type.googleapis.com/grr.SampleGetHandlerArgs")
-#
-#     self.assertEqual(method.result_kind, "NONE")
-#     self.assertFalse(method.HasField("result_type"))
-#
-#   def testRendersMethodWithResultTypeCorrectly(self):
-#     result = self.handler.Handle(None, token=self.token)
-#
-#     method = [
-#         item for item in result.items
-#         if item.name == "SomeRandomMethodWithResultType"
-#     ][0]
-#     self.assertEqual(method.doc, "Doc 2.")
-#
-#     self.assertFalse(method.HasField("args_type"))
-#
-#     self.assertEqual(method.result_kind, "VALUE")
-#     self.assertEqual(method.result_type_descriptor.name, "SampleGetHandlerArgs")
-#     self.assertEqual(
-#         method.result_type_descriptor.AsPrimitiveProto().default.type_url,
-#         "type.googleapis.com/grr.SampleGetHandlerArgs")
-#
-#   def testRendersMethodWithArgsTypeAndResultTypeCorrectly(self):
-#     result = self.handler.Handle(None, token=self.token)
-#
-#     method = [
-#         item for item in result.items
-#         if item.name == "SomeRandomMethodWithArgsTypeAndResultType"
-#     ][0]
-#     self.assertEqual(method.doc, "Doc 3.")
-#
-#     self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
-#     self.assertEqual(
-#         method.args_type_descriptor.AsPrimitiveProto().default.type_url,
-#         "type.googleapis.com/grr.SampleGetHandlerArgs")
-#
-#     self.assertEqual(method.result_kind, "VALUE")
-#     self.assertEqual(method.result_type_descriptor.name, "SampleGetHandlerArgs")
-#     self.assertEqual(
-#         method.result_type_descriptor.AsPrimitiveProto().default.type_url,
-#         "type.googleapis.com/grr.SampleGetHandlerArgs")
+    param = params[0]
+    self.assertEqual(param["in"], "query")
+    schema = param["schema"]
+    self.assertEqual(schema["type"], "array")
+    self.assertEqual(schema["items"]["type"], "integer")
+    self.assertEqual(schema["items"]["format"], "int64")
+
+    # Test the POST route. The repeated field should be in the request body.
+    req_body = (self.openapi_desc_dict.get("paths")
+                .get("/metadata_test/method4").get("post").get("requestBody"))
+    req_schema = req_body["content"]["application/json"]["schema"]
+    self.assertEqual(req_schema["type"], "object")
+    schema = req_schema["properties"]["field_repeated"]
+    self.assertEqual(schema["type"], "array")
+    self.assertEqual(schema["items"]["type"], "integer")
+    self.assertEqual(schema["items"]["format"], "int64")
+
+  def testEnumField(self):
+    # Test the GET route. The enum field should be a query parameter.
+    params = (self.openapi_desc_dict.get("paths").get("/metadata_test/method5")
+              .get("get").get("parameters"))
+    self.assertEqual(len(params), 1)
+
+    param = params[0]
+    self.assertEqual(param["in"], "query")
+    ref_get = param["schema"]["$ref"]
+    ref_nodes = ref_get.split("/")
+    ref_nodes = ref_nodes[1:]
+    schema = self.openapi_desc_dict
+    for node in ref_nodes:
+      schema = schema[node]
+
+    # Test the OpenAPI component agains its protobuf counterpart.
+    self.assertEqual(schema["type"], "integer")
+    self.assertEqual(schema["format"], "int32")
+    enum_values_openapi = set(schema["enum"])
+
+    message_d = MetadataEnumFieldMessage.protobuf.DESCRIPTOR
+    self.assertEqual(len(message_d.enum_types), 1)
+    enum_d = message_d.enum_types[0]
+    enum_values_ds = enum_d.values
+    enum_values_protobuf = set(
+      [enum_value_d.number for enum_value_d in enum_values_ds])
+    self.assertSetEqual(enum_values_openapi, enum_values_protobuf)
+
+    # Test the POST route. The enum field should be in the request body.
+    # Just check that the structure is correct and that the same component
+    # is referenced as above.
+    req_body = (self.openapi_desc_dict.get("paths")
+                .get("/metadata_test/method5").get("post").get("requestBody"))
+    req_schema = req_body["content"]["application/json"]["schema"]
+    self.assertEqual(req_schema["type"], "object")
+    ref_post = req_schema["properties"]["field_enum"]["$ref"]
+    self.assertEqual(ref_post, ref_get)
+
+  def testOpenApiTypeReferences(self):
+    # Tests that references are used for composite types and that the referenced
+    # types are declared, including the case of cyclic dependencies.
+
+    # Test that composite types are defined.
+    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+    root = components_schemas["grr.MetadataTypesHierarchyRoot"]
+    root_ref = "#/components/schemas/grr.MetadataTypesHierarchyRoot"
+    cyclic = components_schemas["grr.MetadataTypesHierarchyCyclic"]
+    cyclic_ref = "#/components/schemas/grr.MetadataTypesHierarchyCyclic"
+    leaf = components_schemas["grr.MetadataTypesHierarchyLeaf"]
+    leaf_ref = "#/components/schemas/grr.MetadataTypesHierarchyLeaf"
+
+    # Test the references between message types.
+    self.assertEqual(root["properties"]["child_1"]["$ref"], cyclic_ref)
+    self.assertEqual(root["properties"]["child_2"]["$ref"], leaf_ref)
+
+    self.assertEqual(cyclic["properties"]["root"]["$ref"], root_ref) # Cycle.
+    self.assertEqual(cyclic["properties"]["child_1"]["$ref"], leaf_ref)
 
 
 def main(argv):

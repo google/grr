@@ -318,14 +318,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         self._ExtractSchema(descriptor, visiting)
 
       schema_or_ref_obj = \
-        self._GetSchemaOrReferenceObject(self._GetTypeName(field_descriptor))
-      if field_descriptor.label == protobuf2.LABEL_REPEATED:
-        schema_obj["properties"][field_name] = {
-          "type": "array",
-          "items": schema_or_ref_obj,
-        }
-      else:
-        schema_obj["properties"][field_name] = schema_or_ref_obj
+        self._GetSchemaOrReferenceObject(
+          self._GetTypeName(field_descriptor),
+          field_descriptor.label == protobuf2.LABEL_REPEATED)
+
+      schema_obj["properties"][field_name] = schema_or_ref_obj
 
     visiting.remove(t_name)
     self.schema_objs[t_name] = schema_obj
@@ -398,7 +395,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     self.openapi_obj["components"] = components_obj
 
-  def _GetSchemaOrReferenceObject(self, type_name: str):
+  def _GetSchemaOrReferenceObject(self, type_name: str, is_array=False):
     """Returns a Schema Object if primitive type, else a Reference Object.
 
     Primitive, not composite types don't have an actual schema, but rather an
@@ -410,13 +407,22 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Called _GetSchemaOrReferenceObject before extracting "
                        "schemas.")
 
+    schema_or_ref_obj = None
     if type_name in self.primitive_types_names:
       schema_obj = self.schema_objs[type_name]
-      return schema_obj
+      schema_or_ref_obj = schema_obj
+    else:
+      reference_obj = dict()
+      reference_obj["$ref"] = f"#/components/schemas/{type_name}"
+      schema_or_ref_obj = reference_obj
 
-    reference_obj = dict()
-    reference_obj["$ref"] = f"#/components/schemas/{type_name}"
-    return reference_obj
+    if is_array:
+      schema_or_ref_obj = {
+        "type": "array",
+        "items": schema_or_ref_obj
+      }
+
+    return schema_or_ref_obj
 
   def _GetParameters(self, path_params, query_params):
     parameters = []
@@ -433,7 +439,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         parameter_obj["in"] = "query"
 
       schema_or_ref_obj = \
-        self._GetSchemaOrReferenceObject(self._GetTypeName(field_d))
+        self._GetSchemaOrReferenceObject(
+          self._GetTypeName(field_d),
+          field_d.label == protobuf2.LABEL_REPEATED)
       parameter_obj["schema"] = schema_or_ref_obj
 
       parameters.append(parameter_obj)
@@ -452,7 +460,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     for field_d in body_params:
       field_name = field_d.name
       schema_or_ref_obj = \
-        self._GetSchemaOrReferenceObject(self._GetTypeName(field_d))
+        self._GetSchemaOrReferenceObject(
+          self._GetTypeName(field_d),
+          field_d.label == protobuf2.LABEL_REPEATED)
       schema_obj["properties"][field_name] = schema_or_ref_obj
 
     media_obj["schema"] = schema_obj
