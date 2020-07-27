@@ -8,14 +8,14 @@ import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operat
 
 import {ApprovalConfig, ClientLabel} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
-import {translateClientLabel} from '@app/lib/api_translation/client';
+import {getApiClientLabelName} from '@app/lib/api_translation/client';
 
 
 /** The state of the Config. */
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
-  clientsLabels?: ClientLabel[];
+  clientsLabels?: string[];
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -41,7 +41,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
       });
 
   private readonly updateClientsLabels =
-      this.updater<ClientLabel[]>((state, clientsLabels) => {
+      this.updater<string[]>((state, clientsLabels) => {
         return {...state, clientsLabels};
       });
 
@@ -66,7 +66,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
       obs$ => obs$.pipe(
           switchMapTo(this.httpApiService.fetchAllClientsLabels()),
           map(apiClientsLabels =>
-              apiClientsLabels.map(translateClientLabel)),
+              apiClientsLabels.map(getApiClientLabelName)),
           tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
         ));
 
@@ -100,7 +100,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
   readonly clientsLabels$ = of(undefined).pipe(
       tap(() => this.fetchClientsLabels()),
       switchMapTo(this.select(state => state.clientsLabels)),
-      filter((clientsLabels): clientsLabels is ClientLabel[] =>
+      filter((clientsLabels): clientsLabels is string[] =>
           clientsLabels !== undefined),
   );
 }
@@ -122,6 +122,6 @@ export class ConfigFacade {
       this.store.approvalConfig$;
 
   /** An observable emitting a list of all clients labels. */
-  readonly clientsLabels$: Observable<ClientLabel[]> =
+  readonly clientsLabels$: Observable<string[]> =
       this.store.clientsLabels$;
 }

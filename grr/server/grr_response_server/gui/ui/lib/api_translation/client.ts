@@ -15,15 +15,12 @@ function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
 }
 
 /**
- * Translate ApiClientLabel to ClientLabel model.
+ * Get label name from ApiClientLabel.
  */
-export function translateClientLabel(label: ApiClientLabel): ClientLabel {
-  let owner = '';
+export function getApiClientLabelName(apiLabel: ApiClientLabel): string {
+  if (!apiLabel.name) throw new Error('name attribute is missing.');
 
-  if (!label.name) throw new Error('name attribute is missing.');
-  if (label.owner) owner = label.owner;
-
-  return {owner: owner, name: label.name};
+  return apiLabel.name;
 }
 
 function createClientLabel(label: ApiClientLabel): ClientLabel {

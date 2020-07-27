@@ -91,14 +91,8 @@ describe('ConfigFacade', () => {
 
   it('correctly emits the translated API results in clientLabels$', (done) => {
     const expected = [
-      {
-        owner: 'first_owner',
-        name: 'first_label',
-      },
-      {
-        owner: 'second_owner',
-        name: 'second_label',
-      },
+      'first_label',
+      'second_label',
     ];
 
     configFacade.clientsLabels$.subscribe((results) => {

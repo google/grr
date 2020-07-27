@@ -29,9 +29,7 @@ export class ClientAddLabelDialog {
     .pipe(
       filter((input): input is string | String => input !== undefined),
       map(input => input.trim()),
-      withLatestFrom(this.allClientsLabels$.pipe(
-        map(clientsLabels => clientsLabels.map(clientLabel => clientLabel.name)),
-      )),
+      withLatestFrom(this.allClientsLabels$),
     );
 
   /** An observable emitting true when the input label is not exactly matching

@@ -3,7 +3,7 @@
 
 import {ReplaySubject, Subject} from 'rxjs';
 
-import {ApprovalConfig, ClientLabel} from '../lib/models/client';
+import {ApprovalConfig} from '../lib/models/client';
 import {FlowDescriptorMap} from '../lib/models/flow';
 
 import {ConfigFacade} from './config_facade';
@@ -15,13 +15,13 @@ type I<T> = {
 export declare interface ConfigFacadeMock extends I<ConfigFacade> {
   flowDescriptorsSubject: Subject<FlowDescriptorMap>;
   approvalConfigSubject: Subject<ApprovalConfig>;
-  clientsLabelsSubject: Subject<ClientLabel[]>;
+  clientsLabelsSubject: Subject<string[]>;
 }
 
 export function mockConfigFacade(): ConfigFacadeMock {
   const flowDescriptorsSubject = new ReplaySubject<FlowDescriptorMap>();
   const approvalConfigSubject = new ReplaySubject<ApprovalConfig>();
-  const clientsLabelsSubject = new ReplaySubject<ClientLabel[]>();
+  const clientsLabelsSubject = new ReplaySubject<string[]>();
 
   return {
     flowDescriptorsSubject,
