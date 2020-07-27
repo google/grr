@@ -15,6 +15,7 @@ from grr_api_client import root
 from grr_api_client import types
 from grr_api_client import user
 from grr_api_client import yara
+from grr_api_client import metadata
 from grr_api_client.connectors import http_connector
 
 
@@ -77,6 +78,9 @@ class GrrApi(object):
   @property
   def username(self):
     return self._context.username
+
+  def GetOpenApiDescription(self, as_string=False):
+    return metadata.GetOpenApiDescription(as_string, context=self._context)
 
 
 def InitHttp(api_endpoint=None,
