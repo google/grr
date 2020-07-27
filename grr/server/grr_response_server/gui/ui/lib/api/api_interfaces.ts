@@ -36,6 +36,9 @@ export declare interface ApiAllRdfValues {
  */
 export type DecimalString = string | number;
 
+/**
+ * ApiUser protomapping.
+ */
 export declare interface ApiUser {
   readonly username?: string;
   readonly lastLogon?: string;
@@ -44,20 +47,6 @@ export declare interface ApiUser {
   readonly uid?: number;
   readonly gid?: number;
   readonly shell?: string;
-  // readonly temp?: string;
-  // readonly desktop?: string;
-  // readonly userdomain?: string;
-  // readonly sid?: string;
-  // readonly userprofile?: string;
-  // readonly appdata?: string;
-  // readonly localappdata?: string;
-  // readonly internet_cache?: string;
-  // readonly cookies?: string;
-  // readonly recent?: string;
-  // readonly personal?: string;
-  // readonly startup?: string;
-  // readonly localappdata_low?: string;
-  // readonly gids?: number[];
 }
 
 /**
@@ -86,28 +75,11 @@ export declare interface ApiKnowledgeBase {
   readonly os?: string;
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
-  // readonly environPath?: string;
-  // readonly environTemp?: string;
-
-  // readonly os_release?: string;
-  // readonly environ_allusersappdata?: string;
-  // readonly environ_allusersprofile?: string;
-  // readonly environ_commonprogramfiles?: string;
-  // readonly environ_commonprogramfilesx86?: string;
-  // readonly environ_comspec?: string;
-  // readonly environ_driverdata?: string;
-  // readonly environ_profilesdirectory?: string;
-  // readonly environ_programfiles?: string;
-  // readonly environ_programdata?: string;
-  // readonly environ_programfilesx86?: string;
-  // readonly environ_systemdrive?: string;
-  // readonly environ_systemroot?: string;
-  // readonly environ_windir?: string;
-  // readonly current_control_set?: string;
-  // readonly code_page?: string;
-  // readonly domain?: string;
 }
 
+/**
+ * ApiClientInformation protomapping.
+ */
 export declare interface ApiClientInformation {
   readonly clientName?: string;
   readonly clientVersion?: number;

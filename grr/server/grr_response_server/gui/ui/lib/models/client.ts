@@ -12,6 +12,7 @@ export interface KnowledgeBase {
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
 }
+
 /**
  * User
  */
