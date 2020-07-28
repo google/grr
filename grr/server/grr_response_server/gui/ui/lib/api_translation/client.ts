@@ -103,6 +103,7 @@ export function translateClient(client: ApiClient): Client {
     osInfo: createOptionalOsInfo(client.osInfo),
     users: (client.users || []).map(createUser),
     networkInterfaces: (client.interfaces || []).map(createNetworkInterface),
+    memorySize: client.memorySize,
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),

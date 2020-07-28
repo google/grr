@@ -6,7 +6,7 @@
     </div>
   </div>
   <div class='info mat-body-1'>
-    <table class="section">
+    <table class="section" *ngIf="client.agentInfo">
       <div class="section-title">Agent info</div>
       <tr>
         <td class="description">Client name</td>
@@ -35,7 +35,7 @@
     </table>
 
     <br>
-    <table class="section">
+    <table class="section" *ngIf="client.osInfo">
       <div class="section-title">OS Info</div>
       <tr>
         <td class="description">System</td>
@@ -50,22 +50,10 @@
         <td class="value">{{client.osInfo.version}}</td>
       </tr>
       <tr>
-        <td class="description">Machine</td>
-        <td class="value">{{client.osInfo.machine}}</td>
-      </tr>
-      <tr>
         <td class="description">Kernel</td>
         <td class="value">{{client.osInfo.kernel}}</td>
       </tr>
-      <tr>
-        <td class="description">FQDN</td>
-        <td class="value">{{client.osInfo.fqdn}}</td>
-      </tr>
-      <tr>
-        <td class="description">OS</td>
-        <td class="value">{{client.knowledgeBase.os}}</td>
-      </tr>
-      <tr>
+      <tr *ngIf="client.knowledgeBase.osMajorVersion">
         <td class="description">OS major version</td>
         <td class="value">{{client.knowledgeBase.osMajorVersion}}</td>
       </tr>
@@ -73,7 +61,7 @@
         <td class="description">OS minor version</td>
         <td class="value">{{client.knowledgeBase.osMinorVersion}}</td>
       </tr>
-      <tr>
+      <tr *ngIf="client.osInfo.installDate">
         <td class="description">Install date</td>
         <td class="value"><timestamp [date]="client.osInfo.installDate"></timestamp></td>
       </tr>
@@ -102,6 +90,18 @@
     </ng-template>
     </table>
 
+    <br>
+    <table class="section">
+      <div class="section-title">CPU & Memory</div>
+      <tr *ngIf="client.osInfo && client.osInfo.machine">
+        <td class="description">CPU Architecture</td>
+        <td class="value">{{client.osInfo.machine}}</td>
+      </tr>
+      <tr>
+        <td class="description">Memory size</td>
+        <td class="value"><human-readable-size [size]="client.memorySize"></human-readable-size></td>
+      </tr>
+    </table>
     <br>
     <table class="section">
       <div class="section-title"></div>

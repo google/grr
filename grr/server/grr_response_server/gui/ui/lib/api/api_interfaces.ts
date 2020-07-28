@@ -129,6 +129,7 @@ export declare interface ApiClient {
   readonly osInfo?: ApiUname;
   readonly interfaces?: ReadonlyArray<ApiInterface>;
   readonly users?: ReadonlyArray<ApiUser>;
+  readonly memorySize?: number;
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;
   readonly lastBootedAt?: string;

@@ -5,6 +5,7 @@ import {ClientDetailsRoutingModule} from './routing';
 import {MatIconModule} from '@angular/material/icon';
 import {CommonModule} from '@angular/common';
 import {TimestampModule} from '../timestamp/module';
+import {HumanReadableSizeModule} from '../human_readable_size/module';
 
 
 /**
@@ -17,6 +18,7 @@ import {TimestampModule} from '../timestamp/module';
     ClientDetailsRoutingModule,
     MatIconModule,
     TimestampModule,
+    HumanReadableSizeModule,
   ],
   declarations: [
     ClientDetails,

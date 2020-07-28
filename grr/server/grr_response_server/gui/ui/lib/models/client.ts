@@ -110,6 +110,8 @@ export interface Client {
   readonly users: ReadonlyArray<User>;
   /** Network interfaces of the client */
   readonly networkInterfaces: ReadonlyArray<NetworkInterface>;
+  /** Memory available to this client */
+  readonly memorySize?: number;
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
