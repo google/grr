@@ -30,7 +30,11 @@
       </tr>
       <tr>
         <td class="description">Labels</td>
-        <td class="value">{{client.agentInfo.labels}}</td>
+        <td class="value">
+          <ng-template ngFor let-label [ngForOf]="client.labels">
+            <div>{{label.name}}</div>
+          </ng-template>
+        </td>
       </tr>
     </table>
 
