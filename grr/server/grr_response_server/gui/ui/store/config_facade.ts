@@ -65,6 +65,10 @@ export class ConfigStore extends ComponentStore<ConfigState> {
   private readonly fetchClientsLabels = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.httpApiService.fetchAllClientsLabels()),
+          /**
+           * When fetching all labels the owner is not set in the API
+           * implementation, so we extract only the label names
+           */
           map(apiClientsLabels => apiClientsLabels.map(getApiClientLabelName)),
           tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
           ));
