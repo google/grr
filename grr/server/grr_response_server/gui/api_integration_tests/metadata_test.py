@@ -25,13 +25,10 @@ class ApiClientLibMetadataTest(api_integration_test_lib.ApiIntegrationTest):
   )
   def testOpenApiDescriptionValidity(self):
     import openapi_spec_validator
-    openapi_dict = self.api.GetOpenApiDescription(as_string=False)
-    try:
-      errors = openapi_spec_validator.validate_spec(openapi_dict)
-    except:
-      errors = True
+    open_api_dict = self.api.GetOpenApiDescription()
 
-    self.assertIsNone(errors)
+    # Will raise Exceptions when the OpenAPI specification is invalid.
+    openapi_spec_validator.validate_spec(open_api_dict)
 
 
 def main(argv):

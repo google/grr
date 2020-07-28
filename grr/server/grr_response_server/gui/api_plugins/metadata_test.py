@@ -59,7 +59,7 @@ class MetadataTypesHierarchyLeaf(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.MetadataTypesHierarchyLeaf
 
 
-class DummyApiCallRouter(api_call_router.ApiCallRouter):
+class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy ApiCallRouter implementation used for Metadata testing."""
 
   @api_call_router.ArgsType(MetadataSimpleMessage)
@@ -105,14 +105,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetOpenApiDescriptionHandler."""
   def setUp(self):
     super(ApiGetOpenApiDescriptionHandlerTest, self).setUp()
-    self.router = DummyApiCallRouter()
+    self.router = MetadataDummyApiCallRouter()
     self.router_methods = self.router.__class__.GetAnnotatedMethods()
 
     self.handler = metadata_plugin.ApiGetOpenApiDescriptionHandler(self.router)
 
     result = self.handler.Handle(None, token=self.token)
-    self.openapi_desc = result.openapi_description
-    self.openapi_desc_dict = json.loads(self.openapi_desc)
+    self.open_api_desc = result.open_api_description
+    self.open_api_desc_dict = json.loads(self.open_api_desc)
 
   @skip.If(
     "openapi-spec-validator" not in {p.key for p in pkg_resources.working_set},
@@ -122,7 +122,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRendersValidOpenApiDescription(self):
     import openapi_spec_validator
     try:
-      errors = openapi_spec_validator.validate_spec(self.openapi_desc_dict)
+      errors = openapi_spec_validator.validate_spec(self.open_api_desc_dict)
     except:
       errors = True
 
@@ -135,7 +135,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         http_method = http_method.lower()
 
         operation_obj = \
-          self.openapi_desc_dict["paths"][simple_path][http_method]
+          self.open_api_desc_dict["paths"][simple_path][http_method]
 
         self.assertIsNotNone(operation_obj)
 
@@ -167,13 +167,13 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
             body_params.add(field_name)
 
         # Triage parameters from the generated OpenAPI description.
-        openapi_path_params = set()
-        openapi_query_params = set()
-        openapi_body_params = set()
+        open_api_path_params = set()
+        open_api_query_params = set()
+        open_api_body_params = set()
 
         # https://swagger.io/specification/#operation-object
         operation_obj = \
-          self.openapi_desc_dict["paths"][simple_path][http_method]
+          self.open_api_desc_dict["paths"][simple_path][http_method]
 
         # parameters = operation_obj.get("parameters")
         # self.assertIsNotNone(parameters)
@@ -181,9 +181,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         for parameter in parameters:
           param_name = parameter["name"]
           if parameter["in"] == "path":
-            openapi_path_params.add(param_name)
+            open_api_path_params.add(param_name)
           elif parameter["in"] == "query":
-            openapi_query_params.add(param_name)
+            open_api_query_params.add(param_name)
           else:
             raise TypeError("Wrong OpenAPI parameter location: "
                             "\"{parameter["in"]}\"")
@@ -192,11 +192,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         if request_body_obj:
           schema_obj = request_body_obj["content"]["application/json"]["schema"]
           for param_name in schema_obj["properties"]:
-            openapi_body_params.add(param_name)
+            open_api_body_params.add(param_name)
 
-        self.assertSetEqual(path_params, openapi_path_params)
-        self.assertSetEqual(query_params, openapi_query_params)
-        self.assertSetEqual(body_params, openapi_body_params)
+        self.assertSetEqual(path_params, open_api_path_params)
+        self.assertSetEqual(query_params, open_api_query_params)
+        self.assertSetEqual(body_params, open_api_body_params)
 
   def testRouteResultOpenApiDescription(self):
     for router_method in self.router_methods.values():
@@ -210,28 +210,28 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         # Check if there is a result type schema in the OpenAPI description.
         # https://swagger.io/specification/#operation-object
         operation_obj = \
-          self.openapi_desc_dict["paths"][simple_path][http_method]
+          self.open_api_desc_dict["paths"][simple_path][http_method]
         responses_obj = operation_obj["responses"]
 
         self.assertIn("200", responses_obj)
         self.assertIn("default", responses_obj)
 
         resp_200 = responses_obj["200"]
-        result_type_openapi = "content" in resp_200
+        result_type_open_api = "content" in resp_200
 
-        self.assertEqual(result_type, result_type_openapi)
+        self.assertEqual(result_type, result_type_open_api)
 
   def testOpenApiPrimitiveTypesDescription(self):
     operation_obj = (
-      self.openapi_desc_dict
+      self.open_api_desc_dict
         .get("paths")
         .get("/metadata_test/method3")
         .get("get")
     )
     primitive_parameters = operation_obj["parameters"]
 
-    openapi_primitives = {p["name"]: p["schema"] for p in primitive_parameters}
-    openapi_primitives["BinaryStream"] = (
+    open_api_primitives = {p["name"]: p["schema"] for p in primitive_parameters}
+    open_api_primitives["BinaryStream"] = (
       operation_obj
         .get("responses")
         .get("200")
@@ -290,11 +290,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     expected_binarystream = {"type": "string", "format": "binary"}
     expected["BinaryStream"] = expected_binarystream
 
-    self.assertDictEqual(expected, openapi_primitives)
+    self.assertDictEqual(expected, open_api_primitives)
 
   def testRepetitiveField(self):
     # Test the GET route. The repeated field should be a query parameter.
-    params = (self.openapi_desc_dict.get("paths").get("/metadata_test/method4")
+    params = (self.open_api_desc_dict.get("paths").get("/metadata_test/method4")
               .get("get").get("parameters"))
     self.assertEqual(len(params), 1)
 
@@ -306,7 +306,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(schema["items"]["format"], "int64")
 
     # Test the POST route. The repeated field should be in the request body.
-    req_body = (self.openapi_desc_dict.get("paths")
+    req_body = (self.open_api_desc_dict.get("paths")
                 .get("/metadata_test/method4").get("post").get("requestBody"))
     req_schema = req_body["content"]["application/json"]["schema"]
     self.assertEqual(req_schema["type"], "object")
@@ -317,7 +317,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testEnumField(self):
     # Test the GET route. The enum field should be a query parameter.
-    params = (self.openapi_desc_dict.get("paths").get("/metadata_test/method5")
+    params = (self.open_api_desc_dict.get("paths").get("/metadata_test/method5")
               .get("get").get("parameters"))
     self.assertEqual(len(params), 1)
 
@@ -326,14 +326,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     ref_get = param["schema"]["$ref"]
     ref_nodes = ref_get.split("/")
     ref_nodes = ref_nodes[1:]
-    schema = self.openapi_desc_dict
+    schema = self.open_api_desc_dict
     for node in ref_nodes:
       schema = schema[node]
 
     # Test the OpenAPI component agains its protobuf counterpart.
     self.assertEqual(schema["type"], "integer")
     self.assertEqual(schema["format"], "int32")
-    enum_values_openapi = set(schema["enum"])
+    enum_values_open_api = set(schema["enum"])
 
     message_d = MetadataEnumFieldMessage.protobuf.DESCRIPTOR
     self.assertEqual(len(message_d.enum_types), 1)
@@ -341,12 +341,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     enum_values_ds = enum_d.values
     enum_values_protobuf = set(
       [enum_value_d.number for enum_value_d in enum_values_ds])
-    self.assertSetEqual(enum_values_openapi, enum_values_protobuf)
+    self.assertSetEqual(enum_values_open_api, enum_values_protobuf)
 
     # Test the POST route. The enum field should be in the request body.
     # Just check that the structure is correct and that the same component
     # is referenced as above.
-    req_body = (self.openapi_desc_dict.get("paths")
+    req_body = (self.open_api_desc_dict.get("paths")
                 .get("/metadata_test/method5").get("post").get("requestBody"))
     req_schema = req_body["content"]["application/json"]["schema"]
     self.assertEqual(req_schema["type"], "object")
@@ -358,7 +358,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # types are declared, including the case of cyclic dependencies.
 
     # Test that composite types are defined.
-    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+    components_schemas = self.open_api_desc_dict["components"]["schemas"]
     root = components_schemas["grr.MetadataTypesHierarchyRoot"]
     root_ref = "#/components/schemas/grr.MetadataTypesHierarchyRoot"
     cyclic = components_schemas["grr.MetadataTypesHierarchyCyclic"]

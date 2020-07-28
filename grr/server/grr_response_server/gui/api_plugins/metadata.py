@@ -62,7 +62,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def __init__(self, router):
     self.router = router
-    self.openapi_obj = None # The main OpenAPI description object.
+    self.open_api_obj = None # The main OpenAPI description object.
     self.schema_objs = None
 
     self.proto_primitive_types_names = {
@@ -146,7 +146,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _SetMetadata(self):
     oas_version = "3.0.3"
-    self.openapi_obj["openapi"] = oas_version
+    self.open_api_obj["openapi"] = oas_version
 
     # The Info Object "info" field.
     info_obj = dict()
@@ -168,13 +168,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     info_obj["version"] = f"{version_dict['major']}.{version_dict['minor']}." \
                           f"{version_dict['revision']}." \
                           f"{version_dict['release']}"
-    self.openapi_obj["info"] = info_obj
+    self.open_api_obj["info"] = info_obj
 
-    self.openapi_obj["servers"] = []
+    self.open_api_obj["servers"] = []
     server_obj = dict()
     server_obj["url"] = "/"
     server_obj["description"] = "Root path of the GRR API"
-    self.openapi_obj["servers"].append(server_obj)
+    self.open_api_obj["servers"].append(server_obj)
 
   def _AddPrimitiveTypesSchemas(self):
     """Creates OpenAPI schemas for Protobuf primitives and BinaryStream."""
@@ -393,7 +393,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     components_obj["schemas"] = schemas_obj
 
-    self.openapi_obj["components"] = components_obj
+    self.open_api_obj["components"] = components_obj
 
   def _GetSchemaOrReferenceObject(self, type_name: str, is_array=False):
     """Returns a Schema Object if primitive type, else a Reference Object.
@@ -582,7 +582,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         path_obj[http_method.lower()] = operation_obj
 
-    self.openapi_obj["paths"] = paths_obj
+    self.open_api_obj["paths"] = paths_obj
 
   def Handle(
       self,
@@ -591,15 +591,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> ApiGetOpenApiDescriptionResult:
     result = ApiGetOpenApiDescriptionResult()
 
-    if self.openapi_obj is not None:
-      result.openapi_description = json.dumps(self.openapi_obj)
+    if self.open_api_obj is not None:
+      result.open_api_description = json.dumps(self.open_api_obj)
       return result
 
-    self.openapi_obj = dict()
+    self.open_api_obj = dict()
     self._SetMetadata()
     self._ExtractSchemas()
     self._SetComponents()
     self._SetEndpoints()
 
-    result.openapi_description = json.dumps(self.openapi_obj)
+    result.open_api_description = json.dumps(self.open_api_obj)
     return result

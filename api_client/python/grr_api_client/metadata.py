@@ -7,14 +7,12 @@ from __future__ import unicode_literals
 import json
 
 
-def GetOpenApiDescription(as_string=False, context=None):
+def GetOpenApiDescription(context=None):
+  """Returns the OpenAPI description of the GRR API as a dictionary."""
   if not context:
     raise ValueError("context can't be empty")
 
-  openapi_proto = context.SendRequest("GetOpenApiDescription", None)
-  openapi_json = openapi_proto.openapi_description
+  open_api_proto = context.SendRequest("GetOpenApiDescription", None)
+  open_api_json = open_api_proto.open_api_description
 
-  if as_string:
-    return openapi_json
-
-  return json.loads(openapi_json)
+  return json.loads(open_api_json)

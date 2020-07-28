@@ -79,8 +79,8 @@ class GrrApi(object):
   def username(self):
     return self._context.username
 
-  def GetOpenApiDescription(self, as_string=False):
-    return metadata.GetOpenApiDescription(as_string, context=self._context)
+  def GetOpenApiDescription(self):
+    return metadata.GetOpenApiDescription(context=self._context)
 
 
 def InitHttp(api_endpoint=None,
