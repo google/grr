@@ -6,7 +6,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, timer} from 'rxjs';
+import {combineLatest, interval, merge, Observable, of, Subject, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
@@ -24,7 +24,7 @@ interface FlowInConfiguration {
 /** State of a flow being started. */
 export type StartFlowState = {
   readonly state: 'request_not_sent'
-}|{
+} | {
   readonly state: 'request_sent',
 }|{
   readonly state: 'started',
@@ -33,6 +33,10 @@ export type StartFlowState = {
   readonly state: 'scheduled',
   readonly scheduledFlow: ScheduledFlow,
 }|{
+} | {
+  readonly state: 'success',
+  readonly flow: Flow,
+} | {
   readonly state: 'error',
   readonly error: string,
 };
@@ -510,6 +514,16 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.updateScheduledFlows(scheduledFlows);
           }),
           ));
+
+  // An effect to add a label to the selected client
+  readonly addClientLabel = this.effect<string>(
+      obs$ => obs$.pipe(
+          withLatestFrom(this.selectedClientId$),
+          switchMap(
+              ([label, clientId]) =>
+                  this.httpApiService.addClientLabel(clientId, label)),
+          tap(() => this.fetchClient()),
+          ));
 }
 
 /** Facade for client-related API calls. */
@@ -585,5 +599,9 @@ export class ClientPageFacade {
   /** Stops the flow configuration process. */
   stopFlowConfiguration() {
     this.store.stopFlowConfiguration();
+  }
+
+  addClientLabel(label: string) {
+    this.store.addClientLabel(label);
   }
 }
