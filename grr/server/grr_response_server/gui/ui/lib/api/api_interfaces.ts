@@ -13,18 +13,21 @@ export declare interface AnyObject {
   [key: string]: undefined | null | string | number | boolean | object;
 }
 
+/** Api RdfValueFieldDescriptor proto mapping. */
 export declare interface RdfValueFieldDescriptor {
   readonly name?: string;
   readonly doc?: string;
   readonly friendlyName?: string;
 }
 
+/** Api RdfValueDescriptor proto mapping. */
 export declare interface RdfValueDescriptor {
   readonly name?: string;
   readonly doc?: string;
   readonly fields?: ReadonlyArray<RdfValueFieldDescriptor>;
 }
 
+/** ApiAllRdfValues proto mapping. */
 export declare interface ApiAllRdfValues {
   readonly items?: ReadonlyArray<RdfValueDescriptor>;
 }
@@ -65,6 +68,7 @@ export declare interface ApiInterface {
   readonly ifname?: string;
   readonly addresses?: ReadonlyArray<ApiNetworkAddress>;
 }
+
 /**
  * KnowledgeBase proto mapping.
  */
@@ -78,7 +82,7 @@ export declare interface ApiKnowledgeBase {
 }
 
 /**
- * ApiClientInformation protomapping.
+ * ApiClientInformation proto mapping.
  */
 export declare interface ApiClientInformation {
   readonly clientName?: string;
@@ -88,6 +92,15 @@ export declare interface ApiClientInformation {
   readonly clientBinaryName?: string;
   readonly clientDescription?: string;
   readonly labels?: string[];
+}
+
+/** ApiVolume proto mapping. */
+export declare interface ApiVolume {
+  readonly name?: string;
+  readonly totalAllocationUnits?: number;
+  readonly sectorsPerAllocationUnit?: number;
+  readonly bytesPerSector?: number;
+  readonly actualAvailableAllocationUnits?: number;
 }
 
 /**
