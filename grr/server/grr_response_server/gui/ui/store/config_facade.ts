@@ -1,12 +1,13 @@
 import {Injectable} from '@angular/core';
+import {HttpApiService} from '@app/lib/api/http_api_service';
+import {getApiClientLabelName} from '@app/lib/api_translation/client';
+import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {ComponentStore} from '@ngrx/component-store';
 import {Store} from '@ngrx/store';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
-import {ApprovalConfig} from '../lib/models/client';
+import {ApprovalConfig, ClientLabel} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 
 
@@ -14,6 +15,7 @@ import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
+  clientsLabels?: string[];
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -38,6 +40,11 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         return {...state, approvalConfig};
       });
 
+  private readonly updateClientsLabels =
+      this.updater<string[]>((state, clientsLabels) => {
+        return {...state, clientsLabels};
+      });
+
   private readonly listFlowDescriptors = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.httpApiService.listFlowDescriptors()),
@@ -53,6 +60,17 @@ export class ConfigStore extends ComponentStore<ConfigState> {
           tap(approvalConfig => {
             this.updateApprovalConfig(approvalConfig);
           }),
+          ));
+
+  private readonly fetchClientsLabels = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.httpApiService.fetchAllClientsLabels()),
+          /**
+           * When fetching all labels the owner is not set in the API
+           * implementation, so we extract only the label names
+           */
+          map(apiClientsLabels => apiClientsLabels.map(getApiClientLabelName)),
+          tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
           ));
 
   /** An observable emitting available flow descriptors. */
@@ -80,6 +98,15 @@ export class ConfigStore extends ComponentStore<ConfigState> {
               approvalConfig !== undefined),
       shareReplay(1),  // Ensure that the query is done just once.
   );
+
+  /** An observable emitting a list of all clients labels. */
+  readonly clientsLabels$ = of(undefined).pipe(
+      tap(() => this.fetchClientsLabels()),
+      switchMapTo(this.select(state => state.clientsLabels)),
+      filter(
+          (clientsLabels): clientsLabels is string[] =>
+              clientsLabels !== undefined),
+  );
 }
 
 
@@ -97,4 +124,7 @@ export class ConfigFacade {
   /** An observable emitting the approval configuration. */
   readonly approvalConfig$: Observable<ApprovalConfig> =
       this.store.approvalConfig$;
+
+  /** An observable emitting a list of all clients labels. */
+  readonly clientsLabels$: Observable<string[]> = this.store.clientsLabels$;
 }

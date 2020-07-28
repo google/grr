@@ -37,6 +37,20 @@ export declare interface ApiClientLabel {
 }
 
 /**
+ * ApiListClientsLabelsResult proto mapping.
+ */
+export declare interface ApiListClientsLabelsResult {
+  readonly items?: ReadonlyArray<ApiClientLabel>;
+}
+/**
+ * AddClientsLabelsArgs proto mapping.
+ */
+export declare interface ApiAddClientsLabelsArgs {
+  readonly clientIds: ReadonlyArray<string>;
+  readonly labels: ReadonlyArray<string>;
+}
+
+/**
  * ApiClient proto mapping.
  */
 export declare interface ApiClient {
