@@ -23,50 +23,48 @@ function createClientLabel(label: ApiClientLabel): ClientLabel {
   return {owner: label.owner, name: label.name};
 }
 
-function createOptionalAgentInfo(apiAgentInfo?: ApiClientInformation): AgentInfo | undefined {
-  if (apiAgentInfo === undefined) return undefined;
+function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   return {
-    clientName: apiAgentInfo.clientName || 'Unknown',
-    clientVersion: apiAgentInfo.clientVersion || 0,
-    revision: apiAgentInfo.revision || 0,
-    buildTime: apiAgentInfo.buildTime || 'Unknown',
-    clientBinaryName: apiAgentInfo.clientBinaryName || 'Unknown',
-    clientDescription: apiAgentInfo.clientDescription || 'Unknown',
-    labels: apiAgentInfo.labels || [],
+    clientName: apiAgentInfo.clientName,
+    clientVersion: apiAgentInfo.clientVersion,
+    revision: apiAgentInfo.revision,
+    buildTime: apiAgentInfo.buildTime,
+    clientBinaryName: apiAgentInfo.clientBinaryName,
+    clientDescription: apiAgentInfo.clientDescription,
   }
 }
 
-function createOptionalOsInfo(apiUname?: ApiUname ): OsInfo | undefined {
-  if (apiUname === undefined) return undefined;
-
+function createOsInfo(apiUname: ApiUname): OsInfo {
   return {
-    system: apiUname.system || 'Unknown',
-    node: apiUname.node || 'Unknown',
-    release: apiUname.release || 'Unknown',
-    version: apiUname.version || 'Unknown',
-    machine: apiUname.machine || 'Unknown',
-    kernel: apiUname.kernel || 'Unknown',
-    fqdn: apiUname.fqdn || 'Unknown',
+    system: apiUname.system,
+    node: apiUname.node,
+    release: apiUname.release,
+    version: apiUname.version,
+    machine: apiUname.machine,
+    kernel: apiUname.kernel,
+    fqdn: apiUname.fqdn,
     installDate: createOptionalDate(apiUname.installDate),
-    libcVer: apiUname.libcVer || 'Unknown',
-    architecture: apiUname.architecture || 'Unknown',
-    pep425tag: apiUname.pep425tag || 'Unknown',
+    libcVer: apiUname.libcVer,
+    architecture: apiUname.architecture,
   }
 }
 
 function createUser(apiUser: ApiUser): User {
   return {
-    username: apiUser.username || '',
-    fullName: apiUser.fullName || '',
+    username: apiUser.username,
+    fullName: apiUser.fullName,
     lastLogon: createOptionalDate(apiUser.lastLogon),
-    uid: apiUser.uid || 0,
-    gid: apiUser.gid || 0,
-    shell: apiUser.shell || '',
-    homedir: apiUser.homedir || '',
+    uid: apiUser.uid,
+    gid: apiUser.gid,
+    shell: apiUser.shell,
+    homedir: apiUser.homedir,
   }
 }
 
 function createNetworkAddress(apiNetAddress: ApiNetworkAddress): NetworkAddress {
+  if (!apiNetAddress.addressType) throw new Error('addressType attribute is missing.');
+  if (!apiNetAddress.packedBytes) throw new Error('packedBytes attribute is missing.');
+
   let addressType = 'IPv4'
   if (apiNetAddress.addressType === 'INET6') {
     addressType = 'IPv6';
@@ -81,9 +79,12 @@ function createNetworkAddress(apiNetAddress: ApiNetworkAddress): NetworkAddress 
 }
 
 function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
+  if (!apiInterface.macAddress) throw new Error('macAddress attribute is missing.');
+  if (!apiInterface.ifname) throw new Error('ifname attribute is missing.');
+
   return {
     macAddress: createMacAddress(decodeBase64(apiInterface.macAddress)),
-    interfaceName: apiInterface.ifname || '',
+    interfaceName: apiInterface.ifname,
     addresses: (apiInterface.addresses || []).map(createNetworkAddress),
   }
 }
@@ -124,10 +125,10 @@ export function translateClient(client: ApiClient): Client {
   return {
     clientId: client.clientId,
     fleetspeakEnabled: client.fleetspeakEnabled || false,
-    agentInfo: createOptionalAgentInfo(client.agentInfo),
+    agentInfo: createAgentInfo(client.agentInfo || {}),
     labels: (client.labels || []).map(createClientLabel),
     knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
-    osInfo: createOptionalOsInfo(client.osInfo),
+    osInfo: createOsInfo(client.osInfo || {}),
     users: (client.users || []).map(createUser),
     networkInterfaces: (client.interfaces || []).map(createNetworkInterface),
     volumes: (client.volumes || []).map(createStorageVolume),

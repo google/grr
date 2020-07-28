@@ -74,6 +74,8 @@ describe('Client Details Component', () => {
       knowledgeBase: {
         fqdn: 'foo.unknown',
       },
+      agentInfo: {},
+      osInfo: {},
       users: [],
       networkInterfaces: [],
       volumes: [],

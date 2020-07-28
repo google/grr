@@ -91,6 +91,9 @@ describe('ClientSearch Component', () => {
         knowledgeBase: {
           fqdn: 'foo.unknown',
         },
+        osInfo: {},
+        agentInfo: {},
+        volumes: [],
         users: [],
         networkInterfaces: [],
         lastSeenAt: new Date(1571789996678),
@@ -102,6 +105,9 @@ describe('ClientSearch Component', () => {
         knowledgeBase: {
           fqdn: 'bar.unknown',
         },
+        osInfo: {},
+        agentInfo: {},
+        volumes: [],
         users: [],
         networkInterfaces: [],
         labels: [],

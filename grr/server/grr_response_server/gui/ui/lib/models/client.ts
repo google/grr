@@ -13,6 +13,9 @@ export interface KnowledgeBase {
   readonly osMinorVersion?: number;
 }
 
+/**
+ * Storage volume.
+ */
 export interface StorageVolume {
   readonly name?: string;
   readonly devicePath?: string;
@@ -27,30 +30,29 @@ export interface StorageVolume {
  * User
  */
 export interface User {
-  readonly username: string;
+  readonly username?: string;
   readonly lastLogon?: Date;
-  readonly fullName: string;
-  readonly homedir: string;
-  readonly uid: number;
-  readonly gid: number;
-  readonly shell: string;
+  readonly fullName?: string;
+  readonly homedir?: string;
+  readonly uid?: number;
+  readonly gid?: number;
+  readonly shell?: string;
 }
 
 /**
  * System information
  */
 export interface OsInfo {
-  readonly system: string;
-  readonly node: string;
-  readonly release: string;
-  readonly version: string;
-  readonly machine: string;
-  readonly kernel: string;
-  readonly fqdn: string;
+  readonly system?: string;
+  readonly node?: string;
+  readonly release?: string;
+  readonly version?: string;
+  readonly machine?: string;
+  readonly kernel?: string;
+  readonly fqdn?: string;
   readonly installDate?: Date;
-  readonly libcVer: string;
-  readonly architecture: string;
-  readonly pep425tag: string;
+  readonly libcVer?: string;
+  readonly architecture?: string;
 }
 
 /**
@@ -74,13 +76,12 @@ export interface NetworkInterface {
  * Info about the agent running on the client.
  */
 export interface AgentInfo {
-  readonly clientName: string;
-  readonly clientVersion: number;
-  readonly revision: number;
-  readonly buildTime: string;
-  readonly clientBinaryName: string;
-  readonly clientDescription: string;
-  readonly labels: string[];
+  readonly clientName?: string;
+  readonly clientVersion?: number;
+  readonly revision?: number;
+  readonly buildTime?: string;
+  readonly clientBinaryName?: string;
+  readonly clientDescription?: string;
 }
 
 /**
@@ -100,11 +101,11 @@ export interface Client {
   /** Whether the client communicates with GRR through Fleetspeak. */
   readonly fleetspeakEnabled: boolean;
   /** Metadata about the GRR client */
-  readonly agentInfo?: AgentInfo;
+  readonly agentInfo: AgentInfo;
   /** Client's knowledge base. */
   readonly knowledgeBase: KnowledgeBase;
   /** Data about the system of the client */
-  readonly osInfo?: OsInfo;
+  readonly osInfo: OsInfo;
   /** Users on the client */
   readonly users: ReadonlyArray<User>;
   /** Network interfaces of the client */

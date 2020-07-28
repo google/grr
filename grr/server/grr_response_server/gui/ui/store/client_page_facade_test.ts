@@ -554,18 +554,22 @@ describe('ClientPageFacade', () => {
           fleetspeakEnabled: false,
           knowledgeBase: {},
           users: [],
+          osInfo: {},
+          agentInfo: {},
           networkInterfaces: [],
           volumes: [],
-          labels: []
+          labels: [],
         },
         {
           clientId: 'C.5678',
           fleetspeakEnabled: true,
           knowledgeBase: {},
           users: [],
+          osInfo: {},
+          agentInfo: {},
           networkInterfaces: [],
           volumes: [],
-          labels: []
+          labels: [],
         },
       ];
 
