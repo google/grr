@@ -1,4 +1,4 @@
-import {Component, Input} from '@angular/core';
+import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
 
 /**
  * Shows a size in a human readable format.
@@ -7,13 +7,15 @@ import {Component, Input} from '@angular/core';
   selector: 'human-readable-size',
   templateUrl: './human_readable_size.ng.html',
 })
-export class HumanReadableSizeComponent {
+export class HumanReadableSizeComponent implements OnChanges {
   @Input() size?: number;
   private static readonly UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
+  private humanSize: string = '-';
 
-  toHuman(): string {
+  updateHumanSize(): void {
     if (this.size === undefined || this.size < 0) {
-      return '-';
+      this.humanSize = '-';
+      return;
     }
 
     let i = 0;
@@ -29,6 +31,11 @@ export class HumanReadableSizeComponent {
       decimals = 0;
     }
 
-    return size.toFixed(decimals) + ' ' + HumanReadableSizeComponent.UNITS[i];
+    this.humanSize =
+        size.toFixed(decimals) + ' ' + HumanReadableSizeComponent.UNITS[i];
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    this.updateHumanSize();
   }
 }

@@ -555,6 +555,7 @@ describe('ClientPageFacade', () => {
           knowledgeBase: {},
           users: [],
           networkInterfaces: [],
+          volumes: [],
           labels: []
         },
         {
@@ -563,6 +564,7 @@ describe('ClientPageFacade', () => {
           knowledgeBase: {},
           users: [],
           networkInterfaces: [],
+          volumes: [],
           labels: []
         },
       ];

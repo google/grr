@@ -2,8 +2,8 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress} from '../models/client';
+import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress, ApiVolume} from '../api/api_interfaces';
+import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress, StorageVolume} from '../models/client';
 
 import {createOptionalDate, createIpv4Address, decodeBase64, createMacAddress, createIpv6Address} from './primitive';
 
@@ -88,6 +88,33 @@ function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
   }
 }
 
+function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
+  let totalSize = 0;
+  let freeSpace = 0;
+  if (apiVolume.bytesPerSector && apiVolume.sectorsPerAllocationUnit) {
+    if (apiVolume.totalAllocationUnits) {
+      totalSize = apiVolume.bytesPerSector *
+          apiVolume.sectorsPerAllocationUnit * apiVolume.totalAllocationUnits;
+    }
+
+    if (apiVolume.actualAvailableAllocationUnits) {
+      freeSpace = apiVolume.bytesPerSector *
+          apiVolume.sectorsPerAllocationUnit *
+          apiVolume.actualAvailableAllocationUnits;
+    }
+  }
+
+  return {
+    name: apiVolume.name,
+    devicePath: apiVolume.devicePath,
+    fileSystemType: apiVolume.fileSystemType,
+    bytesPerSector: apiVolume.bytesPerSector,
+    totalSize: totalSize,
+    freeSpace: freeSpace,
+    creationTime: createOptionalDate(apiVolume.creationTime),
+  }
+}
+
 /**
  * Constructs a Client object from the corresponding API data structure.
  */
@@ -103,6 +130,7 @@ export function translateClient(client: ApiClient): Client {
     osInfo: createOptionalOsInfo(client.osInfo),
     users: (client.users || []).map(createUser),
     networkInterfaces: (client.interfaces || []).map(createNetworkInterface),
+    volumes: (client.volumes || []).map(createStorageVolume),
     memorySize: client.memorySize,
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),

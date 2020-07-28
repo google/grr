@@ -80,6 +80,7 @@ describe('Client Component', () => {
       },
       users: [],
       networkInterfaces: [],
+      volumes: [],
       lastSeenAt: new Date(1571789996678),
       labels: [],
     });

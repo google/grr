@@ -97,10 +97,13 @@ export declare interface ApiClientInformation {
 /** ApiVolume proto mapping. */
 export declare interface ApiVolume {
   readonly name?: string;
+  readonly devicePath?: string;
+  readonly fileSystemType?: string;
   readonly totalAllocationUnits?: number;
   readonly sectorsPerAllocationUnit?: number;
   readonly bytesPerSector?: number;
   readonly actualAvailableAllocationUnits?: number;
+  readonly creationTime?: string;
 }
 
 /**
@@ -142,6 +145,7 @@ export declare interface ApiClient {
   readonly osInfo?: ApiUname;
   readonly interfaces?: ReadonlyArray<ApiInterface>;
   readonly users?: ReadonlyArray<ApiUser>;
+  readonly volumes?: ReadonlyArray<ApiVolume>;
   readonly memorySize?: number;
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;

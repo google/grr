@@ -13,6 +13,16 @@ export interface KnowledgeBase {
   readonly osMinorVersion?: number;
 }
 
+export interface StorageVolume {
+  readonly name?: string;
+  readonly devicePath?: string;
+  readonly fileSystemType?: string;
+  readonly totalSize?: number;
+  readonly bytesPerSector?: number;
+  readonly freeSpace?: number;
+  readonly creationTime?: Date;
+}
+
 /**
  * User
  */
@@ -24,23 +34,6 @@ export interface User {
   readonly uid: number;
   readonly gid: number;
   readonly shell: string;
-}
-
-/**
- * Network address
- */
-export declare interface ApiNetworkAddress {
-  readonly addressType?: string;
-  readonly packedBytes?: string;
-}
-
-/**
- * Network Interface
- */
-export declare interface ApiInterface {
-  readonly macAddress?: string;
-  readonly ifname?: string;
-  readonly addresses?: ReadonlyArray<ApiNetworkAddress>;
 }
 
 /**
@@ -60,11 +53,17 @@ export interface OsInfo {
   readonly pep425tag: string;
 }
 
+/**
+ * Network Address
+ */
 export interface NetworkAddress {
   readonly addressType: string;
   readonly ipAddress: string;
 }
 
+/**
+ * Network interface
+ */
 export interface NetworkInterface {
   readonly macAddress: string;
   readonly interfaceName: string;
@@ -110,6 +109,8 @@ export interface Client {
   readonly users: ReadonlyArray<User>;
   /** Network interfaces of the client */
   readonly networkInterfaces: ReadonlyArray<NetworkInterface>;
+  /** Storage volumes available to the client */
+  readonly volumes: ReadonlyArray<StorageVolume>;
   /** Memory available to this client */
   readonly memorySize?: number;
   // TODO(user): Replace `Date` type with immutable date type.

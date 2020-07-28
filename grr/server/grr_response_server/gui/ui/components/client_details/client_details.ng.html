@@ -68,7 +68,7 @@
     </table>
 
     <br>
-    <table class="section">
+    <table class="section" *ngIf="client.networkInterfaces.length > 0">
       <div class="section-title">Network interfaces</div>
       <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces">
       <tr>
@@ -104,7 +104,7 @@
     </table>
 
     <br>
-    <table class="section">
+    <table class="section" *ngIf="client.users.length > 0">
       <div class="section-title">Users</div>
       <ng-template ngFor let-user [ngForOf]="client.users">
       <tr>
@@ -140,12 +140,39 @@
     </table>
 
     <br>
-    <table class="section">
+    <table class="section" *ngIf="client.volumes.length > 0">
       <div class="section-title">Storage volumes</div>
-      <tr>
-        <td class="description"></td>
-        <td class="value"></td>
-      </tr>
+      <ng-template ngFor let-volume [ngForOf]="client.volumes">
+        <tr *ngIf="volume.name">
+          <td class="description">Volume Name</td>
+          <td class="value">{{volume.name}}</td>
+        </tr>
+        <tr *ngIf="volume.devicePath">
+          <td class="description">Storage device path</td>
+          <td class="value">{{volume.devicePath}}</td>
+        </tr>
+        <tr *ngIf="volume.fileSystemType">
+          <td class="description">Filesystem Type</td>
+          <td class="value">{{volume.fileSystemType}}</td>
+        </tr>
+        <tr *ngIf="volume.totalSize">
+          <td class="description">Total Size</td>
+          <td class="value"><human-readable-size [size]="volume.totalSize"></human-readable-size></td>
+        </tr>
+        <tr *ngIf="volume.freeSpace">
+          <td class="description">Free Space</td>
+          <td class="value"><human-readable-size [size]="volume.freeSpace"></human-readable-size></td>
+        </tr>
+        <tr *ngIf="volume.bytesPerSector">
+          <td class="description">Sector Size</td>
+          <td class="value">{{volume.bytesPerSector}} B</td>
+        </tr>
+        <tr *ngIf="volume.creationTime">
+          <td class="description">Creation time</td>
+          <td class="value"><timestamp [date]="volume.creationTime"></timestamp></td>
+        </tr>
+        <br>
+      </ng-template>
     </table>
     <br>
     <table class="section">
