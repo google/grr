@@ -1,5 +1,5 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiFlowDescriptor, ApiClientLabel} from '@app/lib/api/api_interfaces';
+import {ApiClientLabel, ApiFlowDescriptor} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ConfigFacade} from '@app/store/config_facade';
 import {initTestEnvironment} from '@app/testing';
@@ -21,11 +21,11 @@ describe('ConfigFacade', () => {
 
     httpApiService = {
       listFlowDescriptors: jasmine.createSpy('listFlowDescriptors')
-        .and.returnValue(apiListFlowDescriptors$),
+                               .and.returnValue(apiListFlowDescriptors$),
       fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig')
-        .and.returnValue(apiFetchApprovalConfig$),
+                               .and.returnValue(apiFetchApprovalConfig$),
       fetchAllClientsLabels: jasmine.createSpy('fetchAllClientsLabels')
-        .and.returnValue(apiFetchAllClientsLabels$),
+                                 .and.returnValue(apiFetchAllClientsLabels$),
     };
 
     TestBed.configureTestingModule({

@@ -1,14 +1,14 @@
 import {Injectable} from '@angular/core';
+import {HttpApiService} from '@app/lib/api/http_api_service';
+import {getApiClientLabelName} from '@app/lib/api_translation/client';
+import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {ComponentStore} from '@ngrx/component-store';
 import {Store} from '@ngrx/store';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ApprovalConfig, ClientLabel} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
-import {getApiClientLabelName} from '@app/lib/api_translation/client';
 
 
 /** The state of the Config. */
@@ -65,10 +65,9 @@ export class ConfigStore extends ComponentStore<ConfigState> {
   private readonly fetchClientsLabels = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.httpApiService.fetchAllClientsLabels()),
-          map(apiClientsLabels =>
-              apiClientsLabels.map(getApiClientLabelName)),
+          map(apiClientsLabels => apiClientsLabels.map(getApiClientLabelName)),
           tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
-        ));
+          ));
 
   /** An observable emitting available flow descriptors. */
   readonly flowDescriptors$ = of(undefined).pipe(
@@ -100,8 +99,9 @@ export class ConfigStore extends ComponentStore<ConfigState> {
   readonly clientsLabels$ = of(undefined).pipe(
       tap(() => this.fetchClientsLabels()),
       switchMapTo(this.select(state => state.clientsLabels)),
-      filter((clientsLabels): clientsLabels is string[] =>
-          clientsLabels !== undefined),
+      filter(
+          (clientsLabels): clientsLabels is string[] =>
+              clientsLabels !== undefined),
   );
 }
 
@@ -122,6 +122,5 @@ export class ConfigFacade {
       this.store.approvalConfig$;
 
   /** An observable emitting a list of all clients labels. */
-  readonly clientsLabels$: Observable<string[]> =
-      this.store.clientsLabels$;
+  readonly clientsLabels$: Observable<string[]> = this.store.clientsLabels$;
 }
