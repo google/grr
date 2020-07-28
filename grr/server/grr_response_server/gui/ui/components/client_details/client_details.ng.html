@@ -102,6 +102,43 @@
         <td class="value"><human-readable-size [size]="client.memorySize"></human-readable-size></td>
       </tr>
     </table>
+
+    <br>
+    <table class="section">
+      <div class="section-title">Users</div>
+      <ng-template ngFor let-user [ngForOf]="client.users">
+      <tr>
+        <td class="description">Username</td>
+        <td class="value">{{user.username}}</td>
+      </tr>
+      <tr>
+        <td class="description">Full name</td>
+        <td class="value">{{user.fullName}}</td>
+      </tr>
+      <tr *ngIf="user.lastLogon">
+        <td class="description">Last Logon</td>
+        <td class="value"><timestamp [date]="user.lastLogon"></timestamp></td>
+      </tr>
+      <tr>
+        <td class="description">Home directory</td>
+        <td class="value">{{user.homedir}}</td>
+      </tr>
+      <tr>
+        <td class="description">UID</td>
+        <td class="value">{{user.uid}}</td>
+      </tr>
+      <tr>
+        <td class="description">GID</td>
+        <td class="value">{{user.gid}}</td>
+      </tr>
+      <tr>
+        <td class="description">Shell</td>
+        <td class="value">{{user.shell}}</td>
+      </tr>
+      <br>
+      </ng-template>
+    </table>
+
     <br>
     <table class="section">
       <div class="section-title"></div>
@@ -110,6 +147,5 @@
         <td class="value"></td>
       </tr>
     </table>
-
   </div>
 </div>
