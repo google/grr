@@ -9,8 +9,24 @@
     <table class="section">
       <div class="section-title">General</div>
       <tr>
-        <td class="description"></td>
-        <td class="value"></td>
+        <td class="description">Client ID</td>
+        <td class="value">{{client.clientId}}</td>
+      </tr>
+      <tr *ngIf="client.knowledgeBase.fqdn">
+        <td class="description">FQDN</td>
+        <td class="value">{{client.knowledgeBase.fqdn}}</td>
+      </tr>
+      <tr *ngIf="client.lastSeenAt">
+        <td class="description">Last seen</td>
+        <td class="value"><timestamp [date]="client.lastSeenAt"></timestamp></td>
+      </tr>
+      <tr *ngIf="client.lastClock">
+        <td class="description">Last clock</td>
+        <td class="value"><timestamp [date]="client.lastClock"></timestamp></td>
+      </tr>
+      <tr *ngIf="client.lastBootedAt">
+        <td class="description">Last boot</td>
+        <td class="value"><timestamp [date]="client.lastBootedAt"></timestamp></td>
       </tr>
       <tr>
         <td class="description">Labels</td>
