@@ -6,34 +6,18 @@
     </div>
   </div>
   <div class='info mat-body-1'>
-    <table class="section" *ngIf="client.agentInfo">
-      <div class="section-title">Agent info</div>
+    <table class="section">
+      <div class="section-title">General</div>
       <tr>
-        <td class="description">Client name</td>
-        <td class="value">{{client.agentInfo.clientName}}</td>
-      </tr>
-      <tr>
-        <td class="description">Client version</td>
-        <td class="value">{{client.agentInfo.clientVersion}}</td>
-      </tr>
-      <tr>
-        <td class="description">Build time</td>
-        <td class="value">{{client.agentInfo.buildTime}}</td>
-      </tr>
-      <tr>
-        <td class="description">Client binary name</td>
-        <td class="value">{{client.agentInfo.clientBinaryName}}</td>
-      </tr>
-      <tr>
-        <td class="description">Client description</td>
-        <td class="value">{{client.agentInfo.clientDescription}}</td>
+        <td class="description"></td>
+        <td class="value"></td>
       </tr>
       <tr>
         <td class="description">Labels</td>
         <td class="value">
-          <ng-template ngFor let-label [ngForOf]="client.labels">
-            <div>{{label.name}}</div>
-          </ng-template>
+          <div *ngFor="let label of client.labels">
+            {{label.name}}
+          </div>
         </td>
       </tr>
     </table>
@@ -61,49 +45,13 @@
         <td class="description">OS major version</td>
         <td class="value">{{client.knowledgeBase.osMajorVersion}}</td>
       </tr>
-      <tr>
+      <tr *ngIf="client.knowledgeBase.osMinorVersion">
         <td class="description">OS minor version</td>
         <td class="value">{{client.knowledgeBase.osMinorVersion}}</td>
       </tr>
       <tr *ngIf="client.osInfo.installDate">
         <td class="description">Install date</td>
         <td class="value"><timestamp [date]="client.osInfo.installDate"></timestamp></td>
-      </tr>
-    </table>
-
-    <br>
-    <table class="section" *ngIf="client.networkInterfaces.length > 0">
-      <div class="section-title">Network interfaces</div>
-      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces">
-      <tr>
-        <td class="description">Interface Name</td>
-        <td class="value">{{interface.interfaceName}}</td>
-      </tr>
-      <tr>
-        <td class="description">MAC</td>
-        <td class="value">{{interface.macAddress}}</td>
-      </tr>
-      <tr>
-        <td class="description">IP Addresses</td>
-        <td class="value">
-          <ng-template ngFor let-address [ngForOf]="interface.addresses">
-            <div>{{address.ipAddress}}</div>
-          </ng-template>
-        </td>
-      </tr>
-    </ng-template>
-    </table>
-
-    <br>
-    <table class="section">
-      <div class="section-title">CPU & Memory</div>
-      <tr *ngIf="client.osInfo && client.osInfo.machine">
-        <td class="description">CPU Architecture</td>
-        <td class="value">{{client.osInfo.machine}}</td>
-      </tr>
-      <tr>
-        <td class="description">Memory size</td>
-        <td class="value"><human-readable-size [size]="client.memorySize"></human-readable-size></td>
       </tr>
     </table>
 
@@ -144,6 +92,42 @@
     </table>
 
     <br>
+    <table class="section">
+      <div class="section-title">CPU & Memory</div>
+      <tr *ngIf="client.osInfo && client.osInfo.machine">
+        <td class="description">CPU Architecture</td>
+        <td class="value">{{client.osInfo.machine}}</td>
+      </tr>
+      <tr>
+        <td class="description">Memory size</td>
+        <td class="value"><human-readable-size [size]="client.memorySize"></human-readable-size></td>
+      </tr>
+    </table>
+
+    <br>
+    <table class="section" *ngIf="client.networkInterfaces.length > 0">
+      <div class="section-title">Network interfaces</div>
+      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces">
+      <tr>
+        <td class="description">Interface Name</td>
+        <td class="value">{{interface.interfaceName}}</td>
+      </tr>
+      <tr>
+        <td class="description">MAC</td>
+        <td class="value">{{interface.macAddress}}</td>
+      </tr>
+      <tr>
+        <td class="description">IP Addresses</td>
+        <td class="value">
+          <div *ngFor="let address of interface.addresses">
+            {{address.ipAddress}}
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    </table>
+
+    <br>
     <table class="section" *ngIf="client.volumes.length > 0">
       <div class="section-title">Storage volumes</div>
       <ng-template ngFor let-volume [ngForOf]="client.volumes">
@@ -178,12 +162,29 @@
         <br>
       </ng-template>
     </table>
+
     <br>
-    <table class="section">
-      <div class="section-title"></div>
+    <table class="section" *ngIf="client.agentInfo">
+      <div class="section-title">Agent info</div>
       <tr>
-        <td class="description"></td>
-        <td class="value"></td>
+        <td class="description">Client name</td>
+        <td class="value">{{client.agentInfo.clientName}}</td>
+      </tr>
+      <tr>
+        <td class="description">Client version</td>
+        <td class="value">{{client.agentInfo.clientVersion}}</td>
+      </tr>
+      <tr>
+        <td class="description">Build time</td>
+        <td class="value">{{client.agentInfo.buildTime}}</td>
+      </tr>
+      <tr>
+        <td class="description">Client binary name</td>
+        <td class="value">{{client.agentInfo.clientBinaryName}}</td>
+      </tr>
+      <tr>
+        <td class="description">Client description</td>
+        <td class="value">{{client.agentInfo.clientDescription}}</td>
       </tr>
     </table>
   </div>
