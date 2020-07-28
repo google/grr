@@ -1,0 +1,23 @@
+@use '~material-theme' as c;
+
+.title {
+  text-align: center;
+  font-family: c.$google-sans-family;
+}
+
+.content {
+  text-align: center;
+
+  p {
+    font-family: c.$roboto-family;
+    color: c.mat-color(c.$foreground, text-light);
+  }
+
+  .label-field {
+    width: 100%;
+  }
+}
+
+.actions {
+  justify-content: flex-end;
+}

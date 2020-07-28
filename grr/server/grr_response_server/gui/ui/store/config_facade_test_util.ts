@@ -17,12 +17,14 @@ export declare interface ConfigFacadeMock extends I<ConfigFacade> {
   flowDescriptorsSubject: Subject<FlowDescriptorMap>;
   approvalConfigSubject: Subject<ApprovalConfig>;
   uiConfigSubject: Subject<ApiUiConfig>;
+  clientsLabelsSubject: Subject<string[]>;
 }
 
 export function mockConfigFacade(): ConfigFacadeMock {
   const flowDescriptorsSubject = new ReplaySubject<FlowDescriptorMap>();
   const approvalConfigSubject = new ReplaySubject<ApprovalConfig>();
   const uiConfigSubject = new ReplaySubject<ApiUiConfig>();
+  const clientsLabelsSubject = new ReplaySubject<string[]>();
 
   return {
     flowDescriptorsSubject,
@@ -31,5 +33,7 @@ export function mockConfigFacade(): ConfigFacadeMock {
     approvalConfig$: approvalConfigSubject.asObservable(),
     uiConfigSubject,
     uiConfig$: uiConfigSubject.asObservable(),
+    clientsLabelsSubject,
+    clientsLabels$: clientsLabelsSubject.asObservable(),
   };
 }

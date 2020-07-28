@@ -2,8 +2,7 @@ import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/test
 import {ConfigService} from '@app/components/config/config';
 import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ClientApproval} from '@app/lib/models/client';
-import {Client} from '@app/lib/models/client';
+import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
