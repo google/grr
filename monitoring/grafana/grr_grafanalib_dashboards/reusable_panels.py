@@ -34,7 +34,7 @@ def avg_cpu_usage_percentage(grr_component):
     targets=[
       Target(
         expr='avg(rate(process_cpu_seconds_total{{job="grr_{}"}}[30s])) * 100'.format(grr_component),
-        legendFormat="Average Process CPU Usage in %",
+        legendFormat="Average Process CPU Usage",
       ),
     ],
     yAxes=YAxes(
