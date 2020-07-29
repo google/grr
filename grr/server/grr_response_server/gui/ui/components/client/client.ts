@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
-import {ActivatedRoute, Router} from '@angular/router';
 import {MatDialog} from '@angular/material/dialog';
+import {ActivatedRoute, Router} from '@angular/router';
 import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
@@ -18,17 +18,17 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
 })
 export class Client implements OnInit, OnDestroy {
   private readonly id$ = this.route.paramMap.pipe(
-    map(params => params.get('id')),
-    filter((id): id is string => id !== null));
+      map(params => params.get('id')),
+      filter((id): id is string => id !== null));
 
   readonly client$ = this.clientPageFacade.selectedClient$;
 
   private readonly unsubscribe$ = new Subject<void>();
 
   constructor(
-    private readonly route: ActivatedRoute,
-    private readonly clientPageFacade: ClientPageFacade,
-    private readonly router: Router,
+      private readonly route: ActivatedRoute,
+      private readonly clientPageFacade: ClientPageFacade,
+      private readonly router: Router,
       private readonly dialog: MatDialog,
   ) {}
 
@@ -41,7 +41,7 @@ export class Client implements OnInit, OnDestroy {
   goToClientDetailsPage() {
     this.router.navigate(['details'], {relativeTo: this.route});
   }
-  
+
   openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
     const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
       data: clientLabels,
