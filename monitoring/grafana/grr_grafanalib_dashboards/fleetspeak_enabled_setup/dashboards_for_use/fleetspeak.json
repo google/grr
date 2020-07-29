@@ -310,7 +310,7 @@
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Average Process CPU Usage in %",
+              "legendFormat": "Average Process CPU Usage",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -334,7 +334,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": null,
+              "format": "percent",
               "label": null,
               "logBase": 1,
               "max": 105,
@@ -440,7 +440,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -516,7 +516,7 @@
           "xBucketSize": null,
           "yAxis": {
             "decimals": null,
-            "format": null,
+            "format": "s",
             "label": null,
             "logBase": 1,
             "max": null,
@@ -1101,7 +1101,7 @@
           "xBucketSize": null,
           "yAxis": {
             "decimals": null,
-            "format": null,
+            "format": "s",
             "label": null,
             "logBase": 1,
             "max": null,
@@ -1226,7 +1226,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1322,7 +1322,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1403,7 +1403,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Client Polls Rate per Cache",
+          "title": "Client Polls Rate per Cache Status",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1418,7 +1418,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1600,7 +1600,7 @@
           "xBucketSize": null,
           "yAxis": {
             "decimals": null,
-            "format": null,
+            "format": "s",
             "label": null,
             "logBase": 1,
             "max": null,
@@ -1715,7 +1715,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1811,7 +1811,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "bytes",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1907,7 +1907,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "bytes",
               "label": null,
               "logBase": 1,
               "max": null,
