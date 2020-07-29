@@ -1,4 +1,4 @@
-from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT
+from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT, OPS_FORMAT, BYTES_FORMAT
 from grr_grafanalib_dashboards import config
 
 def number_of_active_processes_graph(grr_component):
@@ -50,7 +50,11 @@ def sum_process_memory_bytes(grr_component):
         expr='sum(process_resident_memory_bytes{{job="grr_{}"}})'.format(grr_component),
         legendFormat="Resident Memory",
       ),
-    ])
+    ],
+    yAxes=YAxes(
+      left=YAxis(format=BYTES_FORMAT)
+    ),
+  )
 
 def db_operations_latency(grr_component):
   return Graph(
@@ -76,7 +80,7 @@ def db_operations_errors(grr_component):
       ),
     ],
     yAxes=YAxes(
-      left=YAxis(format=SECONDS_FORMAT)
+      left=YAxis(format=OPS_FORMAT)
     )
   )
 
