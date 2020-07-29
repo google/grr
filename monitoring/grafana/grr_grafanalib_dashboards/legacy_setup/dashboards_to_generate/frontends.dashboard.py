@@ -1,4 +1,4 @@
-from grafanalib.core import Dashboard, Graph, Row, Target, YAxes, YAxis, SECONDS_FORMAT
+from grafanalib.core import Dashboard, Graph, Row, Target, YAxes, YAxis, SECONDS_FORMAT, OPS_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
 from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
@@ -55,6 +55,69 @@ dashboard = Dashboard(
           ),
         ],
       )
+    ]
+    ),
+    Row(panels=[
+      Graph(
+        title="RSA Operations Rate (across all instances)",
+        targets=[
+          Target(
+            expr='sum(rate(grr_rsa_operations_total[10m]))',
+            legendFormat="Rate of Operations",
+          ),
+        ],
+        yAxes=YAxes(
+          left=YAxis(format=OPS_FORMAT)
+        ),
+      ),
+      Graph(
+        title="GRR Unknown Client Rate (across all instances)",
+        targets=[
+          Target(
+            expr='sum(rate(grr_client_unknown_total[10m]))',
+            legendFormat="Rate of Unknown Clients",
+          ),
+        ],
+      ),
+      Graph(
+        title="Decoding Errors Rate (across all instances)",
+        targets=[
+          Target(
+            expr='sum(rate(grr_decoding_error_total[10m]))',
+            legendFormat="Rate of Decoding Errors",
+          ),
+        ],
+      ),
+      Graph(
+        title="Decryption Errors Rate (across all instances)",
+        targets=[
+          Target(
+            expr='sum(rate(grr_decryption_error_total[10m]))',
+            legendFormat="Rate of Decryption Errors",
+          ),
+        ],
+      )
+    ]
+    ),
+    Row(panels=[
+      Graph(
+        title="Authenticated Messages Rate (across all instances)",
+        targets=[
+          Target(
+            expr='sum(rate(grr_authenticated_messages_total[10m]))',
+            legendFormat="Rate of Authenticated Messages",
+          ),
+        ],
+      ),
+      Graph(
+        title="Unauthenticated Messages Rate (across all instances)",
+        targets=[
+          Target(
+            expr='sum(rate(grr_unauthenticated_messages_total[10m]))',
+            legendFormat="Rate of Unauthenticated Messages",
+          ),
+        ],
+      ),
     ]
     ),
   ]
