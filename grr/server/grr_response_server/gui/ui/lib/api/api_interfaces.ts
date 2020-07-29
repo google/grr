@@ -94,6 +94,19 @@ export declare interface ApiClientInformation {
   readonly labels?: string[];
 }
 
+/** ApiWindowsVolume proto mapping. */
+export declare interface ApiWindowsVolume {
+  readonly attributesList?: string[];
+  readonly driveLetter?: string;
+  readonly driveType?: string;
+}
+
+/** ApiUnixVolume proto mapping. */
+export declare interface ApiUnixVolume {
+  readonly mountPoint?: string;
+  readonly options?: string;
+}
+
 /** ApiVolume proto mapping. */
 export declare interface ApiVolume {
   readonly name?: string;
@@ -104,6 +117,8 @@ export declare interface ApiVolume {
   readonly bytesPerSector?: number;
   readonly actualAvailableAllocationUnits?: number;
   readonly creationTime?: string;
+  readonly windowsvolume?: ApiWindowsVolume;
+  readonly unixvolume?: ApiUnixVolume;
 }
 
 /**

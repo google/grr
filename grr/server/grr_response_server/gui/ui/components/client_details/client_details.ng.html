@@ -150,6 +150,34 @@
     <table class="section">
       <div class="section-title">Storage volumes</div>
       <ng-template ngFor let-volume [ngForOf]="client.volumes" let-i="index">
+        <ng-template [ngIf]="volume.windowsDetails">
+          <tr *ngIf="volume.windowsDetails.driveLetter">
+            <td class="description">Windows drive letter</td>
+            <td class="value">{{volume.windowsDetails.driveLetter}}</td>
+          </tr>
+          <tr *ngIf="volume.windowsDetails.attributes">
+            <td class="description">Windows drive attributes</td>
+            <td class="value">
+              <div *ngFor="let attribute of volume.windowsDetails.attributes">
+                {{attribute}}
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="volume.windowsDetails.driveType">
+            <td class="description">Windows drive type</td>
+            <td class="value">{{volume.windowsDetails.driveType}}</td>
+          </tr>
+        </ng-template>
+        <ng-template [ngIf]="volume.unixDetails">
+          <tr *ngIf="volume.unixDetails.mountPoint">
+            <td class="description">Unix mount point</td>
+            <td class="value">{{volume.unixDetails.mountPoint}}</td>
+          </tr>
+          <tr *ngIf="volume.unixDetails.mountOptions">
+            <td class="description">Unix mount options</td>
+            <td class="value">{{volume.unixDetails.mountOptions}}</td>
+          </tr>
+        </ng-template>
         <tr *ngIf="volume.name">
           <td class="description">Volume name</td>
           <td class="value">{{volume.name}}</td>

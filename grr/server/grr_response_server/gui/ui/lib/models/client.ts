@@ -14,6 +14,23 @@ export interface KnowledgeBase {
 }
 
 /**
+ * Windows specific volume details.
+ */
+export interface WindowsVolume {
+  readonly attributes?: string[];
+  readonly driveLetter?: string;
+  readonly driveType?: string;
+}
+
+/**
+ * Unix specific volume details.
+ */
+export interface UnixVolume {
+  readonly mountPoint?: string;
+  readonly mountOptions?: string;
+}
+
+/**
  * Storage volume.
  */
 export interface StorageVolume {
@@ -24,6 +41,8 @@ export interface StorageVolume {
   readonly bytesPerSector?: number;
   readonly freeSpace?: number;
   readonly creationTime?: Date;
+  readonly unixDetails?: UnixVolume;
+  readonly windowsDetails?: WindowsVolume;
 }
 
 /**

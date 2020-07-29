@@ -2,8 +2,8 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress, ApiVolume} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress, StorageVolume} from '../models/client';
+import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress, ApiVolume, ApiWindowsVolume, ApiUnixVolume} from '../api/api_interfaces';
+import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress, StorageVolume, WindowsVolume, UnixVolume} from '../models/client';
 
 import {createOptionalDate, createIpv4Address, decodeBase64, createMacAddress, createIpv6Address} from './primitive';
 
@@ -89,6 +89,29 @@ function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
   }
 }
 
+function createOptionalWindowsVolume(volume?: ApiWindowsVolume): WindowsVolume | undefined {
+  if (volume === undefined) {
+    return undefined;
+  }
+
+  return {
+    attributes: volume.attributesList,
+    driveLetter: volume.driveLetter,
+    driveType: volume.driveType,
+  }
+}
+
+function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume | undefined {
+  if (volume === undefined) {
+    return undefined;
+  }
+
+  return {
+    mountPoint: volume.mountPoint,
+    mountOptions: volume.options,
+  }
+}
+
 function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
   let totalSize = 0;
   let freeSpace = 0;
@@ -113,6 +136,8 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
     totalSize: totalSize,
     freeSpace: freeSpace,
     creationTime: createOptionalDate(apiVolume.creationTime),
+    unixDetails: createOptionalUnixVolume(apiVolume.unixvolume),
+    windowsDetails: createOptionalWindowsVolume(apiVolume.windowsvolume),
   }
 }
 

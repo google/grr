@@ -47,7 +47,16 @@ describe('Client API Translation', () => {
         actualAvailableAllocationUnits: 100000,
         sectorsPerAllocationUnit: 1,
         totalAllocationUnits: 1000000,
-        creationTime: '1571789496679000'
+        creationTime: '1571789496679000',
+        unixvolume: {
+          mountPoint: '/',
+          options: 'readonly'
+        },
+        windowsvolume: {
+          attributesList: ['readonly'],
+          driveLetter: 'D',
+          driveType: 'root',
+        },
       }],
       interfaces: [{
         macAddress: 'qqusra6v',
@@ -55,7 +64,7 @@ describe('Client API Translation', () => {
         addresses: [
           {addressType: 'INET', packedBytes: 'gAAAAQ=='},
           {addressType: 'INET6', packedBytes: '8AAAAAAAAAAAAAAAAAAAAQ=='},
-        ]
+        ],
       }],
       users: [{
         username: 'foo.bar',
@@ -136,6 +145,15 @@ describe('Client API Translation', () => {
         totalSize: 4096 * 1000000,
         freeSpace: 4096 * 100000,
         creationTime: new Date(1571789496679),
+        unixDetails: {
+          mountPoint: '/',
+          mountOptions: 'readonly'
+        },
+        windowsDetails: {
+          attributes: ['readonly'],
+          driveLetter: 'D',
+          driveType: 'root',
+        },
       }],
       memorySize: 1234,
       firstSeenAt: new Date(1571789996678),
