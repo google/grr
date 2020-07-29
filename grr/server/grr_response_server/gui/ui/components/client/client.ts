@@ -1,9 +1,12 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
+import {MatDialog} from '@angular/material/dialog';
+import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
 /**
  * Component displaying the details and actions for a single Client.
@@ -26,6 +29,7 @@ export class Client implements OnInit, OnDestroy {
     private readonly route: ActivatedRoute,
     private readonly clientPageFacade: ClientPageFacade,
     private readonly router: Router,
+      private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit() {
@@ -36,6 +40,22 @@ export class Client implements OnInit, OnDestroy {
 
   goToClientDetailsPage() {
     this.router.navigate(['details'], {relativeTo: this.route});
+  }
+  
+  openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
+    const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
+      data: clientLabels,
+    });
+
+    addLabelDialog.afterClosed().subscribe(newLabel => {
+      if (newLabel !== undefined && newLabel !== null && newLabel !== '') {
+        this.addLabel(newLabel);
+      }
+    });
+  }
+
+  addLabel(label: string) {
+    this.clientPageFacade.addClientLabel(label);
   }
 
   ngOnDestroy() {

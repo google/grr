@@ -16,6 +16,15 @@ function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
   };
 }
 
+/**
+ * Get label name from ApiClientLabel.
+ */
+export function getApiClientLabelName(apiLabel: ApiClientLabel): string {
+  if (!apiLabel.name) throw new Error('name attribute is missing.');
+
+  return apiLabel.name;
+}
+
 function createClientLabel(label: ApiClientLabel): ClientLabel {
   if (!label.owner) throw new Error('owner attribute is missing.');
   if (!label.name) throw new Error('name attribute is missing.');

@@ -2,7 +2,7 @@ import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/test
 import {ConfigService} from '@app/components/config/config';
 import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ClientApproval, Client} from '@app/lib/models/client';
+import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
@@ -488,106 +488,112 @@ describe('ClientPageFacade', () => {
        });
      });
 
-  it('fetches client data only after selectedClient$ is subscribed to', fakeAsync(() => {
-    expect(httpApiService.fetchClient).not.toHaveBeenCalled();
-    clientPageFacade.selectedClient$.subscribe();
+  it('fetches client data only after selectedClient$ is subscribed to',
+     fakeAsync(() => {
+       expect(httpApiService.fetchClient).not.toHaveBeenCalled();
+       clientPageFacade.selectedClient$.subscribe();
 
-    // This is needed since selected client is updated in a timer loop
-    // and the first call is scheduled after 0 milliseconds (meaning it
-    // will happen right after it was scheduled, but still asynchronously).
-    tick(1);
-    discardPeriodicTasks();
-    expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
-  }));
+       // This is needed since selected client is updated in a timer loop
+       // and the first call is scheduled after 0 milliseconds (meaning it
+       // will happen right after it was scheduled, but still asynchronously).
+       tick(1);
+       discardPeriodicTasks();
+       expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
+     }));
 
   it('polls and updates selectedClient$ periodically', fakeAsync(() => {
-    clientPageFacade.selectedClient$.subscribe();
+       clientPageFacade.selectedClient$.subscribe();
 
-    tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
-    discardPeriodicTasks();
+       tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
 
-    // First call happens at 0, next one at selectedClientPollingIntervalMs
-    // and the next one at selectedClientPollingIntervalMs * 2.
-    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(3);
-  }));
+       // First call happens at 0, next one at selectedClientPollingIntervalMs
+       // and the next one at selectedClientPollingIntervalMs * 2.
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(3);
+     }));
 
-  it('polls and updates selectedClient$ when another client is selected', fakeAsync(() => {
-    clientPageFacade.selectedClient$.subscribe();
+  it('polls and updates selectedClient$ when another client is selected',
+     fakeAsync(() => {
+       clientPageFacade.selectedClient$.subscribe();
 
-    // This is needed since selected client is updated in a timer loop
-    // and the first call is scheduled after 0 milliseconds (meaning it
-    // will happen right after it was scheduled, but still asynchronously).
-    tick(1);
-    expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
+       // This is needed since selected client is updated in a timer loop
+       // and the first call is scheduled after 0 milliseconds (meaning it
+       // will happen right after it was scheduled, but still asynchronously).
+       tick(1);
+       expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.1234');
 
-    clientPageFacade.selectClient('C.5678');
-    tick(1);
-    discardPeriodicTasks();
+       clientPageFacade.selectClient('C.5678');
+       tick(1);
+       discardPeriodicTasks();
 
-    expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.5678');
-  }));
+       expect(httpApiService.fetchClient).toHaveBeenCalledWith('C.5678');
+     }));
 
-  it('stops updating selectedClient$ when unsubscribed from it', fakeAsync(() => {
-    const subscribtion = clientPageFacade.selectedClient$.subscribe();
+  it('stops updating selectedClient$ when unsubscribed from it',
+     fakeAsync(() => {
+       const subscribtion = clientPageFacade.selectedClient$.subscribe();
 
-    // This is needed since selected client is updated in a timer loop
-    // and the first call is scheduled after 0 milliseconds (meaning it
-    // will happen right after it was scheduled, but still asynchronously).
-    tick(1);
-    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+       // This is needed since selected client is updated in a timer loop
+       // and the first call is scheduled after 0 milliseconds (meaning it
+       // will happen right after it was scheduled, but still asynchronously).
+       tick(1);
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
 
-    subscribtion.unsubscribe();
-    // Fast forward for another 2 polling intervals, to check if
-    // the client is still fetched or not after unsubscribe.
-    // The number of calls to fetchClient() should stay the same
-    tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
-    discardPeriodicTasks();
+       subscribtion.unsubscribe();
+       // Fast forward for another 2 polling intervals, to check if
+       // the client is still fetched or not after unsubscribe.
+       // The number of calls to fetchClient() should stay the same
+       tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
 
-    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
-  }));
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+     }));
 
   it('updates selectedClient$ with changed client data when underlying API client data changes.',
-    fakeAsync((done : DoneFn) => {
-      const expectedClients: Client[] = [
-        {
-          clientId: 'C.1234',
-          fleetspeakEnabled: false,
-          knowledgeBase: {},
-          users: [],
-          osInfo: {},
-          agentInfo: {},
-          networkInterfaces: [],
-          volumes: [],
-          labels: [],
-        },
-        {
-          clientId: 'C.5678',
-          fleetspeakEnabled: true,
-          knowledgeBase: {},
-          users: [],
-          osInfo: {},
-          agentInfo: {},
-          networkInterfaces: [],
-          volumes: [],
-          labels: [],
-        },
-      ];
+     fakeAsync((done: DoneFn) => {
+       const expectedClients: Client[] = [
+         {
+           clientId: 'C.1234',
+           fleetspeakEnabled: false,
+           knowledgeBase: {},
+           users: [],
+           osInfo: {},
+           agentInfo: {},
+           networkInterfaces: [],
+           volumes: [],
+           labels: [],
+         },
+         {
+           clientId: 'C.5678',
+           fleetspeakEnabled: true,
+           knowledgeBase: {},
+           users: [],
+           osInfo: {},
+           agentInfo: {},
+           networkInterfaces: [],
+           volumes: [],
+           labels: [],
+         },
+       ];
 
-      apiFetchClient$.next({
-        clientId: 'C.5678',
-        fleetspeakEnabled: true,
-      })
+       apiFetchClient$.next({
+         clientId: 'C.5678',
+         fleetspeakEnabled: true,
+       })
 
-      let i = 0;
-      clientPageFacade.selectedClient$.subscribe(client => {
-          expect(client).toEqual(expectedClients[i]);
-          i++;
-          if (i === expectedClients.length) {
-            done();
-          }
-      });
+       let i = 0;
+       clientPageFacade.selectedClient$.subscribe(client => {
+         expect(client).toEqual(expectedClients[i]);
+         i++;
+         if (i === expectedClients.length) {
+           done();
+         }
+       });
 
-      tick(configService.config.selectedClientPollingIntervalMs * (expectedClients.length - 1) + 1);
-      discardPeriodicTasks();
-    }));
+       tick(
+           configService.config.selectedClientPollingIntervalMs *
+               (expectedClients.length - 1) +
+           1);
+       discardPeriodicTasks();
+     }));
 });

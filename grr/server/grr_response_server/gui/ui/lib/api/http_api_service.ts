@@ -1,9 +1,10 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-import {from, Observable, throwError} from 'rxjs';
-import {catchError, map, mergeMap, shareReplay, switchMap, take} from 'rxjs/operators';
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, RdfValueDescriptor, ApiAllRdfValues as ApiAllRdfDescriptors} from './api_interfaces';
+import {Observable, throwError} from 'rxjs';
+import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
+
+import {AnyObject, ApiAddClientsLabelsArgs, ApiAllRdfValues as ApiAllRdfDescriptors, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, RdfValueDescriptor} from './api_interfaces';
 
 
 /**
@@ -220,7 +221,19 @@ export class HttpApiService {
   fetchAllRdfDescriptors(): Observable<ReadonlyArray<RdfValueDescriptor>> {
     const url = `${URL_PREFIX}/reflection/rdfvalue/all`;
     return this.http.get<ApiAllRdfDescriptors>(url).pipe(
-      map(result => result.items ?? []));
+        map(result => result.items ?? []));
+  }
+
+  addClientLabel(clientId: string, label: string): Observable<{}> {
+    const url = `${URL_PREFIX}/clients/labels/add`;
+    return this.http.post<ApiAddClientsLabelsArgs>(
+        url, {client_ids: [clientId], labels: [label]});
+  }
+
+  fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {
+    const url = `${URL_PREFIX}/clients/labels`;
+    return this.http.get<ApiListClientsLabelsResult>(url).pipe(
+        map(clientsLabels => clientsLabels.items ?? []));
   }
 }
 
