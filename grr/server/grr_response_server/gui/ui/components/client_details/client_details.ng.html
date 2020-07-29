@@ -1,13 +1,13 @@
-<div *ngIf="client$ | async as client">
+<div *ngIf="client$ | async as client" class="info">
   <div class="header mat-body-1">
     <mat-icon>computer</mat-icon>
     <div class="mat-h1">{{client.knowledgeBase.fqdn}}
       <div class="client-id mat-h3">{{client.clientId}}</div>
     </div>
   </div>
-  <div class='info mat-body-1'>
+  <div>
+    <div class="section-title mat-h3">General</div>
     <table class="section">
-      <div class="section-title">General</div>
       <tr>
         <td class="description">Client ID</td>
         <td class="value">{{client.clientId}}</td>
@@ -31,16 +31,18 @@
       <tr>
         <td class="description">Labels</td>
         <td class="value">
-          <div *ngFor="let label of client.labels">
-            {{label.name}}
-          </div>
+          <mat-chip-list>
+            <mat-chip *ngFor="let label of client.labels" class="chip">
+              {{label.name}}
+            </mat-chip>
+          </mat-chip-list>
         </td>
       </tr>
     </table>
 
     <br>
+    <div class="section-title mat-h3">OS Info</div>
     <table class="section">
-      <div class="section-title">OS Info</div>
       <tr *ngIf="client.osInfo.system">
         <td class="description">System</td>
         <td class="value">{{client.osInfo.system}}</td>
@@ -72,8 +74,8 @@
     </table>
 
     <br>
+    <div class="section-title mat-h3">Users</div>
     <table class="section">
-      <div class="section-title">Users</div>
       <ng-template ngFor let-user [ngForOf]="client.users" let-i="index">
         <tr *ngIf="user.username">
           <td class="description">Username</td>
@@ -109,8 +111,8 @@
     </table>
 
     <br>
+    <div class="section-title mat-h3">CPU & Memory</div>
     <table class="section">
-      <div class="section-title">CPU & Memory</div>
       <tr *ngIf="client.osInfo.machine">
         <td class="description">CPU Architecture</td>
         <td class="value">{{client.osInfo.machine}}</td>
@@ -122,8 +124,8 @@
     </table>
 
     <br>
+    <div class="section-title mat-h3">Network Interfaces</div>
     <table class="section">
-      <div class="section-title">Network interfaces</div>
       <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces" let-i="index">
         <tr>
           <td class="description">Interface name</td>
@@ -147,8 +149,8 @@
     </table>
 
     <br>
+    <div class="section-title mat-h3">Storage Volumes</div>
     <table class="section">
-      <div class="section-title">Storage volumes</div>
       <ng-template ngFor let-volume [ngForOf]="client.volumes" let-i="index">
         <ng-template [ngIf]="volume.windowsDetails">
           <tr *ngIf="volume.windowsDetails.driveLetter">
@@ -212,8 +214,8 @@
     </table>
 
     <br>
+    <div class="section-title mat-h3">Agent Info</div>
     <table class="section">
-      <div class="section-title">Agent info</div>
       <tr *ngIf="client.agentInfo.clientName">
         <td class="description">Client name</td>
         <td class="value">{{client.agentInfo.clientName}}</td>

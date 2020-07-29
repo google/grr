@@ -1,31 +1,49 @@
 @use '~material-theme' as c;
 
-.header {
-  margin-top: 1em;
+.info {
+  width: 60%;
+  margin: auto;
   text-align: center;
 
-  mat-icon {
-    transform: scale(2);
+  .header {
+    margin-top: 1em;
+    display: inline-block;
+
+    mat-icon {
+      transform: scale(2);
+    }
+
+    .client-id {
+      color: c.mat-color(c.$foreground, text-light);
+      text-align: left;
+    }
   }
 
-  .client-id {
-    color: c.mat-color(c.$foreground, text-light);
-  }
-}
-
-.section {
   .section-title {
     font-weight: bold;
+    text-align: left;
+    border-bottom: 1px solid c.mat-color(c.$foreground, divider);
   }
 
-  .description {
-    width: 10em;
-  }
+  .section {
+    font-family: c.$google-sans-family;
+    text-align: left;
 
-  // .value {
-  // }
+    .description {
+      min-width: 10em;
+      vertical-align: top;
+    }
 
-  .empty-section {
-    font-weight: 300;
+    .value {
+      .chip {
+        font-size: 14px;
+        border: 1px solid c.mat-color(c.$foreground, divider);
+        background-color: c.mat-color(c.$background, app-bar);
+      }
+    }
+
+    .empty-section {
+      font-weight: 300;
+    }
   }
 }

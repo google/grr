@@ -1,12 +1,15 @@
+import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatDividerModule} from '@angular/material/divider';
+import {MatIconModule} from '@angular/material/icon';
 import {RouterModule} from '@angular/router';
+
+import {HumanReadableSizeModule} from '../human_readable_size/module';
+import {TimestampModule} from '../timestamp/module';
+
 import {ClientDetails} from './client_details';
 import {ClientDetailsRoutingModule} from './routing';
-import {MatIconModule} from '@angular/material/icon';
-import {CommonModule} from '@angular/common';
-import {TimestampModule} from '../timestamp/module';
-import {HumanReadableSizeModule} from '../human_readable_size/module';
-
+import {MatChipsModule} from '@angular/material/chips';
 
 /**
  * Module for the client details component.
@@ -19,6 +22,8 @@ import {HumanReadableSizeModule} from '../human_readable_size/module';
     MatIconModule,
     TimestampModule,
     HumanReadableSizeModule,
+    MatDividerModule,
+    MatChipsModule,
   ],
   declarations: [
     ClientDetails,

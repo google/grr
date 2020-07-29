@@ -15,16 +15,16 @@ import {ClientPageFacade} from '../../store/client_page_facade';
 })
 export class ClientDetails implements OnInit, OnDestroy {
   private readonly id$ = this.route.paramMap.pipe(
-    map(params => params.get('id')),
-    filter((id): id is string => id !== null));
+      map(params => params.get('id')),
+      filter((id): id is string => id !== null));
 
   readonly client$ = this.clientPageFacade.selectedClient$;
 
   private readonly unsubscribe$ = new Subject<void>();
 
   constructor(
-    private readonly route: ActivatedRoute,
-    private readonly clientPageFacade: ClientPageFacade,
+      private readonly route: ActivatedRoute,
+      private readonly clientPageFacade: ClientPageFacade,
   ) {}
 
   ngOnInit() {

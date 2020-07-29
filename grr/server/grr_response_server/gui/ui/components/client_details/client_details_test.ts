@@ -2,14 +2,16 @@ import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
-import {Subject} from 'rxjs';
-import {initTestEnvironment} from '../../testing';
-import {ClientPageFacade} from '@app/store/client_page_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
-import {ClientDetailsModule} from './module';
-import {ConfigFacade} from '@app/store/config_facade';
-import {ClientDetails} from './client_details';
 import {Client} from '@app/lib/models/client';
+import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ConfigFacade} from '@app/store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
+import {Subject} from 'rxjs';
+
+import {initTestEnvironment} from '../../testing';
+
+import {ClientDetails} from './client_details';
+import {ClientDetailsModule} from './module';
 
 initTestEnvironment();
 
@@ -23,25 +25,25 @@ describe('Client Details Component', () => {
     configFacade = mockConfigFacade();
 
     TestBed
-      .configureTestingModule({
-        imports: [
-          ApiModule,
-          NoopAnimationsModule,
-          ClientDetailsModule,
-        ],
-        providers: [
-          {
-            provide: ActivatedRoute,
-            useValue: {
-              paramMap: paramsSubject,
+        .configureTestingModule({
+          imports: [
+            ApiModule,
+            NoopAnimationsModule,
+            ClientDetailsModule,
+          ],
+          providers: [
+            {
+              provide: ActivatedRoute,
+              useValue: {
+                paramMap: paramsSubject,
+              },
             },
-          },
-          {provide: ConfigFacade, useFactory: () => configFacade},
-          {provide: Router, useValue: {}},
-        ],
+            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: Router, useValue: {}},
+          ],
 
-      })
-      .compileComponents();
+        })
+        .compileComponents();
 
     facade = TestBed.inject(ClientPageFacade);
   }));
