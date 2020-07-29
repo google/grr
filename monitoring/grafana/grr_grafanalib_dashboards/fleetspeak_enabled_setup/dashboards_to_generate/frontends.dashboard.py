@@ -21,7 +21,9 @@ dashboard = Dashboard(
             legendFormat="Requests",
           ),
         ],
-        yAxis=YAxis(format="reqps"),
+        yAxes=YAxes(
+          left=YAxis(format="reqps")
+        ),
       ),
       Graph(
         title="Request Latency",
@@ -31,7 +33,9 @@ dashboard = Dashboard(
             legendFormat="Latency",
           ),
         ],
-        yAxis=YAxis(format=SECONDS_FORMAT),
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Well Known Flows Requests Rate by Flow",
