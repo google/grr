@@ -1,4 +1,4 @@
-from grafanalib.core import Dashboard, Graph, Row, Target
+from grafanalib.core import Dashboard, Graph, Row, Target, YAxes, YAxis, SECONDS_FORMAT, OPS_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
 from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
@@ -21,6 +21,9 @@ dashboard = Dashboard(
             legendFormat="{{method_name}}",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="API Calls Count Rate with Status SUCCESS",
@@ -30,6 +33,9 @@ dashboard = Dashboard(
             legendFormat="Successful Calls Rate",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format=OPS_FORMAT)
+        ),
       ),
       Graph(
         title="API Calls Count Rate with other statuses (not SUCCESS) by Method",
@@ -39,6 +45,9 @@ dashboard = Dashboard(
             legendFormat="{{method_name}}",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format=OPS_FORMAT)
+        ),
       ),
       Graph(
         title="API Access Probe Latency by Method",
@@ -48,6 +57,9 @@ dashboard = Dashboard(
             legendFormat="{{method_name}}",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
     ]),
   ],
