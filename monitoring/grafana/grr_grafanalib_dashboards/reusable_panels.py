@@ -1,4 +1,4 @@
-from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis
+from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT
 from grr_grafanalib_dashboards import config
 
 def number_of_active_processes_graph(grr_component):
@@ -38,7 +38,7 @@ def avg_cpu_usage_percentage(grr_component):
       ),
     ],
     yAxes=YAxes(
-      left=YAxis(max=105)
+      left=YAxis(max=105, format="percent")
     ),
   )
 
@@ -60,6 +60,9 @@ def db_operations_latency(grr_component):
         expr='sum by (call) (rate(db_request_latency_sum{{job="grr_{0}"}}[10m]) / rate(db_request_latency_count{{job="grr_{0}"}}[10m]))'.format(grr_component),
         legendFormat="{{call}}",
       ),
+      yAxes=YAxes(
+        left=YAxis(format=SECONDS_FORMAT)
+      ),
     ])
 
 def db_operations_errors(grr_component):
@@ -69,6 +72,9 @@ def db_operations_errors(grr_component):
       Target(
         expr='sum by (call) (rate(db_request_errors_total{{job="grr_{0}"}}[10m]))'.format(grr_component),
         legendFormat="{{call}}",
+      ),
+      yAxes=YAxes(
+        left=YAxis(format=SECONDS_FORMAT)
       ),
     ])
 
@@ -96,7 +102,7 @@ def threadpool_cpu_usage(grr_component):
       ),
     ],
     yAxes=YAxes(
-      left=YAxis(max=105)
+      left=YAxis(max=105, format="percent")
     ),
   )
 
