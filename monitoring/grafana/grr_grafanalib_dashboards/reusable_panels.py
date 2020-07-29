@@ -60,10 +60,11 @@ def db_operations_latency(grr_component):
         expr='sum by (call) (rate(db_request_latency_sum{{job="grr_{0}"}}[10m]) / rate(db_request_latency_count{{job="grr_{0}"}}[10m]))'.format(grr_component),
         legendFormat="{{call}}",
       ),
-      yAxes=YAxes(
-        left=YAxis(format=SECONDS_FORMAT)
-      ),
-    ])
+    ],
+    yAxes=YAxes(
+      left=YAxis(format=SECONDS_FORMAT)
+    ),  
+  )
 
 def db_operations_errors(grr_component):
   return Graph(
@@ -73,10 +74,11 @@ def db_operations_errors(grr_component):
         expr='sum by (call) (rate(db_request_errors_total{{job="grr_{0}"}}[10m]))'.format(grr_component),
         legendFormat="{{call}}",
       ),
-      yAxes=YAxes(
-        left=YAxis(format=SECONDS_FORMAT)
-      ),
-    ])
+    ],
+    yAxes=YAxes(
+      left=YAxis(format=SECONDS_FORMAT)
+    )
+  )
 
 def threadpool_outstanding_tasks_vs_threads_num(grr_component):
   return Graph(
