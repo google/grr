@@ -3,6 +3,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
+import {newClient} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
 import {ConfigFacade} from '@app/store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
@@ -70,20 +71,13 @@ describe('Client Details Component', () => {
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
     paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-    subject.next({
+    subject.next(newClient({
       clientId: 'C.1234',
-      fleetspeakEnabled: true,
       knowledgeBase: {
         fqdn: 'foo.unknown',
       },
-      agentInfo: {},
-      osInfo: {},
-      users: [],
-      networkInterfaces: [],
-      volumes: [],
       lastSeenAt: new Date(1571789996678),
-      labels: [],
-    });
+    }));
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;

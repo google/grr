@@ -1,18 +1,19 @@
+import {formatDate} from '@angular/common';
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
+import {newClient} from '@app/lib/models/model_test_util';
 import {ClientSearchFacade} from '@app/store/client_search_facade';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
-import {ClientSearch} from './client_search';
-import {ClientSearchModule} from './module';
-import {formatDate} from '@angular/common';
 import {RelativeTimestampPipe} from '../timestamp/relative_timestamp_pipe';
 
+import {ClientSearch} from './client_search';
+import {ClientSearchModule} from './module';
 
 
 
@@ -38,22 +39,22 @@ describe('ClientSearch Component', () => {
     paramsSubject = new Subject();
 
     TestBed
-      .configureTestingModule({
-        imports: [
-          NoopAnimationsModule,  // This makes test faster and more stable.
-          ApiModule,
-          ClientSearchModule,
-          RouterTestingModule,
-        ],
-        providers: [{
-          provide: ActivatedRoute,
-          useValue: {
-            paramMap: paramsSubject,
-          },
-        }],
+        .configureTestingModule({
+          imports: [
+            NoopAnimationsModule,  // This makes test faster and more stable.
+            ApiModule,
+            ClientSearchModule,
+            RouterTestingModule,
+          ],
+          providers: [{
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: paramsSubject,
+            },
+          }],
 
-      })
-      .compileComponents();
+        })
+        .compileComponents();
 
     facade = TestBed.inject(ClientSearchFacade);
   }));
@@ -85,33 +86,19 @@ describe('ClientSearch Component', () => {
     fixture.detectChanges();
 
     subject.next([
-      {
+      newClient({
         clientId: 'C.1234',
-        fleetspeakEnabled: true,
         knowledgeBase: {
           fqdn: 'foo.unknown',
         },
-        osInfo: {},
-        agentInfo: {},
-        volumes: [],
-        users: [],
-        networkInterfaces: [],
         lastSeenAt: new Date(1571789996678),
-        labels: [],
-      },
-      {
+      }),
+      newClient({
         clientId: 'C.5678',
-        fleetspeakEnabled: true,
         knowledgeBase: {
           fqdn: 'bar.unknown',
         },
-        osInfo: {},
-        agentInfo: {},
-        volumes: [],
-        users: [],
-        networkInterfaces: [],
-        labels: [],
-      },
+      }),
     ]);
     fixture.detectChanges();
 
@@ -124,11 +111,11 @@ describe('ClientSearch Component', () => {
     expect(rows.length).toBe(3);
     // Check the first data row.
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
-      .map((e: Element) => (e as HTMLElement).innerText))
-      .toEqual(['C.1234', 'foo.unknown', '2019-10-23 00:19:56 UTC']);
+               .map((e: Element) => (e as HTMLElement).innerText))
+        .toEqual(['C.1234', 'foo.unknown', '2019-10-23 00:19:56 UTC']);
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
-      .map((e: Element) => (e as HTMLElement).innerText))
-      .toEqual(['C.5678', 'bar.unknown', 'Unknown']);
+               .map((e: Element) => (e as HTMLElement).innerText))
+        .toEqual(['C.5678', 'bar.unknown', 'Unknown']);
   });
 });

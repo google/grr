@@ -2,6 +2,7 @@ import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
+import {newClient} from '@app/lib/models/model_test_util';
 import {Subject} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
@@ -27,25 +28,25 @@ describe('Client Component', () => {
     configFacade = mockConfigFacade();
 
     TestBed
-      .configureTestingModule({
-        imports: [
-          ApiModule,
-          NoopAnimationsModule,
-          ClientModule,
-        ],
-        providers: [
-          {
-            provide: ActivatedRoute,
-            useValue: {
-              paramMap: paramsSubject,
+        .configureTestingModule({
+          imports: [
+            ApiModule,
+            NoopAnimationsModule,
+            ClientModule,
+          ],
+          providers: [
+            {
+              provide: ActivatedRoute,
+              useValue: {
+                paramMap: paramsSubject,
+              },
             },
-          },
-          {provide: ConfigFacade, useFactory: () => configFacade},
-          {provide: Router, useValue: {}},
-        ],
+            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: Router, useValue: {}},
+          ],
 
-      })
-      .compileComponents();
+        })
+        .compileComponents();
 
     facade = TestBed.inject(ClientPageFacade);
   }));
@@ -72,20 +73,13 @@ describe('Client Component', () => {
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
     paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-    subject.next({
+    subject.next(newClient({
       clientId: 'C.1234',
-      fleetspeakEnabled: true,
       knowledgeBase: {
         fqdn: 'foo.unknown',
       },
-      agentInfo: {},
-      osInfo: {},
-      users: [],
-      networkInterfaces: [],
-      volumes: [],
       lastSeenAt: new Date(1571789996678),
-      labels: [],
-    });
+    }));
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;

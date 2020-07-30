@@ -2,6 +2,7 @@ import {ApiClient} from '@app/lib/api/api_interfaces';
 import {Client} from '@app/lib/models/client';
 
 import {initTestEnvironment} from '../../testing';
+import {newClient} from '../models/model_test_util';
 
 import {translateClient} from './client';
 
@@ -48,10 +49,7 @@ describe('Client API Translation', () => {
         sectorsPerAllocationUnit: 1,
         totalAllocationUnits: 1000000,
         creationTime: '1571789496679000',
-        unixvolume: {
-          mountPoint: '/',
-          options: 'readonly'
-        },
+        unixvolume: {mountPoint: '/', options: 'readonly'},
         windowsvolume: {
           attributesList: ['readonly'],
           driveLetter: 'D',
@@ -85,7 +83,7 @@ describe('Client API Translation', () => {
         {name: 'b', owner: 'bo'},
       ],
     };
-    const client: Client = {
+    const client: Client = newClient({
       clientId: 'C.1234',
       fleetspeakEnabled: true,
       knowledgeBase: {
@@ -145,10 +143,7 @@ describe('Client API Translation', () => {
         totalSize: 4096 * 1000000,
         freeSpace: 4096 * 100000,
         creationTime: new Date(1571789496679),
-        unixDetails: {
-          mountPoint: '/',
-          mountOptions: 'readonly'
-        },
+        unixDetails: {mountPoint: '/', mountOptions: 'readonly'},
         windowsDetails: {
           attributes: ['readonly'],
           driveLetter: 'D',
@@ -164,7 +159,7 @@ describe('Client API Translation', () => {
         {name: 'a', owner: 'ao'},
         {name: 'b', owner: 'bo'},
       ],
-    };
+    });
     expect(translateClient(apiClient)).toEqual(client);
   });
 
@@ -173,7 +168,7 @@ describe('Client API Translation', () => {
       clientId: 'C.1234',
       labels: [],
     };
-    const client: Client = {
+    const client: Client = newClient({
       clientId: 'C.1234',
       fleetspeakEnabled: false,
       knowledgeBase: {
@@ -211,7 +206,7 @@ describe('Client API Translation', () => {
       lastBootedAt: undefined,
       lastClock: undefined,
       labels: [],
-    };
+    });
     expect(client).toEqual(translateClient(apiClient));
   });
 });
