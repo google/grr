@@ -7,7 +7,6 @@ import {ApprovalConfig} from '../lib/models/client';
 import {FlowDescriptorMap} from '../lib/models/flow';
 
 import {ConfigFacade} from './config_facade';
-import {RdfValueDescriptor} from '@app/lib/api/api_interfaces';
 
 type I<T> = {
   [key in keyof T]: T[key];
@@ -16,14 +15,12 @@ type I<T> = {
 export declare interface ConfigFacadeMock extends I<ConfigFacade> {
   flowDescriptorsSubject: Subject<FlowDescriptorMap>;
   approvalConfigSubject: Subject<ApprovalConfig>;
-  rdfDescriptorsSubject: Subject<ReadonlyArray<RdfValueDescriptor>>;
   clientsLabelsSubject: Subject<string[]>;
 }
 
 export function mockConfigFacade(): ConfigFacadeMock {
   const flowDescriptorsSubject = new ReplaySubject<FlowDescriptorMap>();
   const approvalConfigSubject = new ReplaySubject<ApprovalConfig>();
-  const rdfDescriptorsSubject = new ReplaySubject<ReadonlyArray<RdfValueDescriptor>>();
   const clientsLabelsSubject = new ReplaySubject<string[]>();
 
   return {
@@ -31,8 +28,6 @@ export function mockConfigFacade(): ConfigFacadeMock {
     flowDescriptors$: flowDescriptorsSubject.asObservable(),
     approvalConfigSubject,
     approvalConfig$: approvalConfigSubject.asObservable(),
-    rdfDescriptorsSubject,
-    rdfDescriptors$: rdfDescriptorsSubject.asObservable(),
     clientsLabelsSubject,
     clientsLabels$: clientsLabelsSubject.asObservable(),
   };

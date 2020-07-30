@@ -1,5 +1,5 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiFlowDescriptor, RdfValueDescriptor} from '@app/lib/api/api_interfaces';
+import {ApiFlowDescriptor} from '@app/lib/api/api_interfaces';
 import {ApiClientLabel} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ConfigFacade} from '@app/store/config_facade';
@@ -13,13 +13,11 @@ describe('ConfigFacade', () => {
   let configFacade: ConfigFacade;
   let apiListFlowDescriptors$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
   let apiFetchApprovalConfig$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
-  let apiFetchAllRdfDescriptors$: Subject<ReadonlyArray<RdfValueDescriptor>>;
   let apiFetchAllClientsLabels$: Subject<ReadonlyArray<ApiClientLabel>>;
 
   beforeEach(() => {
     apiListFlowDescriptors$ = new ReplaySubject(1);
     apiFetchApprovalConfig$ = new ReplaySubject(1);
-    apiFetchAllRdfDescriptors$ = new ReplaySubject(1);
     apiFetchAllClientsLabels$ = new ReplaySubject(1);
 
     httpApiService = {
@@ -27,9 +25,6 @@ describe('ConfigFacade', () => {
                                .and.returnValue(apiListFlowDescriptors$),
       fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig')
                                .and.returnValue(apiFetchApprovalConfig$),
-      fetchAllRdfDescriptors: jasmine.createSpy('fetchAllRdfDescriptors')
-                                  .and.returnValue(apiFetchAllRdfDescriptors$)
-                                  .and.returnValue(apiFetchApprovalConfig$),
       fetchAllClientsLabels: jasmine.createSpy('fetchAllClientsLabels')
                                  .and.returnValue(apiFetchAllClientsLabels$),
     };

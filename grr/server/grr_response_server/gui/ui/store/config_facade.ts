@@ -1,10 +1,8 @@
 import {Injectable} from '@angular/core';
-import {RdfValueDescriptor} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {getApiClientLabelName} from '@app/lib/api_translation/client';
 import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {Store} from '@ngrx/store';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
@@ -16,7 +14,6 @@ import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
-  rdfDescriptors?: ReadonlyArray<RdfValueDescriptor>;
   clientsLabels?: string[];
 }
 
@@ -42,12 +39,6 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         return {...state, approvalConfig};
       });
 
-  private readonly updateRdfDescriptors =
-      this.updater<ReadonlyArray<RdfValueDescriptor>>(
-          (state, rdfDescriptors) => {
-            return {...state, rdfDescriptors};
-          });
-
   private readonly updateClientsLabels =
       this.updater<string[]>((state, clientsLabels) => {
         return {...state, clientsLabels};
@@ -70,11 +61,6 @@ export class ConfigStore extends ComponentStore<ConfigState> {
           }),
           ));
 
-  private readonly fetchRdfDescriptors = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.httpApiService.fetchAllRdfDescriptors()),
-          tap(rdfDescriptors => this.updateRdfDescriptors(rdfDescriptors)),
-          ));
   private readonly fetchClientsLabels = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.httpApiService.fetchAllClientsLabels()),
@@ -112,18 +98,6 @@ export class ConfigStore extends ComponentStore<ConfigState> {
       shareReplay(1),  // Ensure that the query is done just once.
   );
 
-  /** An observable emitting the RDF value descriptors */
-  readonly rdfDescriptors$ = of(undefined).pipe(
-      // Ensure that the query is done on subscription.
-      tap(() => this.fetchRdfDescriptors()),
-      switchMap(() => this.select(state => state.rdfDescriptors)),
-      filter(
-          (rdfDescriptors):
-              rdfDescriptors is ReadonlyArray<RdfValueDescriptor> =>
-                  rdfDescriptors !== undefined),
-      shareReplay(1),  // Ensure that the query is done just once.
-  );
-
   /** An observable emitting a list of all clients labels. */
   readonly clientsLabels$ = of(undefined).pipe(
       tap(() => this.fetchClientsLabels()),
@@ -150,9 +124,6 @@ export class ConfigFacade {
   readonly approvalConfig$: Observable<ApprovalConfig> =
       this.store.approvalConfig$;
 
-  /** An observable emitting the RDF value descriptors */
-  readonly rdfDescriptors$: Observable<ReadonlyArray<RdfValueDescriptor>> =
-      this.store.rdfDescriptors$;
   /** An observable emitting a list of all clients labels. */
   readonly clientsLabels$: Observable<string[]> = this.store.clientsLabels$;
 }

@@ -4,7 +4,7 @@ import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
 import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiAllRdfValues as ApiAllRdfDescriptors, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, RdfValueDescriptor} from './api_interfaces';
+import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -215,13 +215,6 @@ export class HttpApiService {
     const args: ApiExplainGlobExpressionArgs = {globExpression, exampleCount};
     return this.http.post<ApiExplainGlobExpressionResult>(url, args).pipe(
         map(result => result.components ?? []));
-  }
-
-  /** Fetches all RDF descriptors */
-  fetchAllRdfDescriptors(): Observable<ReadonlyArray<RdfValueDescriptor>> {
-    const url = `${URL_PREFIX}/reflection/rdfvalue/all`;
-    return this.http.get<ApiAllRdfDescriptors>(url).pipe(
-        map(result => result.items ?? []));
   }
 
   addClientLabel(clientId: string, label: string): Observable<{}> {

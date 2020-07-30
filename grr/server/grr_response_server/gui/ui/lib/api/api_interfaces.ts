@@ -13,25 +13,6 @@ export declare interface AnyObject {
   [key: string]: undefined | null | string | number | boolean | object;
 }
 
-/** Api RdfValueFieldDescriptor proto mapping. */
-export declare interface RdfValueFieldDescriptor {
-  readonly name?: string;
-  readonly doc?: string;
-  readonly friendlyName?: string;
-}
-
-/** Api RdfValueDescriptor proto mapping. */
-export declare interface RdfValueDescriptor {
-  readonly name?: string;
-  readonly doc?: string;
-  readonly fields?: ReadonlyArray<RdfValueFieldDescriptor>;
-}
-
-/** ApiAllRdfValues proto mapping. */
-export declare interface ApiAllRdfValues {
-  readonly items?: ReadonlyArray<RdfValueDescriptor>;
-}
-
 /**
  * int64, fixed64, and DecimalString in Protobuf are serialized as string in
  * JSON because JS loses precision for big numeric types. During
