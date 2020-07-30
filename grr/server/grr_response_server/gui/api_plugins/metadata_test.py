@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Lint as: python3
 """This module contains tests for metadata API handlers."""
 from __future__ import absolute_import
@@ -114,114 +113,464 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.open_api_desc = result.open_api_description
     self.open_api_desc_dict = json.loads(self.open_api_desc)
 
+  def testRouterAnnotatedMethodsAreAllExtracted(self):
+    expected_methods = {
+      "Method1WithArgsType",
+      "Method2WithResultType",
+      "Method3PrimitiveTypes",
+      "Method4RepeatedField",
+      "Method5EnumField",
+      "Method6TypeReferences",
+    }
+    extracted_methods = {method.name for method in self.router_methods.values()}
+
+    self.assertSetEqual(expected_methods, extracted_methods)
+
   @skip.If(
     "openapi-spec-validator" not in {p.key for p in pkg_resources.working_set},
     "The openapi-spec-validator module used for validating the OpenAPI "
     "specification is not installed."
   )
-  def testRendersValidOpenApiDescription(self):
+  def testGeneratedOpenApiDescriptionIsValid(self):
+    # TODO(alexandrucosminmihai): Move this import to the top when the GitHub
+    # issue #813 (https://github.com/google/grr/issues/813) is resolved.
     import openapi_spec_validator
-    try:
-      errors = openapi_spec_validator.validate_spec(self.open_api_desc_dict)
-    except:
-      errors = True
+    # Will raise exceptions when the OpenAPI specification is invalid.
+    openapi_spec_validator.validate_spec(self.open_api_desc_dict)
 
-    self.assertIsNone(errors)
+  def testAllRoutesAreInOpenApiDescription(self):
+    # Check that there are no extra/missing paths.
+    expected_paths = {
+      "/metadata_test/method1/{metadata_id}",
+      "/metadata_test/method2",
+      "/metadata_test/method3",
+      "/metadata_test/method4",
+      "/metadata_test/method5",
+      "/metadata_test/method6",
+    }
+    open_api_paths = set(self.open_api_desc_dict["paths"].keys())
+    self.assertSetEqual(expected_paths, open_api_paths)
 
-  def testAllRoutesInOpenApiDescription(self):
-    for router_method in self.router_methods.values():
-      for http_method, path, strip_root_types in router_method.http_methods:
-        simple_path = self.handler._SimplifyPath(path)
-        http_method = http_method.lower()
+    # Check that there are no extra/missing HTTP methods for each path.
+    expected_routes = {
+      "/metadata_test/method1/{metadata_id}": {"get", "head", "post"},
+      "/metadata_test/method2": {"get", "head", "post"},
+      "/metadata_test/method3": {"get"},
+      "/metadata_test/method4": {"get", "post"},
+      "/metadata_test/method5": {"get", "post"},
+      "/metadata_test/method6": {"get"},
+    }
+    open_api_paths_dict = self.open_api_desc_dict["paths"]
+    open_api_routes = {
+      "/metadata_test/method1/{metadata_id}":
+        set(open_api_paths_dict["/metadata_test/method1/{metadata_id}"]),
+      "/metadata_test/method2":
+        set(open_api_paths_dict["/metadata_test/method2"]),
+      "/metadata_test/method3":
+        set(open_api_paths_dict["/metadata_test/method3"]),
+      "/metadata_test/method4":
+        set(open_api_paths_dict["/metadata_test/method4"]),
+      "/metadata_test/method5":
+        set(open_api_paths_dict["/metadata_test/method5"]),
+      "/metadata_test/method6":
+        set(open_api_paths_dict["/metadata_test/method6"]),
+    }
+    self.assertDictEqual(expected_routes, open_api_routes)
 
-        operation_obj = \
-          self.open_api_desc_dict["paths"][simple_path][http_method]
+  def testRouteArgsAreCorrectlySeparated(self):
+    # Check that for each route the parameters are separated correctly in path,
+    # query and request body parameters.
+    expected_separation = {
+      # Method1WithArgsType routes.
+      "GET /metadata_test/method1/{metadata_id}": {
+        "path": {"metadata_id"},
+        "query": {"metadata_arg1", "metadata_arg2"},
+        "body": set()
+      },
+      "HEAD /metadata_test/method1/{metadata_id}": {
+        "path": {"metadata_id"},
+        "query": {"metadata_arg1", "metadata_arg2"},
+        "body": set()
+      },
+      "POST /metadata_test/method1/{metadata_id}": {
+        "path": {"metadata_id"},
+        "query": set(),
+        "body": {"metadata_arg1", "metadata_arg2"}
+      },
 
-        self.assertIsNotNone(operation_obj)
+      # Method4RepeatedField routes.
+      "GET /metadata_test/method4": {
+        "path": set(),
+        "query": {"field_repeated"},
+        "body": set()
+      },
+      "POST /metadata_test/method4": {
+        "path": set(),
+        "query": set(),
+        "body": {"field_repeated"}
+      },
 
-  def testRouteArgsSeparationInPathQueryBody(self):
-    for router_method in self.router_methods.values():
-      for http_method, path, strip_root_types in router_method.http_methods:
-        simple_path = self.handler._SimplifyPath(path)
-        http_method = http_method.lower()
+      # Method5EnumField routes.
+      "GET /metadata_test/method5": {
+        "path": set(),
+        "query": {"field_enum"},
+        "body": set()
+      },
+      "POST /metadata_test/method5": {
+        "path": set(),
+        "query": set(),
+        "body": {"field_enum"}
+      },
 
-        field_descriptors = []
-        if router_method.args_type:
-          field_descriptors = router_method.args_type.protobuf.DESCRIPTOR.fields
+      # Method6TypeReferences routes.
+      "GET /metadata_test/method6": {
+        "path": set(),
+        "query": {"field_int64", "child_1", "child_2"},
+        "body": set()
+      },
+    }
 
-        path_args = self.handler._GetPathArgsFromPath(path)
-        path_args = set(path_args)
+    # Extract the parameters from the OpenAPI description for all routes.
+    open_api_paths_dict = self.open_api_desc_dict["paths"]
 
-        # Triage parameters from the RDFProtoStruct class.
-        path_params = set()
-        query_params = set()
-        body_params = set()
+    # Extract the OpenAPI parameters of Method1WithArgsType routes.
+    method1_path_dict = (
+      open_api_paths_dict["/metadata_test/method1/{metadata_id}"]
+    )
 
-        for field_d in field_descriptors:
-          field_name = field_d.name
-          if field_name in path_args:
-            path_params.add(field_name)
-          elif http_method.upper() in ("GET", "HEAD"):
-            query_params.add(field_name)
-          else:
-            body_params.add(field_name)
+    # Parameters of GET /metadata_test/method1/{metadata_id}.
+    get_method1_dict = method1_path_dict["get"]
+    get_method1_params_path = {
+      param["name"]
+      for param in get_method1_dict["parameters"] if param["in"] == "path"
+    }
+    get_method1_params_query = {
+      param["name"]
+      for param in get_method1_dict["parameters"] if param["in"] == "query"
+    }
+    # "parameters" field is always present, even if there is an empty array,
+    # "requestBody" should not be, unless there are arguments in the body.
+    self.assertIsNone(get_method1_dict.get("requestBody"))
+    get_method1_params_body = set()
 
-        # Triage parameters from the generated OpenAPI description.
-        open_api_path_params = set()
-        open_api_query_params = set()
-        open_api_body_params = set()
+    # Parameters of POST /metadata_test/method1/{metadata_id}.
+    post_method1_dict = method1_path_dict["post"]
+    post_method1_params_path = {
+      param["name"]
+      for param in post_method1_dict["parameters"] if param["in"] == "path"
+    }
+    post_method1_params_query = {
+      param["name"]
+      for param in post_method1_dict["parameters"] if param["in"] == "query"
+    }
+    post_method1_params_body = {
+      param # requestBody parameters use their names as keys.
+      for param in post_method1_dict.get("requestBody").get("content")
+        .get("application/json").get("schema").get("properties")
+    }
 
-        # https://swagger.io/specification/#operation-object
-        operation_obj = \
-          self.open_api_desc_dict["paths"][simple_path][http_method]
+    # Parameters of HEAD /metadata_test/method1/{metadata_id}.
+    head_method1_dict = method1_path_dict["head"]
+    head_method1_params_path = {
+      param["name"]
+      for param in head_method1_dict["parameters"] if param["in"] == "path"
+    }
+    head_method1_params_query = {
+      param["name"]
+      for param in get_method1_dict["parameters"] if param["in"] == "query"
+    }
+    self.assertIsNone(head_method1_dict.get("requestBody"))
+    head_method1_params_body = set()
 
-        # parameters = operation_obj.get("parameters")
-        # self.assertIsNotNone(parameters)
-        parameters = operation_obj["parameters"]
-        for parameter in parameters:
-          param_name = parameter["name"]
-          if parameter["in"] == "path":
-            open_api_path_params.add(param_name)
-          elif parameter["in"] == "query":
-            open_api_query_params.add(param_name)
-          else:
-            raise TypeError("Wrong OpenAPI parameter location: "
-                            "\"{parameter["in"]}\"")
+    # Extract the OpenAPI parameters of Method4RepeatedField routes.
+    method4_path_dict = open_api_paths_dict["/metadata_test/method4"]
 
-        request_body_obj = operation_obj.get("requestBody")
-        if request_body_obj:
-          schema_obj = request_body_obj["content"]["application/json"]["schema"]
-          for param_name in schema_obj["properties"]:
-            open_api_body_params.add(param_name)
+    # Parameters of GET /metadata_test/method4.
+    get_method4_dict = method4_path_dict["get"]
+    get_method4_params_path = {
+      param["name"]
+      for param in get_method4_dict["parameters"] if param["in"] == "path"
+    }
+    get_method4_params_query = {
+      param["name"]
+      for param in get_method4_dict["parameters"] if param["in"] == "query"
+    }
+    self.assertIsNone(get_method4_dict.get("requestBody"))
+    get_method4_params_body = set()
 
-        self.assertSetEqual(path_params, open_api_path_params)
-        self.assertSetEqual(query_params, open_api_query_params)
-        self.assertSetEqual(body_params, open_api_body_params)
+    # Parameters of POST /metadata_test/method4.
+    post_method4_dict = method4_path_dict["post"]
+    post_method4_params_path = {
+      param["name"]
+      for param in post_method4_dict["parameters"] if param["in"] == "path"
+    }
+    post_method4_params_query = {
+      param["name"]
+      for param in post_method4_dict["parameters"] if param["in"] == "query"
+    }
+    post_method4_params_body = {
+      param
+      for param in post_method4_dict.get("requestBody").get("content")
+        .get("application/json").get("schema").get("properties")
+    }
 
-  def testRouteResultOpenApiDescription(self):
-    for router_method in self.router_methods.values():
-      for http_method, path, strip_root_types in router_method.http_methods:
-        simple_path = self.handler._SimplifyPath(path)
-        http_method = http_method.lower()
+    # Extract the OpenAPI parameters of Method5EnumField routes.
+    method5_path_dict = open_api_paths_dict["/metadata_test/method5"]
 
-        # Check if there is a result type annotated to the method object.
-        result_type = router_method.result_type is not None
+    # Parameters of GET /metadata_test/method5.
+    get_method5_dict = method5_path_dict["get"]
+    get_method5_params_path = {
+      param["name"]
+      for param in get_method5_dict["parameters"] if param["in"] == "path"
+    }
+    get_method5_params_query = {
+      param["name"]
+      for param in get_method5_dict["parameters"] if param["in"] == "query"
+    }
+    self.assertIsNone(get_method5_dict.get("requestBody"))
+    get_method5_params_body = set()
 
-        # Check if there is a result type schema in the OpenAPI description.
-        # https://swagger.io/specification/#operation-object
-        operation_obj = \
-          self.open_api_desc_dict["paths"][simple_path][http_method]
-        responses_obj = operation_obj["responses"]
+    # Parameters of POST /metadata_test/method5.
+    post_method5_dict = method5_path_dict["post"]
+    post_method5_params_path = {
+      param["name"]
+      for param in post_method5_dict["parameters"] if param["in"] == "path"
+    }
+    post_method5_params_query = {
+      param["name"]
+      for param in post_method5_dict["parameters"] if param["in"] == "query"
+    }
+    post_method5_params_body = {
+      param
+      for param in post_method5_dict.get("requestBody").get("content")
+        .get("application/json").get("schema").get("properties")
+    }
 
-        self.assertIn("200", responses_obj)
-        self.assertIn("default", responses_obj)
+    # Extract the OpenAPI parameters of Method6TypeReferences routes.
+    method6_path_dict = open_api_paths_dict["/metadata_test/method6"]
 
-        resp_200 = responses_obj["200"]
-        result_type_open_api = "content" in resp_200
+    # Parameters of GET /metadata_test/method6.
+    get_method6_dict = method6_path_dict["get"]
+    get_method6_params_path = {
+      param["name"]
+      for param in get_method6_dict["parameters"] if param["in"] == "path"
+    }
+    get_method6_params_query = {
+      param["name"]
+      for param in get_method6_dict["parameters"] if param["in"] == "query"
+    }
+    self.assertIsNone(get_method6_dict.get("requestBody"))
+    get_method6_params_body = set()
 
-        self.assertEqual(result_type, result_type_open_api)
+    # Put all the extracted parameters in a dictionary to compare with the
+    # expected_separation dictionary.
+    open_api_separation = {
+      # Method1WithArgsType routes.
+      "GET /metadata_test/method1/{metadata_id}": {
+        "path": get_method1_params_path,
+        "query": get_method1_params_query,
+        "body": get_method1_params_body
+      },
+      "HEAD /metadata_test/method1/{metadata_id}": {
+        "path": head_method1_params_path,
+        "query": head_method1_params_query,
+        "body": head_method1_params_body
+      },
+      "POST /metadata_test/method1/{metadata_id}": {
+        "path": post_method1_params_path,
+        "query": post_method1_params_query,
+        "body": post_method1_params_body
+      },
 
-  def testOpenApiPrimitiveTypesDescription(self):
+      # Method4RepeatedField routes.
+      "GET /metadata_test/method4": {
+        "path": get_method4_params_path,
+        "query": get_method4_params_query,
+        "body": get_method4_params_body
+      },
+      "POST /metadata_test/method4": {
+        "path": post_method4_params_path,
+        "query": post_method4_params_query,
+        "body": post_method4_params_body
+      },
+
+      # Method5EnumField routes.
+      "GET /metadata_test/method5": {
+        "path": get_method5_params_path,
+        "query": get_method5_params_query,
+        "body": get_method5_params_body
+      },
+      "POST /metadata_test/method5": {
+        "path": post_method5_params_path,
+        "query": post_method5_params_query,
+        "body": post_method5_params_body
+      },
+
+      # Method6TypeReferences routes.
+      "GET /metadata_test/method6": {
+        "path": get_method6_params_path,
+        "query": get_method6_params_query,
+        "body": get_method6_params_body
+      },
+    }
+
+    self.assertDictEqual(expected_separation, open_api_separation)
+
+  def testRoutesResultsAreCorrectlyDescribedInOpenApiDescription(self):
+    # Verify the OpenAPI schemas of the response objects.
+    # Response types are usually protobuf messages. The expectation in these
+    # cases is that the routes descriptions include a reference to the type
+    # schemas in the "components" field of the root OpenAPI object.
+
+    expected_responses = {
+      # Method2WithResultType (GET, HEAD, POST) => MetadataSimpleMessage
+      "GET /metadata_test/method2": {
+        "200": {
+          "description": "The call to the Method2WithResultType API method "
+                         "succeeded and it returned an instance of "
+                         "grr.MetadataSimpleMessage.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/grr.MetadataSimpleMessage"
+              }
+            }
+          }
+        },
+        "default": {
+          "description": "The call to the Method2WithResultType API method did "
+                         "not succeed."
+        }
+      },
+      "HEAD /metadata_test/method2": {
+        "200": {
+          "description": "The call to the Method2WithResultType API method "
+                         "succeeded and it returned an instance of "
+                         "grr.MetadataSimpleMessage.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/grr.MetadataSimpleMessage"
+              }
+            }
+          }
+        },
+        "default": {
+          "description": "The call to the Method2WithResultType API method did "
+                         "not succeed."
+        }
+      },
+      "POST /metadata_test/method2": {
+        "200": {
+          "description": "The call to the Method2WithResultType API method "
+                         "succeeded and it returned an instance of "
+                         "grr.MetadataSimpleMessage.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/grr.MetadataSimpleMessage"
+              }
+            }
+          }
+        },
+        "default": {
+          "description": "The call to the Method2WithResultType API method did "
+                         "not succeed."
+        }
+      },
+
+      # Method3PrimitiveTypes (GET) => BinaryStream result type.
+      "GET /metadata_test/method3": {
+        "200": {
+          "description": "The call to the Method3PrimitiveTypes API method "
+                         "succeeded and it returned an instance of "
+                         "BinaryStream.",
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "type": "string",
+                "format": "binary"
+              }
+            }
+          }
+        },
+        "default": {
+          "description": "The call to the Method3PrimitiveTypes API method did "
+                         "not succeed."
+        },
+      },
+
+      # Method4RepeatedField (GET, POST) => No result type.
+      "GET /metadata_test/method4": {
+        "200": {
+          "description": "The call to the Method4RepeatedField API method "
+                         "succeeded."
+        },
+        "default": {
+          "description": "The call to the Method4RepeatedField API method did "
+                         "not succeed."
+        }
+      },
+      "POST /metadata_test/method4": {
+        "200": {
+          "description": "The call to the Method4RepeatedField API method "
+                         "succeeded."
+        },
+        "default": {
+          "description": "The call to the Method4RepeatedField API method did "
+                         "not succeed."
+        }
+      },
+    }
+
+    # Extract the responses from the OpenAPI description for the tested routes.
+    open_api_paths_dict = self.open_api_desc_dict["paths"]
+
+    # Get identifiers for each method's OpenAPI dictionary for easier access.
+    method2_path_dict = open_api_paths_dict["/metadata_test/method2"]
+    method3_path_dict = open_api_paths_dict["/metadata_test/method3"]
+    method4_path_dict = open_api_paths_dict["/metadata_test/method4"]
+
+    # Put together the extracted response fields from the OpenAPI description.
+    open_api_responses = {
+      # Method2WithResultType routes and their responses.
+      "GET /metadata_test/method2": method2_path_dict["get"]["responses"],
+      "HEAD /metadata_test/method2": method2_path_dict["head"]["responses"],
+      "POST /metadata_test/method2": method2_path_dict["post"]["responses"],
+
+      # Method3PrimitiveTypes route and its response.
+      "GET /metadata_test/method3": method3_path_dict["get"]["responses"],
+
+      # Method4RepeatedField routes and their responses.
+      "GET /metadata_test/method4": method4_path_dict["get"]["responses"],
+      "POST /metadata_test/method4": method4_path_dict["post"]["responses"],
+    }
+
+    self.assertDictEqual(expected_responses, open_api_responses)
+
+  def testPrimitiveTypesAreCorrectlyDescribedInOpenApiDescription(self):
+    expected_primitives = {
+      "field_double": {"type": "number", "format": "double"},
+      "field_float": {"type": "number", "format": "float"},
+      "field_int64": {"type": "integer", "format": "int64"},
+      "field_uint64": {"type": "integer", "format": "uint64"},
+      "field_int32": {"type": "integer", "format": "int32"},
+      "field_fixed64": {"type": "integer", "format": "uint64"},
+      "field_fixed32": {"type": "integer", "format": "uint32"},
+      "field_bool": {"type": "boolean"},
+      "field_string": {"type": "string"},
+      "field_bytes": {"type": "string", "format": "binary"},
+      "field_uint32": {"type": "integer", "format": "uint32"},
+      "field_sfixed32": {"type": "integer", "format": "int32"},
+      "field_sfixed64": {"type": "integer", "format": "int64"},
+      "field_sint32": {"type": "integer", "format": "int32"},
+      "field_sint64": {"type": "integer", "format": "int64"},
+      "BinaryStream": {"type": "string", "format": "binary"}
+    }
+
+    # Extract description of primitive types from the OpenApi description of
+    # MetadataPrimitiveTypesMessage which is the ArgsType of
+    # Method3PrimitiveTypes.
     operation_obj = (
       self.open_api_desc_dict
         .get("paths")
@@ -230,7 +579,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     primitive_parameters = operation_obj["parameters"]
 
-    open_api_primitives = {p["name"]: p["schema"] for p in primitive_parameters}
+    open_api_primitives = {
+      param["name"]: param["schema"]
+      for param in primitive_parameters
+    }
     open_api_primitives["BinaryStream"] = (
       operation_obj
         .get("responses")
@@ -240,137 +592,159 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("schema")
     )
 
-    expected = dict()
+    self.assertDictEqual(expected_primitives, open_api_primitives)
 
-    expected_double = {"type": "number", "format": "double"}
-    expected["field_double"] = expected_double
+  def testRepeatedFieldIsDescribedCorrectlyInOpenApiDescription(self):
+    expected_repeated_field_schemas = {
+      "GET /metadata_test/method4": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+      "POST /metadata_test/method4": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "format": "int64"
+        }
+      },
+    }
 
-    expected_float = {"type": "number", "format": "float"}
-    expected["field_float"] = expected_float
+    # Extract the repeated field from the description of the GET route
+    # associated with Method4RepeatedField.
+    # The repeated field should be the only parameter and be a query parameter.
+    # This aspect is tested by testRouteArgsAreCorrectlySeparated.
+    get_method4_repeated_field_schema = (
+      self.open_api_desc_dict
+        .get("paths")
+        .get("/metadata_test/method4")
+        .get("get")
+        .get("parameters")[0]
+        .get("schema")
+    )
 
-    expected_int64 = {"type": "integer", "format": "int64"}
-    expected["field_int64"] = expected_int64
+    # Extract the repeated field from the description of the POST route
+    # associated with Method4RepeatedField.
+    # The repeated field should be the only parameter and be a request body
+    # parameter. This aspect is tested by testRouteArgsAreCorrectlySeparated.
+    post_method4_repeated_field_schema = (
+      self.open_api_desc_dict
+      .get("paths")
+      .get("/metadata_test/method4")
+      .get("post")
+      .get("requestBody")
+      .get("content")
+      .get("application/json")
+      .get("schema")
+      .get("properties")
+      .get("field_repeated")
+    )
 
-    expected_uint64 = {"type": "integer", "format": "uint64"}
-    expected["field_uint64"] = expected_uint64
+    # Put the extracted descriptions together in a dictionary for testing.
+    open_api_repeated_field_schemas = {
+      "GET /metadata_test/method4": get_method4_repeated_field_schema,
+      "POST /metadata_test/method4": post_method4_repeated_field_schema,
+    }
 
-    expected_int32 = {"type": "integer", "format": "int32"}
-    expected["field_int32"] = expected_int32
+    self.assertDictEqual(expected_repeated_field_schemas,
+                         open_api_repeated_field_schemas)
 
-    expected_fixed64 = {"type": "integer", "format": "uint64"}
-    expected["field_fixed64"] = expected_fixed64
+  def testEnumFieldIsDescribedCorrectlyInOpenApiDescription(self):
+    # The enum type is user defined, so it is reusable and described separately
+    # from the field itself, in the "components" field of the root OpenAPI
+    # object. Therefore, the expectation is that this field has a reference to
+    # the enum type description.
+    # We test both the references and the type definition.
 
-    expected_fixed32 = {"type": "integer", "format": "uint32"}
-    expected["field_fixed32"] = expected_fixed32
+    # Test the OpenAPI schema description of the *enum field*.
+    expected_enum_field_schemas = {
+      "GET /metadata_test/method5": {
+        "$ref":
+          "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum"
+      },
+      "POST /metadata_test/method5": {
+        "$ref":
+          "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum"
+      },
+    }
 
-    expected_bool = {"type": "boolean"}
-    expected["field_bool"] = expected_bool
+    # Extract the enum field schema from the description of the GET route
+    # associated with Method5EnumField.
+    get_method5_enum_field_schema = (
+      self.open_api_desc_dict
+      .get("paths")
+      .get("/metadata_test/method5")
+      .get("get")
+      .get("parameters")[0]
+      .get("schema")
+    )
 
-    expected_string = {"type": "string"}
-    expected["field_string"] = expected_string
+    # Extract the enum field schema from the description of the POST route
+    # associated with Method5EnumField.
+    post_method5_enum_field_schema = (
+      self.open_api_desc_dict
+      .get("paths")
+      .get("/metadata_test/method5")
+      .get("post")
+      .get("requestBody")
+      .get("content")
+      .get("application/json")
+      .get("schema")
+      .get("properties")
+      .get("field_enum")
+    )
 
-    expected_bytes = {"type": "string", "format": "binary"}
-    expected["field_bytes"] = expected_bytes
+    # Put the two extracted field schemas together in a dictionary for testing.
+    open_api_enum_field_schemas = {
+      "GET /metadata_test/method5": get_method5_enum_field_schema,
+      "POST /metadata_test/method5": post_method5_enum_field_schema,
+    }
 
-    expected_uint32 = {"type": "integer", "format": "uint32"}
-    expected["field_uint32"] = expected_uint32
+    self.assertDictEqual(expected_enum_field_schemas,
+                         open_api_enum_field_schemas)
 
-    expected_sfixed32 = {"type": "integer", "format": "int32"}
-    expected["field_sfixed32"] = expected_sfixed32
+    # Test the OpenAPI schema description of the *enum field's type*.
+    expected_enum_type_schema = {
+      "type": "integer",
+      "format": "int32",
+      "enum": [1, 2, 3],
+      "description": "1 == A\n2 == B\n3 == C"
+    }
 
-    expected_sfixed64 = {"type": "integer", "format": "int64"}
-    expected["field_sfixed64"] = expected_sfixed64
+    open_api_enum_type_schema = (
+      self.open_api_desc_dict
+      .get("components")
+      .get("schemas")
+      .get("grr.MetadataEnumFieldMessage.metadata_enum")
+    )
 
-    expected_sint32 = {"type": "integer", "format": "int32"}
-    expected["field_sint32"] = expected_sint32
+    self.assertDictEqual(expected_enum_type_schema, open_api_enum_type_schema)
 
-    expected_sint64 = {"type": "integer", "format": "int64"}
-    expected["field_sint64"] = expected_sint64
-
-    expected_binarystream = {"type": "string", "format": "binary"}
-    expected["BinaryStream"] = expected_binarystream
-
-    self.assertDictEqual(expected, open_api_primitives)
-
-  def testRepetitiveField(self):
-    # Test the GET route. The repeated field should be a query parameter.
-    params = (self.open_api_desc_dict.get("paths").get("/metadata_test/method4")
-              .get("get").get("parameters"))
-    self.assertEqual(len(params), 1)
-
-    param = params[0]
-    self.assertEqual(param["in"], "query")
-    schema = param["schema"]
-    self.assertEqual(schema["type"], "array")
-    self.assertEqual(schema["items"]["type"], "integer")
-    self.assertEqual(schema["items"]["format"], "int64")
-
-    # Test the POST route. The repeated field should be in the request body.
-    req_body = (self.open_api_desc_dict.get("paths")
-                .get("/metadata_test/method4").get("post").get("requestBody"))
-    req_schema = req_body["content"]["application/json"]["schema"]
-    self.assertEqual(req_schema["type"], "object")
-    schema = req_schema["properties"]["field_repeated"]
-    self.assertEqual(schema["type"], "array")
-    self.assertEqual(schema["items"]["type"], "integer")
-    self.assertEqual(schema["items"]["format"], "int64")
-
-  def testEnumField(self):
-    # Test the GET route. The enum field should be a query parameter.
-    params = (self.open_api_desc_dict.get("paths").get("/metadata_test/method5")
-              .get("get").get("parameters"))
-    self.assertEqual(len(params), 1)
-
-    param = params[0]
-    self.assertEqual(param["in"], "query")
-    ref_get = param["schema"]["$ref"]
-    ref_nodes = ref_get.split("/")
-    ref_nodes = ref_nodes[1:]
-    schema = self.open_api_desc_dict
-    for node in ref_nodes:
-      schema = schema[node]
-
-    # Test the OpenAPI component agains its protobuf counterpart.
-    self.assertEqual(schema["type"], "integer")
-    self.assertEqual(schema["format"], "int32")
-    enum_values_open_api = set(schema["enum"])
-
-    message_d = MetadataEnumFieldMessage.protobuf.DESCRIPTOR
-    self.assertEqual(len(message_d.enum_types), 1)
-    enum_d = message_d.enum_types[0]
-    enum_values_ds = enum_d.values
-    enum_values_protobuf = set(
-      [enum_value_d.number for enum_value_d in enum_values_ds])
-    self.assertSetEqual(enum_values_open_api, enum_values_protobuf)
-
-    # Test the POST route. The enum field should be in the request body.
-    # Just check that the structure is correct and that the same component
-    # is referenced as above.
-    req_body = (self.open_api_desc_dict.get("paths")
-                .get("/metadata_test/method5").get("post").get("requestBody"))
-    req_schema = req_body["content"]["application/json"]["schema"]
-    self.assertEqual(req_schema["type"], "object")
-    ref_post = req_schema["properties"]["field_enum"]["$ref"]
-    self.assertEqual(ref_post, ref_get)
-
-  def testOpenApiTypeReferences(self):
+  def testTypeReferencesAreUsedInOpenApiDescriptionsOfCompositeTypes(self):
     # Tests that references are used for composite types and that the referenced
     # types are declared, including the case of cyclic dependencies.
 
     # Test that composite types are defined.
-    components_schemas = self.open_api_desc_dict["components"]["schemas"]
-    root = components_schemas["grr.MetadataTypesHierarchyRoot"]
-    root_ref = "#/components/schemas/grr.MetadataTypesHierarchyRoot"
-    cyclic = components_schemas["grr.MetadataTypesHierarchyCyclic"]
-    cyclic_ref = "#/components/schemas/grr.MetadataTypesHierarchyCyclic"
-    leaf = components_schemas["grr.MetadataTypesHierarchyLeaf"]
-    leaf_ref = "#/components/schemas/grr.MetadataTypesHierarchyLeaf"
+    open_api_components_schemas = (
+      self.open_api_desc_dict
+        .get("components")
+        .get("schemas")
+    )
+    root = open_api_components_schemas["grr.MetadataTypesHierarchyRoot"]
+    cyclic = open_api_components_schemas["grr.MetadataTypesHierarchyCyclic"]
+    leaf = open_api_components_schemas["grr.MetadataTypesHierarchyLeaf"]
 
     # Test the references between message types.
+    root_ref = "#/components/schemas/grr.MetadataTypesHierarchyRoot"
+    cyclic_ref = "#/components/schemas/grr.MetadataTypesHierarchyCyclic"
+    leaf_ref = "#/components/schemas/grr.MetadataTypesHierarchyLeaf"
+
     self.assertEqual(root["properties"]["child_1"]["$ref"], cyclic_ref)
     self.assertEqual(root["properties"]["child_2"]["$ref"], leaf_ref)
 
-    self.assertEqual(cyclic["properties"]["root"]["$ref"], root_ref) # Cycle.
+    self.assertEqual(cyclic["properties"]["root"]["$ref"], root_ref)  # Cycle.
     self.assertEqual(cyclic["properties"]["child_1"]["$ref"], leaf_ref)
 
 

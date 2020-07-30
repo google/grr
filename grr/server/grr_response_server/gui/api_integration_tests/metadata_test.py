@@ -1,6 +1,4 @@
-#!/usr/bin/env python
 # Lint as: python3
-# -*- encoding: utf-8 -*-
 """Tests for API client and metadata-related API calls."""
 from __future__ import absolute_import
 from __future__ import division
@@ -23,11 +21,13 @@ class ApiClientLibMetadataTest(api_integration_test_lib.ApiIntegrationTest):
     "The openapi-spec-validator module used for validating the OpenAPI "
     "specification is not installed."
   )
-  def testOpenApiDescriptionValidity(self):
+  def testGeneratedOpenApiDescriptionIsValid(self):
+    # TODO(alexandrucosminmihai): Move this import to the top as soon as GitHub
+    # issue #813 (https://github.com/google/grr/issues/813) is resolved.
     import openapi_spec_validator
     open_api_dict = self.api.GetOpenApiDescription()
 
-    # Will raise Exceptions when the OpenAPI specification is invalid.
+    # Will raise exceptions when the OpenAPI specification is invalid.
     openapi_spec_validator.validate_spec(open_api_dict)
 
 
