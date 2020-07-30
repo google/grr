@@ -38,10 +38,6 @@ export class Client implements OnInit, OnDestroy {
     });
   }
 
-  goToClientDetailsPage() {
-    this.router.navigate(['details'], {relativeTo: this.route});
-  }
-
   openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
     const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
       data: clientLabels,
