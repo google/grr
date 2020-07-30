@@ -98,7 +98,7 @@ function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
   return {
     macAddress: createMacAddress(decodeBase64(apiInterface.macAddress)),
     interfaceName: apiInterface.ifname,
-    addresses: (apiInterface.addresses || []).map(createNetworkAddress),
+    addresses: (apiInterface.addresses ?? []).map(createNetworkAddress),
   }
 }
 
@@ -173,14 +173,14 @@ export function translateClient(client: ApiClient): Client {
 
   return {
     clientId: client.clientId,
-    fleetspeakEnabled: client.fleetspeakEnabled || false,
-    agentInfo: createAgentInfo(client.agentInfo || {}),
-    labels: (client.labels || []).map(createClientLabel),
-    knowledgeBase: createKnowledgeBase(client.knowledgeBase || {}),
-    osInfo: createOsInfo(client.osInfo || {}),
-    users: (client.users || []).map(createUser),
-    networkInterfaces: (client.interfaces || []).map(createNetworkInterface),
-    volumes: (client.volumes || []).map(createStorageVolume),
+    fleetspeakEnabled: client.fleetspeakEnabled ?? false,
+    agentInfo: createAgentInfo(client.agentInfo ?? {}),
+    labels: (client.labels ?? []).map(createClientLabel),
+    knowledgeBase: createKnowledgeBase(client.knowledgeBase ?? {}),
+    osInfo: createOsInfo(client.osInfo ?? {}),
+    users: (client.users ?? []).map(createUser),
+    networkInterfaces: (client.interfaces ?? []).map(createNetworkInterface),
+    volumes: (client.volumes ?? []).map(createStorageVolume),
     memorySize: memorySize,
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
