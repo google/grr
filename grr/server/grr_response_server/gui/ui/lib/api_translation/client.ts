@@ -33,10 +33,14 @@ function createClientLabel(label: ApiClientLabel): ClientLabel {
 }
 
 function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
+  let revision = undefined;
+  if (apiAgentInfo.revision) {
+    revision = BigInt(apiAgentInfo.revision);
+  }
   return {
     clientName: apiAgentInfo.clientName,
     clientVersion: apiAgentInfo.clientVersion,
-    revision: apiAgentInfo.revision,
+    revision: revision,
     buildTime: apiAgentInfo.buildTime,
     clientBinaryName: apiAgentInfo.clientBinaryName,
     clientDescription: apiAgentInfo.clientDescription,
@@ -122,26 +126,32 @@ function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume | undefine
 }
 
 function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
-  let totalSize = 0;
-  let freeSpace = 0;
+  let totalSize = undefined;
+  let freeSpace = undefined;
+  let bytesPerSector = undefined;
+
   if (apiVolume.bytesPerSector && apiVolume.sectorsPerAllocationUnit) {
     if (apiVolume.totalAllocationUnits) {
-      totalSize = apiVolume.bytesPerSector *
-          apiVolume.sectorsPerAllocationUnit * apiVolume.totalAllocationUnits;
+      totalSize = BigInt(apiVolume.bytesPerSector) *
+          BigInt(apiVolume.sectorsPerAllocationUnit) * BigInt(apiVolume.totalAllocationUnits);
     }
 
     if (apiVolume.actualAvailableAllocationUnits) {
-      freeSpace = apiVolume.bytesPerSector *
-          apiVolume.sectorsPerAllocationUnit *
-          apiVolume.actualAvailableAllocationUnits;
+      freeSpace = BigInt(apiVolume.bytesPerSector) *
+          BigInt(apiVolume.sectorsPerAllocationUnit) *
+          BigInt(apiVolume.actualAvailableAllocationUnits);
     }
+  }
+
+  if (apiVolume.bytesPerSector) {
+    bytesPerSector = BigInt(apiVolume.bytesPerSector);
   }
 
   return {
     name: apiVolume.name,
     devicePath: apiVolume.devicePath,
     fileSystemType: apiVolume.fileSystemType,
-    bytesPerSector: apiVolume.bytesPerSector,
+    bytesPerSector: bytesPerSector,
     totalSize: totalSize,
     freeSpace: freeSpace,
     creationTime: createOptionalDate(apiVolume.creationTime),
@@ -156,6 +166,11 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
 export function translateClient(client: ApiClient): Client {
   if (!client.clientId) throw new Error('clientId attribute is missing.');
 
+  let memorySize = undefined;
+  if (client.memorySize) {
+    memorySize = BigInt(client.memorySize);
+  }
+
   return {
     clientId: client.clientId,
     fleetspeakEnabled: client.fleetspeakEnabled || false,
@@ -166,7 +181,7 @@ export function translateClient(client: ApiClient): Client {
     users: (client.users || []).map(createUser),
     networkInterfaces: (client.interfaces || []).map(createNetworkInterface),
     volumes: (client.volumes || []).map(createStorageVolume),
-    memorySize: client.memorySize,
+    memorySize: memorySize,
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),

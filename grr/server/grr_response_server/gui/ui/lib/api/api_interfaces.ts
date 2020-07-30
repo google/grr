@@ -68,16 +68,16 @@ export declare interface ApiKnowledgeBase {
 export declare interface ApiClientInformation {
   readonly clientName?: string;
   readonly clientVersion?: number;
-  readonly revision?: number;
+  readonly revision?: DecimalString;
   readonly buildTime?: string;
   readonly clientBinaryName?: string;
   readonly clientDescription?: string;
-  readonly labels?: string[];
+  readonly labels?: ReadonlyArray<string>;
 }
 
 /** ApiWindowsVolume proto mapping. */
 export declare interface ApiWindowsVolume {
-  readonly attributesList?: string[];
+  readonly attributesList?: ReadonlyArray<string>;
   readonly driveLetter?: string;
   readonly driveType?: string;
 }
@@ -93,10 +93,10 @@ export declare interface ApiVolume {
   readonly name?: string;
   readonly devicePath?: string;
   readonly fileSystemType?: string;
-  readonly totalAllocationUnits?: number;
-  readonly sectorsPerAllocationUnit?: number;
-  readonly bytesPerSector?: number;
-  readonly actualAvailableAllocationUnits?: number;
+  readonly totalAllocationUnits?: DecimalString;
+  readonly sectorsPerAllocationUnit?: DecimalString;
+  readonly bytesPerSector?: DecimalString;
+  readonly actualAvailableAllocationUnits?: DecimalString;
   readonly creationTime?: string;
   readonly windowsvolume?: ApiWindowsVolume;
   readonly unixvolume?: ApiUnixVolume;
@@ -157,7 +157,7 @@ export declare interface ApiClient {
   readonly interfaces?: ReadonlyArray<ApiInterface>;
   readonly users?: ReadonlyArray<ApiUser>;
   readonly volumes?: ReadonlyArray<ApiVolume>;
-  readonly memorySize?: number;
+  readonly memorySize?: DecimalString;
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;
   readonly lastBootedAt?: string;

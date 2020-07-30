@@ -17,7 +17,7 @@ export interface KnowledgeBase {
  * Windows specific volume details.
  */
 export interface WindowsVolume {
-  readonly attributes?: string[];
+  readonly attributes?: ReadonlyArray<string>;
   readonly driveLetter?: string;
   readonly driveType?: string;
 }
@@ -37,9 +37,9 @@ export interface StorageVolume {
   readonly name?: string;
   readonly devicePath?: string;
   readonly fileSystemType?: string;
-  readonly totalSize?: number;
-  readonly bytesPerSector?: number;
-  readonly freeSpace?: number;
+  readonly totalSize?: BigInt;
+  readonly bytesPerSector?: BigInt;
+  readonly freeSpace?: BigInt;
   readonly creationTime?: Date;
   readonly unixDetails?: UnixVolume;
   readonly windowsDetails?: WindowsVolume;
@@ -97,7 +97,7 @@ export interface NetworkInterface {
 export interface AgentInfo {
   readonly clientName?: string;
   readonly clientVersion?: number;
-  readonly revision?: number;
+  readonly revision?: BigInt;
   readonly buildTime?: string;
   readonly clientBinaryName?: string;
   readonly clientDescription?: string;
@@ -132,7 +132,7 @@ export interface Client {
   /** Storage volumes available to the client */
   readonly volumes: ReadonlyArray<StorageVolume>;
   /** Memory available to this client */
-  readonly memorySize?: number;
+  readonly memorySize?: BigInt;
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
