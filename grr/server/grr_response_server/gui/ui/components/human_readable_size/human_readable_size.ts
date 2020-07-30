@@ -8,7 +8,7 @@ import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
   templateUrl: './human_readable_size.ng.html',
 })
 export class HumanReadableSizeComponent {
-  @Input() size?: number;
+  @Input() size?: number|bigint;
   private static readonly UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
 
   getHumanSize(): string {
@@ -16,9 +16,13 @@ export class HumanReadableSizeComponent {
       return '-';
     }
 
+    if (typeof this.size === 'bigint') {
+      this.size = Number(this.size);
+    }
+
     let i = 0;
     let size = this.size;
-    let decimals = 1;
+    let decimals = 2;
 
     while (size >= 1024 && i < HumanReadableSizeComponent.UNITS.length - 1) {
       size /= 1024;
@@ -28,7 +32,9 @@ export class HumanReadableSizeComponent {
     if (i == 0) {
       decimals = 0;
     }
+    const fixed = Math.pow(10, decimals);
 
-    return size.toFixed(decimals) + ' ' + HumanReadableSizeComponent.UNITS[i];
+    return `${(Math.floor(size * fixed) / fixed).toFixed(decimals)} ${
+        HumanReadableSizeComponent.UNITS[i]}`;
   }
 }
