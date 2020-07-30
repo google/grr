@@ -74,7 +74,6 @@ export function createUnknownObject(anyObject?: AnyObject): unknown | undefined 
 
 /**
  * Decodes a encoded base64 string into a byte array.
- * On error, returns an empty array.
  */
 export function decodeBase64(encodedString?: string): Uint8Array {
   if (encodedString === undefined) {
@@ -85,7 +84,7 @@ export function decodeBase64(encodedString?: string): Uint8Array {
   try {
     decodedString = atob(encodedString);
   } catch (err) {
-    return new Uint8Array();
+    throw new Error('Invalid base64 encoding.');
   }
   const byteArray = new Uint8Array(decodedString.length);
   for (let i = 0; i < decodedString.length; i++) {
@@ -95,9 +94,9 @@ export function decodeBase64(encodedString?: string): Uint8Array {
   return byteArray;
 }
 
-/** Returns the uppercase hex representation of the first byte of the provided number */
-export function byteToHex(number: number): string {
-  number = number & 0x0FF;
+/** Returns the uppercase hex representation of the least significant byte of the provided number */
+export function leastSignificantByteToHex(number: number): string {
+  number = number & 0xFF;
 
   return number.toString(16).toUpperCase().padStart(2, '0');
 }
@@ -119,9 +118,9 @@ export function createIpv6Address(bytes: Uint8Array): string {
     return '';
   }
 
-  let ipString = `${byteToHex(bytes[0])}${byteToHex(bytes[1])}`;
+  let ipString = `${leastSignificantByteToHex(bytes[0])}${leastSignificantByteToHex(bytes[1])}`;
   for (let i = 2; i < 16; i += 2) {
-    ipString += `:${byteToHex(bytes[i])}${byteToHex(bytes[i + 1])}`;
+    ipString += `:${leastSignificantByteToHex(bytes[i])}${leastSignificantByteToHex(bytes[i + 1])}`;
   }
 
   return ipString;
@@ -133,9 +132,9 @@ export function createMacAddress(bytes: Uint8Array): string {
     return '';
   }
 
-  let macString = `${byteToHex(bytes[0])}`;
+  let macString = `${leastSignificantByteToHex(bytes[0])}`;
   for (let i = 1; i < 6; i++) {
-    macString += `:${byteToHex(bytes[i])}`;
+    macString += `:${leastSignificantByteToHex(bytes[i])}`;
   }
 
   return macString;
