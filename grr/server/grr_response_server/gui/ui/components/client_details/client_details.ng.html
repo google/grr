@@ -76,7 +76,7 @@
     <br>
     <div class="section-title mat-h3">Users</div>
     <table class="section">
-      <ng-template ngFor let-user [ngForOf]="client.users" let-i="index">
+      <ng-template ngFor let-user [ngForOf]="client.users" let-isLast="last">
         <tr *ngIf="user.username">
           <td class="description">Username</td>
           <td class="value">{{user.username}}</td>
@@ -105,9 +105,9 @@
           <td class="description">Shell</td>
           <td class="value">{{user.shell}}</td>
         </tr>
-        <br *ngIf="i !== client.users.length - 1">
+        <br *ngIf="!isLast">
       </ng-template>
-      <div class="empty-section" *ngIf="client.users.length === 0">Oops, this client seems to have no users.</div>
+      <div class="empty-section" *ngIf="client.users.length === 0">None.</div>
     </table>
 
     <br>
@@ -126,7 +126,7 @@
     <br>
     <div class="section-title mat-h3">Network Interfaces</div>
     <table class="section">
-      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces" let-i="index">
+      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces" let-isLast="last">
         <tr>
           <td class="description">Interface name</td>
           <td class="value">{{interface.interfaceName}}</td>
@@ -143,15 +143,15 @@
             </div>
           </td>
         </tr>
-        <br *ngIf="i !== client.networkInterfaces.length - 1">
+        <br *ngIf="!isLast">
       </ng-template>
-      <div class="empty-section" *ngIf="client.networkInterfaces.length === 0">Oops, this client seems to have no network interfaces.</div>
+      <div class="empty-section" *ngIf="client.networkInterfaces.length === 0">None.</div>
     </table>
 
     <br>
     <div class="section-title mat-h3">Storage Volumes</div>
     <table class="section">
-      <ng-template ngFor let-volume [ngForOf]="client.volumes" let-i="index">
+      <ng-template ngFor let-volume [ngForOf]="client.volumes" let-isLast="last">
         <ng-template [ngIf]="volume.windowsDetails">
           <tr *ngIf="volume.windowsDetails.driveLetter">
             <td class="description">Windows drive letter</td>
@@ -208,9 +208,9 @@
           <td class="description">Creation time</td>
           <td class="value"><timestamp [date]="volume.creationTime"></timestamp></td>
         </tr>
-        <br *ngIf="i !== client.volumes.length - 1">
+        <br *ngIf="!isLast">
       </ng-template>
-      <div class="empty-section" *ngIf="client.volumes.length === 0">Oops, this client seems to have no volumes.</div>
+      <div class="empty-section" *ngIf="client.volumes.length === 0">None.</div>
     </table>
 
     <br>
