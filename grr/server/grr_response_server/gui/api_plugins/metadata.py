@@ -5,7 +5,7 @@ import json
 import inspect
 
 from urllib import parse as urlparse
-from typing import Optional, Set
+from typing import Optional, Type, Any, Union, Tuple, List, Set, Dict, cast
 
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
@@ -17,6 +17,17 @@ from grr_response_core.lib.rdfvalues import proto2 as protobuf2
 from grr_response_proto.api import metadata_pb2
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_handler_base
+
+# Type aliases used throughout the metadata module.
+SchemaReference = Dict[str, str]
+PrimitiveSchema = Dict[str, str]
+ArraySchema = Dict[str, Union[str, PrimitiveSchema, SchemaReference]]
+EnumSchema = Dict[str, Union[str, Tuple[int, ...]]]
+MessageSchema = Dict[
+  str, Union[str,
+             Dict[str, Union[SchemaReference, PrimitiveSchema, ArraySchema]]]
+]
+Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
@@ -60,12 +71,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   args_type = None
   result_type = ApiGetOpenApiDescriptionResult
 
-  def __init__(self, router):
-    self.router = router
-    self.open_api_obj = None # The main OpenAPI description object.
-    self.schema_objs = None
+  def __init__(self, router: Any) -> None:
+    # TODO(alexandrucosminmihai): Break dependency cycle between this module
+    # and `api_call_router.py` and then use ApiCallRouter as self.router's and
+    # the argument's type.
+    self.router: Any = router
+    # The main OpenAPI description object.
+    self.open_api_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
+    self.schema_objs: Optional[Dict[str, Schema]] = None
 
-    self.proto_primitive_types_names = {
+    self.proto_primitive_types_names: Dict[int, str] = {
       protobuf2.TYPE_DOUBLE: "protobuf2.TYPE_DOUBLE",
       protobuf2.TYPE_FLOAT: "protobuf2.TYPE_FLOAT",
       protobuf2.TYPE_INT64: "protobuf2.TYPE_INT64",
@@ -82,9 +97,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       protobuf2.TYPE_SINT32: "protobuf2.TYPE_SINT32",
       protobuf2.TYPE_SINT64: "protobuf2.TYPE_SINT64",
     }
-    self.primitive_types_names = \
-      list(self.proto_primitive_types_names.values()) \
-      + ["BinaryStream",]
+    self.primitive_types_names: List[str] = (
+        list(self.proto_primitive_types_names.values()) + ["BinaryStream",]
+    )
 
   def _SimplifyPathNode(self, node: str) -> str:
     if len(node) > 0 and node[0] == '<' and node[-1] == '>':
@@ -108,7 +123,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     return simple_path
 
-  def _GetPathArgsFromPath(self, path: str) -> [str]:
+  def _GetPathArgsFromPath(self, path: str) -> List[str]:
     """Extract path parameters from a Werkzeug Rule URL."""
     path_args = []
 
@@ -121,7 +136,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     return path_args
 
-  def _GetTypeName(self, t):
+  def _GetTypeName(
+      self,
+      t: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+  ) -> str:
     if isinstance(t, FieldDescriptor):
       if t.message_type:
         return self._GetTypeName(t.message_type)
@@ -136,23 +154,29 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if isinstance(t, EnumDescriptor):
       return t.full_name
 
-    if inspect.isclass(t):
+    if isinstance(t, type):
       return t.__name__
 
-    if isinstance(t, int): # It's a protobuf.Descriptor.type value.
+    if isinstance(t, int):  # It's a protobuf.Descriptor.type value.
       return self.proto_primitive_types_names[t]
 
-    return str(t) # Cover "BinaryStream" and None.
+    return str(t)  # Cover "BinaryStream" and None.
 
-  def _SetMetadata(self):
+  def _SetMetadata(self) -> None:
+    if self.open_api_obj is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to set OpenAPI metadata before initializing the "
+        "`self.open_api_obj` dictionary."
+      )
+
     oas_version = "3.0.3"
     self.open_api_obj["openapi"] = oas_version
 
     # The Info Object "info" field.
-    info_obj = dict()
+    info_obj = dict()  # type: Dict[str, Union[str, Dict]]
     info_obj["title"] = "GRR Rapid Response API"
-    info_obj["description"] = "GRR Rapid Response is an incident response " \
-                              "framework focused on remote live forensics."
+    info_obj["description"] = ("GRR Rapid Response is an incident response "
+                               "framework focused on remote live forensics.")
 
     contact_obj = dict()
     contact_obj["name"] = "GRR GitHub Repository"
@@ -165,147 +189,182 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     info_obj["license"] = license_obj
 
     version_dict = version.Version()
-    info_obj["version"] = f"{version_dict['major']}.{version_dict['minor']}." \
-                          f"{version_dict['revision']}." \
-                          f"{version_dict['release']}"
+    info_obj["version"] = (
+      f"{version_dict['major']}."
+      f"{version_dict['minor']}."
+      f"{version_dict['revision']}."
+      f"{version_dict['release']}"
+    )
     self.open_api_obj["info"] = info_obj
 
-    self.open_api_obj["servers"] = []
-    server_obj = dict()
-    server_obj["url"] = "/"
-    server_obj["description"] = "Root path of the GRR API"
-    self.open_api_obj["servers"].append(server_obj)
+    self.open_api_obj["servers"] = [
+      {
+        "url": "/",
+        "description": "Root path of the GRR API",
+      },
+    ]
 
-  def _AddPrimitiveTypesSchemas(self):
+  def _AddPrimitiveTypesSchemas(self) -> None:
     """Creates OpenAPI schemas for Protobuf primitives and BinaryStream."""
+    if self.schema_objs is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to add the OpenAPI primitive types schemas before initializing "
+        "the `self.scema_objs` dictionary."
+      )
+
     int_to_name = self.proto_primitive_types_names
 
-    # protobuf2.TYPE_DOUBLE == 1
-    schema_obj = dict()
-    schema_obj["type"] = "number"
-    schema_obj["format"] = "double"
+    schema_obj = {
+      "type": "number",
+      "format": "double"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_DOUBLE]] = schema_obj
 
-    # protobuf2.TYPE_FLOAT == 2
-    schema_obj = dict()
-    schema_obj["type"] = "number"
-    schema_obj["format"] = "float"
+    schema_obj = {
+      "type": "number",
+      "format": "float"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_FLOAT]] = schema_obj
 
-    # protobuf2.TYPE_INT64 == 3
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "int64"
+    schema_obj = {
+      "type": "integer",
+      "format": "int64"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_INT64]] = schema_obj
 
-    # protobuf2.TYPE_UINT64 == 4
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "uint64"  # Undefined by OAS.
+    schema_obj = {
+      "type": "integer",
+      "format": "uint64"  # Undefined by the OpenAPI Specification (OAS).
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_UINT64]] = schema_obj
 
-    # protobuf2.TYPE_INT32 == 5
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "int32"
+    schema_obj = {
+      "type": "integer",
+      "format":"int32"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_INT32]] = schema_obj
 
-    # protobuf2.TYPE_FIXED64 == 6
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "uint64"
+    schema_obj = {
+      "type": "integer",
+      "format": "uint64"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_FIXED64]] = schema_obj
 
-    # protobuf2.TYPE_FIXED32 == 7
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "uint32"
+    schema_obj = {
+      "type": "integer",
+      "format": "uint32"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_FIXED32]] = schema_obj
 
-    # protobuf2.TYPE_BOOL == 8
-    schema_obj = dict()
-    schema_obj["type"] = "boolean"
+    schema_obj = {
+      "type": "boolean"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_BOOL]] = schema_obj
 
-    # protobuf2.TYPE_STRING == 9
-    schema_obj = dict()
-    schema_obj["type"] = "string"
+    schema_obj = {
+      "type": "string"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_STRING]] = schema_obj
 
-    # protobuf2.TYPE_BYTES == 12
-    schema_obj = dict()
-    schema_obj["type"] = "string"
-    schema_obj["format"] = "binary" # TODO: Here "byte" (base64) might be used.
+    schema_obj = {
+      "type": "string",
+      "format": "binary" # TODO: Here "byte" (base64) might be used?
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_BYTES]] = schema_obj
 
-    # protobuf2.TYPE_UINT32 == 13
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "uint32"
+    schema_obj = {
+      "type": "integer",
+      "format": "uint32"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_UINT32]] = schema_obj
 
-    # protobuf2.TYPE_SFIXED32 == 15
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "int32"
+    schema_obj = {
+      "type": "integer",
+      "format": "int32"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_SFIXED32]] = schema_obj
 
-    # protobuf2.TYPE_SFIXED64 == 16
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "int64"
+    schema_obj = {
+      "type": "integer",
+      "format": "int64"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_SFIXED64]] = schema_obj
 
-    # protobuf2.TYPE_SINT32 == 17
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "int32"
+    schema_obj = {
+      "type": "integer",
+      "format": "int32"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_SINT32]] = schema_obj
 
-    # protobuf2.TYPE_SINT64 == 18
-    schema_obj = dict()
-    schema_obj["type"] = "integer"
-    schema_obj["format"] = "int64"
+    schema_obj = {
+      "type": "integer",
+      "format": "int64"
+    }
     self.schema_objs[int_to_name[protobuf2.TYPE_SINT64]] = schema_obj
 
-    # BinaryStream
-    schema_obj = dict()
-    schema_obj["type"] = "string"
-    schema_obj["format"] = "binary"
+    schema_obj = {
+      "type": "string",
+      "format": "binary"
+    }
     self.schema_objs["BinaryStream"] = schema_obj
 
-  def _ExtractEnumSchema(self, t: EnumDescriptor, visiting: Set[str]):
+  def _ExtractEnumSchema(
+      self,
+      t: EnumDescriptor,
+      visiting: Set[str]
+  ) -> EnumSchema:
     """Extracts OpenAPI schema of a protobuf enum.
 
     This method should generally not be called directly, but rather through
     _ExtractSchema which takes care of error-verifications and caching.
     """
+    if self.schema_objs is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to define an enum schema before initializing the "
+        "`self.schema_objs` dictionary."
+      )
+
     t_name = self._GetTypeName(t)
 
-    enum_schema_obj = dict()
+    enum_schema_obj = dict()  # type: Dict[str, Union[str, Tuple[int, ...]]]
     enum_schema_obj["type"] = "integer"
     enum_schema_obj["format"] = "int32"
     if len(t.values) > 0:
-      enum_schema_obj["enum"] = [enum_value.number for enum_value in t.values]
-      enum_schema_obj["description"] = \
+      enum_schema_obj["enum"] = (
+        tuple([enum_value.number for enum_value in t.values])
+      )
+      enum_schema_obj["description"] = (
         "\n".join([f"{enum_value.number} == {enum_value.name}"
                    for enum_value in t.values])
+      )
     else:
-      enum_schema_obj["enum"] = []
+      enum_schema_obj["enum"] = ()
 
     self.schema_objs[t_name] = enum_schema_obj
 
-  def _ExtractMessageSchema(self, t: Descriptor, visiting: Set[str]):
+    return enum_schema_obj
+
+  def _ExtractMessageSchema(
+      self,
+      t: Descriptor,
+      visiting: Set[str]
+  ) -> MessageSchema:
     """Extracts OpenAPI schema of a protobuf message.
 
     This method should generally not be called directly, but rather through
     _ExtractSchema which takes care of error-verifications and caching.
     """
+    if self.schema_objs is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to define a message schema before initializing the "
+        "`self.schema_objs` dictionary."
+      )
+
     t_name = self._GetTypeName(t)
 
-    schema_obj = dict()
+    schema_obj = dict()  # type: MessageSchema
     schema_obj["type"] = "object"
-    schema_obj["properties"] = dict()
+    properties = dict()  # Required to please mypy.
     visiting.add(t_name)
 
     for field_descriptor in t.fields:
@@ -317,19 +376,32 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       if descriptor:
         self._ExtractSchema(descriptor, visiting)
 
-      schema_or_ref_obj = \
+      schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
           self._GetTypeName(field_descriptor),
           field_descriptor.label == protobuf2.LABEL_REPEATED)
+      )
 
-      schema_obj["properties"][field_name] = schema_or_ref_obj
+      properties[field_name] = schema_or_ref_obj
 
     visiting.remove(t_name)
+
+    schema_obj["properties"] = properties
     self.schema_objs[t_name] = schema_obj
 
     return schema_obj
 
-  def _ExtractSchema(self, t, visiting: Set[str]):
+  def _ExtractSchema(
+      self,
+      t: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
+      visiting: Set[str]
+  ) -> Optional[Schema]:
+    if self.schema_objs is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to define a schema before initializing the `self.schema_objs` "
+        "dictionary."
+      )
+
     if t is None:
       raise ValueError(f"Trying to extract schema of None.")
 
@@ -340,7 +412,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     if t_name in visiting:
       # Dependency cycle.
-      return
+      return None
 
     if isinstance(t, Descriptor):
       return self._ExtractMessageSchema(t, visiting)
@@ -352,32 +424,42 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
                     f"which is not a protobuf message Descriptor, "
                     f"nor an EnumDescriptor, nor a primitive type.")
 
-  def _ExtractSchemas(self):
+  def _ExtractSchemas(self) -> None:
     """Extracts OpenAPI schemas for all the used protobuf types."""
 
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
     self._AddPrimitiveTypesSchemas()
 
-    visiting = set()  # Holds state of types extraction (white/gray nodes).
+    # Holds state of types extraction (white/gray nodes).
+    visiting = set()  # type: Set[str]
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for method_metadata in router_methods.values():
       args_type = method_metadata.args_type
       if args_type:
-        if inspect.isclass(args_type) \
-            and issubclass(args_type, rdf_structs.RDFProtoStruct):
+        if (
+            inspect.isclass(args_type) and
+            issubclass(args_type, rdf_structs.RDFProtoStruct)
+        ):
           self._ExtractSchema(args_type.protobuf.DESCRIPTOR, visiting)
         else:
           self._ExtractSchema(args_type, visiting)
 
       result_type = method_metadata.result_type
       if result_type:
-        if inspect.isclass(result_type) \
-            and issubclass(result_type, rdf_structs.RDFProtoStruct):
+        if (
+            inspect.isclass(result_type) and
+            issubclass(result_type, rdf_structs.RDFProtoStruct)
+        ):
           self._ExtractSchema(result_type.protobuf.DESCRIPTOR, visiting)
         else:
           self._ExtractSchema(result_type, visiting)
 
-  def _SetComponents(self):
+  def _SetComponents(self) -> None:
+    if self.open_api_obj is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to set the `components` field of the root OpenAPI object "
+        "before initializing the `self.open_api_obj` dictionary."
+      )
     if self.schema_objs is None:
       raise ValueError("Called _SetComponents before extracting schemas.")
 
@@ -395,7 +477,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     self.open_api_obj["components"] = components_obj
 
-  def _GetSchemaOrReferenceObject(self, type_name: str, is_array=False):
+  def _GetSchemaOrReferenceObject(
+      self,
+      type_name: str,
+      is_array: bool = False
+  ) -> Union[PrimitiveSchema, SchemaReference, ArraySchema]:
     """Returns a Schema Object if primitive type, else a Reference Object.
 
     Primitive, not composite types don't have an actual schema, but rather an
@@ -407,119 +493,159 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Called _GetSchemaOrReferenceObject before extracting "
                        "schemas.")
 
-    schema_or_ref_obj = None
+    schema_or_ref_obj = (
+      None
+    )  # type: Optional[Union[PrimitiveSchema, SchemaReference]]
     if type_name in self.primitive_types_names:
       schema_obj = self.schema_objs[type_name]
-      schema_or_ref_obj = schema_obj
+      schema_or_ref_obj = cast(PrimitiveSchema, schema_obj)
     else:
-      reference_obj = dict()
-      reference_obj["$ref"] = f"#/components/schemas/{type_name}"
+      reference_obj = {
+        "$ref": f"#/components/schemas/{type_name}"
+      }
       schema_or_ref_obj = reference_obj
 
+    if schema_or_ref_obj is None:  # Check required by mypy.
+      raise AssertionError()
+
     if is_array:
-      schema_or_ref_obj = {
+      array_schema = {
         "type": "array",
         "items": schema_or_ref_obj
-      }
+      }  # type: ArraySchema
+      return array_schema
 
     return schema_or_ref_obj
 
-  def _GetParameters(self, path_params, query_params):
+  def _GetParameters(
+      self,
+      path_params: List[FieldDescriptor],
+      query_params: List[FieldDescriptor]
+  ) -> List[
+    Dict[str, Union[str, bool, PrimitiveSchema, SchemaReference, ArraySchema]]
+  ]:
     parameters = []
 
-    path_params = set(path_params)
-    query_params = set(query_params)
-    for field_d in path_params | query_params:
+    path_params_set = set(path_params)
+    query_params_set = set(query_params)
+    for field_d in path_params_set | query_params_set:
       parameter_obj = dict()
       parameter_obj["name"] = field_d.name
-      if field_d in path_params:
+      if field_d in path_params_set:
         parameter_obj["in"] = "path"
         parameter_obj["required"] = True
       else:
         parameter_obj["in"] = "query"
 
-      schema_or_ref_obj = \
+      schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
           self._GetTypeName(field_d),
-          field_d.label == protobuf2.LABEL_REPEATED)
+          field_d.label == protobuf2.LABEL_REPEATED
+        )
+      )
       parameter_obj["schema"] = schema_or_ref_obj
 
       parameters.append(parameter_obj)
 
     return parameters
 
-  def _GetRequestBody(self, body_params):
-    request_body_obj = dict()
+  def _GetRequestBody(
+      self,
+      body_params: List[FieldDescriptor]
+  ) -> Dict[str, Dict]:
+    request_body_obj = dict()  # type: Dict[str, Dict]
     request_body_obj["content"] = dict()
 
     media_obj = dict()
 
-    schema_obj = dict()
+    schema_obj = dict()  # type: Dict[str, Union[str, Dict]]
     schema_obj["type"] = "object"
-    schema_obj["properties"] = dict()
+    properties = dict()
     for field_d in body_params:
       field_name = field_d.name
-      schema_or_ref_obj = \
+      schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
           self._GetTypeName(field_d),
-          field_d.label == protobuf2.LABEL_REPEATED)
-      schema_obj["properties"][field_name] = schema_or_ref_obj
+          field_d.label == protobuf2.LABEL_REPEATED
+        )
+      )
+      properties[field_name] = schema_or_ref_obj
 
+    schema_obj["properties"] = properties
     media_obj["schema"] = schema_obj
 
     request_body_obj["content"]["application/json"] = media_obj
 
     return request_body_obj
 
-  def _GetResponseObject200(self, result_type, router_method_name):
-    resp_success_obj = dict()
+  def _GetResponseObject200(
+      self,
+      result_type: Union[rdf_structs.RDFProtoStruct, str],
+      router_method_name: str
+  ) -> Dict[str, Union[str, Dict]]:
+    resp_success_obj = dict()  # type: Dict[str, Union[str, Dict]]
 
     if result_type:
-      if inspect.isclass(result_type) and \
-          issubclass(result_type, rdf_structs.RDFProtoStruct):
-        result_type_name = \
-          self._GetTypeName(result_type.protobuf.DESCRIPTOR)
+      if (
+          isinstance(result_type, type) and
+          issubclass(result_type, rdf_structs.RDFProtoStruct)
+      ):
+        result_type_name = self._GetTypeName(
+          cast(rdf_structs.RDFProtoStruct, result_type).protobuf.DESCRIPTOR
+        )
       else:
         result_type_name = self._GetTypeName(result_type)
 
-      resp_success_obj["description"] \
-        = f"The call to the {router_method_name} API method succeeded " \
-          f"and it returned an instance of {result_type_name}."
+      resp_success_obj["description"] = (
+        f"The call to the {router_method_name} API method succeeded and it "
+        f"returned an instance of {result_type_name}."
+      )
 
       media_obj = dict()
       schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
       media_obj["schema"] = schema_or_ref_obj
 
-      resp_success_obj["content"] = dict()
+      content = dict()  # Needed to please mypy.
       if result_type == "BinaryStream":
-        resp_success_obj["content"]["application/octet-stream"] = media_obj
+        content["application/octet-stream"] = media_obj
       else:
-        resp_success_obj["content"]["application/json"] = media_obj
+        content["application/json"] = media_obj
+      resp_success_obj["content"] = content
     else:
-      resp_success_obj["description"] \
-        = f"The call to the {router_method_name} API method succeeded."
+      resp_success_obj["description"] = (
+        f"The call to the {router_method_name} API method succeeded."
+      )
 
     return resp_success_obj
 
-  def _GetResponseObjectDefault(self, router_method_name):
+  def _GetResponseObjectDefault(
+      self,
+      router_method_name: str
+  ) -> Dict[str, str]:
     resp_default_obj = dict()
 
-    resp_default_obj["description"] = \
+    resp_default_obj["description"] = (
       f"The call to the {router_method_name} API method did not succeed."
+    )
 
     return resp_default_obj
 
-  def _SetEndpoints(self):
+  def _SetEndpoints(self) -> None:
+    if self.open_api_obj is None:  # Check required by mypy.
+      raise ValueError(
+        "Trying to set OpenAPI endpoints descriptions before initializing the "
+        "`self.open_api_obj` dictionary."
+      )
+
     # The Paths Object "paths" field of the root OpenAPI object.
-    paths_obj = dict()
+    paths_obj = dict()  # type: Dict[str, Dict]
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for router_method_name in router_methods:
       router_method = router_methods[router_method_name]
       for http_method, path, strip_root_types in router_method.http_methods:
         simple_path = self._SimplifyPath(path)
-        path_args = self._GetPathArgsFromPath(path)
-        path_args = set(path_args)
+        path_args = set(self._GetPathArgsFromPath(path))
 
         if simple_path not in paths_obj:
           paths_obj[simple_path] = dict()
@@ -528,7 +654,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         path_obj = paths_obj[simple_path]
 
         # The Operation Object associated with the current http method.
-        operation_obj = dict()
+        operation_obj = dict()  # type: Dict[str, Any]
         operation_obj["tags"] = [router_method.category or "NoCategory",]
         operation_obj["description"] = router_method.doc or "No description."
         url_path = path.\
@@ -571,12 +697,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         # The Responses Object which describes the responses associated with
         # HTTP response codes.
-        responses_obj = dict()
-        responses_obj["200"] = \
+        responses_obj = dict()  # type: Dict[str, Dict]
+        responses_obj["200"] = (
           self._GetResponseObject200(router_method.result_type,
                                      router_method_name)
-        responses_obj["default"] = \
+        )
+        responses_obj["default"] = (
           self._GetResponseObjectDefault(router_method_name)
+        )
 
         operation_obj["responses"] = responses_obj
 

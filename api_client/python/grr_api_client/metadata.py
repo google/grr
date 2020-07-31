@@ -6,8 +6,13 @@ from __future__ import unicode_literals
 
 import json
 
+from typing import Dict, Any
+from grr_api_client.context import GrrApiContext
 
-def GetOpenApiDescription(context=None):
+
+def GetOpenApiDescription(
+    context: GrrApiContext = None
+) -> Dict[str, Any]:
   """Returns the OpenAPI description of the GRR API as a dictionary."""
   if not context:
     raise ValueError("context can't be empty")

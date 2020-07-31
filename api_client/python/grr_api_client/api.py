@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from typing import Text
+from typing import Text, Dict, Any
 
 from grr_api_client import artifact
 from grr_api_client import client
@@ -79,7 +79,7 @@ class GrrApi(object):
   def username(self):
     return self._context.username
 
-  def GetOpenApiDescription(self):
+  def GetOpenApiDescription(self) -> Dict[str, Any]:
     return metadata.GetOpenApiDescription(context=self._context)
 
 
