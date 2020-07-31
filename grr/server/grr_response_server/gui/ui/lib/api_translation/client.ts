@@ -34,9 +34,10 @@ function createClientLabel(label: ApiClientLabel): ClientLabel {
 
 function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   let revision = undefined;
-  if (apiAgentInfo.revision) {
+  if (apiAgentInfo.revision !== undefined) {
     revision = BigInt(apiAgentInfo.revision);
   }
+  
   return {
     clientName: apiAgentInfo.clientName,
     clientVersion: apiAgentInfo.clientVersion,
@@ -130,20 +131,20 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
   let freeSpace = undefined;
   let bytesPerSector = undefined;
 
-  if (apiVolume.bytesPerSector && apiVolume.sectorsPerAllocationUnit) {
-    if (apiVolume.totalAllocationUnits) {
+  if (apiVolume.bytesPerSector !== undefined && apiVolume.sectorsPerAllocationUnit !== undefined) {
+    if (apiVolume.totalAllocationUnits !== undefined) {
       totalSize = BigInt(apiVolume.bytesPerSector) *
           BigInt(apiVolume.sectorsPerAllocationUnit) * BigInt(apiVolume.totalAllocationUnits);
     }
 
-    if (apiVolume.actualAvailableAllocationUnits) {
+    if (apiVolume.actualAvailableAllocationUnits !== undefined) {
       freeSpace = BigInt(apiVolume.bytesPerSector) *
           BigInt(apiVolume.sectorsPerAllocationUnit) *
           BigInt(apiVolume.actualAvailableAllocationUnits);
     }
   }
 
-  if (apiVolume.bytesPerSector) {
+  if (apiVolume.bytesPerSector !== undefined) {
     bytesPerSector = BigInt(apiVolume.bytesPerSector);
   }
 
@@ -167,7 +168,7 @@ export function translateClient(client: ApiClient): Client {
   if (!client.clientId) throw new Error('clientId attribute is missing.');
 
   let memorySize = undefined;
-  if (client.memorySize) {
+  if (client.memorySize !== undefined) {
     memorySize = BigInt(client.memorySize);
   }
 
