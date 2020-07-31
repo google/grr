@@ -74,18 +74,15 @@ export function createUnknownObject(anyObject?: AnyObject): unknown | undefined 
 
 /**
  * Decodes a encoded base64 string into a byte array.
+ * Throws exception when the provided string is encoded wrongly.
  */
 export function decodeBase64(encodedString?: string): Uint8Array {
   if (encodedString === undefined) {
     return new Uint8Array();
   }
 
-  let decodedString;
-  try {
-    decodedString = atob(encodedString);
-  } catch (err) {
-    throw new Error('Invalid base64 encoding.');
-  }
+  const decodedString = atob(encodedString);
+
   const byteArray = new Uint8Array(decodedString.length);
   for (let i = 0; i < decodedString.length; i++) {
     byteArray[i] = decodedString.charCodeAt(i);

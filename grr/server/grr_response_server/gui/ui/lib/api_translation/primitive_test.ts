@@ -81,7 +81,7 @@ describe('decodeBase64', () => {
 
   it('throws an error on invalid input', () => {
     expect(() => decodeBase64('Inv@lid $tring'))
-        .toThrow(new Error('Invalid base64 encoding.'));
+        .toThrowError('Failed to execute \'atob\' on \'Window\': The string to be decoded is not correctly encoded.');
   });
 
   it('returns correct byte array for a base64 encoded string ', () => {
