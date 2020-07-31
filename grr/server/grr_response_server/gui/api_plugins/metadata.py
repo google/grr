@@ -164,10 +164,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _SetMetadata(self) -> None:
     if self.open_api_obj is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to set OpenAPI metadata before initializing the "
-        "`self.open_api_obj` dictionary."
-      )
+      raise AssertionError("The root OpenAPI object is uninitialized.")
 
     oas_version = "3.0.3"
     self.open_api_obj["openapi"] = oas_version
@@ -210,9 +207,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _AddPrimitiveTypesSchemas(self) -> None:
     """Creates OpenAPI schemas for Protobuf primitives and BinaryStream."""
     if self.schema_objs is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to add the OpenAPI primitive types schemas before initializing "
-        "the `self.scema_objs` dictionary."
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
       )
 
     int_to_name = self.proto_primitive_types_names
@@ -318,9 +314,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     _ExtractSchema which takes care of error-verifications and caching.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to define an enum schema before initializing the "
-        "`self.schema_objs` dictionary."
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
       )
 
     enum_schema_obj = {
@@ -354,9 +349,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     _ExtractSchema which takes care of error-verifications and caching.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to define a message schema before initializing the "
-        "`self.schema_objs` dictionary."
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
       )
 
     type_name = self._GetTypeName(descriptor)
@@ -395,9 +389,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       visiting: Set[str]
   ) -> Optional[Schema]:
     if self.schema_objs is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to define a schema before initializing the `self.schema_objs` "
-        "dictionary."
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
       )
 
     if cls is None:
@@ -454,12 +447,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _SetComponents(self) -> None:
     if self.open_api_obj is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to set the `components` field of the root OpenAPI object "
-        "before initializing the `self.open_api_obj` dictionary."
-      )
+      raise AssertionError("The root OpenAPI object is uninitialized.")
     if self.schema_objs is None:
-      raise ValueError("Called _SetComponents before extracting schemas.")
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
+      )
 
     schemas_obj = dict()
     type_names = set(self.schema_objs.keys())
@@ -486,8 +478,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     components and are used through OpenAPI references.
     """
     if self.schema_objs is None:
-      raise ValueError("Called _GetSchemaOrReferenceObject before extracting "
-                       "schemas.")
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
+      )
 
     schema_or_ref_obj = (
       None
@@ -500,7 +493,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       schema_or_ref_obj = reference_obj
 
     if schema_or_ref_obj is None:  # Check required by mypy.
-      raise AssertionError()
+      raise AssertionError("Failed to find schema or create reference.")
 
     if is_array:
       array_schema = {
@@ -623,10 +616,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _SetEndpoints(self) -> None:
     if self.open_api_obj is None:  # Check required by mypy.
-      raise ValueError(
-        "Trying to set OpenAPI endpoints descriptions before initializing the "
-        "`self.open_api_obj` dictionary."
-      )
+      raise AssertionError("The root OpenAPI object is uninitialized.")
 
     # The Paths Object "paths" field of the root OpenAPI object.
     paths_obj = dict()  # type: Dict[str, Dict]
