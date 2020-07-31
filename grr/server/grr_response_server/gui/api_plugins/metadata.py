@@ -138,29 +138,29 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetTypeName(
       self,
-      t: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+      cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
   ) -> str:
-    if isinstance(t, FieldDescriptor):
-      if t.message_type:
-        return self._GetTypeName(t.message_type)
-      if t.enum_type:
-        return self._GetTypeName(t.enum_type)
+    if isinstance(cls, FieldDescriptor):
+      if cls.message_type:
+        return self._GetTypeName(cls.message_type)
+      if cls.enum_type:
+        return self._GetTypeName(cls.enum_type)
 
-      return self._GetTypeName(t.type)
+      return self._GetTypeName(cls.type)
 
-    if isinstance(t, Descriptor):
-      return t.full_name
+    if isinstance(cls, Descriptor):
+      return cls.full_name
 
-    if isinstance(t, EnumDescriptor):
-      return t.full_name
+    if isinstance(cls, EnumDescriptor):
+      return cls.full_name
 
-    if isinstance(t, type):
-      return t.__name__
+    if isinstance(cls, type):
+      return cls.__name__
 
-    if isinstance(t, int):  # It's a protobuf.Descriptor.type value.
-      return self.proto_primitive_types_names[t]
+    if isinstance(cls, int):  # It's a protobuf.Descriptor.type value.
+      return self.proto_primitive_types_names[cls]
 
-    return str(t)  # Cover "BinaryStream" and None.
+    return str(cls)  # Cover "BinaryStream" and None.
 
   def _SetMetadata(self) -> None:
     if self.open_api_obj is None:  # Check required by mypy.
@@ -172,20 +172,23 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     oas_version = "3.0.3"
     self.open_api_obj["openapi"] = oas_version
 
-    # The Info Object "info" field.
-    info_obj = dict()  # type: Dict[str, Union[str, Dict]]
-    info_obj["title"] = "GRR Rapid Response API"
-    info_obj["description"] = ("GRR Rapid Response is an incident response "
-                               "framework focused on remote live forensics.")
+    # The Info Object "info" field of the root OpenAPI object.
+    info_obj = {
+      "title": "GRR Rapid Response API",
+      "description": "GRR Rapid Response is an incident response framework "
+                     "focused on remote live forensics."
+    }  # type: Dict[str, Union[str, Dict]]
 
-    contact_obj = dict()
-    contact_obj["name"] = "GRR GitHub Repository"
-    contact_obj["url"] = "https://github.com/google/grr"
+    contact_obj = {
+      "name": "GRR GitHub Repository",
+      "url": "https://github.com/google/grr"
+    }
     info_obj["contact"] = contact_obj
 
-    license_obj = dict()
-    license_obj["name"] = "Apache 2.0"
-    license_obj["url"] = "http://www.apache.org/licenses/LICENSE-2.0"
+    license_obj = {
+      "name": "Apache 2.0",
+      "url": "http://www.apache.org/licenses/LICENSE-2.0"
+    }
     info_obj["license"] = license_obj
 
     version_dict = version.Version()
@@ -256,14 +259,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     }
     self.schema_objs[int_to_name[protobuf2.TYPE_FIXED32]] = schema_obj
 
-    schema_obj = {
-      "type": "boolean"
-    }
+    schema_obj = {"type": "boolean"}
     self.schema_objs[int_to_name[protobuf2.TYPE_BOOL]] = schema_obj
 
-    schema_obj = {
-      "type": "string"
-    }
+    schema_obj = {"type": "string"}
     self.schema_objs[int_to_name[protobuf2.TYPE_STRING]] = schema_obj
 
     schema_obj = {
@@ -310,7 +309,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _ExtractEnumSchema(
       self,
-      t: EnumDescriptor,
+      descriptor: EnumDescriptor,
       visiting: Set[str]
   ) -> EnumSchema:
     """Extracts OpenAPI schema of a protobuf enum.
@@ -324,29 +323,29 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "`self.schema_objs` dictionary."
       )
 
-    t_name = self._GetTypeName(t)
+    enum_schema_obj = {
+      "type": "integer",
+      "format": "int32"
+    }  # type: Dict[str, Union[str, Tuple[int, ...]]]
 
-    enum_schema_obj = dict()  # type: Dict[str, Union[str, Tuple[int, ...]]]
-    enum_schema_obj["type"] = "integer"
-    enum_schema_obj["format"] = "int32"
-    if len(t.values) > 0:
+    if len(descriptor.values) > 0:
       enum_schema_obj["enum"] = (
-        tuple([enum_value.number for enum_value in t.values])
+        tuple([enum_value.number for enum_value in descriptor.values])
       )
       enum_schema_obj["description"] = (
         "\n".join([f"{enum_value.number} == {enum_value.name}"
-                   for enum_value in t.values])
+                   for enum_value in descriptor.values])
       )
     else:
       enum_schema_obj["enum"] = ()
 
-    self.schema_objs[t_name] = enum_schema_obj
+    self.schema_objs[self._GetTypeName(descriptor)] = enum_schema_obj
 
     return enum_schema_obj
 
   def _ExtractMessageSchema(
       self,
-      t: Descriptor,
+      descriptor: Descriptor,
       visiting: Set[str]
   ) -> MessageSchema:
     """Extracts OpenAPI schema of a protobuf message.
@@ -360,14 +359,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "`self.schema_objs` dictionary."
       )
 
-    t_name = self._GetTypeName(t)
+    type_name = self._GetTypeName(descriptor)
 
-    schema_obj = dict()  # type: MessageSchema
-    schema_obj["type"] = "object"
+    schema_obj = {"type": "object"}  # type: MessageSchema
     properties = dict()  # Required to please mypy.
-    visiting.add(t_name)
+    visiting.add(type_name)
 
-    for field_descriptor in t.fields:
+    for field_descriptor in descriptor.fields:
       field_name = field_descriptor.name
       message_descriptor = field_descriptor.message_type # None if not Message.
       enum_descriptor = field_descriptor.enum_type # None if not Enum.
@@ -384,16 +382,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
       properties[field_name] = schema_or_ref_obj
 
-    visiting.remove(t_name)
+    visiting.remove(type_name)
 
     schema_obj["properties"] = properties
-    self.schema_objs[t_name] = schema_obj
+    self.schema_objs[type_name] = schema_obj
 
     return schema_obj
 
   def _ExtractSchema(
       self,
-      t: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
+      cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
       visiting: Set[str]
   ) -> Optional[Schema]:
     if self.schema_objs is None:  # Check required by mypy.
@@ -402,25 +400,25 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "dictionary."
       )
 
-    if t is None:
+    if cls is None:
       raise ValueError(f"Trying to extract schema of None.")
 
-    t_name = self._GetTypeName(t)
+    type_name = self._GetTypeName(cls)
     # "Primitive" types should be already present in self.schema_objs.
-    if t_name in self.schema_objs:
-      return self.schema_objs[t_name]
+    if type_name in self.schema_objs:
+      return self.schema_objs[type_name]
 
-    if t_name in visiting:
+    if type_name in visiting:
       # Dependency cycle.
       return None
 
-    if isinstance(t, Descriptor):
-      return self._ExtractMessageSchema(t, visiting)
+    if isinstance(cls, Descriptor):
+      return self._ExtractMessageSchema(cls, visiting)
 
-    if isinstance(t, EnumDescriptor):
-      return self._ExtractEnumSchema(t, visiting)
+    if isinstance(cls, EnumDescriptor):
+      return self._ExtractEnumSchema(cls, visiting)
 
-    raise TypeError(f"Don't know how to handle type \"{t_name}\" "
+    raise TypeError(f"Don't know how to handle type \"{type_name}\" "
                     f"which is not a protobuf message Descriptor, "
                     f"nor an EnumDescriptor, nor a primitive type.")
 
@@ -463,17 +461,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if self.schema_objs is None:
       raise ValueError("Called _SetComponents before extracting schemas.")
 
-    # The Components Object "components" of the root OpenAPI object.
-    components_obj = dict()
     schemas_obj = dict()
-
     type_names = set(self.schema_objs.keys())
     primitive_types_names = set(self.primitive_types_names)
     # Create components only for composite types.
     for type_name in type_names - primitive_types_names:
       schemas_obj[type_name] = self.schema_objs[type_name]
 
-    components_obj["schemas"] = schemas_obj
+    # The Components Object "components" of the root OpenAPI object.
+    components_obj = {"schemas": schemas_obj}
 
     self.open_api_obj["components"] = components_obj
 
@@ -500,9 +496,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       schema_obj = self.schema_objs[type_name]
       schema_or_ref_obj = cast(PrimitiveSchema, schema_obj)
     else:
-      reference_obj = {
-        "$ref": f"#/components/schemas/{type_name}"
-      }
+      reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
       schema_or_ref_obj = reference_obj
 
     if schema_or_ref_obj is None:  # Check required by mypy.
@@ -529,8 +523,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     path_params_set = set(path_params)
     query_params_set = set(query_params)
     for field_d in path_params_set | query_params_set:
-      parameter_obj = dict()
-      parameter_obj["name"] = field_d.name
+      parameter_obj = {"name": field_d.name}
       if field_d in path_params_set:
         parameter_obj["in"] = "path"
         parameter_obj["required"] = True
@@ -553,13 +546,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       body_params: List[FieldDescriptor]
   ) -> Dict[str, Dict]:
-    request_body_obj = dict()  # type: Dict[str, Dict]
-    request_body_obj["content"] = dict()
+    request_body_obj = {"content": dict()}  # type: Dict[str, Dict]
 
-    media_obj = dict()
-
-    schema_obj = dict()  # type: Dict[str, Union[str, Dict]]
-    schema_obj["type"] = "object"
     properties = dict()
     for field_d in body_params:
       field_name = field_d.name
@@ -571,8 +559,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
       properties[field_name] = schema_or_ref_obj
 
-    schema_obj["properties"] = properties
-    media_obj["schema"] = schema_obj
+    schema_obj = {
+      "type": "object",
+      "properties": properties
+    }  # type: Dict[str, Union[str, Dict]]
+
+    media_obj = {"schema": schema_obj}
 
     request_body_obj["content"]["application/json"] = media_obj
 
@@ -601,9 +593,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"returned an instance of {result_type_name}."
       )
 
-      media_obj = dict()
       schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
-      media_obj["schema"] = schema_or_ref_obj
+      media_obj = {"schema": schema_or_ref_obj}
 
       content = dict()  # Needed to please mypy.
       if result_type == "BinaryStream":
@@ -622,11 +613,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       router_method_name: str
   ) -> Dict[str, str]:
-    resp_default_obj = dict()
 
-    resp_default_obj["description"] = (
-      f"The call to the {router_method_name} API method did not succeed."
-    )
+    resp_default_obj= {
+      "description": f"The call to the {router_method_name} API method did not "
+                     f"succeed."
+    }
 
     return resp_default_obj
 
@@ -653,17 +644,20 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         # The Path Object associated with the current path.
         path_obj = paths_obj[simple_path]
 
+        url_path = (
+          path
+            .replace('/', '-')
+            .replace('<', '_')
+            .replace('>', '_')
+            .replace(':', '-')
+        )
         # The Operation Object associated with the current http method.
-        operation_obj = dict()  # type: Dict[str, Any]
-        operation_obj["tags"] = [router_method.category or "NoCategory",]
-        operation_obj["description"] = router_method.doc or "No description."
-        url_path = path.\
-          replace('/', '-').\
-          replace('<', '_').\
-          replace('>', '_').\
-          replace(':', '-')
-        operation_obj["operationId"] = \
-          urlparse.quote(f"{http_method}-{url_path}-{router_method.name}")
+        operation_obj = {
+          "tags": [router_method.category or "NoCategory",],
+          "description": router_method.doc or "No description.",
+          "operationId": urlparse.quote(f"{http_method}-{url_path}-"
+                                        f"{router_method.name}")
+        }  # type: Dict[str, Any]
 
         # Parameters extraction.
         field_descriptors = []
@@ -697,14 +691,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         # The Responses Object which describes the responses associated with
         # HTTP response codes.
-        responses_obj = dict()  # type: Dict[str, Dict]
-        responses_obj["200"] = (
-          self._GetResponseObject200(router_method.result_type,
-                                     router_method_name)
-        )
-        responses_obj["default"] = (
-          self._GetResponseObjectDefault(router_method_name)
-        )
+        responses_obj = {
+          "200": (
+            self._GetResponseObject200(router_method.result_type,
+                                       router_method_name)
+          ),
+          "default": self._GetResponseObjectDefault(router_method_name),
+        }  # type: Dict[str, Dict]
 
         operation_obj["responses"] = responses_obj
 
