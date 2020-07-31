@@ -80,6 +80,7 @@ class GrrApi(object):
     return self._context.username
 
   def GetOpenApiDescription(self) -> Dict[str, Any]:
+    """Returns the OpenAPI description of the GRR API as a dictionary."""
     return metadata.GetOpenApiDescription(context=self._context)
 
 

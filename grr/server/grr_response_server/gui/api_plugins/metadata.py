@@ -29,6 +29,27 @@ MessageSchema = Dict[
 ]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 
+proto_primitive_types_names: Dict[int, str] = {
+  protobuf2.TYPE_DOUBLE: "protobuf2.TYPE_DOUBLE",
+  protobuf2.TYPE_FLOAT: "protobuf2.TYPE_FLOAT",
+  protobuf2.TYPE_INT64: "protobuf2.TYPE_INT64",
+  protobuf2.TYPE_UINT64: "protobuf2.TYPE_UINT64",
+  protobuf2.TYPE_INT32: "protobuf2.TYPE_INT32",
+  protobuf2.TYPE_FIXED64: "protobuf2.TYPE_FIXED64",
+  protobuf2.TYPE_FIXED32: "protobuf2.TYPE_FIXED32",
+  protobuf2.TYPE_BOOL: "protobuf2.TYPE_BOOL",
+  protobuf2.TYPE_STRING: "protobuf2.TYPE_STRING",
+  protobuf2.TYPE_BYTES: "protobuf2.TYPE_BYTES",
+  protobuf2.TYPE_UINT32: "protobuf2.TYPE_UINT32",
+  protobuf2.TYPE_SFIXED32: "protobuf2.TYPE_SFIXED32",
+  protobuf2.TYPE_SFIXED64: "protobuf2.TYPE_SFIXED64",
+  protobuf2.TYPE_SINT32: "protobuf2.TYPE_SINT32",
+  protobuf2.TYPE_SINT64: "protobuf2.TYPE_SINT64",
+}
+
+primitive_types_names: Set[str] = (
+    set(proto_primitive_types_names.values()) | {"BinaryStream"}
+)
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
@@ -72,7 +93,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetOpenApiDescriptionResult
 
   def __init__(self, router: Any) -> None:
-    # TODO(alexandrucosminmihai): Break dependency cycle between this module
+    # TODO(hanuszczak): Break dependency cycle between this module
     # and `api_call_router.py` and then use ApiCallRouter as self.router's and
     # the argument's type.
     self.router: Any = router
@@ -80,28 +101,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.open_api_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
 
-    self.proto_primitive_types_names: Dict[int, str] = {
-      protobuf2.TYPE_DOUBLE: "protobuf2.TYPE_DOUBLE",
-      protobuf2.TYPE_FLOAT: "protobuf2.TYPE_FLOAT",
-      protobuf2.TYPE_INT64: "protobuf2.TYPE_INT64",
-      protobuf2.TYPE_UINT64: "protobuf2.TYPE_UINT64",
-      protobuf2.TYPE_INT32: "protobuf2.TYPE_INT32",
-      protobuf2.TYPE_FIXED64: "protobuf2.TYPE_FIXED64",
-      protobuf2.TYPE_FIXED32: "protobuf2.TYPE_FIXED32",
-      protobuf2.TYPE_BOOL: "protobuf2.TYPE_BOOL",
-      protobuf2.TYPE_STRING: "protobuf2.TYPE_STRING",
-      protobuf2.TYPE_BYTES: "protobuf2.TYPE_BYTES",
-      protobuf2.TYPE_UINT32: "protobuf2.TYPE_UINT32",
-      protobuf2.TYPE_SFIXED32: "protobuf2.TYPE_SFIXED32",
-      protobuf2.TYPE_SFIXED64: "protobuf2.TYPE_SFIXED64",
-      protobuf2.TYPE_SINT32: "protobuf2.TYPE_SINT32",
-      protobuf2.TYPE_SINT64: "protobuf2.TYPE_SINT64",
-    }
-    self.primitive_types_names: List[str] = (
-        list(self.proto_primitive_types_names.values()) + ["BinaryStream",]
-    )
-
   def _SimplifyPathNode(self, node: str) -> str:
+    """Normalize the given path component to be used in a valid OpenAPI path."""
     if len(node) > 0 and node[0] == '<' and node[-1] == '>':
       node = node[1:-1]
       node = node.split(":")[-1]
@@ -114,8 +115,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     The OpenAPI specification requires that parameters are surrounded by { }
     which are added in _SimplifyPathNode.
-    """
 
+    Args:
+      path: The path whose representation will be normalized.
+
+    Returns:
+      The normalized version of the path argument, which is a valid OpenAPI
+      path, with curly brackets around path arguments.
+    """
     nodes = path.split("/")
     simple_nodes = [self._SimplifyPathNode(node) for node in nodes]
 
@@ -140,6 +147,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
   ) -> str:
+    """Generically extract type name from protobuf Descriptors/Type/int/str."""
     if isinstance(cls, FieldDescriptor):
       if cls.message_type:
         return self._GetTypeName(cls.message_type)
@@ -158,11 +166,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return cls.__name__
 
     if isinstance(cls, int):  # It's a protobuf.Descriptor.type value.
-      return self.proto_primitive_types_names[cls]
+      return proto_primitive_types_names[cls]
 
     return str(cls)  # Cover "BinaryStream" and None.
 
   def _SetMetadata(self) -> None:
+    """Set `openapi`, `info`, `servers` fields of the root OpenAPI object."""
     if self.open_api_obj is None:  # Check required by mypy.
       raise AssertionError("The root OpenAPI object is uninitialized.")
 
@@ -211,7 +220,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    int_to_name = self.proto_primitive_types_names
+    int_to_name = proto_primitive_types_names
 
     schema_obj = {
       "type": "number",
@@ -306,12 +315,21 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _ExtractEnumSchema(
       self,
       descriptor: EnumDescriptor,
-      visiting: Set[str]
   ) -> EnumSchema:
     """Extracts OpenAPI schema of a protobuf enum.
 
     This method should generally not be called directly, but rather through
     _ExtractSchema which takes care of error-verifications and caching.
+    This enum type is guaranteed to be a leaf in a type traversal, so there is
+    no need for the `visiting` set that _ExtractMessageSchema uses to detect
+    cycles.
+
+    Args:
+      descriptor: The protobuf EnumDescriptor of the enum type whose schema is
+        extracted.
+
+    Returns:
+      The constructed OpenAPI schema associated with the given enum type.
     """
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
@@ -347,6 +365,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     This method should generally not be called directly, but rather through
     _ExtractSchema which takes care of error-verifications and caching.
+
+    Args:
+      descriptor: The protobuf Descriptor associated with a protobuf message.
+      visiting: A set of type names that are in the process of having their
+        OpenAPI schemas constructed and have their associated _Extract*Schema
+        call in the current call stack.
+
+    Returns:
+      The constructed OpenAPI schema associated with this message type.
     """
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
@@ -388,6 +415,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
       visiting: Set[str]
   ) -> Optional[Schema]:
+    """Build OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
         "The container of OpenAPI type schemas is not initialized."
@@ -409,7 +437,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return self._ExtractMessageSchema(cls, visiting)
 
     if isinstance(cls, EnumDescriptor):
-      return self._ExtractEnumSchema(cls, visiting)
+      return self._ExtractEnumSchema(cls)
 
     raise TypeError(f"Don't know how to handle type \"{type_name}\" "
                     f"which is not a protobuf message Descriptor, "
@@ -446,6 +474,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           self._ExtractSchema(result_type, visiting)
 
   def _SetComponents(self) -> None:
+    """Set the `components` OpenAPI field to the extracted schema objects."""
     if self.open_api_obj is None:  # Check required by mypy.
       raise AssertionError("The root OpenAPI object is uninitialized.")
     if self.schema_objs is None:
@@ -455,7 +484,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     schemas_obj = dict()
     type_names = set(self.schema_objs.keys())
-    primitive_types_names = set(self.primitive_types_names)
     # Create components only for composite types.
     for type_name in type_names - primitive_types_names:
       schemas_obj[type_name] = self.schema_objs[type_name]
@@ -470,12 +498,30 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       type_name: str,
       is_array: bool = False
   ) -> Union[PrimitiveSchema, SchemaReference, ArraySchema]:
-    """Returns a Schema Object if primitive type, else a Reference Object.
+    """Get an existing Schema Object if primitive type, else a Reference Object.
 
     Primitive, not composite types don't have an actual schema, but rather an
     equivalent OpenAPI representation that gets returned for them.
     More complex types are expected to have been previously defined as OpenAPI
     components and are used through OpenAPI references.
+
+    Args:
+      type_name: The name of the type whose OpenAPI (previously constructed)
+        schema will be returned or the name of the type for which an OpenAPI
+        reference object will be created and returned.
+      is_array: A boolean flag indicating whether the selected type's schema or
+        reference object should be wrapped in an OpenAPI array as the items
+        type.
+
+    Returns:
+      If the `is_array` argument is set to False, then:
+      - if the type is primitive, returns the associated OpenAPI schema object;
+      - else, an OpenAPI reference object representing the path to the actual
+        OpenAPI schema definition of the selected type.
+      If the `is_array` argument is set to True, then an OpenAPI array schema
+      is constructed that uses the for the `items` field:
+      - if the type is primitive, the actual OpenAPI schema of the type;
+      -else, an OpenAPI reference object associated with the type's schema.
     """
     if self.schema_objs is None:
       raise AssertionError(
@@ -485,7 +531,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     schema_or_ref_obj = (
       None
     )  # type: Optional[Union[PrimitiveSchema, SchemaReference]]
-    if type_name in self.primitive_types_names:
+    if type_name in primitive_types_names:
       schema_obj = self.schema_objs[type_name]
       schema_or_ref_obj = cast(PrimitiveSchema, schema_obj)
     else:
@@ -511,6 +557,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> List[
     Dict[str, Union[str, bool, PrimitiveSchema, SchemaReference, ArraySchema]]
   ]:
+    """Build the OpenAPI description of the parameters of a route."""
     parameters = []
 
     path_params_set = set(path_params)
@@ -539,6 +586,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       body_params: List[FieldDescriptor]
   ) -> Dict[str, Dict]:
+    """Build the OpenAPI description of the request body required by a route."""
     request_body_obj = {"content": dict()}  # type: Dict[str, Dict]
 
     properties = dict()
@@ -568,6 +616,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       result_type: Union[rdf_structs.RDFProtoStruct, str],
       router_method_name: str
   ) -> Dict[str, Union[str, Dict]]:
+    """Build the OpenAPI description of a successful, 200 HTTP response."""
     resp_success_obj = dict()  # type: Dict[str, Union[str, Dict]]
 
     if result_type:
@@ -606,7 +655,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       router_method_name: str
   ) -> Dict[str, str]:
-
+    """Build the OpenAPI description used for all undescribed HTTP responses."""
     resp_default_obj= {
       "description": f"The call to the {router_method_name} API method did not "
                      f"succeed."
@@ -615,6 +664,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     return resp_default_obj
 
   def _SetEndpoints(self) -> None:
+    """Build the OpenAPI description of all the routes exposed by the API."""
     if self.open_api_obj is None:  # Check required by mypy.
       raise AssertionError("The root OpenAPI object is uninitialized.")
 
@@ -700,6 +750,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> ApiGetOpenApiDescriptionResult:
+    """Handle requests for the OpenAPI description of the GRR API."""
     result = ApiGetOpenApiDescriptionResult()
 
     if self.open_api_obj is not None:
