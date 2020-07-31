@@ -63,11 +63,11 @@ describe('HumanReadableSizeComponent', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toEqual('1.00 KiB');
 
-    component.size = 1035;
+    component.size = 1034;
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toEqual('1.00 KiB');
 
-    component.size = 1036;
+    component.size = 1035;
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).toEqual('1.01 KiB');
 
