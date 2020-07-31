@@ -93,9 +93,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetOpenApiDescriptionResult
 
   def __init__(self, router: Any) -> None:
-    # TODO(hanuszczak): Break dependency cycle between this module
-    # and `api_call_router.py` and then use ApiCallRouter as self.router's and
-    # the argument's type.
+    # TODO(hanuszczak): Break dependency cycle between this module and
+    # `api_call_router.py` and then use ApiCallRouter as self.router's and the
+    # argument's type.
     self.router: Any = router
     # The main OpenAPI description object.
     self.open_api_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
@@ -166,7 +166,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return cls.__name__
 
     if isinstance(cls, int):  # It's a protobuf.Descriptor.type value.
-      return proto_primitive_types_names[cls]
+      return proto_primitive_types_names[cls] # TODO: Delete this. I could use a Dict[proto_int_const, proto_detail].
 
     return str(cls)  # Cover "BinaryStream" and None.
 
@@ -176,42 +176,41 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       raise AssertionError("The root OpenAPI object is uninitialized.")
 
     oas_version = "3.0.3"
-    self.open_api_obj["openapi"] = oas_version
-
-    # The Info Object "info" field of the root OpenAPI object.
-    info_obj = {
-      "title": "GRR Rapid Response API",
-      "description": "GRR Rapid Response is an incident response framework "
-                     "focused on remote live forensics."
-    }  # type: Dict[str, Union[str, Dict]]
-
-    contact_obj = {
-      "name": "GRR GitHub Repository",
-      "url": "https://github.com/google/grr"
-    }
-    info_obj["contact"] = contact_obj
-
-    license_obj = {
-      "name": "Apache 2.0",
-      "url": "http://www.apache.org/licenses/LICENSE-2.0"
-    }
-    info_obj["license"] = license_obj
-
     version_dict = version.Version()
-    info_obj["version"] = (
-      f"{version_dict['major']}."
-      f"{version_dict['minor']}."
-      f"{version_dict['revision']}."
-      f"{version_dict['release']}"
-    )
-    self.open_api_obj["info"] = info_obj
 
-    self.open_api_obj["servers"] = [
-      {
-        "url": "/",
-        "description": "Root path of the GRR API",
+    # This dictionary holds the "metadata" fields of the OpenAPI root object,
+    # basically everything but the paths and the components descriptions.
+    metadata_dict = {
+      "openapi": oas_version,
+      "info": {
+        "title": "GRR Rapid Response API",
+        "description": "GRR Rapid Response is an incident response framework "
+                       "focused on remote live forensics.",
+        "contact": {
+          "name": "GRR GitHub Repository",
+          "url": "https://github.com/google/grr"
+        },
+        "license": {
+          "name": "Apache 2.0",
+          "url": "http://www.apache.org/licenses/LICENSE-2.0"
+        },
+        "version": (
+          f"{version_dict['major']}."
+          f"{version_dict['minor']}."
+          f"{version_dict['revision']}."
+          f"{version_dict['release']}"
+        )
       },
-    ]
+      "servers": [
+        {
+          "url": "/",
+          "description": "Root path of the GRR API",
+        },
+      ],
+    }  # type: Dict[str, Union[str, List, Dict]]
+
+    # Merge this "metadata" dictionary into the main OpenAPI dictionary.
+    self.open_api_obj.update(metadata_dict)
 
   def _AddPrimitiveTypesSchemas(self) -> None:
     """Creates OpenAPI schemas for Protobuf primitives and BinaryStream."""
@@ -220,97 +219,72 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    int_to_name = proto_primitive_types_names
-
-    schema_obj = {
-      "type": "number",
-      "format": "double"
+    primitive_types_schemas = {
+      proto_primitive_types_names[protobuf2.TYPE_DOUBLE]: {
+        "type": "number",
+        "format": "double"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_FLOAT]: {
+        "type": "number",
+        "format": "float"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_INT64]: {
+        "type": "integer",
+        "format": "int64"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_UINT64]: {
+        "type": "integer",
+        "format": "uint64"  # Undefined by the OpenAPI Specification (OAS).
+      },
+      proto_primitive_types_names[protobuf2.TYPE_INT32]: {
+        "type": "integer",
+        "format": "int32"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_FIXED64]: {
+        "type": "integer",
+        "format": "uint64"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_FIXED32]: {
+        "type": "integer",
+        "format": "uint32"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_BOOL]: {
+        "type": "boolean"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_STRING]: {
+        "type": "string"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_BYTES]: {
+        "type": "string",
+        "format": "binary"  # TODO: Here "byte" (base64) might be used?
+      },
+      proto_primitive_types_names[protobuf2.TYPE_UINT32]: {
+        "type": "integer",
+        "format": "uint32"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_SFIXED32]: {
+        "type": "integer",
+        "format": "int32"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_SFIXED64]: {
+        "type": "integer",
+        "format": "int64"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_SINT32]: {
+        "type": "integer",
+        "format": "int32"
+      },
+      proto_primitive_types_names[protobuf2.TYPE_SINT64]: {
+        "type": "integer",
+        "format": "int64"
+      },
+      "BinaryStream": {
+        "type": "string",
+        "format": "binary"
+      }
     }
-    self.schema_objs[int_to_name[protobuf2.TYPE_DOUBLE]] = schema_obj
 
-    schema_obj = {
-      "type": "number",
-      "format": "float"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_FLOAT]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "int64"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_INT64]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "uint64"  # Undefined by the OpenAPI Specification (OAS).
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_UINT64]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format":"int32"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_INT32]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "uint64"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_FIXED64]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "uint32"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_FIXED32]] = schema_obj
-
-    schema_obj = {"type": "boolean"}
-    self.schema_objs[int_to_name[protobuf2.TYPE_BOOL]] = schema_obj
-
-    schema_obj = {"type": "string"}
-    self.schema_objs[int_to_name[protobuf2.TYPE_STRING]] = schema_obj
-
-    schema_obj = {
-      "type": "string",
-      "format": "binary" # TODO: Here "byte" (base64) might be used?
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_BYTES]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "uint32"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_UINT32]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "int32"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_SFIXED32]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "int64"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_SFIXED64]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "int32"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_SINT32]] = schema_obj
-
-    schema_obj = {
-      "type": "integer",
-      "format": "int64"
-    }
-    self.schema_objs[int_to_name[protobuf2.TYPE_SINT64]] = schema_obj
-
-    schema_obj = {
-      "type": "string",
-      "format": "binary"
-    }
-    self.schema_objs["BinaryStream"] = schema_obj
+    self.schema_objs.update(primitive_types_schemas)
 
   def _ExtractEnumSchema(
       self,
