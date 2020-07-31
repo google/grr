@@ -34,6 +34,9 @@ export class HumanReadableSizeComponent {
     }
     const fixed = Math.pow(10, decimals);
 
+    // Using math here to truncate the unneeded decimals, because there is no
+    // implementation for this. See this post for more info
+    // https://stackoverflow.com/questions/4187146/truncate-number-to-two-decimal-places-without-rounding
     return `${(Math.floor(size * fixed) / fixed).toFixed(decimals)} ${
         HumanReadableSizeComponent.UNITS[i]}`;
   }
