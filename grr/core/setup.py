@@ -6,7 +6,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-import configparser
+if sys.version_info.major == 2:
+  import ConfigParser as configparser
+else:
+  import configparser
+  
 import itertools
 import os
 import shutil
