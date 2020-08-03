@@ -12,6 +12,7 @@ import {ApiModule} from '@app/lib/api/module';
 
 import {App} from './app';
 import {AppRoutingModule} from './routing';
+import {ClientDetailsModule} from '../client_details/module';
 
 
 const ANGULAR_MATERIAL_MODULES = [
@@ -26,6 +27,7 @@ const GRR_MODULES = [
   ClientModule,
   HomeModule,
   UserMenuModule,
+  ClientDetailsModule,
 ];
 
 /**

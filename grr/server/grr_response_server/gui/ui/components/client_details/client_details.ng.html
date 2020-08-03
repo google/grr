@@ -1,0 +1,241 @@
+<div *ngIf="client$ | async as client" class="info">
+  <div class="header mat-body-1">
+    <mat-icon>computer</mat-icon>
+    <div class="mat-h1 fqdn">{{client.knowledgeBase.fqdn}}
+      <div class="client-id mat-h3">{{client.clientId}}</div>
+    </div>
+  </div>
+  <div>
+    <div class="section-title mat-h3">General</div>
+    <table class="section">
+      <tr>
+        <td class="description">Client ID</td>
+        <td class="value">{{client.clientId}}</td>
+      </tr>
+      <tr *ngIf="client.knowledgeBase.fqdn">
+        <td class="description">FQDN</td>
+        <td class="value">{{client.knowledgeBase.fqdn}}</td>
+      </tr>
+      <tr *ngIf="client.lastSeenAt">
+        <td class="description">Last seen</td>
+        <td class="value"><timestamp [date]="client.lastSeenAt"></timestamp></td>
+      </tr>
+      <tr *ngIf="client.lastClock">
+        <td class="description">Last clock</td>
+        <td class="value"><timestamp [date]="client.lastClock"></timestamp></td>
+      </tr>
+      <tr *ngIf="client.lastBootedAt">
+        <td class="description">Last boot</td>
+        <td class="value"><timestamp [date]="client.lastBootedAt"></timestamp></td>
+      </tr>
+      <tr>
+        <td class="description">Labels</td>
+        <td class="value">
+          <mat-chip-list>
+            <mat-chip *ngFor="let label of client.labels" class="chip">
+              {{label.name}}
+            </mat-chip>
+          </mat-chip-list>
+        </td>
+      </tr>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">OS Info</div>
+    <table class="section">
+      <tr *ngIf="client.osInfo.system">
+        <td class="description">System</td>
+        <td class="value">{{client.osInfo.system}}</td>
+      </tr>
+      <tr *ngIf="client.osInfo.release">
+        <td class="description">Release</td>
+        <td class="value">{{client.osInfo.release}}</td>
+      </tr>
+      <tr *ngIf="client.osInfo.version">
+        <td class="description">Version</td>
+        <td class="value">{{client.osInfo.version}}</td>
+      </tr>
+      <tr *ngIf="client.osInfo.kernel">
+        <td class="description">Kernel</td>
+        <td class="value">{{client.osInfo.kernel}}</td>
+      </tr>
+      <tr *ngIf="client.knowledgeBase.osMajorVersion">
+        <td class="description">OS major version</td>
+        <td class="value">{{client.knowledgeBase.osMajorVersion}}</td>
+      </tr>
+      <tr *ngIf="client.knowledgeBase.osMinorVersion">
+        <td class="description">OS minor version</td>
+        <td class="value">{{client.knowledgeBase.osMinorVersion}}</td>
+      </tr>
+      <tr *ngIf="client.osInfo.installDate">
+        <td class="description">Install date</td>
+        <td class="value"><timestamp [date]="client.osInfo.installDate"></timestamp></td>
+      </tr>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">Users</div>
+    <table class="section">
+      <ng-template ngFor let-user [ngForOf]="client.users" let-isLast="last">
+        <tr *ngIf="user.username">
+          <td class="description">Username</td>
+          <td class="value">{{user.username}}</td>
+        </tr>
+        <tr *ngIf="user.fullName">
+          <td class="description">Full name</td>
+          <td class="value">{{user.fullName}}</td>
+        </tr>
+        <tr *ngIf="user.lastLogon">
+          <td class="description">Last logon</td>
+          <td class="value"><timestamp [date]="user.lastLogon"></timestamp></td>
+        </tr>
+        <tr *ngIf="user.homedir">
+          <td class="description">Home directory</td>
+          <td class="value">{{user.homedir}}</td>
+        </tr>
+        <tr *ngIf="user.uid">
+          <td class="description">UID</td>
+          <td class="value">{{user.uid}}</td>
+        </tr>
+        <tr *ngIf="user.gid">
+          <td class="description">GID</td>
+          <td class="value">{{user.gid}}</td>
+        </tr>
+        <tr *ngIf="user.shell">
+          <td class="description">Shell</td>
+          <td class="value">{{user.shell}}</td>
+        </tr>
+        <br *ngIf="!isLast">
+      </ng-template>
+      <div class="empty-section" *ngIf="client.users.length === 0">None.</div>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">CPU & Memory</div>
+    <table class="section">
+      <tr *ngIf="client.osInfo.machine">
+        <td class="description">CPU Architecture</td>
+        <td class="value">{{client.osInfo.machine}}</td>
+      </tr>
+      <tr *ngIf="client.memorySize">
+        <td class="description">Memory size</td>
+        <td class="value"><human-readable-size [size]="client.memorySize"></human-readable-size></td>
+      </tr>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">Network Interfaces</div>
+    <table class="section">
+      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces" let-isLast="last">
+        <tr>
+          <td class="description">Interface name</td>
+          <td class="value">{{interface.interfaceName}}</td>
+        </tr>
+        <tr>
+          <td class="description">MAC</td>
+          <td class="value">{{interface.macAddress}}</td>
+        </tr>
+        <tr>
+          <td class="description">IP addresses</td>
+          <td class="value">
+            <div *ngFor="let address of interface.addresses">
+              {{address.ipAddress}}
+            </div>
+          </td>
+        </tr>
+        <br *ngIf="!isLast">
+      </ng-template>
+      <div class="empty-section" *ngIf="client.networkInterfaces.length === 0">None.</div>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">Storage Volumes</div>
+    <table class="section">
+      <ng-template ngFor let-volume [ngForOf]="client.volumes" let-isLast="last">
+        <ng-template [ngIf]="volume.windowsDetails">
+          <tr *ngIf="volume.windowsDetails.driveLetter">
+            <td class="description">Windows drive letter</td>
+            <td class="value">{{volume.windowsDetails.driveLetter}}</td>
+          </tr>
+          <tr *ngIf="volume.windowsDetails.attributes">
+            <td class="description">Windows drive attributes</td>
+            <td class="value">
+              <div *ngFor="let attribute of volume.windowsDetails.attributes">
+                {{attribute}}
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="volume.windowsDetails.driveType">
+            <td class="description">Windows drive type</td>
+            <td class="value">{{volume.windowsDetails.driveType}}</td>
+          </tr>
+        </ng-template>
+        <ng-template [ngIf]="volume.unixDetails">
+          <tr *ngIf="volume.unixDetails.mountPoint">
+            <td class="description">Unix mount point</td>
+            <td class="value">{{volume.unixDetails.mountPoint}}</td>
+          </tr>
+          <tr *ngIf="volume.unixDetails.mountOptions">
+            <td class="description">Unix mount options</td>
+            <td class="value">{{volume.unixDetails.mountOptions}}</td>
+          </tr>
+        </ng-template>
+        <tr *ngIf="volume.name">
+          <td class="description">Volume name</td>
+          <td class="value">{{volume.name}}</td>
+        </tr>
+        <tr *ngIf="volume.devicePath">
+          <td class="description">Storage device path</td>
+          <td class="value">{{volume.devicePath}}</td>
+        </tr>
+        <tr *ngIf="volume.fileSystemType">
+          <td class="description">Filesystem type</td>
+          <td class="value">{{volume.fileSystemType}}</td>
+        </tr>
+        <tr *ngIf="volume.totalSize">
+          <td class="description">Total size</td>
+          <td class="value"><human-readable-size [size]="volume.totalSize"></human-readable-size></td>
+        </tr>
+        <tr *ngIf="volume.freeSpace">
+          <td class="description">Free space</td>
+          <td class="value"><human-readable-size [size]="volume.freeSpace"></human-readable-size></td>
+        </tr>
+        <tr *ngIf="volume.bytesPerSector">
+          <td class="description">Sector size</td>
+          <td class="value">{{volume.bytesPerSector}} B</td>
+        </tr>
+        <tr *ngIf="volume.creationTime">
+          <td class="description">Creation time</td>
+          <td class="value"><timestamp [date]="volume.creationTime"></timestamp></td>
+        </tr>
+        <br *ngIf="!isLast">
+      </ng-template>
+      <div class="empty-section" *ngIf="client.volumes.length === 0">None.</div>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">Agent Info</div>
+    <table class="section">
+      <tr *ngIf="client.agentInfo.clientName">
+        <td class="description">Client name</td>
+        <td class="value">{{client.agentInfo.clientName}}</td>
+      </tr>
+      <tr *ngIf="client.agentInfo.clientVersion">
+        <td class="description">Client version</td>
+        <td class="value">{{client.agentInfo.clientVersion}}</td>
+      </tr>
+      <tr *ngIf="client.agentInfo.buildTime">
+        <td class="description">Build time</td>
+        <td class="value">{{client.agentInfo.buildTime}}</td>
+      </tr>
+      <tr *ngIf="client.agentInfo.clientBinaryName">
+        <td class="description">Client binary name</td>
+        <td class="value">{{client.agentInfo.clientBinaryName}}</td>
+      </tr>
+      <tr *ngIf="client.agentInfo.clientDescription">
+        <td class="description">Client description</td>
+        <td class="value">{{client.agentInfo.clientDescription}}</td>
+      </tr>
+    </table>
+  </div>
+</div>

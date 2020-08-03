@@ -29,6 +29,7 @@ import {ClientRoutingModule} from './routing';
     FlowListModule,
     TimestampModule,
     OnlineChipModule,
+    MatButtonModule,
     MatIconModule,
     MatButtonModule,
     ClientAddLabelDialogModule,

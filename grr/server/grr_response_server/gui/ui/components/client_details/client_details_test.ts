@@ -2,41 +2,35 @@ import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
+import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
+import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ConfigFacade} from '@app/store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {Subject} from 'rxjs';
 
-import {Client} from '../../lib/models/client';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
-import {UserFacade} from '../../store/user_facade';
-import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util';
 import {initTestEnvironment} from '../../testing';
 
-import {Client as ClientComponent} from './client';
-import {ClientModule} from './module';
-
-
+import {ClientDetails} from './client_details';
+import {ClientDetailsModule} from './module';
 
 initTestEnvironment();
 
-describe('Client Component', () => {
+describe('Client Details Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let facade: ClientPageFacade;
   let configFacade: ConfigFacadeMock;
-  let userFacade: UserFacadeMock;
 
   beforeEach(async(() => {
     paramsSubject = new Subject();
     configFacade = mockConfigFacade();
-    userFacade = mockUserFacade();
 
     TestBed
         .configureTestingModule({
           imports: [
             ApiModule,
             NoopAnimationsModule,
-            ClientModule,
+            ClientDetailsModule,
           ],
           providers: [
             {
@@ -46,11 +40,7 @@ describe('Client Component', () => {
               },
             },
             {provide: ConfigFacade, useFactory: () => configFacade},
-<<<<<<< HEAD
-            {provide: UserFacade, useFactory: () => userFacade},
-=======
             {provide: Router, useValue: {}},
->>>>>>> 59986c6a (Add client details page basic implementation (#814))
           ],
 
         })
@@ -60,7 +50,7 @@ describe('Client Component', () => {
   }));
 
   it('loads client information on route change', () => {
-    const fixture = TestBed.createComponent(ClientComponent);
+    const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
     const searchClientsSpy = spyOn(facade, 'selectClient');
@@ -77,7 +67,7 @@ describe('Client Component', () => {
     const subject = new Subject<Client>();
     Object.defineProperty(facade, 'selectedClient$', {get: () => subject});
 
-    const fixture = TestBed.createComponent(ClientComponent);
+    const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
     paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
