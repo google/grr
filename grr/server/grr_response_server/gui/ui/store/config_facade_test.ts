@@ -1,9 +1,6 @@
 import {TestBed} from '@angular/core/testing';
-<<<<<<< HEAD
 import {ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
-=======
-import {ApiClientLabel, ApiFlowDescriptor} from '@app/lib/api/api_interfaces';
->>>>>>> ca5746b6 (Add label to client (#806))
+import {ApiClientLabel} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ConfigFacade} from '@app/store/config_facade';
 import {initTestEnvironment} from '@app/testing';
@@ -16,34 +13,24 @@ describe('ConfigFacade', () => {
   let configFacade: ConfigFacade;
   let apiListFlowDescriptors$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
   let apiFetchApprovalConfig$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
-<<<<<<< HEAD
   let apiFetchUiConfig$: Subject<ApiUiConfig>;
+  let apiFetchAllClientsLabels$: Subject<ReadonlyArray<ApiClientLabel>>;
 
   beforeEach(() => {
     apiListFlowDescriptors$ = new ReplaySubject(1);
     apiFetchApprovalConfig$ = new Subject();
     apiFetchUiConfig$ = new Subject();
-=======
-  let apiFetchAllClientsLabels$: Subject<ReadonlyArray<ApiClientLabel>>;
-
-  beforeEach(() => {
-    apiListFlowDescriptors$ = new ReplaySubject(1);
-    apiFetchApprovalConfig$ = new ReplaySubject(1);
     apiFetchAllClientsLabels$ = new ReplaySubject(1);
 
->>>>>>> ca5746b6 (Add label to client (#806))
     httpApiService = {
       listFlowDescriptors: jasmine.createSpy('listFlowDescriptors')
                                .and.returnValue(apiListFlowDescriptors$),
       fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig')
                                .and.returnValue(apiFetchApprovalConfig$),
-<<<<<<< HEAD
       fetchUiConfig:
           jasmine.createSpy('fetchUiConfig').and.returnValue(apiFetchUiConfig$),
-=======
       fetchAllClientsLabels: jasmine.createSpy('fetchAllClientsLabels')
                                  .and.returnValue(apiFetchAllClientsLabels$),
->>>>>>> ca5746b6 (Add label to client (#806))
     };
 
     TestBed.configureTestingModule({
@@ -102,7 +89,6 @@ describe('ConfigFacade', () => {
     ]);
   });
 
-<<<<<<< HEAD
   it('calls the API on subscription to uiConfig$', () => {
     expect(httpApiService.fetchUiConfig).not.toHaveBeenCalled();
     configFacade.uiConfig$.subscribe();
@@ -115,7 +101,11 @@ describe('ConfigFacade', () => {
     };
 
     configFacade.uiConfig$.subscribe((results) => {
-=======
+      expect(results).toEqual(expected);
+      done();
+    });
+  });
+
   it('calls the API on subscription to clientsLabels$', () => {
     configFacade.clientsLabels$.subscribe();
     expect(httpApiService.fetchAllClientsLabels).toHaveBeenCalled();
@@ -128,16 +118,10 @@ describe('ConfigFacade', () => {
     ];
 
     configFacade.clientsLabels$.subscribe((results) => {
->>>>>>> ca5746b6 (Add label to client (#806))
       expect(results).toEqual(expected);
       done();
     });
 
-<<<<<<< HEAD
-    apiFetchUiConfig$.next({
-      profileImageUrl: 'https://foo',
-    });
-=======
     apiFetchAllClientsLabels$.next([
       {
         owner: 'first_owner',
@@ -148,6 +132,5 @@ describe('ConfigFacade', () => {
         name: 'second_label',
       },
     ]);
->>>>>>> ca5746b6 (Add label to client (#806))
   });
 });

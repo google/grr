@@ -14,6 +14,9 @@
         <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
         ><mat-icon>add</mat-icon>Add label</button>
       </div>
+      <div class="goto-details">
+        <button mat-stroked-button color="primary" [routerLink]="['./details']">Client details</button>
+      </div>
     </div>
     <div class="client-id">
       <span class="mat-h5">{{client.clientId}}</span>

@@ -3,7 +3,6 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {getApiClientLabelName} from '@app/lib/api_translation/client';
 import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {Store} from '@ngrx/store';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
