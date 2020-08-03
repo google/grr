@@ -5,7 +5,8 @@ import json
 import inspect
 
 from urllib import parse as urlparse
-from typing import Optional, Type, Any, Union, Tuple, List, Set, Dict, cast
+from typing import Optional, cast
+from typing import Type, Any, Union, Tuple, List, Set, Dict, Callable
 
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
@@ -102,6 +103,7 @@ primitive_types_names: Set[str] = {
   primitive_type["name"] for primitive_type in primitive_types.values()
 }
 
+
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
 
@@ -150,6 +152,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.router: Any = router
     # The main OpenAPI description object.
     self.open_api_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
+    self.open_api_obj_json: Optional[str] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
 
   def _NormalizePathComponent(self, component: str) -> str:
@@ -219,51 +222,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return cls.__name__
 
     if isinstance(cls, int):  # It's a protobuf.Descriptor.type value.
-      return primitive_types[cls]["name"]
+      return cast(str, primitive_types[cls]["name"])
 
     return str(cls)  # Cover "BinaryStream" and None.
-
-  def _SetMetadata(self) -> None:
-    """Set `openapi`, `info`, `servers` fields of the root OpenAPI object."""
-    if self.open_api_obj is None:  # Check required by mypy.
-      raise AssertionError("The root OpenAPI object is uninitialized.")
-
-    oas_version = "3.0.3"
-    version_dict = version.Version()
-
-    # This dictionary holds the "metadata" fields of the OpenAPI root object,
-    # basically everything but the paths and the components descriptions.
-    metadata_dict = {
-      "openapi": oas_version,
-      "info": {
-        "title": "GRR Rapid Response API",
-        "description": "GRR Rapid Response is an incident response framework "
-                       "focused on remote live forensics.",
-        "contact": {
-          "name": "GRR GitHub Repository",
-          "url": "https://github.com/google/grr"
-        },
-        "license": {
-          "name": "Apache 2.0",
-          "url": "http://www.apache.org/licenses/LICENSE-2.0"
-        },
-        "version": (
-          f"{version_dict['major']}."
-          f"{version_dict['minor']}."
-          f"{version_dict['revision']}."
-          f"{version_dict['release']}"
-        )
-      },
-      "servers": [
-        {
-          "url": "/",
-          "description": "Root path of the GRR API",
-        },
-      ],
-    }  # type: Dict[str, Union[str, List, Dict]]
-
-    # Merge this "metadata" dictionary into the main OpenAPI dictionary.
-    self.open_api_obj.update(metadata_dict)
 
   def _AddPrimitiveTypesSchemas(self) -> None:
     """Adds the OpenAPI schemas for Protobuf primitives and BinaryStream."""
@@ -273,22 +234,23 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
 
     primitive_types_schemas = {
-      primitive_type["name"]: primitive_type["schema"]
+      cast(str, primitive_type["name"]):
+        cast(Dict[str, str], primitive_type["schema"])
       for primitive_type in primitive_types.values()
     }
 
     self.schema_objs.update(primitive_types_schemas)
 
-  def _ExtractEnumSchema(
+  def _CreateEnumSchema(
       self,
       descriptor: EnumDescriptor,
-  ) -> EnumSchema:
-    """Extracts OpenAPI schema of a protobuf enum.
+  ) -> None:
+    """Creates the OpenAPI schema of a protobuf enum.
 
     This method should generally not be called directly, but rather through
-    _ExtractSchema which takes care of error-verifications and caching.
+    _CreateSchema which takes care of error-verifications and caching.
     This enum type is guaranteed to be a leaf in a type traversal, so there is
-    no need for the `visiting` set that _ExtractMessageSchema uses to detect
+    no need for the `visiting` set that _CreateMessageSchema uses to detect
     cycles.
 
     Args:
@@ -296,7 +258,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         extracted.
 
     Returns:
-      The constructed OpenAPI schema associated with the given enum type.
+      Nothing, the schema is stored in self.schema_objs.
     """
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
@@ -321,26 +283,24 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     self.schema_objs[self._GetTypeName(descriptor)] = enum_schema_obj
 
-    return enum_schema_obj
-
-  def _ExtractMessageSchema(
+  def _CreateMessageSchema(
       self,
       descriptor: Descriptor,
       visiting: Set[str]
-  ) -> MessageSchema:
-    """Extracts OpenAPI schema of a protobuf message.
+  ) -> None:
+    """Creates the OpenAPI schema of a protobuf message.
 
     This method should generally not be called directly, but rather through
-    _ExtractSchema which takes care of error-verifications and caching.
+    _CreateSchema which takes care of error-verifications and caching.
 
     Args:
       descriptor: The protobuf Descriptor associated with a protobuf message.
       visiting: A set of type names that are in the process of having their
-        OpenAPI schemas constructed and have their associated _Extract*Schema
+        OpenAPI schemas constructed and have their associated _Create*Schema
         call in the current call stack.
 
     Returns:
-      The constructed OpenAPI schema associated with this message type.
+      Nothing, the schema is stored in self.schema_objs.
     """
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
@@ -360,7 +320,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       descriptor = message_descriptor or enum_descriptor
 
       if descriptor:
-        self._ExtractSchema(descriptor, visiting)
+        self._CreateSchema(descriptor, visiting)
 
       schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
@@ -375,14 +335,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     schema_obj["properties"] = properties
     self.schema_objs[type_name] = schema_obj
 
-    return schema_obj
-
-  def _ExtractSchema(
+  def _CreateSchema(
       self,
       cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
       visiting: Set[str]
-  ) -> Optional[Schema]:
-    """Build OpenAPI schema from any valid type descriptor or identifier."""
+  ) -> None:
+    """Create OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
         "The container of OpenAPI type schemas is not initialized."
@@ -394,24 +352,26 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     type_name = self._GetTypeName(cls)
     # "Primitive" types should be already present in self.schema_objs.
     if type_name in self.schema_objs:
-      return self.schema_objs[type_name]
+      return
 
     if type_name in visiting:
       # Dependency cycle.
-      return None
+      return
 
     if isinstance(cls, Descriptor):
-      return self._ExtractMessageSchema(cls, visiting)
+      self._CreateMessageSchema(cls, visiting)
+      return
 
     if isinstance(cls, EnumDescriptor):
-      return self._ExtractEnumSchema(cls)
+      self._CreateEnumSchema(cls)
+      return
 
     raise TypeError(f"Don't know how to handle type \"{type_name}\" "
                     f"which is not a protobuf message Descriptor, "
                     f"nor an EnumDescriptor, nor a primitive type.")
 
-  def _ExtractSchemas(self) -> None:
-    """Extracts OpenAPI schemas for all the used protobuf types."""
+  def _CreateSchemas(self) -> None:
+    """Create OpenAPI schemas for all the used protobuf types."""
 
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
     self._AddPrimitiveTypesSchemas()
@@ -426,9 +386,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
             inspect.isclass(args_type) and
             issubclass(args_type, rdf_structs.RDFProtoStruct)
         ):
-          self._ExtractSchema(args_type.protobuf.DESCRIPTOR, visiting)
+          self._CreateSchema(args_type.protobuf.DESCRIPTOR, visiting)
         else:
-          self._ExtractSchema(args_type, visiting)
+          self._CreateSchema(args_type, visiting)
 
       result_type = method_metadata.result_type
       if result_type:
@@ -436,29 +396,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
             inspect.isclass(result_type) and
             issubclass(result_type, rdf_structs.RDFProtoStruct)
         ):
-          self._ExtractSchema(result_type.protobuf.DESCRIPTOR, visiting)
+          self._CreateSchema(result_type.protobuf.DESCRIPTOR, visiting)
         else:
-          self._ExtractSchema(result_type, visiting)
-
-  def _SetComponents(self) -> None:
-    """Set the `components` OpenAPI field to the extracted schema objects."""
-    if self.open_api_obj is None:  # Check required by mypy.
-      raise AssertionError("The root OpenAPI object is uninitialized.")
-    if self.schema_objs is None:
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
-
-    schemas_obj = dict()
-    type_names = set(self.schema_objs.keys())
-    # Create components only for composite types.
-    for type_name in type_names - primitive_types_names:
-      schemas_obj[type_name] = self.schema_objs[type_name]
-
-    # The Components Object "components" of the root OpenAPI object.
-    components_obj = {"schemas": schemas_obj}
-
-    self.open_api_obj["components"] = components_obj
+          self._CreateSchema(result_type, visiting)
 
   def _GetSchemaOrReferenceObject(
       self,
@@ -524,7 +464,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> List[
     Dict[str, Union[str, bool, PrimitiveSchema, SchemaReference, ArraySchema]]
   ]:
-    """Build the OpenAPI description of the parameters of a route."""
+    """Create the OpenAPI description of the parameters of a route."""
     parameters = []
 
     path_params_set = set(path_params)
@@ -553,8 +493,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       body_params: List[FieldDescriptor]
   ) -> Dict[str, Dict]:
-    """Build the OpenAPI description of the request body required by a route."""
-    request_body_obj = {"content": dict()}  # type: Dict[str, Dict]
+    """Create the OpenAPI description of the request body of a route."""
+    if not body_params:
+      return {}
 
     properties = dict()
     for field_d in body_params:
@@ -567,23 +508,23 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
       properties[field_name] = schema_or_ref_obj
 
-    schema_obj = {
-      "type": "object",
-      "properties": properties
-    }  # type: Dict[str, Union[str, Dict]]
-
-    media_obj = {"schema": schema_obj}
-
-    request_body_obj["content"]["application/json"] = media_obj
-
-    return request_body_obj
+    return {
+      "content": {
+        "application/json": {
+          "schema": {
+            "type": "object",
+            "properties": properties,
+          },
+        },
+      },
+    }
 
   def _GetResponseObject200(
       self,
       result_type: Union[rdf_structs.RDFProtoStruct, str],
       router_method_name: str
   ) -> Dict[str, Union[str, Dict]]:
-    """Build the OpenAPI description of a successful, 200 HTTP response."""
+    """Create the OpenAPI description of a successful, 200 HTTP response."""
     resp_success_obj = dict()  # type: Dict[str, Union[str, Dict]]
 
     if result_type:
@@ -622,7 +563,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       router_method_name: str
   ) -> Dict[str, str]:
-    """Build the OpenAPI description used for all undescribed HTTP responses."""
+    """Create the OpenAPI description used by all undescribed HTTP responses."""
     resp_default_obj= {
       "description": f"The call to the {router_method_name} API method did not "
                      f"succeed."
@@ -630,10 +571,144 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     return resp_default_obj
 
-  def _SetEndpoints(self) -> None:
-    """Build the OpenAPI description of all the routes exposed by the API."""
-    if self.open_api_obj is None:  # Check required by mypy.
-      raise AssertionError("The root OpenAPI object is uninitialized.")
+  def _GetOpenApiVersion(self) -> str:
+    """Return the OpenAPI Specification version of the generated description."""
+    # TODO: Maybe get the OpenAPI specification version from a config file.
+    oas_version = "3.0.3"
+
+    return oas_version
+
+  def _GetInfo(self) -> Dict[str, Union[str, Dict]]:
+    """Create the Info Object used by the "info" field."""
+    version_dict = version.Version()
+
+    return {
+      "title": "GRR Rapid Response API",
+      "description": "GRR Rapid Response is an incident response framework "
+                     "focused on remote live forensics.",
+      "contact": {
+        "name": "GRR GitHub Repository",
+        "url": "https://github.com/google/grr"
+      },
+      "license": {
+        "name": "Apache 2.0",
+        "url": "http://www.apache.org/licenses/LICENSE-2.0"
+      },
+      "version": (
+        f"{version_dict['major']}."
+        f"{version_dict['minor']}."
+        f"{version_dict['revision']}."
+        f"{version_dict['release']}"
+      )
+    }
+
+  def _GetServers(self) -> List[Dict[str, str]]:
+    """Create a list of Server Objects used by the "servers" field."""
+    return [
+      {
+        "url": "/",
+        "description": "Root path of the GRR API",
+      },
+    ]
+
+  def _GetComponents(
+      self
+  ) -> Dict[str, Dict[str, Union[EnumSchema, MessageSchema]]]:
+    """Create the Components Object that holds all schema definitions."""
+    self._CreateSchemas()
+    if self.schema_objs is None:  # Check required by mypy.
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
+      )
+
+    schemas_obj = dict()
+    types_names = set(self.schema_objs.keys())
+    # Create components only for composite types.
+    for type_name in types_names - primitive_types_names:
+      schemas_obj[type_name] = self.schema_objs[type_name]
+
+    # The Components Object "components" of the root OpenAPI object.
+    components_obj = {
+      "schemas": cast(Dict[str, Union[EnumSchema, MessageSchema]], schemas_obj)
+    }
+
+    return components_obj
+
+  def _SeparateFieldsIntoParams(
+      self,
+      http_method: str,
+      path: str,
+      args_type: Type[rdf_structs.RDFProtoStruct]
+  ) -> Tuple[
+    List[FieldDescriptor], List[FieldDescriptor], List[FieldDescriptor]
+  ]:
+    """Group FieldDescriptors of a protobuf message by http params types."""
+    field_descriptors = []
+    if args_type:
+      if not (
+          inspect.isclass(args_type) and
+          issubclass(args_type, rdf_structs.RDFProtoStruct)
+      ):
+        raise TypeError("Router method args type is not a RDFProtoStruct "
+                        "subclass.")
+      field_descriptors = args_type.protobuf.DESCRIPTOR.fields
+
+    # Separate fields into params: path, query and part of the request body.
+    path_params_names = set(self._GetPathArgsFromPath(path))
+    path_params = []
+    query_params = []
+    body_params = []
+    for field_d in field_descriptors:
+      if field_d.name in path_params_names:
+        path_params.append(field_d)
+      elif http_method.upper() in ("GET", "HEAD"):
+        query_params.append(field_d)
+      else:
+        body_params.append(field_d)
+
+    return path_params, query_params, body_params
+
+  def _GetOperationDescription(
+      self,
+      http_method: str,
+      path: str,
+      router_method: Any,
+  ) -> Dict[str, Any]:
+    """Create the OpenAPI Operation Object associated with the given args."""
+
+    url_path = (  # Rewrite the path in a URL-friendly format.
+      path
+        .replace('/', '-')
+        .replace('<', '_')
+        .replace('>', '_')
+        .replace(':', '-')
+    )
+    path_params, query_params, body_params = (
+      self._SeparateFieldsIntoParams(http_method, path, router_method.args_type)
+    )
+
+    # The Operation Object associated with the current http method.
+    operation_obj = {
+      "tags": [router_method.category or "NoCategory", ],
+      "description": router_method.doc or "No description.",
+      "operationId": urlparse.quote(f"{http_method}-{url_path}-"
+                                    f"{router_method.name}"),
+      "parameters": self._GetParameters(path_params, query_params),
+      "responses": {
+        "200": (
+          self._GetResponseObject200(router_method.result_type,
+                                     router_method.name)
+        ),
+        "default": self._GetResponseObjectDefault(router_method.name),
+      },
+    }
+    if body_params: # Only POST methods should have an associated "requestBody".
+      operation_obj["requestBody"] = self._GetRequestBody(body_params)
+
+    return operation_obj
+
+  def _GetPaths(self) -> Dict[str, Dict]:
+    """Create the OpenAPI description of all the routes exposed by the API."""
 
     # The Paths Object "paths" field of the root OpenAPI object.
     paths_obj = dict()  # type: Dict[str, Dict]
@@ -650,67 +725,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
         # The Path Object associated with the current path.
         path_obj = paths_obj[normalized_path]
-
-        url_path = (
-          path
-            .replace('/', '-')
-            .replace('<', '_')
-            .replace('>', '_')
-            .replace(':', '-')
+        path_obj[http_method.lower()] = (
+          self._GetOperationDescription(http_method, path, router_method)
         )
-        # The Operation Object associated with the current http method.
-        operation_obj = {
-          "tags": [router_method.category or "NoCategory",],
-          "description": router_method.doc or "No description.",
-          "operationId": urlparse.quote(f"{http_method}-{url_path}-"
-                                        f"{router_method.name}")
-        }  # type: Dict[str, Any]
 
-        # Parameters extraction.
-        field_descriptors = []
-        if router_method.args_type:
-          if not (
-              inspect.isclass(router_method.args_type) and
-              issubclass(router_method.args_type, rdf_structs.RDFProtoStruct)
-          ):
-            raise TypeError("Router method args type is not a RDFProtoStruct "
-                            "subclass.")
-          field_descriptors = router_method.args_type.protobuf.DESCRIPTOR.fields
-
-        # Triage fields into params: path, query and part of the request body.
-        path_params = []
-        query_params = []
-        body_params = []
-        for field_d in field_descriptors:
-          if field_d.name in path_args:
-            path_params.append(field_d)
-          elif http_method.upper() in ("GET", "HEAD"):
-            query_params.append(field_d)
-          else:
-            body_params.append(field_d)
-
-        operation_obj["parameters"] = self._GetParameters(path_params,
-                                                          query_params)
-
-        if body_params:
-          # The Request Body Object for data sent in the HTTP message body.
-          operation_obj["requestBody"] = self._GetRequestBody(body_params)
-
-        # The Responses Object which describes the responses associated with
-        # HTTP response codes.
-        responses_obj = {
-          "200": (
-            self._GetResponseObject200(router_method.result_type,
-                                       router_method_name)
-          ),
-          "default": self._GetResponseObjectDefault(router_method_name),
-        }  # type: Dict[str, Dict]
-
-        operation_obj["responses"] = responses_obj
-
-        path_obj[http_method.lower()] = operation_obj
-
-    self.open_api_obj["paths"] = paths_obj
+    return paths_obj
 
   def Handle(
       self,
@@ -720,15 +739,19 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Handle requests for the OpenAPI description of the GRR API."""
     result = ApiGetOpenApiDescriptionResult()
 
-    if self.open_api_obj is not None:
-      result.open_api_description = json.dumps(self.open_api_obj)
+    if self.open_api_obj_json:
+      result.open_api_description = self.open_api_obj_json
       return result
 
-    self.open_api_obj = dict()
-    self._SetMetadata()
-    self._ExtractSchemas()
-    self._SetComponents()
-    self._SetEndpoints()
+    self.open_api_obj = {
+      "openapi": self._GetOpenApiVersion(),
+      "info": self._GetInfo(),
+      "servers": self._GetServers(),
+      "components": self._GetComponents(),
+      "paths": self._GetPaths(),
+    }
 
-    result.open_api_description = json.dumps(self.open_api_obj)
+    self.open_api_obj_json = json.dumps(self.open_api_obj)
+
+    result.open_api_description = self.open_api_obj_json
     return result
