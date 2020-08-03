@@ -13,6 +13,10 @@
       transform: scale(2);
     }
 
+    .fqdn {
+      font-weight: 500;
+    }
+
     .client-id {
       color: c.mat-color(c.$foreground, text-light);
       text-align: left;

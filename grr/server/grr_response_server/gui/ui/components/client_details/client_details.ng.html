@@ -1,7 +1,7 @@
 <div *ngIf="client$ | async as client" class="info">
   <div class="header mat-body-1">
     <mat-icon>computer</mat-icon>
-    <div class="mat-h1">{{client.knowledgeBase.fqdn}}
+    <div class="mat-h1 fqdn">{{client.knowledgeBase.fqdn}}
       <div class="client-id mat-h3">{{client.clientId}}</div>
     </div>
   </div>
