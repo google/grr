@@ -28,28 +28,79 @@ MessageSchema = Dict[
              Dict[str, Union[SchemaReference, PrimitiveSchema, ArraySchema]]]
 ]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
+PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 
-proto_primitive_types_names: Dict[int, str] = {
-  protobuf2.TYPE_DOUBLE: "protobuf2.TYPE_DOUBLE",
-  protobuf2.TYPE_FLOAT: "protobuf2.TYPE_FLOAT",
-  protobuf2.TYPE_INT64: "protobuf2.TYPE_INT64",
-  protobuf2.TYPE_UINT64: "protobuf2.TYPE_UINT64",
-  protobuf2.TYPE_INT32: "protobuf2.TYPE_INT32",
-  protobuf2.TYPE_FIXED64: "protobuf2.TYPE_FIXED64",
-  protobuf2.TYPE_FIXED32: "protobuf2.TYPE_FIXED32",
-  protobuf2.TYPE_BOOL: "protobuf2.TYPE_BOOL",
-  protobuf2.TYPE_STRING: "protobuf2.TYPE_STRING",
-  protobuf2.TYPE_BYTES: "protobuf2.TYPE_BYTES",
-  protobuf2.TYPE_UINT32: "protobuf2.TYPE_UINT32",
-  protobuf2.TYPE_SFIXED32: "protobuf2.TYPE_SFIXED32",
-  protobuf2.TYPE_SFIXED64: "protobuf2.TYPE_SFIXED64",
-  protobuf2.TYPE_SINT32: "protobuf2.TYPE_SINT32",
-  protobuf2.TYPE_SINT64: "protobuf2.TYPE_SINT64",
+primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
+  protobuf2.TYPE_DOUBLE: {
+    "name": "protobuf2.TYPE_DOUBLE",
+    "schema": {"type": "number", "format": "double"},
+  },
+  protobuf2.TYPE_FLOAT: {
+    "name": "protobuf2.TYPE_FLOAT",
+    "schema": {"type": "number", "format": "float"},
+  },
+  protobuf2.TYPE_INT64: {
+    "name": "protobuf2.TYPE_INT64",
+    "schema": {"type": "integer", "format":"int64"},
+  },
+  protobuf2.TYPE_UINT64: {
+    "name": "protobuf2.TYPE_UINT64",
+    "schema": {"type": "integer", "format":"uint64"},
+  },
+  protobuf2.TYPE_INT32: {
+    "name": "protobuf2.TYPE_INT32",
+    "schema": {"type": "integer", "format": "int32"},
+  },
+  protobuf2.TYPE_FIXED64: {
+    "name": "protobuf2.TYPE_FIXED64",
+    "schema": {"type": "integer", "format": "uint64"}
+  },
+  protobuf2.TYPE_FIXED32: {
+    "name": "protobuf2.TYPE_FIXED32",
+    "schema": {"type": "integer", "format": "uint32"},
+  },
+  protobuf2.TYPE_BOOL: {
+    "name": "protobuf2.TYPE_BOOL",
+    "schema": {"type": "boolean"},
+  },
+  protobuf2.TYPE_STRING: {
+    "name": "protobuf2.TYPE_STRING",
+    "schema": {"type": "string"},
+  },
+  protobuf2.TYPE_BYTES: {
+    "name": "protobuf2.TYPE_BYTES",
+    # TODO: Here, "byte" (base64) might be used ?
+    "schema": {"type": "string", "format": "binary"},
+  },
+  protobuf2.TYPE_UINT32: {
+    "name": "protobuf2.TYPE_UINT32",
+    "schema": {"type": "integer", "format": "uint32"},
+  },
+  protobuf2.TYPE_SFIXED32: {
+    "name": "protobuf2.TYPE_SFIXED32",
+    "schema": {"type": "integer", "format": "int32"},
+  },
+  protobuf2.TYPE_SFIXED64: {
+    "name": "protobuf2.TYPE_SFIXED64",
+    "schema": {"type": "integer","format": "int64"},
+  },
+  protobuf2.TYPE_SINT32: {
+    "name": "protobuf2.TYPE_SINT32",
+    "schema": {"type": "integer", "format": "int32"},
+  },
+  protobuf2.TYPE_SINT64: {
+    "name": "protobuf2.TYPE_SINT64",
+    "schema": {"type": "integer","format": "int64"},
+  },
+  "BinaryStream": {
+    "name": "BinaryStream",
+    "schema": {"type": "string", "format": "binary"},
+  }
 }
 
-primitive_types_names: Set[str] = (
-    set(proto_primitive_types_names.values()) | {"BinaryStream"}
-)
+primitive_types_names: Set[str] = {
+  primitive_type["name"] for primitive_type in primitive_types.values()
+}
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
@@ -101,20 +152,20 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.open_api_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
 
-  def _SimplifyPathNode(self, node: str) -> str:
+  def _NormalizePathComponent(self, component: str) -> str:
     """Normalize the given path component to be used in a valid OpenAPI path."""
-    if len(node) > 0 and node[0] == '<' and node[-1] == '>':
-      node = node[1:-1]
-      node = node.split(":")[-1]
-      node = f"{{{node}}}"
+    if len(component) > 0 and component[0] == '<' and component[-1] == '>':
+      component = component[1:-1]
+      component = component.split(":")[-1]
+      component = f"{{{component}}}"
 
-    return node
+    return component
 
-  def _SimplifyPath(self, path: str) -> str:
+  def _NormalizePath(self, path: str) -> str:
     """Keep only fixed parts and parameter names from Werkzeug URL patterns.
 
     The OpenAPI specification requires that parameters are surrounded by { }
-    which are added in _SimplifyPathNode.
+    which are added in _NormalizePathComponent.
 
     Args:
       path: The path whose representation will be normalized.
@@ -123,23 +174,25 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       The normalized version of the path argument, which is a valid OpenAPI
       path, with curly brackets around path arguments.
     """
-    nodes = path.split("/")
-    simple_nodes = [self._SimplifyPathNode(node) for node in nodes]
+    components = path.split("/")
+    normalized_components = [
+      self._NormalizePathComponent(component) for component in components
+    ]
 
-    simple_path = '/'.join(simple_nodes)
+    normalized_path = '/'.join(normalized_components)
 
-    return simple_path
+    return normalized_path
 
   def _GetPathArgsFromPath(self, path: str) -> List[str]:
     """Extract path parameters from a Werkzeug Rule URL."""
     path_args = []
 
-    nodes = path.split("/")
-    for node in nodes:
-      if len(node) > 0 and node[0] == '<' and node[-1] == '>':
-        simple_node = self._SimplifyPathNode(node)
-        simple_node = simple_node[1:-1]
-        path_args.append(simple_node)
+    components = path.split("/")
+    for component in components:
+      if len(component) > 0 and component[0] == '<' and component[-1] == '>':
+        normalized_component = self._NormalizePathComponent(component)
+        normalized_component = normalized_component[1:-1]
+        path_args.append(normalized_component)
 
     return path_args
 
@@ -166,7 +219,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return cls.__name__
 
     if isinstance(cls, int):  # It's a protobuf.Descriptor.type value.
-      return proto_primitive_types_names[cls] # TODO: Delete this. I could use a Dict[proto_int_const, proto_detail].
+      return primitive_types[cls]["name"]
 
     return str(cls)  # Cover "BinaryStream" and None.
 
@@ -213,75 +266,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.open_api_obj.update(metadata_dict)
 
   def _AddPrimitiveTypesSchemas(self) -> None:
-    """Creates OpenAPI schemas for Protobuf primitives and BinaryStream."""
+    """Adds the OpenAPI schemas for Protobuf primitives and BinaryStream."""
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError(
         "The container of OpenAPI type schemas is not initialized."
       )
 
     primitive_types_schemas = {
-      proto_primitive_types_names[protobuf2.TYPE_DOUBLE]: {
-        "type": "number",
-        "format": "double"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_FLOAT]: {
-        "type": "number",
-        "format": "float"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_INT64]: {
-        "type": "integer",
-        "format": "int64"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_UINT64]: {
-        "type": "integer",
-        "format": "uint64"  # Undefined by the OpenAPI Specification (OAS).
-      },
-      proto_primitive_types_names[protobuf2.TYPE_INT32]: {
-        "type": "integer",
-        "format": "int32"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_FIXED64]: {
-        "type": "integer",
-        "format": "uint64"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_FIXED32]: {
-        "type": "integer",
-        "format": "uint32"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_BOOL]: {
-        "type": "boolean"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_STRING]: {
-        "type": "string"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_BYTES]: {
-        "type": "string",
-        "format": "binary"  # TODO: Here "byte" (base64) might be used?
-      },
-      proto_primitive_types_names[protobuf2.TYPE_UINT32]: {
-        "type": "integer",
-        "format": "uint32"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_SFIXED32]: {
-        "type": "integer",
-        "format": "int32"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_SFIXED64]: {
-        "type": "integer",
-        "format": "int64"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_SINT32]: {
-        "type": "integer",
-        "format": "int32"
-      },
-      proto_primitive_types_names[protobuf2.TYPE_SINT64]: {
-        "type": "integer",
-        "format": "int64"
-      },
-      "BinaryStream": {
-        "type": "string",
-        "format": "binary"
-      }
+      primitive_type["name"]: primitive_type["schema"]
+      for primitive_type in primitive_types.values()
     }
 
     self.schema_objs.update(primitive_types_schemas)
@@ -649,14 +642,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     for router_method_name in router_methods:
       router_method = router_methods[router_method_name]
       for http_method, path, strip_root_types in router_method.http_methods:
-        simple_path = self._SimplifyPath(path)
+        normalized_path = self._NormalizePath(path)
         path_args = set(self._GetPathArgsFromPath(path))
 
-        if simple_path not in paths_obj:
-          paths_obj[simple_path] = dict()
+        if normalized_path not in paths_obj:
+          paths_obj[normalized_path] = dict()
 
         # The Path Object associated with the current path.
-        path_obj = paths_obj[simple_path]
+        path_obj = paths_obj[normalized_path]
 
         url_path = (
           path
