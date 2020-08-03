@@ -1,6 +1,7 @@
 import {async, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {newClient} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
@@ -15,13 +16,10 @@ import {Approval} from './approval';
 initTestEnvironment();
 
 function makeClient(args: Partial<Client> = {}): Client {
-  return {
+  return newClient({
     clientId: 'C.1234',
-    fleetspeakEnabled: true,
-    knowledgeBase: {},
-    labels: [],
     ...args,
-  };
+  });
 }
 
 describe('Approval Component', () => {

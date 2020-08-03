@@ -6,7 +6,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, interval, merge, Observable, of, Subject, timer} from 'rxjs';
+import {combineLatest, Observable, of, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeAll, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';

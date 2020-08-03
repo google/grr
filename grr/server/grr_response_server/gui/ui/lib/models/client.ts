@@ -9,6 +9,98 @@ export interface KnowledgeBase {
   /** Client's FQDN. */
   readonly fqdn?: string;
   readonly os?: string;
+  readonly osMajorVersion?: number;
+  readonly osMinorVersion?: number;
+}
+
+/**
+ * Windows specific volume details.
+ */
+export interface WindowsVolume {
+  readonly attributes?: ReadonlyArray<string>;
+  readonly driveLetter?: string;
+  readonly driveType?: string;
+}
+
+/**
+ * Unix specific volume details.
+ */
+export interface UnixVolume {
+  readonly mountPoint?: string;
+  readonly mountOptions?: string;
+}
+
+/**
+ * Storage volume.
+ */
+export interface StorageVolume {
+  readonly name?: string;
+  readonly devicePath?: string;
+  readonly fileSystemType?: string;
+  readonly totalSize?: BigInt;
+  readonly bytesPerSector?: BigInt;
+  readonly freeSpace?: BigInt;
+  readonly creationTime?: Date;
+  readonly unixDetails?: UnixVolume;
+  readonly windowsDetails?: WindowsVolume;
+}
+
+/**
+ * User
+ */
+export interface User {
+  readonly username?: string;
+  readonly lastLogon?: Date;
+  readonly fullName?: string;
+  readonly homedir?: string;
+  readonly uid?: number;
+  readonly gid?: number;
+  readonly shell?: string;
+}
+
+/**
+ * System information
+ */
+export interface OsInfo {
+  readonly system?: string;
+  readonly node?: string;
+  readonly release?: string;
+  readonly version?: string;
+  readonly machine?: string;
+  readonly kernel?: string;
+  readonly fqdn?: string;
+  readonly installDate?: Date;
+  readonly libcVer?: string;
+  readonly architecture?: string;
+}
+
+/**
+ * Network Address
+ */
+export interface NetworkAddress {
+  readonly addressType: string;
+  readonly ipAddress: string;
+}
+
+/**
+ * Network interface
+ */
+export interface NetworkInterface {
+  readonly macAddress: string;
+  readonly interfaceName: string;
+  readonly addresses: ReadonlyArray<NetworkAddress>;
+}
+
+/**
+ * Info about the agent running on the client.
+ */
+export interface AgentInfo {
+  readonly clientName?: string;
+  readonly clientVersion?: number;
+  readonly revision?: BigInt;
+  readonly buildTime?: string;
+  readonly clientBinaryName?: string;
+  readonly clientDescription?: string;
 }
 
 /**
@@ -27,8 +119,20 @@ export interface Client {
   readonly clientId: string;
   /** Whether the client communicates with GRR through Fleetspeak. */
   readonly fleetspeakEnabled: boolean;
+  /** Metadata about the GRR client */
+  readonly agentInfo: AgentInfo;
   /** Client's knowledge base. */
   readonly knowledgeBase: KnowledgeBase;
+  /** Data about the system of the client */
+  readonly osInfo: OsInfo;
+  /** Users on the client */
+  readonly users: ReadonlyArray<User>;
+  /** Network interfaces of the client */
+  readonly networkInterfaces: ReadonlyArray<NetworkInterface>;
+  /** Storage volumes available to the client */
+  readonly volumes: ReadonlyArray<StorageVolume>;
+  /** Memory available to this client */
+  readonly memorySize?: BigInt;
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
@@ -79,7 +183,7 @@ export interface Invalid {
 }
 
 /** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
+export type ClientApprovalStatus = Valid | Pending | Expired | Invalid;
 
 /** Approval for Client access. */
 export interface ClientApproval {

@@ -10,7 +10,7 @@
 
 export declare interface AnyObject {
   '@type'?: string;
-  [key: string]: undefined|null|string|number|boolean|object;
+  [key: string]: undefined | null | string | number | boolean | object;
 }
 
 /**
@@ -18,14 +18,88 @@ export declare interface AnyObject {
  * JSON because JS loses precision for big numeric types. During
  * deserialization, both decimal strings and numbers are accepted.
  */
-export type DecimalString = string|number;
+export type DecimalString = string | number;
+
+/**
+ * ApiUser protomapping.
+ */
+export declare interface ApiUser {
+  readonly username?: string;
+  readonly lastLogon?: string;
+  readonly fullName?: string;
+  readonly homedir?: string;
+  readonly uid?: number;
+  readonly gid?: number;
+  readonly shell?: string;
+}
+
+/**
+ * Network address proto mapping
+ */
+export declare interface ApiNetworkAddress {
+  readonly addressType?: string;
+  readonly packedBytes?: string;
+}
+
+/**
+ * Network Interface proto mapping
+ */
+export declare interface ApiInterface {
+  readonly macAddress?: string;
+  readonly ifname?: string;
+  readonly addresses?: ReadonlyArray<ApiNetworkAddress>;
+}
 
 /**
  * KnowledgeBase proto mapping.
  */
 export declare interface ApiKnowledgeBase {
   readonly fqdn?: string;
+  readonly timeZone?: string;
+
   readonly os?: string;
+  readonly osMajorVersion?: number;
+  readonly osMinorVersion?: number;
+}
+
+/**
+ * ApiClientInformation proto mapping.
+ */
+export declare interface ApiClientInformation {
+  readonly clientName?: string;
+  readonly clientVersion?: number;
+  readonly revision?: DecimalString;
+  readonly buildTime?: string;
+  readonly clientBinaryName?: string;
+  readonly clientDescription?: string;
+  readonly labels?: ReadonlyArray<string>;
+}
+
+/** ApiWindowsVolume proto mapping. */
+export declare interface ApiWindowsVolume {
+  readonly attributesList?: ReadonlyArray<string>;
+  readonly driveLetter?: string;
+  readonly driveType?: string;
+}
+
+/** ApiUnixVolume proto mapping. */
+export declare interface ApiUnixVolume {
+  readonly mountPoint?: string;
+  readonly options?: string;
+}
+
+/** ApiVolume proto mapping. */
+export declare interface ApiVolume {
+  readonly name?: string;
+  readonly devicePath?: string;
+  readonly fileSystemType?: string;
+  readonly totalAllocationUnits?: DecimalString;
+  readonly sectorsPerAllocationUnit?: DecimalString;
+  readonly bytesPerSector?: DecimalString;
+  readonly actualAvailableAllocationUnits?: DecimalString;
+  readonly creationTime?: string;
+  readonly windowsvolume?: ApiWindowsVolume;
+  readonly unixvolume?: ApiUnixVolume;
 }
 
 /**
@@ -37,11 +111,29 @@ export declare interface ApiClientLabel {
 }
 
 /**
+ * ApiUname proto mapping.
+ */
+export declare interface ApiUname {
+  readonly system?: string;
+  readonly node?: string;
+  readonly release?: string;
+  readonly version?: string;
+  readonly machine?: string;
+  readonly kernel?: string;
+  readonly fqdn?: string;
+  readonly installDate?: string;
+  readonly libcVer?: string;
+  readonly architecture?: string;
+  readonly pep425tag?: string;
+}
+
+/**
  * ApiListClientsLabelsResult proto mapping.
  */
 export declare interface ApiListClientsLabelsResult {
   readonly items?: ReadonlyArray<ApiClientLabel>;
 }
+
 /**
  * AddClientsLabelsArgs proto mapping.
  */
@@ -58,9 +150,14 @@ export declare interface ApiClient {
   readonly urn?: string;
 
   readonly fleetspeakEnabled?: boolean;
-
+  readonly agentInfo?: ApiClientInformation;
   readonly knowledgeBase?: ApiKnowledgeBase;
 
+  readonly osInfo?: ApiUname;
+  readonly interfaces?: ReadonlyArray<ApiInterface>;
+  readonly users?: ReadonlyArray<ApiUser>;
+  readonly volumes?: ReadonlyArray<ApiVolume>;
+  readonly memorySize?: DecimalString;
   readonly firstSeenAt?: string;
   readonly lastSeenAt?: string;
   readonly lastBootedAt?: string;
