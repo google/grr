@@ -39,6 +39,7 @@
 
       .chip {
         font-size: 14px;
+        font-weight: 500;
         border: 1px solid c.mat-color(c.$foreground, divider);
         background-color: c.mat-color(c.$background, app-bar);
       }
