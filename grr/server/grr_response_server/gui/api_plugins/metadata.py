@@ -309,10 +309,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     type_name = self._GetTypeName(descriptor)
 
-    schema_obj = {"type": "object"}  # type: MessageSchema
-    properties = dict()  # Required to please mypy.
+    properties = dict()
     visiting.add(type_name)
 
+    # Create schemas for the fields' types.
     for field_descriptor in descriptor.fields:
       field_name = field_descriptor.name
       message_descriptor = field_descriptor.message_type # None if not Message.
@@ -332,8 +332,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     visiting.remove(type_name)
 
-    schema_obj["properties"] = properties
-    self.schema_objs[type_name] = schema_obj
+    self.schema_objs[type_name] = cast(
+      MessageSchema,
+      {
+        "type": "object",
+        "properties": properties,
+      }
+    )
 
   def _CreateSchema(
       self,
