@@ -163,6 +163,8 @@ export declare interface ApiClient {
   readonly lastBootedAt?: string;
   readonly lastClock?: string;
   readonly labels?: ReadonlyArray<ApiClientLabel>;
+
+  readonly age?: string;
 }
 
 /**

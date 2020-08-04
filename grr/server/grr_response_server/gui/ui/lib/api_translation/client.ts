@@ -37,7 +37,7 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   if (apiAgentInfo.revision !== undefined) {
     revision = BigInt(apiAgentInfo.revision);
   }
-  
+
   return {
     clientName: apiAgentInfo.clientName,
     clientVersion: apiAgentInfo.clientVersion,
@@ -187,6 +187,7 @@ export function translateClient(client: ApiClient): Client {
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),
     lastClock: createOptionalDate(client.lastClock),
+    age: createOptionalDate(client.age),
   };
 }
 

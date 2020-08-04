@@ -82,6 +82,7 @@ describe('Client API Translation', () => {
         {name: 'a', owner: 'ao'},
         {name: 'b', owner: 'bo'},
       ],
+      age: '1571789996678000',
     };
     const client: Client = newClient({
       clientId: 'C.1234',
@@ -159,6 +160,7 @@ describe('Client API Translation', () => {
         {name: 'a', owner: 'ao'},
         {name: 'b', owner: 'bo'},
       ],
+      age: new Date(1571789996678),
     });
     expect(translateClient(apiClient)).toEqual(client);
   });
@@ -206,6 +208,7 @@ describe('Client API Translation', () => {
       lastBootedAt: undefined,
       lastClock: undefined,
       labels: [],
+      age: undefined,
     });
     expect(client).toEqual(translateClient(apiClient));
   });
