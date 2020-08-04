@@ -125,3 +125,14 @@ export function flowListEntryFromFlow(flow: Flow): FlowListEntry {
     resultSets: [],
   };
 }
+
+/** A scheduled flow, to be executed after approval has been granted. */
+export declare interface ScheduledFlow {
+  readonly scheduledFlowId: string;
+  readonly clientId: string;
+  readonly creator: string;
+  readonly flowName: string;
+  readonly flowArgs: unknown;
+  readonly createTime: Date;
+  readonly error?: string;
+}

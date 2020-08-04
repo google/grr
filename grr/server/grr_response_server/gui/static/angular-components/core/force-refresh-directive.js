@@ -5,52 +5,51 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for force-refresh directive.
- *
- * @param {!angular.Scope} $scope
- * @param {!angular.jQuery} $element
- * @param {function(function(angular.jQuery, angular.Scope))} $transclude
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ForceRefreshController = function(
-    $scope, $element, $transclude) {
+const ForceRefreshController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.jQuery} $element
+   * @param {function(function(angular.jQuery, angular.Scope))} $transclude
+   * @ngInject
+   */
+  constructor($scope, $element, $transclude) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!angular.jQuery} */
+    this.element_ = $element;
 
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
+    /** @private {function(function(angular.jQuery, angular.Scope))} */
+    this.transclude_ = $transclude;
 
-  /** @private {function(function(angular.jQuery, angular.Scope))} */
-  this.transclude_ = $transclude;
+    /** @private {angular.Scope|undefined} */
+    this.transcludedScope_;
 
-  /** @private {angular.Scope|undefined} */
-  this.transcludedScope_;
-
-  this.scope_.$watch('refreshTrigger',
-                     this.updateDom_.bind(this),
-                     true);
-};
-
-
-/**
- * @private
- */
-ForceRefreshController.prototype.updateDom_ = function() {
-  if (angular.isDefined(this.transcludedScope_)) {
-    this.transcludedScope_.$destroy();
-    this.transcludedScope_ = undefined;
+    this.scope_.$watch('refreshTrigger', this.updateDom_.bind(this), true);
   }
 
-  this.element_.empty();
+  /**
+   * @private
+   */
+  updateDom_() {
+    if (angular.isDefined(this.transcludedScope_)) {
+      this.transcludedScope_.$destroy();
+      this.transcludedScope_ = undefined;
+    }
 
-  this.transclude_(function(clone, scope) {
     this.element_.empty();
-    this.element_.append(clone);
 
-    this.transcludedScope_ = scope;
-  }.bind(this));
+    this.transclude_(function(clone, scope) {
+      this.element_.empty();
+      this.element_.append(clone);
+
+      this.transcludedScope_ = scope;
+    }.bind(this));
+  }
 };
+
 
 
 /**

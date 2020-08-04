@@ -7,7 +7,7 @@ initTestEnvironment();
 
 describe('createDate', () => {
   it('throws for empty string', () => {
-    expect(() => createDate('')).toThrowError(/empty/);
+    expect(() => createDate('')).toThrowError(/Date/);
   });
   it('throws for invalid string', () => {
     expect(() => createDate('123abc')).toThrowError(/invalid/);

@@ -462,10 +462,10 @@ class CategorizedPathTest(absltest.TestCase):
     self.assertEqual(components, ("foo", "bar"))
 
   def testParseIncorrect(self):
-    with self.assertRaisesRegex(ValueError, "path"):
+    with self.assertRaisesRegex(ValueError, "does not start with a VFS prefix"):
       rdf_objects.ParseCategorizedPath("foo/bar")
 
-    with self.assertRaisesRegex(ValueError, "path"):
+    with self.assertRaisesRegex(ValueError, "does not start with a VFS prefix"):
       rdf_objects.ParseCategorizedPath("fs")
 
   def testSerializeOs(self):

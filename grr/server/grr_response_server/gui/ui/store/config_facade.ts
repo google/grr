@@ -4,7 +4,7 @@ import {Store} from '@ngrx/store';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
-import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
+import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 
 import {ApprovalConfig} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
@@ -40,7 +40,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
 
   private readonly listFlowDescriptors = this.effect<void>(
       obs$ => obs$.pipe(
-          switchMapTo(this.httpApiService.listFlowDescriptors()),
+          switchMap(() => this.httpApiService.listFlowDescriptors()),
           map(apiDescriptors => apiDescriptors.map(translateFlowDescriptor)),
           tap(descriptors => {
             this.updateFlowDescriptors(descriptors);
@@ -49,7 +49,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
 
   private readonly fetchApprovalConfig = this.effect<void>(
       obs$ => obs$.pipe(
-          switchMapTo(this.httpApiService.fetchApprovalConfig()),
+          switchMap(() => this.httpApiService.fetchApprovalConfig()),
           tap(approvalConfig => {
             this.updateApprovalConfig(approvalConfig);
           }),

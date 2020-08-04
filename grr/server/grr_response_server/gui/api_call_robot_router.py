@@ -224,7 +224,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
           "ArtifactCollectorFlow flow is not allowed by the configuration")
 
     for name in flow_args.artifact_list:
-      if name not in self.params.artifact_collector_flow.artifacts_whitelist:
+      if name not in self.params.artifact_collector_flow.allow_artifacts:
         raise access_control.UnauthorizedAccess(
             "Artifact %s is not whitelisted." % name)
 
@@ -342,8 +342,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       return api_flow.ApiGetFlowFilesArchiveHandler()
     else:
       return api_flow.ApiGetFlowFilesArchiveHandler(
-          path_globs_blacklist=options.path_globs_blacklist,
-          path_globs_whitelist=options.path_globs_whitelist)
+          exclude_path_globs=options.exclude_path_globs,
+          include_only_path_globs=options.include_only_path_globs)
 
   # Reflection methods.
   # ==================

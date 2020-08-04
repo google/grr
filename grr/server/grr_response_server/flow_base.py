@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import logging
 import traceback
+from typing import Iterator, NamedTuple
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -24,6 +25,7 @@ from grr_response_server import flow
 from grr_response_server import flow_responses
 from grr_response_server import hunt
 from grr_response_server import notification as notification_lib
+from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -150,6 +152,15 @@ def TerminateFlow(client_id,
           data_store.REL_DB.ReadChildFlowObjects(rdf_flow.client_id,
                                                  rdf_flow.flow_id))
     to_terminate = next_to_terminate
+
+
+# This is a mypy-friendly way of defining named tuples:
+# https://mypy.readthedocs.io/en/stable/kinds_of_types.html#named-tuples
+class ClientPathArchiveMapping(NamedTuple):
+  """Mapping between a client path and a path inside an archive."""
+
+  client_path: db.ClientPath
+  archive_path: str
 
 
 class FlowBase(metaclass=FlowRegistry):
@@ -915,6 +926,26 @@ class FlowBase(metaclass=FlowRegistry):
           "GetProgress() methods has to be implemented "
           "on a flow with defined 'progress_type' attribute.")
 
+  def GetFilesArchiveMappings(
+      self, flow_results: Iterator[rdf_flow_objects.FlowResult]
+  ) -> Iterator[ClientPathArchiveMapping]:
+    """Returns a mapping used to generate flow results archive.
+
+    If this is implemented by a flow, then instead of generating
+    a general-purpose archive with all files referenced in the
+    results present, an archive would be generated with
+    just the files referenced in the mappings.
+
+    Args:
+      flow_results: An iterator for flow results.
+
+    Returns:
+      An iterator of mappings from REL_DB's ClientPaths to archive paths.
+    Raises:
+      NotImplementedError: if not implemented by a subclass.
+    """
+    raise NotImplementedError("GetFilesArchiveMappings() not implemented")
+
   @property
   def client_id(self):
     return self.rdf_flow.client_id
@@ -967,3 +998,8 @@ class FlowBase(metaclass=FlowRegistry):
   def GetDefaultArgs(cls, username=None):
     del username  # Unused.
     return cls.args_type()
+
+  @classmethod
+  def CreateFlowInstance(cls, flow_object: rdf_flow_objects.Flow) -> "FlowBase":
+    flow_cls = FlowRegistry.FlowClassByName(flow_object.flow_class_name)
+    return flow_cls(flow_object)

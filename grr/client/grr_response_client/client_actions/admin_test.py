@@ -88,8 +88,7 @@ Client.server_urls:
     # Since the request is successful we only connect to one location.
     self.assertIn(location[0], self.urls[0])
 
-  def testUpdateConfigBlacklist(self):
-    """Tests that disallowed fields are not getting updated."""
+  def testOnlyUpdatableFieldsAreUpdated(self):
     with test_lib.ConfigOverrider({
         "Client.server_urls": [u"http://something.com/"],
         "Client.server_serial_number": 1

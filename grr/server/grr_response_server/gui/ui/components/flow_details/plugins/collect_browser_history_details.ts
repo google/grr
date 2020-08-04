@@ -1,9 +1,12 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
 import {BrowserProgress, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
+import {HttpApiService} from '@app/lib/api/http_api_service';
 import {findFlowListEntryResultSet, FlowListEntry, FlowResultSetState, FlowState} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+
+import {assertNonNull} from '../../../lib/preconditions';
 
 import {Plugin} from './plugin';
 
@@ -35,6 +38,10 @@ export class CollectBrowserHistoryDetails extends Plugin {
 
   readonly expandedRows: {[key: string]: boolean} = {};
 
+  constructor(private readonly httpApiService: HttpApiService) {
+    super();
+  }
+
   trackByRowName(index: number, item: BrowserRow) {
     return item.name;
   }
@@ -64,6 +71,18 @@ export class CollectBrowserHistoryDetails extends Plugin {
         const p = flowListEntry.flow.progress as CollectBrowserHistoryProgress;
         return (p.browsers ?? [])
             .map(bp => this.createBrowserRow(flowListEntry, bp));
+      }));
+
+  archiveUrl$: Observable<string> =
+      this.flowListEntry$.pipe(map((flowListEntry) => {
+        return this.httpApiService.getFlowFilesArchiveUrl(
+            flowListEntry.flow.clientId, flowListEntry.flow.flowId);
+      }));
+
+  archiveFileName$: Observable<string> =
+      this.flowListEntry$.pipe(map((flowListEntry) => {
+        return flowListEntry.flow.clientId.replace('.', '_') + '_' +
+            flowListEntry.flow.flowId + '.zip';
       }));
 
   loadMore(row: BrowserRow) {
@@ -100,9 +119,7 @@ export class CollectBrowserHistoryDetails extends Plugin {
 
   private createBrowserRow(fle: FlowListEntry, progress: BrowserProgress):
       BrowserRow {
-    if (progress.browser === undefined) {
-      throw new Error('progress.browser can\'t be undefined');
-    }
+    assertNonNull(progress.browser, 'progress.browser');
 
     const resultSet =
         findFlowListEntryResultSet(fle, undefined, progress.browser);

@@ -1,9 +1,9 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {ConfigService} from '@app/components/config/config';
-import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState} from '@app/lib/api/api_interfaces';
+import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ClientApproval} from '@app/lib/models/client';
-import {FlowListEntry, flowListEntryFromFlow, FlowState} from '@app/lib/models/flow';
+import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
 import {initTestEnvironment} from '@app/testing';
@@ -11,6 +11,8 @@ import {of, Subject} from 'rxjs';
 
 import {ConfigFacade} from './config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
+import {UserFacade} from './user_facade';
+import {mockUserFacade, UserFacadeMock} from './user_facade_test_util';
 
 initTestEnvironment();
 
@@ -21,15 +23,20 @@ describe('ClientPageFacade', () => {
   let apiListApprovals$: Subject<ReadonlyArray<ApiClientApproval>>;
   let apiFetchClient$: Subject<ApiClient>;
   let apiListFlowsForClient$: Subject<ReadonlyArray<ApiFlow>>;
+  let apiListScheduledFlows$: Subject<ReadonlyArray<ApiScheduledFlow>>;
   let apiStartFlow$: Subject<ApiFlow>;
+  let apiScheduleFlow$: Subject<ApiScheduledFlow>;
   let apiCancelFlow$: Subject<ApiFlow>;
   let configFacade: ConfigFacadeMock;
+  let userFacade: UserFacadeMock;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
     apiFetchClient$ = new Subject();
     apiListFlowsForClient$ = new Subject();
+    apiListScheduledFlows$ = new Subject();
     apiStartFlow$ = new Subject();
+    apiScheduleFlow$ = new Subject();
     apiCancelFlow$ = new Subject();
     httpApiService = {
       listApprovals:
@@ -38,7 +45,11 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('fetchClient').and.returnValue(apiFetchClient$),
       listFlowsForClient: jasmine.createSpy('listFlowsForClient')
                               .and.returnValue(apiListFlowsForClient$),
+      listScheduledFlows: jasmine.createSpy('listScheduledFlows')
+                              .and.returnValue(apiListScheduledFlows$),
       startFlow: jasmine.createSpy('startFlow').and.returnValue(apiStartFlow$),
+      scheduleFlow:
+          jasmine.createSpy('scheduleFlow').and.returnValue(apiScheduleFlow$),
       cancelFlow:
           jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
       listResultsForFlow:
@@ -46,6 +57,7 @@ describe('ClientPageFacade', () => {
     };
 
     configFacade = mockConfigFacade();
+    userFacade = mockUserFacade();
 
     TestBed
         .configureTestingModule({
@@ -56,6 +68,7 @@ describe('ClientPageFacade', () => {
             // useFactory, to make sure the instance is shared.
             {provide: HttpApiService, useFactory: () => httpApiService},
             {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: UserFacade, useFactory: () => userFacade},
           ],
         })
         .compileComponents();
@@ -67,6 +80,7 @@ describe('ClientPageFacade', () => {
     apiFetchClient$.next({
       clientId: 'C.1234',
     });
+    userFacade.currentUserSubject.next({name: 'testuser'});
   });
 
   it('calls the API on latestApproval$ subscription', () => {
@@ -356,6 +370,42 @@ describe('ClientPageFacade', () => {
     });
   });
 
+  it('calls the API on scheduleFlow', () => {
+    clientPageFacade.startFlowConfiguration('ListProcesses');
+    clientPageFacade.scheduleFlow({foo: 1});
+    expect(httpApiService.scheduleFlow)
+        .toHaveBeenCalledWith('C.1234', 'ListProcesses', {foo: 1});
+  });
+
+  it('emits the scheduled flow in scheduledFlows$', (done) => {
+    clientPageFacade.startFlowConfiguration('ListProcesses');
+    clientPageFacade.scheduleFlow({foobar: 9000});
+
+    apiScheduleFlow$.next({
+      scheduledFlowId: '1',
+      clientId: 'C.1234',
+      creator: 'testuser',
+      createTime: '999000',
+      flowName: 'ListProcesses',
+      flowArgs: {foobar: 9000},
+    });
+
+    const expected: ScheduledFlow[] = [{
+      scheduledFlowId: '1',
+      clientId: 'C.1234',
+      creator: 'testuser',
+      createTime: new Date(999),
+      flowName: 'ListProcesses',
+      flowArgs: {foobar: 9000},
+      error: undefined,
+    }];
+
+    clientPageFacade.scheduledFlows$.subscribe(scheduledFlows => {
+      expect(scheduledFlows).toEqual(expected);
+      done();
+    });
+  });
+
   it('emits the error in startFlowState', (done) => {
     clientPageFacade.startFlowConfiguration('ListProcesses');
     clientPageFacade.startFlow({});
@@ -387,6 +437,26 @@ describe('ClientPageFacade', () => {
       done();
     });
   });
+
+  it('stops flow configuration after successfully scheduling a flow',
+     (done) => {
+       clientPageFacade.startFlowConfiguration('ListProcesses');
+       clientPageFacade.scheduleFlow({});
+
+       apiScheduleFlow$.next({
+         scheduledFlowId: '1',
+         clientId: 'C.1234',
+         creator: 'testuser',
+         createTime: '999000',
+         flowName: 'ListProcesses',
+         flowArgs: {foobar: 9000},
+       });
+
+       clientPageFacade.selectedFlowDescriptor$.subscribe(fd => {
+         expect(fd).toBeUndefined();
+         done();
+       });
+     });
 
   it('calls the API on cancelFlow', () => {
     clientPageFacade.cancelFlow('5678');
@@ -467,6 +537,7 @@ describe('ClientPageFacade', () => {
     clientPageFacade.selectedFlowDescriptor$.subscribe(
         () => {},
         err => {
+          expect(err).toBeTruthy();
           done();
         },
     );
@@ -486,4 +557,87 @@ describe('ClientPageFacade', () => {
          done();
        });
      });
+
+  it('calls the listScheduledFlows API on scheduledFlows$ subscription',
+     fakeAsync(() => {
+       clientPageFacade.scheduledFlows$.subscribe();
+
+       // This is needed since flow list entries are updated in a timer loop
+       // and the first call is scheduled after 0 milliseconds (meaning it
+       // will happen right after it was scheduled, but still asynchronously).
+       tick(1);
+       discardPeriodicTasks();
+
+       expect(httpApiService.listScheduledFlows)
+           .toHaveBeenCalledWith('C.1234', 'testuser');
+     }));
+
+  it('emits ScheduledFlows', fakeAsync(() => {
+       const expected: ScheduledFlow[] = [
+         {
+           scheduledFlowId: '1',
+           clientId: 'C.1234',
+           creator: 'testuser',
+           createTime: new Date(999),
+           flowName: 'ListProcesses',
+           flowArgs: {foobar: 9000},
+           error: undefined,
+         },
+         {
+           scheduledFlowId: '2',
+           clientId: 'C.1234',
+           creator: 'testuser',
+           createTime: new Date(999),
+           flowName: 'GetFile',
+           flowArgs: {foobar: 5},
+           error: 'foobazzle invalid',
+         },
+       ];
+
+       let numCalls = 0;
+       clientPageFacade.scheduledFlows$.subscribe(scheduledFlows => {
+         numCalls++;
+         if (numCalls === 2) {
+           expect(scheduledFlows).toEqual(expected);
+         }
+       });
+       tick(1);
+       discardPeriodicTasks();
+
+       apiListScheduledFlows$.next([
+         {
+           scheduledFlowId: '1',
+           clientId: 'C.1234',
+           creator: 'testuser',
+           createTime: '999000',
+           flowName: 'ListProcesses',
+           flowArgs: {foobar: 9000},
+         },
+         {
+           scheduledFlowId: '2',
+           clientId: 'C.1234',
+           creator: 'testuser',
+           createTime: '999000',
+           flowName: 'GetFile',
+           flowArgs: {foobar: 5},
+           error: 'foobazzle invalid',
+         },
+       ]);
+       apiListScheduledFlows$.complete();
+       expect(numCalls).toBe(2);
+     }));
+
+  it('polls and updates scheduledFlows$ periodically', fakeAsync(() => {
+       httpApiService.listScheduledFlows =
+           jasmine.createSpy('listScheduledFlows').and.callFake(() => of([]));
+
+       clientPageFacade.scheduledFlows$.subscribe();
+
+       tick(configService.config.flowListPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
+
+       // First call happens at 0, next one at flowListPollingIntervalMs
+       // and the next one at flowListPollingIntervalMs * 2.
+       expect(httpApiService.listScheduledFlows).toHaveBeenCalledTimes(3);
+     }));
 });

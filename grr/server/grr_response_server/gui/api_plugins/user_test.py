@@ -7,19 +7,26 @@ from __future__ import unicode_literals
 
 from absl import app
 
+import mock
+
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import access_control
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import email_alerts
+from grr_response_server import flow
 from grr_response_server import notification
+from grr_response_server.flows import file
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_test_lib
+from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import user as user_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 from grr.test_lib import acl_test_lib
@@ -295,6 +302,83 @@ class ApiCreateApprovalHandlerTestMixin(
     self.assertEqual(addresses[0],
                      (u"approver@localhost", "{}@localhost".format(
                          self.token.username), "test@example.com"))
+
+
+class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
+                                    api_test_lib.ApiCallHandlerTest):
+
+  def setUp(self):
+    super().setUp()
+    self.client_id = self.SetupClient(0)
+
+  def testDoesNotStartScheduledFlowsIfGrantedApprovalIsNotValid(self):
+    with mock.patch.object(flow, "StartScheduledFlows") as start_mock:
+      with mock.patch.object(
+          approval_checks,
+          "CheckApprovalRequest",
+          side_effect=access_control.UnauthorizedAccess("foobazzle")):
+        approval_id = self.RequestAndGrantClientApproval(
+            self.client_id,
+            reason=u"blah",
+            approver=u"approver",
+            requestor=self.token.username)
+
+        args = user_plugin.ApiGetClientApprovalArgs(
+            client_id=self.client_id,
+            approval_id=approval_id,
+            username=self.token.username)
+        handler = user_plugin.ApiGetClientApprovalHandler()
+        result = handler.Handle(args, token=self.token)
+
+    self.assertFalse(result.is_valid)
+    self.assertFalse(start_mock.called)
+
+  def testStartsScheduledFlowsIfGrantedApprovalIsValid(self):
+    with mock.patch.object(flow, "StartScheduledFlows") as start_mock:
+      approval_id = self.RequestAndGrantClientApproval(
+          self.client_id,
+          reason=u"blah",
+          approver=u"approver",
+          requestor=self.token.username)
+
+    args = user_plugin.ApiGetClientApprovalArgs(
+        client_id=self.client_id,
+        approval_id=approval_id,
+        username=self.token.username)
+    handler = user_plugin.ApiGetClientApprovalHandler()
+    approval = handler.Handle(args, token=self.token)
+
+    self.assertTrue(approval.is_valid)
+    self.assertTrue(start_mock.called)
+    start_mock.assert_called_with(
+        client_id=self.client_id, creator=self.token.username)
+
+  def testErrorDuringStartFlowDoesNotBubbleUpToApprovalApiCall(self):
+    flow.ScheduleFlow(
+        client_id=self.client_id,
+        creator=self.token.username,
+        flow_name=file.CollectSingleFile.__name__,
+        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+        runner_args=rdf_flow_runner.FlowRunnerArgs())
+
+    with mock.patch.object(
+        flow, "StartFlow",
+        side_effect=ValueError("foobazzle")) as start_flow_mock:
+      approval_id = self.RequestAndGrantClientApproval(
+          self.client_id,
+          reason=u"blah",
+          approver=u"approver",
+          requestor=self.token.username)
+
+    args = user_plugin.ApiGetClientApprovalArgs(
+        client_id=self.client_id,
+        approval_id=approval_id,
+        username=self.token.username)
+    handler = user_plugin.ApiGetClientApprovalHandler()
+    approval = handler.Handle(args, token=self.token)
+
+    self.assertTrue(approval.is_valid)
+    self.assertTrue(start_flow_mock.called)
 
 
 class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,

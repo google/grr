@@ -131,7 +131,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
   ApiHunt is meant to be more lightweight than automatically generated AFF4
   representation. It's also meant to contain only the information needed by
-  the UI and and to not expose implementation defails.
+  the UI and to not expose implementation defails.
   """
   protobuf = hunt_pb2.ApiHunt
   rdf_deps = [
@@ -191,9 +191,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     if hunt_counters is not None:
       self.results_count = hunt_counters.num_results
       self.clients_with_results_count = hunt_counters.num_clients_with_results
-      self.clients_queued_count = (
-          hunt_counters.num_clients - hunt_counters.num_successful_clients -
-          hunt_counters.num_failed_clients - hunt_counters.num_crashed_clients)
+      self.remaining_clients_count = hunt_counters.num_running_clients
       # TODO(user): remove this hack when AFF4 is gone. For regression tests
       # compatibility only.
       self.total_cpu_usage = hunt_counters.total_cpu_seconds or 0
@@ -204,19 +202,16 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
         self.completed_clients_count = (
             hunt_counters.num_successful_clients +
             hunt_counters.num_failed_clients)
-        self.remaining_clients_count = (
-            self.all_clients_count - self.completed_clients_count)
     else:
       self.results_count = 0
       self.clients_with_results_count = 0
-      self.clients_queued_count = 0
+      self.remaining_clients_count = 0
       self.total_cpu_usage = 0
       self.total_net_usage = 0
 
       if with_full_summary:
         self.all_clients_count = 0
         self.completed_clients_count = 0
-        self.remaining_clients_count = 0
 
     if hunt_obj.original_object.object_type != "UNKNOWN":
       ref = ApiFlowLikeObjectReference()
@@ -1229,11 +1224,8 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
         start_time=h.last_start_time,
         # TODO(user): implement proper hunt client resources starts support
         # for REL_DB hunts.
-        # usage_stats=h.client_resources_stats,
-        clients_with_results_count=h_counters.num_clients_with_results,
-        results_count=h_counters.num_results,
-        completed_clients_count=h_counters.num_successful_clients +
-        h_counters.num_failed_clients)
+        # usage_stats=h.client_resources_stats
+    )
     return ApiGetHuntContextResult(
         context=context, state=api_call_handler_utils.ApiDataObject())
 

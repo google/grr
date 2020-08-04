@@ -110,10 +110,7 @@ message ApiHunt {
     description: "An error that happened while reading the hunt. This is "
                  "not an error while executing the hunt but an internal data issue."
   }];
-  optional int64 clients_queued_count = 28 [(sem_type) = {
-    description: "Number of clients that are queued for running this hunt "
-                 "in the future (when the client rate allows it)."
-  }];
+  reserved 28;
 }
 
 message ApiHuntReference {

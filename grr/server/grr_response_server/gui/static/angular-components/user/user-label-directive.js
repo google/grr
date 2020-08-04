@@ -5,15 +5,15 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for UserLabelDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const UserLabelController =
-  function($scope, grrApiService) {
-
+const UserLabelController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
@@ -26,16 +26,20 @@ const UserLabelController =
     /** @type {string} */
     this.error;
 
-    this.grrApiService_.getCached('users/me').then(function(response) {
-      this.username = response.data['value']['username']['value'];
-    }.bind(this), function(error) {
-      if (error['status'] == 403) {
-        this.error = 'Authentication Error';
-      } else {
-        this.error = error['statusText'] || ('Error');
-      }
-    }.bind(this));
-  };
+    this.grrApiService_.getCached('users/me')
+        .then(
+            function(response) {
+              this.username = response.data['value']['username']['value'];
+            }.bind(this),
+            function(error) {
+              if (error['status'] == 403) {
+                this.error = 'Authentication Error';
+              } else {
+                this.error = error['statusText'] || ('Error');
+              }
+            }.bind(this));
+  }
+};
 
 
 
@@ -66,5 +70,3 @@ var UserLabelDirective = exports.UserLabelDirective;
  * @export
  */
 UserLabelDirective.directive_name = 'grrUserLabel';
-
-

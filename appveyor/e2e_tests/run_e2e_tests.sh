@@ -48,7 +48,7 @@ grr_end_to_end_tests --verbose \
   --client_id "${CLIENT_ID}" \
   --flow_timeout_secs 240 \
   --flow_results_sla_secs 60 \
-  --blacklisted_tests "${FLAKY_TESTS}" \
+  --skip_tests "${FLAKY_TESTS}" \
   2>&1 | tee e2e.log
 
 if [[ ! -z "$(cat e2e.log | grep -F '[ FAIL ]')" ]]; then

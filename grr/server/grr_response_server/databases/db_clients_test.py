@@ -794,6 +794,11 @@ class DatabaseTestClientsMixin(object):
                      "test1235.examples.com")
     self.assertFalse(res[client_id_3])
 
+  def testMultiReadClientSnapshotInfoWithEmptyList(self):
+    d = self.db
+
+    self.assertEqual(d.MultiReadClientSnapshot([]), {})
+
   def testClientValidates(self):
     d = self.db
 

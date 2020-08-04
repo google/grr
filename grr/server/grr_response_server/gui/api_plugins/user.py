@@ -862,6 +862,15 @@ class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED)
 
+  def Handle(self, args, token=None):
+    approval = super().Handle(args, token=token)
+
+    if approval.is_valid:
+      flow.StartScheduledFlows(
+          client_id=str(approval.subject.client_id), creator=approval.requestor)
+
+    return approval
+
 
 class ApiListClientApprovalsArgs(ApiClientApprovalArgsBase):
   protobuf = api_user_pb2.ApiListClientApprovalsArgs

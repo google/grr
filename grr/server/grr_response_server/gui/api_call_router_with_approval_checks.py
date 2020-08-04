@@ -420,6 +420,27 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # approval.
     return self.delegate.ExplainGlobExpression(args, token=token)
 
+  def ScheduleFlow(
+      self,
+      args: api_flow.ApiCreateFlowArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiScheduleFlowHandler:
+    return self.delegate.ScheduleFlow(args, token=token)
+
+  def ListScheduledFlows(
+      self,
+      args: api_flow.ApiListScheduledFlowsArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiListScheduledFlowsHandler:
+    return self.delegate.ListScheduledFlows(args, token=token)
+
+  def UnscheduleFlow(
+      self,
+      args: api_flow.ApiUnscheduleFlowArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiUnscheduleFlowHandler:
+    return self.delegate.UnscheduleFlow(args, token=token)
+
   # Cron jobs methods.
   # =================
   #

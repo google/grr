@@ -11,7 +11,7 @@ goog.module.declareLegacyNamespace();
  * @private
  */
 const replaceInvalidChars_ = function(item) {
-  return item.replace(/[^a-zA-Z0-9]/g, function(invChar){
+  return item.replace(/[^a-zA-Z0-9]/g, function(invChar) {
     var hex = invChar.charCodeAt(0).toString(16);
     return '_' + hex.toUpperCase();
   });
@@ -56,88 +56,90 @@ exports.getFilePathFromId = function(fileId) {
 
 /**
  * Controller for FileViewDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @ngInject
+ * @unrestricted
  */
-const FileViewController = function(
-    $scope, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const FileViewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {string} */
-  this.selectedFilePath;
+    /** @type {string} */
+    this.selectedFilePath;
 
-  /** @type {string} */
-  this.viewMode = 'list';
+    /** @type {string} */
+    this.viewMode = 'list';
 
-  /** @type {string} */
-  this.tab = 'stats';
+    /** @type {string} */
+    this.tab = 'stats';
 
-  /** @type {number|undefined} */
-  this.fileVersion;
+    /** @type {number|undefined} */
+    this.fileVersion;
 
-  /** @type {string} */
-  this.clientId;
+    /** @type {string} */
+    this.clientId;
 
-  this.grrRoutingService_.uiOnParamsChanged(
-      this.scope_, ['clientId', 'path', 'version', 'mode', 'tab'],
-      this.onUrlRoutingParamsChanged_.bind(this));
+    this.grrRoutingService_.uiOnParamsChanged(
+        this.scope_, ['clientId', 'path', 'version', 'mode', 'tab'],
+        this.onUrlRoutingParamsChanged_.bind(this));
 
-  this.scope_.$watchGroup(['controller.selectedFilePath',
-                           'controller.fileVersion',
-                           'controller.viewMode',
-                           'controller.tab'],
-                          this.onFileContextRoutingParamsChange_.bind(this));
-};
-
-
-
-/**
- * Handles changes of the routing-related params in the URL. Updates
- * file context.
- *
- * @param {!Array<string>} params Changed routing params.
- * @private
- */
-FileViewController.prototype.onUrlRoutingParamsChanged_ = function(params) {
-  this.clientId = params[0];
-  this.selectedFilePath = params[1];
-  this.fileVersion = parseInt(params[2], 10) || undefined;
-  this.viewMode = params[3] || 'list';
-  this.tab = params[4] || 'stats';
-};
-
-/**
- * Handles changes of the routing-related params in the file context. Updates
- * UI routing state.
- *
- * @private
- */
-FileViewController.prototype.onFileContextRoutingParamsChange_ = function() {
-  var params = {
-    path: this.selectedFilePath,
-  };
-  params['version'] = this.fileVersion || undefined;
-  if (!this.viewMode || this.viewMode == 'list') {
-    params['mode'] = undefined;
-  } else {
-    params['mode'] = this.viewMode;
+    this.scope_.$watchGroup(
+        [
+          'controller.selectedFilePath', 'controller.fileVersion',
+          'controller.viewMode', 'controller.tab'
+        ],
+        this.onFileContextRoutingParamsChange_.bind(this));
   }
 
-  if (!this.tab || this.tab == 'stats') {
-    params['tab'] = undefined;
-  } else {
-    params['tab'] = this.tab;
+  /**
+   * Handles changes of the routing-related params in the URL. Updates
+   * file context.
+   *
+   * @param {!Array<string>} params Changed routing params.
+   * @private
+   */
+  onUrlRoutingParamsChanged_(params) {
+    this.clientId = params[0];
+    this.selectedFilePath = params[1];
+    this.fileVersion = parseInt(params[2], 10) || undefined;
+    this.viewMode = params[3] || 'list';
+    this.tab = params[4] || 'stats';
   }
 
-  this.grrRoutingService_.go('client.vfs', params);
+  /**
+   * Handles changes of the routing-related params in the file context. Updates
+   * UI routing state.
+   *
+   * @private
+   */
+  onFileContextRoutingParamsChange_() {
+    var params = {
+      path: this.selectedFilePath,
+    };
+    params['version'] = this.fileVersion || undefined;
+    if (!this.viewMode || this.viewMode == 'list') {
+      params['mode'] = undefined;
+    } else {
+      params['mode'] = this.viewMode;
+    }
+
+    if (!this.tab || this.tab == 'stats') {
+      params['tab'] = undefined;
+    } else {
+      params['tab'] = this.tab;
+    }
+
+    this.grrRoutingService_.go('client.vfs', params);
+  }
 };
+
 
 
 /**
@@ -148,7 +150,8 @@ exports.FileViewDirective = function() {
   return {
     restrict: 'E',
     scope: {},
-    templateUrl: '/static/angular-components/client/virtual-file-system/file-view.html',
+    templateUrl:
+        '/static/angular-components/client/virtual-file-system/file-view.html',
     controller: FileViewController,
     controllerAs: 'controller'
   };

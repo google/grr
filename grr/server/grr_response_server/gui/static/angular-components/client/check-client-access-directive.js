@@ -5,73 +5,70 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for CheckClientAccessDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$timeout} $timeout
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @ngInject
+ * @unrestricted
  */
-const CheckClientAccessController = function(
-    $scope, $timeout, grrApiService, grrRoutingService) {
+const CheckClientAccessController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$timeout} $timeout
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, $timeout, grrApiService, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!angular.$timeout} */
+    this.timeout_ = $timeout;
 
-  /** @private {!angular.$timeout} */
-  this.timeout_ = $timeout;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
-
-  this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
-};
-
-
-
-/**
- * Handles changes to the client id.
- *
- * @param {string} clientId The new value for the client id state param.
- * @private
- */
-CheckClientAccessController.prototype.onClientIdChange_ = function(clientId) {
-  if (angular.isDefined(clientId)) {
-    this.scope_['outHasAccess'] = undefined;
-
-    this.grrApiService_.head('clients/' + clientId + '/flows').then(
-        this.onClientAccessPermitted_.bind(this),
-        this.onClientAccessRejected_.bind(this));
+    this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
   }
-};
 
+  /**
+   * Handles changes to the client id.
+   *
+   * @param {string} clientId The new value for the client id state param.
+   * @private
+   */
+  onClientIdChange_(clientId) {
+    if (angular.isDefined(clientId)) {
+      this.scope_['outHasAccess'] = undefined;
 
-/**
- * @private
- */
-CheckClientAccessController.prototype.onClientAccessPermitted_ = function() {
-  this.scope_['outHasAccess'] = true;
-};
+      this.grrApiService_.head('clients/' + clientId + '/flows')
+          .then(
+              this.onClientAccessPermitted_.bind(this),
+              this.onClientAccessRejected_.bind(this));
+    }
+  }
 
-/**
- * @private
- */
-CheckClientAccessController.prototype.onClientAccessRejected_ = function() {
-  this.scope_['outHasAccess'] = false;
+  /**
+   * @private
+   */
+  onClientAccessPermitted_() {
+    this.scope_['outHasAccess'] = true;
+  }
 
-  if (!this.scope_['noRedirect']) {
-    this.timeout_(function() {
-      var clientId = this.scope_['clientId'];
-      if (angular.isDefined(clientId)) {
-        this.grrRoutingService_.go('client', {
-          clientId: clientId
-        });
-      }
-    }.bind(this), 1000);
+  /**
+   * @private
+   */
+  onClientAccessRejected_() {
+    this.scope_['outHasAccess'] = false;
+
+    if (!this.scope_['noRedirect']) {
+      this.timeout_(function() {
+        var clientId = this.scope_['clientId'];
+        if (angular.isDefined(clientId)) {
+          this.grrRoutingService_.go('client', {clientId: clientId});
+        }
+      }.bind(this), 1000);
+    }
   }
 };
 
@@ -87,9 +84,9 @@ exports.CheckClientAccessDirective = function() {
     scope: {
       noRedirect: '=',
       clientId: '=',
-      outHasAccess: '=?' // hasAccess is an "out" binding, and not a simple
-                         // parameter. Other directives may bind to hasAccess to
-                         // check whether access to the client is allowed.
+      outHasAccess: '=?'  // hasAccess is an "out" binding, and not a simple
+                          // parameter. Other directives may bind to hasAccess
+                          // to check whether access to the client is allowed.
     },
     transclude: true,
     restrict: 'E',

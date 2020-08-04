@@ -184,8 +184,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     index.AddClientLabels(self.client_ids[3], [u"bar"])
 
     self.handler = client_plugin.ApiLabelsRestrictedSearchClientsHandler(
-        labels_whitelist=[u"foo", u"bar"],
-        labels_owners_whitelist=[u"david", u"peter"])
+        allow_labels=[u"foo", u"bar"], allow_labels_owners=[u"david", u"peter"])
 
   def _Setup100Clients(self):
     self.client_ids = self.SetupClients(100)
@@ -194,7 +193,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
       data_store.REL_DB.AddClientLabels(client_id, u"david", [u"foo"])
       index.AddClientLabels(client_id, [u"foo"])
 
-  def testSearchWithoutArgsReturnsOnlyClientsWithWhitelistedLabels(self):
+  def testSearchWithoutArgsReturnsOnlyClientsWithAllowedLabels(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(), token=self.token)
 
@@ -204,13 +203,13 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     self.assertEqual(sorted_items[0].client_id, self.client_ids[0])
     self.assertEqual(sorted_items[1].client_id, self.client_ids[3])
 
-  def testSearchWithNonWhitelistedLabelReturnsNothing(self):
+  def testSearchWithNonAllowedLabelReturnsNothing(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:not-foo"),
         token=self.token)
     self.assertFalse(result.items)
 
-  def testSearchWithWhitelistedLabelReturnsSubSet(self):
+  def testSearchWithAllowedLabelReturnsSubSet(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:foo"), token=self.token)
     self.assertLen(result.items, 1)
@@ -221,7 +220,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
-  def testSearchWithWhitelistedClientIdsReturnsSubSet(self):
+  def testSearchWithAllowedClientIdsReturnsSubSet(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[0]),
         token=self.token)
@@ -234,7 +233,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
-  def testSearchWithBlacklistedClientIdsReturnsNothing(self):
+  def testSearchWithDisallowedClientIdsReturnsNothing(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[1]),
         token=self.token)

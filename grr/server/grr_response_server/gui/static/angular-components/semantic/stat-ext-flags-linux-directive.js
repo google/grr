@@ -13,48 +13,49 @@ const FlagsStatus = {
 };
 
 
-/**
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
- */
-const StatExtFlagsLinuxController =
-    function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+/** @unrestricted */
+const StatExtFlagsLinuxController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.value;
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
+    /** @type {string} */
+    this.scope_.value;
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
 
-  /** @type {!FlagsStatus} */
-  this.status = FlagsStatus.NONE;
+    /** @type {!FlagsStatus} */
+    this.status = FlagsStatus.NONE;
 
-  /** @type {!Array<?Flag>} */
-  this.flags = [];
-};
-
-
-/**
- * @param {Object} value
- * @export
- */
-StatExtFlagsLinuxController.prototype.onValueChange = function(value) {
-  if (angular.isUndefined(value)) {
-    return;
+    /** @type {!Array<?Flag>} */
+    this.flags = [];
   }
 
-  const mask = value.value;
-  if (!Number.isInteger(mask) || mask < 0) {
-    this.status = FlagsStatus.MALFORMED;
-    return;
-  }
+  /**
+   * @param {Object} value
+   * @export
+   */
+  onValueChange(value) {
+    if (angular.isUndefined(value)) {
+      return;
+    }
 
-  this.status = FlagsStatus.SOME;
-  this.flags = LINUX_FLAGS_ORDERED.map((flag) => {
-    return (flag.mask & mask) !== 0 ? flag : null;
-  });
+    const mask = value.value;
+    if (!Number.isInteger(mask) || mask < 0) {
+      this.status = FlagsStatus.MALFORMED;
+      return;
+    }
+
+    this.status = FlagsStatus.SOME;
+    this.flags = LINUX_FLAGS_ORDERED.map((flag) => {
+      return (flag.mask & mask) !== 0 ? flag : null;
+    });
+  }
 };
+
 
 
 /**

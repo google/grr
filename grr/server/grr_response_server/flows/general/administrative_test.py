@@ -33,6 +33,7 @@ from grr_response_server import flow_base
 from grr_response_server import maintenance_utils
 from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import discovery
 from grr.test_lib import acl_test_lib
@@ -264,6 +265,32 @@ sys.test_code_ran_here = True
         token=self.token)
 
     self.assertEqual(sys.test_code_ran_here, 5678)
+
+  def testExecutePythonHackWithResult(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    code = """
+magic_return_str = str(py_args["foobar"])
+    """
+
+    maintenance_utils.UploadSignedConfigBlob(
+        content=code.encode("utf-8"),
+        aff4_path="aff4:/config/python_hacks/quux")
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        administrative.ExecutePythonHack.__name__,
+        client_mock=action_mocks.ActionMock(standard.ExecutePython),
+        client_id=client_id,
+        hack_name="quux",
+        py_args={"foobar": 42},
+        token=self.token)
+
+    flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
+
+    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    self.assertLen(results, 1)
+    self.assertIsInstance(results[0], administrative.ExecutePythonHackResult)
+    self.assertEqual(results[0].result_string, "42")
 
   def testExecuteBinariesWithArgs(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
@@ -509,6 +536,8 @@ sys.test_code_ran_here = True
     self.assertEqual(email_message.get("address", ""), "test@localhost")
     self.assertEqual(email_message["title"],
                      "GRR Client on Host-0.example.com became available.")
+    self.assertIn("This notification was created by %s" % self.token.username,
+                  email_message.get("message", ""))
 
   def testStartupHandler(self):
     client_id = self.SetupClient(0)

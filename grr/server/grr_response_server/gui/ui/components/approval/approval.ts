@@ -28,6 +28,8 @@ export class Approval implements OnDestroy {
 
   latestApproval?: ClientApproval;
 
+  scheduledFlows$ = this.clientPageFacade.scheduledFlows$;
+
   private readonly submit$ = new Subject<void>();
   private readonly unsubscribe$ = new Subject<void>();
 

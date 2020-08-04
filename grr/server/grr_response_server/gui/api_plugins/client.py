@@ -248,24 +248,24 @@ class ApiLabelsRestrictedSearchClientsHandler(
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
 
-  def __init__(self, labels_whitelist=None, labels_owners_whitelist=None):
+  def __init__(self, allow_labels=None, allow_labels_owners=None):
     super().__init__()
 
-    self.labels_whitelist = set(labels_whitelist or [])
-    self.labels_owners_whitelist = set(labels_owners_whitelist or [])
+    self.allow_labels = set(allow_labels or [])
+    self.allow_labels_owners = set(allow_labels_owners or [])
 
   def _CheckClientLabels(self, client_obj, token=None):
     for label in client_obj.GetLabels():
-      if (label.name in self.labels_whitelist and
-          label.owner in self.labels_owners_whitelist):
+      if (label.name in self.allow_labels and
+          label.owner in self.allow_labels_owners):
         return True
 
     return False
 
   def _VerifyLabels(self, labels):
     for label in labels:
-      if (label.name in self.labels_whitelist and
-          label.owner in self.labels_owners_whitelist):
+      if (label.name in self.allow_labels and
+          label.owner in self.allow_labels_owners):
         return True
     return False
 
@@ -288,7 +288,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
     # should be on small subsets though so this might not be worth
     # it.
     all_client_ids = set()
-    for label in self.labels_whitelist:
+    for label in self.allow_labels:
       label_filter = ["label:" + label] + keywords
       all_client_ids.update(index.LookupClients(label_filter))
 

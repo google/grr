@@ -110,7 +110,7 @@ def _GetRunEndToEndTestsArgs(
       "True",
   ]
   if tests is not None:
-    args += ["--whitelisted_tests", ",".join(tests)]
+    args += ["--run_only_tests", ",".join(tests)]
   if manual_tests is not None:
     args += ["--manual_tests", ",".join(manual_tests)]
 

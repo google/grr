@@ -127,7 +127,13 @@ describe('collect-browser-history-details component', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('42 files');
-    expect(fixture.nativeElement.innerText).toContain('Download all');
+
+    // Check that the download button has a correct href attribute.
+    const downloadButton: HTMLLinkElement =
+        fixture.nativeElement.querySelector('.download a');
+    expect(downloadButton.innerText).toContain('Download all');
+    expect(downloadButton.getAttribute('href'))
+        .toMatch('/api/v2/clients/.+/flows/.+/results/files-archive');
   });
 
   it('shows per-browser details', () => {

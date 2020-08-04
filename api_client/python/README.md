@@ -7,13 +7,13 @@ fetch data or trigger actions. It can be used for GRR scripting and automation.
 
 To install the latest release version from PIP:
 
-```
+```bash
 pip install grr-api-client
 ```
 
 To install the latest dev version from source:
 
-```
+```bash
 sudo apt-get install -y \
   protobuf-compiler \
   python-dev \
@@ -32,7 +32,7 @@ pip install --editable .
 
 ## Initializing the GRR API object
 
-```
+```python
 from grr_api_client import api
 grrapi = api.InitHttp(api_endpoint="http://localhost:1234",
                       auth=("user", "pwd"))
@@ -56,7 +56,7 @@ implemented](http://docs.python-requests.org/en/master/user/advanced/#custom-aut
 
 ## Example: Collect client IDs for a given hostname
 
-```
+```python
 from grr_api_client import api
 grrapi = api.InitHttp(api_endpoint="http://localhost:1234",
                       auth=("user", "pwd"))
@@ -72,7 +72,7 @@ print(result)
 
 ## Example: add *"suspicious"* label to all clients with a given hostname
 
-```
+```python
 from grr_api_client import api
 grrapi = api.InitHttp(api_endpoint="http://localhost:1234",
                       auth=("user", "pwd"))
@@ -91,7 +91,7 @@ definitions of
 [HuntRunnerArgs](https://github.com/google/grr/blob/7cdf490f9be2ccc0a8160c9b8ae23b73922049d5/grr/proto/flows.proto#L286),
 [ForemanClientRuleSet](https://github.com/google/grr/blob/a103753a065f14f77b0df841e224777797f870d8/grr/proto/jobs.proto#L1471).
 
-```
+```python
 from grr_api_client import api
 grrapi = api.InitHttp(api_endpoint="http://localhost:1234",
                       auth=("user", "pwd"))
@@ -161,7 +161,7 @@ optional arguments:
 
 Print client IDs of all the clients known to GRR:
 
-```
+```bash
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   --exec_code 'print("\n".join(c.client_id for c in grrapi.SearchClients("")))' \
   http://localhost:1234
@@ -170,7 +170,7 @@ grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
 Write all the files downloaded by a specific flow into the "flow_results.zip"
 file:
 
-```
+```bash
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   --exec_code 'grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").GetFilesArchive().WriteToFile("./flow_results.zip")' \
   http://localhost:1234
@@ -179,23 +179,25 @@ grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
 Download an archive of files collected from a GRR client that are stored in
 */fs/os/var/log/* VFS folder:
 
-```
+```bash
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   --exec_code 'grrapi.Client("C.1234567890ABCDEF").File("/fs/os/var/log").GetFilesArchive().WriteToFile("./all_client_files.zip")' \
   http://localhost:1234
 ```
 
-Download an archive of all files collected from a GRR client:
+Download an archive of all files collected with OS-handler (not TSK/NTFS) from a
+GRR client:
 
-```
+```bash
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
-  --exec_code 'grrapi.Client("C.1234567890ABCDEF").File("/fs").GetFilesArchive().WriteToFile("./all_client_files.zip")' \
+  --exec_code 'grrapi.Client("C.1234567890ABCDEF").File("/fs/os").
+  GetFilesArchive().WriteToFile("./all_client_files.zip")' \
   http://localhost:1234
 ```
 
 Print all results of a particular flow in a text-protobuf format:
 
-```
+```bash
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   --exec_code 'for r in grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").ListResults(): print(str(r.payload))' \
   http://localhost:1234

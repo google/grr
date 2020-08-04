@@ -38,6 +38,7 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
+from grr_response_server.flows import file
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
@@ -167,7 +168,24 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
       if name.endswith("MANIFEST"):
         return yaml.safe_load(zip_fd.read(name))
 
-    return None
+    raise RuntimeError("MANIFEST not found")
+
+  def _GetTarGzManifest(self, result):
+    with utils.TempDirectory() as temp_dir:
+      tar_path = os.path.join(temp_dir, "archive.tar.gz")
+      with open(tar_path, "wb") as fd:
+        for chunk in result.GenerateContent():
+          fd.write(chunk)
+
+      with tarfile.open(tar_path) as tar_fd:
+        tar_fd.extractall(path=temp_dir)
+
+      for parent, _, files in os.walk(temp_dir):
+        if "MANIFEST" in files:
+          with open(os.path.join(parent, "MANIFEST"), "rb") as fd:
+            return yaml.safe_load(fd.read())
+
+    raise RuntimeError("MANIFEST not found")
 
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
@@ -183,10 +201,10 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(manifest["processed_files"], 1)
     self.assertEqual(manifest["ignored_files"], 0)
 
-  def testIgnoresFileNotMatchingPathGlobsWhitelist(self):
+  def testIgnoresFileNotMatchingPathGlobsInclusionList(self):
     handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
-        path_globs_blacklist=[],
-        path_globs_whitelist=[rdf_paths.GlobExpression("/**/foo.bar")])
+        exclude_path_globs=[],
+        include_only_path_globs=[rdf_paths.GlobExpression("/**/foo.bar")])
     result = handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
@@ -202,10 +220,10 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         manifest["ignored_files_list"],
         ["aff4:/%s/fs/os%s/test.plist" % (self.client_id, self.base_path)])
 
-  def testArchivesFileMatchingPathGlobsWhitelist(self):
+  def testArchivesFileMatchingPathGlobsInclusionList(self):
     handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
-        path_globs_blacklist=[],
-        path_globs_whitelist=[rdf_paths.GlobExpression("/**/*/test.plist")])
+        exclude_path_globs=[],
+        include_only_path_globs=[rdf_paths.GlobExpression("/**/*/test.plist")])
     result = handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
@@ -218,10 +236,10 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(manifest["processed_files"], 1)
     self.assertEqual(manifest["ignored_files"], 0)
 
-  def testIgnoresFileNotMatchingPathGlobsBlacklist(self):
+  def testIgnoresFileNotMatchingPathGlobsExclusionList(self):
     handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
-        path_globs_whitelist=[rdf_paths.GlobExpression("/**/*/test.plist")],
-        path_globs_blacklist=[rdf_paths.GlobExpression("**/*.plist")])
+        include_only_path_globs=[rdf_paths.GlobExpression("/**/*/test.plist")],
+        exclude_path_globs=[rdf_paths.GlobExpression("**/*.plist")])
     result = handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id,
@@ -245,29 +263,59 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
             archive_format="TAR_GZ"),
         token=self.token)
 
-    with utils.TempDirectory() as temp_dir:
-      tar_path = os.path.join(temp_dir, "archive.tar.gz")
-      with open(tar_path, "wb") as fd:
-        for chunk in result.GenerateContent():
-          fd.write(chunk)
+    manifest = self._GetTarGzManifest(result)
+    self.assertEqual(manifest["archived_files"], 1)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 0)
 
-      with tarfile.open(tar_path) as tar_fd:
-        tar_fd.extractall(path=temp_dir)
+  def testGeneratesZipArchiveForFlowWithCustomMappings(self):
+    path = abstract_db.ClientPath.OS(
+        self.client_id,
+        self.base_path.lstrip("/").split("/") + ["test.plist"])
+    mappings = [
+        flow_base.ClientPathArchiveMapping(path, "foo/file"),
+    ]
+    with mock.patch.object(
+        file_finder.FileFinder,
+        "GetFilesArchiveMappings",
+        return_value=mappings):
+      result = self.handler.Handle(
+          flow_plugin.ApiGetFlowFilesArchiveArgs(
+              client_id=self.client_id,
+              flow_id=self.flow_id,
+              archive_format="ZIP"),
+          token=self.token)
 
-      manifest_file_path = None
-      for parent, _, files in os.walk(temp_dir):
-        if "MANIFEST" in files:
-          manifest_file_path = os.path.join(parent, "MANIFEST")
-          break
+    manifest = self._GetZipManifest(result)
+    self.assertEqual(manifest["client_id"], self.client_id)
+    self.assertEqual(manifest["flow_id"], self.flow_id)
+    self.assertEqual(manifest["processed_files"], {path.vfs_path: "foo/file"})
+    self.assertEmpty(manifest["missing_files"])
 
-      self.assertTrue(manifest_file_path)
-      with open(manifest_file_path, "rb") as fd:
-        manifest = yaml.safe_load(fd.read())
+  def testGeneratesTarGzArchiveForFlowWithCustomMappings(self):
+    path = abstract_db.ClientPath.OS(
+        self.client_id,
+        self.base_path.lstrip("/").split("/") + ["test.plist"])
+    mappings = [
+        flow_base.ClientPathArchiveMapping(path, "foo/file"),
+    ]
+    with mock.patch.object(
+        file_finder.FileFinder,
+        "GetFilesArchiveMappings",
+        return_value=mappings):
+      result = self.handler.Handle(
+          flow_plugin.ApiGetFlowFilesArchiveArgs(
+              client_id=self.client_id,
+              flow_id=self.flow_id,
+              archive_format="TAR_GZ"),
+          token=self.token)
 
-        self.assertEqual(manifest["archived_files"], 1)
-        self.assertEqual(manifest["failed_files"], 0)
-        self.assertEqual(manifest["processed_files"], 1)
-        self.assertEqual(manifest["ignored_files"], 0)
+    manifest = self._GetTarGzManifest(result)
+    self.assertEqual(manifest["client_id"], self.client_id)
+    self.assertEqual(manifest["flow_id"], self.flow_id)
+    self.assertEqual(manifest["processed_files"], {path.vfs_path: "foo/file"})
+    self.assertEmpty(manifest["missing_files"])
 
 
 class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
@@ -755,6 +803,105 @@ class ApiApiExplainGlobExpressionHandlerTest(absltest.TestCase):
             rdf_paths.GlobComponentExplanation(
                 glob_expression="/foo", examples=[]),
         ])
+
+
+class ApiScheduleFlowsTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testScheduleFlow(self, db: abstract_db.Database):
+    token = _CreateToken(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    handler = flow_plugin.ApiScheduleFlowHandler()
+    args = flow_plugin.ApiCreateFlowArgs(
+        client_id=client_id,
+        flow=flow_plugin.ApiFlow(
+            name=file.CollectSingleFile.__name__,
+            args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+            runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60)))
+
+    sf = handler.Handle(args, token=token)
+    self.assertEqual(sf.client_id, client_id)
+    self.assertEqual(sf.creator, token.username)
+    self.assertNotEmpty(sf.scheduled_flow_id)
+    self.assertEqual(sf.flow_name, file.CollectSingleFile.__name__)
+    self.assertEqual(sf.flow_args.path, "/foo")
+    self.assertEqual(sf.runner_args.cpu_limit, 60)
+
+  @db_test_lib.WithDatabase
+  def testListScheduledFlows(self, db: abstract_db.Database):
+    token = _CreateToken(db)
+    client_id1 = db_test_utils.InitializeClient(db)
+    client_id2 = db_test_utils.InitializeClient(db)
+
+    handler = flow_plugin.ApiScheduleFlowHandler()
+    sf1 = handler.Handle(
+        flow_plugin.ApiCreateFlowArgs(
+            client_id=client_id1,
+            flow=flow_plugin.ApiFlow(
+                name=file.CollectSingleFile.__name__,
+                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
+        token=token)
+    sf2 = handler.Handle(
+        flow_plugin.ApiCreateFlowArgs(
+            client_id=client_id1,
+            flow=flow_plugin.ApiFlow(
+                name=file.CollectSingleFile.__name__,
+                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
+        token=token)
+    handler.Handle(
+        flow_plugin.ApiCreateFlowArgs(
+            client_id=client_id2,
+            flow=flow_plugin.ApiFlow(
+                name=file.CollectSingleFile.__name__,
+                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
+        token=token)
+
+    handler = flow_plugin.ApiListScheduledFlowsHandler()
+    args = flow_plugin.ApiListScheduledFlowsArgs(
+        client_id=client_id1, creator=token.username)
+    results = handler.Handle(args, token=token)
+
+    self.assertEqual(results.scheduled_flows, [sf1, sf2])
+
+  @db_test_lib.WithDatabase
+  def testUnscheduleFlowRemovesScheduledFlow(self, db: abstract_db.Database):
+    token = _CreateToken(db)
+    client_id = db_test_utils.InitializeClient(db)
+
+    handler = flow_plugin.ApiScheduleFlowHandler()
+    sf1 = handler.Handle(
+        flow_plugin.ApiCreateFlowArgs(
+            client_id=client_id,
+            flow=flow_plugin.ApiFlow(
+                name=file.CollectSingleFile.__name__,
+                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
+        token=token)
+    sf2 = handler.Handle(
+        flow_plugin.ApiCreateFlowArgs(
+            client_id=client_id,
+            flow=flow_plugin.ApiFlow(
+                name=file.CollectSingleFile.__name__,
+                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
+        token=token)
+
+    handler = flow_plugin.ApiUnscheduleFlowHandler()
+    args = flow_plugin.ApiUnscheduleFlowArgs(
+        client_id=client_id,
+        scheduled_flow_id=sf1.scheduled_flow_id)
+    handler.Handle(args, token=token)
+
+    handler = flow_plugin.ApiListScheduledFlowsHandler()
+    args = flow_plugin.ApiListScheduledFlowsArgs(
+        client_id=client_id, creator=token.username)
+    results = handler.Handle(args, token=token)
+
+    self.assertEqual(results.scheduled_flows, [sf2])
 
 
 def main(argv):

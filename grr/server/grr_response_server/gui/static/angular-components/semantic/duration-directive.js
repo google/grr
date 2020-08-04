@@ -52,34 +52,36 @@ exports.stringifySeconds = function(value) {
 
 /**
  * Controller for DurationDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const DurationController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const DurationController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.stringifiedDuration;
+    /** @type {string} */
+    this.stringifiedDuration;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
+  }
 
-
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {{value: number}} newValue A wrapped duration object carrying number of microseconds.
- */
-DurationController.prototype.onValueChange = function(newValue) {
-  if (newValue !== undefined && angular.isNumber(newValue.value)) {
-    const duration = newValue.value;
-    this.stringifiedDuration = exports.stringifySeconds(duration);
-  } else {
-    this.stringifiedDuration = '-';
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {{value: number}} newValue A wrapped duration object carrying number
+   *     of microseconds.
+   */
+  onValueChange(newValue) {
+    if (newValue !== undefined && angular.isNumber(newValue.value)) {
+      const duration = newValue.value;
+      this.stringifiedDuration = exports.stringifySeconds(duration);
+    } else {
+      this.stringifiedDuration = '-';
+    }
   }
 };
 
@@ -94,9 +96,7 @@ DurationController.prototype.onValueChange = function(newValue) {
  */
 exports.DurationDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     template: '<nobr ng-if="::controller.stringifiedDuration">' +
         '{$ ::controller.stringifiedDuration $}</nobr>',

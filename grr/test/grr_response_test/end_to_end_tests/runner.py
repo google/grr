@@ -55,8 +55,8 @@ class E2ETestRunner(object):
                api_endpoint="",
                api_user="",
                api_password="",
-               whitelisted_tests=None,
-               blacklisted_tests=None,
+               run_only_tests=None,
+               skip_tests=None,
                manual_tests=None,
                upload_test_binaries=True,
                api_retry_period_secs=30.0,
@@ -65,10 +65,10 @@ class E2ETestRunner(object):
     # TODO(hanuszczak): Use the `precondition` module for validation here.
     if not api_endpoint:
       raise ValueError("GRR api_endpoint is required.")
-    if isinstance(whitelisted_tests, str):
-      raise ValueError("whitelisted_tests should be a list.")
-    if isinstance(blacklisted_tests, str):
-      raise ValueError("blacklisted_tests should be a list.")
+    if isinstance(run_only_tests, str):
+      raise ValueError("run_only_tests should be a list.")
+    if isinstance(skip_tests, str):
+      raise ValueError("skip_tests should be a list.")
     if isinstance(manual_tests, str):
       raise ValueError("manual_tests should be a list.")
     if max_test_attempts < 1:
@@ -77,8 +77,8 @@ class E2ETestRunner(object):
     self._api_endpoint = api_endpoint
     self._api_user = api_user
     self._api_password = api_password
-    self._whitelisted_tests = set(whitelisted_tests or set())
-    self._blacklisted_tests = set(blacklisted_tests or set())
+    self._run_only_tests = set(run_only_tests or set())
+    self._skip_tests = set(skip_tests or set())
     self._manual_tests = set(manual_tests or [])
     self._upload_test_binaries = upload_test_binaries
     self._api_retry_period_secs = api_retry_period_secs
@@ -264,16 +264,16 @@ class E2ETestRunner(object):
       test_suite = unittest.TestLoader().loadTestsFromTestCase(test_class)
       for test in test_suite:
         test_name = "%s.%s" % (test_class.__name__, test._testMethodName)
-        if (self._whitelisted_tests and
-            test_class.__name__ not in self._whitelisted_tests and
-            test_name not in self._whitelisted_tests):
-          logging.debug("%s not in whitelist. Skipping for %s.", test_name,
+        if (self._run_only_tests and
+            test_class.__name__ not in self._run_only_tests and
+            test_name not in self._run_only_tests):
+          logging.debug("Skipping %s for %s per --run_only_tests", test_name,
                         client.client_id)
           continue
-        elif (test_class.__name__ in self._blacklisted_tests or
-              test_name in self._blacklisted_tests):
-          logging.debug("%s is explicitly blacklisted. Skipping for %s.",
-                        test_name, client.client_id)
+        elif (test_class.__name__ in self._skip_tests or
+              test_name in self._skip_tests):
+          logging.debug("Skipping %s for %s per --skip_tests.", test_name,
+                        client.client_id)
           continue
         else:
           applicable_tests[test_name] = test

@@ -23,20 +23,19 @@ from grr_response_server.gui.api_plugins import user as api_user
 
 
 def CheckClientLabels(client_id,
-                      labels_whitelist=None,
-                      labels_owners_whitelist=None,
+                      allow_labels=None,
+                      allow_labels_owners=None,
                       token=None):
-  """Checks a given client against labels/owners whitelists."""
+  """Checks a given client against labels/owners allowlists."""
   del token  # Unused.
 
-  labels_whitelist = labels_whitelist or []
-  labels_owners_whitelist = labels_owners_whitelist or []
+  allow_labels = allow_labels or []
+  allow_labels_owners = allow_labels_owners or []
 
   labels = data_store.REL_DB.ReadClientLabels(str(client_id))
 
   for label in labels:
-    if (label.name in labels_whitelist and
-        label.owner in labels_owners_whitelist):
+    if (label.name in allow_labels and label.owner in allow_labels_owners):
       return
 
   raise access_control.UnauthorizedAccess(
@@ -57,11 +56,10 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
 
     self.params = params = params or self.__class__.params_type()
 
-    self.labels_whitelist = set(params.labels_whitelist)
+    self.allow_labels = set(params.allow_labels)
     # "GRR" is a system label. Labels returned by the client during the
     # interrogate have owner="GRR".
-    self.labels_owners_whitelist = set(params.labels_owners_whitelist or
-                                       ["GRR"])
+    self.allow_labels_owners = set(params.allow_labels_owners or ["GRR"])
 
     if not access_checker:
       access_checker = api_call_router_with_approval_checks.AccessChecker()
@@ -74,8 +72,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   def CheckClientLabels(self, client_id, token=None):
     CheckClientLabels(
         client_id,
-        labels_whitelist=self.labels_whitelist,
-        labels_owners_whitelist=self.labels_owners_whitelist,
+        allow_labels=self.allow_labels,
+        allow_labels_owners=self.allow_labels_owners,
         token=token)
 
   def CheckVfsAccessAllowed(self):
@@ -100,8 +98,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   #
   def SearchClients(self, args, token=None):
     return api_client.ApiLabelsRestrictedSearchClientsHandler(
-        labels_whitelist=self.labels_whitelist,
-        labels_owners_whitelist=self.labels_owners_whitelist)
+        allow_labels=self.allow_labels,
+        allow_labels_owners=self.allow_labels_owners)
 
   def GetClient(self, args, token=None):
     self.CheckClientLabels(args.client_id, token=token)

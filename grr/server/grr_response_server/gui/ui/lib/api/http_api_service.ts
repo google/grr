@@ -3,7 +3,8 @@ import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {from, Observable, throwError} from 'rxjs';
 import {catchError, map, mergeMap, shareReplay, switchMap, take} from 'rxjs/operators';
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
+
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -137,6 +138,16 @@ export class HttpApiService {
         .pipe(map(res => res.items));
   }
 
+  /** Lists all scheduled flows for the given client and user. */
+  listScheduledFlows(clientId: string, creator: string):
+      Observable<ReadonlyArray<ApiScheduledFlow>> {
+    return this.http
+        .get<ApiListScheduledFlowsResult>(
+            `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}/`)
+        .pipe(map(res => res.scheduledFlows ?? []));
+  }
+
+
   /** Lists results of the given flow. */
   listResultsForFlow(clientId: string, params: FlowResultsParams):
       Observable<ReadonlyArray<ApiFlowResult>> {
@@ -193,6 +204,37 @@ export class HttpApiService {
     );
   }
 
+  /** Schedules a Flow on the given Client. */
+  scheduleFlow(clientId: string, flowName: string, flowArgs: AnyObject):
+      Observable<ApiScheduledFlow> {
+    return this.listFlowDescriptors().pipe(
+        // Take FlowDescriptors at most once, so that Flows are not scheduled
+        // repeatedly if FlowDescriptors are ever updated.
+        take(1),
+        map(findFlowDescriptor(flowName)),
+        map(fd => ({
+              clientId,
+              flow: {
+                name: flowName,
+                args: {
+                  '@type': fd.defaultArgs?.['@type'],
+                  ...flowArgs,
+                },
+              }
+            })),
+        switchMap((request: ApiCreateFlowArgs) => {
+          return this.http
+              .post<ApiFlow>(
+                  `${URL_PREFIX}/clients/${clientId}/scheduled-flows`, request)
+              .pipe(
+                  catchError(
+                      (e: HttpErrorResponse) =>
+                          throwError(new Error(e.error.message ?? e.message))),
+              );
+        }),
+    );
+  }
+
   /** Cancels the given Flow. */
   cancelFlow(clientId: string, flowId: string): Observable<ApiFlow> {
     const url =
@@ -214,6 +256,12 @@ export class HttpApiService {
     const args: ApiExplainGlobExpressionArgs = {globExpression, exampleCount};
     return this.http.post<ApiExplainGlobExpressionResult>(url, args).pipe(
         map(result => result.components ?? []));
+  }
+
+  /** Triggers a files archive download for a flow. */
+  getFlowFilesArchiveUrl(clientId: string, flowId: string) {
+    return `${URL_PREFIX}/clients/${clientId}/flows/${
+        flowId}/results/files-archive`;
   }
 }
 

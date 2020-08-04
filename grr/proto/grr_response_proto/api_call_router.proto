@@ -26,8 +26,8 @@ message ApiAuthorization {
 }
 
 message ApiLabelsRestrictedCallRouterParams {
-  repeated string labels_whitelist = 1;
-  repeated string labels_owners_whitelist = 2;
+  repeated string allow_labels = 1;
+  repeated string allow_labels_owners = 2;
 
   optional bool allow_flows_access = 3;
   optional bool allow_vfs_access = 4;
@@ -73,8 +73,8 @@ message RobotRouterFileFinderFlowParams {
 message RobotRouterArtifactCollectorFlowParams {
   optional bool enabled = 1;
 
-  repeated string artifacts_whitelist = 2 [(sem_type) = {
-    description: "Only artifacts from this whitelist can be collected. "
+  repeated string allow_artifacts = 2 [(sem_type) = {
+    description: "Only artifacts from this list can be collected. "
                  "Empty list means no artifacts can be collected."
   }];
 
@@ -111,17 +111,17 @@ message RobotRouterListFlowLogsParams {
 message RobotRouterGetFlowFilesArchiveParams {
   optional bool enabled = 1;
 
-  repeated string path_globs_blacklist = 2 [(sem_type) = {
+  repeated string exclude_path_globs = 2 [(sem_type) = {
     type: "GlobExpression",
     description: "Only files not matching these globs will be included "
-                 "into the archive. Blacklist is always applied first. Files not "
-                 "matching the blacklist should still match the whitelist."
+                 "into the archive. Exclusion is always applied first, then "
+                 "include_only_path_globs is applied."
   }];
 
-  repeated string path_globs_whitelist = 3 [(sem_type) = {
+  repeated string include_only_path_globs = 3 [(sem_type) = {
     type: "GlobExpression",
     description: "Only files matching these globs will be included into "
-                 "the archive. Whitelist is applied after the blacklist."
+                 "the archive. Inclusion is applied after exclude_path_globs."
   }];
 
   optional bool skip_glob_checks_for_artifact_collector = 4;

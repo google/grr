@@ -394,3 +394,33 @@ message ApiExplainGlobExpressionArgs {
 message ApiExplainGlobExpressionResult {
   repeated GlobComponentExplanation components = 1;
 }
+
+message ApiScheduledFlow {
+  optional string scheduled_flow_id = 1;
+  optional string client_id = 2;
+  optional string creator = 3;
+  optional string flow_name = 4;
+  optional google.protobuf.Any flow_args = 5;
+  optional FlowRunnerArgs runner_args = 6;
+  optional uint64 create_time = 7 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+  optional string error = 8;
+}
+
+message ApiListScheduledFlowsArgs {
+  optional string client_id = 1;
+  optional string creator = 2;
+}
+
+message ApiListScheduledFlowsResult {
+  repeated ApiScheduledFlow scheduled_flows = 1;
+}
+
+message ApiUnscheduleFlowArgs {
+  optional string client_id = 1;
+  reserved 2;
+  optional string scheduled_flow_id = 3;
+}
+
+message ApiUnscheduleFlowResult {}

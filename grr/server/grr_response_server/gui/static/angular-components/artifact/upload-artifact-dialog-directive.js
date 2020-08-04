@@ -5,77 +5,81 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for UploadArtifactDialogController.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$q} $q
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
- *     grrArtifactDescriptorsService
- * @ngInject
+ * @unrestricted
  */
-const UploadArtifactDialogController =
-    function($scope, $q, grrApiService, grrArtifactDescriptorsService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const UploadArtifactDialogController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$q} $q
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+   *     grrArtifactDescriptorsService
+   * @ngInject
+   */
+  constructor($scope, $q, grrApiService, grrArtifactDescriptorsService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.$q} */
-  this.q_ = $q;
+    /** @private {!angular.$q} */
+    this.q_ = $q;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} */
-  this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
+    /**
+     * @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+     */
+    this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 
-  /** @export {?string} */
-  this.artifact = null;
+    /** @export {?string} */
+    this.artifact = null;
 
-  /** @export {boolean} */
-  this.inProgress = false;
+    /** @export {boolean} */
+    this.inProgress = false;
+  }
+
+  /**
+   * Sends /label/add request to the server.
+   *
+   * @param {!FileList} files Value of the input[type=file].
+   * @export
+   */
+  onFileSet(files) {
+    this.scope_.$apply(() => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        this.artifact = event.target.result;
+      };
+      reader.readAsText(files[0], 'UTF-8');
+    });
+  }
+
+  /**
+   * Sends /artifacts/upload request to the server with an attached
+   * artifact file.
+   *
+   * @return {!angular.$q.Promise} A promise indicating success or failure.
+   * @export
+   */
+  proceed() {
+    var deferred = this.q_.defer();
+
+    this.inProgress = true;
+    this.grrApiService_
+        .post('/artifacts', {'artifact': this.artifact}, false, {})
+        .then(
+            function success() {
+              deferred.resolve('Artifact was successfully uploaded.');
+              this.grrArtifactDescriptorsService_.clearCache();
+            }.bind(this),
+            function failure(response) {
+              deferred.reject(response.data.message);
+            }.bind(this));
+
+    return deferred.promise;
+  }
 };
 
-
-
-/**
- * Sends /label/add request to the server.
- *
- * @param {!FileList} files Value of the input[type=file].
- * @export
- */
-UploadArtifactDialogController.prototype.onFileSet = function(files) {
-  this.scope_.$apply(() => {
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      this.artifact = event.target.result;
-    };
-    reader.readAsText(files[0], 'UTF-8');
-  });
-};
-
-/**
- * Sends /artifacts/upload request to the server with an attached
- * artifact file.
- *
- * @return {!angular.$q.Promise} A promise indicating success or failure.
- * @export
- */
-UploadArtifactDialogController.prototype.proceed = function() {
-  var deferred = this.q_.defer();
-
-  this.inProgress = true;
-  this.grrApiService_.post(
-    '/artifacts', {'artifact': this.artifact}, false, {}).then(
-      function success() {
-        deferred.resolve('Artifact was successfully uploaded.');
-        this.grrArtifactDescriptorsService_.clearCache();
-      }.bind(this),
-      function failure(response) {
-        deferred.reject(response.data.message);
-      }.bind(this));
-
-  return deferred.promise;
-};
 
 
 /**
@@ -85,8 +89,7 @@ UploadArtifactDialogController.prototype.proceed = function() {
  */
 exports.UploadArtifactDialogDirective = function() {
   return {
-    scope: {
-    },
+    scope: {},
     restrict: 'E',
     templateUrl: '/static/angular-components/artifact/' +
         'upload-artifact-dialog.html',

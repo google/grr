@@ -51,7 +51,7 @@ message ApiGetCollectedTimelineArgs {
 message ApiGetCollectedHuntTimelinesArgs {
   // An identifier of the hunt for which to retrieve results.
   optional string hunt_id = 1;
-  
+
   // A format in which to retrieve timeline entries.
   optional ApiGetCollectedTimelineArgs.Format format = 2;
 }

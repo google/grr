@@ -7,44 +7,45 @@ const {valueHasErrors} = goog.require('grrUi.forms.utils');
 
 /**
  * Controller for ConfigureFlowPageDirective.
- *
- * @param {!angular.Scope} $scope
- *
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ConfigureFlowPageController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ConfigureFlowPageController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {Object} */
-  this.flowDescriptor;
+    /** @type {Object} */
+    this.flowDescriptor;
 
-  this.scope_.$watch('controller.flowDescriptor', function(flowDescriptor) {
-    if (angular.isUndefined(flowDescriptor)) {
-      return;
-    }
+    this.scope_.$watch('controller.flowDescriptor', function(flowDescriptor) {
+      if (angular.isUndefined(flowDescriptor)) {
+        return;
+      }
 
-    this.scope_.flowName = flowDescriptor['value']['name']['value'];
-    this.scope_['flowArguments'] = angular.copy(
-        flowDescriptor['value']['default_args']);
-  }.bind(this));
+      this.scope_.flowName = flowDescriptor['value']['name']['value'];
+      this.scope_['flowArguments'] =
+          angular.copy(flowDescriptor['value']['default_args']);
+    }.bind(this));
 
-  this.scope_.$watch('flowArguments',
-                     this.onFlowArgumentsDeepChange_.bind(this),
-                     true);
+    this.scope_.$watch(
+        'flowArguments', this.onFlowArgumentsDeepChange_.bind(this), true);
+  }
+
+  /**
+   * @param {Object} newValue
+   *
+   * @private
+   */
+  onFlowArgumentsDeepChange_(newValue) {
+    this.scope_['hasErrors'] = valueHasErrors(newValue);
+  }
 };
 
 
-/**
- * @param {Object} newValue
- *
- * @private
- */
-ConfigureFlowPageController.prototype.onFlowArgumentsDeepChange_ = function(
-    newValue) {
-  this.scope_['hasErrors'] = valueHasErrors(newValue);
-};
 
 /**
  * Directive for showing wizard-like forms with multiple named steps/pages.
@@ -55,11 +56,7 @@ ConfigureFlowPageController.prototype.onFlowArgumentsDeepChange_ = function(
  */
 exports.ConfigureFlowPageDirective = function() {
   return {
-    scope: {
-      flowName: '=',
-      flowArguments: '=',
-      hasErrors: '=?'
-    },
+    scope: {flowName: '=', flowArguments: '=', hasErrors: '=?'},
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/new-hunt-wizard/' +
         'configure-flow-page.html',

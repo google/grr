@@ -277,7 +277,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1330,7 +1329,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1413,7 +1411,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1487,7 +1484,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1559,7 +1555,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -1671,7 +1666,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -2002,7 +1996,6 @@
             }
           ]
         },
-        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -2084,7 +2077,6 @@
             }
           ]
         },
-        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -2164,7 +2156,6 @@
             }
           ]
         },
-        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -3095,7 +3086,6 @@
               }
             ]
           },
-          "clientsQueuedCount": "0",
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
@@ -4250,7 +4240,6 @@
                   }
                 ]
               },
-              "clientsQueuedCount": "0",
               "clientsWithResultsCount": "0",
               "completedClientsCount": "0",
               "crashLimit": "100",
@@ -5066,7 +5055,6 @@
             }
           ]
         },
-        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
@@ -5139,7 +5127,6 @@
             }
           ]
         },
-        "clientsQueuedCount": "0",
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",

@@ -31,7 +31,6 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
 
-
 class ApiClientLibHuntTest(
     hunt_test_lib.StandardHuntTestMixin,
     api_integration_test_lib.ApiIntegrationTest,
@@ -406,9 +405,9 @@ class ApiClientLibHuntTest(
     data_store.REL_DB.WriteFlowResults([flow_result])
 
     buffer = io.BytesIO()
-    self.api.Hunt(hunt_id).GetCollectedTimelines(
-      timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
-    ).WriteToStream(buffer)
+
+    fmt = timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED
+    self.api.Hunt(hunt_id).GetCollectedTimelines(fmt).WriteToStream(buffer)
 
     with zipfile.ZipFile(buffer, mode="r") as archive:
       with archive.open(f"{client_id}_{fqdn}.gzchunked", mode="r") as file:

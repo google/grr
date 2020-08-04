@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
+# pylint: disable=line-too-long
 """Parser for IE index.dat files.
 
 Note that this is a very naive and incomplete implementation and should be
@@ -7,9 +8,10 @@ replaced with a more intelligent one. Do not implement anything based on this
 code, it is a placeholder for something real.
 
 For anyone who wants a useful reference, see this:
-http://heanet.dl.sourceforge.net/project/libmsiecf/Documentation/MSIE%20Cache%20
-File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
+- https://forensicswiki.xyz/wiki/index.php?title=Internet_Explorer_History_File_Format
+- https://github.com/libyal/libmsiecf/blob/master/documentation/MSIE%20Cache%20File%20%28index.dat%29%20format.asciidoc
 """
+# pylint: enable=line-too-long
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -35,7 +37,6 @@ class IEHistoryParser(parsers.SingleFileParser):
 
   def ParseFile(self, knowledge_base, pathspec, filedesc):
     del knowledge_base  # Unused.
-    del pathspec  # Unused.
 
     # TODO(user): Convert this to use the far more intelligent plaso parser.
     ie = IEParser(filedesc)
@@ -54,7 +55,7 @@ class IEParser(object):
   The file format for IE index.dat files is somewhat poorly documented.
   The following implementation is based on information from:
 
-  http://www.forensicswiki.org/wiki/Internet_Explorer_History_File_Format
+  https://forensicswiki.xyz/wiki/index.php?title=Internet_Explorer_History_File_Format
 
   Returns results in chronological order based on mtime
   """

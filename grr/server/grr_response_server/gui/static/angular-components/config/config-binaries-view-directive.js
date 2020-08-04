@@ -5,27 +5,28 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for ConfigBinariesViewDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const ConfigBinariesViewController = function(
-    $scope, grrApiService) {
+const ConfigBinariesViewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @type {Array<Object>|undefined} */
+    this.binaries;
 
-  /** @type {Array<Object>|undefined} */
-  this.binaries;
-
-  this.grrApiService_.get('/config/binaries').then(function(response) {
-    this.binaries = response['data']['items'];
-  }.bind(this));
+    this.grrApiService_.get('/config/binaries').then(function(response) {
+      this.binaries = response['data']['items'];
+    }.bind(this));
+  }
 };
 
 

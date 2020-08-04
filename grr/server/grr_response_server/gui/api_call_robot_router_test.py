@@ -252,12 +252,12 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
 
     router = self._CreateRouter(
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
-            enabled=True, artifacts_whitelist=["foo"]))
+            enabled=True, allow_artifacts=["foo"]))
     Check(["foo"])
 
     router = self._CreateRouter(
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
-            enabled=True, artifacts_whitelist=["foo", "bar", "blah"]))
+            enabled=True, allow_artifacts=["foo", "bar", "blah"]))
     Check(["foo", "blah"])
 
   def testArtifactCollectorRaisesWhenEnabledButArgumentsNotCorrect(self):
@@ -281,7 +281,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
 
     router = self._CreateRouter(
         artifact_collector_flow=rr.RobotRouterArtifactCollectorFlowParams(
-            enabled=True, artifacts_whitelist=["bar", "blah"]))
+            enabled=True, allow_artifacts=["bar", "blah"]))
     Check(["foo", "bar"])
 
   def testArtifactCollectorFlowNameCanBeOverridden(self):
@@ -445,14 +445,14 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     router = self._CreateRouter(
         get_flow_files_archive=rr.RobotRouterGetFlowFilesArchiveParams(
             enabled=True,
-            path_globs_blacklist=["**/*.txt"],
-            path_globs_whitelist=["foo/*", "bar/*"]))
+            exclude_path_globs=["**/*.txt"],
+            include_only_path_globs=["foo/*", "bar/*"]))
     handler = router.GetFlowFilesArchive(
         api_flow.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id, flow_id=flow_id),
         token=self.token)
-    self.assertEqual(handler.path_globs_blacklist, ["**/*.txt"])
-    self.assertEqual(handler.path_globs_whitelist, ["foo/*", "bar/*"])
+    self.assertEqual(handler.exclude_path_globs, ["**/*.txt"])
+    self.assertEqual(handler.include_only_path_globs, ["foo/*", "bar/*"])
 
   def testGetFlowFilesArchiveReturnsNonLimitedHandlerForArtifactsWhenNeeded(
       self):
@@ -462,16 +462,16 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         get_flow_files_archive=rr.RobotRouterGetFlowFilesArchiveParams(
             enabled=True,
             skip_glob_checks_for_artifact_collector=True,
-            path_globs_blacklist=["**/*.txt"],
-            path_globs_whitelist=["foo/*", "bar/*"]))
+            exclude_path_globs=["**/*.txt"],
+            include_only_path_globs=["foo/*", "bar/*"]))
 
     flow_id = self._CreateFlowWithRobotId()
     handler = router.GetFlowFilesArchive(
         api_flow.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id, flow_id=flow_id),
         token=self.token)
-    self.assertEqual(handler.path_globs_blacklist, ["**/*.txt"])
-    self.assertEqual(handler.path_globs_whitelist, ["foo/*", "bar/*"])
+    self.assertEqual(handler.exclude_path_globs, ["**/*.txt"])
+    self.assertEqual(handler.include_only_path_globs, ["foo/*", "bar/*"])
 
     flow_id = self._CreateFlowWithRobotId(
         flow_name=AnotherArtifactCollector.__name__,  # pylint: disable=undefined-variable
@@ -481,8 +481,8 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
         api_flow.ApiGetFlowFilesArchiveArgs(
             client_id=self.client_id, flow_id=flow_id),
         token=self.token)
-    self.assertIsNone(handler.path_globs_blacklist)
-    self.assertIsNone(handler.path_globs_whitelist)
+    self.assertIsNone(handler.exclude_path_globs)
+    self.assertIsNone(handler.include_only_path_globs)
 
   IMPLEMENTED_METHODS = [
       "SearchClients",

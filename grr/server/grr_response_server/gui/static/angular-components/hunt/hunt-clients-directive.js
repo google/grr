@@ -5,42 +5,44 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for HuntClientsDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const HuntClientsController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const HuntClientsController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @export {string} */
-  this.huntClientsUrl;
+    /** @export {string} */
+    this.huntClientsUrl;
 
-  /** @export {string} */
-  this.clientType = 'completed';
+    /** @export {string} */
+    this.clientType = 'completed';
 
-  this.scope_.$watchGroup(['huntId', 'controller.clientType'],
-                          this.onHuntIdOrClientTypeChange_.bind(this));
-};
-
-
-
-/**
- * Handles huntId attribute changes.
- *
- * @private
- */
-HuntClientsController.prototype.onHuntIdOrClientTypeChange_ = function() {
-  var huntId = this.scope_['huntId'];
-
-  if (!angular.isString(huntId) ||
-      !angular.isString(this.clientType)) {
-    return;
+    this.scope_.$watchGroup(
+        ['huntId', 'controller.clientType'],
+        this.onHuntIdOrClientTypeChange_.bind(this));
   }
 
-  this.huntClientsUrl = '/hunts/' + huntId + '/clients/' + this.clientType;
+  /**
+   * Handles huntId attribute changes.
+   *
+   * @private
+   */
+  onHuntIdOrClientTypeChange_() {
+    var huntId = this.scope_['huntId'];
+
+    if (!angular.isString(huntId) || !angular.isString(this.clientType)) {
+      return;
+    }
+
+    this.huntClientsUrl = '/hunts/' + huntId + '/clients/' + this.clientType;
+  }
 };
+
 
 
 /**
@@ -51,9 +53,7 @@ HuntClientsController.prototype.onHuntIdOrClientTypeChange_ = function() {
  */
 exports.HuntClientsDirective = function() {
   return {
-    scope: {
-      huntId: '='
-    },
+    scope: {huntId: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-clients.html',
     controller: HuntClientsController,

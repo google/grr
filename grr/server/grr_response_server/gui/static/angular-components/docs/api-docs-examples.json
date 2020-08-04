@@ -979,10 +979,6 @@
                   ]
                 }
               },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
               "clients_with_results_count": {
                 "type": "long",
                 "value": 0
@@ -1176,7 +1172,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -4340,10 +4335,6 @@
                   ]
                 }
               },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
               "clients_with_results_count": {
                 "type": "long",
                 "value": 0
@@ -4534,7 +4525,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -4670,10 +4660,6 @@
                     }
                   ]
                 }
-              },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
               },
               "clients_with_results_count": {
                 "type": "long",
@@ -4865,7 +4851,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -4970,10 +4955,6 @@
                     }
                   ]
                 }
-              },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
               },
               "clients_with_results_count": {
                 "type": "long",
@@ -5208,10 +5189,6 @@
                   ]
                 }
               },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
               "clients_with_results_count": {
                 "type": "long",
                 "value": 0
@@ -5424,7 +5401,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -5496,7 +5472,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -5701,10 +5676,6 @@
                     }
                   ]
                 }
-              },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
               },
               "clients_with_results_count": {
                 "type": "long",
@@ -5952,7 +5923,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -6310,10 +6280,6 @@
               ]
             }
           },
-          "clients_queued_count": {
-            "type": "long",
-            "value": 0
-          },
           "clients_with_results_count": {
             "type": "long",
             "value": 0
@@ -6528,7 +6494,6 @@
             }
           ]
         },
-        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -6636,10 +6601,6 @@
                 }
               ]
             }
-          },
-          "clients_queued_count": {
-            "type": "long",
-            "value": 0
           },
           "clients_with_results_count": {
             "type": "long",
@@ -6847,7 +6808,6 @@
             }
           ]
         },
-        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -6953,10 +6913,6 @@
                 }
               ]
             }
-          },
-          "clients_queued_count": {
-            "type": "long",
-            "value": 0
           },
           "clients_with_results_count": {
             "type": "long",
@@ -7132,7 +7088,6 @@
             }
           ]
         },
-        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -9707,10 +9662,6 @@
                   ]
                 }
               },
-              "clients_queued_count": {
-                "type": "long",
-                "value": 0
-              },
               "clients_with_results_count": {
                 "type": "long",
                 "value": 0
@@ -9901,7 +9852,6 @@
               }
             ]
           },
-          "clients_queued_count": 0,
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
@@ -13689,10 +13639,6 @@
                       ]
                     }
                   },
-                  "clients_queued_count": {
-                    "type": "long",
-                    "value": 0
-                  },
                   "clients_with_results_count": {
                     "type": "long",
                     "value": 0
@@ -13887,7 +13833,6 @@
                   }
                 ]
               },
-              "clients_queued_count": 0,
               "clients_with_results_count": 0,
               "completed_clients_count": 0,
               "crash_limit": 100,
@@ -16480,10 +16425,6 @@
               ]
             }
           },
-          "clients_queued_count": {
-            "type": "long",
-            "value": 0
-          },
           "clients_with_results_count": {
             "type": "long",
             "value": 0
@@ -16662,7 +16603,6 @@
             }
           ]
         },
-        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
@@ -16761,10 +16701,6 @@
                 }
               ]
             }
-          },
-          "clients_queued_count": {
-            "type": "long",
-            "value": 0
           },
           "clients_with_results_count": {
             "type": "long",
@@ -16944,7 +16880,6 @@
             }
           ]
         },
-        "clients_queued_count": 0,
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,

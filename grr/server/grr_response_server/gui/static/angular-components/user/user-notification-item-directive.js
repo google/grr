@@ -52,7 +52,7 @@ var annotateApiNotification = exports.annotateApiNotification;
 var getLink_ = function(notification) {
   var strippedNotification = stripTypeInfo(notification);
   if (!strippedNotification['reference'] ||
-      !strippedNotification['reference']['type']){
+      !strippedNotification['reference']['type']) {
     return null;
   }
 
@@ -62,8 +62,8 @@ var getLink_ = function(notification) {
   var urlParameters = {};
 
   if (referenceType === 'CLIENT') {
-    return ['clients',
-            stripAff4Prefix(referenceDetails['client_id'])].join('/');
+    return ['clients', stripAff4Prefix(referenceDetails['client_id'])].join(
+        '/');
   } else if (referenceType === 'HUNT') {
     var huntId = referenceDetails['hunt_id'];
     return ['hunts', huntId].join('/');
@@ -71,38 +71,31 @@ var getLink_ = function(notification) {
     var cronJobName = referenceDetails['cron_job_id'];
     return ['crons', cronJobName].join('/');
   } else if (referenceType === 'VFS') {
-    return ['clients',
-            stripAff4Prefix(referenceDetails['client_id']),
-            'vfs',
-            encodeUrlPath(stripAff4Prefix(referenceDetails['vfs_path']))].join('/');
+    return [
+      'clients', stripAff4Prefix(referenceDetails['client_id']), 'vfs',
+      encodeUrlPath(stripAff4Prefix(referenceDetails['vfs_path']))
+    ].join('/');
   } else if (referenceType == 'FLOW') {
     var flowId = referenceDetails['flow_id'];
-    return ['clients',
-            stripAff4Prefix(referenceDetails['client_id']),
-            'flows',
-            flowId].join('/');
+    return [
+      'clients', stripAff4Prefix(referenceDetails['client_id']), 'flows', flowId
+    ].join('/');
   } else if (referenceType === 'CLIENT_APPROVAL') {
     var clientId = stripAff4Prefix(referenceDetails['client_id']);
-    return ['users',
-            referenceDetails['username'],
-            'approvals',
-            'client',
-            clientId,
-            referenceDetails['approval_id']].join('/');
+    return [
+      'users', referenceDetails['username'], 'approvals', 'client', clientId,
+      referenceDetails['approval_id']
+    ].join('/');
   } else if (referenceType === 'HUNT_APPROVAL') {
-    return ['users',
-            referenceDetails['username'],
-            'approvals',
-            'hunt',
-            referenceDetails['hunt_id'],
-            referenceDetails['approval_id']].join('/');
+    return [
+      'users', referenceDetails['username'], 'approvals', 'hunt',
+      referenceDetails['hunt_id'], referenceDetails['approval_id']
+    ].join('/');
   } else if (referenceType === 'CRON_JOB_APPROVAL') {
-    return ['users',
-            referenceDetails['username'],
-            'approvals',
-            'cron-job',
-            referenceDetails['cron_job_id'],
-            referenceDetails['approval_id']].join('/');
+    return [
+      'users', referenceDetails['username'], 'approvals', 'cron-job',
+      referenceDetails['cron_job_id'], referenceDetails['approval_id']
+    ].join('/');
   }
 
   return null;
@@ -111,46 +104,46 @@ var getLink_ = function(notification) {
 
 /**
  * Controller for UserNotificationItemDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!angular.$location} $location
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const UserNotificationItemController =
-  function($scope, $location) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const UserNotificationItemController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$location} $location
+   * @ngInject
+   */
+  constructor($scope, $location) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.$location} */
-  this.location_ = $location;
+    /** @private {!angular.$location} */
+    this.location_ = $location;
 
-  this.scope_.$watch('notification', this.onNotificationChanged_.bind(this));
-};
+    this.scope_.$watch('notification', this.onNotificationChanged_.bind(this));
+  }
 
+  /**
+   * Prepares the notification for displaying.
+   *
+   * @param {Object} notification
+   * @private
+   */
+  onNotificationChanged_(notification) {
+    annotateApiNotification(notification);
+  }
 
-
-/**
- * Prepares the notification for displaying.
- *
- * @param {Object} notification
- * @private
- */
-UserNotificationItemController.prototype.onNotificationChanged_ = function(
-    notification) {
-  annotateApiNotification(notification);
-};
-
-/**
- * Opens the reference of the notification.
- *
- * @export
- */
-UserNotificationItemController.prototype.openReference = function() {
-  if (openReference(this.scope_['notification'], this.location_)) {
-    this.scope_['close']();
+  /**
+   * Opens the reference of the notification.
+   *
+   * @export
+   */
+  openReference() {
+    if (openReference(this.scope_['notification'], this.location_)) {
+      this.scope_['close']();
+    }
   }
 };
+
 
 
 /**
@@ -162,10 +155,7 @@ UserNotificationItemController.prototype.openReference = function() {
  */
 exports.UserNotificationItemDirective = function() {
   return {
-    scope: {
-      notification: '=',
-      close: '&'
-    },
+    scope: {notification: '=', close: '&'},
     restrict: 'E',
     templateUrl: '/static/angular-components/user/user-notification-item.html',
     controller: UserNotificationItemController,

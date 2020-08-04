@@ -189,7 +189,7 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
     self.api_init_http.return_value = grr_api
     self.unittest_runner.return_value = unittest_runner
     e2e_runner = self._CreateE2ETestRunner(
-        blacklisted_tests=["FakeE2ETestLinux"], max_test_attempts=4)
+        skip_tests=["FakeE2ETestLinux"], max_test_attempts=4)
     e2e_runner.Initialize()
     actual_results, actual_report = e2e_runner.RunTestsAgainstClient(
         api_client.client_id)
@@ -248,15 +248,14 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
   @mock.patch.dict(
       test_base.REGISTRY, {tc.__name__: tc for tc in FAKE_E2E_TESTS},
       clear=True)
-  def testWhitelisting(self):
+  def testRunOnlyTestsFiltering(self):
     api_client = self._CreateApiClient("Linux")
     grr_api = FakeApi(client_data=api_client)
     self.api_init_http.return_value = grr_api
     self.unittest_runner.return_value = FakeUnittestRunner(
         tests_to_fail={fake_tests.FakeE2ETestDarwinLinux})
-    e2e_runner = self._CreateE2ETestRunner(whitelisted_tests=[
-        "FakeE2ETestLinux.testLinux", "FakeE2ETestDarwinLinux"
-    ])
+    e2e_runner = self._CreateE2ETestRunner(
+        run_only_tests=["FakeE2ETestLinux.testLinux", "FakeE2ETestDarwinLinux"])
     e2e_runner.Initialize()
     actual_results, actual_report = e2e_runner.RunTestsAgainstClient(
         api_client.client_id)

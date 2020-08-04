@@ -106,10 +106,10 @@ message HuntContext {
     type: "RDFDatetime",
   }];
   optional ClientResourcesStats usage_stats = 12;
-  optional uint64 clients_with_results_count = 13;
-  optional uint64 results_count = 14;
-  optional uint64 completed_clients_count = 15;
-  optional uint64 clients_queued_count = 16;
+  reserved 13;
+  reserved 14;
+  reserved 15;
+  reserved 16;
 }
 
 // This is the user's access token.
@@ -575,6 +575,12 @@ message ExecutePythonHackArgs {
 
   optional Dict py_args = 2
       [(sem_type) = { description: "Python Hack Arguments." }];
+}
+
+/// A message representing a result of an execution of a Python script.
+message ExecutePythonHackResult {
+  /// A string value that the Python script returned.
+  optional string result_string = 1;
 }
 
 // Next field ID: 4
@@ -1953,6 +1959,19 @@ message CollectSingleFileArgs {
 message CollectSingleFileResult {
   optional StatEntry stat = 1;
   optional Hash hash = 2;
+}
+
+message CollectSingleFileProgress {
+  enum Status {
+    UNDEFINED = 0;
+    IN_PROGRESS = 1;
+    COLLECTED = 2;
+    NOT_FOUND = 3;
+    FAILED = 4;
+  }
+  optional Status status = 1;
+  optional CollectSingleFileResult result = 2;
+  optional string error_description = 3;
 }
 
 message CollectMultipleFilesArgs {

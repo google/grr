@@ -197,7 +197,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
     dat_fd = io.BytesIO(dat.encode("utf-8"))
 
     with test_lib.ConfigOverrider(
-        {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+        {"Artifacts.netgroup_ignore_users": ["user2", "user3"]}):
       out = list(parser.ParseFile(None, None, dat_fd))
       users = []
       for result in out:
@@ -226,7 +226,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     with test_lib.ConfigOverrider(
-        {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+        {"Artifacts.netgroup_ignore_users": ["user2", "user3"]}):
       out = list(parser.Parse(ff_result, None))
       self.assertCountEqual([x.username for x in out],
                             [u"user1", u"user5", u"user6"])

@@ -15,8 +15,7 @@ exports.valuePointsToFile = function(value) {
     value = value['value']['payload'];
   }
 
-  if (value['type'] == 'StatEntry' ||
-      value['type'] == 'FileFinderResult' ||
+  if (value['type'] == 'StatEntry' || value['type'] == 'FileFinderResult' ||
       value['type'] == 'ArtifactFilesDownloaderResult') {
     return true;
   } else {
@@ -27,84 +26,87 @@ exports.valuePointsToFile = function(value) {
 
 /**
  * Controller for DownloadCollectionFilesDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$window} $window
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const DownloadCollectionFilesController =
-    function($scope, $window, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const DownloadCollectionFilesController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$window} $window
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, $window, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @type {string} */
-  this.scope_.downloadUrl;
+    /** @type {string} */
+    this.scope_.downloadUrl;
 
-  /** @export {string} */
-  this.primaryArchiveExtension;
+    /** @export {string} */
+    this.primaryArchiveExtension;
 
-  /** @export {string} */
-  this.secondaryArchiveExtension;
+    /** @export {string} */
+    this.secondaryArchiveExtension;
 
-  /** @export {boolean} */
-  this.fileArchiveGenerationStarted;
+    /** @export {boolean} */
+    this.fileArchiveGenerationStarted;
 
-  /** @export {boolean} */
-  this.fileArchiveGenerationSuccess;
+    /** @export {boolean} */
+    this.fileArchiveGenerationSuccess;
 
-  /** @export {string} */
-  this.fileArchiveGenerationError;
+    /** @export {string} */
+    this.fileArchiveGenerationError;
 
-  /** @export {string} */
-  this.exportCommand;
+    /** @export {string} */
+    this.exportCommand;
 
-  if ($window.navigator.appVersion.indexOf('Mac') != -1) {
-    this.primaryArchiveExtension = 'tar.gz';
-    this.secondaryArchiveExtension = 'zip';
-  } else {
-    this.primaryArchiveExtension = 'zip';
-    this.secondaryArchiveExtension = 'tar.gz';
-  }
-
-  this.scope_.$watch('exportCommandUrl', function(newValue) {
-    if (angular.isUndefined(newValue)) {
-      return;
+    if ($window.navigator.appVersion.indexOf('Mac') != -1) {
+      this.primaryArchiveExtension = 'tar.gz';
+      this.secondaryArchiveExtension = 'zip';
+    } else {
+      this.primaryArchiveExtension = 'zip';
+      this.secondaryArchiveExtension = 'tar.gz';
     }
 
-    this.grrApiService_.get(newValue).then(function(response) {
-      if (angular.isDefined(response['data']['command'])) {
-          this.exportCommand = response['data']['command'];
+    this.scope_.$watch('exportCommandUrl', function(newValue) {
+      if (angular.isUndefined(newValue)) {
+        return;
       }
+
+      this.grrApiService_.get(newValue).then(function(response) {
+        if (angular.isDefined(response['data']['command'])) {
+          this.exportCommand = response['data']['command'];
+        }
+      }.bind(this));
     }.bind(this));
-  }.bind(this));
+  }
+
+  /**
+   * Issue a request to generate archive with collection files.
+   *
+   * @param {string} format Archive format: either 'zip' or 'tar.gz'.
+   * @export
+   */
+  generateFileArchive(format) {
+    var requestFormat = format.toUpperCase().replace('.', '_');
+    this.grrApiService_
+        .downloadFile(
+            this.scope_['downloadUrl'], {archive_format: requestFormat})
+        .then(
+            function success() {
+              this.fileArchiveGenerationSuccess = true;
+            }.bind(this),
+            function failure(response) {
+              this.fileArchiveGenerationError = response.data['message'];
+            }.bind(this));
+
+    this.fileArchiveGenerationStarted = true;
+  }
 };
 
-
-/**
- * Issue a request to generate archive with collection files.
- *
- * @param {string} format Archive format: either 'zip' or 'tar.gz'.
- * @export
- */
-DownloadCollectionFilesController.prototype.generateFileArchive = function(
-    format) {
-  var requestFormat = format.toUpperCase().replace('.', '_');
-  this.grrApiService_.downloadFile(
-      this.scope_['downloadUrl'], {archive_format: requestFormat}).then(
-          function success() {
-            this.fileArchiveGenerationSuccess = true;
-          }.bind(this),
-          function failure(response) {
-            this.fileArchiveGenerationError = response.data['message'];
-          }.bind(this));
-
-  this.fileArchiveGenerationStarted = true;
-};
 
 
 /**
@@ -116,10 +118,7 @@ DownloadCollectionFilesController.prototype.generateFileArchive = function(
  */
 exports.DownloadCollectionFilesDirective = function() {
   return {
-    scope: {
-      exportCommandUrl: '=?',
-      downloadUrl: '='
-    },
+    scope: {exportCommandUrl: '=?', downloadUrl: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/core/' +
         'download-collection-files.html',

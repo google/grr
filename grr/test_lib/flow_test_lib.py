@@ -505,6 +505,7 @@ def RunFlow(client_id,
       test_worker.Shutdown()
 
 
+# TODO(user): Rename into GetFlowResultsPayloads.
 def GetFlowResults(client_id, flow_id):
   """Gets flow results for a given flow.
 
@@ -513,11 +514,25 @@ def GetFlowResults(client_id, flow_id):
     flow_id: String with a flow_id.
 
   Returns:
-    List with flow results values (i.e. with payloads).
+    List with flow results payloads.
   """
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)
   return [r.payload for r in results]
+
+
+def GetRawFlowResults(client_id: str,
+                      flow_id: str) -> Iterable[rdf_flow_objects.FlowResult]:
+  """Gets raw flow results for a given flow.
+
+  Args:
+    client_id: String with a client id.
+    flow_id: String with a flow_id.
+
+  Returns:
+    Iterable with FlowResult objects read from the data store.
+  """
+  return data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0, sys.maxsize)
 
 
 def GetFlowResultsByTag(client_id, flow_id):

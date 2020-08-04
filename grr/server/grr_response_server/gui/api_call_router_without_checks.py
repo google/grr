@@ -198,6 +198,27 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
     del args, token  # Unused.
     return api_flow.ApiExplainGlobExpressionHandler()
 
+  def ScheduleFlow(
+      self,
+      args: api_flow.ApiCreateFlowArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiScheduleFlowHandler:
+    return api_flow.ApiScheduleFlowHandler()
+
+  def ListScheduledFlows(
+      self,
+      args: api_flow.ApiListScheduledFlowsArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiListScheduledFlowsHandler:
+    return api_flow.ApiListScheduledFlowsHandler()
+
+  def UnscheduleFlow(
+      self,
+      args: api_flow.ApiUnscheduleFlowArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiUnscheduleFlowHandler:
+    return api_flow.ApiUnscheduleFlowHandler()
+
   # Cron jobs methods.
   # =================
   #

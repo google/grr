@@ -21,6 +21,11 @@ export declare interface AnyObject {
 export type DecimalString = string|number;
 
 /**
+ * bytes are represented as base64-encoded strings.
+ */
+export type ByteString = string;
+
+/**
  * KnowledgeBase proto mapping.
  */
 export declare interface ApiKnowledgeBase {
@@ -319,12 +324,6 @@ export declare interface MultiGetFileProgress {
   pathspecsProgress: PathSpecProgress[];
 }
 
-/** CollectSingleFileArgs proto mapping. */
-export declare interface CollectSingleFileArgs {
-  readonly path?: string;
-  readonly maxSizeBytes?: DecimalString;
-}
-
 /** CollectBrowserHistoryResult.Browser proto enum mapping. */
 export enum CollectBrowserHistoryArgsBrowser {
   UNDEFINED = 'UNDEFINED',
@@ -368,6 +367,34 @@ export declare interface CollectBrowserHistoryProgress {
   readonly browsers?: ReadonlyArray<BrowserProgress>;
 }
 
+/** CollectSingleFileArgs proto mapping. */
+export declare interface CollectSingleFileArgs {
+  readonly path?: string;
+  readonly maxSizeBytes?: DecimalString;
+}
+
+/** CollectSingleFileResult proto mapping. */
+export declare interface CollectSingleFileResult {
+  readonly stat?: StatEntry;
+  readonly hash?: Hash;
+}
+
+/** CollectSingleFileProgress.Status proto enum mapping. */
+export enum CollectSingleFileProgressStatus {
+  UNDEFINED = 'UNDEFINED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COLLECTED = 'COLLECTED',
+  NOT_FOUND = 'NOT_FOUND',
+  FAILED = 'FAILED',
+}
+
+/** CollectSingleFileProgress proto mapping. */
+export declare interface CollectSingleFileProgress {
+  readonly status?: CollectSingleFileProgressStatus;
+  readonly result?: CollectSingleFileResult;
+  readonly errorDescription?: string;
+}
+
 /** StatEntry proto mapping. */
 export declare interface StatEntry {
   readonly stMode?: string;
@@ -393,6 +420,28 @@ export declare interface StatEntry {
   readonly pathspec?: PathSpec;
 }
 
+/** AuthenticodeSignedData proto mapping. */
+export declare interface AuthenticodeSignedData {
+  readonly revision?: DecimalString;
+  readonly certType?: DecimalString;
+  readonly certificate: ByteString;
+}
+
+/** Hash proto mapping. */
+export declare interface Hash {
+  readonly sha256?: ByteString;
+  readonly sha1?: ByteString;
+  readonly md5?: ByteString;
+  readonly pecoffSha1?: ByteString;
+  readonly pecoffMd5?: ByteString;
+  readonly pecoffSha256?: ByteString;
+
+  readonly signedData?: AuthenticodeSignedData;
+
+  readonly numBytes?: DecimalString;
+  readonly sourceOffset?: DecimalString;
+}
+
 /** CollectMultipleFilesArgs proto mapping. */
 export declare interface CollectMultipleFilesArgs {
   pathExpressions?: ReadonlyArray<string>;
@@ -414,4 +463,21 @@ export declare interface ApiExplainGlobExpressionArgs {
 /** ApiExplainGlobExpressionResult proto mapping. */
 export declare interface ApiExplainGlobExpressionResult {
   components?: ReadonlyArray<GlobComponentExplanation>;
+}
+
+/** ApiScheduledFlow proto mapping. */
+export declare interface ApiScheduledFlow {
+  readonly scheduledFlowId?: string;
+  readonly clientId?: string;
+  readonly creator?: string;
+  readonly flowName?: string;
+  readonly flowArgs?: AnyObject;
+  // Ignoring runnerArgs for now, because it is large and unused.
+  readonly createTime?: string;
+  readonly error?: string;
+}
+
+/** ApiListScheduledFlowsResult proto mapping. */
+export declare interface ApiListScheduledFlowsResult {
+  readonly scheduledFlows?: ReadonlyArray<ApiScheduledFlow>;
 }

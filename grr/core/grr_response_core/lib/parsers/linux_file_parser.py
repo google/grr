@@ -223,7 +223,7 @@ class NetgroupParser(parsers.SingleFileParser):
         for x in config.CONFIG["Artifacts.netgroup_filter_regexes"]
     ]
     username_regex = re.compile(cls.USERNAME_REGEX)
-    blacklist = config.CONFIG["Artifacts.netgroup_user_blacklist"]
+    ignorelist = config.CONFIG["Artifacts.netgroup_ignore_users"]
     for index, line in enumerate(lines):
       if line.startswith("#"):
         continue
@@ -244,7 +244,7 @@ class NetgroupParser(parsers.SingleFileParser):
         if member.startswith("("):
           try:
             _, user, _ = member.split(",")
-            if user not in users and user not in blacklist:
+            if user not in users and user not in ignorelist:
               if not username_regex.match(user):
                 yield rdf_anomaly.Anomaly(
                     type="PARSER_ANOMALY",

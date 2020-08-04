@@ -41,7 +41,7 @@ router_params:
     enabled: True
   get_flow_files_archive:
     enabled: True
-    path_globs_whitelist:
+    include_only_path_globs:
       - "/**/*.plist"
 users:
   - "%s"
@@ -114,7 +114,7 @@ users:
     zip_fd = zipfile.ZipFile(zip_stream)
 
     # Now check that the archive has only "test.plist" file, as it's the
-    # only file that matches the whitelist (see FILE_FINDER_ROUTER_CONFIG).
+    # only file that matches the includelist (see FILE_FINDER_ROUTER_CONFIG).
     # There should be 3 items in the archive: the hash of the "test.plist"
     # file, the symlink to this hash and the MANIFEST file.
     namelist = zip_fd.namelist()

@@ -101,7 +101,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -198,7 +198,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="/")
     self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentIsNotWhitelisted(self):
+  def testRaisesIfFirstComponentIsNotAllowlisted(self):
     args = vfs_plugin.ApiListFilesArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -281,7 +281,7 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileTextArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -366,7 +366,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -439,7 +439,7 @@ class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileVersionTimesArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -466,7 +466,7 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileDownloadCommandArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -508,7 +508,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -629,7 +629,7 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -758,7 +758,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
@@ -866,7 +866,7 @@ class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testRaisesIfFirstComponentNotInWhitelist(self):
+  def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetVfsTimelineArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):

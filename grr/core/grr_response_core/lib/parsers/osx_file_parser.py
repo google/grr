@@ -24,7 +24,8 @@ class OSXUsersParser(parser.ArtifactFilesMultiParser):
 
   output_types = [rdf_client.User]
   supported_artifacts = ["MacOSUsers"]
-  blacklist = ["Shared"]
+
+  _ignore_users = ["Shared"]
 
   def ParseMultiple(self, stat_entries, knowledge_base):
     """Parse the StatEntry objects."""
@@ -35,7 +36,7 @@ class OSXUsersParser(parser.ArtifactFilesMultiParser):
       if stat.S_ISDIR(int(stat_entry.st_mode)):
         homedir = stat_entry.pathspec.path
         username = os.path.basename(homedir)
-        if username not in self.blacklist:
+        if username not in self._ignore_users:
           yield rdf_client.User(username=username, homedir=homedir)
 
 

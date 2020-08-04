@@ -64,7 +64,6 @@ flags.DEFINE_multi_string(
     short_name="p")
 
 
-
 class Error(Exception):
   """Base class for configuration exceptions."""
 

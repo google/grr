@@ -431,6 +431,7 @@ HuntCounters = collections.namedtuple("HuntCounters", [
     "num_failed_clients",
     "num_clients_with_results",
     "num_crashed_clients",
+    "num_running_clients",
     "num_results",
     "total_cpu_seconds",
     "total_network_bytes_sent",

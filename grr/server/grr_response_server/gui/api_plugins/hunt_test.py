@@ -377,7 +377,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
     with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
-  def testRaisesIfVfsRootIsNotWhitelisted(self):
+  def testRaisesIfVfsRootIsNotAllowed(self):
     args = hunt_plugin.ApiGetHuntFileArgs(
         hunt_id=self.hunt_id,
         client_id=self.client_id,

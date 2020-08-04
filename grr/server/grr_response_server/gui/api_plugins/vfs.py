@@ -36,7 +36,7 @@ from grr_response_server.gui.api_plugins import client
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Files can only be accessed if their first path component is from this list.
-ROOT_FILES_WHITELIST = ["fs", "registry", "temp"]
+_ROOT_FILES_ALLOWLIST = ["fs", "registry", "temp"]
 
 
 def ValidateVfsPath(path):
@@ -46,9 +46,9 @@ def ValidateVfsPath(path):
   if not components:
     raise ValueError("Empty path is not a valid path: %s." % path)
 
-  if components[0] not in ROOT_FILES_WHITELIST:
+  if components[0] not in _ROOT_FILES_ALLOWLIST:
     raise ValueError("First path component was '%s', but has to be one of %s" %
-                     (components[0], ", ".join(ROOT_FILES_WHITELIST)))
+                     (components[0], ", ".join(_ROOT_FILES_ALLOWLIST)))
 
   return True
 

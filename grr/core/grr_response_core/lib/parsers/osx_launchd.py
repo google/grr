@@ -40,7 +40,7 @@ class OSXLaunchdJobDict(object):
     """
     self.launchdjobs = launchdjobs
 
-    self.blacklist_regex = [
+    self._filter_regexes = [
         re.compile(r"^0x[a-z0-9]+\.anonymous\..+$"),
         re.compile(r"^0x[a-z0-9]+\.mach_init\.(crash_inspector|Inspector)$"),
     ]
@@ -59,7 +59,7 @@ class OSXLaunchdJobDict(object):
     Returns:
       True if the item should be filtered (dropped)
     """
-    for regex in self.blacklist_regex:
+    for regex in self._filter_regexes:
       if regex.match(launchditem.get("Label", "")):
         return True
     return False

@@ -1,0 +1,23 @@
+<div *ngIf="progress$ | async as progress; else noProgress">
+  <div class="download flow-details-summary-actions" *ngIf="(progress$ | async).result !== undefined">
+    <a mat-stroked-button color="primary" [download]="archiveFileName$ | async" [href]="archiveUrl$ | async">Download</a>
+  </div>
+  <div class="error flow-details-summary-actions" *ngIf="errorDescription$ | async as errorDescription">
+    {{ errorDescription }}
+  </div>
+
+  <div class="requested-path" *ngIf="!progress.result">
+    {{ (args$ | async).path }}
+  </div>
+  <div class="collected-result" *ngIf="progress.result">
+    <file-results-table
+      [results]="fileResults$ | async"
+      [totalCount]="1">
+    </file-results-table>
+  </div>
+</div>
+
+<ng-template #noProgress>
+    The flow didn't report its progress. It's either a legacy flow or it
+    did run before progress reporting was introduced as a feature.
+</ng-template>

@@ -2,8 +2,8 @@
 # Lint as: python3
 import csv
 import io
-import stat
 import random
+import stat
 from typing import Optional
 from typing import Sequence
 from typing import Text
@@ -257,7 +257,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry_1.size = 13373
     entry_1.atime_ns = 111 * 10**9
     entry_1.mtime_ns = 222 * 10**9
-    entry_1.ctime_ns = 333 * 10 ** 9
+    entry_1.ctime_ns = 333 * 10**9
     entry_1.mode = 0o664
 
     entry_2 = rdf_timeline.TimelineEntry()
@@ -266,7 +266,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry_2.size = 13374
     entry_2.atime_ns = 777 * 10**9
     entry_2.mtime_ns = 888 * 10**9
-    entry_2.ctime_ns = 999 * 10 ** 9
+    entry_2.ctime_ns = 999 * 10**9
     entry_2.mode = 0o777
 
     _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)

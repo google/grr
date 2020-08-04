@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
-"""This is a backend analysis worker which will be deployed on the server.
-
-We basically pull a new task from the task master, and run the plugin
-it specifies.
-"""
+"""This is a backend analysis worker which will be deployed on the server."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function

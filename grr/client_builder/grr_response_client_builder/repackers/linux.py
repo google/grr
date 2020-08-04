@@ -317,6 +317,8 @@ class CentosClientRepacker(LinuxClientRepacker):
         with io.open(os.path.join(template_dir, name), "wb") as fd:
           fd.write(zf.read(name))
 
+      self._ProcessUniversalTemplate(template_dir)
+
       # Set up a RPM building environment.
 
       rpm_root_dir = os.path.join(tmp_dir, "rpmbuild")
@@ -360,18 +362,23 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(target_binary_dir, client_binary_name))
         # pytype: enable=wrong-arg-types
 
-      # TODO: Bundled fleetspeak is not yet supported on CentOS.
-      # When running from a fleetspeak_bundled server, assume that the template
-      # is a legacy template and generate a non-fleetspeak installer for now.
-      if (config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context)
-          and not config.CONFIG.Get(
-              "ClientBuilder.fleetspeak_bundled", context=self.context)):
+      if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
         self._GenerateFleetspeakConfig(template_dir, rpm_build_dir)
         if not config.CONFIG.Get(
             "Client.fleetspeak_service_name", context=self.context):
           # The Fleetspeak service name is required when generating the RPM
           # spec file.
           raise build.BuildError("Client.fleetspeak_service_name is not set.")
+        if config.CONFIG.Get(
+            "ClientBuilder.fleetspeak_bundled", context=self.context):
+          self._GenerateBundledFleetspeakFiles(
+              os.path.join(template_dir, "bundled-fleetspeak"), rpm_build_dir)
+          shutil.copy(
+              config.CONFIG.Get(
+                  "ClientBuilder.fleetspeak_client_config",
+                  context=self.context),
+              os.path.join(rpm_build_dir,
+                           "etc/fleetspeak-client/client.config"))
       else:
         self._GenerateInitConfigs(template_dir, rpm_build_dir)
 
@@ -489,3 +496,24 @@ class CentosClientRepacker(LinuxClientRepacker):
           os.path.join(template_dir, "rpmbuild/grr-client.service.in"),
           systemd_target_filename,
           context=self.context)
+
+  def _ProcessUniversalTemplate(self, dist_dir):
+    # An universal teplate contains both fleetspeak and legacy files.
+    # If there is a legacy directory, then this is an universal template
+    # Depending on the config option, copy only one set of the files into
+    # the tree.
+
+    if not os.path.exists(os.path.join(dist_dir, "legacy")):
+      return
+
+    if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
+      # Since there is fleetspeak/fleetspeak, rename the top-level
+      # fleetspeak directory.
+      shutil.move(
+          os.path.join(dist_dir, "fleetspeak"),
+          os.path.join(dist_dir, "_fleetspeak"))
+      utils.MergeDirectories(os.path.join(dist_dir, "_fleetspeak"), dist_dir)
+    else:
+      utils.MergeDirectories(os.path.join(dist_dir, "legacy"), dist_dir)
+    self._RmTreeIfExists(os.path.join(dist_dir, "legacy"))
+    self._RmTreeIfExists(os.path.join(dist_dir, "_fleetspeak"))

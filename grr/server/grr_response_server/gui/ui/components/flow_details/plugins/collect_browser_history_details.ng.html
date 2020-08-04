@@ -6,7 +6,7 @@
 <div *ngIf="hasProgress$ | async">
   <div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED && (totalFiles$ | async) > 0">
     <span class="num-files">{{ totalFiles$ | async | i18nPlural: {'=1': '1 file', 'other': '# files'} }}</span>
-    <button mat-stroked-button color="primary">Download all</button>
+    <a mat-stroked-button color="primary" [download]="archiveFileName$ | async" [href]="archiveUrl$ | async">Download all</a>
   </div>
 
   <div class="row-list">

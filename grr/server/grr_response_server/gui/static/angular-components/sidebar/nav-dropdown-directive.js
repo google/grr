@@ -5,13 +5,14 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for NavDropdownDirective.
- *
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-exports.NavDropdownController = function() {
-  /** @type {!boolean} */
-  this.isCollapsed = true;
+exports.NavDropdownController = class {
+  /** @ngInject */
+  constructor() {
+    /** @type {!boolean} */
+    this.isCollapsed = true;
+  }
 };
 
 var NavDropdownController = exports.NavDropdownController;
@@ -26,9 +27,7 @@ var NavDropdownController = exports.NavDropdownController;
  */
 exports.NavDropdownDirective = function() {
   return {
-    scope: {
-      title: '@'
-    },
+    scope: {title: '@'},
     restrict: 'A',
     transclude: true,
     templateUrl: '/static/angular-components/sidebar/nav-dropdown.html',

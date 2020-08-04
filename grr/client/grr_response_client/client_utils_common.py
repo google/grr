@@ -34,21 +34,21 @@ def HandleAlarm(process):
 def Execute(cmd,
             args,
             time_limit=-1,
-            bypass_whitelist=False,
+            bypass_allowlist=False,
             daemon=False,
             use_client_context=False,
             cwd=None):
   """Executes commands on the client.
 
   This function is the only place where commands will be executed
-  by the GRR client. This makes sure that all issued commands are compared to a
-  white list and no malicious commands are issued on the client machine.
+  by the GRR client. This makes sure that all issued commands are compared to an
+  allowlist and no malicious commands are issued on the client machine.
 
   Args:
     cmd: The command to be executed.
     args: List of arguments.
     time_limit: Time in seconds the process is allowed to run.
-    bypass_whitelist: Allow execution of things that are not in the whitelist.
+    bypass_allowlist: Allow execution of things that are not in the allowlist.
       Note that this should only ever be called on a binary that passes the
       VerifySignedBlob check.
     daemon: Start the new process in the background.
@@ -59,11 +59,11 @@ def Execute(cmd,
   Returns:
     A tuple of stdout, stderr, return value and time taken.
   """
-  if not bypass_whitelist and not IsExecutionWhitelisted(cmd, args):
-    # Whitelist doesn't contain this cmd/arg pair
-    logging.info("Execution disallowed by whitelist: %s %s.", cmd,
+  if not bypass_allowlist and not IsExecutionAllowed(cmd, args):
+    # Allowlist doesn't contain this cmd/arg pair
+    logging.info("Execution disallowed by allowlist: %s %s.", cmd,
                  " ".join(args))
-    return (b"", b"Execution disallowed by whitelist.", -1, -1)
+    return (b"", b"Execution disallowed by allowlist.", -1, -1)
 
   if daemon:
     pid = os.fork()
@@ -127,27 +127,27 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
   return (stdout, stderr, exit_status, time.time() - start_time)
 
 
-def IsExecutionWhitelisted(cmd, args):
-  """Check if a binary and args is whitelisted.
+def IsExecutionAllowed(cmd, args):
+  """Check if a binary and args are in the allowlist.
 
   Args:
     cmd: Canonical path to the binary.
     args: List of arguments to be passed to the binary.
 
   Returns:
-    Bool, True if it is whitelisted.
+    Bool, True if execution is allowed.
 
-  These whitelists could also go in the platform specific client files
+  These allowlists could also go in the platform specific client files
   client_utils_<platform>.py. We chose to leave them here instead of putting
   them in global arrays to discourage people coding other modules from adding
-  new commands to the whitelist before running them.
+  new commands to the allowlist before running them.
   The idea is to have a single place that lists every command we can run during
   normal operation (obviously doesn't catch the special cases where we bypass
   the list).
   A deployment-specific list is also checked (see local/binary_whitelist.py).
   """
   if platform.system() == "Windows":
-    whitelist = [
+    allowlist = [
         ("arp.exe", ["-a"]),
         ("cmd.exe", ["/C", "echo 1"]),
         ("driverquery.exe", ["/v"]),
@@ -159,7 +159,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("tasklist.exe", ["/v"]),
     ]
   elif platform.system() == "Linux":
-    whitelist = [
+    allowlist = [
         ("/bin/df", []),
         ("/bin/echo", ["1"]),
         ("/bin/rpm", ["-qa"]),
@@ -178,7 +178,7 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/sbin/sshd", ["-T"]),
     ]
   elif platform.system() == "Darwin":
-    whitelist = [
+    allowlist = [
         ("/bin/echo", ["1"]),
         ("/bin/launchctl", ["unload", config.CONFIG["Client.plist_path"]]),
         ("/usr/bin/hdiutil", ["info"]),
@@ -195,13 +195,13 @@ def IsExecutionWhitelisted(cmd, args):
         ("/usr/libexec/firmwarecheckers/ethcheck/ethcheck", ["--show-hashes"]),
     ]
   else:
-    whitelist = []
+    allowlist = []
 
-  for (allowed_cmd, allowed_args) in whitelist:
+  for (allowed_cmd, allowed_args) in allowlist:
     if cmd == allowed_cmd and args == allowed_args:
       return True
 
-  # Check if this is whitelisted locally.
+  # Check if allowlist is overridden in the local GRR installation.
   if binary_whitelist.IsExecutionWhitelisted(cmd, args):
     return True
 

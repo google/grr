@@ -683,6 +683,46 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_flow.ApiExplainGlobExpressionHandler:
     raise NotImplementedError()
 
+  @Category("Flows")
+  @ArgsType(api_flow.ApiCreateFlowArgs)
+  @ResultType(api_flow.ApiScheduledFlow)
+  @Http(
+      "POST",
+      "/api/clients/<client_id>/scheduled-flows",
+      strip_root_types=False)
+  def ScheduleFlow(
+      self,
+      args: api_flow.ApiCreateFlowArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiScheduleFlowHandler:
+    """Schedules a flow on a client, to be started upon approval grant."""
+    raise NotImplementedError()
+
+  @Category("Flows")
+  @ArgsType(api_flow.ApiListScheduledFlowsArgs)
+  @ResultType(api_flow.ApiListScheduledFlowsResult)
+  @Http("GET", "/api/clients/<client_id>/scheduled-flows/<creator>/")
+  def ListScheduledFlows(
+      self,
+      args: api_flow.ApiListScheduledFlowsArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiListScheduledFlowsHandler:
+    """Lists all scheduled flows from a user on a client."""
+    raise NotImplementedError()
+
+  @Category("Flows")
+  @ArgsType(api_flow.ApiUnscheduleFlowArgs)
+  @ResultType(api_flow.ApiUnscheduleFlowResult)
+  @Http("DELETE",
+        "/api/clients/<client_id>/scheduled-flows/<scheduled_flow_id>")
+  def UnscheduleFlow(
+      self,
+      args: api_flow.ApiUnscheduleFlowArgs,
+      token: Optional[access_control.ACLToken] = None
+  ) -> api_flow.ApiUnscheduleFlowHandler:
+    """Unschedules and deletes a previously scheduled flow."""
+    raise NotImplementedError()
+
   # Cron jobs methods.
   # =================
   #
@@ -957,7 +997,15 @@ class ApiCallRouterStub(ApiCallRouter):
     """Exports results of a timeline hunt.
 
     The results are exported as a ZIP archive whose files follow the specified
-    format.
+    format. Each file in the ZIP archive contains results for a particular
+    client.
+
+    Args:
+      args: The timeline hunt export request arguments.
+      token: The authentication token.
+
+    Returns:
+      An API handler for the timeline hunt export.
     """
     raise NotImplementedError()
 

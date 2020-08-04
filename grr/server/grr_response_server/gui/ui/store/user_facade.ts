@@ -4,7 +4,7 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateGrrUser} from '@app/lib/api_translation/user';
 import {GrrUser} from '@app/lib/models/user';
 import {Observable, of} from 'rxjs';
-import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
+import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 
 
 interface UserState {
@@ -36,7 +36,7 @@ export class UserStore extends ComponentStore<UserState> {
 
   private readonly fetchCurrentUser = this.effect(
       obs$ => obs$.pipe(
-          switchMapTo(this.httpApiService.fetchCurrentUser()),
+          switchMap(() => this.httpApiService.fetchCurrentUser()),
           map(u => translateGrrUser(u)),
           tap(u => {
             this.updateUser(u);

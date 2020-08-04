@@ -282,10 +282,11 @@ class HuntBase(object):
 
   def GetCollectedTimelines(
       self,
-      format=timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED):
+      fmt=timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED,
+  ):
     args = timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = self.hunt_id
-    args.format = format
+    args.format = fmt
 
     return self._context.SendStreamingRequest("GetCollectedHuntTimelines", args)
 

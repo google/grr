@@ -729,7 +729,7 @@ class GrrKbLinuxTest(GrrKbTest):
             "LinuxReleaseInfo"
         ],
         "Artifacts.netgroup_filter_regexes": ["^login$"],
-        "Artifacts.netgroup_user_blacklist": ["isaac"]
+        "Artifacts.netgroup_ignore_users": ["isaac"]
     }):
       with vfs_test_lib.FakeTestDataVFSOverrider():
         with test_lib.SuppressLogs():

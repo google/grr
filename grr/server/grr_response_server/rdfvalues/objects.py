@@ -536,7 +536,8 @@ def ParseCategorizedPath(path):
   elif components[0:2] == ("fs", "ntfs"):
     return PathInfo.PathType.NTFS, components[2:]
   else:
-    raise ValueError("Incorrect path: '%s'" % path)
+    raise ValueError(
+        "Path {!r} does not start with a VFS prefix like /fs/os/".format(path))
 
 
 def ToCategorizedPath(path_type, components):

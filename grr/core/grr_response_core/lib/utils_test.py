@@ -6,13 +6,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import contextlib
 import io
+import os
 import threading
 import zipfile
 
 from absl import app
 from absl.testing import absltest
-
 
 import mock
 
@@ -440,6 +441,46 @@ class StreamingZipGeneratorTest(absltest.TestCase):
 
     with zipfile.ZipFile(output, mode="r") as zipdesc:
       self.assertEqual(zipdesc.read("quux"), filedesc.getvalue())
+
+
+class MergeDirectoriesTest(absltest.TestCase):
+
+  def testMergeDirectories(self):
+    stack = contextlib.ExitStack()
+    self.addCleanup(stack.close)
+
+    src_dir = stack.enter_context(utils.TempDirectory())
+    dst_dir = stack.enter_context(utils.TempDirectory())
+
+    def SrcPath(*components):
+      return os.path.join(src_dir, *components)
+
+    def DstPath(*components):
+      return os.path.join(dst_dir, *components)
+
+    def WriteFile(path, contents):
+      utils.EnsureDirExists(os.path.dirname(path))
+      with open(path, "w") as f:
+        f.write(contents)
+
+    def ReadFile(path):
+      with open(path) as f:
+        return f.read()
+
+    WriteFile(SrcPath("a", "b", "c", "file1.txt"), "file1")
+    WriteFile(SrcPath("a", "b", "c", "file2.txt"), "file2")
+    WriteFile(SrcPath("file3.txt"), "file3")
+
+    WriteFile(DstPath("a", "file4.txt"), "file4")
+    WriteFile(DstPath("file5.txt"), "file5")
+
+    utils.MergeDirectories(src_dir, dst_dir)
+
+    self.assertEqual(ReadFile(DstPath("a", "b", "c", "file1.txt")), "file1")
+    self.assertEqual(ReadFile(DstPath("a", "b", "c", "file2.txt")), "file2")
+    self.assertEqual(ReadFile(DstPath("file3.txt")), "file3")
+    self.assertEqual(ReadFile(DstPath("a", "file4.txt")), "file4")
+    self.assertEqual(ReadFile(DstPath("file5.txt")), "file5")
 
 
 def main(argv):

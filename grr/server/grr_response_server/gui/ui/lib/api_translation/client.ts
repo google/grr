@@ -4,6 +4,7 @@
 
 import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase} from '../api/api_interfaces';
 import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase} from '../models/client';
+import {assertKeyTruthy} from '../preconditions';
 
 import {createOptionalDate} from './primitive';
 
@@ -15,8 +16,8 @@ function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
 }
 
 function createClientLabel(label: ApiClientLabel): ClientLabel {
-  if (!label.owner) throw new Error('owner attribute is missing.');
-  if (!label.name) throw new Error('name attribute is missing.');
+  assertKeyTruthy(label, 'owner');
+  assertKeyTruthy(label, 'name');
 
   return {owner: label.owner, name: label.name};
 }
@@ -25,7 +26,7 @@ function createClientLabel(label: ApiClientLabel): ClientLabel {
  * Constructs a Client object from the corresponding API data structure.
  */
 export function translateClient(client: ApiClient): Client {
-  if (!client.clientId) throw new Error('clientId attribute is missing.');
+  assertKeyTruthy(client, 'clientId');
 
   return {
     clientId: client.clientId,
@@ -41,12 +42,12 @@ export function translateClient(client: ApiClient): Client {
 
 /** Constructs a ClientApproval from the corresponding API data structure. */
 export function translateApproval(approval: ApiClientApproval): ClientApproval {
-  if (!approval.id) throw new Error('id attribute is missing.');
-  if (!approval.subject) throw new Error('subject attribute is missing.');
-  if (!approval.subject.clientId) {
-    throw new Error('subject.clientId attribute is missing.');
-  }
-  if (!approval.reason) throw new Error('reason attribute is missing.');
+  assertKeyTruthy(approval, 'id');
+  assertKeyTruthy(approval, 'subject');
+  assertKeyTruthy(approval, 'reason');
+
+  const {subject} = approval;
+  assertKeyTruthy(subject, 'clientId');
 
   let status: ClientApprovalStatus;
   if (approval.isValid) {
@@ -64,7 +65,7 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
   return {
     status,
     approvalId: approval.id,
-    clientId: approval.subject.clientId,
+    clientId: subject.clientId,
     reason: approval.reason,
     requestedApprovers: approval.notifiedUsers || [],
     // Skip first approver, which is the requestor themselves.

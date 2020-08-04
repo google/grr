@@ -111,10 +111,14 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       message = f"Hunt '{hunt_id}' is not a timeline hunt"
       raise ValueError(message)
 
+    # TODO(hanuszczak): Enum-related attribute errors can by bypassed by using
+    # raw protobuf enums.
+    # pytype: disable=attribute-error
     if (args.format != ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED and
         args.format != ApiGetCollectedTimelineArgs.Format.BODY):
-      message = f"Incorrect timeline export format {args.format}"
+      message = f"Incorrect timeline export format: {args.format}"
       raise ValueError(message)
+    # pytype: enable=attribute-error
 
     filename = f"timelines_{hunt_id}.zip"
     content = self._Generate(hunt_id, args.format)
@@ -123,16 +127,16 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
   def _Generate(
       self,
       hunt_id: Text,
-      format: ApiGetCollectedTimelineArgs.Format,
+      fmt: rdf_structs.EnumNamedValue,
   ) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
-    yield from self._GenerateTimelines(hunt_id, format, zipgen)
+    yield from self._GenerateTimelines(hunt_id, fmt, zipgen)
     yield zipgen.Close()
 
   def _GenerateTimelines(
       self,
       hunt_id: Text,
-      format: ApiGetCollectedTimelineArgs.Format,
+      fmt: rdf_structs.EnumNamedValue,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
     offset = 0
@@ -152,8 +156,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
         flow_id = flow.flow_id
         fqdn = client_fqdns[client_id]
 
-        yield from self._GenerateTimeline(client_id, flow_id, fqdn, format,
-                                          zipgen)
+        yield from self._GenerateTimeline(client_id, flow_id, fqdn, fmt, zipgen)
 
       if len(flows) < _FLOW_BATCH_SIZE:
         break
@@ -163,17 +166,17 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       client_id: Text,
       flow_id: Text,
       fqdn: Text,
-      format: ApiGetCollectedTimelineArgs.Format,
+      fmt: rdf_structs.EnumNamedValue,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
     args = ApiGetCollectedTimelineArgs()
     args.client_id = client_id
     args.flow_id = flow_id
-    args.format = format
+    args.format = fmt
 
-    if format == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:
+    if fmt == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:  # pytype: disable=attribute-error
       filename = f"{client_id}_{fqdn}.gzchunked"
-    elif format == ApiGetCollectedTimelineArgs.Format.BODY:
+    elif fmt == ApiGetCollectedTimelineArgs.Format.BODY:  # pytype: disable=attribute-error
       filename = f"{client_id}_{fqdn}.body"
     else:
       raise AssertionError()

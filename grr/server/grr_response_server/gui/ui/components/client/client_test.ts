@@ -8,6 +8,8 @@ import {Client} from '../../lib/models/client';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {UserFacade} from '../../store/user_facade';
+import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {Client as ClientComponent} from './client';
@@ -21,10 +23,12 @@ describe('Client Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let facade: ClientPageFacade;
   let configFacade: ConfigFacadeMock;
+  let userFacade: UserFacadeMock;
 
   beforeEach(async(() => {
     paramsSubject = new Subject();
     configFacade = mockConfigFacade();
+    userFacade = mockUserFacade();
 
     TestBed
         .configureTestingModule({
@@ -41,6 +45,7 @@ describe('Client Component', () => {
               },
             },
             {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: UserFacade, useFactory: () => userFacade},
           ],
 
         })

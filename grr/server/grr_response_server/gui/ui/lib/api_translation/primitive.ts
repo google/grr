@@ -1,4 +1,5 @@
 import {AnyObject} from '@app/lib/api/api_interfaces';
+import {assertTruthy} from '../preconditions';
 
 /**
  * Constructs a Date from a unixtime string with microsecond-precision.
@@ -6,9 +7,8 @@ import {AnyObject} from '@app/lib/api/api_interfaces';
  * Because `Date` uses millisecond-precision, microseconds are truncated.
  */
 export function createDate(apiTimestamp: string): Date {
-  if (!apiTimestamp) {
-    throw new Error(`Date must not be empty.`);
-  }
+  assertTruthy(apiTimestamp, 'Date');
+
   const date = new Date(Number(apiTimestamp) / 1000);
   if (isNaN(date.valueOf())) {
     throw new Error(`Date "${apiTimestamp}" is invalid.`);
