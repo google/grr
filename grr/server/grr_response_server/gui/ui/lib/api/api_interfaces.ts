@@ -166,6 +166,24 @@ export declare interface ApiClient {
 }
 
 /**
+ * ApiGetClientVersionsResult proto mapping.
+ */
+export declare interface ApiGetClientVersionsResult {
+  readonly items: ReadonlyArray<ApiClient>;
+}
+
+/**
+ * ApiGetClientVersionsArgs proto mapping.
+ */
+export declare interface ApiGetClientVersionsArgs {
+  readonly clientId: string;
+  readonly start?: string;
+  readonly end?: string;
+  // Omiting mode as it is not currently used in the API implementation,
+  // but still enumerated in the protobuf.
+}
+
+/**
  * ApiSearchClientsArgs proto mapping.
  */
 export declare interface ApiSearchClientsArgs {

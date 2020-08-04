@@ -35,6 +35,7 @@ export type StartFlowState = {
 interface ClientPageState {
   readonly client?: Client;
   readonly clientId?: string;
+  readonly clientVersions: Client[];
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
@@ -66,6 +67,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       flowListEntries: {},
       flowListEntrySequence: [],
       startFlowState: {state: 'request_not_sent'},
+      clientVersions: [],
     });
   }
 
@@ -75,6 +77,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         return {
           ...state,
           client,
+        };
+      });
+
+  /** Reducer updating the selected client. */
+  private readonly updateSelectedClientVersions =
+      this.updater<Client[]>((state, clientVersions) => {
+        return {
+          ...state,
+          clientVersions,
         };
       });
 
@@ -194,6 +205,11 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       skip(1),
   );
 
+  readonly selectedClientVersions$: Observable<Client[]> = of(undefined).pipe(
+      tap(() => this.fetchSelectedClientVersions()),
+      switchMapTo(this.select(state => state.clientVersions)),
+  );
+
   /** An observable emitting current flow configuration. */
   readonly flowInConfiguration$: Observable<FlowInConfiguration> =
       this.select(state => state.flowInConfiguration)
@@ -278,6 +294,19 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
+  /** An effect fetching the versions of the selected client */
+  private readonly fetchSelectedClientVersions = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.select(state => state.clientId)),
+          filter((clientId): clientId is string => clientId !== undefined),
+          mergeMap(
+              clientId => this.httpApiService.fetchClientVersions({clientId})),
+          map(
+              apiClientVersions => apiClientVersions.map(translateClient),
+              tap((clientVersions: Client[]) => {
+                this.updateSelectedClientVersions(clientVersions);
+              }),
+              )));
 
   /** An effect querying results of a given flow. */
   private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
@@ -455,6 +484,10 @@ export class ClientPageFacade {
   /** An observable emitting currently selected flow descriptor. */
   readonly selectedFlowDescriptor$: Observable<FlowDescriptor|undefined> =
       this.store.selectedFlowDescriptor$;
+
+  /** An observable emitting the client versions of the selected client. */
+  readonly selectedClientVersions$: Observable<ReadonlyArray<Client>> =
+      this.store.selectedClientVersions$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
