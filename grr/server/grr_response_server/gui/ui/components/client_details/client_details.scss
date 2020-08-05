@@ -1,56 +1,65 @@
 @use '~material-theme' as c;
 
-.info {
-  width: 60%;
-  margin: auto;
-  text-align: center;
+.details-container {
+  display: flex;
 
-  .header {
-    margin-top: 1em;
-    display: inline-block;
-
-    mat-icon {
-      transform: scale(2);
-    }
-
-    .fqdn {
-      font-weight: 500;
-    }
-
-    .client-id {
-      color: c.mat-color(c.$foreground, text-light);
-      text-align: left;
-    }
+  .timeline {
+    width: 30%;
+    border-right: 1px solid c.mat-color(c.$foreground, divider);
   }
 
-  .section-title {
-    font-weight: bold;
-    text-align: left;
-    border-bottom: 1px solid c.mat-color(c.$foreground, divider);
-  }
+  .info {
+    width: 60%;
+    margin: auto;
+    text-align: center;
 
-  .section {
-    font-family: c.$google-sans-family;
-    text-align: left;
+    .header {
+      margin-top: 1em;
+      display: inline-block;
 
-    .description {
-      min-width: 10em;
-      vertical-align: top;
-    }
+      mat-icon {
+        transform: scale(2);
+      }
 
-    .value {
-      font-weight: 500;
-
-      .chip {
-        font-size: 14px;
+      .fqdn {
         font-weight: 500;
-        border: 1px solid c.mat-color(c.$foreground, divider);
-        background-color: c.mat-color(c.$background, app-bar);
+      }
+
+      .client-id {
+        color: c.mat-color(c.$foreground, text-light);
+        text-align: left;
       }
     }
 
-    .empty-section {
-      font-weight: 300;
+    .section-title {
+      font-weight: bold;
+      text-align: left;
+      border-bottom: 1px solid c.mat-color(c.$foreground, divider);
+    }
+
+    .section {
+      font-family: c.$google-sans-family;
+      text-align: left;
+
+      .description {
+        min-width: 10em;
+        vertical-align: top;
+      }
+
+      .value {
+        font-weight: 500;
+
+        .chip {
+          font-size: 14px;
+          font-weight: 500;
+          border: 1px solid c.mat-color(c.$foreground, divider);
+          background-color: c.mat-color(c.$background, app-bar);
+        }
+      }
+
+      .empty-section {
+        font-weight: 300;
+      }
     }
   }
 }
