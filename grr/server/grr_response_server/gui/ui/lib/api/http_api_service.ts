@@ -241,7 +241,6 @@ export class HttpApiService {
 
     return this.http.get<ApiGetClientVersionsResult>(url, {params})
         .pipe(
-            tap(versions => console.log(versions)),
             map(clientVersions => clientVersions.items ?? []));
   }
 }
