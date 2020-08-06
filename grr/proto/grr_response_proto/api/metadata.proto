@@ -14,5 +14,5 @@ message ApiGetGrrVersionResult {
 
 // A message type representing the OpenAPI description of the entire API.
 message ApiGetOpenApiDescriptionResult {
-  optional string open_api_description = 1;
+  optional string openapi_description = 1;
 }

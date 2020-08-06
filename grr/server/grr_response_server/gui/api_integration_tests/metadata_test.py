@@ -25,10 +25,10 @@ class ApiClientLibMetadataTest(api_integration_test_lib.ApiIntegrationTest):
     # TODO(alexandrucosminmihai): Move this import to the top as soon as GitHub
     # issue #813 (https://github.com/google/grr/issues/813) is resolved.
     import openapi_spec_validator
-    open_api_dict = self.api.GetOpenApiDescription()
+    openapi_dict = self.api.GetOpenApiDescription()
 
     # Will raise exceptions when the OpenAPI specification is invalid.
-    openapi_spec_validator.validate_spec(open_api_dict)
+    openapi_spec_validator.validate_spec(openapi_dict)
 
 
 def main(argv):

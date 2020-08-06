@@ -110,8 +110,8 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = metadata_plugin.ApiGetOpenApiDescriptionHandler(self.router)
 
     result = self.handler.Handle(None, token=self.token)
-    self.open_api_desc = result.open_api_description
-    self.open_api_desc_dict = json.loads(self.open_api_desc)
+    self.openapi_desc = result.openapi_description
+    self.openapi_desc_dict = json.loads(self.openapi_desc)
 
   def testRouterAnnotatedMethodsAreAllExtracted(self):
     expected_methods = {
@@ -136,10 +136,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # issue #813 (https://github.com/google/grr/issues/813) is resolved.
     import openapi_spec_validator
     # Will raise exceptions when the OpenAPI specification is invalid.
-    openapi_spec_validator.validate_spec(self.open_api_desc_dict)
+    openapi_spec_validator.validate_spec(self.openapi_desc_dict)
 
   def testAllRoutesAreInOpenApiDescription(self):
-    open_api_paths_dict = self.open_api_desc_dict["paths"]
+    openapi_paths_dict = self.openapi_desc_dict["paths"]
 
     # Check that there are no extra/missing paths.
     self.assertCountEqual(
@@ -151,44 +151,44 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method5",
         "/metadata_test/method6",
       },
-      open_api_paths_dict.keys()
+      openapi_paths_dict.keys()
     )
 
     # Check that there are no extra/missing HTTP methods for each path (routes).
     self.assertCountEqual(
       {"get", "head", "post"},
-      open_api_paths_dict["/metadata_test/method1/{metadata_id}"].keys()
+      openapi_paths_dict["/metadata_test/method1/{metadata_id}"].keys()
     )
     self.assertCountEqual(
       {"get", "head", "post"},
-      open_api_paths_dict["/metadata_test/method2"].keys()
+      openapi_paths_dict["/metadata_test/method2"].keys()
     )
     self.assertCountEqual(
       {"get"},
-      open_api_paths_dict["/metadata_test/method3"].keys()
+      openapi_paths_dict["/metadata_test/method3"].keys()
     )
     self.assertCountEqual(
       {"get", "post"},
-      open_api_paths_dict["/metadata_test/method4"].keys()
+      openapi_paths_dict["/metadata_test/method4"].keys()
     )
     self.assertCountEqual(
       {"get", "post"},
-      open_api_paths_dict["/metadata_test/method5"].keys()
+      openapi_paths_dict["/metadata_test/method5"].keys()
     )
     self.assertCountEqual(
       {"get"},
-      open_api_paths_dict["/metadata_test/method6"].keys()
+      openapi_paths_dict["/metadata_test/method6"].keys()
     )
 
   def testRouteArgsAreCorrectlySeparated(self):
     # Check that for each route the parameters are separated correctly in path,
     # query and request body parameters.
 
-    open_api_paths_dict = self.open_api_desc_dict["paths"]
+    openapi_paths_dict = self.openapi_desc_dict["paths"]
 
     # Check the OpenAPI parameters of Method1WithArgsType routes.
     method1_path_dict = (
-      open_api_paths_dict["/metadata_test/method1/{metadata_id}"]
+      openapi_paths_dict["/metadata_test/method1/{metadata_id}"]
     )
 
     # Parameters of GET /metadata_test/method1/{metadata_id}.
@@ -259,7 +259,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Check the OpenAPI parameters of Method4RepeatedField routes.
-    method4_path_dict = open_api_paths_dict["/metadata_test/method4"]
+    method4_path_dict = openapi_paths_dict["/metadata_test/method4"]
 
     # Parameters of GET /metadata_test/method4.
     get_method4_dict = method4_path_dict["get"]
@@ -301,7 +301,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertCountEqual(["field_repeated"], post_method4_params_body)
 
     # Check the OpenAPI parameters of Method5EnumField routes.
-    method5_path_dict = open_api_paths_dict["/metadata_test/method5"]
+    method5_path_dict = openapi_paths_dict["/metadata_test/method5"]
 
     # Parameters of GET /metadata_test/method5.
     get_method5_dict = method5_path_dict["get"]
@@ -343,7 +343,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertCountEqual(["field_enum"], post_method5_params_body)
 
     # Check the OpenAPI parameters of Method6TypeReferences routes.
-    method6_path_dict = open_api_paths_dict["/metadata_test/method6"]
+    method6_path_dict = openapi_paths_dict["/metadata_test/method6"]
 
     # Parameters of GET /metadata_test/method6.
     get_method6_dict = method6_path_dict["get"]
@@ -370,10 +370,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Response types are usually protobuf messages. The expectation in these
     # cases is that the routes descriptions include a reference to the type
     # schemas in the "components" field of the root OpenAPI object.
-    open_api_paths_dict = self.open_api_desc_dict["paths"]
+    openapi_paths_dict = self.openapi_desc_dict["paths"]
 
     # Method2WithResultType (GET, HEAD, POST) => MetadataSimpleMessage
-    method2_path_dict = open_api_paths_dict["/metadata_test/method2"]
+    method2_path_dict = openapi_paths_dict["/metadata_test/method2"]
     # Check responses for GET /metadata_test/method2.
     self.assertEqual(
       {
@@ -442,7 +442,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Method3PrimitiveTypes (GET) => BinaryStream result type.
-    method3_path_dict = open_api_paths_dict["/metadata_test/method3"]
+    method3_path_dict = openapi_paths_dict["/metadata_test/method3"]
     # Check responses for GET /metadata_test/method3.
     self.assertEqual(
       {
@@ -468,7 +468,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Method4RepeatedField (GET, POST) => No result type.
-    method4_path_dict = open_api_paths_dict["/metadata_test/method4"]
+    method4_path_dict = openapi_paths_dict["/metadata_test/method4"]
     # Check responses for GET /metadata_test/method4.
     self.assertEqual(
       {
@@ -503,7 +503,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # MetadataPrimitiveTypesMessage which is the ArgsType of
     # Method3PrimitiveTypes.
     operation_obj = (
-      self.open_api_desc_dict
+      self.openapi_desc_dict
         .get("paths")
         .get("/metadata_test/method3")
         .get("get")
@@ -594,7 +594,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # The repeated field should be the only parameter and be a query parameter.
     # This aspect is tested by testRouteArgsAreCorrectlySeparated.
     get_method4_repeated_field_schema = (
-      self.open_api_desc_dict
+      self.openapi_desc_dict
         .get("paths")
         .get("/metadata_test/method4")
         .get("get")
@@ -617,7 +617,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # The repeated field should be the only parameter and be a request body
     # parameter. This aspect is tested by testRouteArgsAreCorrectlySeparated.
     post_method4_repeated_field_schema = (
-      self.open_api_desc_dict
+      self.openapi_desc_dict
       .get("paths")
       .get("/metadata_test/method4")
       .get("post")
@@ -651,7 +651,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Extract the enum field schema from the description of the GET route
     # associated with Method5EnumField.
     get_method5_enum_field_schema = (
-      self.open_api_desc_dict
+      self.openapi_desc_dict
       .get("paths")
       .get("/metadata_test/method5")
       .get("get")
@@ -669,7 +669,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Extract the enum field schema from the description of the POST route
     # associated with Method5EnumField.
     post_method5_enum_field_schema = (
-      self.open_api_desc_dict
+      self.openapi_desc_dict
       .get("paths")
       .get("/metadata_test/method5")
       .get("post")
@@ -689,8 +689,8 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Test the OpenAPI schema description of the *enum field's type*.
-    open_api_enum_type_schema = (
-      self.open_api_desc_dict
+    openapi_enum_type_schema = (
+      self.openapi_desc_dict
       .get("components")
       .get("schemas")
       .get("grr.MetadataEnumFieldMessage.metadata_enum")
@@ -702,7 +702,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "enum": ["A", "B", "C"],
         "description": "A == 1\nB == 2\nC == 3"
       },
-      open_api_enum_type_schema
+      openapi_enum_type_schema
     )
 
   def testTypeReferencesAreUsedInOpenApiDescriptionsOfCompositeTypes(self):
@@ -710,14 +710,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # types are declared, including the case of cyclic dependencies.
 
     # Test that composite types are defined.
-    open_api_components_schemas = (
-      self.open_api_desc_dict
+    openapi_components_schemas = (
+      self.openapi_desc_dict
         .get("components")
         .get("schemas")
     )
-    root = open_api_components_schemas["grr.MetadataTypesHierarchyRoot"]
-    cyclic = open_api_components_schemas["grr.MetadataTypesHierarchyCyclic"]
-    leaf = open_api_components_schemas["grr.MetadataTypesHierarchyLeaf"]
+    root = openapi_components_schemas["grr.MetadataTypesHierarchyRoot"]
+    cyclic = openapi_components_schemas["grr.MetadataTypesHierarchyCyclic"]
+    leaf = openapi_components_schemas["grr.MetadataTypesHierarchyLeaf"]
 
     # Test the references between message types.
     root_ref = "#/components/schemas/grr.MetadataTypesHierarchyRoot"

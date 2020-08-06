@@ -17,7 +17,7 @@ def GetOpenApiDescription(
   if not context:
     raise ValueError("context can't be empty")
 
-  open_api_proto = context.SendRequest("GetOpenApiDescription", None)
-  open_api_json = open_api_proto.open_api_description
+  openapi_proto = context.SendRequest("GetOpenApiDescription", None)
+  openapi_json = openapi_proto.openapi_description
 
-  return json.loads(open_api_json)
+  return json.loads(openapi_json)

@@ -155,8 +155,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # argument's type.
     self.router: Any = router
     # The main OpenAPI description object.
-    self.open_api_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
-    self.open_api_obj_json: Optional[str] = None
+    self.openapi_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
+    self.openapi_obj_json: Optional[str] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
 
   def _NormalizePathComponent(self, component: str) -> str:
@@ -747,11 +747,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Handle requests for the OpenAPI description of the GRR API."""
     result = ApiGetOpenApiDescriptionResult()
 
-    if self.open_api_obj_json:
-      result.open_api_description = self.open_api_obj_json
+    if self.openapi_obj_json:
+      result.openapi_description = self.openapi_obj_json
       return result
 
-    self.open_api_obj = {
+    self.openapi_obj = {
       "openapi": self._GetOpenApiVersion(),
       "info": self._GetInfo(),
       "servers": self._GetServers(),
@@ -759,7 +759,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       "paths": self._GetPaths(),
     }
 
-    self.open_api_obj_json = json.dumps(self.open_api_obj)
+    self.openapi_obj_json = json.dumps(self.openapi_obj)
 
-    result.open_api_description = self.open_api_obj_json
+    result.openapi_description = self.openapi_obj_json
     return result
