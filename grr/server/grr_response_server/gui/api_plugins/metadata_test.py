@@ -552,19 +552,19 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     expected_primitives = {
       "field_double": {"type": "number", "format": "double"},
       "field_float": {"type": "number", "format": "float"},
-      "field_int64": {"type": "integer", "format": "int64"},
-      "field_uint64": {"type": "integer", "format": "uint64"},
+      "field_int64": {"type": "string", "format": "int64"},
+      "field_uint64": {"type": "string", "format": "uint64"},
       "field_int32": {"type": "integer", "format": "int32"},
-      "field_fixed64": {"type": "integer", "format": "uint64"},
-      "field_fixed32": {"type": "integer", "format": "uint32"},
+      "field_fixed64": {"type": "string", "format": "fixed64"},
+      "field_fixed32": {"type": "number", "format": "fixed32"},
       "field_bool": {"type": "boolean"},
       "field_string": {"type": "string"},
-      "field_bytes": {"type": "string", "format": "binary"},
-      "field_uint32": {"type": "integer", "format": "uint32"},
-      "field_sfixed32": {"type": "integer", "format": "int32"},
-      "field_sfixed64": {"type": "integer", "format": "int64"},
+      "field_bytes": {"type": "string", "format": "byte"},
+      "field_uint32": {"type": "number", "format": "uint32"},
+      "field_sfixed32": {"type": "number", "format": "sfixed32"},
+      "field_sfixed64": {"type": "string", "format": "sfixed64"},
       "field_sint32": {"type": "integer", "format": "int32"},
-      "field_sint64": {"type": "integer", "format": "int64"},
+      "field_sint64": {"type": "string", "format": "sint64"},
       "BinaryStream": {"type": "string", "format": "binary"}
     }
 
@@ -599,14 +599,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       "GET /metadata_test/method4": {
         "type": "array",
         "items": {
-          "type": "integer",
+          "type": "string",
           "format": "int64"
         }
       },
       "POST /metadata_test/method4": {
         "type": "array",
         "items": {
-          "type": "integer",
+          "type": "string",
           "format": "int64"
         }
       },
@@ -707,10 +707,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Test the OpenAPI schema description of the *enum field's type*.
     expected_enum_type_schema = {
-      "type": "integer",
-      "format": "int32",
-      "enum": [1, 2, 3],
-      "description": "1 == A\n2 == B\n3 == C"
+      "type": "string",
+      "enum": ["A", "B", "C"],
+      "description": "A == 1\nB == 2\nC == 3"
     }
 
     open_api_enum_type_schema = (

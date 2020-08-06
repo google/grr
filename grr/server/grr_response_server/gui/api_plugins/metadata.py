@@ -31,34 +31,39 @@ MessageSchema = Dict[
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 
+# Follows https://developers.google.com/protocol-buffers/docs/proto3#json as a
+# base, but whenever https://swagger.io/specification/#data-types provides a
+# more specific description of the same type, the OpenAPI Specification
+# version is used (noted by "OAS (type, format)" comments), with the exception
+# of int64 which uses "string" as a type.
 primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   protobuf2.TYPE_DOUBLE: {
     "name": "protobuf2.TYPE_DOUBLE",
-    "schema": {"type": "number", "format": "double"},
+    "schema": {"type": "number", "format": "double"},  # OAS (type, format)
   },
   protobuf2.TYPE_FLOAT: {
     "name": "protobuf2.TYPE_FLOAT",
-    "schema": {"type": "number", "format": "float"},
+    "schema": {"type": "number", "format": "float"},  # OAS (type, format)
   },
   protobuf2.TYPE_INT64: {
     "name": "protobuf2.TYPE_INT64",
-    "schema": {"type": "integer", "format":"int64"},
+    "schema": {"type": "string", "format": "int64"},
   },
   protobuf2.TYPE_UINT64: {
     "name": "protobuf2.TYPE_UINT64",
-    "schema": {"type": "integer", "format":"uint64"},
+    "schema": {"type": "string", "format": "uint64"},
   },
   protobuf2.TYPE_INT32: {
     "name": "protobuf2.TYPE_INT32",
-    "schema": {"type": "integer", "format": "int32"},
+    "schema": {"type": "integer", "format": "int32"},  # OAS (type, format)
   },
   protobuf2.TYPE_FIXED64: {
     "name": "protobuf2.TYPE_FIXED64",
-    "schema": {"type": "integer", "format": "uint64"}
+    "schema": {"type": "string", "format": "fixed64"}
   },
   protobuf2.TYPE_FIXED32: {
     "name": "protobuf2.TYPE_FIXED32",
-    "schema": {"type": "integer", "format": "uint32"},
+    "schema": {"type": "number", "format": "fixed32"},
   },
   protobuf2.TYPE_BOOL: {
     "name": "protobuf2.TYPE_BOOL",
@@ -70,28 +75,27 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   },
   protobuf2.TYPE_BYTES: {
     "name": "protobuf2.TYPE_BYTES",
-    # TODO: Here, "byte" (base64) might be used ?
-    "schema": {"type": "string", "format": "binary"},
+    "schema": {"type": "string", "format": "byte"},  # OAS (type, format)
   },
   protobuf2.TYPE_UINT32: {
     "name": "protobuf2.TYPE_UINT32",
-    "schema": {"type": "integer", "format": "uint32"},
+    "schema": {"type": "number", "format": "uint32"},
   },
   protobuf2.TYPE_SFIXED32: {
     "name": "protobuf2.TYPE_SFIXED32",
-    "schema": {"type": "integer", "format": "int32"},
+    "schema": {"type": "number", "format": "sfixed32"},
   },
   protobuf2.TYPE_SFIXED64: {
     "name": "protobuf2.TYPE_SFIXED64",
-    "schema": {"type": "integer","format": "int64"},
+    "schema": {"type": "string", "format": "sfixed64"},
   },
   protobuf2.TYPE_SINT32: {
     "name": "protobuf2.TYPE_SINT32",
-    "schema": {"type": "integer", "format": "int32"},
+    "schema": {"type": "integer", "format": "int32"},  # OAS (type, format)
   },
   protobuf2.TYPE_SINT64: {
     "name": "protobuf2.TYPE_SINT64",
-    "schema": {"type": "integer","format": "int64"},
+    "schema": {"type": "string", "format": "sint64"},
   },
   "BinaryStream": {
     "name": "BinaryStream",
@@ -266,16 +270,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
 
     enum_schema_obj = {
-      "type": "integer",
-      "format": "int32"
-    }  # type: Dict[str, Union[str, Tuple[int, ...]]]
+      "type": "string",
+    }  # type: Dict[str, Union[str, Tuple[str, ...]]]
 
     if len(descriptor.values) > 0:
       enum_schema_obj["enum"] = (
-        tuple([enum_value.number for enum_value in descriptor.values])
+        tuple([enum_value.name for enum_value in descriptor.values])
       )
       enum_schema_obj["description"] = (
-        "\n".join([f"{enum_value.number} == {enum_value.name}"
+        "\n".join([f"{enum_value.name} == {enum_value.number}"
                    for enum_value in descriptor.values])
       )
     else:
