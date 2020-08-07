@@ -23,7 +23,7 @@ from grr_response_server.gui import api_call_handler_base
 SchemaReference = Dict[str, str]
 PrimitiveSchema = Dict[str, str]
 ArraySchema = Dict[str, Union[str, PrimitiveSchema, SchemaReference]]
-EnumSchema = Dict[str, Union[str, Tuple[int, ...]]]
+EnumSchema = Dict[str, Union[str, Tuple[str, ...]]]
 MessageSchema = Dict[
   str, Union[str,
              Dict[str, Union[SchemaReference, PrimitiveSchema, ArraySchema]]]
@@ -271,7 +271,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     enum_schema_obj = {
       "type": "string",
-    }  # type: Dict[str, Union[str, Tuple[str, ...]]]
+    }  # type: EnumSchema
 
     if len(descriptor.values) > 0:
       enum_schema_obj["enum"] = (
