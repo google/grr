@@ -5,7 +5,7 @@
 import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress, ApiVolume, ApiWindowsVolume, ApiUnixVolume} from '../api/api_interfaces';
 import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress, StorageVolume, WindowsVolume, UnixVolume} from '../models/client';
 
-import {createOptionalDate, createIpv4Address, decodeBase64, createMacAddress, createIpv6Address} from './primitive';
+import {createOptionalDate, createIpv4Address, decodeBase64, createMacAddress, createIpv6Address, createDate} from './primitive';
 
 function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
   return {
@@ -165,6 +165,7 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
  */
 export function translateClient(client: ApiClient): Client {
   if (!client.clientId) throw new Error('clientId attribute is missing.');
+  if (!client.age) throw new Error('age attribute is missing.');
 
   let memorySize = undefined;
   if (client.memorySize !== undefined) {
@@ -186,7 +187,7 @@ export function translateClient(client: ApiClient): Client {
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),
     lastClock: createOptionalDate(client.lastClock),
-    age: createOptionalDate(client.age),
+    age: createDate(client.age),
   };
 }
 

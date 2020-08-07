@@ -169,6 +169,7 @@ describe('Client API Translation', () => {
     const apiClient: ApiClient = {
       clientId: 'C.1234',
       labels: [],
+      age: '1571789996679000',
     };
     const client: Client = newClient({
       clientId: 'C.1234',
@@ -208,7 +209,7 @@ describe('Client API Translation', () => {
       lastBootedAt: undefined,
       lastClock: undefined,
       labels: [],
-      age: undefined,
+      age: new Date(1571789996679),
     });
     expect(client).toEqual(translateClient(apiClient));
   });
