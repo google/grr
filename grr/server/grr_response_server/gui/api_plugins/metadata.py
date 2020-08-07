@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A module with API methods related to the GRR metadata."""
-# TODO: Continue work on replacing _GetSchemaOrReferenceObject with _GetReferenceObject and associated comments.
 import json
 import inspect
 import collections
@@ -254,13 +253,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       if descriptor:
         self._CreateSchema(descriptor, visiting)
 
-      schema_or_ref_obj = (
-        self._GetSchemaOrReferenceObject(
+      properties[field_name] = (
+        self._GetReferenceObject(
           _GetTypeName(field_descriptor),
           field_descriptor.label == protobuf2.LABEL_REPEATED)
       )
-
-      properties[field_name] = schema_or_ref_obj
 
     visiting.remove(type_name)
 
@@ -398,13 +395,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       else:
         parameter_obj["in"] = "query"
 
-      schema_or_ref_obj = (
-        self._GetSchemaOrReferenceObject(
+      parameter_obj["schema"] = (
+        self._GetReferenceObject(
           _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
       )
-      parameter_obj["schema"] = schema_or_ref_obj
 
       parameters.append(parameter_obj)
 
@@ -421,13 +417,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     properties = dict()
     for field_d in body_params:
       field_name = field_d.name
-      schema_or_ref_obj = (
-        self._GetSchemaOrReferenceObject(
+      properties[field_name] = (
+        self._GetReferenceObject(
           _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
       )
-      properties[field_name] = schema_or_ref_obj
 
     return {
       "content": {
@@ -464,8 +459,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"returned an instance of {result_type_name}."
       )
 
-      schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
-      media_obj = {"schema": schema_or_ref_obj}
+      media_obj = {"schema": self._GetReferenceObject(result_type_name)}
 
       content = dict()  # Needed to please mypy.
       if result_type == "BinaryStream":
@@ -542,17 +536,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    # TODO: The code below has been modified to treat primitives the same as composite types.
-    #schemas_obj = dict()
-    #types_names = set(self.schema_objs.keys())
-    # Create components only for composite types.
-    # for type_name in types_names - primitive_types_names:
-      #schemas_obj[type_name] = self.schema_objs[type_name]
-
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
-      "schemas":
-        cast(Dict[str, Union[EnumSchema, MessageSchema]], self.schema_objs)
+      "schemas": cast(
+        Dict[str, Union[EnumSchema, MessageSchema]],
+        self.schema_objs
+      )
     }
 
   def _SeparateFieldsIntoParams(
