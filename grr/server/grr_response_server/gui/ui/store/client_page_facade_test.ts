@@ -625,7 +625,7 @@ describe('ClientPageFacade', () => {
          expect(clientVersions).toEqual(expectedClientVersions);
          done();
        });
-       
+
        tick(1);
      }));
 });

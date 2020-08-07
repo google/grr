@@ -37,7 +37,6 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   if (apiAgentInfo.revision !== undefined) {
     revision = BigInt(apiAgentInfo.revision);
   }
-
   return {
     clientName: apiAgentInfo.clientName,
     clientVersion: apiAgentInfo.clientVersion,
