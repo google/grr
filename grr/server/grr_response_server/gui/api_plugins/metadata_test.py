@@ -453,7 +453,8 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           "content": {
             "application/octet-stream": {
               "schema": {
-                "$ref": "#/components/schemas/BinaryStream"
+                "type": "string",
+                "format": "binary"
               }
             }
           }
