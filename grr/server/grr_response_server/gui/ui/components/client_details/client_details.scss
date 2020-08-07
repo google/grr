@@ -13,6 +13,8 @@
 
     .entry {
       margin-top: 1em;
+      background: transparent;
+      height: auto;
 
       .timestamp {
         margin-left: 20px;
@@ -25,10 +27,14 @@
       }
 
       .change-list {
-        margin-left: 6px;
+        margin-left: 7px;
         border-left: 1px solid c.mat-color(c.$foreground, divider);
-        padding-left: 20px;
+        padding-left: 27px;
       }
+    }
+
+    .entry[aria-selected="true"] {
+      color: c.mat-color(c.$primary);
     }
   }
 

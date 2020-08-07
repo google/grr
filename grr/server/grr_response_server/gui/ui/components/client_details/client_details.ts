@@ -13,7 +13,7 @@ interface ClientVersion {
 }
 
 /**
- * Component displaying the details and actions for a single Client.
+ * Component displaying the details for a single Client.
  */
 @Component({
   templateUrl: './client_details.ng.html',

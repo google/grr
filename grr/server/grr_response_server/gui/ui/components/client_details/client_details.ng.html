@@ -1,7 +1,7 @@
 <div class="details-container mat-body-1" *ngIf="clientVersions$ | async as clientVersions">
   <div class="timeline">
     <div class="mat-h1">Change logs</div>
-    <mat-selection-list #timeline [multiple]="false">
+    <mat-selection-list #timeline [multiple]="false" disableRipple>
       <mat-list-option *ngFor="let version of clientVersions; index as i; first as isFirst"
         [value]="version.client"
         [selected]="isFirst"
