@@ -84,4 +84,64 @@ describe('Client Details Component', () => {
     expect(text).toContain('C.1234');
     expect(text).toContain('foo.unknown');
   });
+
+  it('getClientVersions() translates snapshots into client changes', () => {
+    const snapshots = [
+      newClient({
+        clientId: 'C.1234',
+        fleetspeakEnabled: false,
+        age: new Date(2020, 2, 2),
+      }),
+      newClient({
+        clientId: 'C.1234',
+        fleetspeakEnabled: true,
+        age: new Date(2020, 1, 1),
+      })
+    ];
+
+    const expectedClientChanges = [
+      {
+        client: snapshots[0],
+        changes: ['Client updated'],
+      },
+      {
+        client: snapshots[1],
+        changes: ['Client created'],
+      },
+    ];
+
+    const component = TestBed.createComponent(ClientDetails).componentInstance;
+    const clientChanges = component.getClientVersions(snapshots);
+
+    expect(clientChanges).toEqual(expectedClientChanges);
+  });
+
+  it('getClientVersions() reduces sequences of identical snapshots to the oldest snapshot',
+     () => {
+       const snapshots = [
+         newClient({
+           clientId: 'C.1234',
+           fleetspeakEnabled: true,
+           age: new Date(2020, 2, 2),
+         }),
+         newClient({
+           clientId: 'C.1234',
+           fleetspeakEnabled: true,
+           age: new Date(2020, 1, 1),
+         })
+       ];
+
+       const expectedClientChanges = [
+         {
+           client: snapshots[1],
+           changes: ['Client created'],
+         },
+       ];
+
+       const component =
+           TestBed.createComponent(ClientDetails).componentInstance;
+       const clientChanges = component.getClientVersions(snapshots);
+
+       expect(clientChanges).toEqual(expectedClientChanges);
+     });
 });

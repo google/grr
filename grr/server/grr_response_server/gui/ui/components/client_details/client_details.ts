@@ -64,6 +64,12 @@ export class ClientDetails implements OnInit, OnDestroy {
     return ['Client updated']
   }
 
+  /**
+   * Converts an array of snapshots into an array of client versions containing
+   * also the changes between versions.
+   * @param clientSnapshots an array of chronologically reverse ordered client
+   *     snapshots
+   */
   getClientVersions(clientSnapshots: Client[]): ClientVersion[] {
     let clientChanges: ClientVersion[] = [];
 
