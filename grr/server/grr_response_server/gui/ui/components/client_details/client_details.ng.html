@@ -1,6 +1,26 @@
-<div class="details-container mat-body-1">
-  <div class="timeline">timeline right here</div>
-  <div *ngIf="client$ | async as client" class="info">
+<div class="details-container mat-body-1" *ngIf="clientVersions$ | async as clientVersions">
+  <div class="timeline">
+    <div class="mat-h1">Change logs</div>
+    <mat-selection-list #timeline [multiple]="false">
+      <mat-list-option *ngFor="let version of clientVersions; index as i; first as isFirst"
+        [value]="version.client"
+        [selected]="isFirst"
+        class="entry">
+
+        <div>
+          <mat-icon inline class="bullet-icon">stop_circle</mat-icon>
+          <timestamp [date]="version.client.age" [tooltipEnabled]="false" class="timestamp"></timestamp>
+        </div>
+        <div class="change-list mat-body-2">
+          <div *ngFor="let change of version.changes">
+            {{change}}
+          </div>
+        </div>
+      </mat-list-option>
+    </mat-selection-list>
+  </div>
+
+  <div *ngIf="timeline.selectedOptions.selected[0]?.value as client" class="info">
     <div class="header">
       <mat-icon>computer</mat-icon>
       <div class="mat-h1 fqdn">{{client.knowledgeBase.fqdn}}

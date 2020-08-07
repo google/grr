@@ -2,16 +2,42 @@
 
 .details-container {
   display: flex;
+  // Set to full screen height - toolbar height to enable div scrolling
+  height: calc(100% - 64px);
 
   .timeline {
-    width: 30%;
+    width: 20%;
     border-right: 1px solid c.mat-color(c.$foreground, divider);
+    padding: 2em;
+    overflow: auto;
+
+    .entry {
+      margin-top: 1em;
+
+      .timestamp {
+        margin-left: 20px;
+        font-family: Roboto;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 11px;
+        line-height: 16px;
+        letter-spacing: 0.8px;
+      }
+
+      .change-list {
+        margin-left: 6px;
+        border-left: 1px solid c.mat-color(c.$foreground, divider);
+        padding-left: 20px;
+      }
+    }
   }
 
   .info {
-    width: 60%;
-    margin: auto;
+    padding-left: 200px;
+    padding-right: 200px;
     text-align: center;
+    overflow: auto;
+    flex-grow: 1;
 
     .header {
       margin-top: 1em;
