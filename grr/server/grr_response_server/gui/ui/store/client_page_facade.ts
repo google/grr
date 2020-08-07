@@ -35,7 +35,7 @@ export type StartFlowState = {
 interface ClientPageState {
   readonly client?: Client;
   readonly clientId?: string;
-  readonly clientVersions?: ReadonlyArray<Client>;
+  readonly clientVersions?: Client[];
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
@@ -81,7 +81,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** Reducer updating the selected client. */
   private readonly updateSelectedClientVersions =
-      this.updater<ReadonlyArray<Client>>((state, clientVersions) => {
+      this.updater<Client[]>((state, clientVersions) => {
         return {
           ...state,
           clientVersions,
@@ -204,14 +204,13 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       skip(1),
   );
 
-  readonly selectedClientVersions$: Observable<ReadonlyArray<Client>> =
-      of(undefined).pipe(
-          tap(() => this.fetchSelectedClientVersions()),
-          switchMapTo(this.select(state => state.clientVersions)),
-          filter(
-              (clientVersions): clientVersions is ReadonlyArray<Client> =>
-                  clientVersions !== undefined),
-      );
+  readonly selectedClientVersions$: Observable<Client[]> = of(undefined).pipe(
+      tap(() => this.fetchSelectedClientVersions()),
+      switchMapTo(this.select(state => state.clientVersions)),
+      filter(
+          (clientVersions): clientVersions is Client[] =>
+              clientVersions !== undefined),
+  );
 
   /** An observable emitting current flow configuration. */
   readonly flowInConfiguration$: Observable<FlowInConfiguration> =
@@ -487,7 +486,7 @@ export class ClientPageFacade {
       this.store.selectedFlowDescriptor$;
 
   /** An observable emitting the client versions of the selected client. */
-  readonly selectedClientVersions$: Observable<ReadonlyArray<Client>> =
+  readonly selectedClientVersions$: Observable<Client[]> =
       this.store.selectedClientVersions$;
 
   /** Selects a client with a given id. */
