@@ -453,8 +453,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           "content": {
             "application/octet-stream": {
               "schema": {
-                "type": "string",
-                "format": "binary"
+                "$ref": "#/components/schemas/BinaryStream"
               }
             }
           }
@@ -498,10 +497,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       method4_path_dict["post"]["responses"]
     )
 
-  def testPrimitiveTypesAreCorrectlyDescribedInOpenApiDescription(self):
-    # Extract description of primitive types from the OpenApi description of
-    # MetadataPrimitiveTypesMessage which is the ArgsType of
-    # Method3PrimitiveTypes.
+  def testPrimitiveTypesAreCorrectlyDescribedAndUsedInOpenApiDescription(self):
+    # Primitive types schemas are described in the "components" field of the
+    # root OpenAPI object.
+
+    # Firstly, verify that the descriptions of the fields of the
+    # MetadataPrimitiveTypesMessage (which is the ArgsType of
+    # Method3PrimitiveTypes) include references to the primitive types
+    # descriptions.
     operation_obj = (
       self.openapi_desc_dict
         .get("paths")
@@ -510,82 +513,151 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     primitive_parameters = operation_obj["parameters"]
 
-    def GetPrimitiveParamSchema(param_name):
+    def GetParamSchema(param_name):
       for param in primitive_parameters:
         if param["name"] == param_name:
           return param["schema"]
       return None
 
     self.assertEqual(
-      {"type": "number", "format": "double"},
-      GetPrimitiveParamSchema("field_double")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_DOUBLE"},
+      GetParamSchema("field_double")
     )
     self.assertEqual(
-      {"type": "number", "format": "float"},
-      GetPrimitiveParamSchema("field_float")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FLOAT"},
+      GetParamSchema("field_float")
     )
     self.assertEqual(
-      {"type": "string", "format": "int64"},
-      GetPrimitiveParamSchema("field_int64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_INT64"},
+      GetParamSchema("field_int64")
     )
     self.assertEqual(
-      {"type": "string", "format": "uint64"},
-      GetPrimitiveParamSchema("field_uint64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT64"},
+      GetParamSchema("field_uint64")
     )
     self.assertEqual(
-      {"type": "integer", "format": "int32"},
-      GetPrimitiveParamSchema("field_int32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_INT32"},
+      GetParamSchema("field_int32")
     )
     self.assertEqual(
-      {"type": "string", "format": "fixed64"},
-      GetPrimitiveParamSchema("field_fixed64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED64"},
+      GetParamSchema("field_fixed64")
     )
     self.assertEqual(
-      {"type": "number", "format": "fixed32"},
-      GetPrimitiveParamSchema("field_fixed32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED32"},
+      GetParamSchema("field_fixed32")
     )
     self.assertEqual(
-      {"type": "boolean"},
-      GetPrimitiveParamSchema("field_bool")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_BOOL"},
+      GetParamSchema("field_bool")
     )
     self.assertEqual(
-      {"type": "string"},
-      GetPrimitiveParamSchema("field_string")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_STRING"},
+      GetParamSchema("field_string")
     )
     self.assertEqual(
-      {"type": "string", "format": "byte"},
-      GetPrimitiveParamSchema("field_bytes")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_BYTES"},
+      GetParamSchema("field_bytes")
     )
     self.assertEqual(
-      {"type": "number", "format": "uint32"},
-      GetPrimitiveParamSchema("field_uint32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT32"},
+      GetParamSchema("field_uint32")
     )
     self.assertEqual(
-      {"type": "number", "format": "sfixed32"},
-      GetPrimitiveParamSchema("field_sfixed32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED32"},
+      GetParamSchema("field_sfixed32")
     )
     self.assertEqual(
-      {"type": "string", "format": "sfixed64"},
-      GetPrimitiveParamSchema("field_sfixed64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED64"},
+      GetParamSchema("field_sfixed64")
     )
     self.assertEqual(
-      {"type": "integer", "format": "int32"},
-      GetPrimitiveParamSchema("field_sint32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT32"},
+      GetParamSchema("field_sint32")
     )
     self.assertEqual(
-      {"type": "string", "format": "sint64"},
-      GetPrimitiveParamSchema("field_sint64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT64"},
+      GetParamSchema("field_sint64")
     )
 
-    # Extract BinaryStream type description from the response schema.
+    # Extract BinaryStream type reference from the response schema.
     self.assertEqual(
-      {"type": "string", "format": "binary"},
+      {"$ref": "#/components/schemas/BinaryStream"},
       operation_obj
         .get("responses")
         .get("200")
         .get("content")
         .get("application/octet-stream")
         .get("schema")
+    )
+
+    # Secondly, verify the descriptions of primitive types from the "components"
+    # field of the root OpenAPI object.
+    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+
+    self.assertEqual(
+      {"type": "number", "format": "double"},
+      components_schemas["protobuf2.TYPE_DOUBLE"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "float"},
+      components_schemas["protobuf2.TYPE_FLOAT"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "int64"},
+      components_schemas["protobuf2.TYPE_INT64"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "uint64"},
+      components_schemas["protobuf2.TYPE_UINT64"]
+    )
+    self.assertEqual(
+      {"type": "integer", "format": "int32"},
+      components_schemas["protobuf2.TYPE_INT32"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "fixed64"},
+      components_schemas["protobuf2.TYPE_FIXED64"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "fixed32"},
+      components_schemas["protobuf2.TYPE_FIXED32"]
+    )
+    self.assertEqual(
+      {"type": "boolean"},
+      components_schemas["protobuf2.TYPE_BOOL"]
+    )
+    self.assertEqual(
+      {"type": "string"},
+      components_schemas["protobuf2.TYPE_STRING"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "byte"},
+      components_schemas["protobuf2.TYPE_BYTES"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "uint32"},
+      components_schemas["protobuf2.TYPE_UINT32"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "sfixed32"},
+      components_schemas["protobuf2.TYPE_SFIXED32"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "sfixed64"},
+      components_schemas["protobuf2.TYPE_SFIXED64"]
+    )
+    self.assertEqual(
+      {"type": "integer", "format": "int32"},
+      components_schemas["protobuf2.TYPE_INT32"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "sint64"},
+      components_schemas["protobuf2.TYPE_SINT64"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "binary"},
+      components_schemas["BinaryStream"]
     )
 
   def testRepeatedFieldIsDescribedCorrectlyInOpenApiDescription(self):
@@ -605,8 +677,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "array",
         "items": {
-          "type": "string",
-          "format": "int64"
+          "$ref": "#/components/schemas/protobuf2.TYPE_INT64"
         }
       },
       get_method4_repeated_field_schema
@@ -632,8 +703,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "array",
         "items": {
-          "type": "string",
-          "format": "int64"
+          "$ref": "#/components/schemas/protobuf2.TYPE_INT64"
         }
       },
       post_method4_repeated_field_schema
