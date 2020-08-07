@@ -636,11 +636,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       schemas_obj[type_name] = self.schema_objs[type_name]
 
     # The Components Object "components" of the root OpenAPI object.
-    components_obj = {
+    return {
       "schemas": cast(Dict[str, Union[EnumSchema, MessageSchema]], schemas_obj)
     }
-
-    return components_obj
 
   def _SeparateFieldsIntoParams(
       self,
