@@ -39,23 +39,23 @@
           <td class="description">FQDN</td>
           <td class="value">{{client.knowledgeBase.fqdn}}</td>
         </tr>
-        <tr *ngIf="client.lastSeenAt">
+        <tr *ngIf="(client$ | async)?.lastSeenAt as lastSeenAt">
           <td class="description">Last seen</td>
-          <td class="value"><timestamp [date]="client.lastSeenAt"></timestamp></td>
+          <td class="value"><timestamp [date]="lastSeenAt"></timestamp></td>
         </tr>
-        <tr *ngIf="client.lastClock">
+        <tr *ngIf="(client$ | async)?.lastClock as lastClock">
           <td class="description">Last clock</td>
-          <td class="value"><timestamp [date]="client.lastClock"></timestamp></td>
+          <td class="value"><timestamp [date]="lastClock"></timestamp></td>
         </tr>
-        <tr *ngIf="client.lastBootedAt">
+        <tr *ngIf="(client$ | async)?.lastBootedAt as lastBoot">
           <td class="description">Last boot</td>
-          <td class="value"><timestamp [date]="client.lastBootedAt"></timestamp></td>
+          <td class="value"><timestamp [date]="lastBoot"></timestamp></td>
         </tr>
         <tr>
           <td class="description">Labels</td>
           <td class="value">
             <mat-chip-list>
-              <mat-chip *ngFor="let label of client.labels" class="chip">
+              <mat-chip *ngFor="let label of (client$ | async)?.labels" class="chip">
                 {{label.name}}
               </mat-chip>
             </mat-chip-list>
