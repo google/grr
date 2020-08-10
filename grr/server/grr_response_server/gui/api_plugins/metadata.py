@@ -3,10 +3,11 @@
 """A module with API methods related to the GRR metadata."""
 import json
 import inspect
+import collections
 
 from urllib import parse as urlparse
 from typing import Optional, cast
-from typing import Type, Any, Union, Tuple, List, Set, Dict, Callable
+from typing import Type, Any, Union, Tuple, List, Set, Dict, DefaultDict
 
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
@@ -156,81 +157,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # `api_call_router.py` and then use `ApiCallRouter` as `self.router`'s and
     # the argument's type.
     self.router: Any = router
-    # The main OpenAPI description object.
-    self.openapi_obj: Optional[Dict[str, Union[str, List, Dict]]] = None
+    # The JSON-serialized root `OpenAPI Object`.
     self.openapi_obj_json: Optional[str] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
-
-  def _NormalizePathComponent(self, component: str) -> str:
-    """Normalize the given path component to be used in a valid OpenAPI path."""
-    if len(component) > 0 and component[0] == '<' and component[-1] == '>':
-      component = component[1:-1]
-      component = component.split(":")[-1]
-      component = f"{{{component}}}"
-
-    return component
-
-  def _NormalizePath(self, path: str) -> str:
-    """Keep only fixed parts and parameter names from Werkzeug URL patterns.
-
-    The OpenAPI Specification requires that parameters are surrounded by { }
-    which are added in `_NormalizePathComponent`.
-
-    Args:
-      path: The path whose representation will be normalized.
-
-    Returns:
-      The normalized version of the path argument, which is a valid OpenAPI
-      path, with curly brackets around path arguments.
-    """
-    components = path.split("/")
-    normalized_components = [
-      self._NormalizePathComponent(component) for component in components
-    ]
-
-    normalized_path = '/'.join(normalized_components)
-
-    return normalized_path
-
-  def _GetPathArgsFromPath(self, path: str) -> List[str]:
-    """Extract path parameters from a Werkzeug Rule URL."""
-    path_args = []
-
-    components = path.split("/")
-    for component in components:
-      if len(component) > 0 and component[0] == '<' and component[-1] == '>':
-        normalized_component = self._NormalizePathComponent(component)
-        normalized_component = normalized_component[1:-1]
-        path_args.append(normalized_component)
-
-    return path_args
-
-  def _GetTypeName(
-      self,
-      cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
-  ) -> str:
-    """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
-    if isinstance(cls, FieldDescriptor):
-      if cls.message_type:
-        return self._GetTypeName(cls.message_type)
-      if cls.enum_type:
-        return self._GetTypeName(cls.enum_type)
-
-      return self._GetTypeName(cls.type)
-
-    if isinstance(cls, Descriptor):
-      return cls.full_name
-
-    if isinstance(cls, EnumDescriptor):
-      return cls.full_name
-
-    if isinstance(cls, type):
-      return cls.__name__
-
-    if isinstance(cls, int):  # It's a `protobuf.Descriptor.type` value.
-      return cast(str, primitive_types[cls]["name"])
-
-    return str(cls)  # Cover `BinaryStream` and `None`.
 
   def _AddPrimitiveTypesSchemas(self) -> None:
     """Adds the OpenAPI schemas for protobuf primitives and `BinaryStream`."""
@@ -240,12 +169,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
 
     primitive_types_schemas = {
-      cast(str, primitive_type["name"]):
-        cast(Dict[str, str], primitive_type["schema"])
+      primitive_type["name"]: primitive_type["schema"]
       for primitive_type in primitive_types.values()
     }
 
-    self.schema_objs.update(primitive_types_schemas)
+    self.schema_objs.update(
+      cast(Dict[str, Dict[str, str]], primitive_types_schemas)
+    )
 
   def _CreateEnumSchema(
       self,
@@ -286,7 +216,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     else:
       enum_schema_obj["enum"] = ()
 
-    self.schema_objs[self._GetTypeName(descriptor)] = enum_schema_obj
+    self.schema_objs[_GetTypeName(descriptor)] = enum_schema_obj
 
   def _CreateMessageSchema(
       self,
@@ -312,7 +242,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    type_name = self._GetTypeName(descriptor)
+    type_name = _GetTypeName(descriptor)
 
     properties = dict()
     visiting.add(type_name)
@@ -329,7 +259,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
       schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
-          self._GetTypeName(field_descriptor),
+          _GetTypeName(field_descriptor),
           field_descriptor.label == protobuf2.LABEL_REPEATED)
       )
 
@@ -359,7 +289,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if cls is None:
       raise ValueError(f"Trying to extract schema of None.")
 
-    type_name = self._GetTypeName(cls)
+    type_name = _GetTypeName(cls)
     # "Primitive" types should be already present in `self.schema_objs`.
     if type_name in self.schema_objs:
       return
@@ -490,7 +420,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
       schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
-          self._GetTypeName(field_d),
+          _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
       )
@@ -513,7 +443,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       field_name = field_d.name
       schema_or_ref_obj = (
         self._GetSchemaOrReferenceObject(
-          self._GetTypeName(field_d),
+          _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
       )
@@ -543,11 +473,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           isinstance(result_type, type) and
           issubclass(result_type, rdf_structs.RDFProtoStruct)
       ):
-        result_type_name = self._GetTypeName(
+        result_type_name = _GetTypeName(
           cast(rdf_structs.RDFProtoStruct, result_type).protobuf.DESCRIPTOR
         )
       else:
-        result_type_name = self._GetTypeName(result_type)
+        result_type_name = _GetTypeName(result_type)
 
       resp_success_obj["description"] = (
         f"The call to the {router_method_name} API method succeeded and it "
@@ -663,7 +593,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       field_descriptors = args_type.protobuf.DESCRIPTOR.fields
 
     # Separate fields into params: path, query and part of the request body.
-    path_params_names = set(self._GetPathArgsFromPath(path))
+    path_params_names = set(_GetPathArgsFromPath(path))
     path_params = []
     query_params = []
     body_params = []
@@ -687,10 +617,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     url_path = (  # Rewrite the path in a URL-friendly format.
       path
-        .replace('/', '-')
-        .replace('<', '_')
-        .replace('>', '_')
-        .replace(':', '-')
+        .replace("/", "-")
+        .replace("<", "_")
+        .replace(">", "_")
+        .replace(":", "-")
     )
     path_params, query_params, body_params = (
       self._SeparateFieldsIntoParams(http_method, path, router_method.args_type)
@@ -720,16 +650,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Create the OpenAPI description of all the routes exposed by the API."""
 
     # The `Paths Object` `paths` field of the root `OpenAPI Object`.
-    paths_obj = dict()  # type: Dict[str, Dict]
+    paths_obj = collections.defaultdict(dict)  # type: DefaultDict[str, Dict]
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for router_method_name in router_methods:
       router_method = router_methods[router_method_name]
       for http_method, path, strip_root_types in router_method.http_methods:
-        normalized_path = self._NormalizePath(path)
-
-        if normalized_path not in paths_obj:
-          paths_obj[normalized_path] = dict()
+        normalized_path = _NormalizePath(path)
 
         # The `Path Object` associated with the current path.
         path_obj = paths_obj[normalized_path]
@@ -747,11 +674,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Handle requests for the OpenAPI description of the GRR API."""
     result = ApiGetOpenApiDescriptionResult()
 
-    if self.openapi_obj_json:
+    if self.openapi_obj_json is not None:
       result.openapi_description = self.openapi_obj_json
       return result
 
-    self.openapi_obj = {
+    openapi_obj = {
       "openapi": self._GetOpenApiVersion(),
       "info": self._GetInfo(),
       "servers": self._GetServers(),
@@ -759,7 +686,81 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       "paths": self._GetPaths(),
     }
 
-    self.openapi_obj_json = json.dumps(self.openapi_obj)
+    self.openapi_obj_json = json.dumps(openapi_obj)
 
     result.openapi_description = self.openapi_obj_json
     return result
+
+
+def _NormalizePathComponent(component: str) -> str:
+  """Normalize the given path component to be used in a valid OpenAPI path."""
+  if component.startswith("<") and component.endswith(">"):
+    component = component[1:-1]
+    component = component.split(":")[-1]
+    component = f"{{{component}}}"
+
+  return component
+
+
+def _NormalizePath(path: str) -> str:
+  """Keep only fixed parts and parameter names from Werkzeug URL patterns.
+
+  The OpenAPI Specification requires that parameters are surrounded by { } which
+  are added in `_NormalizePathComponent`.
+
+  Args:
+    path: The path whose representation will be normalized.
+
+  Returns:
+    The normalized version of the path argument, which is a valid OpenAPI path,
+    with curly brackets around path arguments.
+  """
+  components = path.split("/")
+  normalized_components = [
+    _NormalizePathComponent(component) for component in components
+  ]
+
+  normalized_path = "/".join(normalized_components)
+
+  return normalized_path
+
+
+def _GetPathArgsFromPath(path: str) -> List[str]:
+  """Extract path parameters from a Werkzeug Rule URL."""
+  path_args = []
+
+  components = path.split("/")
+  for component in components:
+    if component.startswith("<") and component.endswith(">"):
+      normalized_component = _NormalizePathComponent(component)
+      normalized_component = normalized_component[1:-1]
+      path_args.append(normalized_component)
+
+  return path_args
+
+
+def _GetTypeName(
+    cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
+) -> str:
+  """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
+  if isinstance(cls, FieldDescriptor):
+    if cls.message_type:
+      return _GetTypeName(cls.message_type)
+    if cls.enum_type:
+      return _GetTypeName(cls.enum_type)
+
+    return _GetTypeName(cls.type)
+
+  if isinstance(cls, Descriptor):
+    return cls.full_name
+
+  if isinstance(cls, EnumDescriptor):
+    return cls.full_name
+
+  if isinstance(cls, type):
+    return cls.__name__
+
+  if isinstance(cls, int):  # It's a `protobuf.Descriptor.type` value.
+    return cast(str, primitive_types[cls]["name"])
+
+  return str(cls)  # Cover `BinaryStream` and `None`.
