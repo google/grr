@@ -2,7 +2,7 @@
 
 .details-container {
   display: flex;
-  // Set to full screen height - toolbar height to enable div scrolling
+  // Set to full_screen_height - toolbar_height to enable div scrolling
   height: calc(100% - 64px);
 
   .timeline {
@@ -10,6 +10,23 @@
     border-right: 1px solid c.mat-color(c.$foreground, divider);
     padding: 2em;
     overflow: auto;
+
+    .heading {
+      font-family: c.$google-sans-family;
+      font-size: 18px;
+      line-height: 24px;
+      padding-left: 16px;
+    }
+
+    .since {
+      font-family: Roboto;
+      font-weight: 500;
+      font-size: 10px;
+      line-height: 16px;
+      letter-spacing: 0.25px;
+      color: c.mat-color(c.$foreground, text-light);
+      padding-left: 16px;
+    }
 
     .entry {
       margin-top: 1em;
