@@ -144,4 +144,127 @@ describe('Client Details Component', () => {
 
        expect(clientChanges).toEqual(expectedClientChanges);
      });
+
+  it('getAccordionButtonState() returns the expected state', () => {
+    const component = TestBed.createComponent(ClientDetails).componentInstance;
+
+    let totalNumElements = 0;
+    let initialMaxNumElements = 0;
+    let currentMaxShownElements = 0;
+    let state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 0;
+    initialMaxNumElements = 1;
+    currentMaxShownElements = 0;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 1;
+    initialMaxNumElements = 0;
+    currentMaxShownElements = 1;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-less');
+
+    totalNumElements = 1;
+    initialMaxNumElements = 1;
+    currentMaxShownElements = 1;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 1;
+    initialMaxNumElements = 2;
+    currentMaxShownElements = 1;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 1;
+    initialMaxNumElements = 0;
+    currentMaxShownElements = 0;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-more');
+
+    totalNumElements = 1;
+    initialMaxNumElements = 2;
+    currentMaxShownElements = 0;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-more');
+
+    totalNumElements = 3;
+    initialMaxNumElements = 2;
+    currentMaxShownElements = 0;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-more');
+
+    totalNumElements = 3;
+    initialMaxNumElements = 2;
+    currentMaxShownElements = 2;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-more');
+
+    totalNumElements = 3;
+    initialMaxNumElements = 2;
+    currentMaxShownElements = 3;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-less');
+
+    totalNumElements = 3;
+    initialMaxNumElements = 3;
+    currentMaxShownElements = 3;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 3;
+    initialMaxNumElements = 30;
+    currentMaxShownElements = 3;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 30;
+    initialMaxNumElements = 3;
+    currentMaxShownElements = 3;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-more');
+
+    totalNumElements = 30;
+    initialMaxNumElements = 3;
+    currentMaxShownElements = 30;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('show-less');
+
+    totalNumElements = 30;
+    initialMaxNumElements = 30;
+    currentMaxShownElements = 30;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 0;
+    initialMaxNumElements = 0;
+    currentMaxShownElements = 1;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+
+    totalNumElements = 0;
+    initialMaxNumElements = 1;
+    currentMaxShownElements = 1;
+    state = component.getAccordionButtonState(
+        totalNumElements, currentMaxShownElements, initialMaxNumElements);
+    expect(state).toEqual('no-button');
+  });
 });

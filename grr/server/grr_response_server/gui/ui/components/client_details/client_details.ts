@@ -21,6 +21,11 @@ interface ClientVersion {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientDetails implements OnInit, OnDestroy {
+  // Not static & private because is referenced in the template
+  readonly INITIAL_NUM_USERS_SHOWN = 1;
+  readonly INITIAL_NUM_INTERFACES_SHOWN = 3;
+  readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
+
   private readonly id$ = this.route.paramMap.pipe(
       map(params => params.get('id')),
       filter((id): id is string => id !== null));
@@ -30,6 +35,10 @@ export class ClientDetails implements OnInit, OnDestroy {
       map(snapshots => snapshots.reverse()),
       map(this.getClientVersions),
   );
+
+  currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
+  currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
+  currentNumVolumesShown = this.INITIAL_NUM_VOLUMES_SHOWN;
 
   private readonly unsubscribe$ = new Subject<void>();
 
@@ -42,6 +51,18 @@ export class ClientDetails implements OnInit, OnDestroy {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
       this.clientPageFacade.selectClient(id);
     });
+  }
+
+  getAccordionButtonState(
+      totalNumElements: number, currentMaxNumElementsShown: number,
+      initialMaxNumElementsShown: number): string {
+
+    if (totalNumElements > currentMaxNumElementsShown) {
+      return 'show-more';
+    } else if (totalNumElements <= initialMaxNumElementsShown) {
+      return 'no-button';
+    }
+    return 'show-less';
   }
 
   static getChange(current: Client, old?: Client): string[]|undefined {
@@ -65,8 +86,8 @@ export class ClientDetails implements OnInit, OnDestroy {
   }
 
   /**
-   * Converts an array of snapshots into an array of client versions containing
-   * also the changes between versions.
+   * Converts an array of snapshots into an array of client versions also
+   * containing the changes between versions.
    * @param clientSnapshots an array of chronologically reverse ordered client
    *     snapshots
    */

@@ -99,7 +99,7 @@
       <br>
       <div class="section-title mat-h3">Users</div>
       <table class="section">
-        <ng-template ngFor let-user [ngForOf]="client.users" let-isLast="last">
+        <ng-template ngFor let-user [ngForOf]="client.users.slice(0, currentNumUsersShown)" let-isLast="last">
           <tr *ngIf="user.username">
             <td class="description">Username</td>
             <td class="value">{{user.username}}</td>
@@ -132,6 +132,16 @@
         </ng-template>
         <div class="empty-section" *ngIf="client.users.length === 0">None.</div>
       </table>
+      <button
+        *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-more'"
+        mat-button color="primary" (click)="currentNumUsersShown = client.users.length">
+          Show {{client.users.length - currentNumUsersShown}} more users <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
+      <button
+        *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-less'"
+        mat-button color="primary" (click)="currentNumUsersShown = INITIAL_NUM_USERS_SHOWN">
+          Show less <mat-icon>keyboard_arrow_up</mat-icon>
+      </button>
 
       <br>
       <div class="section-title mat-h3">CPU & Memory</div>
@@ -149,7 +159,7 @@
       <br>
       <div class="section-title mat-h3">Network Interfaces</div>
       <table class="section">
-        <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces" let-isLast="last">
+        <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces.slice(0, currentNumInterfacesShown)" let-isLast="last">
           <tr>
             <td class="description">Interface name</td>
             <td class="value">{{interface.interfaceName}}</td>
@@ -170,11 +180,21 @@
         </ng-template>
         <div class="empty-section" *ngIf="client.networkInterfaces.length === 0">None.</div>
       </table>
+      <button
+        *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-more'"
+        mat-button color="primary" (click)="currentNumInterfacesShown = client.networkInterfaces.length">
+          Show {{client.networkInterfaces.length - currentNumInterfacesShown}} more network interfaces <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
+      <button
+        *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-less'"
+        mat-button color="primary" (click)="currentNumInterfacesShown = INITIAL_NUM_INTERFACES_SHOWN">
+          Show less <mat-icon>keyboard_arrow_up</mat-icon>
+      </button>
 
       <br>
       <div class="section-title mat-h3">Storage Volumes</div>
       <table class="section">
-        <ng-template ngFor let-volume [ngForOf]="client.volumes" let-isLast="last">
+        <ng-template ngFor let-volume [ngForOf]="client.volumes.slice(0, currentNumVolumesShown)" let-isLast="last">
           <ng-template [ngIf]="volume.windowsDetails">
             <tr *ngIf="volume.windowsDetails.driveLetter">
               <td class="description">Windows drive letter</td>
@@ -235,6 +255,16 @@
         </ng-template>
         <div class="empty-section" *ngIf="client.volumes.length === 0">None.</div>
       </table>
+      <button
+        *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-more'"
+        mat-button color="primary" (click)="currentNumVolumesShown = client.volumes.length">
+          Show {{client.volumes.length - currentNumVolumesShown}} more storage volumes <mat-icon>keyboard_arrow_down</mat-icon>
+      </button>
+      <button
+        *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-less'"
+        mat-button color="primary" (click)="currentNumVolumesShown = INITIAL_NUM_VOLUMES_SHOWN">
+          Show less <mat-icon>keyboard_arrow_up</mat-icon>
+      </button>
 
       <br>
       <div class="section-title mat-h3">Agent Info</div>
