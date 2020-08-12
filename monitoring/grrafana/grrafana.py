@@ -41,6 +41,18 @@ class Grrafana(object):
   def __call__(self, environ, start_response):
     return self.wsgi_app(environ, start_response)
 
+  def on_root(self, request):
+    pass
+
+  def on_search(self, request):
+    pass
+
+  def on_query(self, request):
+    pass
+
+  def on_annotations(self, request):
+    pass
+
 
 def create_app():
   app = Grrafana({})
