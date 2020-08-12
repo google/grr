@@ -1,10 +1,19 @@
 import os
-from werkzeug.wrappers import Request, Response
+from werkzeug.wrappers import Request, Response, JSONMixin
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from werkzeug.utils import redirect
 from werkzeug.serving import run_simple
+
+
+class JSONRequest(JSONMixin, Request):
+  pass
+
+
+class JSONResponse(JSONMixin, Response):
+  pass
+
 
 class Grrafana(object):
 
@@ -25,7 +34,7 @@ class Grrafana(object):
       return e
 
   def wsgi_app(self, environ, start_response):
-    request = Request(environ)
+    request = JSONRequest(environ)
     response = self.dispatch_request(request)
     return response(environ, start_response)
 
