@@ -46,8 +46,8 @@ class Grrafana(object):
     return Response()
 
   def on_search(self, request):
-    response = Response(response='["hello", "hi"]', mimetype="application/json")
-    return response
+    response = fetch_available_metrics()
+    return Response(response=response, mimetype="application/json")
 
   def on_query(self, request):
     pass
@@ -55,6 +55,8 @@ class Grrafana(object):
   def on_annotations(self, request):
     pass
 
+def fetch_available_metrics():
+  return '["hello", "hi"]'
 
 def create_app():
   app = Grrafana({})
