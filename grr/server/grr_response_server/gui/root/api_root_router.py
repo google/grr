@@ -119,4 +119,4 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
       args: None,
       token: Optional[access_control.ACLToken] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
-    return api_metadata.ApiGetOpenApiDescriptionHandler()
+    return api_metadata.ApiGetOpenApiDescriptionHandler(self)

@@ -149,3 +149,56 @@ message EnumMessage {
   }
   optional NestedEnum foo = 1;
 }
+
+// For metadata_test.py
+message MetadataSimpleMessage {
+  optional string metadata_id = 1;
+  optional int64 metadata_arg1 = 2;
+  optional bool metadata_arg2 = 3;
+}
+
+message MetadataPrimitiveTypesMessage {
+  optional double field_double = 1;
+  optional float field_float = 2;
+  optional int64 field_int64 = 3;
+  optional uint64 field_uint64 = 4;
+  optional int32 field_int32 = 5;
+  optional fixed64 field_fixed64 = 6;
+  optional fixed32 field_fixed32 = 7;
+  optional bool field_bool = 8;
+  optional string field_string = 9;
+  optional bytes field_bytes = 10;
+  optional uint32 field_uint32 = 11;
+  optional sfixed32 field_sfixed32 = 12;
+  optional sfixed64 field_sfixed64 = 13;
+  optional sint32 field_sint32 = 14;
+  optional sint64 field_sint64 = 15;
+}
+
+message MetadataRepeatedFieldMessage {
+  repeated int64 field_repeated = 1;
+}
+
+message MetadataEnumFieldMessage {
+  enum metadata_enum {
+    A = 1;
+    B = 2;
+    C = 3;
+  }
+  optional metadata_enum field_enum = 1;
+}
+
+message MetadataTypesHierarchyRoot {
+  optional int64 field_int64 = 1;
+  optional MetadataTypesHierarchyCyclic child_1 = 2;
+  optional MetadataTypesHierarchyLeaf child_2 = 3;
+}
+
+message MetadataTypesHierarchyCyclic {
+  optional MetadataTypesHierarchyRoot root = 1;
+  optional MetadataTypesHierarchyLeaf child_1 = 2;
+}
+
+message MetadataTypesHierarchyLeaf {
+  optional string field_string = 1;
+}
