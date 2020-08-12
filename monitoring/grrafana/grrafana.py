@@ -31,7 +31,7 @@ class Grrafana(object):
     try:
       endpoint, values = adapter.match()
       return getattr(self, 'on_' + endpoint)(request, **values)
-    except HTTPException:
+    except HTTPException as e:
       return e
 
   def wsgi_app(self, environ, start_response):
