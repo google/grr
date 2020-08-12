@@ -1,5 +1,6 @@
 import os
-from werkzeug.wrappers import Request, Response, JSONMixin
+from werkzeug.wrappers import Request, Response
+from werkzeug.wrappers.json import JSONMixin
 from werkzeug.routing import Map, Rule
 from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.middleware.shared_data import SharedDataMiddleware
