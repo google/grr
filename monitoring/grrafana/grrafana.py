@@ -43,7 +43,7 @@ class Grrafana(object):
     return self.wsgi_app(environ, start_response)
 
   def on_root(self, request):
-    pass
+    return JSONResponse()
 
   def on_search(self, request):
     pass
