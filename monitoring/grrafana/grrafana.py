@@ -43,10 +43,11 @@ class Grrafana(object):
     return self.wsgi_app(environ, start_response)
 
   def on_root(self, request):
-    return JSONResponse()
+    return Response()
 
   def on_search(self, request):
-    pass
+    response = Response(response='["hello", "hi"]', mimetype="application/json")
+    return response
 
   def on_query(self, request):
     pass
