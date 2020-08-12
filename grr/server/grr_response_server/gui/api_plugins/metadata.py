@@ -339,25 +339,25 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       type_name: str,
       is_array: bool = False
   ) -> Union[SchemaReference, ArraySchema]:
-    """Get a Reference Object that points to a schema definition.
+    """Get a `Reference Object` that points to a schema definition.
 
     All types (including protobuf primitives) are expected to have been
-    previously defined in the `components` field of the root OpenAPI object
+    previously defined in the `components` field of the root `OpenAPI Object`
     and are used via OpenAPI references.
 
     Args:
-      type_name: The name of the type for which an OpenAPI reference object will
-        be created and returned.
+      type_name: The name of the type for which an OpenAPI `Reference Object`
+        will be created and returned.
       is_array: A boolean flag indicating whether the selected type's reference
         object should be wrapped in an OpenAPI array as the items type.
 
     Returns:
-      If the `is_array` argument is set to False, then an OpenAPI reference
-      object representing the path to the actual OpenAPI schema definition of
+      If the `is_array` argument is set to `False`, then an OpenAPI `Reference
+      Object` representing the path to the actual OpenAPI schema definition of
       the selected type.
-      If the `is_array` argument is set to True, then an OpenAPI array schema
-      is constructed that uses for the `items` field an OpenAPI reference object
-      associated with the type's schema.
+      If the `is_array` argument is set to `True`, then an OpenAPI array schema
+      is constructed that uses for the `items` field an OpenAPI `Reference
+      Object` associated with the type's schema.
     """
     if self.schema_objs is None:
       raise AssertionError(
