@@ -9,10 +9,20 @@ from werkzeug.serving import run_simple
 class Grrafana(object):
 
   def __init__(self, config):
-    pass
+    self.url_map = Map([
+    Rule('/', endpoint='root', methods=["GET"]),
+    Rule('/search', endpoint='search', methods=["POST"]),
+    Rule('/query', endpoint='query', methods=["POST"]),
+    Rule('/annotations', endpoint='annotations', methods=["POST"])
+    ])
 
   def dispatch_request(self, request):
-    return Response('Hello World!')
+    adapter = self.url_map.bind_to_environ(request.environ)
+    try:
+      endpoint, values = adapter.match()
+      return getattr(self, 'on_' + endpoint)(request, **values)
+    except HTTPException:
+      return e
 
   def wsgi_app(self, environ, start_response):
     request = Request(environ)
