@@ -45,6 +45,7 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
   assertKeyTruthy(approval, 'id');
   assertKeyTruthy(approval, 'subject');
   assertKeyTruthy(approval, 'reason');
+  assertKeyTruthy(approval, 'requestor');
 
   const {subject} = approval;
   assertKeyTruthy(subject, 'clientId');
@@ -70,5 +71,6 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
     requestedApprovers: approval.notifiedUsers || [],
     // Skip first approver, which is the requestor themselves.
     approvers: (approval.approvers || []).slice(1),
+    requestor: approval.requestor,
   };
 }

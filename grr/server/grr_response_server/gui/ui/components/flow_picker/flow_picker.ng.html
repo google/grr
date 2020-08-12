@@ -17,7 +17,7 @@
   <div *ngIf="flowEntries$ | async as flowEntries">
     <div *ngFor="let category of flowEntries.keys()" class="column">
       <h3 class="mat-h3">{{category}}</h3>
-      <button *ngFor="let entry of flowEntries.get(category)"
+      <button *ngFor="let entry of flowEntries.get(category); trackBy: trackFlowDescriptor"
               mat-flat-button color="primary" type="button"
               [class.faded]="!entry.highlighted"
               (click)="selectFlow(entry.name)">

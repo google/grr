@@ -242,7 +242,7 @@ class ExportConverter(metaclass=MetaclassRegistry):
     super().__init__()
     self.options = options or ExportOptions()
 
-  def Convert(self, metadata, value, token=None):
+  def Convert(self, metadata, value):
     """Converts given RDFValue to other RDFValues.
 
     Metadata object is provided by the caller. It contains basic information
@@ -256,7 +256,6 @@ class ExportConverter(metaclass=MetaclassRegistry):
     Args:
       metadata: ExportedMetadata to be used for conversion.
       value: RDFValue to be converted.
-      token: Security token.
 
     Yields:
       Resulting RDFValues. Empty list is a valid result and means that
@@ -265,7 +264,7 @@ class ExportConverter(metaclass=MetaclassRegistry):
     """
     raise NotImplementedError()
 
-  def BatchConvert(self, metadata_value_pairs, token=None):
+  def BatchConvert(self, metadata_value_pairs):
     """Converts a batch of RDFValues at once.
 
     This is a default non-optimized dumb implementation. Subclasses are
@@ -283,7 +282,6 @@ class ExportConverter(metaclass=MetaclassRegistry):
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
         where metadata is ExportedMetadata to be used for conversion and value
         is an RDFValue to be converted.
-      token: Security token.
 
     Yields:
       Resulting RDFValues. Empty list is a valid result and means that
@@ -291,7 +289,7 @@ class ExportConverter(metaclass=MetaclassRegistry):
       types.
     """
     for metadata, value in metadata_value_pairs:
-      for result in self.Convert(metadata, value, token):
+      for result in self.Convert(metadata, value):
         yield result
 
   @staticmethod
@@ -389,7 +387,7 @@ class DataAgnosticExportConverter(ExportConverter):
 
     return output_class
 
-  def Convert(self, metadata, value, token=None):
+  def Convert(self, metadata, value):
     class_name = self.ExportedClassNameForValue(value)
     try:
       cls = DataAgnosticExportConverter.classes_cache[class_name]
@@ -401,9 +399,9 @@ class DataAgnosticExportConverter(ExportConverter):
     result_obj.Flatten(metadata, value)
     yield result_obj
 
-  def BatchConvert(self, metadata_value_pairs, token=None):
+  def BatchConvert(self, metadata_value_pairs):
     for metadata, value in metadata_value_pairs:
-      for result in self.Convert(metadata, value, token=token):
+      for result in self.Convert(metadata, value):
         yield result
 
 
@@ -499,7 +497,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
       StatEntryToExportedFileConverter.ParseSignedData(hash_obj.signed_data[0],
                                                        result)
 
-  def Convert(self, metadata, stat_entry, token=None):
+  def Convert(self, metadata, stat_entry):
     """Converts StatEntry to ExportedFile.
 
     Does nothing if StatEntry corresponds to a registry entry and not to a file.
@@ -507,13 +505,12 @@ class StatEntryToExportedFileConverter(ExportConverter):
     Args:
       metadata: ExportedMetadata to be used for conversion.
       stat_entry: StatEntry to be converted.
-      token: Security token.
 
     Returns:
       List or generator with resulting RDFValues. Empty list if StatEntry
       corresponds to a registry entry and not to a file.
     """
-    return self.BatchConvert([(metadata, stat_entry)], token=token)
+    return self.BatchConvert([(metadata, stat_entry)])
 
   def _RemoveRegistryKeys(self, metadata_value_pairs):
     """Filter out registry keys to operate on files."""
@@ -582,14 +579,13 @@ class StatEntryToExportedFileConverter(ExportConverter):
 
         yield result
 
-  def BatchConvert(self, metadata_value_pairs, token=None):
+  def BatchConvert(self, metadata_value_pairs):
     """Converts a batch of StatEntry value to ExportedFile values at once.
 
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
         where metadata is ExportedMetadata to be used for conversion and value
         is a StatEntry to be converted.
-      token: Security token:
 
     Yields:
       Resulting ExportedFile values. Empty list is a valid result and means that
@@ -606,7 +602,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
 
   input_rdf_type = rdf_client_fs.StatEntry
 
-  def Convert(self, metadata, stat_entry, token=None):
+  def Convert(self, metadata, stat_entry):
     """Converts StatEntry to ExportedRegistryKey.
 
     Does nothing if StatEntry corresponds to a file and not a registry entry.
@@ -614,7 +610,6 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
     Args:
       metadata: ExportedMetadata to be used for conversion.
       stat_entry: StatEntry to be converted.
-      token: Security token.
 
     Returns:
       List or generator with resulting RDFValues. Empty list if StatEntry
@@ -650,7 +645,7 @@ class NetworkConnectionToExportedNetworkConnectionConverter(ExportConverter):
 
   input_rdf_type = rdf_client_network.NetworkConnection
 
-  def Convert(self, metadata, conn, token=None):
+  def Convert(self, metadata, conn):
     """Converts NetworkConnection to ExportedNetworkConnection."""
 
     result = ExportedNetworkConnection(
@@ -670,7 +665,7 @@ class ProcessToExportedProcessConverter(ExportConverter):
 
   input_rdf_type = rdf_client.Process
 
-  def Convert(self, metadata, process, token=None):
+  def Convert(self, metadata, process):
     """Converts Process to ExportedProcess."""
 
     result = ExportedProcess(
@@ -707,13 +702,14 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
 
   input_rdf_type = rdf_client.Process
 
-  def Convert(self, metadata, process, token=None):
+  def Convert(self, metadata, process):
     """Converts Process to ExportedNetworkConnection."""
 
     conn_converter = NetworkConnectionToExportedNetworkConnectionConverter(
         options=self.options)
-    return conn_converter.BatchConvert(
-        [(metadata, conn) for conn in process.connections], token=token)
+    return conn_converter.BatchConvert([
+        (metadata, conn) for conn in process.connections
+    ])
 
 
 class ProcessToExportedOpenFileConverter(ExportConverter):
@@ -721,7 +717,7 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
 
   input_rdf_type = rdf_client.Process
 
-  def Convert(self, metadata, process, token=None):
+  def Convert(self, metadata, process):
     """Converts Process to ExportedOpenFile."""
 
     for f in process.open_files:
@@ -731,7 +727,7 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
 class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
   input_rdf_type = rdf_client_network.Interface
 
-  def Convert(self, metadata, interface, token=None):
+  def Convert(self, metadata, interface):
     """Converts Interface to ExportedNetworkInterfaces."""
     ip4_addresses = []
     ip6_addresses = []
@@ -758,7 +754,7 @@ class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
 class DNSClientConfigurationToExportedDNSClientConfiguration(ExportConverter):
   input_rdf_type = rdf_client_network.DNSClientConfiguration
 
-  def Convert(self, metadata, config, token=None):
+  def Convert(self, metadata, config):
     """Converts DNSClientConfiguration to ExportedDNSClientConfiguration."""
     result = ExportedDNSClientConfiguration(
         metadata=metadata,
@@ -771,18 +767,18 @@ class ClientSummaryToExportedNetworkInterfaceConverter(
     InterfaceToExportedNetworkInterfaceConverter):
   input_rdf_type = rdf_client.ClientSummary
 
-  def Convert(self, metadata, client_summary, token=None):
+  def Convert(self, metadata, client_summary):
     """Converts ClientSummary to ExportedNetworkInterfaces."""
     sup = super(ClientSummaryToExportedNetworkInterfaceConverter, self)
 
     for interface in client_summary.interfaces:
-      yield next(sup.Convert(metadata, interface, token=token))
+      yield next(sup.Convert(metadata, interface))
 
 
 class ClientSummaryToExportedClientConverter(ExportConverter):
   input_rdf_type = rdf_client.ClientSummary
 
-  def Convert(self, metadata, unused_client_summary, token=None):
+  def Convert(self, metadata, unused_client_summary):
     return [ExportedClient(metadata=metadata)]
 
 
@@ -791,7 +787,7 @@ class BufferReferenceToExportedMatchConverter(ExportConverter):
 
   input_rdf_type = rdf_client.BufferReference
 
-  def Convert(self, metadata, buffer_reference, token=None):
+  def Convert(self, metadata, buffer_reference):
     yield ExportedMatch(
         metadata=metadata,
         offset=buffer_reference.offset,
@@ -827,12 +823,11 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
     return registry_pairs, file_pairs, match_pairs
 
-  def BatchConvert(self, metadata_value_pairs, token=None):
+  def BatchConvert(self, metadata_value_pairs):
     """Convert FileFinder results.
 
     Args:
       metadata_value_pairs: array of ExportedMetadata and rdfvalue tuples.
-      token: ACLToken
 
     Yields:
       ExportedFile, ExportedRegistryKey, or ExportedMatch
@@ -851,7 +846,7 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
   _BATCH_SIZE = 5000
 
-  def _BatchConvert(self, metadata_value_pairs, token=None):
+  def _BatchConvert(self, metadata_value_pairs):
     registry_pairs, file_pairs, match_pairs = self._SeparateTypes(
         metadata_value_pairs)
     for fp_batch in collection.Batch(file_pairs, self._BATCH_SIZE):
@@ -893,16 +888,15 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
 
     # Now export the registry keys
     for result in ConvertValuesWithMetadata(
-        registry_pairs, token=token, options=self.options):
+        registry_pairs, options=self.options):
       yield result
 
     # Now export the grep matches.
-    for result in ConvertValuesWithMetadata(
-        match_pairs, token=token, options=self.options):
+    for result in ConvertValuesWithMetadata(match_pairs, options=self.options):
       yield result
 
-  def Convert(self, metadata, result, token=None):
-    return self.BatchConvert([(metadata, result)], token=token)
+  def Convert(self, metadata, result):
+    return self.BatchConvert([(metadata, result)])
 
 
 class CollectionConverterBase(ExportConverter):
@@ -911,13 +905,12 @@ class CollectionConverterBase(ExportConverter):
 
   BATCH_SIZE = 1000
 
-  def Convert(self, metadata, aff4_collection, token=None):
+  def Convert(self, metadata, aff4_collection):
     if not collection:
       return
 
     for batch in collection.Batch(aff4_collection, self.BATCH_SIZE):
-      converted_batch = ConvertValues(
-          metadata, batch, token=token, options=self.options)
+      converted_batch = ConvertValues(metadata, batch, options=self.options)
       for v in converted_batch:
         yield v
 
@@ -926,7 +919,7 @@ class RDFBytesToExportedBytesConverter(ExportConverter):
 
   input_rdf_type = rdfvalue.RDFBytes
 
-  def Convert(self, metadata, data, token=None):
+  def Convert(self, metadata, data):
     result = ExportedBytes(
         metadata=metadata, data=data.SerializeToBytes(), length=len(data))
     return [result]
@@ -936,7 +929,7 @@ class RDFStringToExportedStringConverter(ExportConverter):
 
   input_rdf_type = rdfvalue.RDFString
 
-  def Convert(self, metadata, data, token=None):
+  def Convert(self, metadata, data):
     return [ExportedString(metadata=metadata, data=data.SerializeToBytes())]
 
 
@@ -972,7 +965,7 @@ class DictToExportedDictItemsConverter(ExportConverter):
     else:
       yield key, d
 
-  def Convert(self, metadata, data, token=None):
+  def Convert(self, metadata, data):
     result = []
     d = data.ToDict()
     for k, v in self._IterateDict(d):
@@ -1006,27 +999,25 @@ class GrrMessageConverter(ExportConverter):
     super().__init__(*args, **kw)
     self.cached_metadata = {}
 
-  def Convert(self, metadata, grr_message, token=None):
+  def Convert(self, metadata, grr_message):
     """Converts GrrMessage into a set of RDFValues.
 
     Args:
       metadata: ExportedMetadata to be used for conversion.
       grr_message: GrrMessage to be converted.
-      token: Security token.
 
     Returns:
       List or generator with resulting RDFValues.
     """
-    return self.BatchConvert([(metadata, grr_message)], token=token)
+    return self.BatchConvert([(metadata, grr_message)])
 
-  def BatchConvert(self, metadata_value_pairs, token=None):
+  def BatchConvert(self, metadata_value_pairs):
     """Converts a batch of GrrMessages into a set of RDFValues at once.
 
     Args:
       metadata_value_pairs: a list or a generator of tuples (metadata, value),
         where metadata is ExportedMetadata to be used for conversion and value
         is a GrrMessage to be converted.
-      token: Security token.
 
     Returns:
       Resulting RDFValues. Empty list is a valid result and means that
@@ -1091,8 +1082,7 @@ class GrrMessageConverter(ExportConverter):
     converted_batch = []
     for dataset in data_by_type.values():
       for converter in dataset["converters"]:
-        converted_batch.extend(
-            converter.BatchConvert(dataset["batch_data"], token=token))
+        converted_batch.extend(converter.BatchConvert(dataset["batch_data"]))
 
     return converted_batch
 
@@ -1100,13 +1090,12 @@ class GrrMessageConverter(ExportConverter):
 class CheckResultConverter(ExportConverter):
   input_rdf_type = checks.CheckResult
 
-  def Convert(self, metadata, checkresult, token=None):
+  def Convert(self, metadata, checkresult):
     """Converts a single CheckResult.
 
     Args:
       metadata: ExportedMetadata to be used for conversion.
       checkresult: CheckResult to be converted.
-      token: Security token.
 
     Yields:
       Resulting ExportedCheckResult. Empty list is a valid result and means that
@@ -1143,16 +1132,11 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
   input_rdf_type = flow_collectors.ArtifactFilesDownloaderResult
 
-  def GetExportedResult(self,
-                        original_result,
-                        converter,
-                        metadata=None,
-                        token=None):
+  def GetExportedResult(self, original_result, converter, metadata=None):
     """Converts original result via given converter.."""
 
     exported_results = list(
-        converter.Convert(
-            metadata or ExportedMetadata(), original_result, token=token))
+        converter.Convert(metadata or ExportedMetadata(), original_result))
 
     if not exported_results:
       raise ExportError("Got 0 exported result when a single one "
@@ -1175,7 +1159,7 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
         rdf_paths.PathSpec.PathType.OS, rdf_paths.PathSpec.PathType.TSK
     ])
 
-  def BatchConvert(self, metadata_value_pairs, token=None):
+  def BatchConvert(self, metadata_value_pairs):
     metadata_value_pairs = list(metadata_value_pairs)
 
     results = []
@@ -1189,16 +1173,14 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
         exported_registry_key = self.GetExportedResult(
             original_result,
             StatEntryToExportedRegistryKeyConverter(),
-            metadata=metadata,
-            token=token)
+            metadata=metadata)
         result = ExportedArtifactFilesDownloaderResult(
             metadata=metadata, original_registry_key=exported_registry_key)
       elif self.IsFileStatEntry(original_result):
         exported_file = self.GetExportedResult(
             original_result,
             StatEntryToExportedFileConverter(),
-            metadata=metadata,
-            token=token)
+            metadata=metadata)
         result = ExportedArtifactFilesDownloaderResult(
             metadata=metadata, original_file=exported_file)
       else:
@@ -1218,7 +1200,7 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
     files_batch = [(r.metadata, f) for r, f in results if f is not None]
     files_converter = StatEntryToExportedFileConverter(options=self.options)
-    converted_files = files_converter.BatchConvert(files_batch, token=token)
+    converted_files = files_converter.BatchConvert(files_batch)
     converted_files_map = dict((f.urn, f) for f in converted_files)
 
     for result, downloaded_file in results:
@@ -1242,14 +1224,13 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
     #   value is a StatEntry. However, original value may be anything, and no
     #   matter what type it has, we want it in the export output.
     original_pairs = [(m, v.original_result) for m, v in metadata_value_pairs]
-    for result in ConvertValuesWithMetadata(
-        original_pairs, token=token, options=None):
+    for result in ConvertValuesWithMetadata(original_pairs, options=None):
       yield result
 
-  def Convert(self, metadata, value, token=None):
+  def Convert(self, metadata, value):
     """Converts a single ArtifactFilesDownloaderResult."""
 
-    for r in self.BatchConvert([(metadata, value)], token=token):
+    for r in self.BatchConvert([(metadata, value)]):
       yield r
 
 
@@ -1269,7 +1250,7 @@ class SoftwarePackageConverter(ExportConverter):
           ExportedSoftwarePackage.InstallState.UNKNOWN
   }
 
-  def Convert(self, metadata, software_package, token=None):
+  def Convert(self, metadata, software_package):
     yield ExportedSoftwarePackage(
         metadata=metadata,
         name=software_package.name,
@@ -1287,7 +1268,7 @@ class SoftwarePackagesConverter(ExportConverter):
 
   input_rdf_type = rdf_client.SoftwarePackages
 
-  def Convert(self, metadata, software_packages, token=None):
+  def Convert(self, metadata, software_packages):
     conv = SoftwarePackageConverter(options=self.options)
     for p in software_packages.packages:
       for r in conv.Convert(metadata, p):
@@ -1298,14 +1279,13 @@ class YaraProcessScanMatchConverter(ExportConverter):
   """Converter for YaraProcessScanMatch."""
   input_rdf_type = rdf_memory.YaraProcessScanMatch
 
-  def Convert(self,
-              metadata: ExportedMetadata,
-              value: rdf_memory.YaraProcessScanMatch,
-              token=None) -> Iterator[ExportedYaraProcessScanMatch]:
+  def Convert(
+      self, metadata: ExportedMetadata, value: rdf_memory.YaraProcessScanMatch
+  ) -> Iterator[ExportedYaraProcessScanMatch]:
     """See base class."""
 
     conv = ProcessToExportedProcessConverter(options=self.options)
-    process = list(conv.Convert(metadata, value.process, token=token))[0]
+    process = list(conv.Convert(metadata, value.process))[0]
 
     yara_matches = value.match or [rdf_memory.YaraMatch()]
     for yara_match in yara_matches:
@@ -1324,14 +1304,15 @@ class ProcessMemoryErrorConverter(ExportConverter):
   """Converter for ProcessMemoryError."""
   input_rdf_type = rdf_memory.ProcessMemoryError
 
-  def Convert(self,
-              metadata: ExportedMetadata,
-              value: rdf_memory.ProcessMemoryError,
-              token=None) -> Iterator[ExportedProcessMemoryError]:
+  def Convert(
+      self,
+      metadata: ExportedMetadata,
+      value: rdf_memory.ProcessMemoryError,
+  ) -> Iterator[ExportedProcessMemoryError]:
     """See base class."""
 
     conv = ProcessToExportedProcessConverter(options=self.options)
-    process = next(iter(conv.Convert(metadata, value.process, token=token)))
+    process = next(iter(conv.Convert(metadata, value.process)))
     yield ExportedProcessMemoryError(
         metadata=metadata, process=process, error=value.error)
 
@@ -1385,8 +1366,7 @@ class OsqueryExportConverter(ExportConverter):
     cls._rdf_cls_cache[rdf_cls_name] = rdf_cls
     return rdf_cls
 
-  def Convert(self, metadata, table, token=None):
-    del token  # Unused.
+  def Convert(self, metadata, table):
     precondition.AssertType(table, rdf_osquery.OsqueryTable)
 
     rdf_cls = self._RDFClass(table)
@@ -1458,14 +1438,13 @@ def GetMetadata(client_id, client_full_info):
   return metadata
 
 
-def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
+def ConvertValuesWithMetadata(metadata_value_pairs, options=None):
   """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
   Args:
     metadata_value_pairs: Tuples of (metadata, rdf_value), where metadata is an
       instance of ExportedMetadata and rdf_value is an RDFValue subclass
       instance to be exported.
-    token: Security token.
     options: rdfvalue.ExportOptions instance that will be passed to
       ExportConverters.
 
@@ -1494,14 +1473,14 @@ def ConvertValuesWithMetadata(metadata_value_pairs, token=None, options=None):
 
     converters = [cls(options) for cls in converters_classes]
     for converter in converters:
-      for result in converter.BatchConvert(metadata_values_group, token=token):
+      for result in converter.BatchConvert(metadata_values_group):
         yield result
 
   if no_converter_found_error is not None:
     raise NoConverterFound(no_converter_found_error)
 
 
-def ConvertValues(default_metadata, values, token=None, options=None):
+def ConvertValues(default_metadata, values, options=None):
   """Converts a set of RDFValues into a set of export-friendly RDFValues.
 
   Args:
@@ -1509,7 +1488,6 @@ def ConvertValues(default_metadata, values, token=None, options=None):
       about where the values come from. This metadata will be passed to
       exporters.
     values: Values to convert. They should be of the same type.
-    token: Security token.
     options: rdfvalue.ExportOptions instance that will be passed to
       ExportConverters.
 
@@ -1523,4 +1501,4 @@ def ConvertValues(default_metadata, values, token=None, options=None):
     NoConverterFound: in case no suitable converters were found for the values.
   """
   batch_data = [(default_metadata, obj) for obj in values]
-  return ConvertValuesWithMetadata(batch_data, token=token, options=options)
+  return ConvertValuesWithMetadata(batch_data, options=options)

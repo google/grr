@@ -99,4 +99,8 @@ export class SearchBox implements AfterViewInit, OnDestroy {
   selectClient(fqdn: string) {
     this.querySubmitted.emit(fqdn);
   }
+
+  trackClient(index: number, client: Client) {
+    return client.clientId;
+  }
 }

@@ -1294,6 +1294,15 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
+  @Category("Settings")
+  @ResultType(api_config.ApiUiConfig)
+  @Http("GET", "/api/config/ui")
+  @NoAuditLogRequired()
+  def GetUiConfig(self, args, token=None):
+    """Get configuration values for AdminUI (e.g. heading name, help url)."""
+
+    raise NotImplementedError()
+
   # Reflection methods.
   # ==================
   #

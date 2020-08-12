@@ -233,8 +233,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
       metadata_items = self._GetMetadataForClients([gm.source for gm in batch])
       batch_with_metadata = zip(metadata_items, [gm.payload for gm in batch])
 
-      for result in converter.BatchConvert(
-          batch_with_metadata, token=self.token):
+      for result in converter.BatchConvert(batch_with_metadata):
         yield result
 
   def ProcessValues(self, value_type, values_generator_fn):

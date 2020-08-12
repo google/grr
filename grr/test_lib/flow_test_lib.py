@@ -291,7 +291,7 @@ class MockClient(object):
         request_id=message.response_id,
         request=message.payload)
 
-    handler_cls(token=self.token).ProcessMessages([handler_request])
+    handler_cls().ProcessMessages([handler_request])
 
   def PushToStateQueue(self, message, **kw):
     """Push given message to the state queue."""

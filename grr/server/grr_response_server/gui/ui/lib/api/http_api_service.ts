@@ -4,7 +4,7 @@ import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {from, Observable, throwError} from 'rxjs';
 import {catchError, map, mergeMap, shareReplay, switchMap, take} from 'rxjs/operators';
 
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -242,6 +242,13 @@ export class HttpApiService {
     return this.http.post<ApiFlow>(url, {});
   }
 
+  /** Unschedules a previously scheduled flow. */
+  unscheduleFlow(clientId: string, scheduledFlowId: string): Observable<{}> {
+    const url =
+        `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}`;
+    return this.http.delete<{}>(url, {});
+  }
+
   /** Fetches the current user. */
   fetchCurrentUser(): Observable<ApiGrrUser> {
     return this.http.get<ApiGrrUser>(`${URL_PREFIX}/users/me`);
@@ -262,6 +269,10 @@ export class HttpApiService {
   getFlowFilesArchiveUrl(clientId: string, flowId: string) {
     return `${URL_PREFIX}/clients/${clientId}/flows/${
         flowId}/results/files-archive`;
+  }
+
+  fetchUiConfig(): Observable<ApiUiConfig> {
+    return this.http.get<ApiUiConfig>(`${URL_PREFIX}/config/ui`);
   }
 }
 

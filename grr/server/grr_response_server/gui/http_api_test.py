@@ -6,8 +6,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from urllib import parse as urlparse
-
 from absl import app
 import mock
 
@@ -237,13 +235,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     api_auth_manager.InitializeApiAuthManager()
 
     self.request_handler = http_api.HttpRequestHandler()
-
-  def testBuildToken(self):
-    request = self._CreateRequest("POST", "/test_sample/some/path")
-    request.headers["X-Grr-Reason"] = urlparse.quote(
-        "区最 trailing space ".encode("utf-8"))
-    token = self.request_handler.BuildToken(request, 20)
-    self.assertEqual(token.reason, "区最 trailing space ")
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(

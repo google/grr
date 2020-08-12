@@ -185,7 +185,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testGetCollectedTimelineRaisesIfFlowIsNotFound(self):
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=self.client_id, flow_id="F:123456")
+        client_id=self.client_id, flow_id="12345678")
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.router.GetCollectedTimeline(args, token=self.token)
 

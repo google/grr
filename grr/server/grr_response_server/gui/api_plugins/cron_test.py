@@ -66,14 +66,13 @@ class CronJobsTestMixin(object):
                     periodicity="1d",
                     lifetime="7d",
                     description="",
-                    enabled=True,
-                    token=None):
+                    enabled=True):
     args = rdf_cronjobs.CreateCronJobArgs(
         flow_name=flow_name,
         description=description,
         frequency=periodicity,
         lifetime=lifetime)
-    return cronjobs.CronManager().CreateJob(args, enabled=enabled, token=token)
+    return cronjobs.CronManager().CreateJob(args, enabled=enabled)
 
 
 class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -103,17 +102,17 @@ class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.handler = cron_plugin.ApiDeleteCronJobHandler()
 
     self.cron_job_id = self.CreateCronJob(
-        flow_name=file_finder.FileFinder.__name__, token=self.token)
+        flow_name=file_finder.FileFinder.__name__)
 
   def testDeletesCronFromCollection(self):
-    jobs = list(cronjobs.CronManager().ListJobs(token=self.token))
+    jobs = list(cronjobs.CronManager().ListJobs())
     self.assertLen(jobs, 1)
     self.assertEqual(jobs[0], self.cron_job_id)
 
     args = cron_plugin.ApiDeleteCronJobArgs(cron_job_id=self.cron_job_id)
     self.handler.Handle(args, token=self.token)
 
-    jobs = list(cronjobs.CronManager().ListJobs(token=self.token))
+    jobs = list(cronjobs.CronManager().ListJobs())
     self.assertEmpty(jobs)
 
 

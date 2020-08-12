@@ -189,6 +189,29 @@ class ApiGrrBinaryTestMixin(object):
           code.encode("utf-8"), aff4_path=upload_path)
 
 
+class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetUiConfigHandler."""
+
+  def testHandlesConfigOption(self):
+    input_dict = {
+        "AdminUI.heading": "test heading",
+        "AdminUI.report_url": "test report url",
+        "AdminUI.help_url": "test help url",
+        "AdminUI.profile_image_url": "test profile image url",
+        "Source.version_string": "1.2.3.4",
+    }
+
+    with test_lib.ConfigOverrider(input_dict):
+      request = mock.MagicMock()
+      result = config_plugin.ApiGetUiConfigHandler().Handle(request)
+
+    self.assertEqual(result.heading, "test heading")
+    self.assertEqual(result.report_url, "test report url")
+    self.assertEqual(result.help_url, "test help url")
+    self.assertEqual(result.grr_version, "1.2.3.4")
+    self.assertEqual(result.profile_image_url, "test profile image url")
+
+
 def main(argv):
   test_lib.main(argv)
 

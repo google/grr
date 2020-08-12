@@ -24,6 +24,7 @@ function validApproval(): ClientApproval {
   return {
     approvalId: '444',
     clientId: 'C.1234',
+    requestor: 'testuser',
     reason: 'Approved.',
     status: {type: 'valid'},
     requestedApprovers: ['rick'],

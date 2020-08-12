@@ -40,6 +40,6 @@ describe('Home Component', () => {
     componentInstance.onQuerySubmitted('foo');
 
     const router: Router = TestBed.inject(Router);
-    expect(router.navigate).toHaveBeenCalledWith(['v2/client-search', 'foo']);
+    expect(router.navigate).toHaveBeenCalledWith(['/client-search', 'foo']);
   });
 });

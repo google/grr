@@ -264,3 +264,24 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
         filename=binary_urn.Basename(),
         content_generator=chunk_iterator,
         content_length=binary_size)
+
+
+class ApiUiConfig(rdf_structs.RDFProtoStruct):
+  protobuf = config_pb2.ApiUiConfig
+
+
+class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
+  """Returns config values for AdminUI (e.g. heading name, help url)."""
+
+  result_type = ApiUiConfig
+
+  def Handle(self, args, token=None):
+    del args, token  # Unused.
+
+    return ApiUiConfig(
+        heading=config.CONFIG["AdminUI.heading"],
+        report_url=config.CONFIG["AdminUI.report_url"],
+        help_url=config.CONFIG["AdminUI.help_url"],
+        grr_version=config.CONFIG["Source.version_string"],
+        profile_image_url=config.CONFIG["AdminUI.profile_image_url"],
+    )

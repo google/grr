@@ -216,7 +216,7 @@ class NTFSFile(vfs_base.VFSHandler):
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
       # pathspec.
-      raw_pathspec, corrected_path = client_utils.GetRawDevice(component.path)
+      raw_pathspec, corrected_path = client_utils.GetRawDevice(component.path)  # pytype: disable=attribute-error
 
       # Insert the raw device before the component in the pathspec and correct
       # the path

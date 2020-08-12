@@ -782,6 +782,10 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.GetGrrBinaryBlob(args, token=token)
 
+  def GetUiConfig(self, args, token=None):
+    # Everybody can read the ui config.
+    return self.delegate.GetUiConfig(args, token=token)
+
   # Reflection methods.
   # ==================
   #

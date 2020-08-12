@@ -6,7 +6,7 @@
       </div>
       <div class="chips">
         <mat-chip-list>
-          <mat-chip *ngFor="let label of client.labels">
+          <mat-chip *ngFor="let label of client.labels; trackBy: trackLabel">
             {{label.name}}
           </mat-chip>
         </mat-chip-list>

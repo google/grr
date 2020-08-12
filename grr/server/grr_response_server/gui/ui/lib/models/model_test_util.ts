@@ -3,7 +3,7 @@
 
 import {Client} from '@app/lib/models/client';
 
-import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowState} from './flow';
+import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from './flow';
 
 
 function randomHex(length: number): string {
@@ -58,4 +58,17 @@ export function newFlowDescriptor(args: Partial<FlowDescriptor> = {}):
 export function newFlowDescriptorMap(...fds: Array<Partial<FlowDescriptor>>):
     Map<string, FlowDescriptor> {
   return new Map(fds.map(newFlowDescriptor).map(fd => ([fd.name, fd])));
+}
+
+export function newScheduledFlow(args: Partial<ScheduledFlow> = {}):
+    ScheduledFlow {
+  return {
+    scheduledFlowId: randomHex(8),
+    clientId: `C.${randomHex(16)}`,
+    creator: 'rsanchez',
+    flowName: 'FileFinder',
+    flowArgs: {},
+    createTime: new Date(Date.now() - 60000),
+    ...args,
+  };
 }
