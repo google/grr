@@ -8,6 +8,22 @@ from werkzeug.middleware.shared_data import SharedDataMiddleware
 from werkzeug.utils import redirect
 from werkzeug.serving import run_simple
 
+from absl import app
+from absl import flags
+
+from grr_response_core.config import server as config_server
+from grr_response_server import fleetspeak_connector
+from grr_response_server import server_startup
+from grr_response_core import config
+from grr_response_core.config import contexts
+
+
+flags.DEFINE_bool(
+  "version",
+  default=False,
+  allow_override=True,
+  help="Print the GRR console version number and exit immediately.")
+
 
 class JSONRequest(JSONMixin, Request):
   pass
@@ -67,10 +83,16 @@ class Grrafana(object):
 def fetch_available_metrics():
   return '["hello", "hi"]'
 
-def create_app():
-  app = Grrafana({})
-  return app
+def main(argv):
+  del argv
+  if flags.FLAGS.version:
+    print("GRRafana server {}".format(config_server.VERSION["packageversion"]))
+    return
+  config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT, "Context applied when running GRRafana server.")
+  server_startup.Init()
+  fleetspeak_connector.Init()
+  run_simple('127.0.0.1', 5000, Grrafana({}), use_debugger=True, use_reloader=True)
+
 
 if __name__ == '__main__':
-  app = create_app()
-  run_simple('127.0.0.1', 5000, app, use_debugger=True, use_reloader=True)
+  app.run(main)
