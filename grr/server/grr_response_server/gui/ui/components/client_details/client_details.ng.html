@@ -135,7 +135,7 @@
       <button
         *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-more'"
         mat-button color="primary" (click)="currentNumUsersShown = client.users.length">
-          Show {{client.users.length - currentNumUsersShown}} more users <mat-icon>keyboard_arrow_down</mat-icon>
+          Show {{client.users.length - currentNumUsersShown}} more user<ng-template [ngIf]="client.users.length - currentNumUsersShown > 1">s</ng-template> <mat-icon>keyboard_arrow_down</mat-icon>
       </button>
       <button
         *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-less'"
@@ -183,7 +183,7 @@
       <button
         *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-more'"
         mat-button color="primary" (click)="currentNumInterfacesShown = client.networkInterfaces.length">
-          Show {{client.networkInterfaces.length - currentNumInterfacesShown}} more network interfaces <mat-icon>keyboard_arrow_down</mat-icon>
+          Show {{client.networkInterfaces.length - currentNumInterfacesShown}} more network interface<ng-template [ngIf]="client.networkInterfaces.length - currentNumInterfacesShown > 1">s</ng-template><mat-icon>keyboard_arrow_down</mat-icon>
       </button>
       <button
         *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-less'"
@@ -258,7 +258,7 @@
       <button
         *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-more'"
         mat-button color="primary" (click)="currentNumVolumesShown = client.volumes.length">
-          Show {{client.volumes.length - currentNumVolumesShown}} more storage volumes <mat-icon>keyboard_arrow_down</mat-icon>
+          Show {{client.volumes.length - currentNumVolumesShown}} more storage volume<ng-template [ngIf]="client.volumes.length - currentNumVolumesShown > 1">s</ng-template><mat-icon>keyboard_arrow_down</mat-icon>
       </button>
       <button
         *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-less'"
