@@ -126,4 +126,4 @@ def GetAvailableMetricsFromFleetspeak():
   res = fleetspeak_connector.CONN.outgoing._stub.GetAvailableMetrics(fs_common_pb2.Message())
   if not res:
     return []
-  return res.targets
+  return res

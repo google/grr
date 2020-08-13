@@ -7,6 +7,7 @@ from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from werkzeug.utils import redirect
 from werkzeug.serving import run_simple
+from google.protobuf.json_format import MessageToDict
 
 from absl import app
 from absl import flags
@@ -64,7 +65,8 @@ class Grrafana(object):
     return JSONResponse()
 
   def on_search(self, request):
-    response = fetch_available_metrics()
+    response = json.dumps(MessageToDict(fetch_available_metrics())["targets"])
+    # print(response["targets"])
     return JSONResponse(response=response, mimetype="application/json")
 
   def on_query(self, request):
