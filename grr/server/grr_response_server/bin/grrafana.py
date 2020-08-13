@@ -13,6 +13,7 @@ from absl import flags
 
 from grr_response_core.config import server as config_server
 from grr_response_server import fleetspeak_connector
+from grr_response_server import fleetspeak_utils
 from grr_response_server import server_startup
 from grr_response_core import config
 from grr_response_core.config import contexts
@@ -81,7 +82,7 @@ class Grrafana(object):
     pass
 
 def fetch_available_metrics():
-  return '["hello", "hi"]'
+  return fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
 
 def main(argv):
   del argv

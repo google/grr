@@ -123,8 +123,7 @@ def GetAvailableMetricsFromFleetspeak():
   Returns:
     A list of metrics that can be retrieved from Fleetspeak.
   """
-  res = fleetspeak_connector.CONN.outgoing.ListClients(
-      admin_pb2.GetAvailableMetricsRequest(client_ids=limit))
+  res = fleetspeak_connector.CONN.outgoing._stub.GetAvailableMetrics(fs_common_pb2.Message())
   if not res:
-      return []
-  return res.metrics
+    return []
+  return res.targets
