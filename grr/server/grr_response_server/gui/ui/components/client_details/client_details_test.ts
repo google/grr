@@ -41,7 +41,7 @@ describe('Client Details Component', () => {
       ],
       age: new Date(2020, 2, 1),
     }),
-  ]
+  ];
 
   beforeEach(async(() => {
     paramsSubject = new Subject();
@@ -130,36 +130,163 @@ describe('Client Details Component', () => {
        expect(text).not.toContain('foo.unknown-first');
      }));
 
-  it('getClientVersions() translates snapshots into client changes', () => {
-    const snapshots = [
-      newClient({
-        clientId: 'C.1234',
-        fleetspeakEnabled: false,
-        age: new Date(2020, 2, 2),
-      }),
-      newClient({
-        clientId: 'C.1234',
-        fleetspeakEnabled: true,
-        age: new Date(2020, 1, 1),
-      })
-    ];
+  it('getClientVersions() correctly translates snapshots into client changes',
+     () => {
+       const snapshots = [
+         // Client created
+         newClient({
+           clientId: 'C.1234',
+           age: new Date(2020, 1, 1),
+         }),
+         // 3 User entries added
+         newClient({
+           clientId: 'C.1234',
+           users: [
+             {username: 'newUser1'},
+             {username: 'newUser2'},
+             {username: 'newUser3'},
+           ],
+           age: new Date(2020, 1, 2),
+         }),
+         // Oner User full name updated, One User home directory updated
+         newClient({
+           clientId: 'C.1234',
+           users: [
+             {username: 'newUser1', fullName: 'new User1 fullname'},
+             {username: 'newUser2', homedir: 'homedir2'},
+             {username: 'newUser3', fullName: 'new User3 fullname'},
+           ],
+           age: new Date(2020, 1, 3),
+         }),
+         // One User added, One User home directory updated
+         newClient({
+           clientId: 'C.1234',
+           users: [
+             {username: 'newUser1', fullName: 'new User1 fullname'},
+             {username: 'newUser2', homedir: 'homedir2-change'},
+             {username: 'newUser3', fullName: 'new User3 fullname'},
+             {username: 'newUser4', fullName: 'new User4 fullname'},
+           ],
+           age: new Date(2020, 1, 4),
+         }),
+         // 4 User entries deleted
+         newClient({
+           clientId: 'C.1234',
+           users: [],
+           age: new Date(2020, 1, 5),
+         }),
+         // No changes besides non-relevant properties (e.g. age)
+         newClient({
+           clientId: 'C.1234',
+           users: [],
+           age: new Date(2020, 1, 6),
+         }),
+         // One Network interface added
+         newClient({
+           clientId: 'C.1234',
+           users: [],
+           networkInterfaces: [
+             {
+               interfaceName: 'lo',
+               macAddress: '',
+               addresses: [
+                 {
+                   addressType: 'IPv4',
+                   ipAddress: '1.2.3.4',
+                 },
+               ],
+             },
+           ],
+           age: new Date(2020, 1, 7),
+         }),
+         // One IP address added, One IP address updated
+         newClient({
+           clientId: 'C.1234',
+           users: [],
+           networkInterfaces: [
+             {
+               interfaceName: 'lo',
+               macAddress: '',
+               addresses: [
+                 {
+                   addressType: 'IPv4',
+                   ipAddress: '1.2.3.40',
+                 },
+                 {
+                   addressType: 'IPv4',
+                   ipAddress: '127.0.0.1',
+                 },
+               ],
+             },
+           ],
+           age: new Date(2020, 1, 7),
+         }),
+         // More than 3 changes => X new changes
+         newClient({
+           clientId: 'C.1234',
+           users: [
+             {username: 'foo'},
+           ],
+           memorySize: BigInt(123),
+           agentInfo: {
+             clientName: 'GRR',
+           },
+           osInfo: {
+             system: 'linux',
+           },
+           age: new Date(2020, 1, 8),
+         }),
+       ];
 
-    const expectedClientChanges = [
-      {
-        client: snapshots[0],
-        changes: ['Client updated'],
-      },
-      {
-        client: snapshots[1],
-        changes: ['Client created'],
-      },
-    ];
+       const expectedClientChanges = [
+         {
+           client: snapshots[0],
+           changes: ['Client created'],
+         },
+         {
+           client: snapshots[1],
+           changes: ['3 User entries added'],
+         },
+         {
+           client: snapshots[2],
+           changes: [
+             '2 User full name entries added', 'One User home directory added'
+           ],
+         },
+         {
+           client: snapshots[3],
+           changes: ['One User home directory updated', 'One User added'],
+         },
+         {
+           client: snapshots[4],
+           changes: ['4 User entries deleted'],
+         },
+         // Next snapshot is identical to the one before, so it is skipped
+         {
+           client: snapshots[6],
+           changes: ['One Network interface added'],
+         },
+         {
+           client: snapshots[7],
+           changes: ['One Network address added', 'One IP address updated'],
+         },
+         {
+           client: snapshots[8],
+           changes: ['5 new changes'],
+         },
+       ].reverse();
 
-    const component = TestBed.createComponent(ClientDetails).componentInstance;
-    const clientChanges = component.getClientVersions(snapshots);
+       const component =
+           TestBed.createComponent(ClientDetails).componentInstance;
+       const clientChanges = component.getClientVersions(snapshots.reverse());
 
-    expect(clientChanges).toEqual(expectedClientChanges);
-  });
+       expect(
+           clientChanges.map(change => {change.client, change.changes.sort()}))
+           .toEqual(expectedClientChanges.map(expectedChange => {
+             expectedChange.client,
+             expectedChange.changes.sort()
+           }));
+     });
 
   it('getClientVersions() reduces sequences of identical snapshots to the oldest snapshot',
      () => {

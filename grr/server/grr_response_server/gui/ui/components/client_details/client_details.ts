@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {Client} from '@app/lib/models/client';
-import {diff} from 'deep-diff';
+import {diff, Diff} from 'deep-diff';
 import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
@@ -25,6 +25,55 @@ export class ClientDetails implements OnInit, OnDestroy {
   readonly INITIAL_NUM_USERS_SHOWN = 1;
   readonly INITIAL_NUM_INTERFACES_SHOWN = 3;
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
+
+  private static readonly ENTRY_LABEL_MAP = new Map([
+    ['clientId', 'Client ID'],
+    ['labels', 'Label'],
+    ['osInfo', 'OS Info'],
+    ['osInfo.system', 'System type'],
+    ['osInfo.release', 'OS release'],
+    ['osInfo.version', 'OS version'],
+    ['osInfo.kernel', 'Kernel version'],
+    ['osInfo.installDate', 'OS install date'],
+    ['osInfo.machine', 'System machine type'],
+    ['memorySize', 'Memory size'],
+    ['knowledgeBase.fqdn', 'FQDN'],
+    ['knowledgeBase.osMajorVersion', 'OS major version'],
+    ['knowledgeBase.osMinorVersion', 'OS minor version'],
+    ['users', 'User'],
+    ['users.username', 'Username'],
+    ['users.fullName', 'User full name'],
+    ['users.lastLogon', 'User last logon'],
+    ['users.homedir', 'User home directory'],
+    ['users.uid', 'User UID'],
+    ['users.gid', 'User GID'],
+    ['users.shell', 'User shell'],
+    ['networkInterfaces', 'Network interface'],
+    ['networkInterfaces.interfaceName', 'Network interface name'],
+    ['networkInterfaces.macAddress', 'MAC address'],
+    ['networkInterfaces.addresses', 'Network address'],
+    ['networkInterfaces.addresses.ipAddress', 'IP address'],
+    ['volumes', 'Volume'],
+    ['volumes.windowsDetails', 'Volume details'],
+    ['volumes.windowsDetails.driveLetter', 'Volume letter'],
+    ['volumes.windowsDetails.attributes', 'Volume attributes'],
+    ['volumes.windowsDetails.driveType', 'Volume type'],
+    ['volumes.unixDetails', 'Volume details'],
+    ['volumes.unixDetails.mountPoint', 'Volume mount point'],
+    ['volumes.unixDetails.mountOptions', 'Volume mount options'],
+    ['volumes.name', 'Volume name'],
+    ['volumes.devicePath', 'Volume device path'],
+    ['volumes.fileSystemType', 'Volume filesystem type'],
+    ['volumes.totalSize', 'Volume size'],
+    ['volumes.freeSpace', 'Volume free space'],
+    ['volumes.bytesPerSector', 'Volume bytes per sector'],
+    ['volumes.creationTime', 'Volume creation time'],
+    ['agentInfo.clientName', 'GRR agent name'],
+    ['agentInfo.clientVersion', 'GRR agent version'],
+    ['agentInfo.buildTime', 'GRR agent build time'],
+    ['agentInfo.clientBinaryName', 'GRR agent binary name'],
+    ['agentInfo.clientDescription', 'GRR agent description'],
+  ]);
 
   private readonly id$ = this.route.paramMap.pipe(
       map(params => params.get('id')),
@@ -56,7 +105,6 @@ export class ClientDetails implements OnInit, OnDestroy {
   getAccordionButtonState(
       totalNumElements: number, currentMaxNumElementsShown: number,
       initialMaxNumElementsShown: number): string {
-
     if (totalNumElements > currentMaxNumElementsShown) {
       return 'show-more';
     } else if (totalNumElements <= initialMaxNumElementsShown) {
@@ -65,24 +113,80 @@ export class ClientDetails implements OnInit, OnDestroy {
     return 'show-less';
   }
 
-  static getChange(current: Client, old?: Client): string[]|undefined {
+  /**
+   * Returns the number of entries changed and a list of the aggregated changes
+   * descriptions (e.g. "2 users added")
+   */
+  static getDiffDescriptions(diff?: Diff<Client>[]): [number, string[]] {
+    if (diff === undefined) {
+      return [0, []];
+    }
+
+    let added: Map<string, number> = new Map();
+    let deleted: Map<string, number> = new Map();
+    let updated: Map<string, number> = new Map();
+    let diffDescriptions = [] as string[];
+    let numChanges = 0;
+
+    const classifyDiffItem = function(element: Diff<Client>) {
+      const path =
+          element.path?.filter(val => typeof val === 'string').join('.');
+      if (path === undefined) return;
+
+      const label = ClientDetails.ENTRY_LABEL_MAP.get(path);
+      if (label === undefined) return;
+
+      switch (element.kind) {
+        case 'N':
+          added.set(label, (added.get(label) ?? 0) + 1);
+          break;
+        case 'D':
+          deleted.set(label, (deleted.get(label) ?? 0) + 1);
+          break;
+        case 'A':
+          classifyDiffItem(
+              {...element.item, path: element.item.path ?? element.path});
+          break;
+        default:
+          updated.set(label, (updated.get(label) ?? 0) + 1);
+      }
+    };
+
+    diff.forEach(classifyDiffItem);
+
+    const addToChanges = function(
+        classMap: Map<string, number>, changeKeyword: string) {
+      classMap.forEach((occurances, label) => {
+        if (occurances === 1) {
+          diffDescriptions.push(`One ${label} ${changeKeyword}`);
+        } else {
+          diffDescriptions.push(
+              `${occurances} ${label} entries ${changeKeyword}`);
+        }
+        numChanges += occurances;
+      });
+    };
+
+    addToChanges(added, 'added');
+    addToChanges(deleted, 'deleted');
+    addToChanges(updated, 'updated');
+
+    return [numChanges, diffDescriptions];
+  }
+
+  static getSnapshotChanges(current: Client, old?: Client): string[] {
     if (old === undefined) {
       return ['Client created'];
     }
 
-    let difference = diff(old, current);
+    const diffDescriptions =
+        ClientDetails.getDiffDescriptions(diff(old, current));
 
-    // Client's snapshot `age` property doesn't count as a real change
-    difference = difference?.filter(
-        (diffElem) =>
-            diffElem.path !== undefined && diffElem.path[0] !== 'age');
-
-    // If no difference found between snapshots
-    if (difference === undefined || difference.length === 0) {
-      return undefined;
+    if (diffDescriptions[1].length > 3) {
+      return [`${diffDescriptions[0]} new changes`]
     }
 
-    return ['Client updated']
+    return diffDescriptions[1];
   }
 
   /**
@@ -95,9 +199,9 @@ export class ClientDetails implements OnInit, OnDestroy {
     let clientChanges: ClientVersion[] = [];
 
     for (let i = 0; i < clientSnapshots.length; i++) {
-      const clientChange =
-          ClientDetails.getChange(clientSnapshots[i], clientSnapshots[i + 1]);
-      if (clientChange !== undefined) {
+      const clientChange = ClientDetails.getSnapshotChanges(
+          clientSnapshots[i], clientSnapshots[i + 1]);
+      if (clientChange.length !== 0) {
         clientChanges.push({
           client: clientSnapshots[i],
           changes: clientChange,
