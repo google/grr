@@ -112,3 +112,19 @@ def GetLabelsFromFleetspeak(client_id):
       grr_labels.append(fs_label.label)
 
   return grr_labels
+
+
+def GetAvailableMetricsFromFleetspeak():
+  """Returns available metrics of Fleetspeak-enabled database.
+
+  Those available metrics are the client resource usage records which are
+  being collected by Fleetspeak.
+
+  Returns:
+    A list of metrics that can be retrieved from Fleetspeak.
+  """
+  res = fleetspeak_connector.CONN.outgoing.ListClients(
+      admin_pb2.GetAvailableMetricsRequest(client_ids=limit))
+  if not res:
+      return []
+  return res.metrics
