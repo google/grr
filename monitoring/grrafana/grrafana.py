@@ -1,4 +1,5 @@
 import os
+import json
 from werkzeug.wrappers import Request, Response
 from werkzeug.wrappers.json import JSONMixin
 from werkzeug.routing import Map, Rule
@@ -43,14 +44,22 @@ class Grrafana(object):
     return self.wsgi_app(environ, start_response)
 
   def on_root(self, request):
-    return Response()
+    return JSONResponse()
 
   def on_search(self, request):
     response = fetch_available_metrics()
-    return Response(response=response, mimetype="application/json")
+    return JSONResponse(response=response, mimetype="application/json")
 
   def on_query(self, request):
-    pass
+    from time import time
+    from random import randint
+    # print(request.json)
+    response = dict()
+    response["target"] = "hi"
+    response["datapoints"] = [[randint(1, 10), (int(time()) - i) * 1000] for i in range(100)]
+    response = [response]
+    response = json.dumps(response)
+    return JSONResponse(response=response, mimetype="application/json")
 
   def on_annotations(self, request):
     pass
