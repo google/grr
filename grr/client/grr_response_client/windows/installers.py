@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import contextlib
 import errno
 import itertools
 import logging
@@ -35,6 +36,10 @@ import winreg
 
 from grr_response_client.windows import regconfig
 from grr_response_core import config
+
+
+SERVICE_RESTART_DELAY_MSEC = 120 * 1000
+SERVICE_RESET_FAIL_COUNT_DELAY_SEC = 86400
 
 
 def _StartService(service_name):
@@ -115,6 +120,44 @@ def _RemoveService(service_name):
                     service_name)
     else:
       logging.exception("Unable to remove service '%s':", service_name)
+
+
+def _CreateService(service_name: str, description: str,
+                   command_line: str) -> None:
+  """Creates a Windows service."""
+  logging.info("Creating service '%s'.", service_name)
+
+  with contextlib.ExitStack() as stack:
+    hscm = win32service.OpenSCManager(None, None,
+                                      win32service.SC_MANAGER_ALL_ACCESS)
+    stack.callback(win32service.CloseServiceHandle, hscm)
+    hs = win32service.CreateService(hscm, service_name, service_name,
+                                    win32service.SERVICE_ALL_ACCESS,
+                                    win32service.SERVICE_WIN32_OWN_PROCESS,
+                                    win32service.SERVICE_AUTO_START,
+                                    win32service.SERVICE_ERROR_NORMAL,
+                                    command_line, None, 0, None, None, None)
+    stack.callback(win32service.CloseServiceHandle, hs)
+    service_failure_actions = {
+        "ResetPeriod":
+            SERVICE_RESET_FAIL_COUNT_DELAY_SEC,
+        "RebootMsg":
+            u"",
+        "Command":
+            u"",
+        "Actions": [
+            (win32service.SC_ACTION_RESTART, SERVICE_RESTART_DELAY_MSEC),
+            (win32service.SC_ACTION_RESTART, SERVICE_RESTART_DELAY_MSEC),
+            (win32service.SC_ACTION_RESTART, SERVICE_RESTART_DELAY_MSEC),
+        ]
+    }
+    win32service.ChangeServiceConfig2(
+        hs, win32service.SERVICE_CONFIG_FAILURE_ACTIONS,
+        service_failure_actions)
+    win32service.ChangeServiceConfig2(hs,
+                                      win32service.SERVICE_CONFIG_DESCRIPTION,
+                                      description)
+  logging.info("Successfully created service '%s'.", service_name)
 
 
 def _OpenRegkey(key_path):
@@ -275,7 +318,25 @@ def _DeleteLegacyConfigOptions(registry_key_uri):
         raise
 
 
-def Run():
+def _IsFleetspeakBundled():
+  return os.path.exists(
+      os.path.join(config.CONFIG["Client.install_path"],
+                   "fleetspeak-client.exe"))
+
+
+def _InstallBundledFleetspeak():
+  fleetspeak_client = os.path.join(config.CONFIG["Client.install_path"],
+                                   "fleetspeak-client.exe")
+  fleetspeak_config = os.path.join(config.CONFIG["Client.install_path"],
+                                   "fleetspeak-client.config")
+  _RemoveService(config.CONFIG["Client.fleetspeak_service_name"])
+  _CreateService(
+      service_name=config.CONFIG["Client.fleetspeak_service_name"],
+      description="Fleetspeak communication agent.",
+      command_line=f"\"{fleetspeak_client}\" -config \"{fleetspeak_config}\"")
+
+
+def _Run():
   """Installs the windows client binary."""
   _CheckForWow64()
   _StopPreviousService()
@@ -301,4 +362,14 @@ def Run():
 
   fs_service = config.CONFIG["Client.fleetspeak_service_name"]
   _StopService(service_name=fs_service)
+  if _IsFleetspeakBundled():
+    _InstallBundledFleetspeak()
   _StartService(service_name=fs_service)
+
+
+def Run():
+  try:
+    _Run()
+  except:
+    logging.error("The installer failed with an exception.", exc_info=True)
+    raise

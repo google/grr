@@ -1,3 +1,4 @@
+import {CdkCopyToClipboard} from '@angular/cdk/clipboard';
 import {async, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -141,6 +142,7 @@ describe('Approval Component', () => {
     latestApproval$.next({
       approvalId: '1',
       clientId: 'C.1234',
+      requestor: 'testuser',
       status: {type: 'pending', reason: 'Need at least 1 more approver.'},
       approvers: [],
       reason: 'sample reason',
@@ -151,5 +153,31 @@ describe('Approval Component', () => {
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('foo');
     expect(text).toContain('sample reason');
+  });
+
+  it('allows copying the approval url', () => {
+    const fixture = TestBed.createComponent(Approval);
+    fixture.detectChanges();
+
+    selectedClient$.next(makeClient());
+    latestApproval$.next({
+      approvalId: '111',
+      clientId: 'C.1234',
+      requestor: 'testuser',
+      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      approvers: [],
+      reason: 'sample reason',
+      requestedApprovers: ['foo'],
+    });
+    fixture.detectChanges();
+
+    const directiveEl =
+        fixture.debugElement.query(By.directive(CdkCopyToClipboard));
+    expect(directiveEl).not.toBeNull();
+
+    const expected =
+        /^https?:\/\/.+#\/users\/testuser\/approvals\/client\/C\.1234\/111$/;
+    const copyToClipboard = directiveEl.injector.get(CdkCopyToClipboard);
+    expect(copyToClipboard.text).toMatch(expected);
   });
 });

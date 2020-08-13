@@ -267,8 +267,8 @@ class ApiClientLibHuntTest(
     snapshot.knowledge_base.fqdn = fqdn
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    hunt_id = "B1C2E3D4F5"
-    flow_id = "1B2C3E4D5F"
+    hunt_id = "B1C2E3D4"
+    flow_id = "1B2C3E4D"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -354,8 +354,8 @@ class ApiClientLibHuntTest(
     snapshot.knowledge_base.fqdn = fqdn
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    hunt_id = "A0B1D2C3E4"
-    flow_id = "0A1B2D3C4E"
+    hunt_id = "A0B1D2C3"
+    flow_id = "0A1B2D3C"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id

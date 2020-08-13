@@ -1,5 +1,5 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiFlowDescriptor} from '@app/lib/api/api_interfaces';
+import {ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ConfigFacade} from '@app/store/config_facade';
 import {initTestEnvironment} from '@app/testing';
@@ -12,15 +12,19 @@ describe('ConfigFacade', () => {
   let configFacade: ConfigFacade;
   let apiListFlowDescriptors$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
   let apiFetchApprovalConfig$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
+  let apiFetchUiConfig$: Subject<ApiUiConfig>;
 
   beforeEach(() => {
     apiListFlowDescriptors$ = new ReplaySubject(1);
-    apiFetchApprovalConfig$ = new ReplaySubject(1);
+    apiFetchApprovalConfig$ = new Subject();
+    apiFetchUiConfig$ = new Subject();
     httpApiService = {
       listFlowDescriptors: jasmine.createSpy('listFlowDescriptors')
                                .and.returnValue(apiListFlowDescriptors$),
       fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig')
                                .and.returnValue(apiFetchApprovalConfig$),
+      fetchUiConfig:
+          jasmine.createSpy('fetchUiConfig').and.returnValue(apiFetchUiConfig$),
     };
 
     TestBed.configureTestingModule({
@@ -77,5 +81,26 @@ describe('ConfigFacade', () => {
         defaultArgs: {'@type': 'test-type'}
       },
     ]);
+  });
+
+  it('calls the API on subscription to uiConfig$', () => {
+    expect(httpApiService.fetchUiConfig).not.toHaveBeenCalled();
+    configFacade.uiConfig$.subscribe();
+    expect(httpApiService.fetchUiConfig).toHaveBeenCalled();
+  });
+
+  it('correctly emits the API results in uiConfig$', (done) => {
+    const expected: ApiUiConfig = {
+      profileImageUrl: 'https://foo',
+    };
+
+    configFacade.uiConfig$.subscribe((results) => {
+      expect(results).toEqual(expected);
+      done();
+    });
+
+    apiFetchUiConfig$.next({
+      profileImageUrl: 'https://foo',
+    });
   });
 });

@@ -86,6 +86,7 @@ export declare interface ApiApprovalOptionalCcAddressResult {
 export declare interface ApiClientApproval {
   readonly subject?: ApiClient;
   readonly id?: string;
+  readonly requestor?: string;
   readonly reason?: string;
   readonly isValid?: boolean;
   readonly isValidMessage?: string;
@@ -480,4 +481,13 @@ export declare interface ApiScheduledFlow {
 /** ApiListScheduledFlowsResult proto mapping. */
 export declare interface ApiListScheduledFlowsResult {
   readonly scheduledFlows?: ReadonlyArray<ApiScheduledFlow>;
+}
+
+/** ApiUiConfig proto mapping. */
+export declare interface ApiUiConfig {
+  readonly heading?: string;
+  readonly reportUrl?: string;
+  readonly helpUrl?: string;
+  readonly grrVersion?: string;
+  readonly profileImageUrl?: string;
 }

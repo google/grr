@@ -7,9 +7,10 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {combineLatest, Observable, of, timer} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
+import {isNonNull} from '../lib/preconditions';
 
 import {ConfigFacade} from './config_facade';
 import {UserFacade} from './user_facade';
@@ -169,6 +170,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
+  private readonly deleteScheduledFlow =
+      this.updater<string>((state, scheduledFlowId) => {
+        return {
+          ...state,
+          scheduledFlows: state.scheduledFlows.filter(
+              sf => sf.scheduledFlowId !== scheduledFlowId)
+        };
+      });
+
   // Updates the state after a flow scheduling fails with a given error.
   private readonly updateStartFlowFailure =
       this.updater<string>((state, error) => {
@@ -183,10 +193,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
-      this.select(state => state.client)
-          .pipe(
-              filter((client): client is Client => client !== undefined),
-          );
+      this.select(state => state.client).pipe(filter(isNonNull));
 
   /** An observable emitting the client id of the selected client. */
   readonly selectedClientId$: Observable<string> =
@@ -205,10 +212,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   /** An observable emitting current flow configuration. */
   readonly flowInConfiguration$: Observable<FlowInConfiguration> =
-      this.select(state => state.flowInConfiguration)
-          .pipe(
-              filter((fic): fic is FlowInConfiguration => fic !== undefined),
-          );
+      this.select(state => state.flowInConfiguration).pipe(filter(isNonNull));
 
   /** An observable emitting the latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
@@ -250,9 +254,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       ])
           .pipe(
               map(([, entries]) => entries),
-              filter(
-                  (sf): sf is ScheduledFlow[] =>
-                      sf !== undefined && sf !== null),
+              filter(isNonNull),
               distinctUntilChanged(),
           );
 
@@ -416,6 +418,19 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
+  /** Unschedules a previously scheduled flow. */
+  readonly unscheduleFlow = this.effect<string>(
+      obs$ => obs$.pipe(
+          withLatestFrom(this.selectedClientId$),
+          concatMap(
+              ([scheduledFlowId, clientId]) =>
+                  this.httpApiService.unscheduleFlow(clientId, scheduledFlowId)
+                      .pipe(mapTo(scheduledFlowId))),
+          tap((scheduledFlowId) => {
+            this.deleteScheduledFlow(scheduledFlowId);
+          }),
+          ));
+
   private readonly startFlowConfigurationImpl =
       this.updater<[string, unknown]>((state, [name, initialArgs]) => {
         return {
@@ -535,6 +550,11 @@ export class ClientPageFacade {
   /** Cancels given flow. */
   cancelFlow(flowId: string) {
     this.store.cancelFlow(flowId);
+  }
+
+  /** Unschedules a previously scheduled flow. */
+  unscheduleFlow(scheduledFlowId: string) {
+    this.store.unscheduleFlow(scheduledFlowId);
   }
 
   /** Starts the process of configuring the flow to be launched. */

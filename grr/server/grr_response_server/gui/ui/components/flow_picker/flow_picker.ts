@@ -111,6 +111,10 @@ export class FlowPicker implements OnDestroy, AfterViewInit {
     this.clientPageFacade.startFlowConfiguration(name);
   }
 
+  trackFlowDescriptor(index: number, fd: FlowDescriptor) {
+    return fd.name;
+  }
+
   ngOnDestroy() {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();

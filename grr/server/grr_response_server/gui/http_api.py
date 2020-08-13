@@ -12,7 +12,6 @@ import time
 import traceback
 from typing import Text
 
-from urllib import parse as urlparse
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 from werkzeug import wrappers as werkzeug_wrappers
@@ -265,13 +264,6 @@ class HttpRequestHandler(object):
   def BuildToken(request, execution_time):
     """Build an ACLToken from the request."""
 
-    # The request.args dictionary will also be filled on HEAD calls.
-    if request.method in ["GET", "HEAD"]:
-      reason = request.args.get("reason", "")
-    elif request.method in ["POST", "DELETE", "PATCH"]:
-      # The header X-GRR-Reason is set in api-service.js.
-      reason = urlparse.unquote(request.headers.get("X-Grr-Reason", ""))
-
     # We assume that request.user contains the username that we can trust.
     # No matter what authentication method is used, the WebAuthManager is
     # responsible for authenticating the userand setting request.user to
@@ -282,7 +274,6 @@ class HttpRequestHandler(object):
     # Handle() method. API router will be responsible for all the ACL checks.
     token = access_control.ACLToken(
         username=request.user,
-        reason=reason,
         process="GRRAdminUI",
         expiry=rdfvalue.RDFDatetime.Now() + execution_time)
 

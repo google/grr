@@ -166,6 +166,11 @@ class WindowsClientBuilder(build.ClientBuilder):
           os.path.join(nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
           os.path.join(build_dir, "GRRservice.exe"))
 
+  def CopyBundledFleetspeak(self, output_dir):
+    src_dir = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_install_dir", context=self.context)
+    shutil.copy(os.path.join(src_dir, "fleetspeak-client.exe"), output_dir)
+
   def MakeExecutableTemplate(self, output_path):
     """Windows templates also include the nanny."""
     build_helpers.MakeBuildDirectory(context=self.context)
@@ -195,5 +200,7 @@ class WindowsClientBuilder(build.ClientBuilder):
       build_helpers.SetPeSubsystem(fd, console=False)
     with io.open(os.path.join(output_dir, "dbg_grr-client.exe"), "rb+") as fd:
       build_helpers.SetPeSubsystem(fd, console=True)
+
+    self.CopyBundledFleetspeak(output_dir)
 
     _MakeZip(output_dir, output_path)

@@ -5,6 +5,8 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {EMPTY, Observable, of} from 'rxjs';
 import {filter, map, mergeMap} from 'rxjs/operators';
 
+import {isNonNull} from '../../../lib/preconditions';
+
 import {Plugin} from './plugin';
 
 
@@ -45,13 +47,10 @@ export class CollectSingleFileDetails extends Plugin {
       }));
 
   fileResults$: Observable<ReadonlyArray<FlowFileResult>> = this.progress$.pipe(
-      filter(
-          (progress): progress is CollectSingleFileProgress =>
-              progress !== undefined),
-      map((progress) => progress.result),
-      filter(
-          (result): result is CollectSingleFileResult => result !== undefined),
-      map((result) => [flowFileResultFromStatEntry(result.stat!)]));
+      map((progress) => progress?.result),
+      filter(isNonNull),
+      map((result) => [flowFileResultFromStatEntry(result.stat!)]),
+  );
 
   args$: Observable<CollectSingleFileArgs> = this.flowListEntry$.pipe(
       map((flowListEntry) => flowListEntry.flow.args as CollectSingleFileArgs),

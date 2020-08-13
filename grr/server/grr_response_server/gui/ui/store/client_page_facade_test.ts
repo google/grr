@@ -92,6 +92,7 @@ describe('ClientPageFacade', () => {
     const expected: ClientApproval = {
       status: {type: 'pending', reason: 'Need at least 1 more approvers.'},
       reason: 'Pending reason',
+      requestor: 'testuser',
       clientId: 'C.1234',
       approvalId: '2',
       requestedApprovers: ['b', 'c'],
@@ -110,6 +111,7 @@ describe('ClientPageFacade', () => {
         subject: {clientId: 'C.1234'},
         id: '1',
         reason: 'Old reason',
+        requestor: 'testuser',
         isValid: false,
         isValidMessage: 'Approval request is expired.',
         approvers: ['me', 'b'],
@@ -119,6 +121,7 @@ describe('ClientPageFacade', () => {
         subject: {clientId: 'C.1234'},
         id: '2',
         reason: 'Pending reason',
+        requestor: 'testuser',
         isValid: false,
         isValidMessage: 'Need at least 1 more approvers.',
         approvers: ['me'],

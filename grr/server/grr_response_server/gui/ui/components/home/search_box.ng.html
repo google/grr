@@ -9,7 +9,7 @@
   <mat-autocomplete #auto="matAutocomplete"
                     (optionSelected)="selectClient($event.option.value)">
     <div class="search-results">
-      <mat-option *ngFor="let client of clients | async"
+      <mat-option *ngFor="let client of clients | async; trackBy: trackClient"
                   [value]="client.knowledgeBase.fqdn">
         <mat-icon *ngIf="isOnline(client.lastSeenAt)"
                   class="online-icon">check_circle_outline</mat-icon>

@@ -1,8 +1,30 @@
 import {initTestEnvironment} from '@app/testing';
 
-import {assertKeyNonNull, assertKeyTruthy, assertNonNull, assertTruthy, PreconditionError} from './preconditions';
+import {assertKeyNonNull, assertKeyTruthy, assertNonNull, assertTruthy, isNonNull, PreconditionError} from './preconditions';
 
 initTestEnvironment();
+
+describe('isNonNull', () => {
+  it('returns false if value is null', () => {
+    expect(isNonNull(null)).toBeFalse();
+  });
+
+  it('returns false if value is undefined', () => {
+    expect(isNonNull(undefined)).toBeFalse();
+  });
+
+  it('returns true for falsey values', () => {
+    expect(isNonNull(0)).toBeTrue();
+    expect(isNonNull(false)).toBeTrue();
+    expect(isNonNull('')).toBeTrue();
+  });
+
+  it('returns true for truthy values', () => {
+    expect(isNonNull(5)).toBeTrue();
+    expect(isNonNull({})).toBeTrue();
+    expect(isNonNull([])).toBeTrue();
+  });
+});
 
 describe('assertNonNull', () => {
   it('throws if value is null', () => {

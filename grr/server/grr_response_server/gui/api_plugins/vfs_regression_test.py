@@ -131,7 +131,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
 
     def ReplaceFlowId():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
-      return {flows[0].flow_id: "W:ABCDEF"}
+      return {flows[0].flow_id: "ABCDEF"}
 
     with test_lib.FakeTime(42):
       self.Check(
@@ -182,29 +182,29 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         discovery.Interrogate, client_id, creator=self.token.username)
 
     # Unkonwn flow ids should also cause 404s.
-    unknown_flow_id = "F:12345678"
+    unknown_flow_id = "12345678"
 
     # Check both operations.
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=running_flow_id),
-        replace={running_flow_id: "W:ABCDEF"})
+        replace={running_flow_id: "ABCDEF"})
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=finished_flow_id),
-        replace={finished_flow_id: "W:ABCDEF"})
+        replace={finished_flow_id: "ABCDEF"})
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=non_refresh_flow_id),
-        replace={non_refresh_flow_id: "W:ABCDEF"})
+        replace={non_refresh_flow_id: "ABCDEF"})
     self.Check(
         "GetVfsRefreshOperationState",
         args=vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
             client_id=client_id, operation_id=unknown_flow_id),
-        replace={unknown_flow_id: "W:ABCDEF"})
+        replace={unknown_flow_id: "ABCDEF"})
 
 
 class ApiUpdateVfsFileContentHandlerRegressionTest(
@@ -222,7 +222,7 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
 
     def ReplaceFlowId():
       flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)
-      return {flows[0].flow_id: "W:ABCDEF"}
+      return {flows[0].flow_id: "ABCDEF"}
 
     with test_lib.FakeTime(42):
       self.Check(
@@ -266,22 +266,22 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=running_flow_id),
-        replace={running_flow_id: "W:ABCDEF"})
+        replace={running_flow_id: "ABCDEF"})
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=finished_flow_id),
-        replace={finished_flow_id: "W:ABCDEF"})
+        replace={finished_flow_id: "ABCDEF"})
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=non_update_flow_id),
-        replace={non_update_flow_id: "W:ABCDEF"})
+        replace={non_update_flow_id: "ABCDEF"})
     self.Check(
         "GetVfsFileContentUpdateState",
         args=vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
             client_id=client_id, operation_id=unknown_flow_id),
-        replace={unknown_flow_id: "W:ABCDEF"})
+        replace={unknown_flow_id: "ABCDEF"})
 
 
 class ApiGetVfsTimelineHandlerRegressionTest(

@@ -338,7 +338,7 @@
         "maxDepth": "1"
       },
       "response": {
-        "operationId": "W:ABCDEF"
+        "operationId": "ABCDEF"
       },
       "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations"
@@ -2818,7 +2818,7 @@
         "state": "RUNNING"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-update/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
@@ -2827,25 +2827,25 @@
         "state": "FINISHED"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-update/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
-        "message": "Operation with id W:ABCDEF not found"
+        "message": "Operation with id ABCDEF not found"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-update/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
-        "message": "Operation with id W:ABCDEF not found"
+        "message": "Flow id has incorrect format: `ABCDEF`"
       },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-update/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     }
   ],
   "ApiGetVfsRefreshOperationStateHandler": [
@@ -2856,7 +2856,7 @@
         "state": "RUNNING"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
@@ -2865,25 +2865,25 @@
         "state": "FINISHED"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
-        "message": "Operation with id W:ABCDEF not found"
+        "message": "Operation with id ABCDEF not found"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
-        "message": "Operation with id W:ABCDEF not found"
+        "message": "Operation with id ABCDEF not found"
       },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
-      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     }
   ],
   "ApiGetVfsTimelineHandler": [
@@ -5266,7 +5266,7 @@
         "filePath": "fs/os/c/bin/bash"
       },
       "response": {
-        "operationId": "W:ABCDEF"
+        "operationId": "ABCDEF"
       },
       "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update"

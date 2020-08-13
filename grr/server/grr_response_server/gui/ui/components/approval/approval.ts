@@ -1,9 +1,10 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
 import {Subject} from 'rxjs';
-import {map, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {filter, map, withLatestFrom} from 'rxjs/operators';
 
 import {ClientApproval} from '../../lib/models/client';
+import {isNonNull} from '../../lib/preconditions';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ConfigFacade} from '../../store/config_facade';
 
@@ -26,24 +27,26 @@ export class Approval implements OnDestroy {
   readonly ccEmail$ = this.configFacade.approvalConfig$.pipe(
       map(config => config.optionalCcEmail));
 
-  latestApproval?: ClientApproval;
+  readonly latestApproval$ = this.clientPageFacade.latestApproval$.pipe(
+      filter(isNonNull), map(approval => {
+        const url = new URL(window.location.origin);
+        url.hash = `/users/${approval.requestor}/approvals/client/${
+            approval.clientId}/${approval.approvalId}`;
+        return {...approval, url: url.toString()};
+      }));
 
-  scheduledFlows$ = this.clientPageFacade.scheduledFlows$;
+  readonly scheduledFlows$ = this.clientPageFacade.scheduledFlows$;
 
   private readonly submit$ = new Subject<void>();
-  private readonly unsubscribe$ = new Subject<void>();
 
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
       private readonly configFacade: ConfigFacade,
-      private readonly cdr: ChangeDetectorRef,
   ) {
     this.submit$
-        .pipe(
-            takeUntil(this.unsubscribe$),
-            withLatestFrom(
-                this.form.valueChanges, this.clientPageFacade.selectedClient$,
-                this.ccEmail$))
+        .pipe(withLatestFrom(
+            this.form.valueChanges, this.clientPageFacade.selectedClient$,
+            this.ccEmail$))
         .subscribe(([_, form, client, ccEmail]) => {
           this.clientPageFacade.requestApproval({
             clientId: client.clientId,
@@ -52,17 +55,10 @@ export class Approval implements OnDestroy {
             cc: form.ccEnabled && ccEmail ? [ccEmail] : [],
           });
         });
-
-    this.clientPageFacade.latestApproval$.pipe(takeUntil(this.unsubscribe$))
-        .subscribe(a => {
-          this.latestApproval = a;
-          this.cdr.markForCheck();
-        });
   }
 
   ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
+    this.submit$.complete();
   }
 
   submitRequest() {

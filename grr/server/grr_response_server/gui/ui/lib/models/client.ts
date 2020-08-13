@@ -85,6 +85,7 @@ export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
 export interface ClientApproval {
   readonly approvalId: string;
   readonly clientId: string;
+  readonly requestor: string;
   readonly reason: string;
   readonly status: ClientApprovalStatus;
   readonly requestedApprovers: ReadonlyArray<string>;

@@ -6,21 +6,25 @@
       Note: coloring doesn't work without selected, see:
       https://github.com/angular/components/issues/9851
     -->
-    <mat-chip *ngIf="latestApproval?.status.type === 'pending'"
+    <mat-chip *ngIf="(latestApproval$ | async)?.status.type === 'pending'"
       color="warn" selected>pending</mat-chip>
-    <mat-chip *ngIf="latestApproval?.status.type === 'valid'"
+    <mat-chip *ngIf="(latestApproval$ | async)?.status.type === 'valid'"
       color="success" selected>pending</mat-chip>
   </span>
 </h1>
 
-<p *ngIf="latestApproval?.status.type === 'pending'" class="mat-body-1">
-  An approval request with reason "{{latestApproval.reason}}" has been sent to
-  {{latestApproval.requestedApprovers.join(", ")}}.
-</p>
-<p *ngIf="latestApproval?.status.type === 'valid'" class="mat-body-1">
-  {{latestApproval.approvers.join(", ")}} approved access for reason
-  "{{latestApproval.reason}}".
-</p>
+<div *ngIf="latestApproval$ | async as latestApproval">
+  <p *ngIf="latestApproval?.status.type === 'pending'" class="mat-body-1">
+    An approval request with reason "{{latestApproval.reason}}" has been sent to
+    {{latestApproval.requestedApprovers.join(", ")}}.
+
+    <button id="copy-approval-link" mat-flat-button [cdkCopyToClipboard]="latestApproval.url">Copy link</button>
+  </p>
+  <p *ngIf="latestApproval?.status.type === 'valid'" class="mat-body-1">
+    {{latestApproval.approvers.join(", ")}} approved access for reason
+    "{{latestApproval.reason}}".
+  </p>
+</div>
 
 <form (submit)="submitRequest()" [formGroup]="form">
   <mat-form-field appearance="outline">
@@ -44,7 +48,4 @@
 
 <div *ngIf="(scheduledFlows$ | async)?.length">
   <h2 class="mat-h2">Scheduled flows</h2>
-  <ul>
-    <li *ngFor="let scheduledFlow of scheduledFlows$ | async">{{scheduledFlow.name}}</li>
-  </ul>
-</div>
+  <scheduled-flow-list></scheduled-flow-list>

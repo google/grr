@@ -601,7 +601,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testHandlerThrowsExceptionOnUnknownFlowId(self):
     # Create args with an operation id not referencing any flow.
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-        client_id=self.client_id, operation_id="F:12345678")
+        client_id=self.client_id, operation_id="12345678")
 
     # Our mock flow can't be read, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsRefreshOperationNotFoundError):
@@ -691,7 +691,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
   def testHandlerThrowsExceptionOnUnknownFlowId(self):
     # Create args with an operation id not referencing any flow.
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
-        client_id=self.client_id, operation_id="F:12345678")
+        client_id=self.client_id, operation_id="12345678")
 
     # Our mock flow can't be read, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):

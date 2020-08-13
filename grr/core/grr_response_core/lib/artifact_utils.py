@@ -138,7 +138,7 @@ def InterpolateKbAttributes(pattern, knowledge_base):
       missing_attr_names.add(attr_name)
       continue
 
-    interpolator.BindVar(attr_name, value)
+    interpolator.BindVar(attr_name, value)  # pytype: disable=wrong-arg-types
 
   for scope_id in interpolator.Scopes():
     scope_name = str(scope_id).lower()

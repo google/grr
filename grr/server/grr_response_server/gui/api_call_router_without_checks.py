@@ -407,6 +407,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def GetGrrBinaryBlob(self, args, token=None):
     return api_config.ApiGetGrrBinaryBlobHandler()
 
+  def GetUiConfig(self, args, token=None):
+    return api_config.ApiGetUiConfigHandler()
+
   # Reflection methods.
   # ==================
   #

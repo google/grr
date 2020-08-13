@@ -1,19 +1,21 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {Store} from '@ngrx/store';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 
+import {ApiUiConfig} from '../lib/api/api_interfaces';
 import {ApprovalConfig} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
+import {isNonNull} from '../lib/preconditions';
 
 
 /** The state of the Config. */
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
+  uiConfig?: ApiUiConfig;
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -62,9 +64,7 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         this.listFlowDescriptors();
       }),
       switchMap(() => this.select(state => state.flowDescriptors)),
-      filter(
-          (descriptors): descriptors is FlowDescriptorMap =>
-              descriptors !== undefined),
+      filter(isNonNull),
       shareReplay(1),  // Ensure that the query is done just once.
   );
 
@@ -75,9 +75,31 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         this.fetchApprovalConfig();
       }),
       switchMap(() => this.select(state => state.approvalConfig)),
-      filter(
-          (approvalConfig): approvalConfig is ApprovalConfig =>
-              approvalConfig !== undefined),
+      filter(isNonNull),
+      shareReplay(1),  // Ensure that the query is done just once.
+  );
+
+  private readonly updateUiConfig =
+      this.updater<ApiUiConfig>((state, uiConfig) => {
+        return {...state, uiConfig};
+      });
+
+  private readonly fetchUiConfig = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMap(() => this.httpApiService.fetchUiConfig()),
+          tap(uiConfig => {
+            this.updateUiConfig(uiConfig);
+          }),
+          ));
+
+  /** An observable emitting available flow descriptors. */
+  readonly uiConfig$ = of(undefined).pipe(
+      // Ensure that the query is done on subscription.
+      tap(() => {
+        this.fetchUiConfig();
+      }),
+      switchMap(() => this.select(state => state.uiConfig)),
+      filter(isNonNull),
       shareReplay(1),  // Ensure that the query is done just once.
   );
 }
@@ -97,4 +119,7 @@ export class ConfigFacade {
   /** An observable emitting the approval configuration. */
   readonly approvalConfig$: Observable<ApprovalConfig> =
       this.store.approvalConfig$;
+
+  /** An observable emitting the UI configuration. */
+  readonly uiConfig$: Observable<ApiUiConfig> = this.store.uiConfig$;
 }
