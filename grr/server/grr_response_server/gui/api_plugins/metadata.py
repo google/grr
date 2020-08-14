@@ -528,7 +528,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetComponents(
       self
-  ) -> Dict[str, Dict[str, Union[EnumSchema, MessageSchema]]]:
+  ) -> Dict[str, Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]]]:
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
     if self.schema_objs is None:  # Check required by mypy.
@@ -539,7 +539,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
       "schemas": cast(
-        Dict[str, Union[EnumSchema, MessageSchema]],
+        Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
         self.schema_objs
       )
     }
