@@ -171,7 +171,7 @@ export declare interface ApiClient {
  * ApiGetClientVersionsResult proto mapping.
  */
 export declare interface ApiGetClientVersionsResult {
-  readonly items: ReadonlyArray<ApiClient>;
+  readonly items?: ReadonlyArray<ApiClient>;
 }
 
 /**

@@ -205,7 +205,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   );
 
   readonly selectedClientVersions$: Observable<Client[]> = of(undefined).pipe(
-      tap(() => this.fetchSelectedClientVersions()),
+      tap(() => {this.fetchSelectedClientVersions()}),
       switchMapTo(this.select(state => state.clientVersions)),
       filter(
           (clientVersions): clientVersions is Client[] =>

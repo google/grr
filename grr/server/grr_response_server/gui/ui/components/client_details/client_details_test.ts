@@ -14,6 +14,7 @@ import {initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
 import {ClientDetailsModule} from './module';
+import {getClientVersions} from './client_diff';
 
 initTestEnvironment();
 
@@ -276,12 +277,10 @@ describe('Client Details Component', () => {
          },
        ].reverse();
 
-       const component =
-           TestBed.createComponent(ClientDetails).componentInstance;
-       const clientChanges = component.getClientVersions(snapshots.reverse());
+       const clientChanges = getClientVersions(snapshots.reverse());
 
        expect(
-           clientChanges.map(change => {change.client, change.changes.sort()}))
+           clientChanges.map(change => {change.client, [...change.changes].sort()}))
            .toEqual(expectedClientChanges.map(expectedChange => {
              expectedChange.client,
              expectedChange.changes.sort()
@@ -310,10 +309,7 @@ describe('Client Details Component', () => {
          },
        ];
 
-       const component =
-           TestBed.createComponent(ClientDetails).componentInstance;
-       const clientChanges = component.getClientVersions(snapshots);
-
+       const clientChanges = getClientVersions(snapshots);
        expect(clientChanges).toEqual(expectedClientChanges);
      });
 
