@@ -35,8 +35,13 @@ class JSONResponse(JSONMixin, Response):
 
 
 class Grrafana(object):
+  """GRRafana HTTP server instance.
+  
+  A full description of all endpoints implemented within this HTTP
+  server can be found in https://github.com/simPod/grafana-json-datasource#api."""
 
   def __init__(self, config):
+    """Constructor."""
     self.url_map = Map([
     Rule('/', endpoint='root', methods=["GET"]),
     Rule('/search', endpoint='search', methods=["POST"]),
@@ -45,6 +50,7 @@ class Grrafana(object):
     ])
 
   def dispatch_request(self, request):
+    """Maps requests to different methods."""
     adapter = self.url_map.bind_to_environ(request.environ)
     try:
       endpoint, values = adapter.match()
@@ -61,54 +67,76 @@ class Grrafana(object):
     return self.wsgi_app(environ, start_response)
 
   def on_root(self, request):
+    """Returns OK message to database connection check."""
     return JSONResponse()
 
   def on_search(self, request):
+    """Depending on the request type, returns either available client
+    resource usage metrics from Fleetspeak database, or possible values
+    for a defined Grafana variable (currently supports only variables based
+    on client IDs)."""
     if "type" in request.json:
       # Request issued on Panel > Queries page.
       response = fetch_available_metrics()
     else:
       # Grafana issued request on Variables > New/Edit page.
-      response = fetch_client_ids()
-    return JSONResponse(response=response, mimetype="application/json")
+      response = fetch_client_ids()  # todo: support Grafana variables other than ClientID.
+    return JSONResponse(response=json.dumps(response), mimetype="application/json")
 
   def on_query(self, request):
+    """Given a client ID as a Grafana variable and targets (resource usages),
+    returns datapoints in a format Grafana can interpret."""
     request_json_format = request.json
-    requested_client_id = next(iter(request_json_format["scopedVars"].values()))["value"]
+    requested_client_id = extract_client_id_from_variable(request_json_format)  # There must be a ClientID variable declated in Grafana.
     requested_targets = [entry["target"] for entry in request_json_format["targets"]]
-    response = fetch_datapoints(requested_client_id, request_json_format["maxDataPoints"], requested_targets)
-    return JSONResponse(response=response, mimetype="application/json")
+    response = fetch_datapoints_for_targets(requested_client_id, request_json_format["maxDataPoints"], requested_targets)
+    return JSONResponse(response=json.dumps(response), mimetype="application/json")
 
   def on_annotations(self, request):
     pass
 
+
 def fetch_available_metrics():
+  """Fetches available client resource usage records from Fleetspeak database.""" 
   raw_data = fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
   targets_list = list(raw_data.targets)
-  targets_list.remove('client_id')
-  return json.dumps(targets_list)
+  return targets_list
+
 
 def fetch_client_ids():
+  """Fetches GRR client IDs that have resource usage records in Fleetspeak database."""
   raw_data = fleetspeak_utils.GetClientIdsFromFleetspeak()
   clients_list = list(raw_data.clients)
   client_ids_list = list(map(
     lambda c: fleetspeak_utils.FleetspeakIDToGRRID(c.client_id), clients_list))
-  return json.dumps(client_ids_list)
+  return client_ids_list
 
-def fetch_datapoints(client_id, limit, targets):
+
+def fetch_datapoints_for_targets(client_id, limit, targets):
+  """Fetches an array of <datapoint, timestamp> tuples for each target metric from Fleetspeak database."""
   raw_data = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit)
   records_list = list(raw_data.records)
   response = list()
   for target in targets:
     datapoints_for_single_target = list(map(lambda r: [getattr(r, target), r.server_timestamp.seconds * 1000], records_list))
     response.append({"target": target, "datapoints": datapoints_for_single_target})
-  return json.dumps(response)
+  return response
+
+
+def extract_client_id_from_variable(req):
+  """Extracts the client ID from a Grafana JSON request."""
+  # Based on an assumption that there is only one Grafana variable.
+  return next(iter(req["scopedVars"].values()))["value"]
+
 
 def main(argv):
-  del argv
+"""Main."""
+  del argv  # Unused.
+
   if flags.FLAGS.version:
     print("GRRafana server {}".format(config_server.VERSION["packageversion"]))
     return
+  
   config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT, "Context applied when running GRRafana server.")
   server_startup.Init()
   fleetspeak_connector.Init()
