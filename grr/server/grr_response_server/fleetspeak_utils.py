@@ -149,7 +149,7 @@ def FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit):
     limit: Max number of resource usage records to retrieve.
 
   Returns:
-    A list of [<datapoint>, <timestamp>] retrieved from Fleetspeak.
+    A list of client resource usage records retrieved from Fleetspeak.
   """
   res = fleetspeak_connector.CONN.outgoing._stub.FetchClientResourceUsageRecords(
     admin_pb2.FetchClientResourceUsageRecordsRequest(client_id=GRRIDToFleetspeakID(client_id), limit=limit))
