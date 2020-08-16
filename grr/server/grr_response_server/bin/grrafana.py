@@ -7,7 +7,6 @@ from werkzeug.exceptions import HTTPException, NotFound
 from werkzeug.middleware.shared_data import SharedDataMiddleware
 from werkzeug.utils import redirect
 from werkzeug.serving import run_simple
-from google.protobuf.json_format import MessageToDict
 
 from absl import app
 from absl import flags
@@ -85,7 +84,7 @@ class Grrafana(object):
 
 def fetch_available_metrics():
   raw_data = fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
-  targets_list = MessageToDict(raw_data)["targets"]
+  targets_list = list(raw_data.targets)
   targets_list.remove('client_id')
   return json.dumps(targets_list)
 
