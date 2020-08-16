@@ -88,7 +88,10 @@ class Grrafana(object):
     pass
 
 def fetch_available_metrics():
-  return fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
+  raw_data = fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
+  targets_list = MessageToDict(raw_data)["targets"]
+  targets_list.remove('client_id')
+  return json.dumps(targets_list)
 
 def main(argv):
   del argv
