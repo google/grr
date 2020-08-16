@@ -65,8 +65,12 @@ class Grrafana(object):
     return JSONResponse()
 
   def on_search(self, request):
-    response = json.dumps(MessageToDict(fetch_available_metrics())["targets"])
-    # print(response["targets"])
+    if not request.json["type"]:
+      # Grafana issued request on Variables > New/Edit page.
+      response = json.dumps(MessageToDict(fetch_client_ids())["targets"])
+    else:
+      # Request issued on Panel > Queries page.
+      response = fetch_available_metrics()
     return JSONResponse(response=response, mimetype="application/json")
 
   def on_query(self, request):
