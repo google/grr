@@ -76,7 +76,7 @@ class Grrafana(object):
   def on_query(self, request):
     request_json_format = request.json
     requested_client_id = next(iter(request_json_format["scopedVars"].values()))["value"]
-    response = fetch_datapoints(request_json_format["maxDataPoints"], requested_client_id)
+    response = fetch_datapoints(requested_client_id, request_json_format["maxDataPoints"])
     return JSONResponse(response=response, mimetype="application/json")
 
   def on_annotations(self, request):
@@ -95,8 +95,8 @@ def fetch_client_ids():
     lambda c: fleetspeak_utils.FleetspeakIDToGRRID(c.client_id), clients_list))
   return json.dumps(client_ids_list)
 
-def fetch_datapoints(limit, client_id):
-  raw_data = fleetspeak_utils.FetchAggregatedResourceUsageMetricsFromFleetspeak(limit, client_id)
+def fetch_datapoints(client_id, limit):
+  raw_data = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit)
   # todo: we need to modify it to get <datapoint, timestamp>
   return None
 

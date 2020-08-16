@@ -141,18 +141,18 @@ def GetClientIdsFromFleetspeak():
   return res
 
 
-def FetchAggregatedResourceUsageMetricsFromFleetspeak(limit, client_id):
+def FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit):
   """Returns aggregated resource usage metrics of a client in Fleetspeak-enabled database.
 
   Args:
-    limit: Max number of resource usage records to retrieve.
     client_id: Id of the client to fetch Fleetspeak resource usage records for.
+    limit: Max number of resource usage records to retrieve.
 
   Returns:
     A list of [<datapoint>, <timestamp>] retrieved from Fleetspeak.
   """
-  res = fleetspeak_connector.CONN.outgoing._stub.FetchAggregatedResourceUsageMetrics(
-    admin_pb2.FetchAggregatedResourceUsageMetricsRequest(limit=limit, client_id=GRRIDToFleetspeakID(client_id)))
-  if not res or not res.resource_usage_records[0]:
+  res = fleetspeak_connector.CONN.outgoing._stub.FetchClientResourceUsageRecords(
+    admin_pb2.FetchClientResourceUsageRecordsRequest(limit=limit, client_id=GRRIDToFleetspeakID(client_id)))
+  if not res or not res.records[0]:
     return []
   return res
