@@ -127,3 +127,16 @@ def GetAvailableMetricsFromFleetspeak():
   if not res:
     return []
   return res
+
+
+def GetClientIdsFromFleetspeak():
+  """Returns client IDs of Fleetspeak-enabled database.
+
+  Returns:
+    A list of Client IDs.
+  """
+  res = fleetspeak_connector.CONN.outgoing.ListClients(admin_pb2.ListClientsRequest())
+  if not res.clients or not res.clients[0].client_id:
+    return []
+  return res
+

@@ -93,6 +93,13 @@ def fetch_available_metrics():
   targets_list.remove('client_id')
   return json.dumps(targets_list)
 
+def fetch_client_ids():
+  raw_data = fleetspeak_utils.GetClientIdsFromFleetspeak()
+  clients_list = list(raw_data.clients)
+  client_ids_list = list(map(
+    lambda c: fleetspeak_utils.FleetspeakIDToGRRID(c.client_id), clients_list))
+  return json.dumps(client_ids_list)
+
 def main(argv):
   del argv
   if flags.FLAGS.version:
