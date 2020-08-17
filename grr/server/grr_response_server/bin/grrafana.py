@@ -98,24 +98,17 @@ class Grrafana(object):
 
 def fetch_available_metrics():
   """Fetches available client resource usage records from Fleetspeak database.""" 
-  raw_data = fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
-  targets_list = list(raw_data.targets)
-  return targets_list
+  return fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
 
 
 def fetch_client_ids():
   """Fetches GRR client IDs that have resource usage records in Fleetspeak database."""
-  raw_data = fleetspeak_utils.GetClientIdsFromFleetspeak()
-  clients_list = list(raw_data.clients)
-  client_ids_list = list(map(
-    lambda c: fleetspeak_utils.FleetspeakIDToGRRID(c.client_id), clients_list))
-  return client_ids_list
+  return fleetspeak_utils.GetClientIdsFromFleetspeak()
 
 
 def fetch_datapoints_for_targets(client_id, limit, targets):
   """Fetches an array of <datapoint, timestamp> tuples for each target metric from Fleetspeak database."""
-  raw_data = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit)
-  records_list = list(raw_data.records)
+  records_list = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit)
   response = list()
   for target in targets:
     datapoints_for_single_target = list(map(lambda r: [getattr(r, target), r.server_timestamp.seconds * 1000], records_list))

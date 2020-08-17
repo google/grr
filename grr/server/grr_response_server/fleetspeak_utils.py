@@ -124,9 +124,9 @@ def GetAvailableMetricsFromFleetspeak():
     A list of metrics that can be retrieved from Fleetspeak.
   """
   res = fleetspeak_connector.CONN.outgoing._stub.GetAvailableMetrics(fs_common_pb2.Message())
-  if not res:
+  if not res or not res.targets[0]:
     return []
-  return res
+  return list(res.targets)
 
 
 def GetClientIdsFromFleetspeak():
@@ -138,7 +138,9 @@ def GetClientIdsFromFleetspeak():
   res = fleetspeak_connector.CONN.outgoing.ListClients(admin_pb2.ListClientsRequest())
   if not res.clients or not res.clients[0].client_id:
     return []
-  return res
+  clients_list = list(res.clients)
+  client_ids_list = list(map(lambda c: FleetspeakIDToGRRID(c.client_id), clients_list))
+  return list(client_ids_list)
 
 
 def FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit):
@@ -155,4 +157,4 @@ def FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit):
     admin_pb2.FetchClientResourceUsageRecordsRequest(client_id=GRRIDToFleetspeakID(client_id), limit=limit))
   if not res or not res.records[0]:
     return []
-  return res
+  return list(res.records)
