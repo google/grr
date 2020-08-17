@@ -302,7 +302,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           switchMapTo(this.select(state => state.clientId)),
           filter((clientId): clientId is string => clientId !== undefined),
           mergeMap(
-              clientId => this.httpApiService.fetchClientVersions({clientId})),
+              clientId => this.httpApiService.fetchClientVersions(clientId)),
           map(apiClientVersions => apiClientVersions.map(translateClient)),
           tap(clientVersions =>
                   this.updateSelectedClientVersions(clientVersions)),

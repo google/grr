@@ -592,9 +592,8 @@ describe('ClientPageFacade', () => {
        expect(httpApiService.fetchClientVersions).not.toHaveBeenCalled();
        clientPageFacade.selectedClientVersions$.subscribe();
 
-       expect(httpApiService.fetchClientVersions).toHaveBeenCalledWith({
-         clientId: 'C.1234'
-       });
+       expect(httpApiService.fetchClientVersions)
+           .toHaveBeenCalledWith('C.1234');
      });
 
   it('emits an array of Client objects through selectedClientVersions$',

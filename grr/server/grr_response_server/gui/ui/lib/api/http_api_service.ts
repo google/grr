@@ -1,11 +1,10 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-import {DateTime} from 'luxon';
 import {Observable, throwError} from 'rxjs';
-import {catchError, map, shareReplay, switchMap, take, tap} from 'rxjs/operators';
+import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsArgs, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -229,13 +228,14 @@ export class HttpApiService {
         map(clientsLabels => clientsLabels.items ?? []));
   }
 
-  fetchClientVersions(args: ApiGetClientVersionsArgs):
+  fetchClientVersions(clientId: string, start?: Date, end?: Date):
       Observable<ReadonlyArray<ApiClient>> {
-    const url = `${URL_PREFIX}/clients/${args.clientId}/versions`;
+    const url = `${URL_PREFIX}/clients/${clientId}/versions`;
+
     const params = new HttpParams({
       fromObject: {
-        start: args.start ?? '1',  // If not set, fetch from beggining of time
-        end: args.end ?? (new Date().getTime() * 1000).toString(),
+        start: ((start?.getTime() ?? 1) * 1000).toString(),  // If not set, fetch from beggining of time
+        end: ((end ?? new Date()).getTime() * 1000).toString(),
       }
     });
 
