@@ -12,18 +12,13 @@
     overflow: auto;
 
     .heading {
-      font-family: c.$google-sans-family;
-      font-size: 18px;
-      line-height: 24px;
       padding-left: 16px;
+      // Default material h1 style adds unwanted bottom margin
+      margin-bottom: 0px;
     }
 
     .since {
-      font-family: Roboto;
-      font-weight: 500;
       font-size: 10px;
-      line-height: 16px;
-      letter-spacing: 0.25px;
       color: c.mat-color(c.$foreground, text-light);
       padding-left: 16px;
     }
@@ -97,7 +92,7 @@
         font-weight: 500;
 
         .chip {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 500;
           border: 1px solid c.mat-color(c.$foreground, divider);
           background-color: c.mat-color(c.$background, app-bar);
