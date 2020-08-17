@@ -49,6 +49,10 @@ export class Client implements OnInit, OnDestroy {
     });
   }
 
+  removeLabel(labelName: string) {
+    this.clientPageFacade.removeClientLabel(labelName);
+  }
+
   addLabel(label: string) {
     this.clientPageFacade.addClientLabel(label);
   }

@@ -44,6 +44,8 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
       listResultsForFlow:
           jasmine.createSpy('listResultsForFlow').and.returnValue(of([])),
+      removeClientLabel:
+          jasmine.createSpy('removeClientLabel').and.returnValue(of({})),
     };
 
     configFacade = mockConfigFacade();
@@ -595,5 +597,17 @@ describe('ClientPageFacade', () => {
                (expectedClients.length - 1) +
            1);
        discardPeriodicTasks();
+     }));
+
+  it('calls API to remove a client label', fakeAsync(() => {
+       clientPageFacade.removeClientLabel('label1');
+       tick(1);
+       expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(1);
+     }));
+
+  it('refreshes client after calling API for removing label', fakeAsync(() => {
+       clientPageFacade.removeClientLabel('label1');
+       tick(1);
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
      }));
 });

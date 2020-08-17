@@ -223,6 +223,11 @@ export class HttpApiService {
         url, {client_ids: [clientId], labels: [label]});
   }
 
+  removeClientLabel(clientId: string, label: string): Observable<{}> {
+    const url = `${URL_PREFIX}/clients/labels/remove`;
+    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]});
+  }
+
   fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {
     const url = `${URL_PREFIX}/clients/labels`;
     return this.http.get<ApiListClientsLabelsResult>(url).pipe(

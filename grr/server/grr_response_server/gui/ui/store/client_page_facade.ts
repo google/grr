@@ -428,6 +428,16 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                   this.httpApiService.addClientLabel(clientId, label)),
           tap(() => this.fetchClient()),
           ));
+
+  // An effect to remove a label from the selected client
+  readonly removeClientLabel = this.effect<string>(
+      obs$ => obs$.pipe(
+          withLatestFrom(this.selectedClientId$),
+          switchMap(
+              ([label, clientId]) =>
+                  this.httpApiService.removeClientLabel(clientId, label)),
+          tap(() => this.fetchClient()),
+          ));
 }
 
 /** Facade for client-related API calls. */
@@ -491,7 +501,13 @@ export class ClientPageFacade {
     this.store.stopFlowConfiguration();
   }
 
+  /** Adds a label to the selected client */
   addClientLabel(label: string) {
     this.store.addClientLabel(label);
+  }
+
+  /** Removes a label from the selected client */
+  removeClientLabel(label: string) {
+    this.store.removeClientLabel(label);
   }
 }
