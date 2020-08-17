@@ -139,7 +139,7 @@ def GetClientIdsFromFleetspeak():
   if not res.clients or not res.clients[0].client_id:
     return []
   clients_list = list(res.clients)
-  client_ids_list = list(map(lambda c: FleetspeakIDToGRRID(c.client_id), clients_list))
+  client_ids_list = [FleetspeakIDToGRRID(client.client_id) for client in clients_list]
   return list(client_ids_list)
 
 

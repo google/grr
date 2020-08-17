@@ -111,7 +111,7 @@ def fetch_datapoints_for_targets(client_id, limit, targets):
   records_list = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit)
   response = list()
   for target in targets:
-    datapoints_for_single_target = list(map(lambda r: [getattr(r, target), r.server_timestamp.seconds * 1000], records_list))
+    datapoints_for_single_target = [[getattr(record, target), record.server_timestamp.seconds * 1000] for record in records_list]
     response.append({"target": target, "datapoints": datapoints_for_single_target})
   return response
 
