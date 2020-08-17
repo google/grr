@@ -123,7 +123,7 @@ def extract_client_id_from_variable(req):
 
 
 def main(argv):
-"""Main."""
+  """Main."""
   del argv  # Unused.
 
   if flags.FLAGS.version:
