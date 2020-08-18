@@ -1,5 +1,6 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
+import {MatSnackBar} from '@angular/material/snack-bar';
 import {ActivatedRoute} from '@angular/router';
 import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
@@ -17,6 +18,7 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Client implements OnInit, OnDestroy {
+  private static LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
   private readonly id$ = this.route.paramMap.pipe(
       map(params => params.get('id')),
       filter((id): id is string => id !== null));
@@ -29,6 +31,7 @@ export class Client implements OnInit, OnDestroy {
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
       private readonly dialog: MatDialog,
+      private readonly snackBar: MatSnackBar,
   ) {}
 
   ngOnInit() {
@@ -49,8 +52,27 @@ export class Client implements OnInit, OnDestroy {
     });
   }
 
+  private showLabelRemovedSnackBar(label: string) {
+    this.snackBar
+        .open(
+            `Label "${label}" removed`, 'UNDO',
+            {duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS, verticalPosition: 'top'})
+        .afterDismissed()
+        .subscribe(snackBar => {
+          if (snackBar.dismissedByAction) {
+            this.addLabel(label);
+          }
+        });
+  }
+
   removeLabel(label: string) {
-    this.clientPageFacade.removeClientLabel(label);
+    this.clientPageFacade.removeClientLabelReq(label).subscribe(
+      response => {
+        if (response.status === 200) {
+          this.showLabelRemovedSnackBar(label);
+        }
+      }
+    );
   }
 
   addLabel(label: string) {

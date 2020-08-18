@@ -1,4 +1,4 @@
-import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
+import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest, HttpResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
@@ -223,9 +223,12 @@ export class HttpApiService {
         url, {client_ids: [clientId], labels: [label]});
   }
 
-  removeClientLabel(clientId: string, label: string): Observable<{}> {
+  removeClientLabel(clientId: string, label: string): Observable<HttpResponse<{}>> {
     const url = `${URL_PREFIX}/clients/labels/remove`;
-    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]});
+    return this.http.post<{}>(
+        url, {client_ids: [clientId], labels: [label]}, {
+          observe: 'response',
+        });
   }
 
   fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {

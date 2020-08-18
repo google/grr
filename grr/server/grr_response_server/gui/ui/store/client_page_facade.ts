@@ -12,6 +12,7 @@ import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, me
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 
 import {ConfigFacade} from './config_facade';
+import {HttpResponse} from '@angular/common/http';
 
 
 interface FlowInConfiguration {
@@ -430,14 +431,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           ));
 
   // An effect to remove a label from the selected client
-  readonly removeClientLabel = this.effect<string>(
-      obs$ => obs$.pipe(
+  removeClientLabel(label: string): Observable<HttpResponse<{}>> {
+    return of(label).pipe(
           withLatestFrom(this.selectedClientId$),
           switchMap(
               ([label, clientId]) =>
                   this.httpApiService.removeClientLabel(clientId, label)),
           tap(() => this.fetchClient()),
-          ));
+          );
+  }
 }
 
 /** Facade for client-related API calls. */
@@ -507,7 +509,7 @@ export class ClientPageFacade {
   }
 
   /** Removes a label from the selected client */
-  removeClientLabel(label: string) {
-    this.store.removeClientLabel(label);
+  removeClientLabelReq(label: string): Observable<HttpResponse<{}>> {
+    return this.store.removeClientLabel(label);
   }
 }

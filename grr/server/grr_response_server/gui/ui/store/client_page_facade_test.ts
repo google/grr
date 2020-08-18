@@ -600,13 +600,13 @@ describe('ClientPageFacade', () => {
      }));
 
   it('calls API to remove a client label', fakeAsync(() => {
-       clientPageFacade.removeClientLabel('label1');
+       clientPageFacade.removeClientLabelReq('label1').subscribe();
        tick(1);
        expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(1);
      }));
 
   it('refreshes client after calling API for removing label', fakeAsync(() => {
-       clientPageFacade.removeClientLabel('label1');
+       clientPageFacade.removeClientLabelReq('label1').subscribe();
        tick(1);
        expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
      }));
