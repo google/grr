@@ -202,3 +202,11 @@ message MetadataTypesHierarchyCyclic {
 message MetadataTypesHierarchyLeaf {
   optional string field_string = 1;
 }
+
+message MetadataOneofMessage {
+  oneof metadata_oneof {
+    int64 oneof_int64 = 1;
+    MetadataSimpleMessage oneof_simplemsg = 2;
+  }
+  optional int64 field_int64 = 3;
+}

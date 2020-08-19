@@ -58,6 +58,13 @@ class MetadataTypesHierarchyLeaf(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.MetadataTypesHierarchyLeaf
 
 
+class MetadataOneofMessage(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.MetadataOneofMessage
+  rdf_deps = [
+    MetadataSimpleMessage
+  ]
+
+
 class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy `ApiCallRouter` implementation used for Metadata testing."""
 
