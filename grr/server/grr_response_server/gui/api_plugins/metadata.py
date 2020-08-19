@@ -106,10 +106,6 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   }
 }
 
-primitive_types_names: Set[str] = {
-  primitive_type["name"] for primitive_type in primitive_types.values()
-}
-
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
@@ -257,13 +253,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       if descriptor:
         self._CreateSchema(descriptor, visiting)
 
-      schema_or_ref_obj = (
-        self._GetSchemaOrReferenceObject(
+      properties[field_name] = (
+        self._GetReferenceObject(
           _GetTypeName(field_descriptor),
           field_descriptor.label == protobuf2.LABEL_REPEATED)
       )
-
-      properties[field_name] = schema_or_ref_obj
 
     visiting.remove(type_name)
 
@@ -340,63 +334,46 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         else:
           self._CreateSchema(result_type, visiting)
 
-  def _GetSchemaOrReferenceObject(
+  def _GetReferenceObject(
       self,
       type_name: str,
       is_array: bool = False
-  ) -> Union[PrimitiveSchema, SchemaReference, ArraySchema]:
-    """Get existing `Schema Object` if primitive type, else `Reference Object`.
+  ) -> Union[SchemaReference, ArraySchema]:
+    """Get a `Reference Object` that points to a schema definition.
 
-    Primitive, not composite types don't have an actual schema, but rather an
-    equivalent OpenAPI representation that gets returned for them.
-    More complex types are expected to have been previously defined as OpenAPI
-    components and are used through OpenAPI references.
+    All types (including protobuf primitives) are expected to have been
+    previously defined in the `components` field of the root `OpenAPI Object`
+    and are used via OpenAPI references.
 
     Args:
-      type_name: The name of the type whose OpenAPI (previously constructed)
-        schema will be returned or the name of the type for which an OpenAPI
-        reference object will be created and returned.
-      is_array: A boolean flag indicating whether the selected type's schema or
-        reference object should be wrapped in an OpenAPI array as the items
-        type.
+      type_name: The name of the type for which an OpenAPI `Reference Object`
+        will be created and returned.
+      is_array: A boolean flag indicating whether the selected type's reference
+        object should be wrapped in an OpenAPI array as the items type.
 
     Returns:
-      If the `is_array` argument is set to `False`, then:
-      - if the type is primitive, returns the associated OpenAPI
-        `Schema Object`;
-      - else, an OpenAPI `Reference Object` representing the path to the actual
-        OpenAPI schema definition of the selected type.
+      If the `is_array` argument is set to `False`, then an OpenAPI `Reference
+      Object` representing the path to the actual OpenAPI schema definition of
+      the selected type.
       If the `is_array` argument is set to `True`, then an OpenAPI array schema
-      is constructed that uses for its `items` field:
-      - if the type is primitive, the actual OpenAPI schema of the type;
-      - else, an OpenAPI `Reference Object` associated with the type's schema.
+      is constructed that uses for the `items` field an OpenAPI `Reference
+      Object` associated with the type's schema.
     """
     if self.schema_objs is None:
       raise AssertionError(
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    schema_or_ref_obj = (
-      None
-    )  # type: Optional[Union[PrimitiveSchema, SchemaReference]]
-    if type_name in primitive_types_names:
-      schema_obj = self.schema_objs[type_name]
-      schema_or_ref_obj = cast(PrimitiveSchema, schema_obj)
-    else:
-      reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
-      schema_or_ref_obj = reference_obj
-
-    if schema_or_ref_obj is None:  # Check required by mypy.
-      raise AssertionError("Failed to find schema or create reference.")
+    reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
 
     if is_array:
       array_schema = {
         "type": "array",
-        "items": schema_or_ref_obj
+        "items": reference_obj
       }  # type: ArraySchema
       return array_schema
 
-    return schema_or_ref_obj
+    return reference_obj
 
   def _GetParameters(
       self,
@@ -418,13 +395,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       else:
         parameter_obj["in"] = "query"
 
-      schema_or_ref_obj = (
-        self._GetSchemaOrReferenceObject(
+      parameter_obj["schema"] = (
+        self._GetReferenceObject(
           _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
       )
-      parameter_obj["schema"] = schema_or_ref_obj
 
       parameters.append(parameter_obj)
 
@@ -441,13 +417,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     properties = dict()
     for field_d in body_params:
       field_name = field_d.name
-      schema_or_ref_obj = (
-        self._GetSchemaOrReferenceObject(
+      properties[field_name] = (
+        self._GetReferenceObject(
           _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
       )
-      properties[field_name] = schema_or_ref_obj
 
     return {
       "content": {
@@ -484,8 +459,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"returned an instance of {result_type_name}."
       )
 
-      schema_or_ref_obj = self._GetSchemaOrReferenceObject(result_type_name)
-      media_obj = {"schema": schema_or_ref_obj}
+      media_obj = {"schema": self._GetReferenceObject(result_type_name)}
 
       content = dict()  # Needed to please mypy.
       if result_type == "BinaryStream":
@@ -554,7 +528,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetComponents(
       self
-  ) -> Dict[str, Dict[str, Union[EnumSchema, MessageSchema]]]:
+  ) -> Dict[str, Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]]]:
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
     if self.schema_objs is None:  # Check required by mypy.
@@ -562,15 +536,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    schemas_obj = dict()
-    types_names = set(self.schema_objs.keys())
-    # Create components only for composite types.
-    for type_name in types_names - primitive_types_names:
-      schemas_obj[type_name] = self.schema_objs[type_name]
-
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
-      "schemas": cast(Dict[str, Union[EnumSchema, MessageSchema]], schemas_obj)
+      "schemas": cast(
+        Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
+        self.schema_objs
+      )
     }
 
   def _SeparateFieldsIntoParams(

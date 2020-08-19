@@ -59,7 +59,7 @@ class MetadataTypesHierarchyLeaf(rdf_structs.RDFProtoStruct):
 
 
 class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
-  """Dummy ApiCallRouter implementation used for Metadata testing."""
+  """Dummy `ApiCallRouter` implementation used for Metadata testing."""
 
   @api_call_router.ArgsType(MetadataSimpleMessage)
   @api_call_router.Http("GET", "/metadata_test/method1/<metadata_id>")
@@ -101,7 +101,7 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
 
 
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
-  """Test for ApiGetOpenApiDescriptionHandler."""
+  """Test for `ApiGetOpenApiDescriptionHandler`."""
   def setUp(self):
     super(ApiGetOpenApiDescriptionHandlerTest, self).setUp()
     self.router = MetadataDummyApiCallRouter()
@@ -186,12 +186,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     openapi_paths_dict = self.openapi_desc_dict["paths"]
 
-    # Check the OpenAPI parameters of Method1WithArgsType routes.
+    # Check the OpenAPI parameters of `Method1WithArgsType` routes.
     method1_path_dict = (
       openapi_paths_dict["/metadata_test/method1/{metadata_id}"]
     )
 
-    # Parameters of GET /metadata_test/method1/{metadata_id}.
+    # Parameters of `GET /metadata_test/method1/{metadata_id}`.
     get_method1_dict = method1_path_dict["get"]
 
     get_method1_params_path = [
@@ -209,11 +209,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       get_method1_params_query
     )
 
-    # "parameters" field is always present, even if it is an empty array,
-    # "requestBody" should not be, unless there are arguments in the body.
+    # `parameters` field is always present, even if it is an empty array,
+    # `requestBody` should not be, unless there are arguments in the body.
     self.assertIsNone(get_method1_dict.get("requestBody"))
 
-    # Parameters of HEAD /metadata_test/method1/{metadata_id}.
+    # Parameters of `HEAD /metadata_test/method1/{metadata_id}`.
     head_method1_dict = method1_path_dict["head"]
 
     head_method1_params_path = [
@@ -233,7 +233,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertIsNone(head_method1_dict.get("requestBody"))
 
-    # Parameters of POST /metadata_test/method1/{metadata_id}.
+    # Parameters of `POST /metadata_test/method1/{metadata_id}`.
     post_method1_dict = method1_path_dict["post"]
 
     post_method1_params_path = [
@@ -258,10 +258,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       post_method1_params_body
     )
 
-    # Check the OpenAPI parameters of Method4RepeatedField routes.
+    # Check the OpenAPI parameters of `Method4RepeatedField` routes.
     method4_path_dict = openapi_paths_dict["/metadata_test/method4"]
 
-    # Parameters of GET /metadata_test/method4.
+    # Parameters of `GET /metadata_test/method4`.
     get_method4_dict = method4_path_dict["get"]
 
     get_method4_params_path = [
@@ -300,10 +300,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     ]
     self.assertCountEqual(["field_repeated"], post_method4_params_body)
 
-    # Check the OpenAPI parameters of Method5EnumField routes.
+    # Check the OpenAPI parameters of `Method5EnumField` routes.
     method5_path_dict = openapi_paths_dict["/metadata_test/method5"]
 
-    # Parameters of GET /metadata_test/method5.
+    # Parameters of `GET /metadata_test/method5`.
     get_method5_dict = method5_path_dict["get"]
 
     get_method5_params_path = [
@@ -320,7 +320,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertIsNone(get_method5_dict.get("requestBody"))
 
-    # Parameters of POST /metadata_test/method5.
+    # Parameters of `POST /metadata_test/method5`.
     post_method5_dict = method5_path_dict["post"]
 
     post_method5_params_path = [
@@ -342,10 +342,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     ]
     self.assertCountEqual(["field_enum"], post_method5_params_body)
 
-    # Check the OpenAPI parameters of Method6TypeReferences routes.
+    # Check the OpenAPI parameters of `Method6TypeReferences` routes.
     method6_path_dict = openapi_paths_dict["/metadata_test/method6"]
 
-    # Parameters of GET /metadata_test/method6.
+    # Parameters of `GET /metadata_test/method6`.
     get_method6_dict = method6_path_dict["get"]
 
     get_method6_params_path = [
@@ -369,12 +369,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Verify the OpenAPI schemas of the response objects.
     # Response types are usually protobuf messages. The expectation in these
     # cases is that the routes descriptions include a reference to the type
-    # schemas in the "components" field of the root OpenAPI object.
+    # schemas in the `components` field of the root `OpenAPI Object`.
     openapi_paths_dict = self.openapi_desc_dict["paths"]
 
-    # Method2WithResultType (GET, HEAD, POST) => MetadataSimpleMessage
+    # `Method2WithResultType (GET, HEAD, POST)` => `MetadataSimpleMessage`
     method2_path_dict = openapi_paths_dict["/metadata_test/method2"]
-    # Check responses for GET /metadata_test/method2.
+    # Check responses for `GET /metadata_test/method2`.
     self.assertEqual(
       {
         "200": {
@@ -418,7 +418,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       },
       method2_path_dict["head"]["responses"]
     )
-    # Check responses for POST /metadata_test/method2.
+    # Check responses for `POST /metadata_test/method2`.
     self.assertEqual(
       {
         "200": {
@@ -453,8 +453,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           "content": {
             "application/octet-stream": {
               "schema": {
-                "type": "string",
-                "format": "binary"
+                "$ref": "#/components/schemas/BinaryStream"
               }
             }
           }
@@ -467,9 +466,9 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       method3_path_dict["get"]["responses"]
     )
 
-    # Method4RepeatedField (GET, POST) => No result type.
+    # `Method4RepeatedField (GET, POST)` => No result type.
     method4_path_dict = openapi_paths_dict["/metadata_test/method4"]
-    # Check responses for GET /metadata_test/method4.
+    # Check responses for `GET /metadata_test/method4`.
     self.assertEqual(
       {
         "200": {
@@ -483,7 +482,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       },
       method4_path_dict["get"]["responses"]
     )
-    # Check responses for POST /metadata_test/method4.
+    # Check responses for `POST /metadata_test/method4`.
     self.assertEqual(
       {
         "200": {
@@ -498,10 +497,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       method4_path_dict["post"]["responses"]
     )
 
-  def testPrimitiveTypesAreCorrectlyDescribedInOpenApiDescription(self):
-    # Extract description of primitive types from the OpenApi description of
-    # MetadataPrimitiveTypesMessage which is the ArgsType of
-    # Method3PrimitiveTypes.
+  def testPrimitiveTypesAreCorrectlyDescribedAndUsedInOpenApiDescription(self):
+    # Primitive types schemas are described in the `components` field of the
+    # root `OpenAPI Object`.
+
+    # Firstly, verify that the descriptions of the fields of the
+    # `MetadataPrimitiveTypesMessage` (which is the `ArgsType` of
+    # `Method3PrimitiveTypes`) include references to the primitive types
+    # descriptions.
     operation_obj = (
       self.openapi_desc_dict
         .get("paths")
@@ -510,76 +513,76 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     primitive_parameters = operation_obj["parameters"]
 
-    def GetPrimitiveParamSchema(param_name):
+    def GetParamSchema(param_name):
       for param in primitive_parameters:
         if param["name"] == param_name:
           return param["schema"]
       return None
 
     self.assertEqual(
-      {"type": "number", "format": "double"},
-      GetPrimitiveParamSchema("field_double")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_DOUBLE"},
+      GetParamSchema("field_double")
     )
     self.assertEqual(
-      {"type": "number", "format": "float"},
-      GetPrimitiveParamSchema("field_float")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FLOAT"},
+      GetParamSchema("field_float")
     )
     self.assertEqual(
-      {"type": "string", "format": "int64"},
-      GetPrimitiveParamSchema("field_int64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_INT64"},
+      GetParamSchema("field_int64")
     )
     self.assertEqual(
-      {"type": "string", "format": "uint64"},
-      GetPrimitiveParamSchema("field_uint64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT64"},
+      GetParamSchema("field_uint64")
     )
     self.assertEqual(
-      {"type": "integer", "format": "int32"},
-      GetPrimitiveParamSchema("field_int32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_INT32"},
+      GetParamSchema("field_int32")
     )
     self.assertEqual(
-      {"type": "string", "format": "fixed64"},
-      GetPrimitiveParamSchema("field_fixed64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED64"},
+      GetParamSchema("field_fixed64")
     )
     self.assertEqual(
-      {"type": "number", "format": "fixed32"},
-      GetPrimitiveParamSchema("field_fixed32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED32"},
+      GetParamSchema("field_fixed32")
     )
     self.assertEqual(
-      {"type": "boolean"},
-      GetPrimitiveParamSchema("field_bool")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_BOOL"},
+      GetParamSchema("field_bool")
     )
     self.assertEqual(
-      {"type": "string"},
-      GetPrimitiveParamSchema("field_string")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_STRING"},
+      GetParamSchema("field_string")
     )
     self.assertEqual(
-      {"type": "string", "format": "byte"},
-      GetPrimitiveParamSchema("field_bytes")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_BYTES"},
+      GetParamSchema("field_bytes")
     )
     self.assertEqual(
-      {"type": "number", "format": "uint32"},
-      GetPrimitiveParamSchema("field_uint32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT32"},
+      GetParamSchema("field_uint32")
     )
     self.assertEqual(
-      {"type": "number", "format": "sfixed32"},
-      GetPrimitiveParamSchema("field_sfixed32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED32"},
+      GetParamSchema("field_sfixed32")
     )
     self.assertEqual(
-      {"type": "string", "format": "sfixed64"},
-      GetPrimitiveParamSchema("field_sfixed64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED64"},
+      GetParamSchema("field_sfixed64")
     )
     self.assertEqual(
-      {"type": "integer", "format": "int32"},
-      GetPrimitiveParamSchema("field_sint32")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT32"},
+      GetParamSchema("field_sint32")
     )
     self.assertEqual(
-      {"type": "string", "format": "sint64"},
-      GetPrimitiveParamSchema("field_sint64")
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT64"},
+      GetParamSchema("field_sint64")
     )
 
-    # Extract BinaryStream type description from the response schema.
+    # Extract `BinaryStream` type reference from the response schema.
     self.assertEqual(
-      {"type": "string", "format": "binary"},
+      {"$ref": "#/components/schemas/BinaryStream"},
       operation_obj
         .get("responses")
         .get("200")
@@ -588,11 +591,80 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("schema")
     )
 
+    # Secondly, verify the descriptions of primitive types from the `components`
+    # field of the root `OpenAPI Object`.
+    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+
+    self.assertEqual(
+      {"type": "number", "format": "double"},
+      components_schemas["protobuf2.TYPE_DOUBLE"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "float"},
+      components_schemas["protobuf2.TYPE_FLOAT"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "int64"},
+      components_schemas["protobuf2.TYPE_INT64"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "uint64"},
+      components_schemas["protobuf2.TYPE_UINT64"]
+    )
+    self.assertEqual(
+      {"type": "integer", "format": "int32"},
+      components_schemas["protobuf2.TYPE_INT32"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "fixed64"},
+      components_schemas["protobuf2.TYPE_FIXED64"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "fixed32"},
+      components_schemas["protobuf2.TYPE_FIXED32"]
+    )
+    self.assertEqual(
+      {"type": "boolean"},
+      components_schemas["protobuf2.TYPE_BOOL"]
+    )
+    self.assertEqual(
+      {"type": "string"},
+      components_schemas["protobuf2.TYPE_STRING"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "byte"},
+      components_schemas["protobuf2.TYPE_BYTES"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "uint32"},
+      components_schemas["protobuf2.TYPE_UINT32"]
+    )
+    self.assertEqual(
+      {"type": "number", "format": "sfixed32"},
+      components_schemas["protobuf2.TYPE_SFIXED32"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "sfixed64"},
+      components_schemas["protobuf2.TYPE_SFIXED64"]
+    )
+    self.assertEqual(
+      {"type": "integer", "format": "int32"},
+      components_schemas["protobuf2.TYPE_INT32"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "sint64"},
+      components_schemas["protobuf2.TYPE_SINT64"]
+    )
+    self.assertEqual(
+      {"type": "string", "format": "binary"},
+      components_schemas["BinaryStream"]
+    )
+
   def testRepeatedFieldIsDescribedCorrectlyInOpenApiDescription(self):
-    # Extract the repeated field from the description of the GET route
-    # associated with Method4RepeatedField.
-    # The repeated field should be the only parameter and be a query parameter.
-    # This aspect is tested by testRouteArgsAreCorrectlySeparated.
+    # Extract the `repeated` field from the description of the `GET` route
+    # associated with `Method4RepeatedField`.
+    # The `repeated` field should be the only parameter and be a query
+    # parameter. This aspect is tested by `testRouteArgsAreCorrectlySeparated`.
     get_method4_repeated_field_schema = (
       self.openapi_desc_dict
         .get("paths")
@@ -605,17 +677,16 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "array",
         "items": {
-          "type": "string",
-          "format": "int64"
+          "$ref": "#/components/schemas/protobuf2.TYPE_INT64"
         }
       },
       get_method4_repeated_field_schema
     )
 
-    # Extract the repeated field from the description of the POST route
-    # associated with Method4RepeatedField.
+    # Extract the `repeated` field from the description of the `POST` route
+    # associated with `Method4RepeatedField`.
     # The repeated field should be the only parameter and be a request body
-    # parameter. This aspect is tested by testRouteArgsAreCorrectlySeparated.
+    # parameter. This aspect is tested by `testRouteArgsAreCorrectlySeparated`.
     post_method4_repeated_field_schema = (
       self.openapi_desc_dict
       .get("paths")
@@ -632,8 +703,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "array",
         "items": {
-          "type": "string",
-          "format": "int64"
+          "$ref": "#/components/schemas/protobuf2.TYPE_INT64"
         }
       },
       post_method4_repeated_field_schema
@@ -641,15 +711,15 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testEnumFieldIsDescribedCorrectlyInOpenApiDescription(self):
     # The enum type is user defined, so it is reusable and described separately
-    # from the field itself, in the "components" field of the root OpenAPI
-    # object. Therefore, the expectation is that this field has a reference to
+    # from the field itself, in the `component` field of the root `OpenAPI
+    # Object`. Therefore, the expectation is that this field has a reference to
     # the enum type description.
     # We test both the references and the type definition.
 
     # Test the OpenAPI schema description of the *enum field*.
 
-    # Extract the enum field schema from the description of the GET route
-    # associated with Method5EnumField.
+    # Extract the enum field schema from the description of the `GET` route
+    # associated with `Method5EnumField`.
     get_method5_enum_field_schema = (
       self.openapi_desc_dict
       .get("paths")
@@ -667,7 +737,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Extract the enum field schema from the description of the POST route
-    # associated with Method5EnumField.
+    # associated with `Method5EnumField`.
     post_method5_enum_field_schema = (
       self.openapi_desc_dict
       .get("paths")
