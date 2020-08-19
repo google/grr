@@ -367,15 +367,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if not body_params:
       return {}
 
-    properties = dict()
+    properties: Dict[str, Union[ArraySchema, SchemaReference]] = dict()
     for field_d in body_params:
       field_name = field_d.name
-      properties[field_name] = (
-        _GetReferenceObject(
-          _GetTypeName(field_d),
-          field_d.label == protobuf2.LABEL_REPEATED
-        )
-      )
+      if field_d.label == protobuf2.LABEL_REPEATED:
+        properties[field_name] = _GetArraySchema(_GetTypeName(field_d))
+      else:
+        properties[field_name] = _GetReferenceObject(_GetTypeName(field_d))
 
     return {
       "content": {
@@ -690,10 +688,7 @@ def _GetTypeName(
   return str(cls)  # Cover `BinaryStream` and `None`.
 
 
-def _GetReferenceObject(
-    type_name: str,
-    is_array: bool = False,
-) -> Union[SchemaReference, ArraySchema]:
+def _GetReferenceObject(type_name: str) -> SchemaReference:
   """Get a `Reference Object` that points to a schema definition.
 
   All types (including protobuf primitives) are expected to have been
@@ -703,27 +698,23 @@ def _GetReferenceObject(
   Args:
     type_name: The name of the type for which an OpenAPI `Reference Object`
       will be created and returned.
-    is_array: A boolean flag indicating whether the selected type's reference
-      object should be wrapped in an OpenAPI array as the items type.
 
   Returns:
-    If the `is_array` argument is set to `False`, then an OpenAPI `Reference
-    Object` representing the path to the actual OpenAPI schema definition of
-    the selected type.
-    If the `is_array` argument is set to `True`, then an OpenAPI array schema
-    is constructed that uses for the `items` field an OpenAPI `Reference
-    Object` associated with the type's schema.
+    An OpenAPI `Reference Object` representing the path to the actual OpenAPI
+    schema definition of the selected type.
   """
-  reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
+  return {
+    "$ref": f"#/components/schemas/{type_name}"
+  }
 
-  if is_array:
-    array_schema: ArraySchema = {
-      "type": "array",
-      "items": reference_obj,
-    }
-    return array_schema
 
-  return reference_obj
+def _GetArraySchema(items_type_name: str) -> ArraySchema:
+  """Get the schema of an array with items of the given type."""
+
+  return {
+    "type": "array",
+    "items": _GetReferenceObject(items_type_name)
+  }
 
 
 def _GetFieldSchema(
@@ -732,8 +723,9 @@ def _GetFieldSchema(
   """Create a dictionary to be used as the schema of a message field.
 
   This function takes into consideration the fact that the field might be part
-  of a `protobuf.oneof` and wraps the `Reference Object` accordingly in order to
-  include a description specifying the name of the `protobuf.oneof`.
+  of a `protobuf.oneof` and wraps the `Reference Object` or the OpenAPI array
+  accordingly in order to include a description specifying the name of the
+  `protobuf.oneof`.
 
   Args:
     field_descriptor: The protobuf `FieldDescriptor` associated with the target
@@ -744,18 +736,16 @@ def _GetFieldSchema(
     Object`, else, a dictionary that includes a description entry along the
     `Reference Object`.
   """
-  reference_obj = _GetReferenceObject(
-    _GetTypeName(field_descriptor),
-    field_descriptor.label == protobuf2.LABEL_REPEATED
-  )
-
   # The semantic of `protobuf.oneof` is not currently supported by the
   # OpenAPI Specification. See this GitHub issue [1] for more details.
   #
   # [1]: github.com/google/grr/issues/822
   containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
   if containing_oneof is None:
-    return reference_obj
+    if field_descriptor.label == protobuf2.LABEL_REPEATED:
+      return _GetArraySchema(_GetTypeName(field_descriptor))
+
+    return _GetReferenceObject(_GetTypeName(field_descriptor))
 
   # The following `allOf` is required to display the description by
   # documentation generation tools because the OAS specifies that there
@@ -763,12 +753,21 @@ def _GetFieldSchema(
   # workaround proposed by the ReDoc community [1].
   #
   # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
-  return cast(
+  oneof_member = cast(
     OneofFieldSchema,
     {
       "description":
         f"This field is part of the \"{containing_oneof.name}\" oneof. "
         f"Only one field per oneof should be present.",
-      "allOf": [reference_obj],
     }
   )
+  if field_descriptor.label == protobuf2.LABEL_REPEATED:
+    oneof_member["allOf"] = [
+      _GetArraySchema(_GetTypeName(field_descriptor))
+    ]
+  else:
+    oneof_member["allOf"] = [
+      _GetReferenceObject(_GetTypeName(field_descriptor))
+    ]
+
+  return oneof_member
