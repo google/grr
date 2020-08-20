@@ -23,11 +23,11 @@ from grr_response_server.gui import api_call_handler_base
 # Type aliases used throughout the metadata module.
 SchemaReference = Dict[str, str]
 PrimitiveSchema = Dict[str, str]
-ArraySchema = Dict[str, Union[str, PrimitiveSchema, SchemaReference]]
+ArraySchema = Dict[str, Union[str, SchemaReference]]
 EnumSchema = Dict[str, Union[str, Tuple[str, ...]]]
 MessageSchema = Dict[
   str, Union[str,
-             Dict[str, Union[SchemaReference, PrimitiveSchema, ArraySchema]]]
+             Dict[str, Union[SchemaReference, ArraySchema]]]
 ]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
@@ -380,7 +380,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       path_params: List[FieldDescriptor],
       query_params: List[FieldDescriptor]
   ) -> List[
-    Dict[str, Union[str, bool, PrimitiveSchema, SchemaReference, ArraySchema]]
+    Dict[str, Union[str, bool, SchemaReference, ArraySchema]]
   ]:
     """Create the OpenAPI description of the parameters of a route."""
     parameters = []
