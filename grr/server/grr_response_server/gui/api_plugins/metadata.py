@@ -220,7 +220,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateMessageSchema(
       self,
       descriptor: Descriptor,
-      visiting: Set[str]
+      visiting: Set[str],
   ) -> None:
     """Creates the OpenAPI schema of a protobuf message.
 
@@ -271,7 +271,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateSchema(
       self,
       cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
-      visiting: Set[str]
+      visiting: Set[str],
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
@@ -336,7 +336,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _GetParameters(
       self,
       path_params: List[FieldDescriptor],
-      query_params: List[FieldDescriptor]
+      query_params: List[FieldDescriptor],
   ) -> List[
     Dict[str, Union[str, bool, SchemaReference, ArraySchema]]
   ]:
@@ -361,7 +361,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetRequestBody(
       self,
-      body_params: List[FieldDescriptor]
+      body_params: List[FieldDescriptor],
   ) -> Dict[str, Dict]:
     """Create the OpenAPI description of the request body of a route."""
     if not body_params:
@@ -391,7 +391,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _GetResponseObject200(
       self,
       result_type: Union[rdf_structs.RDFProtoStruct, str],
-      router_method_name: str
+      router_method_name: str,
   ) -> Dict[str, Union[str, Dict]]:
     """Create the OpenAPI description of a successful, 200 HTTP response."""
     resp_success_obj: Dict[str, Union[str, Dict]] = dict()
@@ -429,7 +429,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetResponseObjectDefault(
       self,
-      router_method_name: str
+      router_method_name: str,
   ) -> Dict[str, str]:
     """Create the OpenAPI description used by all undescribed HTTP responses."""
     resp_default_obj= {
@@ -480,7 +480,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     ]
 
   def _GetComponents(
-      self
+      self,
   ) -> Dict[str, Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]]]:
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
@@ -501,7 +501,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       self,
       http_method: str,
       path: str,
-      args_type: Type[rdf_structs.RDFProtoStruct]
+      args_type: Type[rdf_structs.RDFProtoStruct],
   ) -> Tuple[
     List[FieldDescriptor], List[FieldDescriptor], List[FieldDescriptor]
   ]:
@@ -727,7 +727,7 @@ def _GetReferenceObject(
 
 
 def _GetFieldSchema(
-    field_descriptor: FieldDescriptor
+    field_descriptor: FieldDescriptor,
 ) -> Union[SchemaReference, ArraySchema, OneofFieldSchema]:
   """Create a dictionary to be used as the schema of a message field.
 
