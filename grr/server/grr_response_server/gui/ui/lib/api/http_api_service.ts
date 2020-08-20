@@ -1,11 +1,10 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-
 import {Observable, throwError} from 'rxjs';
 import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation, ApiScheduledFlow, ApiListScheduledFlowsResult, ApiUiConfig} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -278,14 +277,29 @@ export class HttpApiService {
 
   addClientLabel(clientId: string, label: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/labels/add`;
-    return this.http.post<ApiAddClientsLabelsArgs>(
-        url, {client_ids: [clientId], labels: [label]});
+    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]});
   }
 
   fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {
     const url = `${URL_PREFIX}/clients/labels`;
     return this.http.get<ApiListClientsLabelsResult>(url).pipe(
         map(clientsLabels => clientsLabels.items ?? []));
+  }
+
+  fetchClientVersions(clientId: string, start?: Date, end?: Date):
+      Observable<ReadonlyArray<ApiClient>> {
+    const url = `${URL_PREFIX}/clients/${clientId}/versions`;
+
+    const params = new HttpParams({
+      fromObject: {
+        start: ((start?.getTime() ?? 1) * 1000)
+                   .toString(),  // If not set, fetch from beggining of time
+        end: ((end ?? new Date()).getTime() * 1000).toString(),
+      }
+    });
+
+    return this.http.get<ApiGetClientVersionsResult>(url, {params})
+        .pipe(map(clientVersions => clientVersions.items ?? []));
   }
 }
 

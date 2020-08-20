@@ -1,56 +1,107 @@
 @use '~material-theme' as c;
 
-.info {
-  width: 60%;
-  margin: auto;
-  text-align: center;
+.details-container {
+  display: flex;
+  // Set to full_screen_height - toolbar_height to enable div scrolling
+  height: calc(100% - 64px);
 
-  .header {
-    margin-top: 1em;
-    display: inline-block;
+  .timeline {
+    width: 20%;
+    border-right: 1px solid c.mat-color(c.$foreground, divider);
+    padding: 2em;
+    overflow: auto;
 
-    mat-icon {
-      transform: scale(2);
+    .heading {
+      padding-left: 16px;
+      // Default material h1 style adds unwanted bottom margin
+      margin-bottom: 0px;
     }
 
-    .fqdn {
-      font-weight: 500;
-    }
-
-    .client-id {
+    .since {
+      font-size: 10px;
       color: c.mat-color(c.$foreground, text-light);
-      text-align: left;
-    }
-  }
-
-  .section-title {
-    font-weight: bold;
-    text-align: left;
-    border-bottom: 1px solid c.mat-color(c.$foreground, divider);
-  }
-
-  .section {
-    font-family: c.$google-sans-family;
-    text-align: left;
-
-    .description {
-      min-width: 10em;
-      vertical-align: top;
+      padding-left: 16px;
     }
 
-    .value {
-      font-weight: 500;
+    .entry {
+      margin-top: 1em;
+      background: transparent;
+      height: auto;
 
-      .chip {
-        font-size: 14px;
+      .timestamp {
+        margin-left: 20px;
         font-weight: 500;
-        border: 1px solid c.mat-color(c.$foreground, divider);
-        background-color: c.mat-color(c.$background, app-bar);
+        font-size: 11px;
+        line-height: 16px;
+        letter-spacing: 0.8px;
+      }
+
+      .change-list {
+        margin-left: 7px;
+        border-left: 1px solid c.mat-color(c.$foreground, divider);
+        padding-left: 27px;
       }
     }
 
-    .empty-section {
-      font-weight: 300;
+    .entry[aria-selected="true"] {
+      color: c.mat-color(c.$primary);
+    }
+  }
+
+  .info {
+    padding-left: 200px;
+    padding-right: 200px;
+    text-align: center;
+    overflow: auto;
+    flex-grow: 1;
+
+    .header {
+      margin-top: 1em;
+      display: inline-block;
+
+      mat-icon {
+        transform: scale(2);
+      }
+
+      .fqdn {
+        font-weight: 500;
+      }
+
+      .client-id {
+        color: c.mat-color(c.$foreground, text-light);
+        text-align: left;
+      }
+    }
+
+    .section-title {
+      font-weight: bold;
+      text-align: left;
+      border-bottom: 1px solid c.mat-color(c.$foreground, divider);
+    }
+
+    .section {
+      font-family: c.$google-sans-family;
+      text-align: left;
+
+      .description {
+        min-width: 10em;
+        vertical-align: top;
+      }
+
+      .value {
+        font-weight: 500;
+
+        .chip {
+          font-size: 13px;
+          font-weight: 500;
+          border: 1px solid c.mat-color(c.$foreground, divider);
+          background-color: c.mat-color(c.$background, app-bar);
+        }
+      }
+
+      .empty-section {
+        font-weight: 300;
+      }
     }
   }
 }

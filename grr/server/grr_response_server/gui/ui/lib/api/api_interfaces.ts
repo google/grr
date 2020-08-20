@@ -168,6 +168,15 @@ export declare interface ApiClient {
   readonly lastBootedAt?: string;
   readonly lastClock?: string;
   readonly labels?: ReadonlyArray<ApiClientLabel>;
+
+  readonly age?: string;
+}
+
+/**
+ * ApiGetClientVersionsResult proto mapping.
+ */
+export declare interface ApiGetClientVersionsResult {
+  readonly items?: ReadonlyArray<ApiClient>;
 }
 
 /**
