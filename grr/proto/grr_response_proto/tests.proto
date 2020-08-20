@@ -210,3 +210,7 @@ message MetadataOneofMessage {
   }
   optional int64 field_int64 = 3;
 }
+
+message MetadataMapMessage {
+  map<sfixed64, MetadataSimpleMessage> field_map = 1;
+}
