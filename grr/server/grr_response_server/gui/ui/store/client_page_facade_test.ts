@@ -4,7 +4,7 @@ import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow} f
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from '@app/lib/models/flow';
-import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
+import {newClient, newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
 import {initTestEnvironment} from '@app/testing';
 import {of, Subject} from 'rxjs';
@@ -30,6 +30,7 @@ describe('ClientPageFacade', () => {
   let apiCancelFlow$: Subject<ApiFlow>;
   let configFacade: ConfigFacadeMock;
   let userFacade: UserFacadeMock;
+  let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
@@ -39,6 +40,7 @@ describe('ClientPageFacade', () => {
     apiStartFlow$ = new Subject();
     apiScheduleFlow$ = new Subject();
     apiCancelFlow$ = new Subject();
+    apiFetchClientVersions$ = new Subject();
     httpApiService = {
       listApprovals:
           jasmine.createSpy('listApprovals').and.returnValue(apiListApprovals$),
@@ -55,6 +57,8 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
       listResultsForFlow:
           jasmine.createSpy('listResultsForFlow').and.returnValue(of([])),
+      fetchClientVersions: jasmine.createSpy('fetchClientVersions')
+                               .and.returnValue(apiFetchClientVersions$)
     };
 
     configFacade = mockConfigFacade();
@@ -708,28 +712,14 @@ describe('ClientPageFacade', () => {
   it('updates selectedClient$ with changed client data when underlying API client data changes.',
      fakeAsync((done: DoneFn) => {
        const expectedClients: Client[] = [
-         {
+         newClient({
            clientId: 'C.1234',
            fleetspeakEnabled: false,
-           knowledgeBase: {},
-           users: [],
-           osInfo: {},
-           agentInfo: {},
-           networkInterfaces: [],
-           volumes: [],
-           labels: [],
-         },
-         {
+         }),
+         newClient({
            clientId: 'C.5678',
            fleetspeakEnabled: true,
-           knowledgeBase: {},
-           users: [],
-           osInfo: {},
-           agentInfo: {},
-           networkInterfaces: [],
-           volumes: [],
-           labels: [],
-         },
+         }),
        ];
 
        apiFetchClient$.next({
@@ -751,5 +741,46 @@ describe('ClientPageFacade', () => {
                (expectedClients.length - 1) +
            1);
        discardPeriodicTasks();
+     }));
+
+  it('fetches client versions from API when selectedClientVersions$ is subscribed to',
+     () => {
+       expect(httpApiService.fetchClientVersions).not.toHaveBeenCalled();
+       clientPageFacade.selectedClientVersions$.subscribe();
+
+       expect(httpApiService.fetchClientVersions)
+           .toHaveBeenCalledWith('C.1234');
+     });
+
+  it('emits an array of Client objects through selectedClientVersions$',
+     fakeAsync((done: DoneFn) => {
+       apiFetchClientVersions$.next([
+         {
+           clientId: 'C.1234',
+           fleetspeakEnabled: true,
+         },
+         {
+           clientId: 'C.1234',
+           fleetspeakEnabled: false,
+         },
+       ]);
+
+       const expectedClientVersions = [
+         newClient({
+           clientId: 'C.1234',
+           fleetspeakEnabled: true,
+         }),
+         newClient({
+           clientId: 'C.1234',
+           fleetspeakEnabled: false,
+         }),
+       ];
+
+       clientPageFacade.selectedClientVersions$.subscribe(clientVersions => {
+         expect(clientVersions).toEqual(expectedClientVersions);
+         done();
+       });
+
+       tick(1);
      }));
 });

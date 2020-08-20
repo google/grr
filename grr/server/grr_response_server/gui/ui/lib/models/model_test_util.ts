@@ -25,6 +25,7 @@ export function newClient(args: Partial<Client> = {}): Client {
     users: [],
     networkInterfaces: [],
     labels: [],
+    age: new Date(1),
     ...args,
   };
 }
