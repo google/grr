@@ -40,6 +40,10 @@ export class Client implements OnInit, OnDestroy {
     });
   }
 
+  labelsTrackByName(index: number, item: ClientLabel): string {
+    return item.name;
+  }
+
   openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
     const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
       data: clientLabels,
