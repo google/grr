@@ -23,11 +23,11 @@ from grr_response_server.gui import api_call_handler_base
 # Type aliases used throughout the metadata module.
 SchemaReference = Dict[str, str]
 PrimitiveSchema = Dict[str, str]
-ArraySchema = Dict[str, Union[str, PrimitiveSchema, SchemaReference]]
+ArraySchema = Dict[str, Union[str, SchemaReference]]
 EnumSchema = Dict[str, Union[str, Tuple[str, ...]]]
 MessageSchema = Dict[
   str, Union[str,
-             Dict[str, Union[SchemaReference, PrimitiveSchema, ArraySchema]]]
+             Dict[str, Union[SchemaReference, ArraySchema]]]
 ]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
@@ -197,9 +197,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "The container of OpenAPI type schemas is not initialized."
       )
 
-    enum_schema_obj = {
+    enum_schema_obj: EnumSchema = {
       "type": "string",
-    }  # type: EnumSchema
+    }
 
     if len(descriptor.values) > 0:
       enum_schema_obj["enum"] = (
@@ -311,7 +311,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self._AddPrimitiveTypesSchemas()
 
     # Holds state of types extraction (white/gray nodes).
-    visiting = set()  # type: Set[str]
+    visiting: Set[str] = set()
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for method_metadata in router_methods.values():
       args_type = method_metadata.args_type
@@ -367,10 +367,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
 
     if is_array:
-      array_schema = {
+      array_schema: ArraySchema = {
         "type": "array",
         "items": reference_obj
-      }  # type: ArraySchema
+      }
       return array_schema
 
     return reference_obj
@@ -380,7 +380,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       path_params: List[FieldDescriptor],
       query_params: List[FieldDescriptor]
   ) -> List[
-    Dict[str, Union[str, bool, PrimitiveSchema, SchemaReference, ArraySchema]]
+    Dict[str, Union[str, bool, SchemaReference, ArraySchema]]
   ]:
     """Create the OpenAPI description of the parameters of a route."""
     parameters = []
@@ -441,7 +441,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       router_method_name: str
   ) -> Dict[str, Union[str, Dict]]:
     """Create the OpenAPI description of a successful, 200 HTTP response."""
-    resp_success_obj = dict()  # type: Dict[str, Union[str, Dict]]
+    resp_success_obj: Dict[str, Union[str, Dict]] = dict()
 
     if result_type:
       if (
@@ -621,7 +621,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Create the OpenAPI description of all the routes exposed by the API."""
 
     # The `Paths Object` `paths` field of the root `OpenAPI Object`.
-    paths_obj = collections.defaultdict(dict)  # type: DefaultDict[str, Dict]
+    paths_obj: DefaultDict[str, Dict] = collections.defaultdict(dict)
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for router_method_name in router_methods:
