@@ -223,12 +223,14 @@ export class HttpApiService {
         url, {client_ids: [clientId], labels: [label]});
   }
 
-  removeClientLabel(clientId: string, label: string): Observable<HttpResponse<{}>> {
+  removeClientLabel(clientId: string, label: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/labels/remove`;
-    return this.http.post<{}>(
-        url, {client_ids: [clientId], labels: [label]}, {
-          observe: 'response',
-        });
+    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]})
+        .pipe(
+            catchError(
+                (e: HttpErrorResponse) =>
+                    throwError(new Error(e.error.message ?? e.message))),
+        );
   }
 
   fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {

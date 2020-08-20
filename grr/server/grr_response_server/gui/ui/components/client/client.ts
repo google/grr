@@ -4,7 +4,7 @@ import {MatSnackBar} from '@angular/material/snack-bar';
 import {ActivatedRoute} from '@angular/router';
 import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {filter, map, takeUntil, takeWhile, take} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
@@ -70,13 +70,16 @@ export class Client implements OnInit, OnDestroy {
   }
 
   removeLabel(label: string) {
-    this.clientPageFacade.removeClientLabelReq(label).subscribe(
-      response => {
-        if (response.status === 200) {
-          this.showLabelRemovedSnackBar(label);
-        }
+    this.clientPageFacade.removeClientLabel(label);
+    this.clientPageFacade.removeClientLabelState$.pipe(
+      filter(state => state.state === 'error' || state.state === 'success'),
+      take(1),
+    ).subscribe((state) => {
+      if (state.state === 'success') {
+        this.showLabelRemovedSnackBar(label);
       }
-    );
+      this.clientPageFacade.clearRemoveClientLabelState();
+    });
   }
 
   addLabel(label: string) {

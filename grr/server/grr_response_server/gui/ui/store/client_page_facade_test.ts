@@ -5,7 +5,7 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
-import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ChangeRequestState, ClientPageFacade} from '@app/store/client_page_facade';
 import {initTestEnvironment} from '@app/testing';
 import {of, Subject} from 'rxjs';
 
@@ -25,6 +25,7 @@ describe('ClientPageFacade', () => {
   let apiStartFlow$: Subject<ApiFlow>;
   let apiCancelFlow$: Subject<ApiFlow>;
   let configFacade: ConfigFacadeMock;
+  let apiRemoveClientLabel$: Subject<{}>;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
@@ -32,6 +33,7 @@ describe('ClientPageFacade', () => {
     apiListFlowsForClient$ = new Subject();
     apiStartFlow$ = new Subject();
     apiCancelFlow$ = new Subject();
+    apiRemoveClientLabel$ = new Subject();
     httpApiService = {
       listApprovals:
           jasmine.createSpy('listApprovals').and.returnValue(apiListApprovals$),
@@ -44,8 +46,8 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
       listResultsForFlow:
           jasmine.createSpy('listResultsForFlow').and.returnValue(of([])),
-      removeClientLabel:
-          jasmine.createSpy('removeClientLabel').and.returnValue(of({})),
+      removeClientLabel: jasmine.createSpy('removeClientLabel')
+                             .and.returnValue(apiRemoveClientLabel$),
     };
 
     configFacade = mockConfigFacade();
@@ -599,15 +601,56 @@ describe('ClientPageFacade', () => {
        discardPeriodicTasks();
      }));
 
-  it('calls API to remove a client label', fakeAsync(() => {
-       clientPageFacade.removeClientLabelReq('label1').subscribe();
-       tick(1);
-       expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(1);
-     }));
+  it('calls API to remove a client label', () => {
+    expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(0);
+    clientPageFacade.removeClientLabel('label1');
+    expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(1);
+  });
 
-  it('refreshes client after calling API for removing label', fakeAsync(() => {
-       clientPageFacade.removeClientLabelReq('label1').subscribe();
-       tick(1);
-       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
-     }));
+  it('refreshes client after calling API for removing label', () => {
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(0);
+    clientPageFacade.removeClientLabel('label1');
+    apiRemoveClientLabel$.next({});
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks the state of the remove client label request on success',
+     (done) => {
+       const expectedStates: ChangeRequestState[] = [
+         {state: 'request_not_sent'},
+         {state: 'request_sent'},
+         {state: 'success'},
+       ];
+
+       let i = 0;
+       clientPageFacade.removeClientLabelState$.subscribe((state) => {
+         expect(state).toEqual(expectedStates[i]);
+         i++;
+         if (i === expectedStates.length) {
+           done();
+         }
+       });
+
+       clientPageFacade.removeClientLabel('');
+       apiRemoveClientLabel$.next({});
+     });
+
+  it('tracks the state of the remove client label request on error', (done) => {
+    const expectedStates: ChangeRequestState[] = [
+      {state: 'request_not_sent'},
+      {state: 'error', error: 'request error message'},
+    ];
+
+    let i = 0;
+    clientPageFacade.removeClientLabelState$.subscribe((state) => {
+      expect(state).toEqual(expectedStates[i]);
+      i++;
+      if (i === expectedStates.length) {
+        done();
+      }
+    });
+
+    clientPageFacade.removeClientLabel('');
+    apiRemoveClientLabel$.error(new Error('request error message'));
+  });
 });

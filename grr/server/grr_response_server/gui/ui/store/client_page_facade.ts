@@ -1,3 +1,4 @@
+import {HttpResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ConfigService} from '@app/components/config/config';
 import {AnyObject} from '@app/lib/api/api_interfaces';
@@ -12,7 +13,6 @@ import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, me
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 
 import {ConfigFacade} from './config_facade';
-import {HttpResponse} from '@angular/common/http';
 
 
 interface FlowInConfiguration {
@@ -33,6 +33,17 @@ export type StartFlowState = {
   readonly error: string,
 };
 
+export type ChangeRequestState = {
+  readonly state: 'request_not_sent',
+} | {
+  readonly state: 'request_sent',
+} | {
+  readonly state: 'success',
+} | {
+  readonly state: 'error',
+  readonly error: string,
+}
+
 interface ClientPageState {
   readonly client?: Client;
   readonly clientId?: string;
@@ -45,6 +56,8 @@ interface ClientPageState {
 
   readonly flowInConfiguration?: FlowInConfiguration;
   readonly startFlowState: StartFlowState;
+
+  readonly removeClientLabelState: ChangeRequestState;
 }
 
 /**
@@ -67,6 +80,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       flowListEntries: {},
       flowListEntrySequence: [],
       startFlowState: {state: 'request_not_sent'},
+      removeClientLabelState: {state: 'request_not_sent'},
     });
   }
 
@@ -166,6 +180,21 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           },
         };
       });
+
+  private readonly updateRemoveClientLabelState =
+      this.updater<ChangeRequestState>((state, newState) => {
+        return {
+          ...state,
+          removeClientLabelState: newState,
+        };
+      });
+
+  /** Clears the state of the request to remove a client label */
+  readonly clearRemoveClientLabelState = this.updater<void>((state) => {
+    return {
+      ...state, removeClientLabelState: {state: 'request_not_sent'},
+    }
+  });
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
@@ -420,7 +449,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
-  // An effect to add a label to the selected client
+  /** An effect to add a label to the selected client */
   readonly addClientLabel = this.effect<string>(
       obs$ => obs$.pipe(
           withLatestFrom(this.selectedClientId$),
@@ -430,16 +459,32 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           tap(() => this.fetchClient()),
           ));
 
-  // An effect to remove a label from the selected client
-  removeClientLabel(label: string): Observable<HttpResponse<{}>> {
-    return of(label).pipe(
+  /** An effect to remove a label from the selected client */
+  readonly removeClientLabel = this.effect<string>(
+      obs$ => obs$.pipe(
           withLatestFrom(this.selectedClientId$),
           switchMap(
               ([label, clientId]) =>
                   this.httpApiService.removeClientLabel(clientId, label)),
-          tap(() => this.fetchClient()),
-          );
-  }
+          tap(() => {
+            this.updateRemoveClientLabelState({state: 'request_sent'});
+          }),
+          catchError((error: Error) => {
+            this.updateRemoveClientLabelState(
+                {state: 'error', error: error.message});
+            return of(undefined);
+          }),
+          tap((obj) => {
+            if (obj !== undefined) {
+              this.fetchClient();
+              this.updateRemoveClientLabelState({state: 'success'});
+            }
+          }),
+          ));
+
+  /** An observable emitting the remove client label request state. */
+  readonly removeClientLabelState$: Observable<ChangeRequestState> =
+      this.select(state => state.removeClientLabelState);
 }
 
 /** Facade for client-related API calls. */
@@ -467,6 +512,10 @@ export class ClientPageFacade {
   /** An observable emitting currently selected flow descriptor. */
   readonly selectedFlowDescriptor$: Observable<FlowDescriptor|undefined> =
       this.store.selectedFlowDescriptor$;
+
+  /** An observable emitting the remove client label request state. */
+  readonly removeClientLabelState$: Observable<ChangeRequestState> =
+      this.store.removeClientLabelState$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
@@ -509,7 +558,12 @@ export class ClientPageFacade {
   }
 
   /** Removes a label from the selected client */
-  removeClientLabelReq(label: string): Observable<HttpResponse<{}>> {
-    return this.store.removeClientLabel(label);
+  removeClientLabel(label: string) {
+    this.store.removeClientLabel(label);
+  }
+
+  /** Clears the state of the request to remove a client label */
+  clearRemoveClientLabelState() {
+    this.store.clearRemoveClientLabelState();
   }
 }
