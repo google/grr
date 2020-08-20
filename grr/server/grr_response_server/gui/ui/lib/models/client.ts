@@ -144,6 +144,8 @@ export interface Client {
   readonly lastClock?: Date;
   /** List of ClientLabels */
   readonly labels: ReadonlyArray<ClientLabel>;
+  /** The time when this client info was born */
+  readonly age: Date;
 }
 
 /** Approval Request. */
