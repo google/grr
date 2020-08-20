@@ -685,4 +685,27 @@ describe('ClientPageFacade', () => {
     clientPageFacade.removeClientLabel('');
     apiRemoveClientLabel$.error(new Error('request error message'));
   });
+
+  it('allows resetting the state of removeClientLabelState', (done) => {
+    const expectedStates: ChangeRequestState[] = [
+      {state: 'request_not_sent'},
+      {state: 'request_sent'},
+      {state: 'success'},
+      {state: 'request_not_sent'},
+    ];
+
+    let i = 0;
+    clientPageFacade.removeClientLabelState$.subscribe((state) => {
+      expect(state).toEqual(expectedStates[i]);
+      i++;
+      if (i === expectedStates.length) {
+        done();
+      }
+    });
+
+    clientPageFacade.removeClientLabel('');
+    apiRemoveClientLabel$.next({});
+
+    clientPageFacade.resetRemoveClientLabelState();
+  });
 });

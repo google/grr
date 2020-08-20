@@ -185,4 +185,38 @@ describe('Client Component', () => {
       expect(facade.addClientLabel).toHaveBeenCalledWith('testlabel');
     });
   });
+
+  it('calls resetRemoveClientLabelState after processing the request', () => {
+    // Prevent warnings from 404-ing API requests.
+    spyOn(facade, 'selectClient');
+
+    const clientSubject = new Subject<Client>();
+    const removeLabelRequestState = new Subject<ChangeRequestState>();
+    Object.defineProperty(
+        facade, 'selectedClient$', {get: () => clientSubject});
+    Object.defineProperty(
+        facade, 'removeClientLabelState$',
+        {get: () => removeLabelRequestState});
+    spyOn(facade, 'resetRemoveClientLabelState');
+
+    const fixture = TestBed.createComponent(ClientComponent);
+    fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+    paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
+    clientSubject.next(newClient({
+      clientId: 'C.1234',
+      labels: [{name: 'testlabel', owner: ''}],
+    }));
+    fixture.detectChanges();
+
+    expect(facade.resetRemoveClientLabelState).not.toHaveBeenCalled();
+
+    const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
+                               .componentInstance.chips.toArray() as MatChip[];
+    labelsChipList[0].remove();
+    removeLabelRequestState.next({state: 'success'});
+    fixture.detectChanges();
+
+    expect(facade.resetRemoveClientLabelState).toHaveBeenCalled();
+  });
 });

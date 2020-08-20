@@ -78,7 +78,7 @@ export class Client implements OnInit, OnDestroy {
       if (state.state === 'success') {
         this.showLabelRemovedSnackBar(label);
       }
-      this.clientPageFacade.clearRemoveClientLabelState();
+      this.clientPageFacade.resetRemoveClientLabelState();
     });
   }
 

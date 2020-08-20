@@ -549,7 +549,7 @@ export class ClientPageFacade {
   /** An observable emitting the remove client label request state. */
   readonly removeClientLabelState$: Observable<ChangeRequestState> =
       this.store.removeClientLabelState$;
-      
+
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
     this.store.selectClient(clientId);
@@ -596,7 +596,7 @@ export class ClientPageFacade {
   }
 
   /** Clears the state of the request to remove a client label */
-  clearRemoveClientLabelState() {
+  resetRemoveClientLabelState() {
     this.store.clearRemoveClientLabelState();
   }
 }
