@@ -65,6 +65,13 @@ class MetadataOneofMessage(rdf_structs.RDFProtoStruct):
   ]
 
 
+class MetadataMapMessage(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.MetadataMapMessage
+  rdf_deps = [
+    "FieldMapEntry",
+  ]
+
+
 class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy `ApiCallRouter` implementation used for Metadata testing."""
 
