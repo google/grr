@@ -45,67 +45,67 @@ PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   protobuf2.TYPE_DOUBLE: {
     "name": "protobuf2.TYPE_DOUBLE",
-    "schema": {"type": "number", "format": "double", },  # OAS (type, format)
+    "schema": {"type": "number", "format": "double"},  # OAS (type, format)
   },
   protobuf2.TYPE_FLOAT: {
     "name": "protobuf2.TYPE_FLOAT",
-    "schema": {"type": "number", "format": "float", },  # OAS (type, format)
+    "schema": {"type": "number", "format": "float"},  # OAS (type, format)
   },
   protobuf2.TYPE_INT64: {
     "name": "protobuf2.TYPE_INT64",
-    "schema": {"type": "string", "format": "int64", },
+    "schema": {"type": "string", "format": "int64"},
   },
   protobuf2.TYPE_UINT64: {
     "name": "protobuf2.TYPE_UINT64",
-    "schema": {"type": "string", "format": "uint64", },
+    "schema": {"type": "string", "format": "uint64"},
   },
   protobuf2.TYPE_INT32: {
     "name": "protobuf2.TYPE_INT32",
-    "schema": {"type": "integer", "format": "int32", },  # OAS (type, format)
+    "schema": {"type": "integer", "format": "int32"},  # OAS (type, format)
   },
   protobuf2.TYPE_FIXED64: {
     "name": "protobuf2.TYPE_FIXED64",
-    "schema": {"type": "string", "format": "fixed64", }
+    "schema": {"type": "string", "format": "fixed64"}
   },
   protobuf2.TYPE_FIXED32: {
     "name": "protobuf2.TYPE_FIXED32",
-    "schema": {"type": "number", "format": "fixed32", },
+    "schema": {"type": "number", "format": "fixed32"},
   },
   protobuf2.TYPE_BOOL: {
     "name": "protobuf2.TYPE_BOOL",
-    "schema": {"type": "boolean", },
+    "schema": {"type": "boolean"},
   },
   protobuf2.TYPE_STRING: {
     "name": "protobuf2.TYPE_STRING",
-    "schema": {"type": "string", },
+    "schema": {"type": "string"},
   },
   protobuf2.TYPE_BYTES: {
     "name": "protobuf2.TYPE_BYTES",
-    "schema": {"type": "string", "format": "byte", },  # OAS (type, format)
+    "schema": {"type": "string", "format": "byte"},  # OAS (type, format)
   },
   protobuf2.TYPE_UINT32: {
     "name": "protobuf2.TYPE_UINT32",
-    "schema": {"type": "number", "format": "uint32", },
+    "schema": {"type": "number", "format": "uint32"},
   },
   protobuf2.TYPE_SFIXED32: {
     "name": "protobuf2.TYPE_SFIXED32",
-    "schema": {"type": "number", "format": "sfixed32", },
+    "schema": {"type": "number", "format": "sfixed32"},
   },
   protobuf2.TYPE_SFIXED64: {
     "name": "protobuf2.TYPE_SFIXED64",
-    "schema": {"type": "string", "format": "sfixed64", },
+    "schema": {"type": "string", "format": "sfixed64"},
   },
   protobuf2.TYPE_SINT32: {
     "name": "protobuf2.TYPE_SINT32",
-    "schema": {"type": "integer", "format": "int32", },  # OAS (type, format)
+    "schema": {"type": "integer", "format": "int32"},  # OAS (type, format)
   },
   protobuf2.TYPE_SINT64: {
     "name": "protobuf2.TYPE_SINT64",
-    "schema": {"type": "string", "format": "sint64", },
+    "schema": {"type": "string", "format": "sint64"},
   },
   "BinaryStream": {
     "name": "BinaryStream",
-    "schema": {"type": "string", "format": "binary", },
+    "schema": {"type": "string", "format": "binary"},
   },
 }
 
@@ -346,7 +346,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     path_params_set = set(path_params)
     query_params_set = set(query_params)
     for field_d in path_params_set | query_params_set:
-      parameter_obj = {"name": field_d.name, }
+      parameter_obj = {"name": field_d.name}
       if field_d in path_params_set:
         parameter_obj["in"] = "path"
         parameter_obj["required"] = True
@@ -412,7 +412,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"returned an instance of {result_type_name}."
       )
 
-      media_obj = {"schema": _GetReferenceObject(result_type_name), }
+      media_obj = {"schema": _GetReferenceObject(result_type_name)}
 
       content = dict()  # Needed to please mypy.
       if result_type == "BinaryStream":
@@ -552,7 +552,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     # The `Operation Object` associated with the current http method.
     operation_obj = {
-      "tags": [router_method.category or "NoCategory", ],
+      "tags": [router_method.category or "NoCategory"],
       "description": router_method.doc or "No description.",
       "operationId": urlparse.quote(f"{http_method}-{url_path}-"
                                     f"{router_method.name}"),
