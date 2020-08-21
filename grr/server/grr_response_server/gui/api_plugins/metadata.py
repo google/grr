@@ -756,19 +756,19 @@ def _GetFieldSchema(
   containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
   if containing_oneof is None:
     return reference_obj
-  else:
-    # The following `allOf` is required to display the description by
-    # documentation generation tools because the OAS specifies that there
-    # should not be any sibling properties to a `$ref`. This is the
-    # workaround proposed by the ReDoc community [1].
-    #
-    # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
-    return cast(
-      OneofFieldSchema,
-      {
-        "description":
-          f"This field is part of the \"{containing_oneof.name}\" oneof. "
-          f"Only one field per oneof should be present.",
-        "allOf": [reference_obj],
-      }
-    )
+
+  # The following `allOf` is required to display the description by
+  # documentation generation tools because the OAS specifies that there
+  # should not be any sibling properties to a `$ref`. This is the
+  # workaround proposed by the ReDoc community [1].
+  #
+  # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
+  return cast(
+    OneofFieldSchema,
+    {
+      "description":
+        f"This field is part of the \"{containing_oneof.name}\" oneof. "
+        f"Only one field per oneof should be present.",
+      "allOf": [reference_obj],
+    }
+  )
