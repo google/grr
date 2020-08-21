@@ -171,31 +171,31 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Check that there are no extra/missing HTTP methods for each path (routes).
     self.assertCountEqual(
-      {"get", "head", "post", },
+      {"get", "head", "post"},
       openapi_paths_dict["/metadata_test/method1/{metadata_id}"].keys()
     )
     self.assertCountEqual(
-      {"get", "head", "post", },
+      {"get", "head", "post"},
       openapi_paths_dict["/metadata_test/method2"].keys()
     )
     self.assertCountEqual(
-      {"get", },
+      {"get"},
       openapi_paths_dict["/metadata_test/method3"].keys()
     )
     self.assertCountEqual(
-      {"get", "post", },
+      {"get", "post"},
       openapi_paths_dict["/metadata_test/method4"].keys()
     )
     self.assertCountEqual(
-      {"get", "post", },
+      {"get", "post"},
       openapi_paths_dict["/metadata_test/method5"].keys()
     )
     self.assertCountEqual(
-      {"get", },
+      {"get"},
       openapi_paths_dict["/metadata_test/method6"].keys()
     )
     self.assertCountEqual(
-      {"get", },
+      {"get"},
       openapi_paths_dict["/metadata_test/method7"].keys()
     )
 
@@ -217,14 +217,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in get_method1_dict["parameters"] if param["in"] == "path"
     ]
-    self.assertCountEqual(["metadata_id", ], get_method1_params_path)
+    self.assertCountEqual(["metadata_id"], get_method1_params_path)
 
     get_method1_params_query = [
       param["name"]
       for param in get_method1_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["metadata_arg1", "metadata_arg2", ],
+      ["metadata_arg1", "metadata_arg2"],
       get_method1_params_query
     )
 
@@ -239,14 +239,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in head_method1_dict["parameters"] if param["in"] == "path"
     ]
-    self.assertCountEqual(["metadata_id", ], head_method1_params_path)
+    self.assertCountEqual(["metadata_id"], head_method1_params_path)
 
     head_method1_params_query = [
       param["name"]
       for param in get_method1_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-    ["metadata_arg1", "metadata_arg2", ],
+    ["metadata_arg1", "metadata_arg2"],
       head_method1_params_query
     )
 
@@ -273,7 +273,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("application/json").get("schema").get("properties")
     ]
     self.assertCountEqual(
-      ["metadata_arg1", "metadata_arg2", ],
+      ["metadata_arg1", "metadata_arg2"],
       post_method1_params_body
     )
 
@@ -293,7 +293,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in get_method4_dict["parameters"] if param["in"] == "query"
     ]
-    self.assertCountEqual(["field_repeated", ], get_method4_params_query)
+    self.assertCountEqual(["field_repeated"], get_method4_params_query)
 
     self.assertIsNone(get_method4_dict.get("requestBody"))
 
@@ -317,7 +317,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in post_method4_dict.get("requestBody").get("content")
         .get("application/json").get("schema").get("properties")
     ]
-    self.assertCountEqual(["field_repeated", ], post_method4_params_body)
+    self.assertCountEqual(["field_repeated"], post_method4_params_body)
 
     # Check the OpenAPI parameters of `Method5EnumField` routes.
     method5_path_dict = openapi_paths_dict["/metadata_test/method5"]
@@ -359,7 +359,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in post_method5_dict.get("requestBody").get("content")
         .get("application/json").get("schema").get("properties")
     ]
-    self.assertCountEqual(["field_enum", ], post_method5_params_body)
+    self.assertCountEqual(["field_enum"], post_method5_params_body)
 
     # Check the OpenAPI parameters of `Method6TypeReferences` routes.
     method6_path_dict = openapi_paths_dict["/metadata_test/method6"]
@@ -378,7 +378,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in get_method6_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["field_int64", "child_1", "child_2", ],
+      ["field_int64", "child_1", "child_2"],
       get_method6_params_query
     )
 
@@ -401,7 +401,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in get_method7_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["oneof_int64", "oneof_simplemsg", "field_int64", ],
+      ["oneof_int64", "oneof_simplemsg", "field_int64"],
       get_method7_params_query
     )
 
@@ -548,69 +548,69 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # `Method3PrimitiveTypes`) include references to the primitive types
     # descriptions.
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_DOUBLE", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_DOUBLE"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_double")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_FLOAT", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FLOAT"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_float")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_INT64", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_INT64"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_int64")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT64", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT64"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_uint64")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_INT32", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_INT32"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_int32")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED64", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED64"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_fixed64")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED32", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED32"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_fixed32")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_BOOL", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_BOOL"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_bool")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_STRING", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_STRING"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_string")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_BYTES", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_BYTES"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_bytes")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT32", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_UINT32"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_uint32")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED32", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED32"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_sfixed32")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED64", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED64"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_sfixed64")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT32", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT32"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_sint32")
     )
     self.assertEqual(
-      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT64", },
+      {"$ref": "#/components/schemas/protobuf2.TYPE_SINT64"},
       self._GetParamSchema("/metadata_test/method3", "get", "field_sint64")
     )
 
     # Extract `BinaryStream` type reference from the response schema.
     self.assertEqual(
-      {"$ref": "#/components/schemas/BinaryStream", },
+      {"$ref": "#/components/schemas/BinaryStream"},
       self.openapi_desc_dict
         .get("paths")
         .get("/metadata_test/method3")
@@ -627,67 +627,67 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     components_schemas = self.openapi_desc_dict["components"]["schemas"]
 
     self.assertEqual(
-      {"type": "number", "format": "double", },
+      {"type": "number", "format": "double"},
       components_schemas["protobuf2.TYPE_DOUBLE"]
     )
     self.assertEqual(
-      {"type": "number", "format": "float", },
+      {"type": "number", "format": "float"},
       components_schemas["protobuf2.TYPE_FLOAT"]
     )
     self.assertEqual(
-      {"type": "string", "format": "int64", },
+      {"type": "string", "format": "int64"},
       components_schemas["protobuf2.TYPE_INT64"]
     )
     self.assertEqual(
-      {"type": "string", "format": "uint64", },
+      {"type": "string", "format": "uint64"},
       components_schemas["protobuf2.TYPE_UINT64"]
     )
     self.assertEqual(
-      {"type": "integer", "format": "int32", },
+      {"type": "integer", "format": "int32"},
       components_schemas["protobuf2.TYPE_INT32"]
     )
     self.assertEqual(
-      {"type": "string", "format": "fixed64", },
+      {"type": "string", "format": "fixed64"},
       components_schemas["protobuf2.TYPE_FIXED64"]
     )
     self.assertEqual(
-      {"type": "number", "format": "fixed32", },
+      {"type": "number", "format": "fixed32"},
       components_schemas["protobuf2.TYPE_FIXED32"]
     )
     self.assertEqual(
-      {"type": "boolean", },
+      {"type": "boolean"},
       components_schemas["protobuf2.TYPE_BOOL"]
     )
     self.assertEqual(
-      {"type": "string", },
+      {"type": "string"},
       components_schemas["protobuf2.TYPE_STRING"]
     )
     self.assertEqual(
-      {"type": "string", "format": "byte", },
+      {"type": "string", "format": "byte"},
       components_schemas["protobuf2.TYPE_BYTES"]
     )
     self.assertEqual(
-      {"type": "number", "format": "uint32", },
+      {"type": "number", "format": "uint32"},
       components_schemas["protobuf2.TYPE_UINT32"]
     )
     self.assertEqual(
-      {"type": "number", "format": "sfixed32", },
+      {"type": "number", "format": "sfixed32"},
       components_schemas["protobuf2.TYPE_SFIXED32"]
     )
     self.assertEqual(
-      {"type": "string", "format": "sfixed64", },
+      {"type": "string", "format": "sfixed64"},
       components_schemas["protobuf2.TYPE_SFIXED64"]
     )
     self.assertEqual(
-      {"type": "integer", "format": "int32", },
+      {"type": "integer", "format": "int32"},
       components_schemas["protobuf2.TYPE_INT32"]
     )
     self.assertEqual(
-      {"type": "string", "format": "sint64", },
+      {"type": "string", "format": "sint64"},
       components_schemas["protobuf2.TYPE_SINT64"]
     )
     self.assertEqual(
-      {"type": "string", "format": "binary", },
+      {"type": "string", "format": "binary"},
       components_schemas["BinaryStream"]
     )
 
@@ -800,7 +800,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(
       {
         "type": "string",
-        "enum": ["A", "B", "C", ],
+        "enum": ["A", "B", "C"],
         "description": "A == 1\nB == 2\nC == 3",
       },
       openapi_enum_type_schema
