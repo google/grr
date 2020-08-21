@@ -12,6 +12,7 @@ from typing import Type, Any, Union, Tuple, List, Set, Dict, DefaultDict
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
 from google.protobuf.descriptor import FieldDescriptor
+from google.protobuf.descriptor import OneofDescriptor
 
 from grr_response_core import version
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -29,6 +30,8 @@ MessageSchema = Dict[
   str, Union[str,
              Dict[str, Union[SchemaReference, ArraySchema]]]
 ]
+OneofFieldSchema = Dict[str,
+                        Union[str, List[SchemaReference], List[ArraySchema]]]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 
@@ -103,7 +106,7 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   "BinaryStream": {
     "name": "BinaryStream",
     "schema": {"type": "string", "format": "binary"},
-  }
+  },
 }
 
 
@@ -217,7 +220,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateMessageSchema(
       self,
       descriptor: Descriptor,
-      visiting: Set[str]
+      visiting: Set[str],
   ) -> None:
     """Creates the OpenAPI schema of a protobuf message.
 
@@ -253,11 +256,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       if descriptor:
         self._CreateSchema(descriptor, visiting)
 
-      properties[field_name] = (
-        self._GetReferenceObject(
-          _GetTypeName(field_descriptor),
-          field_descriptor.label == protobuf2.LABEL_REPEATED)
-      )
+      properties[field_name] = _GetFieldSchema(field_descriptor)
 
     visiting.remove(type_name)
 
@@ -272,7 +271,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _CreateSchema(
       self,
       cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
-      visiting: Set[str]
+      visiting: Set[str],
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
@@ -334,51 +333,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         else:
           self._CreateSchema(result_type, visiting)
 
-  def _GetReferenceObject(
-      self,
-      type_name: str,
-      is_array: bool = False
-  ) -> Union[SchemaReference, ArraySchema]:
-    """Get a `Reference Object` that points to a schema definition.
-
-    All types (including protobuf primitives) are expected to have been
-    previously defined in the `components` field of the root `OpenAPI Object`
-    and are used via OpenAPI references.
-
-    Args:
-      type_name: The name of the type for which an OpenAPI `Reference Object`
-        will be created and returned.
-      is_array: A boolean flag indicating whether the selected type's reference
-        object should be wrapped in an OpenAPI array as the items type.
-
-    Returns:
-      If the `is_array` argument is set to `False`, then an OpenAPI `Reference
-      Object` representing the path to the actual OpenAPI schema definition of
-      the selected type.
-      If the `is_array` argument is set to `True`, then an OpenAPI array schema
-      is constructed that uses for the `items` field an OpenAPI `Reference
-      Object` associated with the type's schema.
-    """
-    if self.schema_objs is None:
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
-
-    reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
-
-    if is_array:
-      array_schema: ArraySchema = {
-        "type": "array",
-        "items": reference_obj
-      }
-      return array_schema
-
-    return reference_obj
-
   def _GetParameters(
       self,
       path_params: List[FieldDescriptor],
-      query_params: List[FieldDescriptor]
+      query_params: List[FieldDescriptor],
   ) -> List[
     Dict[str, Union[str, bool, SchemaReference, ArraySchema]]
   ]:
@@ -395,12 +353,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       else:
         parameter_obj["in"] = "query"
 
-      parameter_obj["schema"] = (
-        self._GetReferenceObject(
-          _GetTypeName(field_d),
-          field_d.label == protobuf2.LABEL_REPEATED
-        )
-      )
+      parameter_obj["schema"] = _GetFieldSchema(field_d)
 
       parameters.append(parameter_obj)
 
@@ -408,7 +361,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetRequestBody(
       self,
-      body_params: List[FieldDescriptor]
+      body_params: List[FieldDescriptor],
   ) -> Dict[str, Dict]:
     """Create the OpenAPI description of the request body of a route."""
     if not body_params:
@@ -418,7 +371,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     for field_d in body_params:
       field_name = field_d.name
       properties[field_name] = (
-        self._GetReferenceObject(
+        _GetReferenceObject(
           _GetTypeName(field_d),
           field_d.label == protobuf2.LABEL_REPEATED
         )
@@ -438,7 +391,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _GetResponseObject200(
       self,
       result_type: Union[rdf_structs.RDFProtoStruct, str],
-      router_method_name: str
+      router_method_name: str,
   ) -> Dict[str, Union[str, Dict]]:
     """Create the OpenAPI description of a successful, 200 HTTP response."""
     resp_success_obj: Dict[str, Union[str, Dict]] = dict()
@@ -459,7 +412,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"returned an instance of {result_type_name}."
       )
 
-      media_obj = {"schema": self._GetReferenceObject(result_type_name)}
+      media_obj = {"schema": _GetReferenceObject(result_type_name)}
 
       content = dict()  # Needed to please mypy.
       if result_type == "BinaryStream":
@@ -476,12 +429,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetResponseObjectDefault(
       self,
-      router_method_name: str
+      router_method_name: str,
   ) -> Dict[str, str]:
     """Create the OpenAPI description used by all undescribed HTTP responses."""
     resp_default_obj= {
       "description": f"The call to the {router_method_name} API method did not "
-                     f"succeed."
+                     f"succeed.",
     }
 
     return resp_default_obj
@@ -514,7 +467,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"{version_dict['minor']}."
         f"{version_dict['revision']}."
         f"{version_dict['release']}"
-      )
+      ),
     }
 
   def _GetServers(self) -> List[Dict[str, str]]:
@@ -527,7 +480,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     ]
 
   def _GetComponents(
-      self
+      self,
   ) -> Dict[str, Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]]]:
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
@@ -541,14 +494,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       "schemas": cast(
         Dict[str, Union[PrimitiveSchema, EnumSchema, MessageSchema]],
         self.schema_objs
-      )
+      ),
     }
 
   def _SeparateFieldsIntoParams(
       self,
       http_method: str,
       path: str,
-      args_type: Type[rdf_structs.RDFProtoStruct]
+      args_type: Type[rdf_structs.RDFProtoStruct],
   ) -> Tuple[
     List[FieldDescriptor], List[FieldDescriptor], List[FieldDescriptor]
   ]:
@@ -599,7 +552,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     # The `Operation Object` associated with the current http method.
     operation_obj = {
-      "tags": [router_method.category or "NoCategory", ],
+      "tags": [router_method.category or "NoCategory"],
       "description": router_method.doc or "No description.",
       "operationId": urlparse.quote(f"{http_method}-{url_path}-"
                                     f"{router_method.name}"),
@@ -735,3 +688,87 @@ def _GetTypeName(
     return cast(str, primitive_types[cls]["name"])
 
   return str(cls)  # Cover `BinaryStream` and `None`.
+
+
+def _GetReferenceObject(
+    type_name: str,
+    is_array: bool = False,
+) -> Union[SchemaReference, ArraySchema]:
+  """Get a `Reference Object` that points to a schema definition.
+
+  All types (including protobuf primitives) are expected to have been
+  previously defined in the `components` field of the root `OpenAPI Object`
+  and are used via OpenAPI references.
+
+  Args:
+    type_name: The name of the type for which an OpenAPI `Reference Object`
+      will be created and returned.
+    is_array: A boolean flag indicating whether the selected type's reference
+      object should be wrapped in an OpenAPI array as the items type.
+
+  Returns:
+    If the `is_array` argument is set to `False`, then an OpenAPI `Reference
+    Object` representing the path to the actual OpenAPI schema definition of
+    the selected type.
+    If the `is_array` argument is set to `True`, then an OpenAPI array schema
+    is constructed that uses for the `items` field an OpenAPI `Reference
+    Object` associated with the type's schema.
+  """
+  reference_obj = {"$ref": f"#/components/schemas/{type_name}"}
+
+  if is_array:
+    array_schema: ArraySchema = {
+      "type": "array",
+      "items": reference_obj,
+    }
+    return array_schema
+
+  return reference_obj
+
+
+def _GetFieldSchema(
+    field_descriptor: FieldDescriptor,
+) -> Union[SchemaReference, ArraySchema, OneofFieldSchema]:
+  """Create a dictionary to be used as the schema of a message field.
+
+  This function takes into consideration the fact that the field might be part
+  of a `protobuf.oneof` and wraps the `Reference Object` accordingly in order to
+  include a description specifying the name of the `protobuf.oneof`.
+
+  Args:
+    field_descriptor: The protobuf `FieldDescriptor` associated with the target
+      field.
+
+  Returns:
+    If the field is not part of a `protobuf.oneof`, then a simple `Reference
+    Object`, else, a dictionary that includes a description entry along the
+    `Reference Object`.
+  """
+  reference_obj = _GetReferenceObject(
+    _GetTypeName(field_descriptor),
+    field_descriptor.label == protobuf2.LABEL_REPEATED
+  )
+
+  # The semantic of `protobuf.oneof` is not currently supported by the
+  # OpenAPI Specification. See this GitHub issue [1] for more details.
+  #
+  # [1]: github.com/google/grr/issues/822
+  containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
+  if containing_oneof is None:
+    return reference_obj
+
+  # The following `allOf` is required to display the description by
+  # documentation generation tools because the OAS specifies that there
+  # should not be any sibling properties to a `$ref`. This is the
+  # workaround proposed by the ReDoc community [1].
+  #
+  # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
+  return cast(
+    OneofFieldSchema,
+    {
+      "description":
+        f"This field is part of the \"{containing_oneof.name}\" oneof. "
+        f"Only one field per oneof should be present.",
+      "allOf": [reference_obj],
+    }
+  )
