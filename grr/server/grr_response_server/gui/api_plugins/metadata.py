@@ -704,7 +704,7 @@ def _GetReferenceObject(type_name: str) -> SchemaReference:
     schema definition of the selected type.
   """
   return {
-    "$ref": f"#/components/schemas/{type_name}"
+    "$ref": f"#/components/schemas/{type_name}",
   }
 
 
@@ -713,7 +713,7 @@ def _GetArraySchema(items_type_name: str) -> ArraySchema:
 
   return {
     "type": "array",
-    "items": _GetReferenceObject(items_type_name)
+    "items": _GetReferenceObject(items_type_name),
   }
 
 
@@ -763,11 +763,11 @@ def _GetFieldSchema(
   )
   if field_descriptor.label == protobuf2.LABEL_REPEATED:
     oneof_member["allOf"] = [
-      _GetArraySchema(_GetTypeName(field_descriptor))
+      _GetArraySchema(_GetTypeName(field_descriptor)),
     ]
   else:
     oneof_member["allOf"] = [
-      _GetReferenceObject(_GetTypeName(field_descriptor))
+      _GetReferenceObject(_GetTypeName(field_descriptor)),
     ]
 
   return oneof_member
