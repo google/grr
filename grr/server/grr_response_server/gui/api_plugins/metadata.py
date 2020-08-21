@@ -692,7 +692,7 @@ def _GetTypeName(
 
 def _GetReferenceObject(
     type_name: str,
-    is_array: bool = False
+    is_array: bool = False,
 ) -> Union[SchemaReference, ArraySchema]:
   """Get a `Reference Object` that points to a schema definition.
 
@@ -719,7 +719,7 @@ def _GetReferenceObject(
   if is_array:
     array_schema: ArraySchema = {
       "type": "array",
-      "items": reference_obj
+      "items": reference_obj,
     }
     return array_schema
 
