@@ -710,7 +710,6 @@ def _GetReferenceObject(type_name: str) -> SchemaReference:
 
 def _GetArraySchema(items_type_name: str) -> ArraySchema:
   """Get the schema of an array with items of the given type."""
-
   return {
     "type": "array",
     "items": _GetReferenceObject(items_type_name),
@@ -740,12 +739,13 @@ def _GetFieldSchema(
   # OpenAPI Specification. See this GitHub issue [1] for more details.
   #
   # [1]: github.com/google/grr/issues/822
+  type_name = _GetTypeName(field_descriptor)
   containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
   if containing_oneof is None:
     if field_descriptor.label == protobuf2.LABEL_REPEATED:
-      return _GetArraySchema(_GetTypeName(field_descriptor))
+      return _GetArraySchema(type_name)
 
-    return _GetReferenceObject(_GetTypeName(field_descriptor))
+    return _GetReferenceObject(type_name)
 
   # The following `allOf` is required to display the description by
   # documentation generation tools because the OAS specifies that there
@@ -763,11 +763,11 @@ def _GetFieldSchema(
   )
   if field_descriptor.label == protobuf2.LABEL_REPEATED:
     oneof_member["allOf"] = [
-      _GetArraySchema(_GetTypeName(field_descriptor)),
+      _GetArraySchema(type_name),
     ]
   else:
     oneof_member["allOf"] = [
-      _GetReferenceObject(_GetTypeName(field_descriptor)),
+      _GetReferenceObject(type_name),
     ]
 
   return oneof_member
