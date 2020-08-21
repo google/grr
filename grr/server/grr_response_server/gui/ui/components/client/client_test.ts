@@ -9,7 +9,7 @@ import {newClient} from '@app/lib/models/model_test_util';
 import {Subject} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
-import {ChangeRequestState, ClientPageFacade} from '../../store/client_page_facade';
+import {ClientPageFacade} from '../../store/client_page_facade';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 import {initTestEnvironment} from '../../testing';
@@ -119,12 +119,12 @@ describe('Client Component', () => {
     spyOn(facade, 'selectClient');
 
     const clientSubject = new Subject<Client>();
-    const removeLabelRequestState = new Subject<ChangeRequestState>();
+    const removedLabelsSubject = new Subject<string>();
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removeClientLabelState$',
-        {get: () => removeLabelRequestState});
+        facade, 'removedClientLabels$',
+        {get: () => removedLabelsSubject});
 
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -139,24 +139,24 @@ describe('Client Component', () => {
     const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
                                .componentInstance.chips.toArray() as MatChip[];
     labelsChipList[0].remove();
-    removeLabelRequestState.next({state: 'success'});
+    removedLabelsSubject.next('testlabel');
     fixture.detectChanges();
 
     const snackbarDiv = document.querySelector('snack-bar-container');
     expect(snackbarDiv).toBeTruthy();
   });
 
-  it('snackbar action can undo a removal of client label', () => {
+  it('snackbar action undoes a removal of client label', () => {
     // Prevent warnings from 404-ing API requests.
     spyOn(facade, 'selectClient');
 
     const clientSubject = new Subject<Client>();
-    const removeLabelRequestState = new Subject<ChangeRequestState>();
+    const removedLabelsSubject = new Subject<string>();
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removeClientLabelState$',
-        {get: () => removeLabelRequestState});
+        facade, 'removedClientLabels$',
+        {get: () => removedLabelsSubject});
     spyOn(facade, 'addClientLabel');
 
     const fixture = TestBed.createComponent(ClientComponent);
@@ -172,7 +172,7 @@ describe('Client Component', () => {
     const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
                                .componentInstance.chips.toArray() as MatChip[];
     labelsChipList[0].remove();
-    removeLabelRequestState.next({state: 'success'});
+    removedLabelsSubject.next('testlabel');
     fixture.detectChanges();
 
     expect(facade.addClientLabel).not.toHaveBeenCalled();
@@ -184,39 +184,5 @@ describe('Client Component', () => {
     fixture.whenRenderingDone().then(() => {
       expect(facade.addClientLabel).toHaveBeenCalledWith('testlabel');
     });
-  });
-
-  it('calls resetRemoveClientLabelState after processing the request', () => {
-    // Prevent warnings from 404-ing API requests.
-    spyOn(facade, 'selectClient');
-
-    const clientSubject = new Subject<Client>();
-    const removeLabelRequestState = new Subject<ChangeRequestState>();
-    Object.defineProperty(
-        facade, 'selectedClient$', {get: () => clientSubject});
-    Object.defineProperty(
-        facade, 'removeClientLabelState$',
-        {get: () => removeLabelRequestState});
-    spyOn(facade, 'resetRemoveClientLabelState');
-
-    const fixture = TestBed.createComponent(ClientComponent);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-    clientSubject.next(newClient({
-      clientId: 'C.1234',
-      labels: [{name: 'testlabel', owner: ''}],
-    }));
-    fixture.detectChanges();
-
-    expect(facade.resetRemoveClientLabelState).not.toHaveBeenCalled();
-
-    const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
-                               .componentInstance.chips.toArray() as MatChip[];
-    labelsChipList[0].remove();
-    removeLabelRequestState.next({state: 'success'});
-    fixture.detectChanges();
-
-    expect(facade.resetRemoveClientLabelState).toHaveBeenCalled();
   });
 });

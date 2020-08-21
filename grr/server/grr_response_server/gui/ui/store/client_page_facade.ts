@@ -7,7 +7,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, timer} from 'rxjs';
+import {combineLatest, Observable, of, timer, Subject} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeAll, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
@@ -33,17 +33,6 @@ export type StartFlowState = {
   readonly error: string,
 };
 
-export type ChangeRequestState = {
-  readonly state: 'request_not_sent',
-} | {
-  readonly state: 'request_sent',
-} | {
-  readonly state: 'success',
-} | {
-  readonly state: 'error',
-  readonly error: string,
-}
-
 interface ClientPageState {
   readonly client?: Client;
   readonly clientId?: string;
@@ -57,8 +46,6 @@ interface ClientPageState {
 
   readonly flowInConfiguration?: FlowInConfiguration;
   readonly startFlowState: StartFlowState;
-
-  readonly removeClientLabelState: ChangeRequestState;
 }
 
 /**
@@ -81,7 +68,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       flowListEntries: {},
       flowListEntrySequence: [],
       startFlowState: {state: 'request_not_sent'},
-      removeClientLabelState: {state: 'request_not_sent'},
     });
   }
 
@@ -190,21 +176,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           },
         };
       });
-
-  private readonly updateRemoveClientLabelState =
-      this.updater<ChangeRequestState>((state, newState) => {
-        return {
-          ...state,
-          removeClientLabelState: newState,
-        };
-      });
-
-  /** Clears the state of the request to remove a client label */
-  readonly clearRemoveClientLabelState = this.updater<void>((state) => {
-    return {
-      ...state, removeClientLabelState: {state: 'request_not_sent'},
-    }
-  });
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
@@ -495,25 +466,19 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           switchMap(
               ([label, clientId]) =>
                   this.httpApiService.removeClientLabel(clientId, label)),
-          tap(() => {
-            this.updateRemoveClientLabelState({state: 'request_sent'});
-          }),
-          catchError((error: Error) => {
-            this.updateRemoveClientLabelState(
-                {state: 'error', error: error.message});
+          catchError(() => {
             return of(undefined);
           }),
-          tap((obj) => {
-            if (obj !== undefined) {
+          tap((label) => {
+            if (label !== undefined) {
               this.fetchClient();
-              this.updateRemoveClientLabelState({state: 'success'});
+              this.removedClientLabels$.next(label);
             }
           }),
           ));
 
-  /** An observable emitting the remove client label request state. */
-  readonly removeClientLabelState$: Observable<ChangeRequestState> =
-      this.select(state => state.removeClientLabelState);
+  /** A subject emitting removed client labels. */
+  readonly removedClientLabels$: Subject<string> = new Subject();
 }
 
 /** Facade for client-related API calls. */
@@ -547,8 +512,8 @@ export class ClientPageFacade {
       this.store.selectedClientVersions$;
 
   /** An observable emitting the remove client label request state. */
-  readonly removeClientLabelState$: Observable<ChangeRequestState> =
-      this.store.removeClientLabelState$;
+  readonly removedClientLabels$: Observable<string> =
+      this.store.removedClientLabels$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
@@ -593,10 +558,5 @@ export class ClientPageFacade {
   /** Removes a label from the selected client */
   removeClientLabel(label: string) {
     this.store.removeClientLabel(label);
-  }
-
-  /** Clears the state of the request to remove a client label */
-  resetRemoveClientLabelState() {
-    this.store.clearRemoveClientLabelState();
   }
 }

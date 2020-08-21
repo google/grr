@@ -38,6 +38,12 @@ export class Client implements OnInit, OnDestroy {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
       this.clientPageFacade.selectClient(id);
     });
+
+    this.clientPageFacade.removedClientLabels$.pipe(takeUntil(this.unsubscribe$)).subscribe(
+      label => {
+        this.showLabelRemovedSnackBar(label);
+      }
+    )
   }
 
   labelsTrackByName(index: number, item: ClientLabel): string {
@@ -71,15 +77,6 @@ export class Client implements OnInit, OnDestroy {
 
   removeLabel(label: string) {
     this.clientPageFacade.removeClientLabel(label);
-    this.clientPageFacade.removeClientLabelState$.pipe(
-      filter(state => state.state === 'error' || state.state === 'success'),
-      take(1),
-    ).subscribe((state) => {
-      if (state.state === 'success') {
-        this.showLabelRemovedSnackBar(label);
-      }
-      this.clientPageFacade.resetRemoveClientLabelState();
-    });
   }
 
   addLabel(label: string) {

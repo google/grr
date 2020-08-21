@@ -6,7 +6,7 @@ import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState} from '@app/lib/models/flow';
 import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {newClient} from '@app/lib/models/model_test_util';
-import {ChangeRequestState, ClientPageFacade} from '@app/store/client_page_facade';
+import {ClientPageFacade} from '@app/store/client_page_facade';
 import {initTestEnvironment} from '@app/testing';
 import {of, Subject} from 'rxjs';
 
@@ -26,7 +26,7 @@ describe('ClientPageFacade', () => {
   let apiStartFlow$: Subject<ApiFlow>;
   let apiCancelFlow$: Subject<ApiFlow>;
   let configFacade: ConfigFacadeMock;
-  let apiRemoveClientLabel$: Subject<{}>;
+  let apiRemoveClientLabel$: Subject<string>;
   let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
   beforeEach(() => {
@@ -642,70 +642,30 @@ describe('ClientPageFacade', () => {
   it('refreshes client after calling API for removing label', () => {
     expect(httpApiService.fetchClient).toHaveBeenCalledTimes(0);
     clientPageFacade.removeClientLabel('label1');
-    apiRemoveClientLabel$.next({});
+    apiRemoveClientLabel$.next('label1');
     expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
   });
 
-  it('tracks the state of the remove client label request on success',
-     (done) => {
-       const expectedStates: ChangeRequestState[] = [
-         {state: 'request_not_sent'},
-         {state: 'request_sent'},
-         {state: 'success'},
-       ];
-
-       let i = 0;
-       clientPageFacade.removeClientLabelState$.subscribe((state) => {
-         expect(state).toEqual(expectedStates[i]);
-         i++;
-         if (i === expectedStates.length) {
-           done();
-         }
-       });
-
-       clientPageFacade.removeClientLabel('');
-       apiRemoveClientLabel$.next({});
-     });
-
-  it('tracks the state of the remove client label request on error', (done) => {
-    const expectedStates: ChangeRequestState[] = [
-      {state: 'request_not_sent'},
-      {state: 'error', error: 'request error message'},
-    ];
-
+  it('emits which labels were removed successfully', fakeAsync((done: DoneFn) => {
+    const expectedLabels = ['testlabel', 'testlabel2'];
     let i = 0;
-    clientPageFacade.removeClientLabelState$.subscribe((state) => {
-      expect(state).toEqual(expectedStates[i]);
+    clientPageFacade.removedClientLabels$.subscribe((label) => {
+      expect(label).toEqual(expectedLabels[i]);
       i++;
-      if (i === expectedStates.length) {
+      if (i === expectedLabels.length) {
         done();
       }
     });
 
-    clientPageFacade.removeClientLabel('');
-    apiRemoveClientLabel$.error(new Error('request error message'));
-  });
+    clientPageFacade.removeClientLabel('testlabel');
+    apiRemoveClientLabel$.next('testlabel');
+    tick();
 
-  it('allows resetting the state of removeClientLabelState', (done) => {
-    const expectedStates: ChangeRequestState[] = [
-      {state: 'request_not_sent'},
-      {state: 'request_sent'},
-      {state: 'success'},
-      {state: 'request_not_sent'},
-    ];
+    clientPageFacade.removeClientLabel('testlabel_error');
+    apiRemoveClientLabel$.error(new Error('Any error'));
+    tick();
 
-    let i = 0;
-    clientPageFacade.removeClientLabelState$.subscribe((state) => {
-      expect(state).toEqual(expectedStates[i]);
-      i++;
-      if (i === expectedStates.length) {
-        done();
-      }
-    });
-
-    clientPageFacade.removeClientLabel('');
-    apiRemoveClientLabel$.next({});
-
-    clientPageFacade.resetRemoveClientLabelState();
-  });
+    clientPageFacade.removeClientLabel('testlabel2');
+    apiRemoveClientLabel$.next('testlabel2');
+  }));
 });
