@@ -249,8 +249,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # Create schemas for the fields' types.
     for field_descriptor in descriptor.fields:
       field_name = field_descriptor.name
-      message_descriptor = field_descriptor.message_type # None if not Message.
-      enum_descriptor = field_descriptor.enum_type # None if not Enum.
+      message_descriptor = field_descriptor.message_type  # None if not Message.
+      enum_descriptor = field_descriptor.enum_type  # None if not Enum.
       descriptor = message_descriptor or enum_descriptor
 
       if descriptor:
@@ -563,7 +563,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "default": self._GetResponseObjectDefault(router_method.name),
       },
     }
-    if body_params: # Only POST methods should have an associated `requestBody`.
+    if body_params:  # Only POST methods should have an associated `requestBody`.
       operation_obj["requestBody"] = self._GetRequestBody(body_params)
 
     return operation_obj
