@@ -4,7 +4,7 @@ import {MatSnackBar} from '@angular/material/snack-bar';
 import {ActivatedRoute} from '@angular/router';
 import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
-import {filter, map, takeUntil, takeWhile, take} from 'rxjs/operators';
+import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
@@ -39,11 +39,11 @@ export class Client implements OnInit, OnDestroy {
       this.clientPageFacade.selectClient(id);
     });
 
-    this.clientPageFacade.removedClientLabels$.pipe(takeUntil(this.unsubscribe$)).subscribe(
-      label => {
-        this.showLabelRemovedSnackBar(label);
-      }
-    )
+    this.clientPageFacade.removedClientLabels$
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(label => {
+          this.showLabelRemovedSnackBar(label);
+        }, err => {this.showLabelRemovedErrorSnackBar()});
   }
 
   labelsTrackByName(index: number, item: ClientLabel): string {
@@ -64,15 +64,23 @@ export class Client implements OnInit, OnDestroy {
 
   private showLabelRemovedSnackBar(label: string) {
     this.snackBar
-        .open(
-            `Label "${label}" removed`, 'UNDO',
-            {duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS, verticalPosition: 'top'})
+        .open(`Label "${label}" removed`, 'UNDO', {
+          duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS,
+          verticalPosition: 'top'
+        })
         .afterDismissed()
         .subscribe(snackBar => {
           if (snackBar.dismissedByAction) {
             this.addLabel(label);
           }
         });
+  }
+
+  private showLabelRemovedErrorSnackBar() {
+    this.snackBar.open('Removing label failed', undefined, {
+      duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS,
+      verticalPosition: 'top'
+    });
   }
 
   removeLabel(label: string) {

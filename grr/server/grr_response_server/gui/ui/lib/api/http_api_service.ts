@@ -2,7 +2,7 @@ import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, 
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
-import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
+import {catchError, map, shareReplay, switchMap, take, mapTo} from 'rxjs/operators';
 
 import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
 
@@ -226,7 +226,7 @@ export class HttpApiService {
     const url = `${URL_PREFIX}/clients/labels/remove`;
     return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]})
         .pipe(
-            map(() => label),
+            mapTo(label),
             catchError(
                 (e: HttpErrorResponse) =>
                     throwError(new Error(e.error.message ?? e.message))),

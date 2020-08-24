@@ -13,8 +13,8 @@ import {Subject} from 'rxjs';
 import {initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
-import {ClientDetailsModule} from './module';
 import {getClientVersions} from './client_diff';
+import {ClientDetailsModule} from './module';
 
 initTestEnvironment();
 
@@ -279,8 +279,8 @@ describe('Client Details Component', () => {
 
        const clientChanges = getClientVersions(snapshots.reverse());
 
-       expect(
-           clientChanges.map(change => {change.client, [...change.changes].sort()}))
+       expect(clientChanges.map(
+                  change => {change.client, [...change.changes].sort()}))
            .toEqual(expectedClientChanges.map(expectedChange => {
              expectedChange.client,
              expectedChange.changes.sort()

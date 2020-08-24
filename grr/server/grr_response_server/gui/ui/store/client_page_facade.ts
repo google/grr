@@ -7,7 +7,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, timer, Subject} from 'rxjs';
+import {combineLatest, Observable, of, Subject, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeAll, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
@@ -466,14 +466,13 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           switchMap(
               ([label, clientId]) =>
                   this.httpApiService.removeClientLabel(clientId, label)),
-          catchError(() => {
-            return of(undefined);
-          }),
           tap((label) => {
-            if (label !== undefined) {
-              this.fetchClient();
-              this.removedClientLabels$.next(label);
-            }
+            this.fetchClient();
+            this.removedClientLabels$.next(label);
+          }),
+          catchError(err => {
+            this.removedClientLabels$.error(err);
+            return of(undefined);
           }),
           ));
 

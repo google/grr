@@ -646,26 +646,31 @@ describe('ClientPageFacade', () => {
     expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
   });
 
-  it('emits which labels were removed successfully', fakeAsync((done: DoneFn) => {
-    const expectedLabels = ['testlabel', 'testlabel2'];
-    let i = 0;
-    clientPageFacade.removedClientLabels$.subscribe((label) => {
-      expect(label).toEqual(expectedLabels[i]);
-      i++;
-      if (i === expectedLabels.length) {
-        done();
-      }
-    });
+  it('emits which labels were removed successfully',
+     fakeAsync((done: DoneFn) => {
+       const expectedLabels = ['testlabel', 'testlabel2'];
+       let i = 0;
+       clientPageFacade.removedClientLabels$.subscribe(
+           label => {
+             expect(label).toEqual(expectedLabels[i]);
+             i++;
+             if (i === expectedLabels.length) {
+               done();
+             }
+           },
+           err => {
+             expect(err.message).toEqual('Any error');
+           });
 
-    clientPageFacade.removeClientLabel('testlabel');
-    apiRemoveClientLabel$.next('testlabel');
-    tick();
+       clientPageFacade.removeClientLabel('testlabel');
+       apiRemoveClientLabel$.next('testlabel');
+       tick();
 
-    clientPageFacade.removeClientLabel('testlabel_error');
-    apiRemoveClientLabel$.error(new Error('Any error'));
-    tick();
+       clientPageFacade.removeClientLabel('testlabel_error');
+       apiRemoveClientLabel$.error(new Error('Any error'));
+       tick();
 
-    clientPageFacade.removeClientLabel('testlabel2');
-    apiRemoveClientLabel$.next('testlabel2');
-  }));
+       clientPageFacade.removeClientLabel('testlabel2');
+       apiRemoveClientLabel$.next('testlabel2');
+     }));
 });
