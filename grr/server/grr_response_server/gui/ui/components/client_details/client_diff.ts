@@ -6,6 +6,11 @@ interface ClientVersion {
   changes: ReadonlyArray<string>;
 }
 
+interface EntryChanges {
+  versions: ReadonlyArray<string>;
+  age: Date;
+}
+
 /**
  * A map containing the relevant entries (as keys) taken into consideration
  * when computing the differences between client snapshots.
@@ -201,4 +206,55 @@ export function getClientVersions(clientSnapshots: Client[]):
   }
 
   return clientChanges;
+}
+
+function getFirstStringsJoinedPath(path: any[]): string {
+  let tokens: string[] = [];
+  path.forEach(val => {
+    if (typeof val !== 'string') return;
+    tokens.push(val);
+  });
+
+  return tokens.join('.');
+}
+
+function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
+    string[] {
+  const pathsSetOfChangedEntries: Set<string> = new Set();
+
+  differences.forEach(diffItem => {
+    if (diffItem.path === undefined) return;
+    const joinedPath = getFirstStringsJoinedPath(diffItem.path);
+    if (!RELEVANT_ENTRIES_LABEL_MAP.has(joinedPath)) return;
+
+    pathsSetOfChangedEntries.add(joinedPath);
+  });
+
+  return [...pathsSetOfChangedEntries.values()];
+}
+
+/**
+ * Returns relevant entry paths mapped to the client snapshots in which the
+ * changes were introduced, reverse chronologically ordered. A property path may
+ * not be inside the map if no changes were applied to it since it's creation
+ * @param clientSnapshots an array of chronologically reverse ordered client
+ *     snapshots
+ */
+export function getClientEntriesChanged(clientSnapshots: Client[]):
+    Map<string, ReadonlyArray<Client>> {
+  const clientChangedEntries: Map<string, Client[]> = new Map();
+
+  for (let i = 0; i < clientSnapshots.length - 1; i++) {
+    const differences = diff(clientSnapshots[i + 1], clientSnapshots[i]);
+    if (differences === undefined) continue;
+
+    const paths = getPathsOfChangedEntries(differences);
+
+    paths.forEach(path => {
+      clientChangedEntries.set(
+          path, [...clientChangedEntries.get(path) ?? [], clientSnapshots[i]]);
+    });
+  }
+
+  return clientChangedEntries;
 }

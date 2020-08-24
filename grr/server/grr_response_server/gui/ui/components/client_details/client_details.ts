@@ -1,10 +1,12 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
-import {Subject} from 'rxjs';
+import {Client} from '@app/lib/models/client';
+import {Observable, Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
-import {getClientVersions} from './client_diff';
+
+import {getClientEntriesChanged, getClientVersions} from './client_diff';
 
 /**
  * Component displaying the details for a single Client.
@@ -26,9 +28,13 @@ export class ClientDetails implements OnInit, OnDestroy {
 
   readonly client$ = this.clientPageFacade.selectedClient$;
   readonly clientVersions$ = this.clientPageFacade.selectedClientVersions$.pipe(
-      map(snapshots => snapshots.reverse()),
       map(getClientVersions),
   );
+
+  readonly clientEntryChanges$ =
+      this.clientPageFacade.selectedClientVersions$.pipe(
+          map(getClientEntriesChanged),
+      );
 
   currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
