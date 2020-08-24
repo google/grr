@@ -43,7 +43,7 @@ export class Client implements OnInit, OnDestroy {
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
-        }, err => {this.showLabelRemovedErrorSnackBar()});
+        }, err => {/* Nothing for now */});
   }
 
   labelsTrackByName(index: number, item: ClientLabel): string {
@@ -74,13 +74,6 @@ export class Client implements OnInit, OnDestroy {
             this.addLabel(label);
           }
         });
-  }
-
-  private showLabelRemovedErrorSnackBar() {
-    this.snackBar.open('Removing label failed', undefined, {
-      duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS,
-      verticalPosition: 'top'
-    });
   }
 
   removeLabel(label: string) {

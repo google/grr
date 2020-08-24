@@ -143,10 +143,11 @@ describe('Client Component', () => {
 
     const snackbarDiv = document.querySelector('snack-bar-container');
     expect(snackbarDiv).toBeTruthy();
-    expect(snackbarDiv?.textContent).toContain('Label "testlabel" removed');
+    expect(snackbarDiv!.textContent).toContain('Label "testlabel" removed');
+    snackbarDiv!.remove();
   });
 
-  it('shows an error snackbar when a client label request errors', () => {
+  it('doesn\'t show a snackbar when a client label request errors', () => {
     // Prevent warnings from 404-ing API requests.
     spyOn(facade, 'selectClient');
 
@@ -174,8 +175,7 @@ describe('Client Component', () => {
     fixture.detectChanges();
 
     const snackbarDiv = document.querySelector('snack-bar-container');
-    expect(snackbarDiv).toBeTruthy();
-    expect(snackbarDiv?.textContent).toEqual('Removing label failed');
+    expect(snackbarDiv).not.toBeTruthy();
   });
 
   it('snackbar action undoes a removal of client label', () => {
