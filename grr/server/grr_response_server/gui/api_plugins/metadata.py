@@ -1,11 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A module with API methods related to the GRR metadata."""
-# TODO 1: Scrie cod in `_GetFieldSchema` (cred) astfel incat sa se insereze in
-# descrierea OpenAPI generata pe descrierea corecta pentru map-uri. In momentul
-# de fata se descrie un array de cu itemii avand descrierea corecta a map-ului,
-# in loc sa se descrie direct map-ul.
-# TODO 2: Adauga test care verifica POST pentru metoda 7, cea cu `protobuf.oneof`
 import json
 import inspect
 import collections
@@ -280,7 +275,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     OpenAPI Specification allows only maps with strings as keys, so, as a
     workaround, we state the actual key type in the `description` fields of the
     **schemas of the properties/parameters** that use this type (in order to be
-    displayed by documentation generation tools).
+    displayed by documentation generation tools, see `_GetDescribedSchema`).
+    A `description` field is also added by this method in the schema definition
+    which will be added to the `Components Object` of the root `OpenAPI Object`
+    for more clarity when reading the generated description of the components.
 
     Args:
       field_descriptor: The protobuf `FieldDescriptor` associated with a
