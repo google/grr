@@ -268,6 +268,58 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       }
     )
 
+  def _CreateMapFieldSchema(
+      self,
+      field_descriptor: FieldDescriptor,
+      visiting: Set[str],
+  ) -> None:
+    """Creates the OpenAPI schema of a `protobuf.map` field type.
+
+    This method should generally not be called directly, but rather through
+    `_CreateSchema` which takes care of error-verifications and caching. The
+    OpenAPI Specification allows only maps with strings as keys, so, as a
+    workaround, we state the actual key type in the `description` fields of the
+    properties/parameters that use this type (in order to be displayed by
+    documentation generation tools).
+
+    Args:
+      field_descriptor: The protobuf `FieldDescriptor` associated with a
+        protobuf field.
+      visiting: A set of type names that are in the process of having their
+        OpenAPI schemas constructed and have their associated `_Create*Schema`
+        call in the current call stack.
+
+    Returns:
+      Nothing, the schema is stored in `self.schema_objs`.
+    """
+    type_name = _GetTypeName(field_descriptor)
+    visiting.add(type_name)
+
+    key_field_d, value_field_d = (
+      _GetMapFieldKeyValueTypes(field_descriptor)
+    )
+
+    # pylint: disable=line-too-long
+    # `protobuf.map` key types can be only a subset of the primitive types [1],
+    # so there is definitely no composite key type to further visit, but the
+    # value type "can be any type except another map" [1] or an array [2].
+    #
+    # [1]: https://developers.google.com/protocol-buffers/docs/proto#maps
+    # [2]: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec#map_field
+    # pylint: enable=line-too-long
+    self._CreateSchema(value_field_d, visiting)
+
+    visiting.remove(type_name)
+
+    self.schema_objs[type_name] = {
+      "description": f"This is a map with real key type="
+                     f"\"{_GetTypeName(key_field_d)}\" and value type="
+                     f"\"{_GetTypeName(value_field_d)}\"",
+      "type": "object",
+      "additionalProperties": _GetReferenceObject(_GetTypeName(value_field_d)),
+    }
+
+
   def _CreateSchema(
       self,
       cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
@@ -289,6 +341,18 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     if type_name in visiting:
       # Dependency cycle.
+      return
+
+    if isinstance(cls, FieldDescriptor):
+      if _IsMapField(cls):
+        self._CreateMapFieldSchema(cls, visiting)
+        return
+
+      descriptor = cls.message_type or cls.enum_type
+      if descriptor:
+        self._CreateSchema(descriptor, visiting)
+      # else, this field is of a primitive type whose schema is already created.
+
       return
 
     if isinstance(cls, Descriptor):
@@ -666,8 +730,18 @@ def _GetTypeName(
 ) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
+    if _IsMapField(cls):
+      map_type_name = _GetTypeName(cls.message_type)
+      if map_type_name.endswith("Entry"):
+        map_type_name = map_type_name[:-5]
+
+      key_type_d, value_type_d = _GetMapFieldKeyValueTypes(cls)
+
+      return f"{map_type_name}Map_{key_type_d.name}:{value_type_d.name}"
+
     if cls.message_type:
       return _GetTypeName(cls.message_type)
+
     if cls.enum_type:
       return _GetTypeName(cls.enum_type)
 
@@ -771,3 +845,67 @@ def _GetFieldSchema(
     ]
 
   return oneof_member
+
+
+def _GetMapEntryTypeName(field_name: str) -> str:
+  """Extract the name of the associated map type from a field's name."""
+  capitalized_name_components = [
+    comp.capitalize() for comp in field_name.split("_")
+  ]
+
+  return f"{''.join(capitalized_name_components)}Entry"
+
+
+def _GetMapFieldKeyValueTypes(
+    field_descriptor: FieldDescriptor,
+) -> Tuple[Optional[FieldDescriptor], Optional[FieldDescriptor]]:
+  """Get `FieldDescriptor`s for the types of a map field, if the field is a map.
+
+  `protobuf.map` fields are compiled as repeated fields of newly created types
+  that represent a map entry (i.e. auxiliary protobuf messages with a `key` and
+  `value` field). This function verifies that all the signs of a compiled
+  `protobuf.map` field are present for the current `FieldDescriptor` and, if
+  this field is actually a `protobuf.map`, it returns the `key` and `value`
+  `FieldDescriptor`s.
+
+  Args:
+    field_descriptor: The protobuf `FieldDescriptor` whose type is checked if it
+    is a map and whose key and value types constants are returned.
+
+  Returns:
+    A pair consisting of the `key` and `value` `FieldDescriptor`s (in this
+    order) extracted from the given `FieldDescriptor`'s map entry message type,
+    or (None, None) if the given `FieldDescriptor` does not describe a map
+    field.
+  """
+  if field_descriptor.label != protobuf2.LABEL_REPEATED:
+    return None, None
+
+  entry_descriptor: Optional[Descriptor] = field_descriptor.message_type
+  if entry_descriptor is None:
+    return None, None
+
+  if _GetMapEntryTypeName(field_descriptor.name) != entry_descriptor.name:
+    return None, None
+
+  if len(entry_descriptor.fields) != 2:
+    return None, None
+
+  if (
+      entry_descriptor.fields[0].name == "key" and
+      entry_descriptor.fields[1].name == "value"
+  ):
+    return entry_descriptor.fields[0], entry_descriptor.fields[1]
+
+  if (
+      entry_descriptor.fields[0].name == "value" and
+      entry_descriptor.fields[1].name == "key"
+  ):
+    return entry_descriptor.fields[1], entry_descriptor.fields[0]
+
+  return None, None
+
+
+def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
+  """Checks that a `FieldDescriptor` is of a map type."""
+  return _GetMapFieldKeyValueTypes(field_descriptor) != (None, None)
