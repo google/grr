@@ -15,7 +15,12 @@
         ><mat-icon>add</mat-icon>Add label</button>
       </div>
       <div class="goto-details">
-        <button mat-stroked-button color="primary" (click)="clientDetailsDrawer.toggle()">Client details</button>
+        <button mat-button (click)="clientDetailsDrawer.toggle()">Client details
+          <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
+          <ng-template #iconArrowRight>
+            <mat-icon>keyboard_arrow_right</mat-icon>
+          </ng-template>
+        </button>
       </div>
     </div>
     <div class="client-id">
