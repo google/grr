@@ -249,12 +249,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # Create schemas for the fields' types.
     for field_descriptor in descriptor.fields:
       field_name = field_descriptor.name
-      message_descriptor = field_descriptor.message_type  # None if not Message.
-      enum_descriptor = field_descriptor.enum_type  # None if not Enum.
-      descriptor = message_descriptor or enum_descriptor
-
-      if descriptor:
-        self._CreateSchema(descriptor, visiting)
+      self._CreateSchema(field_descriptor, visiting)
 
       properties[field_name] = _GetFieldSchema(field_descriptor)
 
@@ -318,7 +313,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       "type": "object",
       "additionalProperties": _GetReferenceObject(_GetTypeName(value_field_d)),
     }
-
 
   def _CreateSchema(
       self,
@@ -434,10 +428,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     properties: Dict[str, Union[ArraySchema, SchemaReference]] = dict()
     for field_d in body_params:
       field_name = field_d.name
-      if field_d.label == protobuf2.LABEL_REPEATED:
-        properties[field_name] = _GetArraySchema(_GetTypeName(field_d))
-      else:
-        properties[field_name] = _GetReferenceObject(_GetTypeName(field_d))
+      properties[field_name] = _GetFieldSchema(field_d)
 
     return {
       "content": {
