@@ -923,8 +923,8 @@ def _GetMapFieldKeyValueTypes(
 
   Args:
     field_descriptor: The protobuf `FieldDescriptor` whose type is checked if it
-    is a map and whose type's associated `key` and `value` `FieldDescriptor`s
-    are returned.
+      is a map and whose type's associated `key` and `value` `FieldDescriptor`s
+      are returned.
 
   Returns:
     A tuple consisting of the `key` and `value` `FieldDescriptor`s (in this
