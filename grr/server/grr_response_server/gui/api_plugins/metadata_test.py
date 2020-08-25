@@ -919,6 +919,69 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       self._GetParamSchema("/metadata_test/method7", "post", "oneof_simplemsg")
     )
 
+  def testProtobufMapIsDescribedCorrectlyInOpenApiDescription(self):
+    # The semantic of `protobuf.map` is partially supported by the OpenAPI
+    # Specification, as OAS supports only `string` for the keys' type, while
+    # `protobuf.map`s key types can be any of a set of primitive types [1].
+    #
+    # [1]: https://developers.google.com/protocol-buffers/docs/proto#maps
+
+    # Firstly, check the map schema definition from the `Components Object`.
+    openapi_map_type_schema = (
+      self.openapi_desc_dict
+        .get("components")
+        .get("schemas")
+        .get("grr.MetadataMapMessage.FieldMapMap_"
+             "protobuf2.TYPE_SFIXED64:grr.MetadataSimpleMessage")
+    )
+    self.assertEqual(
+      {
+        "description": "This is a map with real key "
+                       "type=\"protobuf2.TYPE_SFIXED64\" and value "
+                       "type=\"grr.MetadataSimpleMessage\"",
+        "type": "object",
+        "additionalProperties": {
+          "$ref": "#/components/schemas/grr.MetadataSimpleMessage",
+        },
+      },
+      openapi_map_type_schema
+    )
+
+    # Secondly, check the description of the `field_map` routes parameter.
+    # Check the description of `field_map` from the `parameters` field of the
+    # `Operation Object` associated with `GET /metadata-test/method8`.
+    self.assertEqual(
+      {
+        "description": "This is a map with real key "
+                       "type=\"protobuf2.TYPE_SFIXED64\" and value "
+                       "type=\"grr.MetadataSimpleMessage\"",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/grr.MetadataMapMessage.FieldMapMap_"
+                    "protobuf2.TYPE_SFIXED64:grr.MetadataSimpleMessage",
+          },
+        ],
+      },
+      self._GetParamSchema("/metadata_test/method8", "get", "field_map")
+    )
+
+    # Check the description of `field_map` from the `requestBody` field of the
+    # `Operation Object` associated with `POST /metadata-test/method8`.
+    self.assertEqual(
+      {
+        "description": "This is a map with real key "
+                       "type=\"protobuf2.TYPE_SFIXED64\" and value "
+                       "type=\"grr.MetadataSimpleMessage\"",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/grr.MetadataMapMessage.FieldMapMap_"
+                    "protobuf2.TYPE_SFIXED64:grr.MetadataSimpleMessage",
+          },
+        ],
+      },
+      self._GetParamSchema("/metadata_test/method8", "post", "field_map")
+    )
+
   def _GetParamSchema(self, method_path, http_method, param_name):
     if http_method == "post":
       return (
