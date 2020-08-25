@@ -1,4 +1,4 @@
-<div *ngIf="client$ | async as client">
+<div *ngIf="client$ | async as client" class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
   <div class="client-header mat-body-1">
     <div class="fqdn-chips">
       <div class="fqdn">

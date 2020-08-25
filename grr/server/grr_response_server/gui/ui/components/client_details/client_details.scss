@@ -2,12 +2,13 @@
 
 .details-container {
   display: flex;
-  // Set to full_screen_height - toolbar_height - client_header to enable div scrolling
-  height: calc(100vh - 64px - 90px);
+  // Set to full_screen_height - toolbar_height - client_header_height to enable div scrolling
+  height: calc(100vh - 64px - 150px);
+  width: 1200px;
 
   .timeline {
     width: 20%;
-    border-right: 1px solid c.mat-color(c.$foreground, divider);
+    border-right: 1px solid c.mat-color(c.$foreground, divider-light);
     padding: 2em;
     overflow: auto;
 
