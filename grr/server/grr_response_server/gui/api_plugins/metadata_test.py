@@ -116,8 +116,16 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   @api_call_router.ArgsType(MetadataOneofMessage)
   @api_call_router.ResultType(MetadataOneofMessage)
   @api_call_router.Http("GET", "/metadata_test/method7")
+  @api_call_router.Http("POST", "/metadata_test/method7")
   def Method7ProtobufOneof(self, args, token=None):
     """Method 7 description."""
+
+  @api_call_router.ArgsType(MetadataMapMessage)
+  @api_call_router.ResultType(MetadataMapMessage)
+  @api_call_router.Http("GET", "/metadata_test/method8")
+  @api_call_router.Http("POST", "/metadata_test/method8")
+  def Method8ProtobufMap(self, args, token=None):
+    """Method 8 description."""
 
 
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -142,6 +150,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       "Method5EnumField",
       "Method6TypeReferences",
       "Method7ProtobufOneof",
+      "Method8ProtobufMap",
     }
     extracted_methods = {method.name for method in self.router_methods.values()}
 
@@ -172,6 +181,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method5",
         "/metadata_test/method6",
         "/metadata_test/method7",
+        "/metadata_test/method8",
       },
       openapi_paths_dict.keys()
     )
@@ -202,8 +212,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       openapi_paths_dict["/metadata_test/method6"].keys()
     )
     self.assertCountEqual(
-      {"get"},
+      {"get", "post"},
       openapi_paths_dict["/metadata_test/method7"].keys()
+    )
+    self.assertCountEqual(
+      {"get", "post"},
+      openapi_paths_dict["/metadata_test/method8"].keys()
     )
 
   def testRouteArgsAreCorrectlySeparated(self):
@@ -876,7 +890,50 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       self._GetParamSchema("/metadata_test/method7", "get", "oneof_simplemsg")
     )
 
+    # Check the description of the `protobuf.oneof` from the `requestBody` field
+    # of the `Operation Object` associated with `POST /metadata-test/method7`.
+    # Check the `oneof_int64` inner field of the `metadata_oneof`.
+    self.assertEqual(
+      {
+        "description": "This field is part of the \"metadata_oneof\" oneof. "
+                       "Only one field per oneof should be present.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+          },
+        ],
+      },
+      self._GetParamSchema("/metadata_test/method7", "post", "oneof_int64")
+    )
+    # Check the `oneof_simplemsg` inner field of the `metadata_oneof`.
+    self.assertEqual(
+      {
+        "description": "This field is part of the \"metadata_oneof\" oneof. "
+                       "Only one field per oneof should be present.",
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/grr.MetadataSimpleMessage",
+          },
+        ],
+      },
+      self._GetParamSchema("/metadata_test/method7", "post", "oneof_simplemsg")
+    )
+
   def _GetParamSchema(self, method_path, http_method, param_name):
+    if http_method == "post":
+      return (
+        self.openapi_desc_dict
+          .get("paths")
+          .get(method_path)
+          .get(http_method)
+          .get("requestBody")
+          .get("content")
+          .get("application/json")
+          .get("schema")
+          .get("properties")
+          .get(param_name)
+      )
+
     params = (
       self.openapi_desc_dict
         .get("paths")
