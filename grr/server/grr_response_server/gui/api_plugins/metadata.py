@@ -30,8 +30,8 @@ MessageSchema = Dict[
   str, Union[str,
              Dict[str, Union[SchemaReference, ArraySchema]]]
 ]
-OneofFieldSchema = Dict[str,
-                        Union[str, List[SchemaReference], List[ArraySchema]]]
+DescribedSchema = Dict[str,
+                       Union[str, List[SchemaReference], List[ArraySchema]]]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 
@@ -290,7 +290,15 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     Returns:
       Nothing, the schema is stored in `self.schema_objs`.
     """
-    type_name = _GetTypeName(field_descriptor)
+    if self.schema_objs is None:  # Check required by mypy.
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
+      )
+
+    if field_descriptor is None:  # Check required by mypy.
+      raise AssertionError(f"`field_descriptor` is None.")
+
+    type_name: str = _GetTypeName(field_descriptor)
     visiting.add(type_name)
 
     key_field_d, value_field_d = (
@@ -307,19 +315,30 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # pylint: enable=line-too-long
     self._CreateSchema(value_field_d, visiting)
 
+    if key_field_d is None:  # Check required by mypy.
+      raise AssertionError(
+        f"The map entry message type has no `key` FieldDescriptor."
+      )
+
     visiting.remove(type_name)
 
-    self.schema_objs[type_name] = {
-      "description": f"This is a map with real key type="
-                     f"\"{_GetTypeName(key_field_d)}\" and value type="
-                     f"\"{_GetTypeName(value_field_d)}\"",
-      "type": "object",
-      "additionalProperties": _GetReferenceObject(_GetTypeName(value_field_d)),
-    }
+    self.schema_objs[type_name] = cast(
+      Dict[str, Union[str, SchemaReference]],
+      {
+        "description": f"This is a map with real key type="
+                       f"\"{_GetTypeName(key_field_d)}\" and value type="
+                       f"\"{_GetTypeName(value_field_d)}\"",
+        "type": "object",
+        "additionalProperties": _GetReferenceObject(
+          _GetTypeName(value_field_d)),
+      }
+    )
 
   def _CreateSchema(
       self,
-      cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
+      cls: Optional[
+        Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+      ],
       visiting: Set[str],
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
@@ -397,7 +416,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _GetDescribedSchema(
       self,
       field_descriptor: FieldDescriptor,
-  ) -> Union[SchemaReference, ArraySchema, OneofFieldSchema]:
+  ) -> Union[SchemaReference, ArraySchema, DescribedSchema]:
     """Wrap a type schema in a dictionary with a `description` field, if needed.
 
     This function takes into consideration the fact that the a message field
@@ -415,9 +434,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       semantics, then a normal schema or reference, else, a dictionary that
       includes a `description` entry along the `Reference Object` or schema.
     """
+    if self.schema_objs is None:  # Check required by mypy.
+      raise AssertionError(
+        "The container of OpenAPI type schemas is not initialized."
+      )
+
     type_name = _GetTypeName(field_descriptor)
     containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
-    description = ""
+    description: str = ""
     array_schema = None
     reference_obj = None
 
@@ -450,7 +474,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       if description:
         description += " "
 
-      description += self.schema_objs.get(type_name).get("description", "")
+      map_type_schema = self.schema_objs[type_name]
+      description += cast(
+        str, map_type_schema.get("description", "")
+      )
 
     # The following `allOf` is required to display the description by
     # documentation generation tools because the OAS specifies that there
@@ -459,12 +486,22 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     #
     # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
     if description:
-      return {
-        "description": description,
-        "allOf": [reference_obj or array_schema],
-      }
+      return cast(
+        DescribedSchema,
+        {
+          "description": description,
+          "allOf": [reference_obj or array_schema],
+        }
+      )
 
-    return reference_obj or array_schema
+    if reference_obj is not None:
+      return reference_obj
+    elif array_schema is not None:  # Check required by mypy.
+      return array_schema
+
+    raise AssertionError(  # Required by mypy.
+      "No array schema nor `Reference Object` were created."
+    )
 
   def _GetParameters(
       self,
@@ -501,7 +538,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       return {}
 
     properties: (
-      Dict[str, Union[SchemaReference, ArraySchema, OneofFieldSchema]]
+      Dict[str, Union[SchemaReference, ArraySchema, DescribedSchema]]
     ) = dict()
     for field_d in body_params:
       field_name = field_d.name
@@ -794,7 +831,9 @@ def _GetPathArgsFromPath(path: str) -> List[str]:
 
 
 def _GetTypeName(
-    cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
+    cls: Optional[
+      Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+    ],
 ) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
