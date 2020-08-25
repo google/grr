@@ -413,9 +413,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         target field.
 
     Returns:
-      If the field is not part of a `protobuf.oneof`, then a simple `Reference
-      Object`, else, a dictionary that includes a description entry along the
-      `Reference Object`.
+      If the schema of the field does not require any description to explain the
+      semantics, then a normal schema or reference, else, a dictionary that
+      includes a `description` entry along the `Reference Object` or schema.
     """
     type_name = _GetTypeName(field_descriptor)
     containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
