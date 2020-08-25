@@ -15,6 +15,8 @@ import {TimestampModule} from '../timestamp/module';
 
 import {Client} from './client';
 import {ClientRoutingModule} from './routing';
+import {ClientDetailsModule} from '../client_details/module';
+import {MatSidenavModule} from '@angular/material/sidenav';
 
 /**
  * Module for the client details component.
@@ -35,6 +37,8 @@ import {ClientRoutingModule} from './routing';
     MatButtonModule,
     ClientAddLabelDialogModule,
     MatSnackBarModule,
+    ClientDetailsModule,
+    MatSidenavModule,
   ],
   declarations: [
     Client,

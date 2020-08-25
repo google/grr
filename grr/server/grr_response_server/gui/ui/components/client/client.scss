@@ -6,6 +6,7 @@ $width: 80%;
 .client-header {
   padding: 3em 0 3em 10em;
   border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+  height: 90px;
 
   .fqdn-chips {
     display: flex;

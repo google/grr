@@ -2,8 +2,8 @@
 
 .details-container {
   display: flex;
-  // Set to full_screen_height - toolbar_height to enable div scrolling
-  height: calc(100% - 64px);
+  // Set to full_screen_height - toolbar_height - client_header to enable div scrolling
+  height: calc(100vh - 64px - 90px);
 
   .timeline {
     width: 20%;

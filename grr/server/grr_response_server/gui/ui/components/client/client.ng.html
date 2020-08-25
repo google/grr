@@ -15,7 +15,7 @@
         ><mat-icon>add</mat-icon>Add label</button>
       </div>
       <div class="goto-details">
-        <button mat-stroked-button color="primary" [routerLink]="['./details']">Client details</button>
+        <button mat-stroked-button color="primary" (click)="clientDetailsDrawer.toggle()">Client details</button>
       </div>
     </div>
     <div class="client-id">
@@ -28,13 +28,21 @@
       Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
     </div>
   </div>
-  <div class="client-approval">
-    <approval></approval>
-  </div>
-  <div class="client-start-flow">
-    <flow-form></flow-form>
-  </div>
-  <div class="client-flows">
-    <flow-list></flow-list>
-  </div>
+
+  <mat-drawer-container>
+    <mat-drawer #clientDetailsDrawer position="end">
+      <client-details></client-details>
+    </mat-drawer>
+    <mat-drawer-content>
+      <div class="client-approval">
+        <approval></approval>
+      </div>
+      <div class="client-start-flow">
+        <flow-form></flow-form>
+      </div>
+      <div class="client-flows">
+        <flow-list></flow-list>
+      </div>
+    </mat-drawer-content>
+  </mat-drawer-container>
 </div>
