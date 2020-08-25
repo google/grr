@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A module with API methods related to the GRR metadata."""
+# TODO 1: Scrie cod in `_GetFieldSchema` (cred) astfel incat sa se insereze in
+# descrierea OpenAPI generata pe descrierea corecta pentru map-uri. In momentul
+# de fata se descrie un array de cu itemii avand descrierea corecta a map-ului,
+# in loc sa se descrie direct map-ul.
+# TODO 2: Adauga test care verifica POST pentru metoda 7, cea cu `protobuf.oneof`
 import json
 import inspect
 import collections
@@ -251,7 +256,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       field_name = field_descriptor.name
       self._CreateSchema(field_descriptor, visiting)
 
-      properties[field_name] = _GetFieldSchema(field_descriptor)
+      properties[field_name] = self._GetDescribedSchema(field_descriptor)
 
     visiting.remove(type_name)
 
@@ -274,8 +279,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     `_CreateSchema` which takes care of error-verifications and caching. The
     OpenAPI Specification allows only maps with strings as keys, so, as a
     workaround, we state the actual key type in the `description` fields of the
-    properties/parameters that use this type (in order to be displayed by
-    documentation generation tools).
+    **schemas of the properties/parameters** that use this type (in order to be
+    displayed by documentation generation tools).
 
     Args:
       field_descriptor: The protobuf `FieldDescriptor` associated with a
@@ -391,6 +396,78 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         else:
           self._CreateSchema(result_type, visiting)
 
+  def _GetDescribedSchema(
+      self,
+      field_descriptor: FieldDescriptor,
+  ) -> Union[SchemaReference, ArraySchema, OneofFieldSchema]:
+    """Wrap a type schema in a dictionary with a `description` field, if needed.
+
+    This function takes into consideration the fact that the a message field
+    might have a protobuf type that is not completely supported by the OpenAPI
+    Specification (such as `protobuf.oneof` or `protobuf.map`) and wraps the
+    `Reference Object` or the OpenAPI array accordingly in order to include a
+    description of the complete semantics of the type.
+
+    Args:
+      field_descriptor: The protobuf `FieldDescriptor` associated with the
+        target field.
+
+    Returns:
+      If the field is not part of a `protobuf.oneof`, then a simple `Reference
+      Object`, else, a dictionary that includes a description entry along the
+      `Reference Object`.
+    """
+    type_name = _GetTypeName(field_descriptor)
+    containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
+    description = ""
+    array_schema = None
+    reference_obj = None
+
+    # Get the array schema or the `Reference Object`.
+    if (
+        field_descriptor.label == protobuf2.LABEL_REPEATED and
+        not _IsMapField(field_descriptor)
+    ):
+      array_schema = _GetArraySchema(type_name)
+    else:
+      reference_obj = _GetReferenceObject(type_name)
+
+    # Build the description.
+    # `protobuf.oneof` related description.
+    # The semantic of `protobuf.oneof` is not currently supported by the
+    # OpenAPI Specification. See this GitHub issue [1] for more details.
+    #
+    # [1]: github.com/google/grr/issues/822
+    if containing_oneof is not None:
+      if description:
+        description += " "
+
+      description += (
+        f"This field is part of the \"{containing_oneof.name}\" oneof. "
+        f"Only one field per oneof should be present."
+      )
+
+    # `protobuf.map` related description.
+    if _IsMapField(field_descriptor):
+      if description:
+        description += " "
+
+      description += self.schema_objs.get(type_name).get("description", "")
+
+    # The following `allOf` is required to display the description by
+    # documentation generation tools because the OAS specifies that there
+    # should not be any sibling properties to a `$ref`. This is the
+    # workaround proposed by the ReDoc community [1].
+    #
+    # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
+    if description:
+      return {
+        "description": description,
+        "allOf": [reference_obj or array_schema],
+      }
+
+    return reference_obj or array_schema
+
   def _GetParameters(
       self,
       path_params: List[FieldDescriptor],
@@ -411,7 +488,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       else:
         parameter_obj["in"] = "query"
 
-      parameter_obj["schema"] = _GetFieldSchema(field_d)
+      parameter_obj["schema"] = self._GetDescribedSchema(field_d)
 
       parameters.append(parameter_obj)
 
@@ -425,10 +502,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if not body_params:
       return {}
 
-    properties: Dict[str, Union[ArraySchema, SchemaReference]] = dict()
+    properties: (
+      Dict[str, Union[SchemaReference, ArraySchema, OneofFieldSchema]]
+    ) = dict()
     for field_d in body_params:
       field_name = field_d.name
-      properties[field_name] = _GetFieldSchema(field_d)
+      properties[field_name] = self._GetDescribedSchema(field_d)
 
     return {
       "content": {
@@ -728,7 +807,10 @@ def _GetTypeName(
 
       key_type_d, value_type_d = _GetMapFieldKeyValueTypes(cls)
 
-      return f"{map_type_name}Map_{key_type_d.name}:{value_type_d.name}"
+      return (
+        f"{map_type_name}Map_"
+        f"{_GetTypeName(key_type_d)}:{_GetTypeName(value_type_d)}"
+      )
 
     if cls.message_type:
       return _GetTypeName(cls.message_type)
@@ -779,63 +861,6 @@ def _GetArraySchema(items_type_name: str) -> ArraySchema:
     "type": "array",
     "items": _GetReferenceObject(items_type_name),
   }
-
-
-def _GetFieldSchema(
-    field_descriptor: FieldDescriptor,
-) -> Union[SchemaReference, ArraySchema, OneofFieldSchema]:
-  """Create a dictionary to be used as the schema of a message field.
-
-  This function takes into consideration the fact that the field might be part
-  of a `protobuf.oneof` and wraps the `Reference Object` or the OpenAPI array
-  accordingly in order to include a description specifying the name of the
-  `protobuf.oneof`.
-
-  Args:
-    field_descriptor: The protobuf `FieldDescriptor` associated with the target
-      field.
-
-  Returns:
-    If the field is not part of a `protobuf.oneof`, then a simple `Reference
-    Object`, else, a dictionary that includes a description entry along the
-    `Reference Object`.
-  """
-  # The semantic of `protobuf.oneof` is not currently supported by the
-  # OpenAPI Specification. See this GitHub issue [1] for more details.
-  #
-  # [1]: github.com/google/grr/issues/822
-  type_name = _GetTypeName(field_descriptor)
-  containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
-  if containing_oneof is None:
-    if field_descriptor.label == protobuf2.LABEL_REPEATED:
-      return _GetArraySchema(type_name)
-
-    return _GetReferenceObject(type_name)
-
-  # The following `allOf` is required to display the description by
-  # documentation generation tools because the OAS specifies that there
-  # should not be any sibling properties to a `$ref`. This is the
-  # workaround proposed by the ReDoc community [1].
-  #
-  # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
-  oneof_member = cast(
-    OneofFieldSchema,
-    {
-      "description":
-        f"This field is part of the \"{containing_oneof.name}\" oneof. "
-        f"Only one field per oneof should be present.",
-    }
-  )
-  if field_descriptor.label == protobuf2.LABEL_REPEATED:
-    oneof_member["allOf"] = [
-      _GetArraySchema(type_name),
-    ]
-  else:
-    oneof_member["allOf"] = [
-      _GetReferenceObject(type_name),
-    ]
-
-  return oneof_member
 
 
 def _GetMapEntryTypeName(field_name: str) -> str:
