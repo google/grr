@@ -136,7 +136,6 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
   def testGetClientIdsFromFleetspeak(self):
     conn = _MockConnReturningClient(_TEST_CLIENT_ID, list())
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      fleetspeak_connector.Init(conn)
       self.assertListEqual(fleetspeak_utils.GetClientIdsFromFleetspeak(), [_TEST_CLIENT_ID])
       conn.outgoing.ListClients.assert_called_once()
       insert_args, _ = conn.outgoing.ListClients.call_args
@@ -148,7 +147,6 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     conn.outgoing._stub.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(records=[{"mean_user_cpu_rate": 1, "max_system_cpu_rate": 2},
                                                                                                                                   {"mean_user_cpu_rate": 4, "max_system_cpu_rate": 8}])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      fleetspeak_connector.Init(conn)
       expected_records_list = [resource_pb2.ClientResourceUsageRecord(mean_user_cpu_rate=1, max_system_cpu_rate=2),
                                resource_pb2.ClientResourceUsageRecord(mean_user_cpu_rate=4, max_system_cpu_rate=8)]
       self.assertListEqual(fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(_TEST_CLIENT_ID, 10), expected_records_list)
