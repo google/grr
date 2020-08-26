@@ -26,6 +26,8 @@ from grr_response_core.config import contexts
 from fleetspeak.src.server.proto.fleetspeak_server.resource_pb2 import ClientResourceUsageRecord
 
 
+AVAILABLE_METRICS = ['mean_user_cpu_rate', 'max_user_cpu_rate', 'mean_system_cpu_rate', 
+                    'max_system_cpu_rate', 'mean_resident_memory_mib', 'max_resident_memory_mib']
 
 flags.DEFINE_bool(
   "version",
@@ -85,7 +87,7 @@ class Grrafana(object):
     on client IDs)."""
     if "type" in request.json:
       # Request issued on Panel > Queries page.
-      response = fetch_available_metrics()
+      response = AVAILABLE_METRICS
     else:
       # Grafana issued request on Variables > New/Edit page.
       response = fetch_client_ids()  # todo: support Grafana variables other than ClientID.
