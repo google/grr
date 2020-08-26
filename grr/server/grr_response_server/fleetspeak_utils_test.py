@@ -133,17 +133,6 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     fs_message.data.Unpack(restart_req)
     self.assertEqual(restart_req.name, "GRR")
 
-  def testGetAvailableMetricsFromFleetspeak(self):
-    conn = mock.MagicMock()
-    conn.outgoing._stub.GetAvailableMetrics.return_value = admin_pb2.GetAvailableMetricsResponse(targets=["metric_1", "metric_2"])
-    with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      fleetspeak_connector.Init(conn)
-      self.assertListEqual(fleetspeak_utils.GetAvailableMetricsFromFleetspeak(), ["metric_1", "metric_2"])
-      conn.outgoing._stub.GetAvailableMetrics.assert_called_once()
-      insert_args, _ = conn.outgoing._stub.GetAvailableMetrics.call_args
-      fs_message = insert_args[0]
-      self.assertIsInstance(fs_message, common_pb2.Message)
-
   def testGetClientIdsFromFleetspeak(self):
     conn = _MockConnReturningClient(_TEST_CLIENT_ID, list())
     with mock.patch.object(fleetspeak_connector, "CONN", conn):

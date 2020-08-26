@@ -106,11 +106,6 @@ class Grrafana(object):
     pass
 
 
-def fetch_available_metrics():
-  """Fetches available client resource usage records from Fleetspeak database.""" 
-  return fleetspeak_utils.GetAvailableMetricsFromFleetspeak()
-
-
 def fetch_client_ids() -> List[Text]:
   """Fetches GRR client IDs that have resource usage records in Fleetspeak database."""
   return fleetspeak_utils.GetClientIdsFromFleetspeak()
