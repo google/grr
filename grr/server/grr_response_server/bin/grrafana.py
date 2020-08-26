@@ -119,12 +119,26 @@ def fetch_datapoints_for_targets(client_id: Text, limit: int, targets: List[Text
   records_list = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit)
   response = list()
   for target in targets:
-    datapoints_for_single_target = [[getattr(record, target), record.server_timestamp.seconds * 1000] for record in records_list]
-    response.append({"target": target, "datapoints": datapoints_for_single_target})
+    datapoints_for_single_target = create_datapoints_for_target(target, records_list)
+    target_datapoints_dict = typing.cast(TargetWithDatapoints, {"target": target, "datapoints": datapoints_for_single_target})
+    response.append(target_datapoints_dict)
   return response
 
 
 def create_datapoints_for_target(target: Text, records_list: List[ClientResourceUsageRecord]) -> Datapoints:
+  if target == "mean_user_cpu_rate":
+    record_values = [record.mean_user_cpu_rate for record in records_list]
+  elif target == "max_user_cpu_rate":
+    record_values = [record.max_user_cpu_rate for record in records_list]
+  elif target == "mean_system_cpu_rate":
+    record_values = [record.mean_system_cpu_rate for record in records_list]
+  elif target == "max_system_cpu_rate":
+    record_values = [record.max_system_cpu_rate for record in records_list]
+  elif target == "mean_resident_memory_mib":
+    record_values = [record.mean_resident_memory_mib for record in records_list]
+  elif target == "max_resident_memory_mib":
+    record_values = [record.max_resident_memory_mib for record in records_list]
+  return [(v, r.server_timestamp.seconds * 1000) for (v, r) in zip(record_values, records_list)]
 
 
 def extract_client_id_from_variable(req: JSONRequest) -> Text:
