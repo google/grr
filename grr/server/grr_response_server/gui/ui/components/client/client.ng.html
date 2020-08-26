@@ -14,14 +14,12 @@
         <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
         ><mat-icon>add</mat-icon>Add label</button>
       </div>
-      <div class="goto-details">
-        <button mat-button (click)="onClientDetailsButtonClick()">Client details
+        <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
           <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
           <ng-template #iconArrowRight>
             <mat-icon>keyboard_arrow_right</mat-icon>
           </ng-template>
         </button>
-      </div>
     </div>
     <div class="client-id">
       <span class="mat-h5">{{client.clientId}}</span>

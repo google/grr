@@ -1,12 +1,12 @@
 import {Location} from '@angular/common';
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, QueryList, ViewChild, ViewChildren} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {MatDrawer} from '@angular/material/sidenav';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {ActivatedRoute, Router} from '@angular/router';
+import {ActivatedRoute} from '@angular/router';
 import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {filter, map, take, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
@@ -37,7 +37,6 @@ export class Client implements OnInit, OnDestroy {
       private readonly dialog: MatDialog,
       private readonly snackBar: MatSnackBar,
       private readonly location: Location,
-      private readonly router: Router,
   ) {}
 
   ngOnInit() {
@@ -55,6 +54,7 @@ export class Client implements OnInit, OnDestroy {
   ngAfterViewInit() {
     this.clientDetailsDrawers.closedStart.subscribe(() => {
       const urlTokens = this.location.path().split('/');
+      console.log('I am subscriber', urlTokens);
       this.location.go(urlTokens.slice(0, -1).join('/'));
     });
 
@@ -65,7 +65,7 @@ export class Client implements OnInit, OnDestroy {
       }
     });
 
-    this.route.url.pipe(map(url => url[url.length - 1]))
+    this.route.url.pipe(map(url => url[url.length - 1]), take(1))
         .subscribe(urlSegment => {
           if (urlSegment.path === 'details') {
             this.clientDetailsDrawers.open();
