@@ -1,5 +1,10 @@
+#!/usr/bin/env python
+# Lint as: python3
 import os
 import json
+import typing
+from typing import Any, List, Tuple, Dict, Text
+
 from werkzeug.wrappers import Request, Response
 from werkzeug.wrappers.json import JSONMixin
 from werkzeug.routing import Map, Rule
@@ -17,6 +22,9 @@ from grr_response_server import fleetspeak_utils
 from grr_response_server import server_startup
 from grr_response_core import config
 from grr_response_core.config import contexts
+
+from fleetspeak.src.server.proto.fleetspeak_server.resource_pb2 import ClientResourceUsageRecord
+
 
 
 flags.DEFINE_bool(

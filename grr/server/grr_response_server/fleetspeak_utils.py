@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
-from typing import Text
+from typing import Text, List
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -16,6 +16,7 @@ from grr_response_server import fleetspeak_connector
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server.resource_pb2 import ClientResourceUsageRecord
 
 
 def IsFleetspeakEnabledClient(grr_id):
