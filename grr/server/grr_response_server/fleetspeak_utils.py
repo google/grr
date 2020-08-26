@@ -115,7 +115,7 @@ def GetLabelsFromFleetspeak(client_id):
   return grr_labels
 
 
-def GetClientIdsFromFleetspeak():
+def GetClientIdsFromFleetspeak() -> List[Text]:
   """Returns client IDs of Fleetspeak-enabled database.
 
   Returns:
@@ -129,7 +129,7 @@ def GetClientIdsFromFleetspeak():
   return list(client_ids_list)
 
 
-def FetchClientResourceUsageRecordsFromFleetspeak(client_id, limit):
+def FetchClientResourceUsageRecordsFromFleetspeak(client_id: Text, limit: int) -> List[ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client in Fleetspeak-enabled database.
 
   Args:
