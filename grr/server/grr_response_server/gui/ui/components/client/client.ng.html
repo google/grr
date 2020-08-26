@@ -1,5 +1,5 @@
-<div *ngIf="client$ | async as client" class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
-  <div class="client-header mat-body-1">
+<div class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
+  <div  *ngIf="client$ | async as client" class="client-header mat-body-1">
     <div class="fqdn-chips">
       <div class="fqdn">
         <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
@@ -15,7 +15,7 @@
         ><mat-icon>add</mat-icon>Add label</button>
       </div>
       <div class="goto-details">
-        <button mat-button (click)="clientDetailsDrawer.toggle()">Client details
+        <button mat-button (click)="onClientDetailsButtonClick()">Client details
           <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
           <ng-template #iconArrowRight>
             <mat-icon>keyboard_arrow_right</mat-icon>
