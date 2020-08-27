@@ -142,7 +142,7 @@ def FetchClientResourceUsageRecordsFromFleetspeak(
   Returns:
     A list of client resource usage records retrieved from Fleetspeak.
   """
-  res = fleetspeak_connector.CONN.outgoing._stub.FetchClientResourceUsageRecords(
+  res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(
       admin_pb2.FetchClientResourceUsageRecordsRequest(
           client_id=GRRIDToFleetspeakID(client_id), limit=limit))
   if not res or not res.records[0]:
