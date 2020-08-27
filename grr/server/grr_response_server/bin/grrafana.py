@@ -92,7 +92,7 @@ class Grrafana(object):
       response = AVAILABLE_METRICS
     else:
       # Grafana issued request on Variables > New/Edit page.
-      response = _FetchClientIds(
+      response = fleetspeak_utils.GetClientIdsFromFleetspeak(
       )  # todo: support Grafana variables other than ClientID.
     return JSONResponse(response=json.dumps(response),
                         mimetype=RESPONSE_MIME_TYPE)
@@ -115,11 +115,6 @@ class Grrafana(object):
 
   def OnAnnotations(self, request: JSONRequest) -> JSONResponse:
     pass
-
-
-def _FetchClientIds() -> List[Text]:
-  """Fetches GRR client IDs that have resource usage records in Fleetspeak database."""
-  return fleetspeak_utils.GetClientIdsFromFleetspeak()
 
 
 Datapoint = Tuple[float, int]
