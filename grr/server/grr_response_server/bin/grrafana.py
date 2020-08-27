@@ -83,17 +83,20 @@ class Grrafana(object):
     return JSONResponse()
 
   def OnSearch(self, request: JSONRequest) -> JSONResponse:
-    """Depending on the request type, returns either available client
-    resource usage metrics from the constant AVAILABLE_METRICS, or possible values
-    for a defined Grafana variable (currently supports only variables based
+    """Depending on the type of request Grafana is issuing, this method returns either
+    available client resource usage metrics from the constant AVAILABLE_METRICS, or
+    possible values for a defined Grafana variable (currently supports only variables based
     on client IDs)."""
     if "type" in request.json:
-      # Request issued on Panel > Queries page.
+      # Grafana request issued on Panel > Queries page. Grafana expects the list of metrics
+      # that can be listed on the dropdown-menu called "Metric".
       response = AVAILABLE_METRICS
     else:
-      # Grafana issued request on Variables > New/Edit page.
-      response = fleetspeak_utils.GetClientIdsFromFleetspeak(
-      )  # todo: support Grafana variables other than ClientID.
+      # Grafana request issued on Variables > New/Edit page. Grafana expectes the list
+      # of possible values of the variable.
+      # At the moment, the only Grafana variable we support is ClientID, so only a list
+      # of all Fleetspeak client IDs will be returned.
+      response = fleetspeak_utils.GetClientIdsFromFleetspeak()
     return JSONResponse(response=json.dumps(response),
                         mimetype=RESPONSE_MIME_TYPE)
 
