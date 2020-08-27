@@ -321,15 +321,16 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     visiting.remove(type_name)
 
+    key_type_name = _GetTypeName(key_field_d)
+    value_type_name = _GetTypeName(value_field_d)
+
     self.schema_objs[type_name] = cast(
       Dict[str, Union[str, SchemaReference]],
       {
-        "description": f"This is a map with real key type="
-                       f"\"{_GetTypeName(key_field_d)}\" and value type="
-                       f"\"{_GetTypeName(value_field_d)}\"",
+        "description": f"This is a map with real key type=\"{key_type_name}\" "
+                       f"and value type=\"{value_type_name}\"",
         "type": "object",
-        "additionalProperties": _GetReferenceObject(
-          _GetTypeName(value_field_d)),
+        "additionalProperties": _GetReferenceObject(value_type_name),
       }
     )
 
