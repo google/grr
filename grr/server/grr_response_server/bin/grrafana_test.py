@@ -6,7 +6,7 @@ from absl.testing import absltest
 from grr_response_server.bin import grrafana
 
 # TODO(tsehori): We should implement tests for grrafana.py.
-class GRRafanaTest(absltest.TestCase):
+class GrrafanaTest(absltest.TestCase):
   """Test the GRRafana HTTP server."""
 
   pass

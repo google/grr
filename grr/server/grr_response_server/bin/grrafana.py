@@ -22,12 +22,12 @@ from werkzeug.wrappers import json as werkzeug_wrappers_json
 
 
 AVAILABLE_METRICS = [
-    'mean_user_cpu_rate',
-    'max_user_cpu_rate',
-    'mean_system_cpu_rate',
-    'max_system_cpu_rate',
-    'mean_resident_memory_mib',
-    'max_resident_memory_mib',
+    "mean_user_cpu_rate",
+    "max_user_cpu_rate",
+    "mean_system_cpu_rate",
+    "max_system_cpu_rate",
+    "mean_resident_memory_mib",
+    "max_resident_memory_mib",
 ]
 RESPONSE_MIME_TYPE = "application/json"
 
@@ -55,10 +55,10 @@ class Grrafana(object):
   def __init__(self, config: dict) -> None:
     """Constructor."""
     self.url_map = werkzeug_routing.Map([
-        werkzeug_routing.Rule('/', endpoint='Root', methods=["GET"]),
-        werkzeug_routing.Rule('/search', endpoint='Search', methods=["POST"]),
-        werkzeug_routing.Rule('/query', endpoint='Query', methods=["POST"]),
-        werkzeug_routing.Rule('/annotations', endpoint='Annotations', methods=["POST"]),
+        werkzeug_routing.Rule("/", endpoint="Root", methods=["GET"]),
+        werkzeug_routing.Rule("/search", endpoint="Search", methods=["POST"]),
+        werkzeug_routing.Rule("/query", endpoint="Query", methods=["POST"]),
+        werkzeug_routing.Rule("/annotations", endpoint="Annotations", methods=["POST"]),
     ])
 
   def DispatchRequest(self, request: JSONRequest) -> JSONResponse:
@@ -66,7 +66,7 @@ class Grrafana(object):
     adapter = self.url_map.bind_to_environ(request.environ)
     try:
       endpoint, values = adapter.match()
-      return getattr(self, 'On' + endpoint)(request, **values)
+      return getattr(self, "On" + endpoint)(request, **values)
     except werkzeug_exceptions.HTTPException as e:
       return e
 
@@ -170,19 +170,19 @@ def main(argv: Any) -> None:
   del argv  # Unused.
 
   if flags.FLAGS.version:
-    print("GRRafana server {}".format(config_server.VERSION["packageversion"]))
+    print(f"GRRafana server {config_server.VERSION['packageversion']}")
     return
 
   config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
                            "Context applied when running GRRafana server.")
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple('127.0.0.1',
+  werkzeug_serving.run_simple("127.0.0.1",
              5000,
              Grrafana({}),
              use_debugger=True,
              use_reloader=True)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
   app.run(main)
