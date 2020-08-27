@@ -295,6 +295,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     visiting.add(type_name)
 
     key_field_d, value_field_d = _GetMapFieldKeyValueTypes(field_descriptor)
+    key_type_name = _GetTypeName(key_field_d)
+    value_type_name = _GetTypeName(value_field_d)
 
     # pylint: disable=line-too-long
     # `protobuf.map` key types can be only a subset of the primitive types [1],
@@ -312,9 +314,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
 
     visiting.remove(type_name)
-
-    key_type_name = _GetTypeName(key_field_d)
-    value_type_name = _GetTypeName(value_field_d)
 
     self.schema_objs[type_name] = cast(
       Dict[str, Union[str, SchemaReference]],
@@ -822,12 +821,11 @@ def _GetTypeName(cls: Optional[TypeHinter]) -> str:
       if map_type_name.endswith("Entry"):
         map_type_name = map_type_name[:-5]
 
-      key_type_d, value_type_d = _GetMapFieldKeyValueTypes(cls)
+      key_field_d, value_field_d = _GetMapFieldKeyValueTypes(cls)
+      key_type_name = _GetTypeName(key_field_d)
+      value_type_name = _GetTypeName(value_field_d)
 
-      return (
-        f"{map_type_name}Map_"
-        f"{_GetTypeName(key_type_d)}:{_GetTypeName(value_type_d)}"
-      )
+      return f"{map_type_name}Map_{key_type_name}:{value_type_name}"
 
     if cls.message_type:
       return _GetTypeName(cls.message_type)
