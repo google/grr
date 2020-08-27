@@ -164,9 +164,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _AddPrimitiveTypesSchemas(self) -> None:
     """Adds the OpenAPI schemas for protobuf primitives and `BinaryStream`."""
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     primitive_types_schemas = {
       primitive_type["name"]: primitive_type["schema"]
@@ -197,9 +195,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       Nothing, the schema is stored in `self.schema_objs`.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     enum_schema_obj: EnumSchema = {
       "type": "string",
@@ -238,9 +234,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       Nothing, the schema is stored in `self.schema_objs`.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     type_name = _GetTypeName(descriptor)
 
@@ -292,9 +286,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       Nothing, the schema is stored in `self.schema_objs`.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     if field_descriptor is None:  # Check required by mypy.
       raise AssertionError(f"`field_descriptor` is None.")
@@ -341,9 +333,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     if cls is None:
       raise ValueError(f"Trying to extract schema of None.")
@@ -433,9 +423,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       includes a `description` entry along the `Reference Object` or schema.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     type_name = _GetTypeName(field_descriptor)
     containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
@@ -650,9 +638,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
