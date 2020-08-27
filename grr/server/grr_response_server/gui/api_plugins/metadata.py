@@ -8,6 +8,7 @@ import collections
 from urllib import parse as urlparse
 from typing import Optional, cast
 from typing import Type, Any, Union, Tuple, List, Set, Dict, DefaultDict
+from typing import NamedTuple
 
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
@@ -35,6 +36,13 @@ DescribedSchema = Dict[str,
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+
+
+class KeyValueDescriptor(NamedTuple):
+  """A named tuple for `protobuf.map`'s `key` and `value` `FieldDescriptor`s."""
+  key: FieldDescriptor
+  value: FieldDescriptor
+
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
 # the OpenAPI Specification [2] provides a more specific description of the
@@ -294,9 +302,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     type_name: str = _GetTypeName(field_descriptor)
     visiting.add(type_name)
 
-    key_field_d, value_field_d = _GetMapFieldKeyValueTypes(field_descriptor)
-    key_type_name = _GetTypeName(key_field_d)
-    value_type_name = _GetTypeName(value_field_d)
+    key_value_d = _GetMapFieldKeyValueTypes(field_descriptor)
+    if key_value_d is None:
+      raise AssertionError(f"`field_descriptor` doesn't have a map type.")
+
+    key_type_name = _GetTypeName(key_value_d.key)
+    value_type_name = _GetTypeName(key_value_d.value)
 
     # pylint: disable=line-too-long
     # `protobuf.map` key types can be only a subset of the primitive types [1],
@@ -306,12 +317,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # [1]: https://developers.google.com/protocol-buffers/docs/proto#maps
     # [2]: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec#map_field
     # pylint: enable=line-too-long
-    self._CreateSchema(value_field_d, visiting)
-
-    if key_field_d is None:  # Check required by mypy.
-      raise AssertionError(
-        f"The map entry message type has no `key` FieldDescriptor."
-      )
+    self._CreateSchema(key_value_d.value, visiting)
 
     visiting.remove(type_name)
 
@@ -821,9 +827,12 @@ def _GetTypeName(cls: Optional[TypeHinter]) -> str:
       if map_type_name.endswith("Entry"):
         map_type_name = map_type_name[:-5]
 
-      key_field_d, value_field_d = _GetMapFieldKeyValueTypes(cls)
-      key_type_name = _GetTypeName(key_field_d)
-      value_type_name = _GetTypeName(value_field_d)
+      key_value_d = _GetMapFieldKeyValueTypes(cls)
+      if key_value_d is None:
+        raise AssertionError(f"cls is not a map FieldDescriptor")
+
+      key_type_name = _GetTypeName(key_value_d.key)
+      value_type_name = _GetTypeName(key_value_d.value)
 
       return f"{map_type_name}Map_{key_type_name}:{value_type_name}"
 
@@ -887,7 +896,7 @@ def _GetMapEntryTypeName(field_name: str) -> str:
 
 def _GetMapFieldKeyValueTypes(
     field_descriptor: FieldDescriptor,
-) -> Tuple[Optional[FieldDescriptor], Optional[FieldDescriptor]]:
+) -> Optional[KeyValueDescriptor]:
   """Get `FieldDescriptor`s for the types of a map field, if the field is a map.
 
   `protobuf.map` fields are compiled as repeated fields of newly created types
@@ -903,39 +912,43 @@ def _GetMapFieldKeyValueTypes(
       are returned.
 
   Returns:
-    A tuple consisting of the `key` and `value` `FieldDescriptor`s (in this
-    order) extracted from the given `FieldDescriptor`'s map entry message type,
-    or (None, None) if the given `FieldDescriptor` does not describe a map
-    field.
+    A `KeyValueDescriptor` named tuple consisting of the `key` and `value`
+    `FieldDescriptor`s (in this order) extracted from the given
+    `FieldDescriptor`'s map entry message type, or `None` if the given
+    `FieldDescriptor` does not describe a map field.
   """
   if field_descriptor.label != protobuf2.LABEL_REPEATED:
-    return None, None
+    return None
 
   entry_descriptor: Optional[Descriptor] = field_descriptor.message_type
   if entry_descriptor is None:
-    return None, None
+    return None
 
   if _GetMapEntryTypeName(field_descriptor.name) != entry_descriptor.name:
-    return None, None
+    return None
 
   if len(entry_descriptor.fields) != 2:
-    return None, None
+    return None
 
   if (
       entry_descriptor.fields[0].name == "key" and
       entry_descriptor.fields[1].name == "value"
   ):
-    return entry_descriptor.fields[0], entry_descriptor.fields[1]
+    return KeyValueDescriptor(
+      entry_descriptor.fields[0], entry_descriptor.fields[1]
+    )
 
   if (
       entry_descriptor.fields[0].name == "value" and
       entry_descriptor.fields[1].name == "key"
   ):
-    return entry_descriptor.fields[1], entry_descriptor.fields[0]
+    return KeyValueDescriptor(
+      entry_descriptor.fields[1], entry_descriptor.fields[0]
+    )
 
-  return None, None
+  return None
 
 
 def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
   """Checks that a `FieldDescriptor` is of a map type."""
-  return _GetMapFieldKeyValueTypes(field_descriptor) != (None, None)
+  return _GetMapFieldKeyValueTypes(field_descriptor) is not None
