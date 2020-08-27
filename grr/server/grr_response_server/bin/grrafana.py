@@ -158,7 +158,8 @@ def _CreateDatapointsForTarget(
 def _ExtractClientIdFromVariable(req: JSONRequest) -> Text:
   """Extracts the client ID from a Grafana JSON request."""
   # Based on an assumption that there is only one Grafana variable.
-  return next(iter(req["scopedVars"].values()))["value"]
+  scoped_vars_values = list(req["scopedVars"].values())
+  return scoped_vars_values[0]["value"]
 
 
 def main(argv: Any) -> None:
