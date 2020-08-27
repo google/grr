@@ -121,15 +121,18 @@ def GetClientIdsFromFleetspeak() -> List[Text]:
   Returns:
     A list of Client IDs.
   """
-  res = fleetspeak_connector.CONN.outgoing.ListClients(admin_pb2.ListClientsRequest())
+  res = fleetspeak_connector.CONN.outgoing.ListClients(
+      admin_pb2.ListClientsRequest())
   if not res.clients or not res.clients[0].client_id:
     return []
-  clients_list = list(res.clients)
-  client_ids_list = [FleetspeakIDToGRRID(client.client_id) for client in clients_list]
+  client_ids_list = [
+      FleetspeakIDToGRRID(client.client_id) for client in res.clients
+  ]
   return list(client_ids_list)
 
 
-def FetchClientResourceUsageRecordsFromFleetspeak(client_id: Text, limit: int) -> List[ClientResourceUsageRecord]:
+def FetchClientResourceUsageRecordsFromFleetspeak(
+    client_id: Text, limit: int) -> List[ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client in Fleetspeak-enabled database.
 
   Args:
@@ -140,7 +143,8 @@ def FetchClientResourceUsageRecordsFromFleetspeak(client_id: Text, limit: int) -
     A list of client resource usage records retrieved from Fleetspeak.
   """
   res = fleetspeak_connector.CONN.outgoing._stub.FetchClientResourceUsageRecords(
-    admin_pb2.FetchClientResourceUsageRecordsRequest(client_id=GRRIDToFleetspeakID(client_id), limit=limit))
+      admin_pb2.FetchClientResourceUsageRecordsRequest(
+          client_id=GRRIDToFleetspeakID(client_id), limit=limit))
   if not res or not res.records[0]:
     return []
   return list(res.records)
