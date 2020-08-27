@@ -439,7 +439,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     type_name = _GetTypeName(field_descriptor)
     containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
-    description: str = ""
+    description = ""
     array_schema = None
     reference_obj = None
 
