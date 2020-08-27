@@ -100,16 +100,13 @@ class Grrafana(object):
   def OnQuery(self, request: JSONRequest) -> JSONResponse:
     """Given a client ID as a Grafana variable and targets (resource usages),
     returns datapoints in a format Grafana can interpret."""
-    request_json_format = request.json
+    json_data = request.json
     requested_client_id = _ExtractClientIdFromVariable(
-        request_json_format
-    )  # There must be a ClientID variable declated in Grafana.
-    requested_targets = [
-        entry["target"] for entry in request_json_format["targets"]
-    ]
+        json_data)  # There must be a ClientID variable declated in Grafana.
+    requested_targets = [entry["target"] for entry in json_data["targets"]]
     response = _FetchDatapointsForTargets(requested_client_id,
-                                         request_json_format["maxDataPoints"],
-                                         requested_targets)
+                                          json_data["maxDataPoints"],
+                                          requested_targets)
     return JSONResponse(response=json.dumps(response),
                         mimetype=RESPONSE_MIME_TYPE)
 
