@@ -880,9 +880,7 @@ def _GetArraySchema(items_type_name: str) -> ArraySchema:
 
 def _GetMapEntryTypeName(field_name: str) -> str:
   """Extract the name of the associated map type from a field's name."""
-  capitalized_name_components = [
-    comp.capitalize() for comp in field_name.split("_")
-  ]
+  capitalized_name_components = map(str.capitalize, field_name.split("_"))
 
   return f"{''.join(capitalized_name_components)}Entry"
 
