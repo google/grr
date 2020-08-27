@@ -301,9 +301,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     type_name: str = _GetTypeName(field_descriptor)
     visiting.add(type_name)
 
-    key_field_d, value_field_d = (
-      _GetMapFieldKeyValueTypes(field_descriptor)
-    )
+    key_field_d, value_field_d = _GetMapFieldKeyValueTypes(field_descriptor)
 
     # pylint: disable=line-too-long
     # `protobuf.map` key types can be only a subset of the primitive types [1],
