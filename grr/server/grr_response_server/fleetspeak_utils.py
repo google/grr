@@ -128,7 +128,7 @@ def GetClientIdsFromFleetspeak() -> List[Text]:
   client_ids_list = [
       FleetspeakIDToGRRID(client.client_id) for client in res.clients
   ]
-  return list(client_ids_list)
+  return client_ids_list
 
 
 def FetchClientResourceUsageRecordsFromFleetspeak(
