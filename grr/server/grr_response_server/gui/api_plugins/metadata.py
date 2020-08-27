@@ -34,6 +34,7 @@ DescribedSchema = Dict[str,
                        Union[str, List[SchemaReference], List[ArraySchema]]]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
+TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
 # the OpenAPI Specification [2] provides a more specific description of the
@@ -334,9 +335,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _CreateSchema(
       self,
-      cls: Optional[
-        Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
-      ],
+      cls: Optional[TypeHinter],
       visiting: Set[str],
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
@@ -828,11 +827,7 @@ def _GetPathArgsFromPath(path: str) -> List[str]:
   return path_args
 
 
-def _GetTypeName(
-    cls: Optional[
-      Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
-    ],
-) -> str:
+def _GetTypeName(cls: Optional[TypeHinter]) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
     if _IsMapField(cls):
