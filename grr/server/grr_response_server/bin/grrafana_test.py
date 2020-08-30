@@ -27,7 +27,59 @@ def _MockConnReturningClients(grr_ids):
     clients.append(client)
   conn = mock.MagicMock()
   conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
-      clients=[client_1, client_2])
+      clients=clients)
+  return conn
+
+
+def _MockConnReturningRecords():
+  test_record_1 = {
+      "scope": "system",
+      "pid": 2714460,
+      "process_start_time": {
+          "seconds": 1597327815,
+          "nanos": 817468715
+      },
+      "client_timestamp": {
+          "seconds": 1597328416,
+          "nanos": 821525280
+      },
+      "server_timestamp": {
+          "seconds": 1597328417,
+          "nanos": 823124057
+      },
+      "mean_user_cpu_rate": 0.31883034110069275,
+      "max_user_cpu_rate": 4.999776840209961,
+      "mean_system_cpu_rate": 0.31883034110069275,
+      "max_system_cpu_rate": 4.999776840209961,
+      "mean_resident_memory_mib": 20,
+      "max_resident_memory_mib": 20
+  }
+  test_record_2 = {
+      "scope": "GRR",
+      "pid": 2714474,
+      "process_start_time": {
+          "seconds": 1597327815,
+          "nanos": 818657389
+      },
+      "client_timestamp": {
+          "seconds": 1597328418,
+          "nanos": 402023428
+      },
+      "server_timestamp": {
+          "seconds": 1597328419,
+          "nanos": 403123025
+      },
+      "mean_user_cpu_rate": 0.492735356092453,
+      "max_user_cpu_rate": 4.999615669250488,
+      "mean_system_cpu_rate": 0.07246342301368713,
+      "max_system_cpu_rate": 0.3333326578140259,
+      "mean_resident_memory_mib": 59,
+      "max_resident_memory_mib": 59
+  }
+  records = [test_record_1, test_record_2]
+  conn = mock.MagicMock()
+  conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
+      records=records)
   return conn
 
 
@@ -38,13 +90,30 @@ class GrrafanaTest(absltest.TestCase):
     super(GrrafanaTest, self).setUp()
     self.client = werkzeug_test.Client(application=grrafana.Grrafana(),
                                       response_wrapper=grrafana.JSONResponse)
+  # def setUp(self):
+  #   super(GrrafanaTest, self).setUp()
+  # if flags.FLAGS.version:
+  #   print(f"Testing GRRafana server {config_server.VERSION['packageversion']}")
+  #   return
+
+  # config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
+  #                         "Context applied when running testing GRRafana server.")
+  # server_startup.Init()
+  #   # fleetspeak_connector.Init()
+  #   werkzeug_serving.run_simple("127.0.0.1",
+  #             5001,
+  #             grrafana.Grrafana(),
+  #             use_debugger=True,
+  #             use_reloader=False)
+
   def testRoot(self):
     response = self.client.get("/")
     self.assertEqual(200, response.status_code)
 
   def testSearchMetrics(self):
     response = self.client.post("/search", json={'type': 'timeseries', 'target': ''})
-    self.assertEqual(response.json, [
+    self.assertEqual(200, response.status_code)
+    self.assertListEqual(response.json, [
         "mean_user_cpu_rate",
         "max_user_cpu_rate",
         "mean_system_cpu_rate",
@@ -54,11 +123,82 @@ class GrrafanaTest(absltest.TestCase):
     ])
 
   def testSearchClientIds(self):
-    conn = _MockConnReturningClients(_TEST_CLIENT_IDS)
+    conn = _MockConnReturningClients([_TEST_CLIENT_ID_1, _TEST_CLIENT_ID_2])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
       response = self.client.post("/search", json={'target': 'some_query'})
-      self.assertEqual(response.json,
+      self.assertEqual(200, response.status_code)
+      self.assertListEqual(response.json,
                        ["C.0000000000000001", "C.0000000000000002"])
+
+  def testQuery(self):
+    conn = _MockConnReturningRecords()
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      response = self.client.post(
+          "/query",
+          json={
+              'app': 'dashboard',
+              'requestId': 'Q119',
+              'timezone': 'browser',
+              'panelId': 2,
+              'dashboardId': 77,
+              'range': {
+                  'from': '2020-08-13T14:20:17.000Z',
+                  'to': '2020-08-18T17:15:58.000Z',
+                  'raw': {
+                      'from': '2020-08-13T14:20:17.000Z',
+                      'to': '2020-08-18T17:15:58.000Z'
+                  }
+              },
+              'timeInfo': '',
+              'interval': '10m',
+              'intervalMs': 600000,
+              'targets': [{
+                  'data': None,
+                  'target': 'max_user_cpu_rate',
+                  'refId': 'A',
+                  'hide': False,
+                  'type': 'timeseries'
+              }, {
+                  'data': None,
+                  'target': 'mean_system_cpu_rate',
+                  'refId': 'A',
+                  'hide': False,
+                  'type': 'timeseries'
+              }],
+              'maxDataPoints': 800,
+              'scopedVars': {
+                  'hellovar': {
+                      'text': _TEST_CLIENT_ID_1,
+                      'value': _TEST_CLIENT_ID_1
+                  },
+                  '__interval': {
+                      'text': '10m',
+                      'value': '10m'
+                  },
+                  '__interval_ms': {
+                      'text': '600000',
+                      'value': 600000
+                  }
+              },
+              'startTime': 1598782453496,
+              'rangeRaw': {
+                  'from': '2020-08-13T14:20:17.000Z',
+                  'to': '2020-08-18T17:15:58.000Z'
+              },
+              'adhocFilters': []
+          })
+      self.assertEqual(200, response.status_code)
+      self.assertEqual(response.json, [{
+          "target":
+              "max_user_cpu_rate",
+          "datapoints": [[4.999776840209961, 1597328417000],
+                         [4.999615669250488, 1597328419000]]
+      }, {
+          "target":
+              "mean_system_cpu_rate",
+          "datapoints": [[0.31883034110069275, 1597328417000],
+                         [0.07246342301368713, 1597328419000]]
+      }])
 
 
 def main(argv):
