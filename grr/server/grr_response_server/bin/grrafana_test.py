@@ -5,7 +5,7 @@ from absl.testing import absltest
 from absl import app, flags
 import mock
 
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
 
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
@@ -17,6 +17,50 @@ from werkzeug import test as werkzeug_test
 
 _TEST_CLIENT_ID_1 = "C.0000000000000001"
 _TEST_CLIENT_ID_2 = "C.0000000000000002"
+_TEST_CLIENT_RESOURCE_USAGE_RECORD_1 = {
+    "scope": "system",
+    "pid": 2714460,
+    "process_start_time": {
+        "seconds": 1597327815,
+        "nanos": 817468715
+    },
+    "client_timestamp": {
+        "seconds": 1597328416,
+        "nanos": 821525280
+    },
+    "server_timestamp": {
+        "seconds": 1597328417,
+        "nanos": 823124057
+    },
+    "mean_user_cpu_rate": 0.31883034110069275,
+    "max_user_cpu_rate": 4.999776840209961,
+    "mean_system_cpu_rate": 0.31883034110069275,
+    "max_system_cpu_rate": 4.999776840209961,
+    "mean_resident_memory_mib": 20,
+    "max_resident_memory_mib": 20
+}
+_TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
+    "scope": "GRR",
+    "pid": 2714474,
+    "process_start_time": {
+        "seconds": 1597327815,
+        "nanos": 818657389
+    },
+    "client_timestamp": {
+        "seconds": 1597328418,
+        "nanos": 402023428
+    },
+    "server_timestamp": {
+        "seconds": 1597328419,
+        "nanos": 403123025
+    },
+    "mean_user_cpu_rate": 0.492735356092453,
+    "max_user_cpu_rate": 4.999615669250488,
+    "mean_system_cpu_rate": 0.07246342301368713,
+    "max_system_cpu_rate": 0.3333326578140259,
+    "mean_resident_memory_mib": 59,
+    "max_resident_memory_mib": 59
+}
 
 
 def _MockConnReturningClients(grr_ids):
@@ -31,53 +75,23 @@ def _MockConnReturningClients(grr_ids):
   return conn
 
 
-def _MockConnReturningRecords():
-  test_record_1 = {
-      "scope": "system",
-      "pid": 2714460,
-      "process_start_time": {
-          "seconds": 1597327815,
-          "nanos": 817468715
-      },
-      "client_timestamp": {
-          "seconds": 1597328416,
-          "nanos": 821525280
-      },
-      "server_timestamp": {
-          "seconds": 1597328417,
-          "nanos": 823124057
-      },
-      "mean_user_cpu_rate": 0.31883034110069275,
-      "max_user_cpu_rate": 4.999776840209961,
-      "mean_system_cpu_rate": 0.31883034110069275,
-      "max_system_cpu_rate": 4.999776840209961,
-      "mean_resident_memory_mib": 20,
-      "max_resident_memory_mib": 20
-  }
-  test_record_2 = {
-      "scope": "GRR",
-      "pid": 2714474,
-      "process_start_time": {
-          "seconds": 1597327815,
-          "nanos": 818657389
-      },
-      "client_timestamp": {
-          "seconds": 1597328418,
-          "nanos": 402023428
-      },
-      "server_timestamp": {
-          "seconds": 1597328419,
-          "nanos": 403123025
-      },
-      "mean_user_cpu_rate": 0.492735356092453,
-      "max_user_cpu_rate": 4.999615669250488,
-      "mean_system_cpu_rate": 0.07246342301368713,
-      "max_system_cpu_rate": 0.3333326578140259,
-      "mean_resident_memory_mib": 59,
-      "max_resident_memory_mib": 59
-  }
-  records = [test_record_1, test_record_2]
+def _MockConnReturningRecords(client_ruds):
   conn = mock.MagicMock()
+  records = []
+  for record in client_ruds:
+    records.append(
+        resource_pb2.ClientResourceUsageRecord(
+            scope=record["scope"],
+            pid=record["pid"],
+            process_start_time=record["process_start_time"],
+            client_timestamp=record["client_timestamp"],
+            server_timestamp=record["server_timestamp"],
+            mean_user_cpu_rate=record["mean_user_cpu_rate"],
+            max_user_cpu_rate=record["max_user_cpu_rate"],
+            mean_system_cpu_rate=record["mean_system_cpu_rate"],
+            max_system_cpu_rate=record["max_system_cpu_rate"],
+            mean_resident_memory_mib=record["mean_resident_memory_mib"],
+            max_resident_memory_mib=record["max_resident_memory_mib"]))
   conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
       records=records)
   return conn
@@ -116,7 +130,7 @@ class GrrafanaTest(absltest.TestCase):
                        ["C.0000000000000001", "C.0000000000000002"])
 
   def testQuery(self):
-    conn = _MockConnReturningRecords()
+    conn = _MockConnReturningRecords([_TEST_CLIENT_RESOURCE_USAGE_RECORD_1, _TEST_CLIENT_RESOURCE_USAGE_RECORD_2])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
       response = self.client.post(
           "/query",
