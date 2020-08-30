@@ -145,7 +145,7 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
 
   def testFetchClientResourceUsageRecordsFromFleetspeak(self):
     conn = mock.MagicMock()
-    conn.outgoing._stub.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
+    conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
         records=[{
             "mean_user_cpu_rate": 1,
             "max_system_cpu_rate": 2
@@ -163,8 +163,8 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
       self.assertListEqual(
           fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(
               _TEST_CLIENT_ID, 10), expected_records_list)
-      conn.outgoing._stub.FetchClientResourceUsageRecords.assert_called_once()
-      insert_args, _ = conn.outgoing._stub.FetchClientResourceUsageRecords.call_args
+      conn.outgoing.FetchClientResourceUsageRecords.assert_called_once()
+      insert_args, _ = conn.outgoing.FetchClientResourceUsageRecords.call_args
       fs_message = insert_args[0]
       self.assertEqual(
           fs_message,
