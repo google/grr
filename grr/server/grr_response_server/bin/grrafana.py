@@ -52,7 +52,7 @@ class Grrafana(object):
   A full description of all endpoints implemented within this HTTP
   server can be found in https://github.com/simPod/grafana-json-datasource#api."""
 
-  def __init__(self, config: dict) -> None:
+  def __init__(self) -> None:
     """Constructor."""
     self.url_map = werkzeug_routing.Map([
         werkzeug_routing.Rule("/", endpoint="Root", methods=["GET"]),
@@ -179,7 +179,7 @@ def main(argv: Any) -> None:
   fleetspeak_connector.Init()
   werkzeug_serving.run_simple("127.0.0.1",
              5000,
-             Grrafana({}),
+             Grrafana(),
              use_debugger=True,
              use_reloader=True)
 
