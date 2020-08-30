@@ -90,21 +90,6 @@ class GrrafanaTest(absltest.TestCase):
     super(GrrafanaTest, self).setUp()
     self.client = werkzeug_test.Client(application=grrafana.Grrafana(),
                                       response_wrapper=grrafana.JSONResponse)
-  # def setUp(self):
-  #   super(GrrafanaTest, self).setUp()
-  # if flags.FLAGS.version:
-  #   print(f"Testing GRRafana server {config_server.VERSION['packageversion']}")
-  #   return
-
-  # config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
-  #                         "Context applied when running testing GRRafana server.")
-  # server_startup.Init()
-  #   # fleetspeak_connector.Init()
-  #   werkzeug_serving.run_simple("127.0.0.1",
-  #             5001,
-  #             grrafana.Grrafana(),
-  #             use_debugger=True,
-  #             use_reloader=False)
 
   def testRoot(self):
     response = self.client.get("/")
