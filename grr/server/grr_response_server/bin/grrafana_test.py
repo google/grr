@@ -15,14 +15,16 @@ from grr_response_server import server_startup
 from werkzeug import serving as werkzeug_serving
 from werkzeug import test as werkzeug_test
 
-_TEST_CLIENT_IDS = ["C.0000000000000001", "C.0000000000000002"]
+_TEST_CLIENT_ID_1 = "C.0000000000000001"
+_TEST_CLIENT_ID_2 = "C.0000000000000002"
 
 
 def _MockConnReturningClients(grr_ids):
-  client_1 = admin_pb2.Client(
-      client_id=fleetspeak_utils.GRRIDToFleetspeakID(grr_ids[0]))
-  client_2 = admin_pb2.Client(
-      client_id=fleetspeak_utils.GRRIDToFleetspeakID(grr_ids[1]))
+  clients = []
+  for grr_id in grr_ids:
+    client = admin_pb2.Client(
+        client_id=fleetspeak_utils.GRRIDToFleetspeakID(grr_id))
+    clients.append(client)
   conn = mock.MagicMock()
   conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
       clients=[client_1, client_2])
