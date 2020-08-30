@@ -51,6 +51,13 @@ class GrrafanaTest(absltest.TestCase):
         "max_resident_memory_mib",
     ])
 
+  def testSearchClientIds(self):
+    conn = _MockConnReturningClients(_TEST_CLIENT_IDS)
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      response = self.client.post("/search", json={'target': 'some_query'})
+      self.assertEqual(response.json,
+                       ["C.0000000000000001", "C.0000000000000002"])
+
 
 def main(argv):
   absltest.main(argv)
