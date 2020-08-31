@@ -692,6 +692,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       http_method: str,
       path: str,
       router_method: Any,
+      required_path_params: List[FieldDescriptor],
+      optional_path_params: List[FieldDescriptor],
+      query_params: List[FieldDescriptor],
+      body_params: List[FieldDescriptor],
   ) -> Dict[str, Any]:
     """Create the OpenAPI `Operation Object` associated with the given args."""
 
@@ -702,9 +706,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         .replace(">", "_")
         .replace(":", "-")
     )
-    path_params, query_params, body_params = (
-      self._SeparateFieldsIntoParams(http_method, path, router_method.args_type)
-    )
 
     # The `Operation Object` associated with the current http method.
     operation_obj = {
@@ -712,7 +713,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       "description": router_method.doc or "No description.",
       "operationId": urlparse.quote(f"{http_method}-{url_path}-"
                                     f"{router_method.name}"),
-      "parameters": self._GetParameters(path_params, query_params),
+      "parameters": self._GetParameters(
+        required_path_params, optional_path_params, query_params
+      ),
       "responses": {
         "200": (
           self._GetResponseObject200(router_method.result_type,
@@ -721,7 +724,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "default": self._GetResponseObjectDefault(router_method.name),
       },
     }
-    if body_params:  # Only POST methods should have an associated `requestBody`.
+    # Only POST methods should have an associated `requestBody`.
+    if body_params:
       operation_obj["requestBody"] = self._GetRequestBody(body_params)
 
     return operation_obj
@@ -733,8 +737,33 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     paths_obj: DefaultDict[str, Dict] = collections.defaultdict(dict)
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
-    for router_method_name in router_methods:
-      router_method = router_methods[router_method_name]
+    for router_method in router_methods:
+      # To extract optional path arguments, all the routes associated with this
+      # router method must be analysed.
+      ungrouped_routes = []
+      for http_method, path, strip_root_types in router_method.http_methods:
+        path_components = [
+          _NormalizePathComponent(component) for component in path.split("/")
+        ]
+        ungrouped_routes.append([http_method] + path_components)
+
+      grouped_routes = _GetGroupedRoutes(ungrouped_routes)
+      for route_info in grouped_routes:
+        route_comps, req_path_params_names, opt_path_params_names = route_info
+        http_method = route_comps[0]
+        normalized_path = "/".join(route_comps[1:])
+
+        # TODO: Call SeparateFieldsIntoParams and extract the req_path_params,
+        # opt_path_params_names (based on their _names), query_params,
+        # body_params.
+
+        path_obj = paths_obj[normalized_path]
+        path_obj[http_method.lower()] = (
+          self._GetOperationDescription(
+            http_method, normalized_path, router_method, req_path_args, opt_path_args, query_
+          )
+        )
+
       for http_method, path, strip_root_types in router_method.http_methods:
         normalized_path = _NormalizePath(path)
 
@@ -805,18 +834,18 @@ def _NormalizePath(path: str) -> str:
   return normalized_path
 
 
-def _GetPathArgsFromPath(path: str) -> List[str]:
+def _GetPathParamsFromPath(path: str) -> List[str]:
   """Extract path parameters from a Werkzeug Rule URL."""
-  path_args = []
+  path_params = []
 
   components = path.split("/")
   for component in components:
     if component.startswith("<") and component.endswith(">"):
       normalized_component = _NormalizePathComponent(component)
       normalized_component = normalized_component[1:-1]
-      path_args.append(normalized_component)
+      path_params.append(normalized_component)
 
-  return path_args
+  return path_params
 
 
 def _GetTypeName(cls: Optional[TypeHinter]) -> str:
