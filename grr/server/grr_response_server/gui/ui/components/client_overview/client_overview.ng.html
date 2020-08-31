@@ -1,0 +1,49 @@
+<div class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
+  <div *ngIf="client$ | async as client" class="client-header mat-body-1">
+    <div class="fqdn-chips">
+      <div class="fqdn">
+        <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
+      </div>
+
+      <div class="chips">
+        <mat-chip-list>
+          <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+          <mat-chip *ngFor="let label of client.labels; trackBy: labelsTrackByName" (removed)="removeLabel(label.name)">
+            {{label.name}} <mat-icon matChipRemove>close</mat-icon>
+          </mat-chip>
+        </mat-chip-list>
+        <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
+        ><mat-icon>add</mat-icon>Add label</button>
+      </div>
+
+      <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
+        <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
+        <ng-template #iconArrowRight>
+          <mat-icon>keyboard_arrow_right</mat-icon>
+        </ng-template>
+      </button>
+    </div>
+
+    <div class="client-id">
+      <span class="mat-h5">{{client.clientId}}</span>
+    </div>
+
+    <div class="os">
+      {{client.knowledgeBase.os}}
+    </div>
+
+    <div class="last-seen">
+      Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
+    </div>
+  </div>
+
+  <mat-drawer-container>
+    <mat-drawer #clientDetailsDrawer position="end">
+      <client-details></client-details>
+    </mat-drawer>
+
+    <mat-drawer-content>
+      <ng-content></ng-content>
+    </mat-drawer-content>
+  </mat-drawer-container>
+</div>

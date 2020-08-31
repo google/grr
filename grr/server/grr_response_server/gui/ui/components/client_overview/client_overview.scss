@@ -1,0 +1,57 @@
+@use '~material-theme' as c;
+
+$max-width: 1280px;
+$width: 80%;
+
+.noscroll {
+  overflow: hidden;
+}
+
+.container {
+  // Set to full_screen_height - toolbar_height to enable scroll blocking
+  height: calc(100% - 64px);
+
+  .client-header {
+    padding: 20px 0 30px 140px; // Changing this affects client details scrolling
+    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+    height: 100px; // Changing this affects client details scrolling
+
+    .fqdn-chips {
+      display: flex;
+      align-items: center;
+
+      h1 {
+        margin-bottom: 0;
+      }
+
+      .chips {
+        margin-left: 1em;
+        display: flex;
+        flex-wrap: wrap;
+
+        mat-chip {
+          min-height: 26px;
+          font-size: 12px;
+          border: 1px solid c.mat-color(c.$foreground, divider);
+          background-color: c.mat-color(c.$background, app-bar);
+        }
+
+        .add_label {
+          margin-left: 0.5em;
+          border-radius: 2em;
+        }
+      }
+
+      .goto-details {
+        margin-left: auto;
+        margin-right: 2em;
+        align-self: flex-end;
+      }
+    }
+
+    .os,
+    .client-id {
+      margin-bottom: 0.5em;
+    }
+  }
+}
