@@ -115,22 +115,6 @@ def GetLabelsFromFleetspeak(client_id):
   return grr_labels
 
 
-def GetClientIdsFromFleetspeak() -> List[Text]:
-  """Returns client IDs of Fleetspeak-enabled database.
-
-  Returns:
-    A list of Client IDs.
-  """
-  res = fleetspeak_connector.CONN.outgoing.ListClients(
-      admin_pb2.ListClientsRequest())
-  if not res.clients or not res.clients[0].client_id:
-    return []
-  client_ids_list = [
-      FleetspeakIDToGRRID(client.client_id) for client in res.clients
-  ]
-  return client_ids_list
-
-
 def FetchClientResourceUsageRecordsFromFleetspeak(
     client_id: Text, limit: int) -> List[ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client in Fleetspeak-enabled database.

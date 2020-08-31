@@ -92,11 +92,10 @@ class Grrafana(object):
       # that can be listed on the dropdown-menu called "Metric".
       response = AVAILABLE_METRICS
     else:
-      # Grafana request issued on Variables > New/Edit page. Grafana expectes the list
-      # of possible values of the variable.
-      # At the moment, the only Grafana variable we support is ClientID, so only a list
-      # of all Fleetspeak client IDs will be returned.
-      response = fleetspeak_utils.GetClientIdsFromFleetspeak()
+      # Grafana request issued on Variables > New/Edit page for variables of type query.
+      # Grafana expectes the list of possible values of the variable.
+      # At the moment, GRRafana doesn't support such variables, so it returns no possible values.
+      response = []
     return JSONResponse(response=json.dumps(response),
                         mimetype=RESPONSE_MIME_TYPE)
 
