@@ -935,7 +935,7 @@ def _GetMapFieldKeyValueTypes(
       entry_descriptor.fields[1].name == "value"
   ):
     return KeyValueDescriptor(
-      entry_descriptor.fields[0], entry_descriptor.fields[1]
+      key=entry_descriptor.fields[0], value=entry_descriptor.fields[1]
     )
 
   if (
@@ -943,7 +943,7 @@ def _GetMapFieldKeyValueTypes(
       entry_descriptor.fields[1].name == "key"
   ):
     return KeyValueDescriptor(
-      entry_descriptor.fields[1], entry_descriptor.fields[0]
+      key=entry_descriptor.fields[1], value=entry_descriptor.fields[0]
     )
 
   return None
