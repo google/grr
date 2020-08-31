@@ -8,6 +8,7 @@ import collections
 from urllib import parse as urlparse
 from typing import Optional, cast
 from typing import Type, Any, Union, Tuple, List, Set, Dict, DefaultDict
+from typing import NamedTuple
 
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
@@ -30,10 +31,18 @@ MessageSchema = Dict[
   str, Union[str,
              Dict[str, Union[SchemaReference, ArraySchema]]]
 ]
-OneofFieldSchema = Dict[str,
-                        Union[str, List[SchemaReference], List[ArraySchema]]]
+DescribedSchema = Dict[str,
+                       Union[str, List[SchemaReference], List[ArraySchema]]]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
+TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
+
+
+class KeyValueDescriptor(NamedTuple):
+  """A named tuple for `protobuf.map`'s `key` and `value` `FieldDescriptor`s."""
+  key: FieldDescriptor
+  value: FieldDescriptor
+
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
 # the OpenAPI Specification [2] provides a more specific description of the
@@ -163,9 +172,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def _AddPrimitiveTypesSchemas(self) -> None:
     """Adds the OpenAPI schemas for protobuf primitives and `BinaryStream`."""
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     primitive_types_schemas = {
       primitive_type["name"]: primitive_type["schema"]
@@ -196,9 +203,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       Nothing, the schema is stored in `self.schema_objs`.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     enum_schema_obj: EnumSchema = {
       "type": "string",
@@ -237,9 +242,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       Nothing, the schema is stored in `self.schema_objs`.
     """
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     type_name = _GetTypeName(descriptor)
 
@@ -249,14 +252,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     # Create schemas for the fields' types.
     for field_descriptor in descriptor.fields:
       field_name = field_descriptor.name
-      message_descriptor = field_descriptor.message_type # None if not Message.
-      enum_descriptor = field_descriptor.enum_type # None if not Enum.
-      descriptor = message_descriptor or enum_descriptor
+      self._CreateSchema(field_descriptor, visiting)
 
-      if descriptor:
-        self._CreateSchema(descriptor, visiting)
-
-      properties[field_name] = _GetFieldSchema(field_descriptor)
+      properties[field_name] = self._GetDescribedSchema(field_descriptor)
 
     visiting.remove(type_name)
 
@@ -268,16 +266,79 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       }
     )
 
+  def _CreateMapFieldSchema(
+      self,
+      field_descriptor: FieldDescriptor,
+      visiting: Set[str],
+  ) -> None:
+    """Creates the OpenAPI schema of a `protobuf.map` field type.
+
+    This method should generally not be called directly, but rather through
+    `_CreateSchema` which takes care of error-verifications and caching. The
+    OpenAPI Specification allows only maps with strings as keys, so, as a
+    workaround, we state the actual key type in the `description` fields of the
+    **schemas of the properties/parameters** that use this type (in order to be
+    displayed by documentation generation tools, see `_GetDescribedSchema`).
+    A `description` field is also added by this method in the schema definition
+    which will be added to the `Components Object` of the root `OpenAPI Object`
+    for more clarity when reading the generated description of the components.
+
+    Args:
+      field_descriptor: The protobuf `FieldDescriptor` associated with a
+        protobuf field.
+      visiting: A set of type names that are in the process of having their
+        OpenAPI schemas constructed and have their associated `_Create*Schema`
+        call in the current call stack.
+
+    Returns:
+      Nothing, the schema is stored in `self.schema_objs`.
+    """
+    if self.schema_objs is None:  # Check required by mypy.
+      raise AssertionError("OpenAPI type schemas not initialized.")
+
+    if field_descriptor is None:  # Check required by mypy.
+      raise AssertionError(f"`field_descriptor` is None.")
+
+    type_name: str = _GetTypeName(field_descriptor)
+    visiting.add(type_name)
+
+    key_value_d = _GetMapFieldKeyValueTypes(field_descriptor)
+    if key_value_d is None:
+      raise AssertionError(f"`field_descriptor` doesn't have a map type.")
+
+    key_type_name = _GetTypeName(key_value_d.key)
+    value_type_name = _GetTypeName(key_value_d.value)
+
+    # pylint: disable=line-too-long
+    # `protobuf.map` key types can be only a subset of the primitive types [1],
+    # so there is definitely no composite key type to further visit, but the
+    # value type "can be any type except another map" [1] or an array [2].
+    #
+    # [1]: https://developers.google.com/protocol-buffers/docs/proto#maps
+    # [2]: https://developers.google.com/protocol-buffers/docs/reference/proto2-spec#map_field
+    # pylint: enable=line-too-long
+    self._CreateSchema(key_value_d.value, visiting)
+
+    visiting.remove(type_name)
+
+    self.schema_objs[type_name] = cast(
+      Dict[str, Union[str, SchemaReference]],
+      {
+        "description": f"This is a map with real key type=\"{key_type_name}\" "
+                       f"and value type=\"{value_type_name}\"",
+        "type": "object",
+        "additionalProperties": _GetReferenceObject(value_type_name),
+      }
+    )
+
   def _CreateSchema(
       self,
-      cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
+      cls: Optional[TypeHinter],
       visiting: Set[str],
   ) -> None:
     """Create OpenAPI schema from any valid type descriptor or identifier."""
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     if cls is None:
       raise ValueError(f"Trying to extract schema of None.")
@@ -289,6 +350,18 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     if type_name in visiting:
       # Dependency cycle.
+      return
+
+    if isinstance(cls, FieldDescriptor):
+      if _IsMapField(cls):
+        self._CreateMapFieldSchema(cls, visiting)
+        return
+
+      descriptor = cls.message_type or cls.enum_type
+      if descriptor:
+        self._CreateSchema(descriptor, visiting)
+      # else, this field is of a primitive type whose schema is already created.
+
       return
 
     if isinstance(cls, Descriptor):
@@ -333,6 +406,94 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         else:
           self._CreateSchema(result_type, visiting)
 
+  def _GetDescribedSchema(
+      self,
+      field_descriptor: FieldDescriptor,
+  ) -> Union[SchemaReference, ArraySchema, DescribedSchema]:
+    """Wrap a type schema in a dictionary with a `description` field, if needed.
+
+    This function takes into consideration the fact that the a message field
+    might have a protobuf type that is not completely supported by the OpenAPI
+    Specification (such as `protobuf.oneof` or `protobuf.map`) and wraps the
+    `Reference Object` or the OpenAPI array accordingly in order to include a
+    description of the complete semantics of the type.
+
+    Args:
+      field_descriptor: The protobuf `FieldDescriptor` associated with the
+        target field.
+
+    Returns:
+      If the schema of the field does not require any description to explain the
+      semantics, then a normal schema or reference, else, a dictionary that
+      includes a `description` entry along the `Reference Object` or schema.
+    """
+    if self.schema_objs is None:  # Check required by mypy.
+      raise AssertionError("OpenAPI type schemas not initialized.")
+
+    type_name = _GetTypeName(field_descriptor)
+    containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
+    description = ""
+    array_schema = None
+    reference_obj = None
+
+    # Get the array schema or the `Reference Object`.
+    if (
+        field_descriptor.label == protobuf2.LABEL_REPEATED and
+        not _IsMapField(field_descriptor)
+    ):
+      array_schema = _GetArraySchema(type_name)
+    else:
+      reference_obj = _GetReferenceObject(type_name)
+
+    # Build the description.
+    # `protobuf.oneof` related description.
+    # The semantic of `protobuf.oneof` is not currently supported by the
+    # OpenAPI Specification. See this GitHub issue [1] for more details.
+    #
+    # [1]: github.com/google/grr/issues/822
+    if containing_oneof is not None:
+      if description:
+        description += " "
+
+      description += (
+        f"This field is part of the \"{containing_oneof.name}\" oneof. "
+        f"Only one field per oneof should be present."
+      )
+
+    # `protobuf.map` related description.
+    if _IsMapField(field_descriptor):
+      if description:
+        description += " "
+
+      map_type_schema = self.schema_objs[type_name]
+      description += cast(
+        str, map_type_schema.get("description", "")
+      )
+
+    # The following `allOf` is required to display the description by
+    # documentation generation tools because the OAS specifies that there
+    # should not be any sibling properties to a `$ref`. This is the
+    # workaround proposed by the ReDoc community [1].
+    #
+    # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
+    if description:
+      return cast(
+        DescribedSchema,
+        {
+          "description": description,
+          "allOf": [reference_obj or array_schema],
+        }
+      )
+
+    if reference_obj is not None:
+      return reference_obj
+    elif array_schema is not None:  # Check required by mypy.
+      return array_schema
+
+    raise AssertionError(  # Required by mypy.
+      "No array schema nor `Reference Object` were created."
+    )
+
   def _GetParameters(
       self,
       path_params: List[FieldDescriptor],
@@ -353,7 +514,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       else:
         parameter_obj["in"] = "query"
 
-      parameter_obj["schema"] = _GetFieldSchema(field_d)
+      parameter_obj["schema"] = self._GetDescribedSchema(field_d)
 
       parameters.append(parameter_obj)
 
@@ -367,13 +528,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if not body_params:
       return {}
 
-    properties: Dict[str, Union[ArraySchema, SchemaReference]] = dict()
+    properties: (
+      Dict[str, Union[SchemaReference, ArraySchema, DescribedSchema]]
+    ) = dict()
     for field_d in body_params:
       field_name = field_d.name
-      if field_d.label == protobuf2.LABEL_REPEATED:
-        properties[field_name] = _GetArraySchema(_GetTypeName(field_d))
-      else:
-        properties[field_name] = _GetReferenceObject(_GetTypeName(field_d))
+      properties[field_name] = self._GetDescribedSchema(field_d)
 
     return {
       "content": {
@@ -483,9 +643,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Create the `Components Object` that holds all schema definitions."""
     self._CreateSchemas()
     if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError(
-        "The container of OpenAPI type schemas is not initialized."
-      )
+      raise AssertionError("OpenAPI type schemas not initialized.")
 
     # The `Components Object` `components` field of the root `OpenAPI Object`.
     return {
@@ -563,7 +721,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "default": self._GetResponseObjectDefault(router_method.name),
       },
     }
-    if body_params: # Only POST methods should have an associated `requestBody`.
+    if body_params:  # Only POST methods should have an associated `requestBody`.
       operation_obj["requestBody"] = self._GetRequestBody(body_params)
 
     return operation_obj
@@ -661,13 +819,26 @@ def _GetPathArgsFromPath(path: str) -> List[str]:
   return path_args
 
 
-def _GetTypeName(
-    cls: Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str],
-) -> str:
+def _GetTypeName(cls: Optional[TypeHinter]) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
+    if _IsMapField(cls):
+      map_type_name = _GetTypeName(cls.message_type)
+      if map_type_name.endswith("Entry"):
+        map_type_name = map_type_name[:-5]
+
+      key_value_d = _GetMapFieldKeyValueTypes(cls)
+      if key_value_d is None:
+        raise AssertionError(f"cls is not a map FieldDescriptor")
+
+      key_type_name = _GetTypeName(key_value_d.key)
+      value_type_name = _GetTypeName(key_value_d.value)
+
+      return f"{map_type_name}Map_{key_type_name}:{value_type_name}"
+
     if cls.message_type:
       return _GetTypeName(cls.message_type)
+
     if cls.enum_type:
       return _GetTypeName(cls.enum_type)
 
@@ -716,58 +887,68 @@ def _GetArraySchema(items_type_name: str) -> ArraySchema:
   }
 
 
-def _GetFieldSchema(
-    field_descriptor: FieldDescriptor,
-) -> Union[SchemaReference, ArraySchema, OneofFieldSchema]:
-  """Create a dictionary to be used as the schema of a message field.
+def _GetMapEntryTypeName(field_name: str) -> str:
+  """Extract the name of the associated map type from a field's name."""
+  capitalized_name_components = map(str.capitalize, field_name.split("_"))
 
-  This function takes into consideration the fact that the field might be part
-  of a `protobuf.oneof` and wraps the `Reference Object` or the OpenAPI array
-  accordingly in order to include a description specifying the name of the
-  `protobuf.oneof`.
+  return f"{''.join(capitalized_name_components)}Entry"
+
+
+def _GetMapFieldKeyValueTypes(
+    field_descriptor: FieldDescriptor,
+) -> Optional[KeyValueDescriptor]:
+  """Get `FieldDescriptor`s for the types of a map field, if the field is a map.
+
+  `protobuf.map` fields are compiled as repeated fields of newly created types
+  that represent a map entry (i.e. auxiliary protobuf messages with a `key` and
+  `value` field). This function verifies that all the signs of a compiled
+  `protobuf.map` field are present for the current `FieldDescriptor` and, if
+  this field is actually a `protobuf.map`, it returns the `key` and `value`
+  `FieldDescriptor`s.
 
   Args:
-    field_descriptor: The protobuf `FieldDescriptor` associated with the target
-      field.
+    field_descriptor: The protobuf `FieldDescriptor` whose type is checked if it
+      is a map and whose type's associated `key` and `value` `FieldDescriptor`s
+      are returned.
 
   Returns:
-    If the field is not part of a `protobuf.oneof`, then a simple `Reference
-    Object`, else, a dictionary that includes a description entry along the
-    `Reference Object`.
+    A `KeyValueDescriptor` named tuple consisting of the `key` and `value`
+    `FieldDescriptor`s (in this order) extracted from the given
+    `FieldDescriptor`'s map entry message type, or `None` if the given
+    `FieldDescriptor` does not describe a map field.
   """
-  # The semantic of `protobuf.oneof` is not currently supported by the
-  # OpenAPI Specification. See this GitHub issue [1] for more details.
-  #
-  # [1]: github.com/google/grr/issues/822
-  type_name = _GetTypeName(field_descriptor)
-  containing_oneof: OneofDescriptor = field_descriptor.containing_oneof
-  if containing_oneof is None:
-    if field_descriptor.label == protobuf2.LABEL_REPEATED:
-      return _GetArraySchema(type_name)
+  if field_descriptor.label != protobuf2.LABEL_REPEATED:
+    return None
 
-    return _GetReferenceObject(type_name)
+  entry_descriptor: Optional[Descriptor] = field_descriptor.message_type
+  if entry_descriptor is None:
+    return None
 
-  # The following `allOf` is required to display the description by
-  # documentation generation tools because the OAS specifies that there
-  # should not be any sibling properties to a `$ref`. This is the
-  # workaround proposed by the ReDoc community [1].
-  #
-  # [1]: github.com/Redocly/redoc/issues/453#issuecomment-420898421
-  oneof_member = cast(
-    OneofFieldSchema,
-    {
-      "description":
-        f"This field is part of the \"{containing_oneof.name}\" oneof. "
-        f"Only one field per oneof should be present.",
-    }
-  )
-  if field_descriptor.label == protobuf2.LABEL_REPEATED:
-    oneof_member["allOf"] = [
-      _GetArraySchema(type_name),
-    ]
-  else:
-    oneof_member["allOf"] = [
-      _GetReferenceObject(type_name),
-    ]
+  if _GetMapEntryTypeName(field_descriptor.name) != entry_descriptor.name:
+    return None
 
-  return oneof_member
+  if len(entry_descriptor.fields) != 2:
+    return None
+
+  if (
+      entry_descriptor.fields[0].name == "key" and
+      entry_descriptor.fields[1].name == "value"
+  ):
+    return KeyValueDescriptor(
+      key=entry_descriptor.fields[0], value=entry_descriptor.fields[1]
+    )
+
+  if (
+      entry_descriptor.fields[0].name == "value" and
+      entry_descriptor.fields[1].name == "key"
+  ):
+    return KeyValueDescriptor(
+      key=entry_descriptor.fields[1], value=entry_descriptor.fields[0]
+    )
+
+  return None
+
+
+def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
+  """Checks that a `FieldDescriptor` is of a map type."""
+  return _GetMapFieldKeyValueTypes(field_descriptor) is not None
