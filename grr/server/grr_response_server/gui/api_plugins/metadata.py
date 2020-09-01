@@ -1080,6 +1080,24 @@ def _GroupRoutesByStem(
 
 
 def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
+  """Get a list of routes and their required and optional path arguments.
+
+  This function creates a trie of the path components from the given list of
+  routes and then identifies groups of routes that can be reduced to a single
+  route that has optional path arguments.
+
+  Args:
+    routes: A list of routes where each route is represented as a list where
+      the first element is a string representing the HTTP method of the route
+      and the following elements are strings representing the path components.
+
+  Returns:
+    A list of `RouteInfo`s which are tuples consisting of three elements: a list
+    with the HTTP method and the components of the largest path that covers
+    multiple of the initial routes given as argument, a list of path components
+    which represent the required path arguments and a list of path components
+    which represent the optional path arguments.
+  """
   comps_trie_root = _CreateTrie(routes)
   grouped_routes_stems: Dict[str, Dict[str, List[ComponentTrieNode]]] = dict()
   _GroupRoutesByStem(comps_trie_root, [], None, grouped_routes_stems)
