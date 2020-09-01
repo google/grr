@@ -133,16 +133,6 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     fs_message.data.Unpack(restart_req)
     self.assertEqual(restart_req.name, "GRR")
 
-  def testGetClientIdsFromFleetspeak(self):
-    conn = _MockConnReturningClient(_TEST_CLIENT_ID, list())
-    with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      self.assertListEqual(fleetspeak_utils.GetClientIdsFromFleetspeak(),
-                           [_TEST_CLIENT_ID])
-      conn.outgoing.ListClients.assert_called_once()
-      insert_args, _ = conn.outgoing.ListClients.call_args
-      fs_message = insert_args[0]
-      self.assertEqual(fs_message, admin_pb2.ListClientsRequest(client_ids=[]))
-
   def testFetchClientResourceUsageRecordsFromFleetspeak(self):
     conn = mock.MagicMock()
     conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(

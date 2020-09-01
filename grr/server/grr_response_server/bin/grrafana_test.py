@@ -120,14 +120,6 @@ class GrrafanaTest(absltest.TestCase):
         "max_resident_memory_mib",
     ])
 
-  def testSearchClientIds(self):
-    conn = _MockConnReturningClients([_TEST_CLIENT_ID_1, _TEST_CLIENT_ID_2])
-    with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      response = self.client.post("/search", json={'target': 'some_query'})
-      self.assertEqual(200, response.status_code)
-      self.assertListEqual(response.json,
-                       ["C.0000000000000001", "C.0000000000000002"])
-
   def testQuery(self):
     conn = _MockConnReturningRecords([_TEST_CLIENT_RESOURCE_USAGE_RECORD_1, _TEST_CLIENT_RESOURCE_USAGE_RECORD_2])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
@@ -165,7 +157,7 @@ class GrrafanaTest(absltest.TestCase):
               }],
               'maxDataPoints': 800,
               'scopedVars': {
-                  'hellovar': {
+                  'ClientID': {
                       'text': _TEST_CLIENT_ID_1,
                       'value': _TEST_CLIENT_ID_1
                   },
