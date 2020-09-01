@@ -97,8 +97,7 @@ class Grrafana(object):
       # Grafana expectes the list of possible values of the variable.
       # At the moment, GRRafana doesn't support such variables, so it returns no possible values.
       response = []
-    return JSONResponse(response=json.dumps(response),
-                        mimetype=RESPONSE_MIME_TYPE)
+    return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
 
   def OnQuery(self, request: JSONRequest) -> JSONResponse:
     """Given a client ID as a Grafana variable and targets (resource usages),
@@ -110,8 +109,7 @@ class Grrafana(object):
     response = _FetchDatapointsForTargets(requested_client_id,
                                           json_data["maxDataPoints"],
                                           requested_targets)
-    return JSONResponse(response=json.dumps(response),
-                        mimetype=RESPONSE_MIME_TYPE)
+    return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
 
   def OnAnnotations(self, request: JSONRequest) -> JSONResponse:
     pass
