@@ -127,6 +127,24 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   def Method8ProtobufMap(self, args, token=None):
     """Method 8 description."""
 
+  @api_call_router.ArgsType(MetadataSimpleMessage)
+  @api_call_router.ResultType(MetadataSimpleMessage)
+  @api_call_router.Http("GET", "/metadata_test/method9")
+  @api_call_router.Http("GET", "/metadata_test/method9/<metadata_id>")
+  @api_call_router.Http(
+    "POST", "/metadata_test/method9/<metadata_id>/<metadata_arg1>"
+  )
+  @api_call_router.Http(
+    "GET",
+    "/metadata_test/method9/<metadata_id>/<metadata_arg1>/<metadata_arg2>"
+  )
+  @api_call_router.Http("GET", "/metadata_test/method9/<metadata_id>/fixed1")
+  @api_call_router.Http(
+    "GET", "/metadata_test/method9/<metadata_id>/fixed1/<metadata_arg1>"
+  )
+  def Method9OptionalPathArgs(self, args, token=None):
+    """Method 9 description"""
+
 
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for `ApiGetOpenApiDescriptionHandler`."""
@@ -151,6 +169,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       "Method6TypeReferences",
       "Method7ProtobufOneof",
       "Method8ProtobufMap",
+      "Method9OptionalPathArgs",
     }
     extracted_methods = {method.name for method in self.router_methods.values()}
 
@@ -182,6 +201,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method6",
         "/metadata_test/method7",
         "/metadata_test/method8",
+        "/metadata_test/method9/{metadata_id}",
+        "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+        "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+        "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
       },
       openapi_paths_dict.keys()
     )
@@ -218,6 +241,27 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertCountEqual(
       {"get", "post"},
       openapi_paths_dict["/metadata_test/method8"].keys()
+    )
+    self.assertCountEqual(
+      {"get"},
+      openapi_paths_dict["/metadata_test/method9/{metadata_id}"].keys()
+    )
+    self.assertCountEqual(
+      {"post"},
+      openapi_paths_dict
+        .get("/metadata_test/method9/{metadata_id}/{metadata_arg1}").keys()
+    )
+    self.assertCountEqual(
+      {"get"},
+      openapi_paths_dict.get(
+        "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}"
+      ).keys()
+    )
+    self.assertCountEqual(
+      {"get"},
+      openapi_paths_dict.get(
+        "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}"
+      ).keys()
     )
 
   def testRouteArgsAreCorrectlySeparated(self):
