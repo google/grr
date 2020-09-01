@@ -1081,7 +1081,7 @@ def _GroupRoutesByStem(
 
 def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
   comps_trie_root = _CreateTrie(routes)
-  grouped_routes_stems = dict()
+  grouped_routes_stems: Dict[str, Dict[str, List[ComponentTrieNode]]] = dict()
   _GroupRoutesByStem(comps_trie_root, [], None, grouped_routes_stems)
 
   grouped_routes = []
