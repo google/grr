@@ -490,10 +490,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.fetchClient();
             this.updateLastRemovedClientLabel(label);
           }),
-          // catchError(err => {
-          //   this.lastRemovedClientLabel$.error(err);
-          //   return of(undefined);
-          // }),
           ));
 }
 
