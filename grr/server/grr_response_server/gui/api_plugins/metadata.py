@@ -742,7 +742,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     paths_obj: DefaultDict[str, Dict] = collections.defaultdict(dict)
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
-    for router_method in router_methods:
+    for router_method in router_methods.values():
       # To extract optional path arguments, all the routes associated with this
       # router method must be analysed and grouped.
       ungrouped_routes = []
@@ -781,11 +781,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
           elif path_param.name in opt_path_params_names:
             opt_path_params.append(path_param)
           else:
-            # TODO(alexandrucosminmihai): Simplify exception message.
             raise AssertionError(
-              f"Path parameter {path_param.name} not found among required path "
-              f"parameters: {req_path_params_names}, nor among optional path "
-              f"parameters: {opt_path_params_names}."
+              f"Path parameter {path_param.name} was not classified as "
+              f"required/optional."
             )
 
         normalized_path = _NormalizePath(path)
@@ -1010,7 +1008,10 @@ def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
 class ComponentTrieNode:
   def __init__(self, component, parent_path):
     self.component = component
-    self.path = f"{parent_path}/{component}"
+    if parent_path:
+      self.path = f"{parent_path}/{component}"
+    else:
+      self.path = component
     self.is_path_arg = component.startswith("<") and component.endswith(">")
     self.is_route_end = False
     self.children = dict()
@@ -1068,7 +1069,7 @@ def _GroupRoutesByStem(
       "optional": [],
     }
 
-  for child in curr_node.children:
+  for child in curr_node.children.values():
     _GroupRoutesByStem(child, path_args, new_stem_node, grouped_routes_stems)
 
   # We'll go back to the parent of this node, so we remove the current path arg
