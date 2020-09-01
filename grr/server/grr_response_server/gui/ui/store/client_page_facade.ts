@@ -38,6 +38,8 @@ interface ClientPageState {
   readonly clientId?: string;
   readonly clientVersions?: Client[];
 
+  readonly lastRemovedClientLabel?: string;
+
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
 
@@ -70,6 +72,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       startFlowState: {state: 'request_not_sent'},
     });
   }
+
+  /** Reducer updating the last removed client label. */
+  private readonly updateLastRemovedClientLabel =
+      this.updater<string>((state, lastRemovedClientLabel) => {
+        return {
+          ...state,
+          lastRemovedClientLabel,
+        };
+      });
 
   /** Reducer updating the selected client. */
   private readonly updateSelectedClient =
@@ -176,6 +187,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           },
         };
       });
+
+  /** An observable emitting the last removed client label. */
+  readonly lastRemovedClientLabel$: Observable<string> =
+      this.select(state => state.lastRemovedClientLabel)
+          .pipe(
+              filter(
+                  (lastRemovedClientLabel): lastRemovedClientLabel is string =>
+                      lastRemovedClientLabel !== undefined),
+          );
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
@@ -468,16 +488,13 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                   this.httpApiService.removeClientLabel(clientId, label)),
           tap((label) => {
             this.fetchClient();
-            this.removedClientLabels$.next(label);
+            this.updateLastRemovedClientLabel(label);
           }),
-          catchError(err => {
-            this.removedClientLabels$.error(err);
-            return of(undefined);
-          }),
+          // catchError(err => {
+          //   this.lastRemovedClientLabel$.error(err);
+          //   return of(undefined);
+          // }),
           ));
-
-  /** A subject emitting removed client labels. */
-  readonly removedClientLabels$: Subject<string> = new Subject();
 }
 
 /** Facade for client-related API calls. */
@@ -510,9 +527,9 @@ export class ClientPageFacade {
   readonly selectedClientVersions$: Observable<Client[]> =
       this.store.selectedClientVersions$;
 
-  /** An observable emitting the remove client label request state. */
-  readonly removedClientLabels$: Observable<string> =
-      this.store.removedClientLabels$;
+  /** An observable emitting the last removed client label. */
+  readonly lastRemovedClientLabel$: Observable<string> =
+      this.store.lastRemovedClientLabel$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {

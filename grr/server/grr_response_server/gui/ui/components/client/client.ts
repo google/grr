@@ -39,11 +39,11 @@ export class Client implements OnInit, OnDestroy {
       this.clientPageFacade.selectClient(id);
     });
 
-    this.clientPageFacade.removedClientLabels$
+    this.clientPageFacade.lastRemovedClientLabel$
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
-        }, err => {/* Nothing for now */});
+        });
   }
 
   labelsTrackByName(index: number, item: ClientLabel): string {

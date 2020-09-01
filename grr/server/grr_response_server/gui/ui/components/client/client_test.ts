@@ -123,7 +123,7 @@ describe('Client Component', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
 
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -141,6 +141,7 @@ describe('Client Component', () => {
     removedLabelsSubject.next('testlabel');
     fixture.detectChanges();
 
+
     const snackbarDiv = document.querySelector('snack-bar-container');
     expect(snackbarDiv).toBeTruthy();
     expect(snackbarDiv!.textContent).toContain('Label "testlabel" removed');
@@ -156,7 +157,7 @@ describe('Client Component', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
 
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -187,7 +188,7 @@ describe('Client Component', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
     spyOn(facade, 'addClientLabel');
 
     const fixture = TestBed.createComponent(ClientComponent);
