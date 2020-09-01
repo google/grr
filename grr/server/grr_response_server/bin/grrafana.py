@@ -29,7 +29,8 @@ AVAILABLE_METRICS = [
     "mean_resident_memory_mib",
     "max_resident_memory_mib",
 ]
-RESPONSE_MIME_TYPE = "application/json"
+
+JSON_MIME_TYPE = "application/json"
 
 flags.DEFINE_bool(
     "version",
