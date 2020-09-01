@@ -1026,8 +1026,206 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       self._GetParamSchema("/metadata_test/method8", "post", "field_map")
     )
 
+  def testOptionalPathParamsAreCorrectlyDescribedInOpenApiDescription(self):
+    # This test verifies that path arguments are marked correctly as optional or
+    # required.
+    # The fact that the API routes that point out optional path arguments are
+    # grouped under the same route described in the OpenAPI description is
+    # tested by `testAllRoutesAreInOpenApiDescription`.
+
+    # Test `GET /metadata_test/method9/{metadata_id}` parameters.
+    self.assertCountEqual(
+      [
+        {
+          "name": "metadata_id",
+          "in": "path",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+          },
+        },
+        {
+          "name": "metadata_arg1",
+          "in": "query",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+          },
+        },
+        {
+          "name": "metadata_arg2",
+          "in": "query",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
+          },
+        },
+      ],
+      [
+        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
+                                  "metadata_id"),
+        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
+                                  "metadata_arg1"),
+        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
+                                  "metadata_arg2"),
+      ]
+    )
+
+    # Test `GET /metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}`
+    # parameters.
+    self.assertCountEqual(
+      [
+        {
+          "name": "metadata_id",
+          "in": "path",
+          "required": True,
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+          },
+        },
+        {
+          "name": "metadata_arg1",
+          "in": "path",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+          },
+        },
+        {
+          "name": "metadata_arg2",
+          "in": "query",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
+          },
+        },
+      ],
+      [
+        self._GetParamDescription(
+          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "get",
+          "metadata_id"
+        ),
+        self._GetParamDescription(
+          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "get",
+          "metadata_arg1"
+        ),
+        self._GetParamDescription(
+          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "get",
+          "metadata_arg2"
+        ),
+      ]
+    )
+
+    # Test
+    # `GET /metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}`
+    # parameters.
+    self.assertCountEqual(
+      [
+        {
+          "name": "metadata_id",
+          "in": "path",
+          "required": True,
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+          },
+        },
+        {
+          "name": "metadata_arg1",
+          "in": "path",
+          "required": True,
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+          },
+        },
+        {
+          "name": "metadata_arg2",
+          "in": "path",
+          "required": True,
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
+          },
+        },
+      ],
+      [
+        self._GetParamDescription(
+          "/metadata_test"
+          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "get",
+          "metadata_id"
+        ),
+        self._GetParamDescription(
+          "/metadata_test"
+          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "get",
+          "metadata_arg1"
+        ),
+        self._GetParamDescription(
+          "/metadata_test"
+          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "get",
+          "metadata_arg2"
+        ),
+      ]
+    )
+
+    # Test `POST /metadata_test/method9/{metadata_id}/{metadata_arg1}`
+    # parameters.
+    self.assertCountEqual(
+      [
+        {
+          "name": "metadata_id",
+          "in": "path",
+          "required": True,
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+          },
+        },
+        {
+          "name": "metadata_arg1",
+          "in": "path",
+          "required": True,
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+          },
+        },
+      ],
+      [
+        self._GetParamDescription(
+          "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+          "post",
+          "metadata_id"
+        ),
+        self._GetParamDescription(
+          "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+          "post",
+          "metadata_arg1"
+        ),
+      ]
+    )
+
+  def _GetParamDescription(self, method_path, http_method, param_name):
+    params = (
+      self.openapi_desc_dict
+        .get("paths")
+        .get(method_path)
+        .get(http_method)
+        .get("parameters")
+    )
+
+    for param in params:
+      if param["name"] == param_name:
+        return param
+
+    return None
+
   def _GetParamSchema(self, method_path, http_method, param_name):
+    param_description = self._GetParamDescription(
+      method_path, http_method, param_name
+    )
+
+    if param_description is not None:
+      return param_description["schema"]
+
     if http_method == "post":
+      # Try finding the param in the `requestBody`.
       return (
         self.openapi_desc_dict
           .get("paths")
@@ -1041,17 +1239,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           .get(param_name)
       )
 
-    params = (
-      self.openapi_desc_dict
-        .get("paths")
-        .get(method_path)
-        .get(http_method)
-        .get("parameters")
-    )
-
-    for param in params:
-      if param["name"] == param_name:
-        return param["schema"]
+    return None
 
 
 def main(argv):
