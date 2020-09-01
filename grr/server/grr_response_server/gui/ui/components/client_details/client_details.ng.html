@@ -37,7 +37,7 @@
         </tr>
         <tr *ngIf="client.knowledgeBase.fqdn">
           <td class="description">FQDN</td>
-          <td class="value">{{client.knowledgeBase.fqdn}} <button mat-button color="primary" *ngIf="(clientEntryChanges$ | async).get('knowledgeBase.fqdn') as changes">{{changes.length}} changes</button></td>
+          <td class="value">{{client.knowledgeBase.fqdn}} <button mat-button color="primary" *ngIf="(clientEntryChanges$ | async).get('knowledgeBase.fqdn') as changes" (click)="openEntryHistoryDialog()">{{changes.length}} changes</button></td>
         </tr>
         <tr *ngIf="(client$ | async)?.lastSeenAt as lastSeenAt">
           <td class="description">Last seen</td>

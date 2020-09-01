@@ -1,0 +1,17 @@
+<h1 mat-dialog-title>Entry history</h1>
+<div mat-dialog-content class="mat-body-1">
+  <table>
+    <tr>
+      <th>Time</th>
+      <th>Version</th>
+    </tr>
+
+    <tr *ngFor="let element of entryHistory">
+      <td><timestamp [date]="element.time" [tooltipEnabled]="false"></timestamp></td>
+      <td>{{element.version}}</td>
+    </tr>
+  </table>
+</div>
+<div mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close cdkFocusInitial>Close</button>
+</div>
