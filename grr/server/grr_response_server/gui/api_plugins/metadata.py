@@ -7,7 +7,7 @@ import collections
 
 from urllib import parse as urlparse
 from typing import Optional, cast
-from typing import Type, Any, Union, Tuple, Iterable, List, Set
+from typing import Type, TypeVar, Any, Union, Tuple, Iterable, List, Set
 from typing import Dict, DefaultDict
 from typing import NamedTuple
 
@@ -1006,6 +1006,11 @@ def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
   return _GetMapFieldKeyValueTypes(field_descriptor) is not None
 
 
+ComponentTrieNodeSubclass = TypeVar(
+  "ComponentTrieNodeSubclass", bound="ComponentTrieNode"
+)
+
+
 class ComponentTrieNode:
   def __init__(
       self,
@@ -1021,23 +1026,27 @@ class ComponentTrieNode:
     self.is_route_end = False
     self.children: Dict[str, ComponentTrieNode] = dict()
 
+  @classmethod
+  def FromRoutes(
+      cls: Type[ComponentTrieNodeSubclass],
+      routes: Iterable[Iterable[str]]
+  ) -> ComponentTrieNodeSubclass:
+    """Creates a trie of routes components and returns the root of the trie."""
+    root = cls("", "")
 
-def _CreateTrie(routes: Iterable[Iterable[str]]) -> ComponentTrieNode:
-  """Creates a trie of routes components and returns the root of the trie."""
-  root = ComponentTrieNode("", "")
+    for route in routes:
+      curr_node: ComponentTrieNode = root
 
-  for route in routes:
-    curr_node = root
-    for component in route:
-      if component not in curr_node.children:
-        curr_node.children[component] = (
-          ComponentTrieNode(component, curr_node.path)
-        )
-      curr_node = curr_node.children[component]
+      for component in route:
+        if component not in curr_node.children:
+          curr_node.children[component] = (
+            cls(component, curr_node.path)
+          )
+        curr_node = curr_node.children[component]
 
-    curr_node.is_route_end = True
+      curr_node.is_route_end = True
 
-  return root
+    return root
 
 
 def _GroupRoutesByStem(
@@ -1103,7 +1112,7 @@ def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
     which represent the required path arguments and a list of path components
     which represent the optional path arguments.
   """
-  comps_trie_root = _CreateTrie(routes)
+  comps_trie_root = ComponentTrieNode.FromRoutes(routes)
   grouped_routes_stems: Dict[str, Dict[str, Iterable[ComponentTrieNode]]] = (
     dict()
   )
