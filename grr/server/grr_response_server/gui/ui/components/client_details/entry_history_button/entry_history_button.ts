@@ -1,12 +1,11 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {Client} from '@app/lib/models/client';
-import {Observable} from 'rxjs';
-
-import {EntryHistoryDialog, EntryHistoryDialogParams} from '../entry_history_dialog/entry_history_dialog';
 import {ClientPageFacade} from '@app/store/client_page_facade';
-import {getClientEntriesChanged} from '../client_diff';
 import {map} from 'rxjs/operators';
+
+import {getClientEntriesChanged} from '../client_diff';
+import {EntryHistoryDialog, EntryHistoryDialogParams, EntryType} from '../entry_history_dialog/entry_history_dialog';
 
 /**
  * Component displaying a button with the associated entry changes,
@@ -21,6 +20,7 @@ import {map} from 'rxjs/operators';
 export class EntryHistoryButton {
   /** The path to the entry. Properties in the path must be separated by "." */
   @Input() path!: string;
+  @Input() type: EntryType = 'primitive';
 
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
@@ -37,6 +37,7 @@ export class EntryHistoryButton {
     const data: EntryHistoryDialogParams = {
       path: this.path,
       clientVersions,
+      type: this.type,
     };
 
     this.dialog.open(EntryHistoryDialog, {data});

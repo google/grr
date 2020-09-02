@@ -106,7 +106,7 @@
           <td class="description">Install date</td>
           <td class="value">
             <timestamp [date]="client.osInfo.installDate"></timestamp>
-            <entry-history-button path="osInfo.installDate"></entry-history-button>
+            <entry-history-button path="osInfo.installDate" type="timestamp"></entry-history-button>
           </td>
         </tr>
       </table>
@@ -173,14 +173,14 @@
           <td class="description">Memory size</td>
           <td class="value">
             <human-readable-size [size]="client.memorySize"></human-readable-size>
-            <entry-history-button path="memorySize"></entry-history-button>
+            <entry-history-button path="memorySize" type="size"></entry-history-button>
           </td>
         </tr>
       </table>
 
       <br>
       <div class="section-title mat-h3">Network Interfaces
-        <entry-history-button path="networkInterfaces"></entry-history-button>
+        <entry-history-button path="networkInterfaces" type="interface-list"></entry-history-button>
       </div>
       <table class="section">
         <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces.slice(0, currentNumInterfacesShown)" let-isLast="last">
@@ -217,7 +217,7 @@
 
       <br>
       <div class="section-title mat-h3">Storage Volumes
-        <entry-history-button path="volumes"></entry-history-button>
+        <entry-history-button path="volumes" type="volume-list"></entry-history-button>
       </div>
       <table class="section">
         <ng-template ngFor let-volume [ngForOf]="client.volumes.slice(0, currentNumVolumesShown)" let-isLast="last">
