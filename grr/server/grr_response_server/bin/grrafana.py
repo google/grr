@@ -44,7 +44,21 @@ class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
 
 class JSONResponse(werkzeug_wrappers_json.JSONMixin,
                    werkzeug_wrappers.Response):
-  pass
+
+  def __init__(
+      self,
+      response=None,
+      status=None,
+      headers=None,
+      mimetype=None,
+      content_type=None,
+      direct_passthrough=False,
+  ):
+    try:
+      json_response = json.dumps(response)
+    except TypeError:
+      json_response = response
+    super().__init__(response=json_response, mimetype=JSON_MIME_TYPE)
 
 
 class Grrafana(object):
@@ -109,7 +123,7 @@ class Grrafana(object):
       # the variable. At the moment, GRRafana doesn't support such variables,
       # so it returns no possible values.
       response = []
-    return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
+    return JSONResponse(response=response)
 
   def _OnQuery(self, request: JSONRequest) -> JSONResponse:
     """Retrieves datapoints for Grafana.
@@ -123,7 +137,7 @@ class Grrafana(object):
     response = _FetchDatapointsForTargets(requested_client_id,
                                           json_data["maxDataPoints"],
                                           requested_targets)
-    return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
+    return JSONResponse(response=response)
 
   def _OnAnnotations(self, request: JSONRequest) -> JSONResponse:
     pass
