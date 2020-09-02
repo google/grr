@@ -70,7 +70,13 @@ class Grrafana(object):
     adapter = self._url_map.bind_to_environ(request.environ)
     try:
       endpoint, values = adapter.match()
-      return getattr(self, "_On" + endpoint)(request, **values)
+      endpoints = {
+          "Root": self._OnRoot,
+          "Search": self._OnSearch,
+          "Query": self._OnQuery,
+          "Annotations": self._OnAnnotations
+      }
+      return endpoints[endpoint](request, **values)
     except werkzeug_exceptions.HTTPException as e:
       return e
 
