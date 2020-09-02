@@ -1007,7 +1007,11 @@ def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
 
 
 class ComponentTrieNode:
-  def __init__(self, component, parent_path):
+  def __init__(
+      self,
+      component: str,
+      parent_path: str,
+  ) -> None:
     self.component = component
     if parent_path:
       self.path = f"{parent_path}/{component}"
@@ -1015,7 +1019,7 @@ class ComponentTrieNode:
       self.path = component
     self.is_path_arg = component.startswith("<") and component.endswith(">")
     self.is_route_end = False
-    self.children = dict()
+    self.children: Dict[str, ComponentTrieNode] = dict()
 
 
 def _CreateTrie(routes: Iterable[Iterable[str]]) -> ComponentTrieNode:
