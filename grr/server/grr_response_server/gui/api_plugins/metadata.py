@@ -7,7 +7,8 @@ import collections
 
 from urllib import parse as urlparse
 from typing import Optional, cast
-from typing import Type, Any, Union, Tuple, List, Set, Dict, DefaultDict
+from typing import Type, Any, Union, Tuple, Iterable, List, Set
+from typing import Dict, DefaultDict
 from typing import NamedTuple
 
 from google.protobuf.descriptor import Descriptor
@@ -497,9 +498,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetParameters(
       self,
-      required_path_params: List[FieldDescriptor],
-      optional_path_params: List[FieldDescriptor],
-      query_params: List[FieldDescriptor],
+      required_path_params: Iterable[FieldDescriptor],
+      optional_path_params: Iterable[FieldDescriptor],
+      query_params: Iterable[FieldDescriptor],
   ) -> List[
     Dict[str, Union[str, bool, SchemaReference, ArraySchema]]
   ]:
@@ -527,7 +528,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetRequestBody(
       self,
-      body_params: List[FieldDescriptor],
+      body_params: Iterable[FieldDescriptor],
   ) -> Dict[str, Dict]:
     """Create the OpenAPI description of the request body of a route."""
     if not body_params:
@@ -697,10 +698,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       http_method: str,
       path: str,
       router_method: Any,
-      required_path_params: List[FieldDescriptor],
-      optional_path_params: List[FieldDescriptor],
-      query_params: List[FieldDescriptor],
-      body_params: List[FieldDescriptor],
+      required_path_params: Iterable[FieldDescriptor],
+      optional_path_params: Iterable[FieldDescriptor],
+      query_params: Iterable[FieldDescriptor],
+      body_params: Iterable[FieldDescriptor],
   ) -> Dict[str, Any]:
     """Create the OpenAPI `Operation Object` associated with the given args."""
 
@@ -1017,7 +1018,7 @@ class ComponentTrieNode:
     self.children = dict()
 
 
-def _CreateTrie(routes: List[List[str]]) -> ComponentTrieNode:
+def _CreateTrie(routes: Iterable[Iterable[str]]) -> ComponentTrieNode:
   """Creates a trie of routes components and returns the root of the trie."""
   root = ComponentTrieNode("", "")
 
@@ -1079,7 +1080,7 @@ def _GroupRoutesByStem(
     path_args.pop()
 
 
-def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
+def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
   """Get a list of routes and their required and optional path arguments.
 
   This function creates a trie of the path components from the given list of
@@ -1099,7 +1100,9 @@ def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
     which represent the optional path arguments.
   """
   comps_trie_root = _CreateTrie(routes)
-  grouped_routes_stems: Dict[str, Dict[str, List[ComponentTrieNode]]] = dict()
+  grouped_routes_stems: Dict[str, Dict[str, Iterable[ComponentTrieNode]]] = (
+    dict()
+  )
   _GroupRoutesByStem(comps_trie_root, [], None, grouped_routes_stems)
 
   grouped_routes = []
