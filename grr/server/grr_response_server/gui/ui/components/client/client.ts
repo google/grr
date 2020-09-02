@@ -37,6 +37,7 @@ export class Client implements OnInit, OnDestroy {
   }
 
   ngAfterViewInit() {
+    // The route url is always at least on segment long
     this.route.url.pipe(map(url => url[url.length - 1]), take(1))
         .subscribe(urlSegment => {
           if (urlSegment.path === this.clientOverview.urlSegment) {

@@ -51,7 +51,6 @@ describe('Client Overview', () => {
       knowledgeBase: {
         fqdn: 'foo.unknown',
       },
-      lastSeenAt: new Date(1571789996678),
     }));
     fixture.detectChanges();
 

@@ -110,17 +110,16 @@ describe('Client Component', () => {
        router.navigate(['v2/clients/C.1234/details']);
        tick();
        expect(location.path()).toEqual('/v2/clients/C.1234/details');
-       expect(fixture.debugElement.query(By.directive(MatDrawer))
-                  .componentInstance.opened)
-           .toEqual(true);
+
+       const drawer = fixture.debugElement.query(By.directive(MatDrawer));
+       expect(drawer.componentInstance.opened).toEqual(true);
+
        detailsButton =
            fixture.debugElement.query(By.css('.goto-details')).nativeElement;
        detailsButton.dispatchEvent(new MouseEvent('click'));
        fixture.detectChanges();
 
-       expect(fixture.debugElement.query(By.directive(MatDrawer))
-                  .componentInstance.opened)
-           .toEqual(false);
+       expect(drawer.componentInstance.opened).toEqual(false);
 
        // The following expectation is met when testing manually, but not on
        // automated testing, because the drawer's closedStart observable is not
