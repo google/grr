@@ -130,6 +130,6 @@ def FetchClientResourceUsageRecordsFromFleetspeak(
   res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(
       admin_pb2.FetchClientResourceUsageRecordsRequest(
           client_id=GRRIDToFleetspeakID(client_id), limit=limit))
-  if not res or not res.records or not res.records[0]:
+  if not res.records:
     return []
   return list(res.records)
