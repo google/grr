@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Lint as: python3
 from absl import app, flags
+import collections
 import json
 import os
 from typing import Any, cast, Dict, List, Text, Tuple, Iterable
@@ -134,9 +135,10 @@ class Grrafana(object):
     requested_client_id = _ExtractClientIdFromVariable(
         json_data)  # There must be a ClientID variable declated in Grafana.
     requested_targets = [entry["target"] for entry in json_data["targets"]]
-    response = _FetchDatapointsForTargets(requested_client_id,
+    list_targets_with_datapoints = _FetchDatapointsForTargets(requested_client_id,
                                           json_data["maxDataPoints"],
                                           requested_targets)
+    response = [t._asdict() for t in list_targets_with_datapoints]
     return JSONResponse(response=response)
 
   def _OnAnnotations(self, request: JSONRequest) -> JSONResponse:
@@ -145,7 +147,8 @@ class Grrafana(object):
 
 Datapoint = Tuple[float, int]
 Datapoints = List[Datapoint]
-TargetWithDatapoints = Dict[Text, Datapoints]
+TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
+                                              ["target", "datapoints"])
 
 
 def _FetchDatapointsForTargets(
@@ -159,11 +162,9 @@ def _FetchDatapointsForTargets(
   for target in targets:
     datapoints_for_single_target = _CreateDatapointsForTarget(
         target, records_list)
-    target_datapoints_dict = cast(TargetWithDatapoints, {
-        "target": target,
-        "datapoints": datapoints_for_single_target
-    })
-    response.append(target_datapoints_dict)
+    response.append(
+        TargetWithDatapoints(target=target,
+                             datapoints=datapoints_for_single_target))
   return response
 
 
