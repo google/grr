@@ -1,11 +1,8 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
-<<<<<<< HEAD
-import {Title} from '@angular/platform-browser';
-=======
 import {MatDialog} from '@angular/material/dialog';
->>>>>>> ca5746b6 (Add label to client (#806))
+import {MatSnackBar} from '@angular/material/snack-bar';
+import {Title} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
-import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
@@ -23,6 +20,7 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Client implements OnInit, OnDestroy {
+  private static LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
   private readonly id$ = this.route.paramMap.pipe(
       map(params => params.get('id')),
       filter(isNonNull),
@@ -35,16 +33,10 @@ export class Client implements OnInit, OnDestroy {
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
-<<<<<<< HEAD
       private readonly title: Title,
-=======
       private readonly dialog: MatDialog,
->>>>>>> ca5746b6 (Add label to client (#806))
+      private readonly snackBar: MatSnackBar,
   ) {}
-
-  trackLabel(index: number, label: ClientLabel) {
-    return label.name;
-  }
 
   ngOnInit() {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
@@ -60,6 +52,16 @@ export class Client implements OnInit, OnDestroy {
           const info = fqdn ? `${fqdn} (${client.clientId})` : client.clientId;
           this.title.setTitle(`GRR | ${info}`);
         });
+
+    this.clientPageFacade.lastRemovedClientLabel$
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(label => {
+          this.showLabelRemovedSnackBar(label);
+        });
+  }
+
+  labelsTrackByName(index: number, item: ClientLabel): string {
+    return item.name;
   }
 
   openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
@@ -72,6 +74,24 @@ export class Client implements OnInit, OnDestroy {
         this.addLabel(newLabel);
       }
     });
+  }
+
+  private showLabelRemovedSnackBar(label: string) {
+    this.snackBar
+        .open(`Label "${label}" removed`, 'UNDO', {
+          duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS,
+          verticalPosition: 'top'
+        })
+        .afterDismissed()
+        .subscribe(snackBar => {
+          if (snackBar.dismissedByAction) {
+            this.addLabel(label);
+          }
+        });
+  }
+
+  removeLabel(label: string) {
+    this.clientPageFacade.removeClientLabel(label);
   }
 
   addLabel(label: string) {

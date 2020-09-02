@@ -2,6 +2,7 @@ import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {FlowFormModule} from '@app/components/flow_form/module';
@@ -33,6 +34,7 @@ import {ClientRoutingModule} from './routing';
     MatIconModule,
     MatButtonModule,
     ClientAddLabelDialogModule,
+    MatSnackBarModule,
   ],
   declarations: [
     Client,
