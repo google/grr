@@ -37,13 +37,22 @@ DescribedSchema = Dict[str,
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
 TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
-RouteInfo = Tuple[List[str], List[str], List[str]]
 
 
 class KeyValueDescriptor(NamedTuple):
   """A named tuple for `protobuf.map`'s `key` and `value` `FieldDescriptor`s."""
   key: FieldDescriptor
   value: FieldDescriptor
+
+
+class RouteInfo(NamedTuple):
+  """A named tuple for the lists of route components and path arguments."""
+  # A list of the HTTP method and the components of a URL path.
+  route_comps: List[str]
+  # A list of path components that represent required path parameters.
+  req_path_params_comps: List[str]
+  # A list of path components that represent optional path parameters.
+  opt_path_params_comps: List[str]
 
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
@@ -744,7 +753,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for router_method in router_methods.values():
-      # To extract optional path arguments, all the routes associated with this
+      # To extract optional path parameters, all the routes associated with this
       # router method must be analysed and grouped.
       ungrouped_routes = []
       for http_method, path, strip_root_types in router_method.http_methods:
@@ -1051,7 +1060,7 @@ class ComponentTrieNode:
 
 def _GroupRoutesByStem(
     curr_node: ComponentTrieNode,
-    path_args: List[ComponentTrieNode],
+    path_params: List[ComponentTrieNode],
     stem_node: Optional[ComponentTrieNode],
     grouped_routes_stems: Dict[str, Dict],
 ) -> None:
@@ -1059,7 +1068,7 @@ def _GroupRoutesByStem(
   new_stem_node = stem_node
 
   if curr_node.is_path_arg:
-    path_args.append(curr_node)
+    path_params.append(curr_node)
 
   if curr_node.is_route_end:
     if stem_node is None:
@@ -1068,37 +1077,37 @@ def _GroupRoutesByStem(
       grouped_routes_stems[stem_node.path]["optional"].append(curr_node)
     else:
       # It's a terminal fixed URL component => new route which might have some
-      # optional path arguments.
+      # optional path parameters.
       new_stem_node = curr_node
   else:
     # Non-terminal components that are waiting for components farther to the
-    # right to end the URL they are part of. The path arguments in this
+    # right to end the URL they are part of. The path parameters in this
     # situation will be marked as required.
     new_stem_node = None
 
   if new_stem_node is not None and new_stem_node != stem_node:
     # We've detected a new route end with its associated fixed stem.
     grouped_routes_stems[new_stem_node.path] = {
-      "required": path_args.copy(),
+      "required": path_params.copy(),
       "optional": [],
     }
 
   for child in curr_node.children.values():
-    _GroupRoutesByStem(child, path_args, new_stem_node, grouped_routes_stems)
+    _GroupRoutesByStem(child, path_params, new_stem_node, grouped_routes_stems)
 
   # We'll go back to the parent of this node, so we remove the current path arg
   # from the list of path args, as we will next go on a diferent branch/path in
   # the trie.
   if curr_node.is_path_arg:
-    path_args.pop()
+    path_params.pop()
 
 
 def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
-  """Get a list of routes and their required and optional path arguments.
+  """Get a list of routes and their required and optional path parameters.
 
   This function creates a trie of the path components from the given list of
   routes and then identifies groups of routes that can be reduced to a single
-  route that has optional path arguments.
+  route that has optional path parameters.
 
   Args:
     routes: A list of routes where each route is represented as a list where
@@ -1106,11 +1115,9 @@ def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
       and the following elements are strings representing the path components.
 
   Returns:
-    A list of `RouteInfo`s which are tuples consisting of three elements: a list
-    with the HTTP method and the components of the largest path that covers
-    multiple of the initial routes given as argument, a list of path components
-    which represent the required path arguments and a list of path components
-    which represent the optional path arguments.
+    A list of `RouteInfo`s which describe the extracted routes with their
+    required and optional path parameters figured out by analysing the initial
+    given routes.
   """
   comps_trie_root = ComponentTrieNode.FromRoutes(routes)
   grouped_routes_stems: Dict[str, Dict[str, Iterable[ComponentTrieNode]]] = (
@@ -1122,13 +1129,17 @@ def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
   for route_stem in grouped_routes_stems:
     route_desc = grouped_routes_stems[route_stem]
 
-    req_path_args_comps = [node.component for node in route_desc["required"]]
-    opt_path_args_comps = [node.component for node in route_desc["optional"]]
-    # `req_path_args_comps` are included in the `route_stem`.
-    route_comps = route_stem.split("/") + opt_path_args_comps
+    req_path_params_comps = [node.component for node in route_desc["required"]]
+    opt_path_params_comps = [node.component for node in route_desc["optional"]]
+    # `req_path_params_comps` are included in the `route_stem`.
+    route_comps = route_stem.split("/") + opt_path_params_comps
 
     grouped_routes.append(
-      (route_comps, req_path_args_comps, opt_path_args_comps)
+      RouteInfo(
+        route_comps=route_comps,
+        req_path_params_comps=req_path_params_comps,
+        opt_path_params_comps=opt_path_params_comps,
+      )
     )
 
   return grouped_routes
