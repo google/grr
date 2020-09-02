@@ -117,7 +117,8 @@ def GetLabelsFromFleetspeak(client_id):
 
 def FetchClientResourceUsageRecordsFromFleetspeak(
     client_id: Text, limit: int) -> List[ClientResourceUsageRecord]:
-  """Returns aggregated resource usage metrics of a client in Fleetspeak-enabled database.
+  """Returns aggregated resource usage metrics of a client
+  in Fleetspeak-enabled database.
 
   Args:
     client_id: Id of the client to fetch Fleetspeak resource usage records for.

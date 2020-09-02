@@ -20,7 +20,6 @@ from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug.wrappers import json as werkzeug_wrappers_json
 
-
 AVAILABLE_METRICS = [
     "mean_user_cpu_rate",
     "max_user_cpu_rate",
@@ -43,7 +42,8 @@ class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
   pass
 
 
-class JSONResponse(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Response):
+class JSONResponse(werkzeug_wrappers_json.JSONMixin,
+                   werkzeug_wrappers.Response):
   pass
 
 
@@ -51,7 +51,8 @@ class Grrafana(object):
   """GRRafana HTTP server instance.
   
   A full description of all endpoints implemented within this HTTP
-  server can be found in https://github.com/simPod/grafana-json-datasource#api."""
+  server can be found in:
+  https://github.com/simPod/grafana-json-datasource#api."""
 
   def __init__(self) -> None:
     """Constructor."""
@@ -59,7 +60,9 @@ class Grrafana(object):
         werkzeug_routing.Rule("/", endpoint="Root", methods=["GET"]),
         werkzeug_routing.Rule("/search", endpoint="Search", methods=["POST"]),
         werkzeug_routing.Rule("/query", endpoint="Query", methods=["POST"]),
-        werkzeug_routing.Rule("/annotations", endpoint="Annotations", methods=["POST"]),
+        werkzeug_routing.Rule("/annotations",
+                              endpoint="Annotations",
+                              methods=["POST"]),
     ])
 
   def DispatchRequest(self, request: JSONRequest) -> JSONResponse:
@@ -84,18 +87,20 @@ class Grrafana(object):
     return JSONResponse()
 
   def OnSearch(self, request: JSONRequest) -> JSONResponse:
-    """Depending on the type of request Grafana is issuing, this method returns either
-    available client resource usage metrics from the constant AVAILABLE_METRICS, or
-    possible values for a defined Grafana variable (currently supports only variables based
-    on client IDs)."""
+    """Depending on the type of request Grafana is issuing, this method returns
+    either available client resource usage metrics from the constant 
+    AVAILABLE_METRICS, or possible values for a defined Grafana variable
+    (currently supports only variables based on client IDs)."""
     if "type" in request.json:
-      # Grafana request issued on Panel > Queries page. Grafana expects the list of metrics
-      # that can be listed on the dropdown-menu called "Metric".
+      # Grafana request issued on Panel > Queries page. Grafana expects the
+      # list of metrics that can be listed on the dropdown-menu
+      # called "Metric".
       response = AVAILABLE_METRICS
     else:
-      # Grafana request issued on Variables > New/Edit page for variables of type query.
-      # Grafana expectes the list of possible values of the variable.
-      # At the moment, GRRafana doesn't support such variables, so it returns no possible values.
+      # Grafana request issued on Variables > New/Edit page for variables of
+      # type query. Grafana expectes the list of possible values of
+      # the variable. At the moment, GRRafana doesn't support such variables,
+      # so it returns no possible values.
       response = []
     return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
 
@@ -123,7 +128,8 @@ TargetWithDatapoints = Dict[Text, Datapoints]
 def _FetchDatapointsForTargets(
     client_id: Text, limit: int,
     targets: List[Text]) -> List[TargetWithDatapoints]:
-  """Fetches a list of <datapoint, timestamp> tuples for each target metric from Fleetspeak database."""
+  """Fetches a list of <datapoint, timestamp> tuples for each target 
+  metric from Fleetspeak database."""
   records_list = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(
       client_id, limit)
   response = []
@@ -139,7 +145,8 @@ def _FetchDatapointsForTargets(
 
 
 def _CreateDatapointsForTarget(
-    target: Text, records_list: List[resource_pb2.ClientResourceUsageRecord]) -> Datapoints:
+    target: Text,
+    records_list: List[resource_pb2.ClientResourceUsageRecord]) -> Datapoints:
   if target == "mean_user_cpu_rate":
     record_values = [record.mean_user_cpu_rate for record in records_list]
   elif target == "max_user_cpu_rate":
@@ -175,10 +182,10 @@ def main(argv: Any) -> None:
   server_startup.Init()
   fleetspeak_connector.Init()
   werkzeug_serving.run_simple("127.0.0.1",
-             5000,
-             Grrafana(),
-             use_debugger=True,
-             use_reloader=True)
+                              5000,
+                              Grrafana(),
+                              use_debugger=True,
+                              use_reloader=True)
 
 
 if __name__ == "__main__":

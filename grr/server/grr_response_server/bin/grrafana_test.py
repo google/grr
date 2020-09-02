@@ -102,14 +102,18 @@ class GrrafanaTest(absltest.TestCase):
   def setUp(self):
     super(GrrafanaTest, self).setUp()
     self.client = werkzeug_test.Client(application=grrafana.Grrafana(),
-                                      response_wrapper=grrafana.JSONResponse)
+                                       response_wrapper=grrafana.JSONResponse)
 
   def testRoot(self):
     response = self.client.get("/")
     self.assertEqual(200, response.status_code)
 
   def testSearchMetrics(self):
-    response = self.client.post("/search", json={'type': 'timeseries', 'target': ''})
+    response = self.client.post("/search",
+                                json={
+                                    'type': 'timeseries',
+                                    'target': ''
+                                })
     self.assertEqual(200, response.status_code)
     self.assertListEqual(response.json, [
         "mean_user_cpu_rate",
@@ -121,7 +125,10 @@ class GrrafanaTest(absltest.TestCase):
     ])
 
   def testQuery(self):
-    conn = _MockConnReturningRecords([_TEST_CLIENT_RESOURCE_USAGE_RECORD_1, _TEST_CLIENT_RESOURCE_USAGE_RECORD_2])
+    conn = _MockConnReturningRecords([
+        _TEST_CLIENT_RESOURCE_USAGE_RECORD_1,
+        _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
+    ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
       response = self.client.post(
           "/query",
