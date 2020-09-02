@@ -4,7 +4,7 @@ import {Client} from '@app/lib/models/client';
 
 export interface EntryHistoryDialogParams {
   path: string;
-  entriesHistory: Map<string, Client[]>
+  clientVersions: Client[];
 }
 
 interface EntryHistoryTableRow {

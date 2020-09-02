@@ -1,14 +1,11 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
-import {Client} from '@app/lib/models/client';
 import {Observable, Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
 
 import {getClientEntriesChanged, getClientVersions} from './client_diff';
-import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
-import {MatDialog} from '@angular/material/dialog';
 
 /**
  * Component displaying the details for a single Client.
@@ -29,14 +26,11 @@ export class ClientDetails implements OnInit, OnDestroy {
       filter((id): id is string => id !== null));
 
   readonly client$ = this.clientPageFacade.selectedClient$;
+
+  // TODO Move this to ClientDetailsStore
   readonly clientVersions$ = this.clientPageFacade.selectedClientVersions$.pipe(
       map(getClientVersions),
   );
-
-  readonly clientEntryChanges$ =
-      this.clientPageFacade.selectedClientVersions$.pipe(
-          map(getClientEntriesChanged),
-      );
 
   currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
@@ -47,7 +41,6 @@ export class ClientDetails implements OnInit, OnDestroy {
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
-      private readonly dialog: MatDialog,
   ) {}
 
   ngOnInit() {
@@ -65,10 +58,6 @@ export class ClientDetails implements OnInit, OnDestroy {
       return 'no-button';
     }
     return 'show-less';
-  }
-
-  openEntryHistoryDialog() {
-    this.dialog.open(EntryHistoryDialog);
   }
 
   ngOnDestroy() {

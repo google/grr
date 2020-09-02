@@ -15,6 +15,7 @@ import {TimestampModule} from '../timestamp/module';
 import {ClientDetails} from './client_details';
 import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
 import {ClientDetailsRoutingModule} from './routing';
+import {EntryHistoryButton} from './entry_history_button/entry_history_button';
 
 /**
  * Module for the client details component.
@@ -36,6 +37,7 @@ import {ClientDetailsRoutingModule} from './routing';
   declarations: [
     ClientDetails,
     EntryHistoryDialog,
+    EntryHistoryButton,
   ],
 })
 export class ClientDetailsModule {

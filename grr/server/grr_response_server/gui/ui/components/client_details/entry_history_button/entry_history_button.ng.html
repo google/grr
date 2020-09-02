@@ -1,0 +1,7 @@
+<button
+  mat-button
+  color="primary"
+  *ngIf="(clientEntryChanges$ | async).get(path) as changes"
+  (click)="openEntryHistoryDialog(changes)">
+  {{changes.length}} changes
+</button>
