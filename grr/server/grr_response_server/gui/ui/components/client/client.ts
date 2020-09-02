@@ -44,17 +44,16 @@ export class Client implements OnInit, OnDestroy {
       this.clientPageFacade.selectClient(id);
     });
 
-    this.clientPageFacade.removedClientLabels$
+    this.clientPageFacade.lastRemovedClientLabel$
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
-        }, err => {/* Nothing for now */});
+        });
   }
 
   ngAfterViewInit() {
     this.clientDetailsDrawers.closedStart.subscribe(() => {
       const urlTokens = this.location.path().split('/');
-      console.log('I am subscriber', urlTokens);
       this.location.go(urlTokens.slice(0, -1).join('/'));
     });
 

@@ -131,7 +131,7 @@ describe('Client Component', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
 
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -155,37 +155,6 @@ describe('Client Component', () => {
     snackbarDiv!.remove();
   });
 
-  it('doesn\'t show a snackbar when a client label request errors', () => {
-    // Prevent warnings from 404-ing API requests.
-    spyOn(facade, 'selectClient');
-
-    const clientSubject = new Subject<Client>();
-    const removedLabelsSubject = new Subject<string>();
-    Object.defineProperty(
-        facade, 'selectedClient$', {get: () => clientSubject});
-    Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
-
-    const fixture = TestBed.createComponent(ClientComponent);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-    clientSubject.next(newClient({
-      clientId: 'C.1234',
-      labels: [{name: 'testlabel', owner: ''}],
-    }));
-    fixture.detectChanges();
-
-    const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
-                               .componentInstance.chips.toArray() as MatChip[];
-    labelsChipList[0].remove();
-    removedLabelsSubject.error(new Error('Some error'));
-    fixture.detectChanges();
-
-    const snackbarDiv = document.querySelector('snack-bar-container');
-    expect(snackbarDiv).not.toBeTruthy();
-  });
-
   it('snackbar action undoes a removal of client label', () => {
     // Prevent warnings from 404-ing API requests.
     spyOn(facade, 'selectClient');
@@ -195,7 +164,7 @@ describe('Client Component', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
     spyOn(facade, 'addClientLabel');
 
     const fixture = TestBed.createComponent(ClientComponent);
