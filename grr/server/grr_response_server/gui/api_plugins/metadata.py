@@ -132,6 +132,15 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   },
 }
 
+rdf_types: Dict[str, PrimitiveSchema] = {
+  "RDFDatetime": {"type": "string", "format": "date-time"},
+  "RDFDatetimeSeconds": {"type": "string", "format": "uint64"},
+  "Duration": {"type": "string", "format": "uint64"},
+  "DurationSeconds": {"type": "string", "format": "uint64"},
+  "RDFBytes": {"type": "string", "format": "byte"},
+  "HashDigest": {"type": "string", "format": "byte"},
+  "GlobExpression": {"type": "string", "format": "glob-expression"},
+}
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
