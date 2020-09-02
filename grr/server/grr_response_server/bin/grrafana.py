@@ -3,7 +3,7 @@
 from absl import app, flags
 import json
 import os
-from typing import Any, cast, Dict, List, Text, Tuple
+from typing import Any, cast, Dict, List, Text, Tuple, Iterable
 
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
@@ -55,8 +55,8 @@ class Grrafana(object):
   https://github.com/simPod/grafana-json-datasource#api."""
 
   def __init__(self) -> None:
-    """Constructor."""
-    self.url_map = werkzeug_routing.Map([
+    """Initializes a new GRRafana HTTP server instance."""
+    self._url_map = werkzeug_routing.Map([
         werkzeug_routing.Rule("/", endpoint="Root", methods=["GET"]),
         werkzeug_routing.Rule("/search", endpoint="Search", methods=["POST"]),
         werkzeug_routing.Rule("/query", endpoint="Query", methods=["POST"]),
@@ -65,32 +65,33 @@ class Grrafana(object):
                               methods=["POST"]),
     ])
 
-  def DispatchRequest(self, request: JSONRequest) -> JSONResponse:
+  def _DispatchRequest(self, request: JSONRequest) -> JSONResponse:
     """Maps requests to different methods."""
-    adapter = self.url_map.bind_to_environ(request.environ)
+    adapter = self._url_map.bind_to_environ(request.environ)
     try:
       endpoint, values = adapter.match()
-      return getattr(self, "On" + endpoint)(request, **values)
+      return getattr(self, "_On" + endpoint)(request, **values)
     except werkzeug_exceptions.HTTPException as e:
       return e
 
   def WsgiApp(self, environ, start_response) -> werkzeug_wrappers.Response:
     request = JSONRequest(environ)
-    response = self.DispatchRequest(request)
+    response = self._DispatchRequest(request)
     return response(environ, start_response)
 
   def __call__(self, environ, start_response):
     return self.WsgiApp(environ, start_response)
 
-  def OnRoot(self, request: JSONRequest) -> JSONResponse:
+  def _OnRoot(self, request: JSONRequest) -> JSONResponse:
     """Returns OK message to database connection check."""
     return JSONResponse()
 
-  def OnSearch(self, request: JSONRequest) -> JSONResponse:
-    """Depending on the type of request Grafana is issuing, this method returns
+  def _OnSearch(self, request: JSONRequest) -> JSONResponse:
+    """Fetches available resource usage metrics.
+    
+    Depending on the type of request Grafana is issuing, this method returns
     either available client resource usage metrics from the constant 
-    AVAILABLE_METRICS, or possible values for a defined Grafana variable
-    (currently supports only variables based on client IDs)."""
+    AVAILABLE_METRICS, or possible values for a defined Grafana variable."""
     if "type" in request.json:
       # Grafana request issued on Panel > Queries page. Grafana expects the
       # list of metrics that can be listed on the dropdown-menu
@@ -104,8 +105,10 @@ class Grrafana(object):
       response = []
     return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
 
-  def OnQuery(self, request: JSONRequest) -> JSONResponse:
-    """Given a client ID as a Grafana variable and targets (resource usages),
+  def _OnQuery(self, request: JSONRequest) -> JSONResponse:
+    """Retrieves datapoints for Grafana.
+    
+    Given a client ID as a Grafana variable and targets (resource usages),
     returns datapoints in a format Grafana can interpret."""
     json_data = request.json
     requested_client_id = _ExtractClientIdFromVariable(
@@ -116,7 +119,7 @@ class Grrafana(object):
                                           requested_targets)
     return JSONResponse(response=json.dumps(response), mimetype=JSON_MIME_TYPE)
 
-  def OnAnnotations(self, request: JSONRequest) -> JSONResponse:
+  def _OnAnnotations(self, request: JSONRequest) -> JSONResponse:
     pass
 
 
@@ -127,7 +130,7 @@ TargetWithDatapoints = Dict[Text, Datapoints]
 
 def _FetchDatapointsForTargets(
     client_id: Text, limit: int,
-    targets: List[Text]) -> List[TargetWithDatapoints]:
+    targets: Iterable[Text]) -> List[TargetWithDatapoints]:
   """Fetches a list of <datapoint, timestamp> tuples for each target 
   metric from Fleetspeak database."""
   records_list = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(
@@ -146,7 +149,8 @@ def _FetchDatapointsForTargets(
 
 def _CreateDatapointsForTarget(
     target: Text,
-    records_list: List[resource_pb2.ClientResourceUsageRecord]) -> Datapoints:
+    records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
+) -> Datapoints:
   if target == "mean_user_cpu_rate":
     record_values = [record.mean_user_cpu_rate for record in records_list]
   elif target == "max_user_cpu_rate":
@@ -159,14 +163,16 @@ def _CreateDatapointsForTarget(
     record_values = [record.mean_resident_memory_mib for record in records_list]
   elif target == "max_resident_memory_mib":
     record_values = [record.max_resident_memory_mib for record in records_list]
-  return [(v, r.server_timestamp.seconds * 1000)
-          for (v, r) in zip(record_values, records_list)]
+  return [
+      (v,
+      r.server_timestamp.seconds * 1000 + r.server_timestamp.nanos // 1000000)
+      for (v, r) in zip(record_values, records_list)
+  ]
 
 
 def _ExtractClientIdFromVariable(req: JSONRequest) -> Text:
   """Extracts the client ID from a Grafana JSON request."""
-  scoped_vars_dict = req["scopedVars"]
-  return scoped_vars_dict["ClientID"]["value"]
+  return req["scopedVars"]["ClientID"]["value"]
 
 
 def main(argv: Any) -> None:

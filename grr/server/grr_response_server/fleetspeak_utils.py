@@ -16,7 +16,7 @@ from grr_response_server import fleetspeak_connector
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
-from fleetspeak.src.server.proto.fleetspeak_server.resource_pb2 import ClientResourceUsageRecord
+from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 
 def IsFleetspeakEnabledClient(grr_id):
@@ -116,7 +116,7 @@ def GetLabelsFromFleetspeak(client_id):
 
 
 def FetchClientResourceUsageRecordsFromFleetspeak(
-    client_id: Text, limit: int) -> List[ClientResourceUsageRecord]:
+    client_id: Text, limit: int) -> List[resource_pb2.ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client
   in Fleetspeak-enabled database.
 
