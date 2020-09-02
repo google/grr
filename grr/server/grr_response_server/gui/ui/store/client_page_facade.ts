@@ -1,3 +1,4 @@
+import {HttpResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ConfigService} from '@app/components/config/config';
 import {AnyObject} from '@app/lib/api/api_interfaces';
@@ -6,7 +7,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, timer} from 'rxjs';
+import {combineLatest, Observable, of, Subject, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeAll, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
@@ -36,6 +37,8 @@ interface ClientPageState {
   readonly client?: Client;
   readonly clientId?: string;
   readonly clientVersions?: Client[];
+
+  readonly lastRemovedClientLabel?: string;
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
@@ -69,6 +72,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       startFlowState: {state: 'request_not_sent'},
     });
   }
+
+  /** Reducer updating the last removed client label. */
+  private readonly updateLastRemovedClientLabel =
+      this.updater<string>((state, lastRemovedClientLabel) => {
+        return {
+          ...state,
+          lastRemovedClientLabel,
+        };
+      });
 
   /** Reducer updating the selected client. */
   private readonly updateSelectedClient =
@@ -175,6 +187,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           },
         };
       });
+
+  /** An observable emitting the last removed client label. */
+  readonly lastRemovedClientLabel$: Observable<string> =
+      this.select(state => state.lastRemovedClientLabel)
+          .pipe(
+              filter(
+                  (lastRemovedClientLabel): lastRemovedClientLabel is string =>
+                      lastRemovedClientLabel !== undefined),
+          );
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
@@ -448,7 +469,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
-  // An effect to add a label to the selected client
+  /** An effect to add a label to the selected client */
   readonly addClientLabel = this.effect<string>(
       obs$ => obs$.pipe(
           withLatestFrom(this.selectedClientId$),
@@ -456,6 +477,19 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
               ([label, clientId]) =>
                   this.httpApiService.addClientLabel(clientId, label)),
           tap(() => this.fetchClient()),
+          ));
+
+  /** An effect to remove a label from the selected client */
+  readonly removeClientLabel = this.effect<string>(
+      obs$ => obs$.pipe(
+          withLatestFrom(this.selectedClientId$),
+          switchMap(
+              ([label, clientId]) =>
+                  this.httpApiService.removeClientLabel(clientId, label)),
+          tap((label) => {
+            this.fetchClient();
+            this.updateLastRemovedClientLabel(label);
+          }),
           ));
 }
 
@@ -488,6 +522,10 @@ export class ClientPageFacade {
   /** An observable emitting the client versions of the selected client. */
   readonly selectedClientVersions$: Observable<Client[]> =
       this.store.selectedClientVersions$;
+
+  /** An observable emitting the last removed client label. */
+  readonly lastRemovedClientLabel$: Observable<string> =
+      this.store.lastRemovedClientLabel$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
@@ -524,7 +562,13 @@ export class ClientPageFacade {
     this.store.stopFlowConfiguration();
   }
 
+  /** Adds a label to the selected client */
   addClientLabel(label: string) {
     this.store.addClientLabel(label);
+  }
+
+  /** Removes a label from the selected client */
+  removeClientLabel(label: string) {
+    this.store.removeClientLabel(label);
   }
 }
