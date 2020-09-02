@@ -1,8 +1,8 @@
-import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
+import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest, HttpResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
-import {catchError, map, shareReplay, switchMap, take} from 'rxjs/operators';
+import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
 
 import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiSearchClientResult, ApiSearchClientsArgs, GlobComponentExplanation} from './api_interfaces';
 
@@ -222,6 +222,17 @@ export class HttpApiService {
     return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]});
   }
 
+  removeClientLabel(clientId: string, label: string): Observable<string> {
+    const url = `${URL_PREFIX}/clients/labels/remove`;
+    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]})
+        .pipe(
+            mapTo(label),
+            catchError(
+                (e: HttpErrorResponse) =>
+                    throwError(new Error(e.error.message ?? e.message))),
+        );
+  }
+
   fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {
     const url = `${URL_PREFIX}/clients/labels`;
     return this.http.get<ApiListClientsLabelsResult>(url).pipe(
@@ -234,14 +245,14 @@ export class HttpApiService {
 
     const params = new HttpParams({
       fromObject: {
-        start: ((start?.getTime() ?? 1) * 1000).toString(),  // If not set, fetch from beggining of time
+        start: ((start?.getTime() ?? 1) * 1000)
+                   .toString(),  // If not set, fetch from beggining of time
         end: ((end ?? new Date()).getTime() * 1000).toString(),
       }
     });
 
     return this.http.get<ApiGetClientVersionsResult>(url, {params})
-        .pipe(
-            map(clientVersions => clientVersions.items ?? []));
+        .pipe(map(clientVersions => clientVersions.items ?? []));
   }
 }
 

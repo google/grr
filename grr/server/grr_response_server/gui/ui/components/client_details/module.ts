@@ -6,7 +6,6 @@ import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
-import {MatTableModule} from '@angular/material/table';
 import {RouterModule} from '@angular/router';
 
 import {HumanReadableSizeModule} from '../human_readable_size/module';

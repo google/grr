@@ -1,11 +1,10 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
-import {Observable, Subject} from 'rxjs';
+import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
-
-import {getClientEntriesChanged, getClientVersions} from './client_diff';
+import {getClientVersions} from './client_diff';
 
 /**
  * Component displaying the details for a single Client.

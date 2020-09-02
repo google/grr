@@ -7,8 +7,8 @@
       <div class="chips">
         <mat-chip-list>
           <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
-          <mat-chip *ngFor="let label of client.labels">
-            {{label.name}}
+          <mat-chip *ngFor="let label of client.labels; trackBy: labelsTrackByName" (removed)="removeLabel(label.name)">
+            {{label.name}} <mat-icon matChipRemove>close</mat-icon>
           </mat-chip>
         </mat-chip-list>
         <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"

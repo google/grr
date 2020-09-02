@@ -25,6 +25,7 @@ describe('ClientPageFacade', () => {
   let apiStartFlow$: Subject<ApiFlow>;
   let apiCancelFlow$: Subject<ApiFlow>;
   let configFacade: ConfigFacadeMock;
+  let apiRemoveClientLabel$: Subject<string>;
   let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
   beforeEach(() => {
@@ -33,6 +34,7 @@ describe('ClientPageFacade', () => {
     apiListFlowsForClient$ = new Subject();
     apiStartFlow$ = new Subject();
     apiCancelFlow$ = new Subject();
+    apiRemoveClientLabel$ = new Subject();
     apiFetchClientVersions$ = new Subject();
     httpApiService = {
       listApprovals:
@@ -46,6 +48,8 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
       listResultsForFlow:
           jasmine.createSpy('listResultsForFlow').and.returnValue(of([])),
+      removeClientLabel: jasmine.createSpy('removeClientLabel')
+                             .and.returnValue(apiRemoveClientLabel$),
       fetchClientVersions: jasmine.createSpy('fetchClientVersions')
                                .and.returnValue(apiFetchClientVersions$)
     };
@@ -627,4 +631,35 @@ describe('ClientPageFacade', () => {
 
        tick(1);
      }));
+
+  it('calls API to remove a client label', () => {
+    expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(0);
+    clientPageFacade.removeClientLabel('label1');
+    expect(httpApiService.removeClientLabel).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshes client after calling API for removing label', () => {
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(0);
+    clientPageFacade.removeClientLabel('label1');
+    apiRemoveClientLabel$.next('label1');
+    expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits which labels were removed successfully', (done) => {
+    const expectedLabels = ['testlabel', 'testlabel2'];
+    let i = 0;
+    clientPageFacade.lastRemovedClientLabel$.subscribe(label => {
+      expect(label).toEqual(expectedLabels[i]);
+      i++;
+      if (i === expectedLabels.length) {
+        done();
+      }
+    });
+
+    clientPageFacade.removeClientLabel('testlabel');
+    apiRemoveClientLabel$.next('testlabel');
+
+    clientPageFacade.removeClientLabel('testlabel2');
+    apiRemoveClientLabel$.next('testlabel2');
+  });
 });
