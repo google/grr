@@ -86,7 +86,7 @@ describe('Client Overview', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
 
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -115,7 +115,7 @@ describe('Client Overview', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
 
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -142,7 +142,7 @@ describe('Client Overview', () => {
     Object.defineProperty(
         facade, 'selectedClient$', {get: () => clientSubject});
     Object.defineProperty(
-        facade, 'removedClientLabels$', {get: () => removedLabelsSubject});
+        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
     spyOn(facade, 'addClientLabel');
 
     const fixture = TestBed.createComponent(ClientOverview);

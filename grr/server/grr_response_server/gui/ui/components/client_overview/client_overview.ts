@@ -39,11 +39,11 @@ export class ClientOverview implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.clientPageFacade.removedClientLabels$
+    this.clientPageFacade.lastRemovedClientLabel$
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
-        }, err => {/* Nothing for now */});
+        });
   }
 
   ngAfterViewInit() {
