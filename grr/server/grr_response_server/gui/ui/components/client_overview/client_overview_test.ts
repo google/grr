@@ -108,33 +108,6 @@ describe('Client Overview', () => {
     snackbarDiv!.remove();
   });
 
-  it('doesn\'t show a snackbar when a client label request errors', () => {
-    const clientSubject = new Subject<Client>();
-    const removedLabelsSubject = new Subject<string>();
-    Object.defineProperty(
-        facade, 'selectedClient$', {get: () => clientSubject});
-    Object.defineProperty(
-        facade, 'lastRemovedClientLabel$', {get: () => removedLabelsSubject});
-
-    const fixture = TestBed.createComponent(ClientOverview);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    clientSubject.next(newClient({
-      clientId: 'C.1234',
-      labels: [{name: 'testlabel', owner: ''}],
-    }));
-    fixture.detectChanges();
-
-    const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
-                               .componentInstance.chips.toArray() as MatChip[];
-    labelsChipList[0].remove();
-    removedLabelsSubject.error(new Error('Some error'));
-    fixture.detectChanges();
-
-    const snackbarDiv = document.querySelector('snack-bar-container');
-    expect(snackbarDiv).not.toBeTruthy();
-  });
-
   it('snackbar action undoes a removal of client label', () => {
     const clientSubject = new Subject<Client>();
     const removedLabelsSubject = new Subject<string>();

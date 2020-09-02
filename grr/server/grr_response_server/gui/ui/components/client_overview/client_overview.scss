@@ -1,4 +1,5 @@
 @use '~material-theme' as c;
+@use '~main' as main;
 
 $max-width: 1280px;
 $width: 80%;
@@ -8,13 +9,13 @@ $width: 80%;
 }
 
 .container {
-  // Set to full_screen_height - toolbar_height to enable scroll blocking
-  height: calc(100% - 64px);
+  height: calc(100vh - #{main.$toolbar-height});
 
   .client-header {
-    padding: 20px 0 30px 140px; // Changing this affects client details scrolling
+    box-sizing: border-box;
+    padding: 20px 0 30px 140px;
     border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
-    height: 100px; // Changing this affects client details scrolling
+    height: main.$client-overview-height;
 
     .fqdn-chips {
       display: flex;
