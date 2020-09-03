@@ -3,6 +3,7 @@
 """Unittest for GRRafana HTTP server."""
 from absl.testing import absltest
 from absl import app
+import copy
 import mock
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
@@ -60,6 +61,60 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "mean_resident_memory_mib": 59,
     "max_resident_memory_mib": 59
 }
+_TEST_VALID_QUERY = {
+  'app': 'dashboard',
+  'requestId': 'Q119',
+  'timezone': 'browser',
+  'panelId': 2,
+  'dashboardId': 77,
+  'range': {
+      'from': '2020-08-13T14:20:17.000Z',
+      'to': '2020-08-18T17:15:58.000Z',
+      'raw': {
+          'from': '2020-08-13T14:20:17.000Z',
+          'to': '2020-08-18T17:15:58.000Z'
+      }
+  },
+  'timeInfo': '',
+  'interval': '10m',
+  'intervalMs': 600000,
+  'targets': [{
+      'data': None,
+      'target': 'max_user_cpu_rate',
+      'refId': 'A',
+      'hide': False,
+      'type': 'timeseries'
+  }, {
+      'data': None,
+      'target': 'mean_system_cpu_rate',
+      'refId': 'A',
+      'hide': False,
+      'type': 'timeseries'
+  }],
+  'maxDataPoints': 800,
+  'scopedVars': {
+      'ClientID': {
+          'text': _TEST_CLIENT_ID_1,
+          'value': _TEST_CLIENT_ID_1
+      },
+      '__interval': {
+          'text': '10m',
+          'value': '10m'
+      },
+      '__interval_ms': {
+          'text': '600000',
+          'value': 600000
+      }
+  },
+  'startTime': 1598782453496,
+  'rangeRaw': {
+      'from': '2020-08-13T14:20:17.000Z',
+      'to': '2020-08-18T17:15:58.000Z'
+  },
+  'adhocFilters': []
+}
+_TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_QUERY)
+_TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
 
 
 def _MockConnReturningClients(grr_ids):
@@ -130,62 +185,9 @@ class GrrafanaTest(absltest.TestCase):
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
     ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      response = self.client.post(
-          "/query",
-          json={
-              'app': 'dashboard',
-              'requestId': 'Q119',
-              'timezone': 'browser',
-              'panelId': 2,
-              'dashboardId': 77,
-              'range': {
-                  'from': '2020-08-13T14:20:17.000Z',
-                  'to': '2020-08-18T17:15:58.000Z',
-                  'raw': {
-                      'from': '2020-08-13T14:20:17.000Z',
-                      'to': '2020-08-18T17:15:58.000Z'
-                  }
-              },
-              'timeInfo': '',
-              'interval': '10m',
-              'intervalMs': 600000,
-              'targets': [{
-                  'data': None,
-                  'target': 'max_user_cpu_rate',
-                  'refId': 'A',
-                  'hide': False,
-                  'type': 'timeseries'
-              }, {
-                  'data': None,
-                  'target': 'mean_system_cpu_rate',
-                  'refId': 'A',
-                  'hide': False,
-                  'type': 'timeseries'
-              }],
-              'maxDataPoints': 800,
-              'scopedVars': {
-                  'ClientID': {
-                      'text': _TEST_CLIENT_ID_1,
-                      'value': _TEST_CLIENT_ID_1
-                  },
-                  '__interval': {
-                      'text': '10m',
-                      'value': '10m'
-                  },
-                  '__interval_ms': {
-                      'text': '600000',
-                      'value': 600000
-                  }
-              },
-              'startTime': 1598782453496,
-              'rangeRaw': {
-                  'from': '2020-08-13T14:20:17.000Z',
-                  'to': '2020-08-18T17:15:58.000Z'
-              },
-              'adhocFilters': []
-          })
-      self.assertEqual(200, response.status_code)
-      self.assertEqual(response.json, [{
+      valid_response = self.client.post("/query", json=_TEST_VALID_QUERY)
+      self.assertEqual(200, valid_response.status_code)
+      self.assertEqual(valid_response.json, [{
           "target":
               "max_user_cpu_rate",
           "datapoints": [[4.999776840209961, 1597328417823],
@@ -196,6 +198,7 @@ class GrrafanaTest(absltest.TestCase):
           "datapoints": [[0.31883034110069275, 1597328417823],
                          [0.07246342301368713, 1597328419403]]
       }])
+      self.assertRaises(NameError, self.client.post, "/query", json=_TEST_INVALID_TARGET_QUERY)
 
 
 def main(argv):

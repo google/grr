@@ -179,6 +179,11 @@ def _CreateDatapointsForTarget(
     record_values = [record.mean_resident_memory_mib for record in records_list]
   elif target == "max_resident_memory_mib":
     record_values = [record.max_resident_memory_mib for record in records_list]
+  else:
+    raise NameError(
+        f"Target {target} is not a resource usage metric that can be " \
+         "fetched from Fleetspeak."
+    )
   return [
       (v,
       r.server_timestamp.seconds * 1000 + r.server_timestamp.nanos // 1000000)
