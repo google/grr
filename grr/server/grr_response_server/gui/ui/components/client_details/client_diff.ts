@@ -6,11 +6,6 @@ interface ClientVersion {
   changes: ReadonlyArray<string>;
 }
 
-interface EntryChanges {
-  versions: ReadonlyArray<string>;
-  age: Date;
-}
-
 /**
  * A map containing the relevant entries (as keys) taken into consideration
  * when computing the differences between client snapshots.
