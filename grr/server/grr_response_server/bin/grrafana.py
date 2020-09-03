@@ -95,13 +95,10 @@ class Grrafana(object):
     except werkzeug_exceptions.HTTPException as e:
       return e
 
-  def WsgiApp(self, environ, start_response) -> werkzeug_wrappers.Response:
+  def __call__(self, environ, start_response) -> werkzeug_wrappers.Response:
     request = JSONRequest(environ)
     response = self._DispatchRequest(request)
     return response(environ, start_response)
-
-  def __call__(self, environ, start_response):
-    return self.WsgiApp(environ, start_response)
 
   def _OnRoot(self, request: JSONRequest) -> JSONResponse:
     """Returns OK message to database connection check."""
