@@ -115,7 +115,7 @@ def GetLabelsFromFleetspeak(client_id):
   return grr_labels
 
 
-def FetchClientResourceUsageRecordsFromFleetspeak(
+def FetchClientResourceUsageRecords(
     client_id: Text, limit: int) -> List[resource_pb2.ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client
   in Fleetspeak-enabled database.

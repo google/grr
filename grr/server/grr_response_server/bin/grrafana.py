@@ -153,7 +153,7 @@ def _FetchDatapointsForTargets(
     targets: Iterable[Text]) -> List[TargetWithDatapoints]:
   """Fetches a list of <datapoint, timestamp> tuples for each target 
   metric from Fleetspeak database."""
-  records_list = fleetspeak_utils.FetchClientResourceUsageRecordsFromFleetspeak(
+  records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
       client_id, limit)
   response = []
   for target in targets:
