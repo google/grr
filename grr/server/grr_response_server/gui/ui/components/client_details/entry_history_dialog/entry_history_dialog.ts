@@ -27,16 +27,23 @@ export class EntryHistoryDialog {
 
   constructor(@Inject(MAT_DIALOG_DATA) private readonly data:
                   EntryHistoryDialogParams) {
+    if (this.data.path === '') {
+      throw new Error('Empty "path" provided');
+    }
     this.entryType = data.type;
     this.initTableRows(this.data);
   }
 
-  initTableRows(data: EntryHistoryDialogParams) {
+  private initTableRows(data: EntryHistoryDialogParams) {
     data.clientVersions.forEach((client) => {
       let property: any = client;
       data.path.split('.').forEach((token) => {
         property = property[token];
       });
+
+      if (property === undefined) {
+        throw new Error('Wrong "path" provided');
+      }
 
       this.tableRows?.push({
         time: client.age,
