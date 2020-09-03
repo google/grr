@@ -3,5 +3,7 @@
   color="primary"
   *ngIf="(clientEntryChanges$ | async) as clientChanges"
   (click)="openEntryHistoryDialog(clientChanges.get(path))">
-  {{clientChanges.get(path).length}} changes
+  <ng-template [ngIf]="clientChanges.get(path)">
+    {{clientChanges.get(path).length}} changes
+  </ng-template>
 </button>
