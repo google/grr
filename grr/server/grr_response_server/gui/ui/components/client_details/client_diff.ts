@@ -256,5 +256,10 @@ export function getClientEntriesChanged(clientSnapshots: Client[]):
     });
   }
 
+  // Add the first client snapshot, as a point of reference
+  clientChangedEntries.forEach(value => {
+    value.push(clientSnapshots[clientSnapshots.length - 1]);
+  })
+
   return clientChangedEntries;
 }

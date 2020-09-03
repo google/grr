@@ -1,7 +1,10 @@
-<button
-  *ngIf="(clientEntryChanges$ | async) as clientChanges"
-  (click)="openEntryHistoryDialog(clientChanges.get(path))">
-  <ng-template [ngIf]="clientChanges.get(path)">
-    {{clientChanges.get(path).length}} changes
-  </ng-template>
-</button>
+<ng-container *ngIf="(clientEntryChanges$ | async) as clientChanges">
+  <button
+    *ngIf="clientChanges.get(path)"
+    (click)="openEntryHistoryDialog(clientChanges.get(path))"
+    [ngPlural]="clientChanges.get(path).length - 1">
+      <ng-template ngPluralCase="=0"></ng-template> <!-- No changes -->
+      <ng-template ngPluralCase="=1">1 change</ng-template>
+      <ng-template ngPluralCase="other">{{clientChanges.get(path).length - 1}} changes</ng-template>
+  </button>
+</ng-container>
