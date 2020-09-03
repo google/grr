@@ -304,6 +304,7 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
+  @Category("Clients")
   @ArgsType(api_client.ApiGetLastClientIPAddressArgs)
   @ResultType(api_client.ApiGetLastClientIPAddressResult)
   @Http("GET", "/api/clients/<client_id>/last-ip")
