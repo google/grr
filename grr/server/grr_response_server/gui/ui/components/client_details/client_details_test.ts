@@ -103,34 +103,6 @@ describe('Client Details Component', () => {
     expect(firstOption.componentInstance.selected).toBe(true);
   });
 
-  it('displays details of the last version of client by default',
-     fakeAsync(() => {
-       // Prevent warnings from 404-ing API requests.
-       spyOn(facade, 'selectClient');
-
-       const subject = new Subject<Client[]>();
-       Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
-       const subjectClient = new Subject<Client>();
-       Object.defineProperty(
-           facade, 'selectedClient$', {get: () => subjectClient});
-
-       const fixture = TestBed.createComponent(ClientDetails);
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-       paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-       subject.next(clientVersionsMock);
-       fixture.detectChanges();
-
-       tick();
-       fixture.detectChanges();
-
-       const text = fixture.debugElement.nativeElement.textContent;
-       expect(text).toContain('C.1234');
-       expect(text).toContain('foo.unknown-changed');
-       expect(text).not.toContain('foo.unknown-first');
-     }));
-
   it('getClientVersions() correctly translates snapshots into client changes',
      () => {
        const snapshots = [

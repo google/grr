@@ -11,7 +11,6 @@ import {HumanReadableSizeModule} from '../human_readable_size/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {ClientDetails} from './client_details';
-import {ClientDetailsRoutingModule} from './routing';
 
 /**
  * Module for the client details component.
@@ -20,7 +19,6 @@ import {ClientDetailsRoutingModule} from './routing';
   imports: [
     CommonModule,
     RouterModule,
-    ClientDetailsRoutingModule,
     MatIconModule,
     TimestampModule,
     HumanReadableSizeModule,
@@ -32,6 +30,9 @@ import {ClientDetailsRoutingModule} from './routing';
   declarations: [
     ClientDetails,
   ],
+  exports: [
+    ClientDetails,
+  ]
 })
 export class ClientDetailsModule {
 }

@@ -8,6 +8,7 @@ import {Client} from './client';
  */
 export const CLIENT_ROUTES: Routes = [
   {path: 'v2/clients/:id', component: Client},
+  {path: 'v2/clients/:id/details', component: Client},
 ];
 
 @NgModule({
