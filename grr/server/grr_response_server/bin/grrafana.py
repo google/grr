@@ -19,6 +19,7 @@ from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing as werkzeug_routing
 from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
+from werkzeug import wsgi as werkzeug_wsgi
 from werkzeug.wrappers import json as werkzeug_wrappers_json
 
 AVAILABLE_METRICS = [
@@ -55,11 +56,10 @@ class JSONResponse(werkzeug_wrappers_json.JSONMixin,
       content_type=None,
       direct_passthrough=False,
   ):
-    try:
-      json_response = json.dumps(response)
-    except TypeError:
-      json_response = response
-    super().__init__(response=json_response, mimetype=JSON_MIME_TYPE)
+    mimetype = JSON_MIME_TYPE
+    if not isinstance(response, werkzeug_wsgi.ClosingIterator):
+      response = json.dumps(response)
+    super().__init__(response=response, mimetype=JSON_MIME_TYPE)
 
 
 class Grrafana(object):
@@ -93,7 +93,7 @@ class Grrafana(object):
     except werkzeug_exceptions.HTTPException as e:
       return e
 
-  def __call__(self, environ, start_response) -> werkzeug_wrappers.Response:
+  def __call__(self, environ, start_response) -> JSONResponse:
     request = JSONRequest(environ)
     response = self._DispatchRequest(request)
     return response(environ, start_response)
