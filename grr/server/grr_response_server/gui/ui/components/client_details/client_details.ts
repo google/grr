@@ -10,6 +10,7 @@ import {getClientVersions} from './client_diff';
  * Component displaying the details for a single Client.
  */
 @Component({
+  selector: 'client-details',
   templateUrl: './client_details.ng.html',
   styleUrls: ['./client_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

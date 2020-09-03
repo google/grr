@@ -1,10 +1,12 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
+import {Location} from '@angular/common';
+import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
+import {MatDrawer} from '@angular/material/sidenav';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {Title} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
 import {Subject} from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {filter, map, take, takeUntil} from 'rxjs/operators';
 
 import {ClientLabel} from '../../lib/models/client';
 import {isNonNull} from '../../lib/preconditions';
@@ -30,12 +32,15 @@ export class Client implements OnInit, OnDestroy {
 
   private readonly unsubscribe$ = new Subject<void>();
 
+  @ViewChild('clientDetailsDrawer') clientDetailsDrawers!: MatDrawer;
+
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
       private readonly title: Title,
       private readonly dialog: MatDialog,
       private readonly snackBar: MatSnackBar,
+      private readonly location: Location,
   ) {}
 
   ngOnInit() {
@@ -58,6 +63,36 @@ export class Client implements OnInit, OnDestroy {
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
         });
+  }
+
+  ngAfterViewInit() {
+    this.clientDetailsDrawers.closedStart.subscribe(() => {
+      const urlTokens = this.location.path().split('/');
+      this.location.go(urlTokens.slice(0, -1).join('/'));
+    });
+
+    this.location.onUrlChange(url => {
+      const urlTokens = url.split('/');
+      if (urlTokens[urlTokens.length - 1] === 'details') {
+        this.clientDetailsDrawers.open();
+      }
+    });
+
+    this.route.url.pipe(map(url => url[url.length - 1]), take(1))
+        .subscribe(urlSegment => {
+          if (urlSegment.path === 'details') {
+            this.clientDetailsDrawers.open();
+          }
+        });
+  }
+
+  onClientDetailsButtonClick() {
+    if (this.clientDetailsDrawers.opened) {
+      this.clientDetailsDrawers.close();
+    } else {
+      const currentUrl = this.location.path();
+      this.location.go(`${currentUrl}/details`);
+    }
   }
 
   labelsTrackByName(index: number, item: ClientLabel): string {
