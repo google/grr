@@ -56,28 +56,17 @@
     overflow: auto;
     flex-grow: 1;
 
-    .header {
-      margin-top: 1em;
-      display: inline-block;
-
-      mat-icon {
-        transform: scale(2);
-      }
-
-      .fqdn {
-        font-weight: 500;
-      }
-
-      .client-id {
-        color: c.mat-color(c.$foreground, text-light);
-        text-align: left;
-      }
-    }
-
     .section-title {
+      display: flex;
       font-weight: bold;
       text-align: left;
       border-bottom: 1px solid c.mat-color(c.$foreground, divider);
+
+      entry-history-button {
+        height: 16px;
+        flex-grow: 1;
+        text-align: right;
+      }
     }
 
     .section {
@@ -91,13 +80,6 @@
 
       .value {
         font-weight: 500;
-
-        .chip {
-          font-size: 13px;
-          font-weight: 500;
-          border: 1px solid c.mat-color(c.$foreground, divider);
-          background-color: c.mat-color(c.$background, app-bar);
-        }
       }
 
       .empty-section {

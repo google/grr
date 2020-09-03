@@ -1,6 +1,4 @@
 <button
-  mat-button
-  color="primary"
   *ngIf="(clientEntryChanges$ | async) as clientChanges"
   (click)="openEntryHistoryDialog(clientChanges.get(path))">
   <ng-template [ngIf]="clientChanges.get(path)">

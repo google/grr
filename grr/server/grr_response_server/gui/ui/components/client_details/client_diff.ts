@@ -114,7 +114,7 @@ function getChangeDescriptions(
 
   changesMap.forEach((occurences, label) => {
     if (occurences === 1) {
-      changeDescriptions.push(`One ${label} ${changeKeyword}`);
+      changeDescriptions.push(`${label} ${changeKeyword}`);
     } else {
       changeDescriptions.push(
           `${occurences} ${label} entries ${changeKeyword}`);
