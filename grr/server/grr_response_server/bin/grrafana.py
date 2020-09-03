@@ -72,11 +72,15 @@ class Grrafana(object):
   def __init__(self) -> None:
     """Initializes a new GRRafana HTTP server instance."""
     self._url_map = werkzeug_routing.Map([
-        werkzeug_routing.Rule("/", endpoint="Root", methods=["GET"]),
-        werkzeug_routing.Rule("/search", endpoint="Search", methods=["POST"]),
-        werkzeug_routing.Rule("/query", endpoint="Query", methods=["POST"]),
+        werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),
+        werkzeug_routing.Rule("/search",
+                              endpoint=self._OnSearch,
+                              methods=["POST"]),
+        werkzeug_routing.Rule("/query",
+                              endpoint=self._OnQuery,
+                              methods=["POST"]),
         werkzeug_routing.Rule("/annotations",
-                              endpoint="Annotations",
+                              endpoint=self._OnAnnotations,
                               methods=["POST"]),
     ])
 
@@ -85,13 +89,7 @@ class Grrafana(object):
     adapter = self._url_map.bind_to_environ(request.environ)
     try:
       endpoint, values = adapter.match()
-      endpoints = {
-          "Root": self._OnRoot,
-          "Search": self._OnSearch,
-          "Query": self._OnQuery,
-          "Annotations": self._OnAnnotations
-      }
-      return endpoints[endpoint](request, **values)
+      return endpoint(request, **values)
     except werkzeug_exceptions.HTTPException as e:
       return e
 
