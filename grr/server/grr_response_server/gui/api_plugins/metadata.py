@@ -7,7 +7,9 @@ import collections
 
 from urllib import parse as urlparse
 from typing import Optional, cast
-from typing import Type, TypeVar, Any, Union, Tuple, Iterable, List, Set
+from typing import Type, TypeVar, Any, Union
+from typing import Iterable, Collection
+from typing import Tuple, List, Set
 from typing import Dict, DefaultDict
 from typing import NamedTuple
 
@@ -1143,3 +1145,21 @@ def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
     )
 
   return grouped_routes
+
+
+def _CompareComponentsIterables(
+    comps_1: Collection[str],
+    comps_2: Collection[str],
+) -> int:
+  for comp_1, comp_2 in zip(comps_1, comps_2):
+    if comp_1 < comp_2:
+      return -1
+    if comp_1 > comp_2:
+      return 1
+
+  if len(comps_1) < len(comps_2):
+    return -1
+  if len(comps_1) > len(comps_2):
+    return 1
+
+  return 0
