@@ -140,15 +140,15 @@ class Grrafana(object):
     pass
 
 
-Datapoint = Tuple[float, int]
-Datapoints = List[Datapoint]
-TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
+_Datapoint = Tuple[float, int]
+_Datapoints = List[_Datapoint]
+_TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
                                               ["target", "datapoints"])
 
 
 def _FetchDatapointsForTargets(
     client_id: Text, limit: int,
-    targets: Iterable[Text]) -> List[TargetWithDatapoints]:
+    targets: Iterable[Text]) -> List[_TargetWithDatapoints]:
   """Fetches a list of <datapoint, timestamp> tuples for each target 
   metric from Fleetspeak database."""
   records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
@@ -158,7 +158,7 @@ def _FetchDatapointsForTargets(
     datapoints_for_single_target = _CreateDatapointsForTarget(
         target, records_list)
     response.append(
-        TargetWithDatapoints(target=target,
+        _TargetWithDatapoints(target=target,
                              datapoints=datapoints_for_single_target))
   return response
 
@@ -166,7 +166,7 @@ def _FetchDatapointsForTargets(
 def _CreateDatapointsForTarget(
     target: Text,
     records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
-) -> Datapoints:
+) -> _Datapoints:
   if target == "mean_user_cpu_rate":
     record_values = [record.mean_user_cpu_rate for record in records_list]
   elif target == "max_user_cpu_rate":
