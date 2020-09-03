@@ -13,6 +13,8 @@ from typing import Tuple, List, Set
 from typing import Dict, DefaultDict
 from typing import NamedTuple
 
+from functools import cmp_to_key
+
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
 from google.protobuf.descriptor import FieldDescriptor
@@ -1104,53 +1106,11 @@ def _GroupRoutesByStem(
     path_params.pop()
 
 
-def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
-  """Get a list of routes and their required and optional path parameters.
-
-  This function creates a trie of the path components from the given list of
-  routes and then identifies groups of routes that can be reduced to a single
-  route that has optional path parameters.
-
-  Args:
-    routes: A list of routes where each route is represented as a list where
-      the first element is a string representing the HTTP method of the route
-      and the following elements are strings representing the path components.
-
-  Returns:
-    A list of `RouteInfo`s which describe the extracted routes with their
-    required and optional path parameters figured out by analysing the initial
-    given routes.
-  """
-  comps_trie_root = ComponentTrieNode.FromRoutes(routes)
-  grouped_routes_stems: Dict[str, Dict[str, Iterable[ComponentTrieNode]]] = (
-    dict()
-  )
-  _GroupRoutesByStem(comps_trie_root, [], None, grouped_routes_stems)
-
-  grouped_routes = []
-  for route_stem in grouped_routes_stems:
-    route_desc = grouped_routes_stems[route_stem]
-
-    req_path_params_comps = [node.component for node in route_desc["required"]]
-    opt_path_params_comps = [node.component for node in route_desc["optional"]]
-    # `req_path_params_comps` are included in the `route_stem`.
-    route_comps = route_stem.split("/") + opt_path_params_comps
-
-    grouped_routes.append(
-      RouteInfo(
-        route_comps=route_comps,
-        req_path_params_comps=req_path_params_comps,
-        opt_path_params_comps=opt_path_params_comps,
-      )
-    )
-
-  return grouped_routes
-
-
-def _CompareComponentsIterables(
+def _CompareComponentsCollections(
     comps_1: Collection[str],
     comps_2: Collection[str],
 ) -> int:
+  """Function to order two collections of route components lexicographically."""
   for comp_1, comp_2 in zip(comps_1, comps_2):
     if comp_1 < comp_2:
       return -1
@@ -1163,3 +1123,42 @@ def _CompareComponentsIterables(
     return 1
 
   return 0
+
+
+class UngroupedRoute(NamedTuple):
+  """A named tuple for storing routes and their state during route grouping."""
+  route: Collection[str]
+  processed: bool
+
+
+def _GetGroupedRoutes(routes: List[Collection[str]]) -> List[RouteInfo]:
+  """Get a list of routes and their required and optional path parameters."""
+  routes.sort(key=cmp_to_key(_CompareComponentsCollections))
+  ungrouped_routes = [
+    UngroupedRoute(route=route, processed=False) for route in routes
+  ]
+  num_routes = len(ungrouped_routes)
+
+  grouped_routes = []
+  for i_stem_route in range(num_routes):
+    stem_route, stem_route_processed = ungrouped_routes[i_stem_route]
+    if stem_route_processed:
+      continue
+
+    covering_route = stem_route  # TODO: Rename covering_route and covered_route.
+    for i_covered_route in range(i_stem_route + 1, num_routes):
+      covered_route, covered_route_processed = ungrouped_routes[i_covered_route]
+
+      if covered_route_processed:
+        continue
+      ungrouped_routes[i_covered_route].processed = True
+
+      if _IsExtension(covered_route, covering_route):  # TODO: implement _IsExtension.
+        covering_route = covered_route
+
+    required_path_params = _ExtractPathParamsFromRouteList(stem_route)  # TODO: implement _ExtractPathParamsFromRouteList.
+    optional_path_params = _ExtractPathParamsFromRouteList(covering_route) - required_path_params
+
+    grouped_routes.append(RouteInfo(route_comps=covering_route, req_path_params_comps=required_path_params, opt_path_params_comps=optional_path_params))
+
+  return grouped_routes
