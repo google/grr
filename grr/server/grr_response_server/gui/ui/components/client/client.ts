@@ -1,13 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
-import {MatSnackBar} from '@angular/material/snack-bar';
+import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
-import {ClientLabel} from '@app/lib/models/client';
 import {Subject} from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {filter, map, take, takeUntil} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
-import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
+import {ClientOverview} from '../client_overview/client_overview';
 
 /**
  * Component displaying the details and actions for a single Client.
@@ -18,7 +15,6 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Client implements OnInit, OnDestroy {
-  private static LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
   private readonly id$ = this.route.paramMap.pipe(
       map(params => params.get('id')),
       filter((id): id is string => id !== null));
@@ -27,61 +23,27 @@ export class Client implements OnInit, OnDestroy {
 
   private readonly unsubscribe$ = new Subject<void>();
 
+  @ViewChild(ClientOverview) clientOverview!: ClientOverview;
+
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
-      private readonly dialog: MatDialog,
-      private readonly snackBar: MatSnackBar,
   ) {}
 
   ngOnInit() {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
       this.clientPageFacade.selectClient(id);
     });
-
-    this.clientPageFacade.lastRemovedClientLabel$
-        .pipe(takeUntil(this.unsubscribe$))
-        .subscribe(label => {
-          this.showLabelRemovedSnackBar(label);
-        });
   }
 
-  labelsTrackByName(index: number, item: ClientLabel): string {
-    return item.name;
-  }
-
-  openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
-    const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
-      data: clientLabels,
-    });
-
-    addLabelDialog.afterClosed().subscribe(newLabel => {
-      if (newLabel !== undefined && newLabel !== null && newLabel !== '') {
-        this.addLabel(newLabel);
-      }
-    });
-  }
-
-  private showLabelRemovedSnackBar(label: string) {
-    this.snackBar
-        .open(`Label "${label}" removed`, 'UNDO', {
-          duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS,
-          verticalPosition: 'top'
-        })
-        .afterDismissed()
-        .subscribe(snackBar => {
-          if (snackBar.dismissedByAction) {
-            this.addLabel(label);
+  ngAfterViewInit() {
+    // The route url is always at least on segment long
+    this.route.url.pipe(map(url => url[url.length - 1]), take(1))
+        .subscribe(urlSegment => {
+          if (urlSegment.path === this.clientOverview.urlSegment) {
+            this.clientOverview.openClientDetailsDrawer();
           }
         });
-  }
-
-  removeLabel(label: string) {
-    this.clientPageFacade.removeClientLabel(label);
-  }
-
-  addLabel(label: string) {
-    this.clientPageFacade.addClientLabel(label);
   }
 
   ngOnDestroy() {

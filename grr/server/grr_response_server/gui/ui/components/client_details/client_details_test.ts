@@ -1,7 +1,7 @@
-import {async, discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
+import {async, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Router} from '@angular/router';
+import {Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
@@ -19,7 +19,6 @@ import {ClientDetailsModule} from './module';
 initTestEnvironment();
 
 describe('Client Details Component', () => {
-  let paramsSubject: Subject<Map<string, string>>;
   let facade: ClientPageFacade;
   let configFacade: ConfigFacadeMock;
   const clientVersionsMock = [
@@ -45,7 +44,6 @@ describe('Client Details Component', () => {
   ];
 
   beforeEach(async(() => {
-    paramsSubject = new Subject();
     configFacade = mockConfigFacade();
 
     TestBed
@@ -56,12 +54,6 @@ describe('Client Details Component', () => {
             ClientDetailsModule,
           ],
           providers: [
-            {
-              provide: ActivatedRoute,
-              useValue: {
-                paramMap: paramsSubject,
-              },
-            },
             {provide: ConfigFacade, useFactory: () => configFacade},
             {provide: Router, useValue: {}},
           ],
@@ -72,29 +64,13 @@ describe('Client Details Component', () => {
     facade = TestBed.inject(ClientPageFacade);
   }));
 
-  it('loads client information on route change', () => {
-    const fixture = TestBed.createComponent(ClientDetails);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    const searchClientsSpy = spyOn(facade, 'selectClient');
-    paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-    fixture.detectChanges();
-
-    expect(searchClientsSpy).toHaveBeenCalledWith('C.1234');
-  });
-
   it('selects the first option in the timeline by default', () => {
-    // Prevent warnings from 404-ing API requests.
-    spyOn(facade, 'selectClient');
-
     const subject = new Subject<Client[]>();
     Object.defineProperty(
         facade, 'selectedClientVersions$', {get: () => subject});
 
     const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
     subject.next(clientVersionsMock);
     fixture.detectChanges();
     const firstOption =
@@ -102,34 +78,6 @@ describe('Client Details Component', () => {
 
     expect(firstOption.componentInstance.selected).toBe(true);
   });
-
-  it('displays details of the last version of client by default',
-     fakeAsync(() => {
-       // Prevent warnings from 404-ing API requests.
-       spyOn(facade, 'selectClient');
-
-       const subject = new Subject<Client[]>();
-       Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
-       const subjectClient = new Subject<Client>();
-       Object.defineProperty(
-           facade, 'selectedClient$', {get: () => subjectClient});
-
-       const fixture = TestBed.createComponent(ClientDetails);
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-       paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-       subject.next(clientVersionsMock);
-       fixture.detectChanges();
-
-       tick();
-       fixture.detectChanges();
-
-       const text = fixture.debugElement.nativeElement.textContent;
-       expect(text).toContain('C.1234');
-       expect(text).toContain('foo.unknown-changed');
-       expect(text).not.toContain('foo.unknown-first');
-     }));
 
   it('getClientVersions() correctly translates snapshots into client changes',
      () => {
@@ -438,9 +386,6 @@ describe('Client Details Component', () => {
 
   it('allows expanding and collapsing of lists on button click',
      fakeAsync(() => {
-       // Prevent warnings from 404-ing API requests.
-       spyOn(facade, 'selectClient');
-
        const subject = new Subject<Client[]>();
        Object.defineProperty(
            facade, 'selectedClientVersions$', {get: () => subject});
@@ -451,7 +396,6 @@ describe('Client Details Component', () => {
        const fixture = TestBed.createComponent(ClientDetails);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-       paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
        subject.next(clientVersionsMock);
        fixture.detectChanges();
 

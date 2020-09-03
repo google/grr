@@ -1,33 +1,4 @@
-<div *ngIf="client$ | async as client">
-  <div class="client-header mat-body-1">
-    <div class="fqdn-chips">
-      <div class="fqdn">
-        <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
-      </div>
-      <div class="chips">
-        <mat-chip-list>
-          <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
-          <mat-chip *ngFor="let label of client.labels; trackBy: labelsTrackByName" (removed)="removeLabel(label.name)">
-            {{label.name}} <mat-icon matChipRemove>close</mat-icon>
-          </mat-chip>
-        </mat-chip-list>
-        <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
-        ><mat-icon>add</mat-icon>Add label</button>
-      </div>
-      <div class="goto-details">
-        <button mat-stroked-button color="primary" [routerLink]="['./details']">Client details</button>
-      </div>
-    </div>
-    <div class="client-id">
-      <span class="mat-h5">{{client.clientId}}</span>
-    </div>
-    <div class="os">
-       {{client.knowledgeBase.os}}
-    </div>
-    <div class="last-seen">
-      Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
-    </div>
-  </div>
+<client-overview>
   <div class="client-approval">
     <approval></approval>
   </div>
@@ -37,4 +8,4 @@
   <div class="client-flows">
     <flow-list></flow-list>
   </div>
-</div>
+</client-overview>

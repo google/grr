@@ -245,8 +245,8 @@ export class HttpApiService {
 
     const params = new HttpParams({
       fromObject: {
-        start: ((start?.getTime() ?? 1) * 1000)
-                   .toString(),  // If not set, fetch from beggining of time
+        // If start not set, fetch from beggining of time
+        start: ((start?.getTime() ?? 1) * 1000).toString(),
         end: ((end ?? new Date()).getTime() * 1000).toString(),
       }
     });

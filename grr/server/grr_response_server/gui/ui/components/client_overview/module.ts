@@ -5,40 +5,40 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatListModule} from '@angular/material/list';
-import {RouterModule} from '@angular/router';
+import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
 
-import {HumanReadableSizeModule} from '../human_readable_size/module';
+import {ClientAddLabelDialogModule} from '../client_add_label_dialog/module';
+import {ClientDetailsModule} from '../client_details/module';
+import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
-import {ClientDetails} from './client_details';
-import {EntryHistoryButton} from './entry_history_button/entry_history_button';
-import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
+import {ClientOverview} from './client_overview';
 
 /**
- * Module for the client details component.
+ * Module for the client overview component.
  */
 @NgModule({
   imports: [
     CommonModule,
-    RouterModule,
     MatIconModule,
     TimestampModule,
-    HumanReadableSizeModule,
     MatDividerModule,
     MatChipsModule,
-    MatListModule,
     MatButtonModule,
+    ClientDetailsModule,
+    MatSidenavModule,
+    ClientAddLabelDialogModule,
+    OnlineChipModule,
+    MatSnackBarModule,
     MatDialogModule,
   ],
   declarations: [
-    ClientDetails,
-    EntryHistoryDialog,
-    EntryHistoryButton,
+    ClientOverview,
   ],
   exports: [
-    ClientDetails,
+    ClientOverview,
   ]
 })
-export class ClientDetailsModule {
+export class ClientOverviewModule {
 }
