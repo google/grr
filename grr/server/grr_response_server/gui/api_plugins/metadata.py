@@ -1125,10 +1125,14 @@ def _CompareComponentsCollections(
   return 0
 
 
-class UngroupedRoute(NamedTuple):
+class UngroupedRoute:
   """A named tuple for storing routes and their state during route grouping."""
-  route: Collection[str]
+  route: List[str]
   processed: bool
+
+  def __init__(self, route: List[str] = None, processed: bool = False):
+    self.route = route
+    self.processed = processed
 
 
 def _IsExtension(
@@ -1161,7 +1165,7 @@ def _ExtractPathParamsFromRouteList(route_comps: Collection[str]) -> Set[str]:
   return path_params
 
 
-def _GetGroupedRoutes(routes: List[Collection[str]]) -> List[RouteInfo]:
+def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
   """Get a list of routes and their required and optional path parameters."""
   routes.sort(key=cmp_to_key(_CompareComponentsCollections))
   ungrouped_routes = [
@@ -1171,19 +1175,21 @@ def _GetGroupedRoutes(routes: List[Collection[str]]) -> List[RouteInfo]:
 
   grouped_routes = []
   for i_stem_route in range(num_routes):
-    stem_route, stem_route_processed = ungrouped_routes[i_stem_route]
+    stem_route = ungrouped_routes[i_stem_route].route
+    stem_route_processed = ungrouped_routes[i_stem_route].processed
     if stem_route_processed:
       continue
 
     parent_route = stem_route
     for i_child_route in range(i_stem_route + 1, num_routes):
-      child_route, child_route_processed = ungrouped_routes[i_child_route]
+      child_route = ungrouped_routes[i_child_route].route
+      child_route_processed = ungrouped_routes[i_child_route].processed
 
       if child_route_processed:
         continue
-      ungrouped_routes[i_child_route].processed = True
 
       if _IsExtension(child_route, parent_route):
+        ungrouped_routes[i_child_route].processed = True
         parent_route = child_route
 
     required_path_params = _ExtractPathParamsFromRouteList(stem_route)
