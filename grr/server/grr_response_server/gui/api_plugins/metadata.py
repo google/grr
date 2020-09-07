@@ -39,6 +39,7 @@ DescribedSchema = Dict[str,
                        Union[str, List[SchemaReference], List[ArraySchema]]]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
+RDFTypeDescription = Dict[str, Union[str, PrimitiveSchema]]
 TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
 
 
@@ -132,15 +133,59 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   },
 }
 
-rdf_types: Dict[str, PrimitiveSchema] = {
-  "RDFDatetime": {"type": "string", "format": "date-time"},
-  "RDFDatetimeSeconds": {"type": "string", "format": "uint64"},
-  "Duration": {"type": "string", "format": "uint64"},
-  "DurationSeconds": {"type": "string", "format": "uint64"},
-  "RDFBytes": {"type": "string", "format": "byte"},
-  "HashDigest": {"type": "string", "format": "byte"},
-  "GlobExpression": {"type": "string", "format": "glob-expression"},
+rdf_types: Dict[str, RDFTypeDescription] = {
+  "RDFDatetime": {
+    "schema": {"type": "string", "format": "uint64"},
+    "description": "RDF type is `RDFDatetime` and it represents "
+                   "the number of microseconds since epoch to a timestamp.",
+  },
+  "RDFDatetimeSeconds": {
+    "schema": {"type": "string", "format": "uint64"},
+    "description": "RDF type is `RDFDatetimeSeconds` and it represents "
+                   "the number of seconds since epoch to a timestamp.",
+  },
+  "Duration": {
+    "schema": {"type": "string", "format": "uint64"},
+    "description": "RDF type is `Duration` and it represents "
+                   "the number of microseconds between two timestamps.",
+  },
+  "DurationSeconds": {
+    "schema": {"type": "string", "format": "uint64"},
+    "description": "RDF type is `DurationSeconds` and it represents "
+                   "the number of seconds between two timestamps.",
+  },
+  "RDFBytes": {
+    "schema": {"type": "string", "format": "byte"},
+    "description": "RDF type is `RDFBytes` and it represents "
+                   "a buffer of bytes.",
+  },
+  "HashDigest": {
+    "schema": {"type": "string", "format": "byte"},
+    "description": "RDF type is `HashDigest` and it represents "
+                   "a binary hash digest with hex string representation.",
+  },
+  "GlobExpression": {
+    "schema": {"type": "string"},
+    "description": "RDF type is `GlobExpression` and it represents "
+                   "a glob expression for a client path.",
+  },
+  "ByteSize": {
+    "schema": {"type": "string", "format": "uint64"},
+    "description": "RDF type is `ByteSize` and it represents "
+                   "a size for bytes allowing standard unit prefixes.",
+  },
+  "RDFURN": {
+    "schema": {"type": "string"},
+    "description": "RDF type is `RDFURN` and it represents "
+                   "an object to abstract URL manipulation.",
+  },
+  "SessionID": {
+    "schema": {"type": "string"},
+    "description": "RDF type is `SessionID` and it represents "
+                   "an rdfvalue object that represents a session_id.",
+  },
 }
+
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
