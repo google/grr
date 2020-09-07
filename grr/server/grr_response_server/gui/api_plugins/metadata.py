@@ -1039,7 +1039,7 @@ def _CompareComponentsCollections(
 
 
 class UngroupedRoute:
-  """A named tuple for storing routes and their state during route grouping."""
+  """A class for storing routes and their state during route grouping."""
   route: List[str]
   processed: bool
 
