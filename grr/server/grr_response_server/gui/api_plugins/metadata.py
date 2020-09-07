@@ -39,7 +39,6 @@ DescribedSchema = Dict[str,
                        Union[str, List[SchemaReference], List[ArraySchema]]]
 Schema = Union[PrimitiveSchema, EnumSchema, MessageSchema, ArraySchema]
 PrimitiveDescription = Dict[str, Union[str, PrimitiveSchema]]
-RDFTypeDescription = Dict[str, Union[str, PrimitiveSchema]]
 TypeHinter = Union[Descriptor, FieldDescriptor, EnumDescriptor, Type, int, str]
 
 
@@ -133,54 +132,61 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   },
 }
 
-rdf_types: Dict[str, RDFTypeDescription] = {
+rdf_types_schemas: Dict[str, Schema] = {
   "RDFDatetime": {
-    "schema": {"type": "string", "format": "uint64"},
+    "type": "string",
+    "format": "uint64",
     "description": "RDF type is `RDFDatetime` and it represents "
                    "the number of microseconds since epoch to a timestamp.",
   },
   "RDFDatetimeSeconds": {
-    "schema": {"type": "string", "format": "uint64"},
+    "type": "string",
+    "format": "uint64",
     "description": "RDF type is `RDFDatetimeSeconds` and it represents "
                    "the number of seconds since epoch to a timestamp.",
   },
   "Duration": {
-    "schema": {"type": "string", "format": "uint64"},
+    "type": "string",
+    "format": "uint64",
     "description": "RDF type is `Duration` and it represents "
                    "the number of microseconds between two timestamps.",
   },
   "DurationSeconds": {
-    "schema": {"type": "string", "format": "uint64"},
+    "type": "string",
+    "format": "uint64",
     "description": "RDF type is `DurationSeconds` and it represents "
                    "the number of seconds between two timestamps.",
   },
   "RDFBytes": {
-    "schema": {"type": "string", "format": "byte"},
+    "type": "string",
+    "format": "byte",
     "description": "RDF type is `RDFBytes` and it represents "
                    "a buffer of bytes.",
   },
   "HashDigest": {
-    "schema": {"type": "string", "format": "byte"},
+    "type": "string",
+    "format": "byte",
     "description": "RDF type is `HashDigest` and it represents "
                    "a binary hash digest with hex string representation.",
   },
   "GlobExpression": {
-    "schema": {"type": "string"},
+    "type": "string",
     "description": "RDF type is `GlobExpression` and it represents "
                    "a glob expression for a client path.",
   },
   "ByteSize": {
-    "schema": {"type": "string", "format": "uint64"},
+    "type": "string",
+    "format": "uint64",
     "description": "RDF type is `ByteSize` and it represents "
                    "a size for bytes allowing standard unit prefixes.",
   },
   "RDFURN": {
-    "schema": {"type": "string"},
+    "type": "string",
     "description": "RDF type is `RDFURN` and it represents "
                    "an object to abstract URL manipulation.",
   },
   "SessionID": {
-    "schema": {"type": "string"},
+    "type": "string",
     "description": "RDF type is `SessionID` and it represents "
                    "an rdfvalue object that represents a session_id.",
   },
@@ -250,6 +256,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.schema_objs.update(
       cast(Dict[str, Dict[str, str]], primitive_types_schemas)
     )
+
+  def _AddRDFTypesSchemas(self) -> None:
+    """Adds the OpenAPI schemas for RDF types."""
+    if self.schema_objs is None:
+      raise AssertionError("OpenAPI type schemas not initialized.")
+
+    self.schema_objs.update(rdf_types_schemas)
 
   def _CreateEnumSchema(
       self,
@@ -449,6 +462,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
     self._AddPrimitiveTypesSchemas()
+    self._AddRDFTypesSchemas()
 
     # Holds state of types extraction (white/gray nodes).
     visiting: Set[str] = set()
@@ -940,6 +954,17 @@ def _GetPathParamsFromPath(path: str) -> List[str]:
 def _GetTypeName(cls: Optional[TypeHinter]) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
+    # First, check for the `sem_type` protobuf option and its `type` field.
+    field_options = cls.GetOptions()
+    # TODO(alexandrucosminmihai): Finish implementing the extraction of the
+    # `type` field from the `FieldOptions`'s `sem_type` field that is associated
+    # with the current field and return its value (the static type name).
+    if field_options:  # TODO: Delete this.
+      raise ValueError(f"field_options={field_options}")
+    if field_options and "sem_type" in field_options.fields_by_name:
+      sem_type_option = field_options.fields_by_name["sem_type"]
+      raise ValueError(f"sem_type_option={sem_type_option}")  # TODO: Delete this.
+
     if _IsMapField(cls):
       map_type_name = _GetTypeName(cls.message_type)
       if map_type_name.endswith("Entry"):
