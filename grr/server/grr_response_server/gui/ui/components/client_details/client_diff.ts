@@ -205,10 +205,11 @@ export function getClientVersions(clientSnapshots: Client[]):
 
 function getFirstStringsJoinedPath(path: any[]): string {
   let tokens: string[] = [];
-  path.forEach(val => {
-    if (typeof val !== 'string') return;
-    tokens.push(val);
-  });
+
+  for (let i = 0; i < path.length; i++) {
+    if (typeof path[i] !== 'string') break;
+    tokens.push(path[i]);
+  }
 
   return tokens.join('.');
 }
@@ -219,10 +220,12 @@ function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
 
   differences.forEach(diffItem => {
     if (diffItem.path === undefined) return;
-    const joinedPath = getFirstStringsJoinedPath(diffItem.path);
+    const joinedPath =
+        diffItem.path.filter(val => typeof val === 'string').join('.');
     if (!RELEVANT_ENTRIES_LABEL_MAP.has(joinedPath)) return;
 
-    pathsSetOfChangedEntries.add(joinedPath);
+    // Mark the top level object path as changed
+    pathsSetOfChangedEntries.add(getFirstStringsJoinedPath(diffItem.path));
   });
 
   return [...pathsSetOfChangedEntries.values()];
