@@ -7,7 +7,8 @@ import collections
 
 from urllib import parse as urlparse
 from typing import Optional, cast
-from typing import Type, Any, Union, Tuple, List, Set, Dict, DefaultDict
+from typing import Type, TypeVar, Any, Union, Tuple, Iterable, List, Set
+from typing import Dict, DefaultDict
 from typing import NamedTuple
 
 from google.protobuf.descriptor import Descriptor
@@ -42,6 +43,16 @@ class KeyValueDescriptor(NamedTuple):
   """A named tuple for `protobuf.map`'s `key` and `value` `FieldDescriptor`s."""
   key: FieldDescriptor
   value: FieldDescriptor
+
+
+class RouteInfo(NamedTuple):
+  """A named tuple for the lists of route components and path arguments."""
+  # A list of the HTTP method and the components of a URL path.
+  route_comps: List[str]
+  # A list of path components that represent required path parameters.
+  req_path_params_comps: List[str]
+  # A list of path components that represent optional path parameters.
+  opt_path_params_comps: List[str]
 
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
@@ -496,21 +507,25 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetParameters(
       self,
-      path_params: List[FieldDescriptor],
-      query_params: List[FieldDescriptor],
+      required_path_params: Iterable[FieldDescriptor],
+      optional_path_params: Iterable[FieldDescriptor],
+      query_params: Iterable[FieldDescriptor],
   ) -> List[
     Dict[str, Union[str, bool, SchemaReference, ArraySchema]]
   ]:
     """Create the OpenAPI description of the parameters of a route."""
     parameters = []
 
-    path_params_set = set(path_params)
+    req_path_params_set = set(required_path_params)
+    opt_path_params_set = set(optional_path_params)
     query_params_set = set(query_params)
-    for field_d in path_params_set | query_params_set:
+    for field_d in req_path_params_set | opt_path_params_set | query_params_set:
       parameter_obj = {"name": field_d.name}
-      if field_d in path_params_set:
+      if field_d in req_path_params_set:
         parameter_obj["in"] = "path"
         parameter_obj["required"] = True
+      elif field_d in opt_path_params_set:
+        parameter_obj["in"] = "path"
       else:
         parameter_obj["in"] = "query"
 
@@ -522,7 +537,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetRequestBody(
       self,
-      body_params: List[FieldDescriptor],
+      body_params: Iterable[FieldDescriptor],
   ) -> Dict[str, Dict]:
     """Create the OpenAPI description of the request body of a route."""
     if not body_params:
@@ -673,7 +688,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       field_descriptors = args_type.protobuf.DESCRIPTOR.fields
 
     # Separate fields into params: path, query and part of the request body.
-    path_params_names = set(_GetPathArgsFromPath(path))
+    path_params_names = set(_GetPathParamsFromPath(path))
     path_params = []
     query_params = []
     body_params = []
@@ -692,6 +707,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       http_method: str,
       path: str,
       router_method: Any,
+      required_path_params: Iterable[FieldDescriptor],
+      optional_path_params: Iterable[FieldDescriptor],
+      query_params: Iterable[FieldDescriptor],
+      body_params: Iterable[FieldDescriptor],
   ) -> Dict[str, Any]:
     """Create the OpenAPI `Operation Object` associated with the given args."""
 
@@ -702,9 +721,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         .replace(">", "_")
         .replace(":", "-")
     )
-    path_params, query_params, body_params = (
-      self._SeparateFieldsIntoParams(http_method, path, router_method.args_type)
-    )
 
     # The `Operation Object` associated with the current http method.
     operation_obj = {
@@ -712,7 +728,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       "description": router_method.doc or "No description.",
       "operationId": urlparse.quote(f"{http_method}-{url_path}-"
                                     f"{router_method.name}"),
-      "parameters": self._GetParameters(path_params, query_params),
+      "parameters": self._GetParameters(
+        required_path_params, optional_path_params, query_params
+      ),
       "responses": {
         "200": (
           self._GetResponseObject200(router_method.result_type,
@@ -721,7 +739,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         "default": self._GetResponseObjectDefault(router_method.name),
       },
     }
-    if body_params:  # Only POST methods should have an associated `requestBody`.
+    # Only POST methods should have an associated `requestBody`.
+    if body_params:
       operation_obj["requestBody"] = self._GetRequestBody(body_params)
 
     return operation_obj
@@ -733,15 +752,57 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     paths_obj: DefaultDict[str, Dict] = collections.defaultdict(dict)
 
     router_methods = self.router.__class__.GetAnnotatedMethods()
-    for router_method_name in router_methods:
-      router_method = router_methods[router_method_name]
+    for router_method in router_methods.values():
+      # To extract optional path parameters, all the routes associated with this
+      # router method must be analysed and grouped.
+      ungrouped_routes = []
       for http_method, path, strip_root_types in router_method.http_methods:
-        normalized_path = _NormalizePath(path)
+        path_components = path.split("/")
+        ungrouped_routes.append([http_method] + path_components)
 
-        # The `Path Object` associated with the current path.
+      grouped_routes = _GetGroupedRoutes(ungrouped_routes)
+      for route_info in grouped_routes:
+        # Components (comps) are URL components, including Werkzeug path
+        # arguments such as `<client_id>` or `<path:file_path>`.
+        route_comps, req_path_params_comps, opt_path_params_comps = route_info
+        http_method = route_comps[0]
+        path = "/".join(route_comps[1:])
+
+        # Separate the route parameters into path params, query params and
+        # request body params.
+        path_params, query_params, body_params = self._SeparateFieldsIntoParams(
+          http_method, path, router_method.args_type
+        )
+
+        # Separate the path params into required and optional path params.
+        # First, extract path params names by normalizing the Werkzeug path args
+        # components to OpenAPI path args and remove the surrounding brackets.
+        req_path_params_names = [
+          _NormalizePathComponent(comp)[1:-1] for comp in req_path_params_comps
+        ]
+        opt_path_params_names = [
+          _NormalizePathComponent(comp)[1:-1] for comp in opt_path_params_comps
+        ]
+        req_path_params = []
+        opt_path_params = []
+        for path_param in path_params:
+          if path_param.name in req_path_params_names:
+            req_path_params.append(path_param)
+          elif path_param.name in opt_path_params_names:
+            opt_path_params.append(path_param)
+          else:
+            raise AssertionError(
+              f"Path parameter {path_param.name} was not classified as "
+              f"required/optional."
+            )
+
+        normalized_path = _NormalizePath(path)
         path_obj = paths_obj[normalized_path]
         path_obj[http_method.lower()] = (
-          self._GetOperationDescription(http_method, path, router_method)
+          self._GetOperationDescription(
+            http_method, normalized_path, router_method,
+            req_path_params, opt_path_params, query_params, body_params
+          )
         )
 
     return paths_obj
@@ -805,18 +866,18 @@ def _NormalizePath(path: str) -> str:
   return normalized_path
 
 
-def _GetPathArgsFromPath(path: str) -> List[str]:
+def _GetPathParamsFromPath(path: str) -> List[str]:
   """Extract path parameters from a Werkzeug Rule URL."""
-  path_args = []
+  path_params = []
 
   components = path.split("/")
   for component in components:
     if component.startswith("<") and component.endswith(">"):
       normalized_component = _NormalizePathComponent(component)
       normalized_component = normalized_component[1:-1]
-      path_args.append(normalized_component)
+      path_params.append(normalized_component)
 
-  return path_args
+  return path_params
 
 
 def _GetTypeName(cls: Optional[TypeHinter]) -> str:
@@ -952,3 +1013,133 @@ def _GetMapFieldKeyValueTypes(
 def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
   """Checks that a `FieldDescriptor` is of a map type."""
   return _GetMapFieldKeyValueTypes(field_descriptor) is not None
+
+
+ComponentTrieNodeSubclass = TypeVar(
+  "ComponentTrieNodeSubclass", bound="ComponentTrieNode"
+)
+
+
+class ComponentTrieNode:
+  def __init__(
+      self,
+      component: str,
+      parent_path: str,
+  ) -> None:
+    self.component = component
+    if parent_path:
+      self.path = f"{parent_path}/{component}"
+    else:
+      self.path = component
+    self.is_path_arg = component.startswith("<") and component.endswith(">")
+    self.is_route_end = False
+    self.children: Dict[str, ComponentTrieNode] = dict()
+
+  @classmethod
+  def FromRoutes(
+      cls: Type[ComponentTrieNodeSubclass],
+      routes: Iterable[Iterable[str]]
+  ) -> ComponentTrieNodeSubclass:
+    """Creates a trie of routes components and returns the root of the trie."""
+    root = cls("", "")
+
+    for route in routes:
+      curr_node: ComponentTrieNode = root
+
+      for component in route:
+        if component not in curr_node.children:
+          curr_node.children[component] = (
+            cls(component, curr_node.path)
+          )
+        curr_node = curr_node.children[component]
+
+      curr_node.is_route_end = True
+
+    return root
+
+
+def _GroupRoutesByStem(
+    curr_node: ComponentTrieNode,
+    path_params: List[ComponentTrieNode],
+    stem_node: Optional[ComponentTrieNode],
+    grouped_routes_stems: Dict[str, Dict],
+) -> None:
+  """Group routes with the same stem and extract required/optional path args."""
+  new_stem_node = stem_node
+
+  if curr_node.is_path_arg:
+    path_params.append(curr_node)
+
+  if curr_node.is_route_end:
+    if stem_node is None:
+      new_stem_node = curr_node
+    elif curr_node.is_path_arg:
+      grouped_routes_stems[stem_node.path]["optional"].append(curr_node)
+    else:
+      # It's a terminal fixed URL component => new route which might have some
+      # optional path parameters.
+      new_stem_node = curr_node
+  else:
+    # Non-terminal components that are waiting for components farther to the
+    # right to end the URL they are part of. The path parameters in this
+    # situation will be marked as required.
+    new_stem_node = None
+
+  if new_stem_node is not None and new_stem_node != stem_node:
+    # We've detected a new route end with its associated fixed stem.
+    grouped_routes_stems[new_stem_node.path] = {
+      "required": path_params.copy(),
+      "optional": [],
+    }
+
+  for child in curr_node.children.values():
+    _GroupRoutesByStem(child, path_params, new_stem_node, grouped_routes_stems)
+
+  # We'll go back to the parent of this node, so we remove the current path arg
+  # from the list of path args, as we will next go on a diferent branch/path in
+  # the trie.
+  if curr_node.is_path_arg:
+    path_params.pop()
+
+
+def _GetGroupedRoutes(routes: Iterable[Iterable[str]]) -> List[RouteInfo]:
+  """Get a list of routes and their required and optional path parameters.
+
+  This function creates a trie of the path components from the given list of
+  routes and then identifies groups of routes that can be reduced to a single
+  route that has optional path parameters.
+
+  Args:
+    routes: A list of routes where each route is represented as a list where
+      the first element is a string representing the HTTP method of the route
+      and the following elements are strings representing the path components.
+
+  Returns:
+    A list of `RouteInfo`s which describe the extracted routes with their
+    required and optional path parameters figured out by analysing the initial
+    given routes.
+  """
+  comps_trie_root = ComponentTrieNode.FromRoutes(routes)
+  grouped_routes_stems: Dict[str, Dict[str, Iterable[ComponentTrieNode]]] = (
+    dict()
+  )
+  _GroupRoutesByStem(comps_trie_root, [], None, grouped_routes_stems)
+
+  grouped_routes = []
+  for route_stem in grouped_routes_stems:
+    route_desc = grouped_routes_stems[route_stem]
+
+    req_path_params_comps = [node.component for node in route_desc["required"]]
+    opt_path_params_comps = [node.component for node in route_desc["optional"]]
+    # `req_path_params_comps` are included in the `route_stem`.
+    route_comps = route_stem.split("/") + opt_path_params_comps
+
+    grouped_routes.append(
+      RouteInfo(
+        route_comps=route_comps,
+        req_path_params_comps=req_path_params_comps,
+        opt_path_params_comps=opt_path_params_comps,
+      )
+    )
+
+  return grouped_routes
