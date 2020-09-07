@@ -1,4 +1,3 @@
-import {Location} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {MatDrawer} from '@angular/material/sidenav';
@@ -25,15 +24,15 @@ export class ClientOverview implements OnInit, OnDestroy {
    * Non-empty string to be appended to the URL when the client details opens.
    * Defaults to 'details'.
    */
-  @Input() urlSegment: string = 'details';
   readonly client$ = this.clientPageFacade.selectedClient$;
   private readonly unsubscribe$ = new Subject<void>();
-
   @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
+
+  readonly clientDetailsDrawerOpening$ = new Subject<void>();
+  readonly clientDetailsDrawerClosing$ = new Subject<void>();
 
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
-      private readonly location: Location,
       private readonly dialog: MatDialog,
       private readonly snackBar: MatSnackBar,
   ) {}
@@ -47,16 +46,12 @@ export class ClientOverview implements OnInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.clientDetailsDrawer.closedStart.subscribe(() => {
-      const urlTokens = this.location.path().split('/');
-      this.location.go(urlTokens.slice(0, -1).join('/'));
+    this.clientDetailsDrawer.openedStart.subscribe(() => {
+      this.clientDetailsDrawerOpening$.next();
     });
 
-    this.location.onUrlChange(url => {
-      const urlTokens = url.split('/');
-      if (urlTokens[urlTokens.length - 1] === this.urlSegment) {
-        this.clientDetailsDrawer.open();
-      }
+    this.clientDetailsDrawer.closedStart.subscribe(() => {
+      this.clientDetailsDrawerClosing$.next();
     });
   }
 
@@ -65,12 +60,7 @@ export class ClientOverview implements OnInit, OnDestroy {
   }
 
   onClientDetailsButtonClick() {
-    if (this.clientDetailsDrawer.opened) {
-      this.clientDetailsDrawer.close();
-    } else {
-      const currentUrl = this.location.path();
-      this.location.go(`${currentUrl}/${this.urlSegment}`);
-    }
+    this.clientDetailsDrawer.toggle();
   }
 
   openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
@@ -111,8 +101,14 @@ export class ClientOverview implements OnInit, OnDestroy {
     this.clientDetailsDrawer.open();
   }
 
+  closeClientDetailsDrawer() {
+    this.clientDetailsDrawer.close();
+  }
+
   ngOnDestroy() {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
+    this.clientDetailsDrawerOpening$.complete();
+    this.clientDetailsDrawerClosing$.complete();
   }
 }

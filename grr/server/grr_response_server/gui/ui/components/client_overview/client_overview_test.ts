@@ -156,48 +156,15 @@ describe('Client Overview', () => {
       labels: [{name: 'testlabel', owner: ''}],
     }));
     fixture.detectChanges();
-    const detailsDrawer =
+    const detailsDrawer: MatDrawer =
         fixture.debugElement.query(By.directive(MatDrawer)).componentInstance;
-    const drawerOpenSpy = spyOn(detailsDrawer, 'open');
+    expect(detailsDrawer.opened).toEqual(false);
 
     const detailsButton =
         fixture.debugElement.query(By.css('.goto-details')).nativeElement;
     detailsButton.dispatchEvent(new MouseEvent('click'));
 
-    expect(drawerOpenSpy).toHaveBeenCalled();
+    expect(detailsDrawer.opened).toEqual(true);
     detailsDrawer.close();
   });
-
-  it('appends a customizable segment to the URL when opening the client details drawer',
-     () => {
-       const subject = new Subject<Client>();
-       Object.defineProperty(facade, 'selectedClient$', {get: () => subject});
-
-       const fixture = TestBed.createComponent(ClientOverview);
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-       subject.next(newClient({
-         clientId: 'C.1234',
-         labels: [{name: 'testlabel', owner: ''}],
-       }));
-       fixture.detectChanges();
-       fixture.componentInstance.onClientDetailsButtonClick();
-
-       expect(location.path().endsWith('details')).toBe(true);
-       fixture.componentInstance.onClientDetailsButtonClick();
-
-       // The following expectation is met when testing manually, but not on
-       // automated testing, because the drawer's closedStart observable is
-       // not emitting
-       // expect(location.path().endsWith('details')).toBe(false);
-
-       fixture.componentInstance.urlSegment = 'custom';
-       fixture.componentInstance.onClientDetailsButtonClick();
-
-       expect(location.path().endsWith('custom')).toBe(true);
-       fixture.componentInstance.onClientDetailsButtonClick();
-       // The following expectation is met when testing manually, but not on
-       // automated testing, because the drawer's closedStart observable is
-       // not emitting expect(location.path().endsWith('custom')).toBe(false);
-     });
 });
