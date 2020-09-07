@@ -72,13 +72,9 @@
 
     <br>
     <div class="section-title mat-h3">Users
-      <entry-history-button path="users"></entry-history-button>
+      <entry-history-button path="users" type="user-list"></entry-history-button>
     </div>
-    <ng-template ngFor let-user [ngForOf]="client.users.slice(0, currentNumUsersShown)" let-isLast="last">
-      <user-details [user]="user"></user-details>
-      <br *ngIf="!isLast">
-    </ng-template>
-    <div class="empty-section" *ngIf="client.users.length === 0">None.</div>
+    <users-details [users]="client.users.slice(0, currentNumUsersShown)"></users-details>
     <button
       *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-more'"
       mat-button color="primary" (click)="currentNumUsersShown = client.users.length">
@@ -112,11 +108,7 @@
     <div class="section-title mat-h3">Network Interfaces
       <entry-history-button path="networkInterfaces" type="interface-list"></entry-history-button>
     </div>
-    <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces.slice(0, currentNumInterfacesShown)" let-isLast="last">
-      <interface-details [interface]="interface"></interface-details>
-      <br *ngIf="!isLast">
-    </ng-template>
-    <div class="empty-section" *ngIf="client.networkInterfaces.length === 0">None.</div>
+    <interfaces-details [interfaces]="client.networkInterfaces.slice(0, currentNumInterfacesShown)"></interfaces-details>
     <button
       *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-more'"
       mat-button color="primary" (click)="currentNumInterfacesShown = client.networkInterfaces.length">
@@ -132,11 +124,7 @@
     <div class="section-title mat-h3">Storage Volumes
       <entry-history-button path="volumes" type="volume-list"></entry-history-button>
     </div>
-    <ng-template ngFor let-volume [ngForOf]="client.volumes.slice(0, currentNumVolumesShown)" let-isLast="last">
-      <volume-details [volume]="volume"></volume-details>
-      <br *ngIf="!isLast">
-    </ng-template>
-    <div class="empty-section" *ngIf="client.volumes.length === 0">None.</div>
+    <volumes-details [volumes]="client.volumes.slice(0, currentNumVolumesShown)"></volumes-details>
     <button
       *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-more'"
       mat-button color="primary" (click)="currentNumVolumesShown = client.volumes.length">

@@ -5,11 +5,11 @@ import {StorageVolume} from '@app/lib/models/client';
  * Component the details for a single StorageVolume.
  */
 @Component({
-  selector: 'volume-details',
-  templateUrl: './volume_details.ng.html',
-  styleUrls: ['./volume_details.scss'],
+  selector: 'volumes-details',
+  templateUrl: './volumes_details.ng.html',
+  styleUrls: ['./volumes_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class VolumeDetails {
-  @Input() volume!: StorageVolume;
+export class VolumesDetails {
+  @Input() volumes!: StorageVolume[];
 }

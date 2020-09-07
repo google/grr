@@ -1,0 +1,62 @@
+<ng-template ngFor let-volume [ngForOf]="volumes" let-isLast="last">
+  <table class="section">
+    <ng-template [ngIf]="volume.windowsDetails">
+      <tr *ngIf="volume.windowsDetails.driveLetter">
+        <td class="description">Windows drive letter</td>
+        <td class="value">{{volume.windowsDetails.driveLetter}}</td>
+      </tr>
+      <tr *ngIf="volume.windowsDetails.attributes">
+        <td class="description">Windows drive attributes</td>
+        <td class="value">
+          <div *ngFor="let attribute of volume.windowsDetails.attributes">
+            {{attribute}}
+          </div>
+        </td>
+      </tr>
+      <tr *ngIf="volume.windowsDetails.driveType">
+        <td class="description">Windows drive type</td>
+        <td class="value">{{volume.windowsDetails.driveType}}</td>
+      </tr>
+    </ng-template>
+    <ng-template [ngIf]="volume.unixDetails">
+      <tr *ngIf="volume.unixDetails.mountPoint">
+        <td class="description">Unix mount point</td>
+        <td class="value">{{volume.unixDetails.mountPoint}}</td>
+      </tr>
+      <tr *ngIf="volume.unixDetails.mountOptions">
+        <td class="description">Unix mount options</td>
+        <td class="value">{{volume.unixDetails.mountOptions}}</td>
+      </tr>
+    </ng-template>
+    <tr *ngIf="volume.name">
+      <td class="description">Volume name</td>
+      <td class="value">{{volume.name}}</td>
+    </tr>
+    <tr *ngIf="volume.devicePath">
+      <td class="description">Storage device path</td>
+      <td class="value">{{volume.devicePath}}</td>
+    </tr>
+    <tr *ngIf="volume.fileSystemType">
+      <td class="description">Filesystem type</td>
+      <td class="value">{{volume.fileSystemType}}</td>
+    </tr>
+    <tr *ngIf="volume.totalSize">
+      <td class="description">Total size</td>
+      <td class="value"><human-readable-size [size]="volume.totalSize"></human-readable-size></td>
+    </tr>
+    <tr *ngIf="volume.freeSpace">
+      <td class="description">Free space</td>
+      <td class="value"><human-readable-size [size]="volume.freeSpace"></human-readable-size></td>
+    </tr>
+    <tr *ngIf="volume.bytesPerSector">
+      <td class="description">Sector size</td>
+      <td class="value">{{volume.bytesPerSector}} B</td>
+    </tr>
+    <tr *ngIf="volume.creationTime">
+      <td class="description">Creation time</td>
+      <td class="value"><timestamp [date]="volume.creationTime"></timestamp></td>
+    </tr>
+  </table>
+  <br *ngIf="!isLast">
+</ng-template>
+<div class="section" *ngIf="volumes.length === 0">None.</div>
