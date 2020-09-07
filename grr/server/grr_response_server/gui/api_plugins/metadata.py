@@ -1130,7 +1130,7 @@ class UngroupedRoute:
   route: List[str]
   processed: bool
 
-  def __init__(self, route: List[str] = None, processed: bool = False):
+  def __init__(self, route: List[str], processed: bool):
     self.route = route
     self.processed = processed
 
