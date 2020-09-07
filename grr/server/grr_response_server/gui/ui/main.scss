@@ -6,6 +6,9 @@
 // Include all theme-styles for the components based on the current theme.
 @include angular-material-theme($theme);
 
+$toolbar-height: 64px;
+$client-overview-height: 150px;
+
 app,
 body,
 html {

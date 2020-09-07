@@ -1,6 +1,9 @@
 @use '~material-theme' as c;
+@use '~main' as main;
 
 .toolbar {
+  box-sizing: border-box;
+  height: main.$toolbar-height;
   box-shadow: 0px 0px 4px c.mat-color(c.$background, shadow);
 
   .brand {
