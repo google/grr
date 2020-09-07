@@ -1,4 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {MatDrawer} from '@angular/material/sidenav';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Subject} from 'rxjs';
 import {filter, map, take, takeUntil} from 'rxjs/operators';
@@ -25,7 +26,9 @@ export class Client implements OnInit, OnDestroy {
 
   private readonly unsubscribe$ = new Subject<void>();
 
-  @ViewChild(ClientOverview) clientOverview!: ClientOverview;
+  @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
+
+  openSidebar = false;
 
   constructor(
       private readonly route: ActivatedRoute,
@@ -42,16 +45,20 @@ export class Client implements OnInit, OnDestroy {
   ngAfterViewInit() {
     const urlTokens = this.router.routerState.snapshot.url.split('/');
     if (urlTokens[urlTokens.length - 1] === Client.CLIENT_DETAILS_ROUTE) {
-      this.clientOverview.openClientDetailsDrawer();
+      this.clientDetailsDrawer.open();
     }
 
-    this.clientOverview.clientDetailsDrawerOpening$.subscribe(() => {
+    this.clientDetailsDrawer.openedStart.subscribe(() => {
       this.router.navigate(['details'], {relativeTo: this.route});
     });
 
-    this.clientOverview.clientDetailsDrawerClosing$.subscribe(() => {
+    this.clientDetailsDrawer.closedStart.subscribe(() => {
       this.router.navigate(['.'], {relativeTo: this.route});
     });
+  }
+
+  onClientDetailsButtonClick() {
+    this.clientDetailsDrawer.toggle();
   }
 
   ngOnDestroy() {

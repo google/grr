@@ -1,5 +1,8 @@
 import {NgModule} from '@angular/core';
 import {RouterModule, Routes} from '@angular/router';
+
+import {ClientDetails} from '../client_details/client_details';
+
 import {Client} from './client';
 
 

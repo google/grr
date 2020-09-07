@@ -4,13 +4,6 @@
 $max-width: 1280px;
 $width: 80%;
 
-.noscroll {
-  overflow: hidden;
-}
-
-.container {
-  height: calc(100vh - #{main.$toolbar-height});
-
   .client-header {
     box-sizing: border-box;
     padding: 20px 0 30px 140px;
@@ -42,12 +35,6 @@ $width: 80%;
           border-radius: 2em;
         }
       }
-
-      .goto-details {
-        margin-left: auto;
-        margin-right: 2em;
-        align-self: flex-end;
-      }
     }
 
     .os,
@@ -55,4 +42,4 @@ $width: 80%;
       margin-bottom: 0.5em;
     }
   }
-}
+
