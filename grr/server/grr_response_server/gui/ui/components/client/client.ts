@@ -1,17 +1,12 @@
-import {Location} from '@angular/common';
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
 import {MatDrawer} from '@angular/material/sidenav';
-import {MatSnackBar} from '@angular/material/snack-bar';
 import {Title} from '@angular/platform-browser';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {Subject} from 'rxjs';
-import {filter, map, take, takeUntil} from 'rxjs/operators';
+import {filter, map, takeUntil} from 'rxjs/operators';
 
-import {ClientLabel} from '../../lib/models/client';
 import {isNonNull} from '../../lib/preconditions';
 import {ClientPageFacade} from '../../store/client_page_facade';
-import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
 /**
  * Component displaying the details and actions for a single Client.
@@ -22,7 +17,8 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Client implements OnInit, OnDestroy {
-  private static LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
+  static readonly CLIENT_DETAILS_ROUTE = 'details';
+
   private readonly id$ = this.route.paramMap.pipe(
       map(params => params.get('id')),
       filter(isNonNull),
@@ -32,15 +28,13 @@ export class Client implements OnInit, OnDestroy {
 
   private readonly unsubscribe$ = new Subject<void>();
 
-  @ViewChild('clientDetailsDrawer') clientDetailsDrawers!: MatDrawer;
+  @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
 
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
       private readonly title: Title,
-      private readonly dialog: MatDialog,
-      private readonly snackBar: MatSnackBar,
-      private readonly location: Location,
+      private readonly router: Router,
   ) {}
 
   ngOnInit() {
@@ -57,80 +51,25 @@ export class Client implements OnInit, OnDestroy {
           const info = fqdn ? `${fqdn} (${client.clientId})` : client.clientId;
           this.title.setTitle(`GRR | ${info}`);
         });
-
-    this.clientPageFacade.lastRemovedClientLabel$
-        .pipe(takeUntil(this.unsubscribe$))
-        .subscribe(label => {
-          this.showLabelRemovedSnackBar(label);
-        });
   }
 
   ngAfterViewInit() {
-    this.clientDetailsDrawers.closedStart.subscribe(() => {
-      const urlTokens = this.location.path().split('/');
-      this.location.go(urlTokens.slice(0, -1).join('/'));
+    const urlTokens = this.router.routerState.snapshot.url.split('/');
+    if (urlTokens[urlTokens.length - 1] === Client.CLIENT_DETAILS_ROUTE) {
+      this.clientDetailsDrawer.open();
+    }
+
+    this.clientDetailsDrawer.openedStart.subscribe(() => {
+      this.router.navigate(['details'], {relativeTo: this.route});
     });
 
-    this.location.onUrlChange(url => {
-      const urlTokens = url.split('/');
-      if (urlTokens[urlTokens.length - 1] === 'details') {
-        this.clientDetailsDrawers.open();
-      }
+    this.clientDetailsDrawer.closedStart.subscribe(() => {
+      this.router.navigate(['.'], {relativeTo: this.route});
     });
-
-    this.route.url.pipe(map(url => url[url.length - 1]), take(1))
-        .subscribe(urlSegment => {
-          if (urlSegment.path === 'details') {
-            this.clientDetailsDrawers.open();
-          }
-        });
   }
 
   onClientDetailsButtonClick() {
-    if (this.clientDetailsDrawers.opened) {
-      this.clientDetailsDrawers.close();
-    } else {
-      const currentUrl = this.location.path();
-      this.location.go(`${currentUrl}/details`);
-    }
-  }
-
-  labelsTrackByName(index: number, item: ClientLabel): string {
-    return item.name;
-  }
-
-  openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
-    const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
-      data: clientLabels,
-    });
-
-    addLabelDialog.afterClosed().subscribe(newLabel => {
-      if (newLabel !== undefined && newLabel !== null && newLabel !== '') {
-        this.addLabel(newLabel);
-      }
-    });
-  }
-
-  private showLabelRemovedSnackBar(label: string) {
-    this.snackBar
-        .open(`Label "${label}" removed`, 'UNDO', {
-          duration: Client.LABEL_REMOVED_SNACKBAR_DURATION_MS,
-          verticalPosition: 'top'
-        })
-        .afterDismissed()
-        .subscribe(snackBar => {
-          if (snackBar.dismissedByAction) {
-            this.addLabel(label);
-          }
-        });
-  }
-
-  removeLabel(label: string) {
-    this.clientPageFacade.removeClientLabel(label);
-  }
-
-  addLabel(label: string) {
-    this.clientPageFacade.addClientLabel(label);
+    this.clientDetailsDrawer.toggle();
   }
 
   ngOnDestroy() {

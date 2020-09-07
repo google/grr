@@ -1,9 +1,9 @@
 @use '~material-theme' as c;
+@use '~main' as main;
 
 .details-container {
   display: flex;
-  // Set to full_screen_height - toolbar_height - client_header_height to enable div scrolling
-  height: calc(100vh - 64px - 150px);
+  height: calc(100vh - #{main.$toolbar-height} - #{main.$client-overview-height});
   width: 1200px;
 
   .timeline {
