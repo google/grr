@@ -214,3 +214,9 @@ message MetadataOneofMessage {
 message MetadataMapMessage {
   map<sfixed64, MetadataSimpleMessage> field_map = 1;
 }
+
+message MetadataSemTypeMessage {
+  optional string field_date_time = 1 [(sem_type) = {
+    type: "RDFDatetime", description: "Simple field with `sem_type` option."
+  }];
+}
