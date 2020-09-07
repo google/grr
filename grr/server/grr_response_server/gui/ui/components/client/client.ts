@@ -27,8 +27,6 @@ export class Client implements OnInit, OnDestroy {
 
   @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
 
-  openSidebar = false;
-
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
