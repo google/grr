@@ -2,7 +2,7 @@ import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, 
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
-import {catchError, map, shareReplay, switchMap, take, mapTo} from 'rxjs/operators';
+import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
 
 import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, GlobComponentExplanation} from './api_interfaces';
 
@@ -303,8 +303,8 @@ export class HttpApiService {
 
     const params = new HttpParams({
       fromObject: {
-        start: ((start?.getTime() ?? 1) * 1000)
-                   .toString(),  // If not set, fetch from beggining of time
+        // If start not set, fetch from beggining of time
+        start: ((start?.getTime() ?? 1) * 1000).toString(),
         end: ((end ?? new Date()).getTime() * 1000).toString(),
       }
     });
