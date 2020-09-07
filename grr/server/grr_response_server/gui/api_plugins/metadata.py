@@ -1019,93 +1019,6 @@ def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
   return _GetMapFieldKeyValueTypes(field_descriptor) is not None
 
 
-ComponentTrieNodeSubclass = TypeVar(
-  "ComponentTrieNodeSubclass", bound="ComponentTrieNode"
-)
-
-# TODO: Remove Trie class and Trie implementation-based functions / methods.
-class ComponentTrieNode:
-  def __init__(
-      self,
-      component: str,
-      parent_path: str,
-  ) -> None:
-    self.component = component
-    if parent_path:
-      self.path = f"{parent_path}/{component}"
-    else:
-      self.path = component
-    self.is_path_arg = component.startswith("<") and component.endswith(">")
-    self.is_route_end = False
-    self.children: Dict[str, ComponentTrieNode] = dict()
-
-  @classmethod
-  def FromRoutes(
-      cls: Type[ComponentTrieNodeSubclass],
-      routes: Iterable[Iterable[str]]
-  ) -> ComponentTrieNodeSubclass:
-    """Creates a trie of routes components and returns the root of the trie."""
-    root = cls("", "")
-
-    for route in routes:
-      curr_node: ComponentTrieNode = root
-
-      for component in route:
-        if component not in curr_node.children:
-          curr_node.children[component] = (
-            cls(component, curr_node.path)
-          )
-        curr_node = curr_node.children[component]
-
-      curr_node.is_route_end = True
-
-    return root
-
-
-def _GroupRoutesByStem(
-    curr_node: ComponentTrieNode,
-    path_params: List[ComponentTrieNode],
-    stem_node: Optional[ComponentTrieNode],
-    grouped_routes_stems: Dict[str, Dict],
-) -> None:
-  """Group routes with the same stem and extract required/optional path args."""
-  new_stem_node = stem_node
-
-  if curr_node.is_path_arg:
-    path_params.append(curr_node)
-
-  if curr_node.is_route_end:
-    if stem_node is None:
-      new_stem_node = curr_node
-    elif curr_node.is_path_arg:
-      grouped_routes_stems[stem_node.path]["optional"].append(curr_node)
-    else:
-      # It's a terminal fixed URL component => new route which might have some
-      # optional path parameters.
-      new_stem_node = curr_node
-  else:
-    # Non-terminal components that are waiting for components farther to the
-    # right to end the URL they are part of. The path parameters in this
-    # situation will be marked as required.
-    new_stem_node = None
-
-  if new_stem_node is not None and new_stem_node != stem_node:
-    # We've detected a new route end with its associated fixed stem.
-    grouped_routes_stems[new_stem_node.path] = {
-      "required": path_params.copy(),
-      "optional": [],
-    }
-
-  for child in curr_node.children.values():
-    _GroupRoutesByStem(child, path_params, new_stem_node, grouped_routes_stems)
-
-  # We'll go back to the parent of this node, so we remove the current path arg
-  # from the list of path args, as we will next go on a diferent branch/path in
-  # the trie.
-  if curr_node.is_path_arg:
-    path_params.pop()
-
-
 def _CompareComponentsCollections(
     comps_1: Collection[str],
     comps_2: Collection[str],
@@ -1166,7 +1079,25 @@ def _ExtractPathParamsFromRouteList(route_comps: Collection[str]) -> Set[str]:
 
 
 def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
-  """Get a list of routes and their required and optional path parameters."""
+  """Get a list of routes and their required and optional path parameters.
+
+  This function sorts the routes in lexicographic order, then iterates through
+  the stem routes and for each of them iterates through all the remaining routes
+  and finds the ones that are extensions of the stem route.
+  Sorting the routes insures that every stem route's extensions are to the right
+  of it and, therefore, the longest extension route is the last one found.
+  After we've found the longest extension route for a stem route, the required
+  path parameters are the ones found in the stem route, while the optional path
+  parameters are the ones found *only* in the extension route.
+
+  Args:
+    routes: A list of routes where each route is represented as a list whose
+      first element is the HTTP method, followed by strings of path components.
+
+  Returns:
+    A list of `RouteInfo` named tuples that hold the extracted required and
+    optional path parameters for each group of routes detected.
+  """
   routes.sort(key=cmp_to_key(_CompareComponentsCollections))
   ungrouped_routes = [
     UngroupedRoute(route=route, processed=False) for route in routes
@@ -1190,7 +1121,7 @@ def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
 
       if _IsExtension(child_route, parent_route):
         ungrouped_routes[i_child_route].processed = True
-        parent_route = child_route
+        parent_route = child_route  # Continue the search for extensions.
 
     required_path_params = _ExtractPathParamsFromRouteList(stem_route)
     optional_path_params = (
