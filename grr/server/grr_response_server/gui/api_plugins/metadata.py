@@ -1023,7 +1023,7 @@ ComponentTrieNodeSubclass = TypeVar(
   "ComponentTrieNodeSubclass", bound="ComponentTrieNode"
 )
 
-
+# TODO: Remove Trie class and Trie implementation-based functions / methods.
 class ComponentTrieNode:
   def __init__(
       self,
@@ -1131,6 +1131,36 @@ class UngroupedRoute(NamedTuple):
   processed: bool
 
 
+def _IsExtension(
+    longer_route: List[str],
+    smaller_route: List[str],
+) -> bool:
+  len_longer = len(longer_route)
+  len_smaller = len(smaller_route)
+  # The longer child route is expected to have exactly one more path component.
+  if len_longer - len_smaller != 1:
+    return False
+  # And that single extra path component must be a path parameter.
+  if not(longer_route[-1].startswith("<") and longer_route[-1].endswith(">")):
+    return False
+
+  # Verify that the rest of the components are the same.
+  for comp_longer, comp_smaller in zip(longer_route, smaller_route):
+    if comp_longer != comp_smaller:
+      return False
+
+  return True
+
+
+def _ExtractPathParamsFromRouteList(route_comps: Collection[str]) -> Set[str]:
+  path_params = set()
+  for comp in route_comps:
+    if comp.startswith("<") and comp.endswith(">"):
+      path_params.add(comp)
+
+  return path_params
+
+
 def _GetGroupedRoutes(routes: List[Collection[str]]) -> List[RouteInfo]:
   """Get a list of routes and their required and optional path parameters."""
   routes.sort(key=cmp_to_key(_CompareComponentsCollections))
@@ -1145,20 +1175,28 @@ def _GetGroupedRoutes(routes: List[Collection[str]]) -> List[RouteInfo]:
     if stem_route_processed:
       continue
 
-    covering_route = stem_route  # TODO: Rename covering_route and covered_route.
-    for i_covered_route in range(i_stem_route + 1, num_routes):
-      covered_route, covered_route_processed = ungrouped_routes[i_covered_route]
+    parent_route = stem_route
+    for i_child_route in range(i_stem_route + 1, num_routes):
+      child_route, child_route_processed = ungrouped_routes[i_child_route]
 
-      if covered_route_processed:
+      if child_route_processed:
         continue
-      ungrouped_routes[i_covered_route].processed = True
+      ungrouped_routes[i_child_route].processed = True
 
-      if _IsExtension(covered_route, covering_route):  # TODO: implement _IsExtension.
-        covering_route = covered_route
+      if _IsExtension(child_route, parent_route):
+        parent_route = child_route
 
-    required_path_params = _ExtractPathParamsFromRouteList(stem_route)  # TODO: implement _ExtractPathParamsFromRouteList.
-    optional_path_params = _ExtractPathParamsFromRouteList(covering_route) - required_path_params
+    required_path_params = _ExtractPathParamsFromRouteList(stem_route)
+    optional_path_params = (
+        _ExtractPathParamsFromRouteList(parent_route) - required_path_params
+    )
 
-    grouped_routes.append(RouteInfo(route_comps=covering_route, req_path_params_comps=required_path_params, opt_path_params_comps=optional_path_params))
+    grouped_routes.append(
+      RouteInfo(
+        route_comps=parent_route,
+        req_path_params_comps=list(required_path_params),
+        opt_path_params_comps=list(optional_path_params),
+      )
+    )
 
   return grouped_routes
