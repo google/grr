@@ -14,6 +14,9 @@ import {TimestampModule} from '../timestamp/module';
 import {ClientDetails} from './client_details';
 import {EntryHistoryButton} from './entry_history_button/entry_history_button';
 import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
+import {VolumeDetails} from './volume_details/volume_details';
+import {UserDetails} from './user_details/user_details';
+import {InterfaceDetails} from './interface_details/interface_details';
 
 /**
  * Module for the client details component.
@@ -35,6 +38,9 @@ import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
     ClientDetails,
     EntryHistoryDialog,
     EntryHistoryButton,
+    VolumeDetails,
+    UserDetails,
+    InterfaceDetails,
   ],
   exports: [
     ClientDetails,

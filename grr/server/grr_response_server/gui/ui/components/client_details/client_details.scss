@@ -81,10 +81,12 @@
       .value {
         font-weight: 500;
       }
+    }
 
-      .empty-section {
-        font-weight: 300;
-      }
+    .empty-section {
+      font-family: c.$google-sans-family;
+      text-align: left;
+      font-weight: 300;
     }
   }
 }
