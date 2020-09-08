@@ -258,7 +258,7 @@ message MetadataSemTypeMessage {
   }];
 
   oneof semtype_oneof {
-    uint64 oneof_date_time = 11 [(sem_type) = {
+    uint64 oneof_datetime = 11 [(sem_type) = {
       type: "RDFDatetime",
       description: "Oneof field with `sem_type` option."
     }];
