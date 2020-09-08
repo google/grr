@@ -3,6 +3,7 @@ import {async, ComponentFixture, inject, TestBed} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
@@ -86,6 +87,7 @@ describe('Entry History Dialog', () => {
 
     expect(component.tableRows).toEqual(expectedTableRows);
 
+    // @ts-ignore
     providedData.path = 'memorySize';
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
@@ -98,18 +100,22 @@ describe('Entry History Dialog', () => {
 
     expect(component.tableRows).toEqual(expectedTableRows);
 
+    // @ts-ignore
     providedData.path = '';  // Empty path string => Error
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
 
+    // @ts-ignore
     providedData.path =
         'osInfo.asdf.memorySize';  // Non-existant property => Error
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
 
+    // @ts-ignore
     providedData.path = 'osInfo.';  // Trailing dot => Error
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
   it('shows a HumanReadableSize component for type \'size\'', () => {
+    // @ts-ignore
     providedData.type = 'size';
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
@@ -120,7 +126,9 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a Timestamp component for type \'timestamp\'', () => {
+    // @ts-ignore
     providedData.type = 'timestamp';
+    // @ts-ignore
     providedData.path = 'osInfo.installDate'
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
@@ -130,32 +138,41 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a users-details component for type \'user-list\'', () => {
+    // @ts-ignore
     providedData.type = 'user-list';
+    // @ts-ignore
     providedData.path = 'users'
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const usersDetailsComponent = fixture.debugElement.query(By.css('users-details'));
+    const usersDetailsComponent =
+        fixture.debugElement.query(By.css('users-details'));
     expect(usersDetailsComponent).toBeTruthy();
   });
 
   it('shows a interfaces-details component for type \'interface-list\'', () => {
+    // @ts-ignore
     providedData.type = 'interface-list';
+    // @ts-ignore
     providedData.path = 'networkInterfaces'
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const interfacesDetailsComponent = fixture.debugElement.query(By.css('interfaces-details'));
+    const interfacesDetailsComponent =
+        fixture.debugElement.query(By.css('interfaces-details'));
     expect(interfacesDetailsComponent).toBeTruthy();
   });
 
   it('shows a volumes-details component for type \'volume-list\'', () => {
+    // @ts-ignore
     providedData.type = 'volume-list';
+    // @ts-ignore
     providedData.path = 'volumes'
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const volumesDetailsComponent = fixture.debugElement.query(By.css('volumes-details'));
+    const volumesDetailsComponent =
+        fixture.debugElement.query(By.css('volumes-details'));
     expect(volumesDetailsComponent).toBeTruthy();
   });
 });
