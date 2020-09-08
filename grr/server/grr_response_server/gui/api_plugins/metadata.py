@@ -553,7 +553,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         if description:
           description += " "
 
-        description += type_description
+        description += cast(str, type_description)
 
     # The following `allOf` is required to display the description by
     # documentation generation tools because the OAS specifies that there
