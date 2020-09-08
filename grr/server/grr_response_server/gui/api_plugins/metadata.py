@@ -839,7 +839,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
 def _NormalizePathComponent(component: str) -> str:
   """Normalize the given path component to be used in a valid OpenAPI path."""
-  if component.startswith("<") and component.endswith(">"):
+  if _IsPathParameter(component):
     component = component[1:-1]
     component = component.split(":")[-1]
     component = f"{{{component}}}"
@@ -876,7 +876,7 @@ def _GetPathParamsFromPath(path: str) -> List[str]:
 
   components = path.split("/")
   for component in components:
-    if component.startswith("<") and component.endswith(">"):
+    if _IsPathParameter(component):
       normalized_component = _NormalizePathComponent(component)
       normalized_component = normalized_component[1:-1]
       path_params.append(normalized_component)
@@ -1043,6 +1043,11 @@ class UngroupedRoute:
     self.processed = processed
 
 
+def _IsPathParameter(comp: str) -> bool:
+  """Check if a path component represents a Werkzeug path parameter."""
+  return comp.startswith("<") and comp.endswith(">")
+
+
 def _IsExtension(
     longer_route: List[str],
     shorter_route: List[str],
@@ -1072,7 +1077,7 @@ def _IsExtension(
   if len_longer - len_shorter != 1:
     return False
   # And that single extra path component must be a path parameter.
-  if not(longer_route[-1].startswith("<") and longer_route[-1].endswith(">")):
+  if not _IsPathParameter(longer_route[-1]):
     return False
 
   # Verify that the rest of the components are the same.
@@ -1084,12 +1089,8 @@ def _IsExtension(
 
 
 def _ExtractPathParamsFromRouteList(route_comps: Collection[str]) -> Set[str]:
-  path_params = set()
-  for comp in route_comps:
-    if comp.startswith("<") and comp.endswith(">"):
-      path_params.add(comp)
-
-  return path_params
+  """Extract the components that represent Werkzeug path parameters."""
+  return set(filter(_IsPathParameter, route_comps))
 
 
 def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
