@@ -4,6 +4,7 @@
 import json
 import inspect
 import collections
+import functools
 
 from urllib import parse as urlparse
 from typing import Optional, cast
@@ -12,8 +13,6 @@ from typing import Iterable, Collection
 from typing import Tuple, List, Set
 from typing import Dict, DefaultDict
 from typing import NamedTuple
-
-from functools import cmp_to_key
 
 from google.protobuf.descriptor import Descriptor
 from google.protobuf.descriptor import EnumDescriptor
@@ -1113,7 +1112,7 @@ def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
     A list of `RouteInfo` named tuples that hold the extracted required and
     optional path parameters for each group of routes detected.
   """
-  routes.sort(key=cmp_to_key(_CompareComponentsCollections))
+  routes.sort(key=functools.cmp_to_key(_CompareComponentsCollections))
   ungrouped_routes = [
     UngroupedRoute(route=route, processed=False) for route in routes
   ]
