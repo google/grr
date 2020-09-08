@@ -2,13 +2,15 @@ import {Component, Inject} from '@angular/core';
 import {MAT_DIALOG_DATA} from '@angular/material/dialog';
 import {Client} from '@app/lib/models/client';
 
+/** Entry type */
 export type EntryType =
     'primitive'|'timestamp'|'size'|'user-list'|'interface-list'|'volume-list';
 
+/** Parameters required to open an EntryHistoryDialog */
 export interface EntryHistoryDialogParams {
-  path: string;
-  type: EntryType;
-  clientVersions: Client[];
+  readonly path: string;
+  readonly type: EntryType;
+  readonly clientVersions: ReadonlyArray<Client>;
 }
 
 interface EntryHistoryTableRow {
@@ -16,6 +18,9 @@ interface EntryHistoryTableRow {
   version: any;
 }
 
+/**
+ * Component displaying the entry history dialog.
+ */
 @Component({
   selector: 'entry-history-dialog',
   templateUrl: './entry_history_dialog.ng.html',
@@ -45,7 +50,7 @@ export class EntryHistoryDialog {
         throw new Error('Wrong "path" provided');
       }
 
-      this.tableRows?.push({
+      this.tableRows.push({
         time: client.age,
         version: property,
       });

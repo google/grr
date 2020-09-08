@@ -21,7 +21,7 @@ export class ClientDetails {
 
   readonly client$ = this.clientPageFacade.selectedClient$;
 
-  // TODO Move this to ClientDetailsStore
+  // TODO(danielberbece): Move this to ClientDetailsStore.
   readonly clientVersions$ = this.clientPageFacade.selectedClientVersions$.pipe(
       map(getClientVersions),
   );

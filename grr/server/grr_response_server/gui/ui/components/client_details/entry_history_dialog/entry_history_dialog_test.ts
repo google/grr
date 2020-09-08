@@ -9,6 +9,7 @@ import {initTestEnvironment} from '@app/testing';
 import {ClientDetailsModule} from '../module';
 
 import {EntryHistoryDialog, EntryHistoryDialogParams} from './entry_history_dialog';
+import {Client} from '@app/lib/models/client';
 
 initTestEnvironment();
 
@@ -86,6 +87,7 @@ describe('Entry History Dialog', () => {
 
     expect(component.tableRows).toEqual(expectedTableRows);
 
+    // @ts-ignore
     providedData.path = 'memorySize';
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
@@ -98,18 +100,22 @@ describe('Entry History Dialog', () => {
 
     expect(component.tableRows).toEqual(expectedTableRows);
 
+    // @ts-ignore
     providedData.path = '';  // Empty path string => Error
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
 
+    // @ts-ignore
     providedData.path =
         'osInfo.asdf.memorySize';  // Non-existant property => Error
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
 
+    // @ts-ignore
     providedData.path = 'osInfo.';  // Trailing dot => Error
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
   it('shows a HumanReadableSize component for type \'size\'', () => {
+    // @ts-ignore
     providedData.type = 'size';
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
@@ -120,7 +126,9 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a Timestamp component for type \'timestamp\'', () => {
+    // @ts-ignore
     providedData.type = 'timestamp';
+    // @ts-ignore
     providedData.path = 'osInfo.installDate'
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;

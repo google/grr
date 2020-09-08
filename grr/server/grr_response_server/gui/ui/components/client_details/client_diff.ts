@@ -72,8 +72,8 @@ const RELEVANT_ENTRIES_LABEL_MAP = new Map([
 function classifyDiffItem(
     diffItem: Diff<Client>, added: Map<string, number>,
     deleted: Map<string, number>, updated: Map<string, number>) {
-  const path = diffItem.path?.filter(val => typeof val === 'string').join('.');
-  if (path === undefined) return;
+  if (diffItem.path === undefined) return;
+  const path = getStringsJoinedPath(diffItem.path);
 
   const label = RELEVANT_ENTRIES_LABEL_MAP.get(path);
   if (label === undefined) return;
@@ -205,33 +205,49 @@ export function getClientVersions(clientSnapshots: Client[]):
 
 function getFirstStringsJoinedPath(path: any[]): string {
   let tokens: string[] = [];
-  path.forEach(val => {
-    if (typeof val !== 'string') return;
-    tokens.push(val);
-  });
+
+  for (let i = 0; i < path.length; i++) {
+    if (typeof path[i] !== 'string') break;
+    tokens.push(path[i]);
+  }
 
   return tokens.join('.');
 }
 
+function getStringsJoinedPath(path: any[]): string {
+  return path.filter(val => typeof val === 'string').join('.');
+}
+
+function pairwise<T>(arr: T[]): ReadonlyArray<[T, T]> {
+  const pairwiseArray: [T, T][] = [];
+  for (let i = 0; i < arr.length - 1; i++) {
+    pairwiseArray.push([arr[i], arr[i + 1]]);
+  }
+
+  return pairwiseArray;
+}
+
 function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
-    string[] {
-  const pathsSetOfChangedEntries: Set<string> = new Set();
+    ReadonlyArray<string> {
+  const changedPaths: Set<string> = new Set();
 
-  differences.forEach(diffItem => {
-    if (diffItem.path === undefined) return;
-    const joinedPath = getFirstStringsJoinedPath(diffItem.path);
-    if (!RELEVANT_ENTRIES_LABEL_MAP.has(joinedPath)) return;
+  differences.filter(diffItem => diffItem.path !== undefined)
+      .filter(
+          diffItem => RELEVANT_ENTRIES_LABEL_MAP.has(
+              getStringsJoinedPath(diffItem.path!)))
+      .map(diffItem => getFirstStringsJoinedPath(diffItem.path!))
+      .forEach(path => changedPaths.add(path));
 
-    pathsSetOfChangedEntries.add(joinedPath);
-  });
-
-  return [...pathsSetOfChangedEntries.values()];
+  return Array.from(changedPaths);
 }
 
 /**
  * Returns relevant entry paths mapped to the client snapshots in which the
- * changes were introduced, reverse chronologically ordered. A property path may
- * not be inside the map if no changes were applied to it since it's creation
+ * changes were introduced.
+ *
+ * The clients are reverse chronologically ordered. A property path may not be
+ * inside the map if no changes were applied to it since it's creation
+ *
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
@@ -239,17 +255,17 @@ export function getClientEntriesChanged(clientSnapshots: Client[]):
     Map<string, ReadonlyArray<Client>> {
   const clientChangedEntries: Map<string, Client[]> = new Map();
 
-  for (let i = 0; i < clientSnapshots.length - 1; i++) {
-    const differences = diff(clientSnapshots[i + 1], clientSnapshots[i]);
-    if (differences === undefined) continue;
+  pairwise(clientSnapshots).forEach(([newerClient, olderClient]) => {
+    const differences = diff(olderClient, newerClient);
+      if (differences === undefined) return;
 
-    const paths = getPathsOfChangedEntries(differences);
+      const paths = getPathsOfChangedEntries(differences);
 
-    paths.forEach(path => {
-      clientChangedEntries.set(
-          path, [...clientChangedEntries.get(path) ?? [], clientSnapshots[i]]);
-    });
-  }
+      paths.forEach(path => {
+        clientChangedEntries.set(
+            path, [...clientChangedEntries.get(path) ?? [], newerClient]);
+      });
+  });
 
   // Add the first client snapshot, as a point of reference
   clientChangedEntries.forEach(value => {
