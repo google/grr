@@ -50,7 +50,7 @@ class JSONResponse(werkzeug_wrappers_json.JSONMixin,
   def __init__(self, *args, **kwargs) -> None:
     kwargs["mimetype"] = JSON_MIME_TYPE
     response = kwargs.get("response")
-    if response and not isinstance(response, werkzeug_wsgi.ClosingIterator):
+    if response is not None and not isinstance(response, werkzeug_wsgi.ClosingIterator):
       kwargs["response"] = json.dumps(response)
     super().__init__(*args, **kwargs)
 
