@@ -128,4 +128,34 @@ describe('Entry History Dialog', () => {
     const timestampComponent = fixture.debugElement.query(By.css('timestamp'));
     expect(timestampComponent).toBeTruthy();
   });
+
+  it('shows a users-details component for type \'user-list\'', () => {
+    providedData.type = 'user-list';
+    providedData.path = 'users'
+    fixture = TestBed.createComponent(EntryHistoryDialog);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    const usersDetailsComponent = fixture.debugElement.query(By.css('users-details'));
+    expect(usersDetailsComponent).toBeTruthy();
+  });
+
+  it('shows a interfaces-details component for type \'interface-list\'', () => {
+    providedData.type = 'interface-list';
+    providedData.path = 'networkInterfaces'
+    fixture = TestBed.createComponent(EntryHistoryDialog);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    const interfacesDetailsComponent = fixture.debugElement.query(By.css('interfaces-details'));
+    expect(interfacesDetailsComponent).toBeTruthy();
+  });
+
+  it('shows a volumes-details component for type \'volume-list\'', () => {
+    providedData.type = 'volume-list';
+    providedData.path = 'volumes'
+    fixture = TestBed.createComponent(EntryHistoryDialog);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+    const volumesDetailsComponent = fixture.debugElement.query(By.css('volumes-details'));
+    expect(volumesDetailsComponent).toBeTruthy();
+  });
 });
