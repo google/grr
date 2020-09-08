@@ -22,6 +22,7 @@ from google.protobuf.descriptor import OneofDescriptor
 from grr_response_core import version
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import proto2 as protobuf2
+from grr_response_proto import semantic_pb2
 from grr_response_proto.api import metadata_pb2
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_handler_base
@@ -542,15 +543,17 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"Only one field per oneof should be present."
       )
 
-    # `protobuf.map` related description.
-    if _IsMapField(field_descriptor):
-      if description:
-        description += " "
+    # Add the description of the field's type which is stored with the type's
+    # schema. Examples of such descriptions are the ones of RDFTypes, the ones
+    # generated for `protobuf.map` types and for `protobuf.enum` types.
+    type_schema = self.schema_objs.get(type_name)
+    if type_schema is not None:  # This happens with cyclic dependencies.
+      type_description = type_schema.get("description")
+      if type_description is not None:
+        if description:
+          description += " "
 
-      map_type_schema = self.schema_objs[type_name]
-      description += cast(
-        str, map_type_schema.get("description", "")
-      )
+        description += type_description
 
     # The following `allOf` is required to display the description by
     # documentation generation tools because the OAS specifies that there
@@ -955,15 +958,9 @@ def _GetTypeName(cls: Optional[TypeHinter]) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
     # First, check for the `sem_type` protobuf option and its `type` field.
-    field_options = cls.GetOptions()
-    # TODO(alexandrucosminmihai): Finish implementing the extraction of the
-    # `type` field from the `FieldOptions`'s `sem_type` field that is associated
-    # with the current field and return its value (the static type name).
-    if field_options:  # TODO: Delete this.
-      raise ValueError(f"field_options={field_options}")
-    if field_options and "sem_type" in field_options.fields_by_name:
-      sem_type_option = field_options.fields_by_name["sem_type"]
-      raise ValueError(f"sem_type_option={sem_type_option}")  # TODO: Delete this.
+    sem_type_option = cls.GetOptions().Extensions[semantic_pb2.sem_type]
+    if sem_type_option.type in rdf_types_schemas:
+      return sem_type_option.type
 
     if _IsMapField(cls):
       map_type_name = _GetTypeName(cls.message_type)
