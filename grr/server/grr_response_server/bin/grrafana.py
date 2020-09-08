@@ -47,12 +47,11 @@ class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
 class JSONResponse(werkzeug_wrappers_json.JSONMixin,
                    werkzeug_wrappers.Response):
 
-  def __init__(self, *args, **kwargs) -> None:
+  def __init__(self, response=None, *args, **kwargs) -> None:
     kwargs["mimetype"] = JSON_MIME_TYPE
-    response = kwargs.get("response")
     if response is not None and not isinstance(response, werkzeug_wsgi.ClosingIterator):
-      kwargs["response"] = json.dumps(response)
-    super().__init__(*args, **kwargs)
+      response = json.dumps(response)
+    super().__init__(response, *args, **kwargs)
 
 
 class Grrafana(object):
