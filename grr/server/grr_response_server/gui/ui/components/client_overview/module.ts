@@ -5,11 +5,10 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 
 import {ClientAddLabelDialogModule} from '../client_add_label_dialog/module';
-import {ClientDetailsModule} from '../client_details/module';
+
 import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
@@ -26,8 +25,6 @@ import {ClientOverview} from './client_overview';
     MatDividerModule,
     MatChipsModule,
     MatButtonModule,
-    ClientDetailsModule,
-    MatSidenavModule,
     ClientAddLabelDialogModule,
     OnlineChipModule,
     MatSnackBarModule,

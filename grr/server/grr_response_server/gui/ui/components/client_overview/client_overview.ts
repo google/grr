@@ -1,6 +1,5 @@
-import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
-import {MatDrawer} from '@angular/material/sidenav';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {ClientAddLabelDialog} from '@app/components/client_add_label_dialog/client_add_label_dialog';
 import {ClientLabel} from '@app/lib/models/client';
@@ -26,10 +25,6 @@ export class ClientOverview implements OnInit, OnDestroy {
    */
   readonly client$ = this.clientPageFacade.selectedClient$;
   private readonly unsubscribe$ = new Subject<void>();
-  @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
-
-  readonly clientDetailsDrawerOpening$ = new Subject<void>();
-  readonly clientDetailsDrawerClosing$ = new Subject<void>();
 
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
@@ -45,22 +40,8 @@ export class ClientOverview implements OnInit, OnDestroy {
         });
   }
 
-  ngAfterViewInit() {
-    this.clientDetailsDrawer.openedStart.subscribe(() => {
-      this.clientDetailsDrawerOpening$.next();
-    });
-
-    this.clientDetailsDrawer.closedStart.subscribe(() => {
-      this.clientDetailsDrawerClosing$.next();
-    });
-  }
-
   labelsTrackByName(index: number, item: ClientLabel): string {
     return item.name;
-  }
-
-  onClientDetailsButtonClick() {
-    this.clientDetailsDrawer.toggle();
   }
 
   openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
@@ -97,18 +78,8 @@ export class ClientOverview implements OnInit, OnDestroy {
     this.clientPageFacade.addClientLabel(label);
   }
 
-  openClientDetailsDrawer() {
-    this.clientDetailsDrawer.open();
-  }
-
-  closeClientDetailsDrawer() {
-    this.clientDetailsDrawer.close();
-  }
-
   ngOnDestroy() {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
-    this.clientDetailsDrawerOpening$.complete();
-    this.clientDetailsDrawerClosing$.complete();
   }
 }

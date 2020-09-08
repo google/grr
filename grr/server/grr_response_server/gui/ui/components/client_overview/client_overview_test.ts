@@ -142,29 +142,4 @@ describe('Client Overview', () => {
       expect(facade.addClientLabel).toHaveBeenCalledWith('testlabel');
     });
   });
-
-  it('allows viewing of client details', () => {
-    const subject = new Subject<Client>();
-    Object.defineProperty(facade, 'selectedClient$', {get: () => subject});
-    spyOn(facade, 'removeClientLabel');
-
-    const fixture = TestBed.createComponent(ClientOverview);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    subject.next(newClient({
-      clientId: 'C.1234',
-      labels: [{name: 'testlabel', owner: ''}],
-    }));
-    fixture.detectChanges();
-    const detailsDrawer: MatDrawer =
-        fixture.debugElement.query(By.directive(MatDrawer)).componentInstance;
-    expect(detailsDrawer.opened).toEqual(false);
-
-    const detailsButton =
-        fixture.debugElement.query(By.css('.goto-details')).nativeElement;
-    detailsButton.dispatchEvent(new MouseEvent('click'));
-
-    expect(detailsDrawer.opened).toEqual(true);
-    detailsDrawer.close();
-  });
 });

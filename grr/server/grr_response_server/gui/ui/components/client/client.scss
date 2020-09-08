@@ -1,9 +1,24 @@
 @use '~material-theme' as c;
+@use '~main' as main;
 
 $max-width: 1280px;
 $width: 80%;
 
-client-overview {
+
+.noscroll {
+  overflow: hidden;
+}
+
+.container {
+  height: calc(100vh - #{main.$toolbar-height});
+
+  client-overview {
+    .goto-details {
+      margin-left: auto;
+      margin-right: 2em;
+      align-self: flex-end;
+    }
+  }
   .client-approval {
     border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
     approval {

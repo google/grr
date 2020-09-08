@@ -4,55 +4,41 @@
 $max-width: 1280px;
 $width: 80%;
 
-.noscroll {
-  overflow: hidden;
-}
+.client-header {
+  box-sizing: border-box;
+  padding: 20px 0 30px 140px;
+  border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+  height: main.$client-overview-height;
 
-.container {
-  height: calc(100vh - #{main.$toolbar-height});
+  .fqdn-chips {
+    display: flex;
+    align-items: center;
 
-  .client-header {
-    box-sizing: border-box;
-    padding: 20px 0 30px 140px;
-    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
-    height: main.$client-overview-height;
+    h1 {
+      margin-bottom: 0;
+    }
 
-    .fqdn-chips {
+    .chips {
+      margin-left: 1em;
       display: flex;
-      align-items: center;
+      flex-wrap: wrap;
 
-      h1 {
-        margin-bottom: 0;
+      mat-chip {
+        min-height: 26px;
+        font-size: 12px;
+        border: 1px solid c.mat-color(c.$foreground, divider);
+        background-color: c.mat-color(c.$background, app-bar);
       }
 
-      .chips {
-        margin-left: 1em;
-        display: flex;
-        flex-wrap: wrap;
-
-        mat-chip {
-          min-height: 26px;
-          font-size: 12px;
-          border: 1px solid c.mat-color(c.$foreground, divider);
-          background-color: c.mat-color(c.$background, app-bar);
-        }
-
-        .add_label {
-          margin-left: 0.5em;
-          border-radius: 2em;
-        }
-      }
-
-      .goto-details {
-        margin-left: auto;
-        margin-right: 2em;
-        align-self: flex-end;
+      .add_label {
+        margin-left: 0.5em;
+        border-radius: 2em;
       }
     }
+  }
 
-    .os,
-    .client-id {
-      margin-bottom: 0.5em;
-    }
+  .os,
+  .client-id {
+    margin-bottom: 0.5em;
   }
 }
