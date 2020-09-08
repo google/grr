@@ -1030,12 +1030,7 @@ def _CompareComponentsCollections(
     if comp_1 > comp_2:
       return 1
 
-  if len(comps_1) < len(comps_2):
-    return -1
-  if len(comps_1) > len(comps_2):
-    return 1
-
-  return 0
+  return len(comps_1) - len(comps_2)
 
 
 class UngroupedRoute:
