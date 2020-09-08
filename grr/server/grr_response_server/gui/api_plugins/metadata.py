@@ -1045,19 +1045,38 @@ class UngroupedRoute:
 
 def _IsExtension(
     longer_route: List[str],
-    smaller_route: List[str],
+    shorter_route: List[str],
 ) -> bool:
+  """Verifies whether a route extends another by exactly one path parameter.
+
+  Route B is considered to extend route A iff route B has exactly one extra path
+  component, situated at the end of the route and which is a path parameter,
+  while the rest of B is equal to A (i.e. B = A + ["<path_param>"]).
+  The two routes (the stem and the candidate) are represented as lists of route
+  components, where the first element in each list is the HTTP method associated
+  with the route.
+
+  Args:
+    longer_route: A list of strings representing the components of the candidate
+      extending route.
+    shorter_route: A list of strings representing the components of the stem
+      route which might be extended by `longer_route`.
+
+  Returns:
+    A boolean representing whether `longer_route` is an extension of
+    `shorter_route` or not.
+  """
   len_longer = len(longer_route)
-  len_smaller = len(smaller_route)
+  len_shorter = len(shorter_route)
   # The longer child route is expected to have exactly one more path component.
-  if len_longer - len_smaller != 1:
+  if len_longer - len_shorter != 1:
     return False
   # And that single extra path component must be a path parameter.
   if not(longer_route[-1].startswith("<") and longer_route[-1].endswith(">")):
     return False
 
   # Verify that the rest of the components are the same.
-  for comp_longer, comp_smaller in zip(longer_route, smaller_route):
+  for comp_longer, comp_smaller in zip(longer_route, shorter_route):
     if comp_longer != comp_smaller:
       return False
 
