@@ -9,7 +9,9 @@ import pkg_resources
 
 from absl import app
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_test_lib
@@ -71,6 +73,21 @@ class MetadataMapMessage(rdf_structs.RDFProtoStruct):
     "FieldMapEntry",
   ]
 
+
+class MetadataSemTypeMessage(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.MetadataSemTypeMessage
+  rdf_deps = [
+    rdfvalue.RDFDatetime,
+    rdfvalue.RDFDatetimeSeconds,
+    rdfvalue.Duration,
+    rdfvalue.DurationSeconds,
+    rdfvalue.RDFBytes,
+    rdfvalue.HashDigest,
+    rdf_paths.GlobExpression,
+    rdfvalue.ByteSize,
+    rdfvalue.RDFURN,
+    rdfvalue.SessionID,
+  ]
 
 class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy `ApiCallRouter` implementation used for Metadata testing."""
@@ -146,6 +163,14 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
     """Method 9 description"""
 
 
+  @api_call_router.ArgsType(MetadataSemTypeMessage)
+  @api_call_router.ResultType(MetadataSemTypeMessage)
+  @api_call_router.Http("GET", "/metadata_test/method10")
+  @api_call_router.Http("POST", "/metadata_test/method10")
+  def Method10SemTypeProtobufOption(self, args, token=None):
+    """Method 10 description"""
+
+
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for `ApiGetOpenApiDescriptionHandler`."""
   def setUp(self):
@@ -170,6 +195,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       "Method7ProtobufOneof",
       "Method8ProtobufMap",
       "Method9OptionalPathArgs",
+      "Method10SemTypeProtobufOption",
     }
     extracted_methods = {method.name for method in self.router_methods.values()}
 
@@ -205,6 +231,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
         "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
         "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+        "/metadata_test/method10",
       },
       openapi_paths_dict.keys()
     )
@@ -265,8 +292,8 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
   def testRouteArgsAreCorrectlySeparated(self):
-    # Check that for each route the parameters are separated correctly in path,
-    # query and request body parameters.
+    # Check that the parameters are separated correctly in path, query and
+    # request body parameters.
 
     openapi_paths_dict = self.openapi_desc_dict["paths"]
 
@@ -311,7 +338,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in get_method1_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-    ["metadata_arg1", "metadata_arg2"],
+      ["metadata_arg1", "metadata_arg2"],
       head_method1_params_query
     )
 
@@ -826,8 +853,13 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     self.assertEqual(
       {
-        "$ref":
-          "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+        "description": "A == 1\nB == 2\nC == 3",
+        "allOf": [
+          {
+            "$ref":
+              "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+          },
+        ],
       },
       get_method5_enum_field_schema
     )
@@ -848,8 +880,13 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     self.assertEqual(
       {
-        "$ref":
-          "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+        "description": "A == 1\nB == 2\nC == 3",
+        "allOf": [
+          {
+            "$ref":
+              "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+          },
+        ],
       },
       post_method5_enum_field_schema
     )
