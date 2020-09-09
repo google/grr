@@ -12,8 +12,8 @@ import {HumanReadableSizeModule} from '../human_readable_size/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {ClientDetails} from './client_details';
-import {EntryHistoryButton} from './entry_history_button/entry_history_button';
-import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
+import {EntryHistoryButtonModule} from './entry_history_button/module';
+import {EntryHistoryDialogModule} from './entry_history_dialog/module';
 
 /**
  * Module for the client details component.
@@ -30,11 +30,11 @@ import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
     MatListModule,
     MatButtonModule,
     MatDialogModule,
+    EntryHistoryDialogModule,
+    EntryHistoryButtonModule,
   ],
   declarations: [
     ClientDetails,
-    EntryHistoryDialog,
-    EntryHistoryButton,
   ],
   exports: [
     ClientDetails,

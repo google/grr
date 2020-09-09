@@ -7,24 +7,19 @@ import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
-import {ClientDetailsModule} from '../module';
-
 import {EntryHistoryDialog, EntryHistoryDialogParams} from './entry_history_dialog';
+import {EntryHistoryDialogModule} from './module';
 
 initTestEnvironment();
 
 describe('Entry History Dialog', () => {
   let fixture: ComponentFixture<EntryHistoryDialog>;
   let component: EntryHistoryDialog;
-  let providedData: EntryHistoryDialogParams;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
   let clientVersions: Client[];
 
   beforeEach(async(() => {
-    // providedData = {
-    //   path: 'osInfo.architecture',
-    //   type: 'primitive',
     clientVersions = [
       newClient({
         osInfo: {
@@ -54,7 +49,7 @@ describe('Entry History Dialog', () => {
         .configureTestingModule({
           declarations: [EntryHistoryDialog],
           imports: [
-            ClientDetailsModule,
+            EntryHistoryDialogModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
             MatDialogModule,
           ],
