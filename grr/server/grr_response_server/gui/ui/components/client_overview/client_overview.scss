@@ -25,7 +25,7 @@ $width: 80%;
 
       mat-chip {
         min-height: 26px;
-        font-size: 12px;
+        font-size: 13px;
         border: 1px solid c.mat-color(c.$foreground, divider);
         background-color: c.mat-color(c.$background, app-bar);
       }
@@ -33,6 +33,10 @@ $width: 80%;
       .add_label {
         margin-left: 0.5em;
         border-radius: 2em;
+        padding-left: 8px !important;
+        min-height: 26px;
+        line-height: 16px !important;
+        font-family: c.$google-sans-family !important;
       }
     }
   }

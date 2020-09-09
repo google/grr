@@ -1,0 +1,7 @@
+@use '~material-theme' as c;
+
+mat-chip {
+  min-height: 26px;
+  font-size: 13px !important;
+  line-height: 15px;
+}

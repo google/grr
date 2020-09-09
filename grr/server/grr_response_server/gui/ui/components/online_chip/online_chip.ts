@@ -9,6 +9,7 @@ import {map} from 'rxjs/operators';
 @Component({
   selector: 'online-chip',
   templateUrl: './online_chip.ng.html',
+  styleUrls: ['./online_chip.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OnlineChip implements OnChanges {

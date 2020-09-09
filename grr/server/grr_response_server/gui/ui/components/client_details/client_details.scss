@@ -7,12 +7,12 @@
   width: 1200px;
 
   .timeline {
-    width: 20%;
+    // width: 20%;
     border-right: 1px solid c.mat-color(c.$foreground, divider-light);
-    padding: 2em;
     overflow: auto;
 
     .heading {
+      padding-top: 1em;
       padding-left: 16px;
       // Default material h1 style adds unwanted bottom margin
       margin-bottom: 0px;
@@ -25,9 +25,13 @@
     }
 
     .entry {
+      box-sizing: border-box;
       margin-top: 1em;
+      margin-right: 10px !important;
       background: transparent;
       height: auto;
+      // padding-left: 16px;
+      border-radius: 0 14px 14px 0;
 
       .timestamp {
         margin-left: 20px;
@@ -46,6 +50,7 @@
 
     .entry[aria-selected="true"] {
       color: c.mat-color(c.$primary);
+      background: #E8F0FE;
     }
   }
 
