@@ -13,9 +13,9 @@ export interface EntryHistoryDialogParams {
   readonly clientVersions: ReadonlyArray<Client>;
 }
 
-interface EntryHistoryTableRow {
+interface EntryHistoryTableRow<T> {
   time: Date;
-  version: any;
+  version: T;
 }
 
 /**
@@ -28,7 +28,7 @@ interface EntryHistoryTableRow {
 })
 export class EntryHistoryDialog {
   readonly entryType: EntryType;
-  readonly tableRows: EntryHistoryTableRow[] = [];
+  readonly tableRows: EntryHistoryTableRow<any>[] = [];
 
   constructor(@Inject(MAT_DIALOG_DATA) private readonly data:
                   EntryHistoryDialogParams) {
@@ -45,7 +45,6 @@ export class EntryHistoryDialog {
         }
         property = property[token];
       });
-
 
       this.tableRows.push({
         time: client.age,

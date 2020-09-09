@@ -7,48 +7,49 @@ import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
-import {ClientDetailsModule} from '../module';
-
 import {EntryHistoryDialog, EntryHistoryDialogParams} from './entry_history_dialog';
+import {EntryHistoryDialogModule} from './module';
 
 initTestEnvironment();
 
 describe('Entry History Dialog', () => {
   let fixture: ComponentFixture<EntryHistoryDialog>;
   let component: EntryHistoryDialog;
-  let providedData: EntryHistoryDialogParams;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
+  let clientVersions: Client[];
 
   beforeEach(async(() => {
-    providedData = {
-      path: 'osInfo.architecture',
-      type: 'primitive',
-      clientVersions: [
-        newClient({
-          osInfo: {
-            architecture: 'x64',
-            installDate: new Date(2019, 3, 11),
-          },
-          memorySize: BigInt(123),
-          age: new Date(2020, 3, 11),
-        }),
-        newClient({
-          osInfo: {
-            architecture: 'x86',
-            installDate: new Date(2010, 1, 1),
-          },
-          memorySize: BigInt(100),
-          age: new Date(2000, 2, 1),
-        }),
-      ],
-    };
+    clientVersions = [
+      newClient({
+        osInfo: {
+          architecture: 'x64',
+          installDate: new Date(2019, 3, 11),
+        },
+        memorySize: BigInt(123),
+        age: new Date(2020, 3, 11),
+      }),
+      newClient({
+        osInfo: {
+          architecture: 'x86',
+          installDate: new Date(2010, 1, 1),
+        },
+        memorySize: BigInt(100),
+        age: new Date(2000, 2, 1),
+      }),
+    ];
+  }));
 
+  afterEach(() => {
+    overlayContainer.ngOnDestroy();
+  });
+
+  function configureTestingModule(providedData: EntryHistoryDialogParams) {
     TestBed
         .configureTestingModule({
           declarations: [EntryHistoryDialog],
           imports: [
-            ClientDetailsModule,
+            EntryHistoryDialogModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
             MatDialogModule,
           ],
@@ -57,18 +58,18 @@ describe('Entry History Dialog', () => {
           ],
         })
         .compileComponents();
-
     inject([OverlayContainer], (oc: OverlayContainer) => {
       overlayContainer = oc;
       overlayContainerElement = oc.getContainerElement();
     })();
-  }));
-
-  afterEach(() => {
-    overlayContainer.ngOnDestroy();
-  });
+  }
 
   it('is created successfully', () => {
+    configureTestingModule({
+      path: 'osInfo.architecture',
+      type: 'primitive',
+      clientVersions,
+    });
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -76,47 +77,78 @@ describe('Entry History Dialog', () => {
   });
 
   it('extracts client property from the path provided into tableRows', () => {
+    configureTestingModule({
+      path: 'osInfo.architecture',
+      type: 'primitive',
+      clientVersions,
+    });
+
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    let expectedTableRows = [
+    const expectedTableRows = [
       {time: new Date(2020, 3, 11), version: 'x64' as any},
       {time: new Date(2000, 2, 1), version: 'x86' as any},
     ];
 
     expect(component.tableRows).toEqual(expectedTableRows);
+  });
 
-    // @ts-ignore
-    providedData.path = 'memorySize';
+  it('extracts client property from the path provided into tableRows', () => {
+    configureTestingModule({
+      path: 'memorySize',
+      type: 'primitive',
+      clientVersions,
+    });
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
 
-    expectedTableRows = [
+    const expectedTableRows = [
       {time: new Date(2020, 3, 11), version: BigInt(123) as any},
       {time: new Date(2000, 2, 1), version: BigInt(100) as any},
     ];
 
     expect(component.tableRows).toEqual(expectedTableRows);
+  });
 
-    // @ts-ignore
-    providedData.path = '';  // Empty path string => Error
+  it('throws error on path empty string', () => {
+    configureTestingModule({
+      path: '',
+      type: 'primitive',
+      clientVersions,
+    });
+
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
+  });
 
-    // @ts-ignore
-    providedData.path =
-        'osInfo.asdf.memorySize';  // Non-existant property => Error
+  it('throws error for paths to non-existant properties', () => {
+    configureTestingModule({
+      path: 'osInfo.asdf.memorySize',
+      type: 'primitive',
+      clientVersions,
+    });
+
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
+  });
 
-    // @ts-ignore
-    providedData.path = 'osInfo.';  // Trailing dot => Error
+  it('throws error for paths with trailing dot', () => {
+    configureTestingModule({
+      path: 'osInfo.',
+      type: 'primitive',
+      clientVersions,
+    });
+
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
   it('shows a HumanReadableSize component for type \'size\'', () => {
-    // @ts-ignore
-    providedData.type = 'size';
+    configureTestingModule({
+      path: 'memorySize',
+      type: 'size',
+      clientVersions,
+    });
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -126,10 +158,11 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a Timestamp component for type \'timestamp\'', () => {
-    // @ts-ignore
-    providedData.type = 'timestamp';
-    // @ts-ignore
-    providedData.path = 'osInfo.installDate'
+    configureTestingModule({
+      path: 'osInfo.installDate',
+      type: 'timestamp',
+      clientVersions,
+    });
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -138,10 +171,11 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a users-details component for type \'user-list\'', () => {
-    // @ts-ignore
-    providedData.type = 'user-list';
-    // @ts-ignore
-    providedData.path = 'users'
+    configureTestingModule({
+      path: 'users',
+      type: 'user-list',
+      clientVersions,
+    });
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -151,10 +185,11 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a interfaces-details component for type \'interface-list\'', () => {
-    // @ts-ignore
-    providedData.type = 'interface-list';
-    // @ts-ignore
-    providedData.path = 'networkInterfaces'
+    configureTestingModule({
+      path: 'networkInterfaces',
+      type: 'interface-list',
+      clientVersions,
+    });
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -164,10 +199,12 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a volumes-details component for type \'volume-list\'', () => {
-    // @ts-ignore
-    providedData.type = 'volume-list';
-    // @ts-ignore
-    providedData.path = 'volumes'
+    configureTestingModule({
+      path: 'volumes',
+      type: 'volume-list',
+      clientVersions,
+    });
+
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();

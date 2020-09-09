@@ -8,9 +8,9 @@ import {ClientPageFacade} from '@app/store/client_page_facade';
 import {Subject} from 'rxjs';
 
 import {initTestEnvironment} from '../../../testing';
-import {ClientDetailsModule} from '../module';
 
 import {EntryHistoryButton} from './entry_history_button';
+import {EntryHistoryButtonModule} from './module';
 
 initTestEnvironment();
 
@@ -54,7 +54,7 @@ describe('Entry History Button Component', () => {
           imports: [
             ApiModule,
             NoopAnimationsModule,
-            ClientDetailsModule,
+            EntryHistoryButtonModule,
           ],
         })
         .compileComponents();

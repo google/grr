@@ -203,6 +203,18 @@ export function getClientVersions(clientSnapshots: Client[]):
   return clientChanges;
 }
 
+/**
+ * Returns the first string elements in the path.
+ *
+ * A path may contain non-string elements, like [0,1,..n] for array access,
+ * because deep-diff can find differences between individual elements of an
+ * array. Unfortunately, showing detailed versions of array individual elements
+ * is not currently supported by us in the UI. In case the path contains a
+ * number, it means that the algorithm found a difference within an array, so we
+ * truncate it right there to obtain only the path to the array object. That way
+ * we can gather all the changes within the array under a bigger umbrella.
+ */
+// tslint:disable-next-line:no-any Provided by deep-diff typing.
 function getFirstStringsJoinedPath(path: any[]): string {
   let tokens: string[] = [];
 
@@ -257,14 +269,14 @@ export function getClientEntriesChanged(clientSnapshots: Client[]):
 
   pairwise(clientSnapshots).forEach(([newerClient, olderClient]) => {
     const differences = diff(olderClient, newerClient);
-      if (differences === undefined) return;
+    if (differences === undefined) return;
 
-      const paths = getPathsOfChangedEntries(differences);
+    const paths = getPathsOfChangedEntries(differences);
 
-      paths.forEach(path => {
-        clientChangedEntries.set(
-            path, [...clientChangedEntries.get(path) ?? [], newerClient]);
-      });
+    paths.forEach(path => {
+      clientChangedEntries.set(
+          path, [...clientChangedEntries.get(path) ?? [], newerClient]);
+    });
   });
 
   // Add the first client snapshot, as a point of reference
