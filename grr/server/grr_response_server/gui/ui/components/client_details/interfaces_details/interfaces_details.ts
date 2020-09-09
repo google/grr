@@ -10,6 +10,6 @@ import {NetworkInterface} from '@app/lib/models/client';
   styleUrls: ['./interfaces_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class InterfaceDetails {
+export class InterfacesDetails {
   @Input() interfaces!: NetworkInterface[];
 }
