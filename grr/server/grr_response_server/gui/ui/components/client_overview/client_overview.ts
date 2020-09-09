@@ -8,7 +8,7 @@ import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 /**
- * Component displaying the details and actions for a single Client.
+ * Component displaying overview info of a Client.
  */
 @Component({
   selector: 'client-overview',
@@ -19,10 +19,6 @@ import {takeUntil} from 'rxjs/operators';
 export class ClientOverview implements OnInit, OnDestroy {
   private static LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
 
-  /**
-   * Non-empty string to be appended to the URL when the client details opens.
-   * Defaults to 'details'.
-   */
   readonly client$ = this.clientPageFacade.selectedClient$;
   private readonly unsubscribe$ = new Subject<void>();
 
