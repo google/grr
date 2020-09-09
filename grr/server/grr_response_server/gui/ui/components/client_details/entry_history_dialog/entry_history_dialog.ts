@@ -28,6 +28,7 @@ interface EntryHistoryTableRow<T> {
 })
 export class EntryHistoryDialog {
   readonly entryType: EntryType;
+  // tslint:disable-next-line:no-any
   readonly tableRows: EntryHistoryTableRow<any>[] = [];
 
   constructor(@Inject(MAT_DIALOG_DATA) private readonly data:
