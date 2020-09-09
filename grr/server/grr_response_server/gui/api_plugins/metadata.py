@@ -544,7 +544,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       )
 
     # Add the description of the field's type which is stored with the type's
-    # schema. Examples of such descriptions are the ones of RDFTypes, the ones
+    # schema. Examples of such descriptions are the ones of RDF types, the ones
     # generated for `protobuf.map` types and for `protobuf.enum` types.
     type_schema = self.schema_objs.get(type_name)
     if type_schema is not None:  # This happens with cyclic dependencies.
