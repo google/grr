@@ -1498,8 +1498,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "uint64",
-        "description": "RDF type is `RDFDatetime` and it represents "
-                       "the number of microseconds since epoch to a timestamp.",
+        "description": "the number of microseconds since epoch to a timestamp",
       },
       components_schemas["RDFDatetime"]
     )
@@ -1507,8 +1506,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "uint64",
-        "description": "RDF type is `RDFDatetimeSeconds` and it represents "
-                       "the number of seconds since epoch to a timestamp.",
+        "description": "the number of seconds since epoch to a timestamp",
       },
       components_schemas["RDFDatetimeSeconds"]
     )
@@ -1516,8 +1514,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "uint64",
-        "description": "RDF type is `Duration` and it represents "
-                       "the number of microseconds between two timestamps.",
+        "description": "the number of microseconds between two timestamps",
       },
       components_schemas["Duration"]
     )
@@ -1525,8 +1522,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "uint64",
-        "description": "RDF type is `DurationSeconds` and it represents "
-                       "the number of seconds between two timestamps.",
+        "description": "the number of seconds between two timestamps",
       },
       components_schemas["DurationSeconds"]
     )
@@ -1534,8 +1530,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "byte",
-        "description": "RDF type is `RDFBytes` and it represents "
-                       "a buffer of bytes.",
+        "description": "a buffer of bytes",
       },
       components_schemas["RDFBytes"]
     )
@@ -1543,16 +1538,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "byte",
-        "description": "RDF type is `HashDigest` and it represents "
-                       "a binary hash digest with hex string representation.",
+        "description": "a binary hash digest with hex string representation",
       },
       components_schemas["HashDigest"]
     )
     self.assertEqual(
       {
         "type": "string",
-        "description": "RDF type is `GlobExpression` and it represents "
-                       "a glob expression for a client path.",
+        "description": "a glob expression for a client path",
       },
       components_schemas["GlobExpression"]
     )
@@ -1560,24 +1553,21 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       {
         "type": "string",
         "format": "uint64",
-        "description": "RDF type is `ByteSize` and it represents "
-                       "a size for bytes allowing standard unit prefixes.",
+        "description": "a size for bytes allowing standard unit prefixes",
       },
       components_schemas["ByteSize"]
     )
     self.assertEqual(
       {
         "type": "string",
-        "description": "RDF type is `RDFURN` and it represents "
-                       "an object to abstract URL manipulation.",
+        "description": "an object to abstract URL manipulation",
       },
       components_schemas["RDFURN"]
     )
     self.assertEqual(
       {
         "type": "string",
-        "description": "RDF type is `SessionID` and it represents "
-                       "an rdfvalue object that represents a session_id.",
+        "description": "an rdfvalue object that represents a session_id",
       },
       components_schemas["SessionID"]
     )

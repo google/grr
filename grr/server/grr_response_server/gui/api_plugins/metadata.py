@@ -137,49 +137,49 @@ rdf_types_schemas: Dict[str, Schema] = {
   "RDFDatetime": {
     "type": "string",
     "format": "uint64",
-    "description": "the number of microseconds since epoch to a timestamp.",
+    "description": "the number of microseconds since epoch to a timestamp",
   },
   "RDFDatetimeSeconds": {
     "type": "string",
     "format": "uint64",
-    "description": "the number of seconds since epoch to a timestamp.",
+    "description": "the number of seconds since epoch to a timestamp",
   },
   "Duration": {
     "type": "string",
     "format": "uint64",
-    "description": "the number of microseconds between two timestamps.",
+    "description": "the number of microseconds between two timestamps",
   },
   "DurationSeconds": {
     "type": "string",
     "format": "uint64",
-    "description": "the number of seconds between two timestamps.",
+    "description": "the number of seconds between two timestamps",
   },
   "RDFBytes": {
     "type": "string",
     "format": "byte",
-    "description": "a buffer of bytes.",
+    "description": "a buffer of bytes",
   },
   "HashDigest": {
     "type": "string",
     "format": "byte",
-    "description": "a binary hash digest with hex string representation.",
+    "description": "a binary hash digest with hex string representation",
   },
   "GlobExpression": {
     "type": "string",
-    "description": "a glob expression for a client path.",
+    "description": "a glob expression for a client path",
   },
   "ByteSize": {
     "type": "string",
     "format": "uint64",
-    "description": "a size for bytes allowing standard unit prefixes.",
+    "description": "a size for bytes allowing standard unit prefixes",
   },
   "RDFURN": {
     "type": "string",
-    "description": "an object to abstract URL manipulation.",
+    "description": "an object to abstract URL manipulation",
   },
   "SessionID": {
     "type": "string",
-    "description": "an rdfvalue object that represents a session_id.",
+    "description": "an rdfvalue object that represents a session_id",
   },
 }
 
@@ -252,15 +252,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Adds the OpenAPI schemas for RDF types."""
     if self.schema_objs is None:
       raise AssertionError("OpenAPI type schemas not initialized.")
-
-    for rdf_type_name in rdf_types_schemas:
-      old_description = rdf_types_schemas[rdf_type_name]['description']
-      new_prefix = f"RDF type is `{rdf_type_name}` and it represents"
-
-      if not old_description.startswith(new_prefix):
-        rdf_types_schemas[rdf_type_name]["description"] = (
-          f"{new_prefix} {old_description}"
-        )
 
     self.schema_objs.update(rdf_types_schemas)
 
@@ -549,6 +540,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if type_schema is not None:  # This happens with cyclic dependencies.
       type_description = type_schema.get("description")
       if type_description is not None:
+        if type_name in rdf_types_schemas:
+          type_description = (
+            f"RDF type is `{type_name}` and it represents {type_description}."
+          )
+
         if description:
           description += " "
 
