@@ -72,42 +72,9 @@
 
     <br>
     <div class="section-title mat-h3">Users
-      <entry-history-button path="users"></entry-history-button>
+      <entry-history-button path="users" type="user-list"></entry-history-button>
     </div>
-    <table class="section">
-      <ng-template ngFor let-user [ngForOf]="client.users.slice(0, currentNumUsersShown)" let-isLast="last">
-        <tr *ngIf="user.username">
-          <td class="description">Username</td>
-          <td class="value">{{user.username}}</td>
-        </tr>
-        <tr *ngIf="user.fullName">
-          <td class="description">Full name</td>
-          <td class="value">{{user.fullName}}</td>
-        </tr>
-        <tr *ngIf="user.lastLogon">
-          <td class="description">Last logon</td>
-          <td class="value"><timestamp [date]="user.lastLogon"></timestamp></td>
-        </tr>
-        <tr *ngIf="user.homedir">
-          <td class="description">Home directory</td>
-          <td class="value">{{user.homedir}}</td>
-        </tr>
-        <tr *ngIf="user.uid">
-          <td class="description">UID</td>
-          <td class="value">{{user.uid}}</td>
-        </tr>
-        <tr *ngIf="user.gid">
-          <td class="description">GID</td>
-          <td class="value">{{user.gid}}</td>
-        </tr>
-        <tr *ngIf="user.shell">
-          <td class="description">Shell</td>
-          <td class="value">{{user.shell}}</td>
-        </tr>
-        <br *ngIf="!isLast">
-      </ng-template>
-      <div class="empty-section" *ngIf="client.users.length === 0">None.</div>
-    </table>
+    <users-details [users]="client.users.slice(0, currentNumUsersShown)"></users-details>
     <button
       *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-more'"
       mat-button color="primary" (click)="currentNumUsersShown = client.users.length">
@@ -141,28 +108,7 @@
     <div class="section-title mat-h3">Network Interfaces
       <entry-history-button path="networkInterfaces" type="interface-list"></entry-history-button>
     </div>
-    <table class="section">
-      <ng-template ngFor let-interface [ngForOf]="client.networkInterfaces.slice(0, currentNumInterfacesShown)" let-isLast="last">
-        <tr>
-          <td class="description">Interface name</td>
-          <td class="value">{{interface.interfaceName}}</td>
-        </tr>
-        <tr>
-          <td class="description">MAC</td>
-          <td class="value">{{interface.macAddress}}</td>
-        </tr>
-        <tr>
-          <td class="description">IP addresses</td>
-          <td class="value">
-            <div *ngFor="let address of interface.addresses">
-              {{address.ipAddress}}
-            </div>
-          </td>
-        </tr>
-        <br *ngIf="!isLast">
-      </ng-template>
-      <div class="empty-section" *ngIf="client.networkInterfaces.length === 0">None.</div>
-    </table>
+    <interfaces-details [interfaces]="client.networkInterfaces.slice(0, currentNumInterfacesShown)"></interfaces-details>
     <button
       *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-more'"
       mat-button color="primary" (click)="currentNumInterfacesShown = client.networkInterfaces.length">
@@ -178,68 +124,7 @@
     <div class="section-title mat-h3">Storage Volumes
       <entry-history-button path="volumes" type="volume-list"></entry-history-button>
     </div>
-    <table class="section">
-      <ng-template ngFor let-volume [ngForOf]="client.volumes.slice(0, currentNumVolumesShown)" let-isLast="last">
-        <ng-template [ngIf]="volume.windowsDetails">
-          <tr *ngIf="volume.windowsDetails.driveLetter">
-            <td class="description">Windows drive letter</td>
-            <td class="value">{{volume.windowsDetails.driveLetter}}</td>
-          </tr>
-          <tr *ngIf="volume.windowsDetails.attributes">
-            <td class="description">Windows drive attributes</td>
-            <td class="value">
-              <div *ngFor="let attribute of volume.windowsDetails.attributes">
-                {{attribute}}
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="volume.windowsDetails.driveType">
-            <td class="description">Windows drive type</td>
-            <td class="value">{{volume.windowsDetails.driveType}}</td>
-          </tr>
-        </ng-template>
-        <ng-template [ngIf]="volume.unixDetails">
-          <tr *ngIf="volume.unixDetails.mountPoint">
-            <td class="description">Unix mount point</td>
-            <td class="value">{{volume.unixDetails.mountPoint}}</td>
-          </tr>
-          <tr *ngIf="volume.unixDetails.mountOptions">
-            <td class="description">Unix mount options</td>
-            <td class="value">{{volume.unixDetails.mountOptions}}</td>
-          </tr>
-        </ng-template>
-        <tr *ngIf="volume.name">
-          <td class="description">Volume name</td>
-          <td class="value">{{volume.name}}</td>
-        </tr>
-        <tr *ngIf="volume.devicePath">
-          <td class="description">Storage device path</td>
-          <td class="value">{{volume.devicePath}}</td>
-        </tr>
-        <tr *ngIf="volume.fileSystemType">
-          <td class="description">Filesystem type</td>
-          <td class="value">{{volume.fileSystemType}}</td>
-        </tr>
-        <tr *ngIf="volume.totalSize">
-          <td class="description">Total size</td>
-          <td class="value"><human-readable-size [size]="volume.totalSize"></human-readable-size></td>
-        </tr>
-        <tr *ngIf="volume.freeSpace">
-          <td class="description">Free space</td>
-          <td class="value"><human-readable-size [size]="volume.freeSpace"></human-readable-size></td>
-        </tr>
-        <tr *ngIf="volume.bytesPerSector">
-          <td class="description">Sector size</td>
-          <td class="value">{{volume.bytesPerSector}} B</td>
-        </tr>
-        <tr *ngIf="volume.creationTime">
-          <td class="description">Creation time</td>
-          <td class="value"><timestamp [date]="volume.creationTime"></timestamp></td>
-        </tr>
-        <br *ngIf="!isLast">
-      </ng-template>
-      <div class="empty-section" *ngIf="client.volumes.length === 0">None.</div>
-    </table>
+    <volumes-details [volumes]="client.volumes.slice(0, currentNumVolumesShown)"></volumes-details>
     <button
       *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-more'"
       mat-button color="primary" (click)="currentNumVolumesShown = client.volumes.length">
