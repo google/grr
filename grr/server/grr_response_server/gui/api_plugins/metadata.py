@@ -773,8 +773,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _GetOperationDescription(
       self,
-      http_method: str,
-      path: str,
       router_method: Any,
       required_path_params: Iterable[FieldDescriptor],
       optional_path_params: Iterable[FieldDescriptor],
@@ -783,20 +781,11 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> Dict[str, Any]:
     """Create the OpenAPI `Operation Object` associated with the given args."""
 
-    url_path = (  # Rewrite the path in a URL-friendly format.
-      path
-        .replace("/", "-")
-        .replace("<", "_")
-        .replace(">", "_")
-        .replace(":", "-")
-    )
-
     # The `Operation Object` associated with the current http method.
     operation_obj = {
       "tags": [router_method.category or "NoCategory"],
       "description": router_method.doc or "No description.",
-      "operationId": urlparse.quote(f"{http_method}-{url_path}-"
-                                    f"{router_method.name}"),
+      "operationId": urlparse.quote(f"{router_method.name}"),
       "parameters": self._GetParameters(
         required_path_params, optional_path_params, query_params
       ),
@@ -869,7 +858,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         path_obj = paths_obj[normalized_path]
         path_obj[http_method.lower()] = (
           self._GetOperationDescription(
-            http_method, normalized_path, router_method,
+            router_method,
             req_path_params, opt_path_params, query_params, body_params
           )
         )
