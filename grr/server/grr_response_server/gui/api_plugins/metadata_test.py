@@ -503,7 +503,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRoutesResultsAreCorrectlyDescribedInOpenApiDescription(self):
     # Verify the OpenAPI schemas of the response objects.
     # Response types are usually protobuf messages. The expectation in these
-    # cases is that the routes descriptions include a reference to the type
+    # cases is that the route descriptions include a reference to the type
     # schemas in the `components` field of the root `OpenAPI Object`.
     openapi_paths_dict = self.openapi_desc_dict["paths"]
 
@@ -633,12 +633,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
   def testPrimitiveTypesAreCorrectlyDescribedAndUsedInOpenApiDescription(self):
-    # Primitive types schemas are described in the `components` field of the
+    # Primitive type schemas are described in the `components` field of the
     # root `OpenAPI Object`.
 
     # Firstly, verify that the descriptions of the fields of the
     # `MetadataPrimitiveTypesMessage` (which is the `ArgsType` of
-    # `Method3PrimitiveTypes`) include references to the primitive types
+    # `Method3PrimitiveTypes`) include references to the primitive type
     # descriptions.
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_DOUBLE"},
@@ -717,71 +717,71 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Secondly, verify the descriptions of primitive types from the `components`
     # field of the root `OpenAPI Object`.
-    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+    component_schemas = self.openapi_desc_dict["components"]["schemas"]
 
     self.assertEqual(
       {"type": "number", "format": "double"},
-      components_schemas["protobuf2.TYPE_DOUBLE"]
+      component_schemas["protobuf2.TYPE_DOUBLE"]
     )
     self.assertEqual(
       {"type": "number", "format": "float"},
-      components_schemas["protobuf2.TYPE_FLOAT"]
+      component_schemas["protobuf2.TYPE_FLOAT"]
     )
     self.assertEqual(
       {"type": "string", "format": "int64"},
-      components_schemas["protobuf2.TYPE_INT64"]
+      component_schemas["protobuf2.TYPE_INT64"]
     )
     self.assertEqual(
       {"type": "string", "format": "uint64"},
-      components_schemas["protobuf2.TYPE_UINT64"]
+      component_schemas["protobuf2.TYPE_UINT64"]
     )
     self.assertEqual(
       {"type": "integer", "format": "int32"},
-      components_schemas["protobuf2.TYPE_INT32"]
+      component_schemas["protobuf2.TYPE_INT32"]
     )
     self.assertEqual(
       {"type": "string", "format": "fixed64"},
-      components_schemas["protobuf2.TYPE_FIXED64"]
+      component_schemas["protobuf2.TYPE_FIXED64"]
     )
     self.assertEqual(
       {"type": "number", "format": "fixed32"},
-      components_schemas["protobuf2.TYPE_FIXED32"]
+      component_schemas["protobuf2.TYPE_FIXED32"]
     )
     self.assertEqual(
       {"type": "boolean"},
-      components_schemas["protobuf2.TYPE_BOOL"]
+      component_schemas["protobuf2.TYPE_BOOL"]
     )
     self.assertEqual(
       {"type": "string"},
-      components_schemas["protobuf2.TYPE_STRING"]
+      component_schemas["protobuf2.TYPE_STRING"]
     )
     self.assertEqual(
       {"type": "string", "format": "byte"},
-      components_schemas["protobuf2.TYPE_BYTES"]
+      component_schemas["protobuf2.TYPE_BYTES"]
     )
     self.assertEqual(
       {"type": "number", "format": "uint32"},
-      components_schemas["protobuf2.TYPE_UINT32"]
+      component_schemas["protobuf2.TYPE_UINT32"]
     )
     self.assertEqual(
       {"type": "number", "format": "sfixed32"},
-      components_schemas["protobuf2.TYPE_SFIXED32"]
+      component_schemas["protobuf2.TYPE_SFIXED32"]
     )
     self.assertEqual(
       {"type": "string", "format": "sfixed64"},
-      components_schemas["protobuf2.TYPE_SFIXED64"]
+      component_schemas["protobuf2.TYPE_SFIXED64"]
     )
     self.assertEqual(
       {"type": "integer", "format": "int32"},
-      components_schemas["protobuf2.TYPE_INT32"]
+      component_schemas["protobuf2.TYPE_INT32"]
     )
     self.assertEqual(
       {"type": "string", "format": "sint64"},
-      components_schemas["protobuf2.TYPE_SINT64"]
+      component_schemas["protobuf2.TYPE_SINT64"]
     )
     self.assertEqual(
       {"type": "string", "format": "binary"},
-      components_schemas["BinaryStream"]
+      component_schemas["BinaryStream"]
     )
 
   def testRepeatedFieldIsDescribedCorrectlyInOpenApiDescription(self):
@@ -914,14 +914,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # types are declared, including the case of cyclic dependencies.
 
     # Test that composite types are defined.
-    openapi_components_schemas = (
+    openapi_component_schemas = (
       self.openapi_desc_dict
         .get("components")
         .get("schemas")
     )
-    root = openapi_components_schemas["grr.MetadataTypesHierarchyRoot"]
-    cyclic = openapi_components_schemas["grr.MetadataTypesHierarchyCyclic"]
-    leaf = openapi_components_schemas["grr.MetadataTypesHierarchyLeaf"]
+    root = openapi_component_schemas["grr.MetadataTypesHierarchyRoot"]
+    cyclic = openapi_component_schemas["grr.MetadataTypesHierarchyCyclic"]
+    leaf = openapi_component_schemas["grr.MetadataTypesHierarchyLeaf"]
 
     # Test the references between message types.
     root_ref = "#/components/schemas/grr.MetadataTypesHierarchyRoot"
@@ -1029,7 +1029,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       openapi_map_type_schema
     )
 
-    # Secondly, check the description of the `field_map` routes parameter.
+    # Secondly, check the description of the `field_map` route parameter.
     # Check the description of `field_map` from the `parameters` field of the
     # `Operation Object` associated with `GET /metadata-test/method8`.
     self.assertEqual(
@@ -1492,7 +1492,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Now check that the RDF types have their schemas correctly described.
-    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+    component_schemas = self.openapi_desc_dict["components"]["schemas"]
 
     self.assertEqual(
       {
@@ -1500,7 +1500,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "uint64",
         "description": "the number of microseconds since epoch to a timestamp",
       },
-      components_schemas["RDFDatetime"]
+      component_schemas["RDFDatetime"]
     )
     self.assertEqual(
       {
@@ -1508,7 +1508,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "uint64",
         "description": "the number of seconds since epoch to a timestamp",
       },
-      components_schemas["RDFDatetimeSeconds"]
+      component_schemas["RDFDatetimeSeconds"]
     )
     self.assertEqual(
       {
@@ -1516,7 +1516,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "uint64",
         "description": "the number of microseconds between two timestamps",
       },
-      components_schemas["Duration"]
+      component_schemas["Duration"]
     )
     self.assertEqual(
       {
@@ -1524,7 +1524,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "uint64",
         "description": "the number of seconds between two timestamps",
       },
-      components_schemas["DurationSeconds"]
+      component_schemas["DurationSeconds"]
     )
     self.assertEqual(
       {
@@ -1532,7 +1532,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "byte",
         "description": "a buffer of bytes",
       },
-      components_schemas["RDFBytes"]
+      component_schemas["RDFBytes"]
     )
     self.assertEqual(
       {
@@ -1540,14 +1540,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "byte",
         "description": "a binary hash digest with hex string representation",
       },
-      components_schemas["HashDigest"]
+      component_schemas["HashDigest"]
     )
     self.assertEqual(
       {
         "type": "string",
         "description": "a glob expression for a client path",
       },
-      components_schemas["GlobExpression"]
+      component_schemas["GlobExpression"]
     )
     self.assertEqual(
       {
@@ -1555,21 +1555,21 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "format": "uint64",
         "description": "a size for bytes allowing standard unit prefixes",
       },
-      components_schemas["ByteSize"]
+      component_schemas["ByteSize"]
     )
     self.assertEqual(
       {
         "type": "string",
         "description": "an object to abstract URL manipulation",
       },
-      components_schemas["RDFURN"]
+      component_schemas["RDFURN"]
     )
     self.assertEqual(
       {
         "type": "string",
         "description": "an rdfvalue object that represents a session_id",
       },
-      components_schemas["SessionID"]
+      component_schemas["SessionID"]
     )
 
 
