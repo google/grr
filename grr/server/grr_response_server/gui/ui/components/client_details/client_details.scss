@@ -8,6 +8,7 @@
 
   .timeline {
     border-right: 1px solid c.mat-color(c.$foreground, divider-light);
+    padding-right: 1em;
     overflow: auto;
 
     .heading-since {
@@ -56,8 +57,7 @@
   }
 
   .info {
-    padding-left: 200px;
-    padding-right: 200px;
+    padding: 20px 150px 20px 150px;
     text-align: center;
     overflow: auto;
     flex-grow: 1;
