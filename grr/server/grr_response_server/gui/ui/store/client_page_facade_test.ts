@@ -4,8 +4,7 @@ import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow} f
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from '@app/lib/models/flow';
-import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
-import {newClient} from '@app/lib/models/model_test_util';
+import {newClient, newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
 import {initTestEnvironment} from '@app/testing';
 import {of, Subject} from 'rxjs';

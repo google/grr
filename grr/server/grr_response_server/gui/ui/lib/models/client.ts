@@ -185,7 +185,7 @@ export interface Invalid {
 }
 
 /** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid | Pending | Expired | Invalid;
+export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
 
 /** Approval for Client access. */
 export interface ClientApproval {
