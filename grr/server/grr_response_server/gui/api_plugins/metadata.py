@@ -234,27 +234,6 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.openapi_obj_json: Optional[str] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
 
-  def _AddPrimitiveTypeSchemas(self) -> None:
-    """Adds the OpenAPI schemas for protobuf primitives and `BinaryStream`."""
-    if self.schema_objs is None:  # Check required by mypy.
-      raise AssertionError("OpenAPI type schemas not initialized.")
-
-    primitive_type_schemas = {
-      primitive_type["name"]: primitive_type["schema"]
-      for primitive_type in primitive_types.values()
-    }
-
-    self.schema_objs.update(
-      cast(Dict[str, Dict[str, str]], primitive_type_schemas)
-    )
-
-  def _AddRDFTypeSchemas(self) -> None:
-    """Adds the OpenAPI schemas for RDF types."""
-    if self.schema_objs is None:
-      raise AssertionError("OpenAPI type schemas not initialized.")
-
-    self.schema_objs.update(rdf_type_schemas)
-
   def _CreateEnumSchema(
       self,
       descriptor: EnumDescriptor,
@@ -450,10 +429,18 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
   def _CreateSchemas(self) -> None:
     """Create OpenAPI schemas for all the used protobuf types."""
-
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
-    self._AddPrimitiveTypeSchemas()
-    self._AddRDFTypeSchemas()
+
+    # Add the OpenAPI schemas of protobuf primitive types.
+    primitive_type_schemas = {
+      primitive_type["name"]: primitive_type["schema"]
+      for primitive_type in primitive_types.values()
+    }
+    self.schema_objs.update(
+      cast(Dict[str, Dict[str, str]], primitive_type_schemas)
+    )
+    # Add the OpenAPI schemas of the statically described RDF types.
+    self.schema_objs.update(rdf_type_schemas)
 
     # Holds state of type extraction (white/gray nodes).
     visiting: Set[str] = set()
