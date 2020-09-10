@@ -1,0 +1,15 @@
+@use '~material-theme' as c;
+
+.section {
+  font-family: c.$google-sans-family;
+  text-align: left;
+
+  .description {
+    min-width: 10em;
+    vertical-align: top;
+  }
+
+  .value {
+    font-weight: 500;
+  }
+}

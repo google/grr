@@ -6,6 +6,9 @@ import {MatIconModule} from '@angular/material/icon';
 
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {TimestampModule} from '../../timestamp/module';
+import {InterfacesDetailsModule} from '../interfaces_details/module';
+import {UsersDetailsModule} from '../users_details/module';
+import {VolumesDetailsModule} from '../volumes_details/module';
 
 import {EntryHistoryDialog} from './entry_history_dialog';
 
@@ -20,6 +23,9 @@ import {EntryHistoryDialog} from './entry_history_dialog';
     HumanReadableSizeModule,
     MatDialogModule,
     MatButtonModule,
+    UsersDetailsModule,
+    VolumesDetailsModule,
+    InterfacesDetailsModule,
   ],
   declarations: [
     EntryHistoryDialog,
