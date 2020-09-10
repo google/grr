@@ -24,7 +24,13 @@
       <span class="os">
         {{client.knowledgeBase.os}}
       </span>
-      <span>{{client.clientId}}</span>
+      <span>{{client.clientId}}
+        <button mat-icon-button
+          class="copy-button"
+          [cdkCopyToClipboard]="client.clientId">
+          <mat-icon aria-label="Copy">content_copy</mat-icon>
+        </button>
+      </span>
     </div>
 
     <div class="last-seen">

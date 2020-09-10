@@ -46,6 +46,10 @@ $width: 80%;
   .info {
     margin-left: 35px;
 
+    .copy-button {
+      color: c.mat-color(c.$foreground, icon-grey);
+    }
+
     .os {
       margin-right: 10px;
     }
