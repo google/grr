@@ -8,7 +8,7 @@ export type EntryType =
 
 /** Parameters required to open an EntryHistoryDialog */
 export interface EntryHistoryDialogParams {
-  readonly path: string;
+  readonly path: ReadonlyArray<string>;
   readonly type: EntryType;
   readonly clientVersions: ReadonlyArray<Client>;
 }
@@ -33,7 +33,7 @@ export class EntryHistoryDialog {
 
   constructor(@Inject(MAT_DIALOG_DATA) private readonly data:
                   EntryHistoryDialogParams) {
-    if (this.data.path === '') {
+    if (this.data.path.length === 0) {
       throw new Error('Empty "path" provided');
     }
     this.entryType = data.type;
@@ -43,7 +43,7 @@ export class EntryHistoryDialog {
   private initTableRows(data: EntryHistoryDialogParams) {
     data.clientVersions.forEach((client) => {
       let property: any = client;
-      data.path.split('.').forEach((token) => {
+      data.path.forEach((token) => {
         property = property[token];
       });
 

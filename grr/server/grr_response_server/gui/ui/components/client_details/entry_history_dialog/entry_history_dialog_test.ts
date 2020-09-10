@@ -65,7 +65,7 @@ describe('Entry History Dialog', () => {
 
   it('is created successfully', () => {
     providedData = {
-      path: 'osInfo.architecture',
+      path: ['osInfo', 'architecture'],
       type: 'primitive',
       clientVersions,
     };
@@ -77,7 +77,7 @@ describe('Entry History Dialog', () => {
 
   it('extracts client property from the path provided into tableRows', () => {
     providedData = {
-      path: 'osInfo.architecture',
+      path: ['osInfo', 'architecture'],
       type: 'primitive',
       clientVersions,
     };
@@ -96,7 +96,7 @@ describe('Entry History Dialog', () => {
 
   it('extracts client property from the path provided into tableRows', () => {
     providedData = {
-      path: 'memorySize',
+      path: ['memorySize'],
       type: 'primitive',
       clientVersions,
     };
@@ -112,9 +112,9 @@ describe('Entry History Dialog', () => {
     expect(component.tableRows).toEqual(expectedTableRows);
   });
 
-  it('throws error on path empty string', () => {
+  it('throws error on empty path', () => {
     providedData = {
-      path: '',
+      path: [],
       type: 'primitive',
       clientVersions,
     };
@@ -124,7 +124,7 @@ describe('Entry History Dialog', () => {
 
   it('throws error for paths to non-existant properties', () => {
     providedData = {
-      path: 'osInfo.asdf.memorySize',
+      path: ['osInfo', 'asdf', 'memorySize'],
       type: 'primitive',
       clientVersions,
     };
@@ -132,9 +132,9 @@ describe('Entry History Dialog', () => {
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
-  it('throws error for paths with trailing dot', () => {
+  it('throws error for paths with empty tokens', () => {
     providedData = {
-      path: 'osInfo.',
+      path: ['osInfo', ''],
       type: 'primitive',
       clientVersions,
     };
@@ -144,7 +144,7 @@ describe('Entry History Dialog', () => {
 
   it('shows a HumanReadableSize component for type \'size\'', () => {
     providedData = {
-      path: 'memorySize',
+      path: ['memorySize'],
       type: 'size',
       clientVersions,
     };
@@ -158,7 +158,7 @@ describe('Entry History Dialog', () => {
 
   it('shows a Timestamp component for type \'timestamp\'', () => {
     providedData = {
-      path: 'osInfo.installDate',
+      path: ['osInfo', 'installDate'],
       type: 'timestamp',
       clientVersions,
     };
