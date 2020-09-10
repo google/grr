@@ -54,9 +54,9 @@ class RouteInfo(NamedTuple):
   # A list of the HTTP method and the components of a URL path.
   route_comps: List[str]
   # A list of path components that represent required path parameters.
-  req_path_params_comps: List[str]
+  req_path_param_comps: List[str]
   # A list of path components that represent optional path parameters.
-  opt_path_params_comps: List[str]
+  opt_path_param_comps: List[str]
 
 
 # Follows the proto3 JSON encoding [1] as a base, but whenever
@@ -133,7 +133,7 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   },
 }
 
-rdf_types_schemas: Dict[str, Schema] = {
+rdf_type_schemas: Dict[str, Schema] = {
   "RDFDatetime": {
     "type": "string",
     "format": "uint64",
@@ -234,26 +234,26 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.openapi_obj_json: Optional[str] = None
     self.schema_objs: Optional[Dict[str, Schema]] = None
 
-  def _AddPrimitiveTypesSchemas(self) -> None:
+  def _AddPrimitiveTypeSchemas(self) -> None:
     """Adds the OpenAPI schemas for protobuf primitives and `BinaryStream`."""
     if self.schema_objs is None:  # Check required by mypy.
       raise AssertionError("OpenAPI type schemas not initialized.")
 
-    primitive_types_schemas = {
+    primitive_type_schemas = {
       primitive_type["name"]: primitive_type["schema"]
       for primitive_type in primitive_types.values()
     }
 
     self.schema_objs.update(
-      cast(Dict[str, Dict[str, str]], primitive_types_schemas)
+      cast(Dict[str, Dict[str, str]], primitive_type_schemas)
     )
 
-  def _AddRDFTypesSchemas(self) -> None:
+  def _AddRDFTypeSchemas(self) -> None:
     """Adds the OpenAPI schemas for RDF types."""
     if self.schema_objs is None:
       raise AssertionError("OpenAPI type schemas not initialized.")
 
-    self.schema_objs.update(rdf_types_schemas)
+    self.schema_objs.update(rdf_type_schemas)
 
   def _CreateEnumSchema(
       self,
@@ -452,10 +452,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     """Create OpenAPI schemas for all the used protobuf types."""
 
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
-    self._AddPrimitiveTypesSchemas()
-    self._AddRDFTypesSchemas()
+    self._AddPrimitiveTypeSchemas()
+    self._AddRDFTypeSchemas()
 
-    # Holds state of types extraction (white/gray nodes).
+    # Holds state of type extraction (white/gray nodes).
     visiting: Set[str] = set()
     router_methods = self.router.__class__.GetAnnotatedMethods()
     for method_metadata in router_methods.values():
@@ -540,7 +540,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if type_schema is not None:  # This happens with cyclic dependencies.
       type_description = type_schema.get("description")
       if type_description is not None:
-        if type_name in rdf_types_schemas:
+        if type_name in rdf_type_schemas:
           type_description = (
             f"RDF type is `{type_name}` and it represents {type_description}."
           )
@@ -745,7 +745,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   ) -> Tuple[
     List[FieldDescriptor], List[FieldDescriptor], List[FieldDescriptor]
   ]:
-    """Group `FieldDescriptors` of a protobuf message by http params types."""
+    """Group `FieldDescriptors` of a protobuf message by http param types."""
     field_descriptors = []
     if args_type:
       if not (
@@ -757,12 +757,12 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       field_descriptors = args_type.protobuf.DESCRIPTOR.fields
 
     # Separate fields into params: path, query and part of the request body.
-    path_params_names = set(_GetPathParamsFromPath(path))
+    path_param_names = set(_GetPathParamsFromPath(path))
     path_params = []
     query_params = []
     body_params = []
     for field_d in field_descriptors:
-      if field_d.name in path_params_names:
+      if field_d.name in path_param_names:
         path_params.append(field_d)
       elif http_method.upper() in ("GET", "HEAD"):
         query_params.append(field_d)
@@ -822,7 +822,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       for route_info in grouped_routes:
         # Components (comps) are URL components, including Werkzeug path
         # arguments such as `<client_id>` or `<path:file_path>`.
-        route_comps, req_path_params_comps, opt_path_params_comps = route_info
+        route_comps, req_path_param_comps, opt_path_param_comps = route_info
         http_method = route_comps[0]
         path = "/".join(route_comps[1:])
 
@@ -833,20 +833,20 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         )
 
         # Separate the path params into required and optional path params.
-        # First, extract path params names by normalizing the Werkzeug path args
+        # First, extract path param names by normalizing the Werkzeug path arg
         # components to OpenAPI path args and remove the surrounding brackets.
-        req_path_params_names = [
-          _NormalizePathComponent(comp)[1:-1] for comp in req_path_params_comps
+        req_path_param_names = [
+          _NormalizePathComponent(comp)[1:-1] for comp in req_path_param_comps
         ]
-        opt_path_params_names = [
-          _NormalizePathComponent(comp)[1:-1] for comp in opt_path_params_comps
+        opt_path_param_names = [
+          _NormalizePathComponent(comp)[1:-1] for comp in opt_path_param_comps
         ]
         req_path_params = []
         opt_path_params = []
         for path_param in path_params:
-          if path_param.name in req_path_params_names:
+          if path_param.name in req_path_param_names:
             req_path_params.append(path_param)
-          elif path_param.name in opt_path_params_names:
+          elif path_param.name in opt_path_param_names:
             opt_path_params.append(path_param)
           else:
             raise AssertionError(
@@ -943,7 +943,7 @@ def _GetTypeName(cls: Optional[TypeHinter]) -> str:
   if isinstance(cls, FieldDescriptor):
     # First, check for the `sem_type` protobuf option and its `type` field.
     sem_type_option = cls.GetOptions().Extensions[semantic_pb2.sem_type]
-    if sem_type_option.type in rdf_types_schemas:
+    if sem_type_option.type in rdf_type_schemas:
       return sem_type_option.type
 
     if _IsMapField(cls):
@@ -1078,7 +1078,7 @@ def _IsMapField(field_descriptor: FieldDescriptor) -> bool:
   return _GetMapFieldKeyValueTypes(field_descriptor) is not None
 
 
-def _CompareComponentsCollections(
+def _CompareComponentCollections(
     comps_1: Collection[str],
     comps_2: Collection[str],
 ) -> int:
@@ -1172,7 +1172,7 @@ def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
     A list of `RouteInfo` named tuples that hold the extracted required and
     optional path parameters for each group of routes detected.
   """
-  routes.sort(key=functools.cmp_to_key(_CompareComponentsCollections))
+  routes.sort(key=functools.cmp_to_key(_CompareComponentCollections))
   ungrouped_routes = [
     UngroupedRoute(route=route, processed=False) for route in routes
   ]
@@ -1205,8 +1205,8 @@ def _GetGroupedRoutes(routes: List[List[str]]) -> List[RouteInfo]:
     grouped_routes.append(
       RouteInfo(
         route_comps=parent_route,
-        req_path_params_comps=list(required_path_params),
-        opt_path_params_comps=list(optional_path_params),
+        req_path_param_comps=list(required_path_params),
+        opt_path_param_comps=list(optional_path_params),
       )
     )
 
