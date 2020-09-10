@@ -18,6 +18,7 @@ describe('Entry History Dialog', () => {
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
   let clientVersions: Client[];
+  let providedData: EntryHistoryDialogParams;
 
   beforeEach(async(() => {
     clientVersions = [
@@ -38,13 +39,7 @@ describe('Entry History Dialog', () => {
         age: new Date(2000, 2, 1),
       }),
     ];
-  }));
 
-  afterEach(() => {
-    overlayContainer.ngOnDestroy();
-  });
-
-  function configureTestingModule(providedData: EntryHistoryDialogParams) {
     TestBed
         .configureTestingModule({
           declarations: [EntryHistoryDialog],
@@ -54,7 +49,7 @@ describe('Entry History Dialog', () => {
             MatDialogModule,
           ],
           providers: [
-            {provide: MAT_DIALOG_DATA, useValue: providedData},
+            {provide: MAT_DIALOG_DATA, useFactory: () => providedData},
           ],
         })
         .compileComponents();
@@ -62,14 +57,18 @@ describe('Entry History Dialog', () => {
       overlayContainer = oc;
       overlayContainerElement = oc.getContainerElement();
     })();
-  }
+  }));
+
+  afterEach(() => {
+    overlayContainer.ngOnDestroy();
+  });
 
   it('is created successfully', () => {
-    configureTestingModule({
+    providedData = {
       path: 'osInfo.architecture',
       type: 'primitive',
       clientVersions,
-    });
+    };
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -77,11 +76,11 @@ describe('Entry History Dialog', () => {
   });
 
   it('extracts client property from the path provided into tableRows', () => {
-    configureTestingModule({
+    providedData = {
       path: 'osInfo.architecture',
       type: 'primitive',
       clientVersions,
-    });
+    };
 
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
@@ -96,11 +95,11 @@ describe('Entry History Dialog', () => {
   });
 
   it('extracts client property from the path provided into tableRows', () => {
-    configureTestingModule({
+    providedData = {
       path: 'memorySize',
       type: 'primitive',
       clientVersions,
-    });
+    };
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -114,41 +113,41 @@ describe('Entry History Dialog', () => {
   });
 
   it('throws error on path empty string', () => {
-    configureTestingModule({
+    providedData = {
       path: '',
       type: 'primitive',
       clientVersions,
-    });
+    };
 
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
   it('throws error for paths to non-existant properties', () => {
-    configureTestingModule({
+    providedData = {
       path: 'osInfo.asdf.memorySize',
       type: 'primitive',
       clientVersions,
-    });
+    };
 
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
   it('throws error for paths with trailing dot', () => {
-    configureTestingModule({
+    providedData = {
       path: 'osInfo.',
       type: 'primitive',
       clientVersions,
-    });
+    };
 
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
   it('shows a HumanReadableSize component for type \'size\'', () => {
-    configureTestingModule({
+    providedData = {
       path: 'memorySize',
       type: 'size',
       clientVersions,
-    });
+    };
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
@@ -158,11 +157,11 @@ describe('Entry History Dialog', () => {
   });
 
   it('shows a Timestamp component for type \'timestamp\'', () => {
-    configureTestingModule({
+    providedData = {
       path: 'osInfo.installDate',
       type: 'timestamp',
       clientVersions,
-    });
+    };
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
