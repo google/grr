@@ -35,7 +35,7 @@ export class EntryHistoryButton {
 
   openEntryHistoryDialog(clientVersions: Client[]) {
     const data: EntryHistoryDialogParams = {
-      path: this.path,
+      path: this.path.split('.'),
       clientVersions,
       type: this.type,
     };

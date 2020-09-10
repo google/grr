@@ -8,7 +8,7 @@ export type EntryType =
 
 /** Parameters required to open an EntryHistoryDialog */
 export interface EntryHistoryDialogParams {
-  readonly path: string;
+  readonly path: ReadonlyArray<string>;
   readonly type: EntryType;
   readonly clientVersions: ReadonlyArray<Client>;
 }
@@ -33,6 +33,9 @@ export class EntryHistoryDialog {
 
   constructor(@Inject(MAT_DIALOG_DATA) private readonly data:
                   EntryHistoryDialogParams) {
+    if (this.data.path.length === 0) {
+      throw new Error('Empty "path" provided');
+    }
     this.entryType = data.type;
     this.initTableRows(this.data);
   }
@@ -40,12 +43,13 @@ export class EntryHistoryDialog {
   private initTableRows(data: EntryHistoryDialogParams) {
     data.clientVersions.forEach((client) => {
       let property: any = client;
-      data.path.split('.').forEach((token) => {
-        if (token === '' || property === undefined) {
-          throw new Error(`Wrong "path" provided: ${this.data.path}`);
-        }
+      data.path.forEach((token) => {
         property = property[token];
       });
+
+      if (property === undefined) {
+        throw new Error(`Wrong "path" provided: ${data.path}`);
+      }
 
       this.tableRows.push({
         time: client.age,
