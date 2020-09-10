@@ -3,31 +3,33 @@
 
 .details-container {
   display: flex;
-  height: calc(100vh - #{main.$toolbar-height} - #{main.$client-overview-height});
+  height: calc(100vh - #{main.$toolbar-height});
   width: 1200px;
 
   .timeline {
-    // width: 20%;
     border-right: 1px solid c.mat-color(c.$foreground, divider-light);
     overflow: auto;
 
-    .heading {
-      padding-top: 1em;
-      padding-left: 16px;
+    .heading-since {
+      padding-top: 32px;
+      padding-left: 32px;
+
+      .heading {
       // Default material h1 style adds unwanted bottom margin
       margin-bottom: 0px;
-    }
+      }
 
-    .since {
-      font-size: 10px;
-      color: c.mat-color(c.$foreground, text-light);
-      padding-left: 16px;
+      .since {
+        font-size: 10px;
+        color: c.mat-color(c.$foreground, text-light);
+      }
     }
 
     .entry {
       box-sizing: border-box;
       margin-top: 1em;
       margin-right: 10px !important;
+      padding-left: 10px;
       background: transparent;
       height: auto;
       // padding-left: 16px;

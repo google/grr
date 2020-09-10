@@ -1,7 +1,9 @@
 <div class="details-container mat-body-1" *ngIf="clientVersions$ | async as clientVersions">
   <div class="timeline">
-    <div class="mat-h1 heading">Change logs</div>
-    <div class="since">Since {{clientVersions[clientVersions.length - 1].client.age | date:'dd-MM-yyyy'}}</div>
+    <div class="heading-since">
+      <div class="mat-h1 heading">Change logs</div>
+      <div class="since">Since {{clientVersions[clientVersions.length - 1].client.age | date:'dd-MM-yyyy'}}</div>
+    </div>
     <mat-selection-list #timeline [multiple]="false" disableRipple>
       <mat-list-option *ngFor="let version of clientVersions; index as i; first as isFirst"
         [value]="version.client"

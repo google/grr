@@ -1,5 +1,6 @@
 <div *ngIf="client$ | async as client" class="client-header mat-body-1">
   <div class="fqdn-chips">
+    <mat-icon class="computer-icon">computer</mat-icon>
     <div class="fqdn">
       <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
     </div>
@@ -18,15 +19,16 @@
     <ng-content></ng-content>
   </div>
 
-  <div class="client-id">
-    <span class="mat-h5">{{client.clientId}}</span>
-  </div>
+  <div class="info mat-body-1">
+    <div>
+      <span class="os">
+        {{client.knowledgeBase.os}}
+      </span>
+      <span>{{client.clientId}}</span>
+    </div>
 
-  <div class="os">
-    {{client.knowledgeBase.os}}
-  </div>
-
-  <div class="last-seen">
-    Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
+    <div class="last-seen">
+      Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
+    </div>
   </div>
 </div>

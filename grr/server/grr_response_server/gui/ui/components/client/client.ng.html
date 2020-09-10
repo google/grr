@@ -1,27 +1,26 @@
-<div class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
-  <client-overview>
-    <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
-      <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
-      <ng-template #iconArrowRight>
-        <mat-icon>keyboard_arrow_right</mat-icon>
-      </ng-template>
-    </button>
-  </client-overview>
-  <mat-drawer-container>
-    <mat-drawer #clientDetailsDrawer position="end">
-      <client-details></client-details>
-    </mat-drawer>
+<mat-drawer-container class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
+  <mat-drawer #clientDetailsDrawer position="end">
+    <client-details></client-details>
+  </mat-drawer>
 
-    <mat-drawer-content>
-      <div class="client-approval">
-        <approval></approval>
-      </div>
-      <div class="client-start-flow">
-        <flow-form></flow-form>
-      </div>
-      <div class="client-flows">
-        <flow-list></flow-list>
-      </div>
-    </mat-drawer-content>
-  </mat-drawer-container>
-</div>
+  <mat-drawer-content>
+    <client-overview>
+      <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
+        <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
+        <ng-template #iconArrowRight>
+          <mat-icon>keyboard_arrow_right</mat-icon>
+        </ng-template>
+      </button>
+    </client-overview>
+
+    <div class="client-approval">
+      <approval></approval>
+    </div>
+    <div class="client-start-flow">
+      <flow-form></flow-form>
+    </div>
+    <div class="client-flows">
+      <flow-list></flow-list>
+    </div>
+  </mat-drawer-content>
+</mat-drawer-container>

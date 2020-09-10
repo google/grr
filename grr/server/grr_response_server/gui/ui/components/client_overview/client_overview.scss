@@ -5,14 +5,16 @@ $max-width: 1280px;
 $width: 80%;
 
 .client-header {
-  box-sizing: border-box;
-  padding: 20px 0 30px 140px;
+  padding: 15px 0 10px 140px;
   border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
-  height: main.$client-overview-height;
 
   .fqdn-chips {
     display: flex;
     align-items: center;
+
+    .computer-icon {
+      margin-right: 10px;
+    }
 
     h1 {
       margin-bottom: 0;
@@ -41,8 +43,12 @@ $width: 80%;
     }
   }
 
-  .os,
-  .client-id {
-    margin-bottom: 0.5em;
+  .info {
+    margin-left: 35px;
+
+    .os {
+      margin-right: 10px;
+    }
   }
+
 }
