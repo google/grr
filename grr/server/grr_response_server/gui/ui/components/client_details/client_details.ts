@@ -20,8 +20,9 @@ export class ClientDetails {
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
 
   readonly client$ = this.clientPageFacade.selectedClient$;
+
+  // TODO(danielberbece): Move this to ClientDetailsStore.
   readonly clientVersions$ = this.clientPageFacade.selectedClientVersions$.pipe(
-      map(snapshots => snapshots.reverse()),
       map(getClientVersions),
   );
 

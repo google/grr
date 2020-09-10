@@ -72,8 +72,8 @@ const RELEVANT_ENTRIES_LABEL_MAP = new Map([
 function classifyDiffItem(
     diffItem: Diff<Client>, added: Map<string, number>,
     deleted: Map<string, number>, updated: Map<string, number>) {
-  const path = diffItem.path?.filter(val => typeof val === 'string').join('.');
-  if (path === undefined) return;
+  if (diffItem.path === undefined) return;
+  const path = getStringsJoinedPath(diffItem.path);
 
   const label = RELEVANT_ENTRIES_LABEL_MAP.get(path);
   if (label === undefined) return;
@@ -109,7 +109,7 @@ function getChangeDescriptions(
 
   changesMap.forEach((occurences, label) => {
     if (occurences === 1) {
-      changeDescriptions.push(`One ${label} ${changeKeyword}`);
+      changeDescriptions.push(`${label} ${changeKeyword}`);
     } else {
       changeDescriptions.push(
           `${occurences} ${label} entries ${changeKeyword}`);
@@ -201,4 +201,88 @@ export function getClientVersions(clientSnapshots: Client[]):
   }
 
   return clientChanges;
+}
+
+/**
+ * Returns the first string elements in the path.
+ *
+ * A path may contain non-string elements, like [0,1,..n] for array access,
+ * because deep-diff can find differences between individual elements of an
+ * array. Unfortunately, showing detailed versions of array individual elements
+ * is not currently supported by us in the UI. In case the path contains a
+ * number, it means that the algorithm found a difference within an array, so we
+ * truncate it right there to obtain only the path to the array object. That way
+ * we can gather all the changes within the array under a bigger umbrella.
+ */
+// tslint:disable-next-line:no-any Provided by deep-diff typing.
+function getFirstStringsJoinedPath(path: any[]): string {
+  let tokens: string[] = [];
+
+  for (let i = 0; i < path.length; i++) {
+    if (typeof path[i] !== 'string') break;
+    tokens.push(path[i]);
+  }
+
+  return tokens.join('.');
+}
+
+function getStringsJoinedPath(path: any[]): string {
+  return path.filter(val => typeof val === 'string').join('.');
+}
+
+function pairwise<T>(arr: T[]): ReadonlyArray<[T, T]> {
+  const pairwiseArray: [T, T][] = [];
+  for (let i = 0; i < arr.length - 1; i++) {
+    pairwiseArray.push([arr[i], arr[i + 1]]);
+  }
+
+  return pairwiseArray;
+}
+
+function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
+    ReadonlyArray<string> {
+  const changedPaths: Set<string> = new Set();
+
+  differences.filter(diffItem => diffItem.path !== undefined)
+      .filter(
+          diffItem => RELEVANT_ENTRIES_LABEL_MAP.has(
+              getStringsJoinedPath(diffItem.path!)))
+      .map(diffItem => getFirstStringsJoinedPath(diffItem.path!))
+      .forEach(path => changedPaths.add(path));
+
+  return Array.from(changedPaths);
+}
+
+/**
+ * Returns relevant entry paths mapped to the client snapshots in which the
+ * changes were introduced.
+ *
+ * The clients are reverse chronologically ordered. A property path may not be
+ * inside the map if no changes were applied to it since it's creation
+ *
+ * @param clientSnapshots an array of chronologically reverse ordered client
+ *     snapshots
+ */
+export function getClientEntriesChanged(clientSnapshots: Client[]):
+    Map<string, ReadonlyArray<Client>> {
+  const clientChangedEntries: Map<string, Client[]> = new Map();
+
+  pairwise(clientSnapshots).forEach(([newerClient, olderClient]) => {
+    const differences = diff(olderClient, newerClient);
+    if (differences === undefined) return;
+
+    const paths = getPathsOfChangedEntries(differences);
+
+    paths.forEach(path => {
+      clientChangedEntries.set(
+          path, [...clientChangedEntries.get(path) ?? [], newerClient]);
+    });
+  });
+
+  // Add the first client snapshot, as a point of reference
+  clientChangedEntries.forEach(value => {
+    value.push(clientSnapshots[clientSnapshots.length - 1]);
+  })
+
+  return clientChangedEntries;
 }

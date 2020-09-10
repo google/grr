@@ -8,6 +8,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 
 import {ClientAddLabelDialogModule} from '../client_add_label_dialog/module';
+
 import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
