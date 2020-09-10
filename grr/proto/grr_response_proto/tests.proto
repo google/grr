@@ -214,3 +214,54 @@ message MetadataOneofMessage {
 message MetadataMapMessage {
   map<sfixed64, MetadataSimpleMessage> field_map = 1;
 }
+
+message MetadataSemTypeMessage {
+  optional uint64 field_datetime = 1 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "field_datetime with `sem_type` option."
+  }];
+  optional uint64 field_datetimeseconds = 2 [(sem_type) = {
+    type: "RDFDatetimeSeconds",
+    description: "field_datetimeseconds with `sem_type` option."
+  }];
+  optional uint64 field_duration = 3 [(sem_type) = {
+    type: "Duration",
+    description: "field_duration with `sem_type` option."
+  }];
+  optional uint64 field_durationseconds = 4 [(sem_type) = {
+    type: "DurationSeconds",
+    description: "field_durationseconds with `sem_type` option."
+  }];
+  optional bytes field_rdfbytes = 5 [(sem_type) = {
+    type: "RDFBytes",
+    description: "field_rdfbytes with `sem_type` option."
+  }];
+  optional bytes field_hashdigest = 6 [(sem_type) = {
+    type: "HashDigest",
+    description: "field_hashdigest with `sem_type` option."
+  }];
+  optional string field_globexpression = 7 [(sem_type) = {
+    type: "GlobExpression",
+    description: "field_globexpression with `sem_type` option."
+  }];
+  optional uint64 field_bytesize = 8 [(sem_type) = {
+    type: "ByteSize",
+    description: "field_bytesize with `sem_type` option."
+  }];
+  optional string field_rdfurn = 9 [(sem_type) = {
+    type: "RDFURN",
+    description: "field_rdfurn with `sem_type` option."
+  }];
+  optional string field_sessionid = 10 [(sem_type) = {
+    type: "SessionID",
+    description: "field_sessionid with `sem_type` option."
+  }];
+
+  oneof semtype_oneof {
+    uint64 oneof_datetime = 11 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Oneof field with `sem_type` option."
+    }];
+    string oneof_string = 12;
+  }
+}

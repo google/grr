@@ -9,7 +9,9 @@ import pkg_resources
 
 from absl import app
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_test_lib
@@ -69,6 +71,22 @@ class MetadataMapMessage(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.MetadataMapMessage
   rdf_deps = [
     "FieldMapEntry",
+  ]
+
+
+class MetadataSemTypeMessage(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.MetadataSemTypeMessage
+  rdf_deps = [
+    rdfvalue.RDFDatetime,
+    rdfvalue.RDFDatetimeSeconds,
+    rdfvalue.Duration,
+    rdfvalue.DurationSeconds,
+    rdfvalue.RDFBytes,
+    rdfvalue.HashDigest,
+    rdf_paths.GlobExpression,
+    rdfvalue.ByteSize,
+    rdfvalue.RDFURN,
+    rdfvalue.SessionID,
   ]
 
 
@@ -146,6 +164,14 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
     """Method 9 description"""
 
 
+  @api_call_router.ArgsType(MetadataSemTypeMessage)
+  @api_call_router.ResultType(MetadataSemTypeMessage)
+  @api_call_router.Http("GET", "/metadata_test/method10")
+  @api_call_router.Http("POST", "/metadata_test/method10")
+  def Method10SemTypeProtobufOption(self, args, token=None):
+    """Method 10 description"""
+
+
 class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for `ApiGetOpenApiDescriptionHandler`."""
   def setUp(self):
@@ -170,6 +196,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       "Method7ProtobufOneof",
       "Method8ProtobufMap",
       "Method9OptionalPathArgs",
+      "Method10SemTypeProtobufOption",
     }
     extracted_methods = {method.name for method in self.router_methods.values()}
 
@@ -205,6 +232,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
         "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
         "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+        "/metadata_test/method10",
       },
       openapi_paths_dict.keys()
     )
@@ -265,8 +293,8 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
   def testRouteArgsAreCorrectlySeparated(self):
-    # Check that for each route the parameters are separated correctly in path,
-    # query and request body parameters.
+    # Check that the parameters are separated correctly in path, query and
+    # request body parameters.
 
     openapi_paths_dict = self.openapi_desc_dict["paths"]
 
@@ -311,7 +339,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in get_method1_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-    ["metadata_arg1", "metadata_arg2"],
+      ["metadata_arg1", "metadata_arg2"],
       head_method1_params_query
     )
 
@@ -826,8 +854,13 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     self.assertEqual(
       {
-        "$ref":
-          "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+        "description": "A == 1\nB == 2\nC == 3",
+        "allOf": [
+          {
+            "$ref":
+              "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+          },
+        ],
       },
       get_method5_enum_field_schema
     )
@@ -848,8 +881,13 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     self.assertEqual(
       {
-        "$ref":
-          "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+        "description": "A == 1\nB == 2\nC == 3",
+        "allOf": [
+          {
+            "$ref":
+              "#/components/schemas/grr.MetadataEnumFieldMessage.metadata_enum",
+          },
+        ],
       },
       post_method5_enum_field_schema
     )
@@ -1240,6 +1278,299 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       )
 
     return None
+
+  def testRDFTypesAreCorrectlyDescribedAndUsedInOpenApiDescription(self):
+    # First, check that fields which have a `sem_type` protobuf field option are
+    # described using the `sem_type.type`'s schema.
+    expected_field_datetime = {
+      "description": "RDF type is `RDFDatetime` and it represents the number "
+                     "of microseconds since epoch to a timestamp.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/RDFDatetime",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_datetime,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_datetime")
+    )
+    self.assertEqual(
+      expected_field_datetime,
+      self._GetParamSchema("/metadata_test/method10", "post", "field_datetime")
+    )
+
+    expected_field_datetimeseconds = {
+      "description": "RDF type is `RDFDatetimeSeconds` and it represents the "
+                     "number of seconds since epoch to a timestamp.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/RDFDatetimeSeconds",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_datetimeseconds,
+      self._GetParamSchema("/metadata_test/method10", "get",
+                           "field_datetimeseconds")
+    )
+    self.assertEqual(
+      expected_field_datetimeseconds,
+      self._GetParamSchema("/metadata_test/method10", "post",
+                           "field_datetimeseconds")
+    )
+
+    expected_field_duration = {
+      "description": "RDF type is `Duration` and it represents the number of "
+                     "microseconds between two timestamps.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/Duration",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_duration,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_duration")
+    )
+    self.assertEqual(
+      expected_field_duration,
+      self._GetParamSchema("/metadata_test/method10", "post", "field_duration")
+    )
+
+    expected_field_durationseconds = {
+      "description": "RDF type is `DurationSeconds` and it represents the "
+                     "number of seconds between two timestamps.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/DurationSeconds",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_durationseconds,
+      self._GetParamSchema("/metadata_test/method10", "get",
+                           "field_durationseconds")
+    )
+    self.assertEqual(
+      expected_field_durationseconds,
+      self._GetParamSchema("/metadata_test/method10", "post",
+                           "field_durationseconds")
+    )
+
+    expected_field_rdfbytes = {
+      "description": "RDF type is `RDFBytes` and it represents a buffer of "
+                     "bytes.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/RDFBytes",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_rdfbytes,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_rdfbytes")
+    )
+    self.assertEqual(
+      expected_field_rdfbytes,
+      self._GetParamSchema("/metadata_test/method10", "post", "field_rdfbytes")
+    )
+
+    expected_field_hashdigest = {
+      "description": "RDF type is `HashDigest` and it represents a binary hash "
+                     "digest with hex string representation.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/HashDigest",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_hashdigest,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_hashdigest")
+    )
+    self.assertEqual(
+      expected_field_hashdigest,
+      self._GetParamSchema("/metadata_test/method10", "post",
+                           "field_hashdigest")
+    )
+
+    expected_field_globexpression = {
+      "description": "RDF type is `GlobExpression` and it represents a glob "
+                     "expression for a client path.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/GlobExpression",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_globexpression,
+      self._GetParamSchema("/metadata_test/method10", "get",
+                           "field_globexpression")
+    )
+    self.assertEqual(
+      expected_field_globexpression,
+      self._GetParamSchema("/metadata_test/method10", "post",
+                           "field_globexpression")
+    )
+
+    expected_field_bytesize = {
+      "description": "RDF type is `ByteSize` and it represents a size for "
+                     "bytes allowing standard unit prefixes.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/ByteSize",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_bytesize,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_bytesize")
+    )
+    self.assertEqual(
+      expected_field_bytesize,
+      self._GetParamSchema("/metadata_test/method10", "post", "field_bytesize")
+    )
+
+    expected_field_rdfurn = {
+      "description": "RDF type is `RDFURN` and it represents an object to "
+                     "abstract URL manipulation.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/RDFURN",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_rdfurn,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_rdfurn")
+    )
+    self.assertEqual(
+      expected_field_rdfurn,
+      self._GetParamSchema("/metadata_test/method10", "post", "field_rdfurn")
+    )
+
+    expected_field_sessionid = {
+      "description": "RDF type is `SessionID` and it represents an rdfvalue "
+                     "object that represents a session_id.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/SessionID",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_field_sessionid,
+      self._GetParamSchema("/metadata_test/method10", "get", "field_sessionid")
+    )
+    self.assertEqual(
+      expected_field_sessionid,
+      self._GetParamSchema("/metadata_test/method10", "post", "field_sessionid")
+    )
+
+    # Check that descriptions get concatenated in the case we have a
+    # `protobuf.oneof` field that has an RDF type `sem_type.type`.
+    expected_oneof_datetime = {
+      "description": "This field is part of the \"semtype_oneof\" oneof. Only "
+                     "one field per oneof should be present. RDF type is "
+                     "`RDFDatetime` and it represents the number of "
+                     "microseconds since epoch to a timestamp.",
+      "allOf": [
+        {
+          "$ref": "#/components/schemas/RDFDatetime",
+        },
+      ],
+    }
+    self.assertEqual(
+      expected_oneof_datetime,
+      self._GetParamSchema("/metadata_test/method10", "get", "oneof_datetime")
+    )
+    self.assertEqual(
+      expected_oneof_datetime,
+      self._GetParamSchema("/metadata_test/method10", "post", "oneof_datetime")
+    )
+
+    # Now check that the RDF types have their schemas correctly described.
+    components_schemas = self.openapi_desc_dict["components"]["schemas"]
+
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "uint64",
+        "description": "the number of microseconds since epoch to a timestamp",
+      },
+      components_schemas["RDFDatetime"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "uint64",
+        "description": "the number of seconds since epoch to a timestamp",
+      },
+      components_schemas["RDFDatetimeSeconds"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "uint64",
+        "description": "the number of microseconds between two timestamps",
+      },
+      components_schemas["Duration"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "uint64",
+        "description": "the number of seconds between two timestamps",
+      },
+      components_schemas["DurationSeconds"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "byte",
+        "description": "a buffer of bytes",
+      },
+      components_schemas["RDFBytes"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "byte",
+        "description": "a binary hash digest with hex string representation",
+      },
+      components_schemas["HashDigest"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "description": "a glob expression for a client path",
+      },
+      components_schemas["GlobExpression"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "format": "uint64",
+        "description": "a size for bytes allowing standard unit prefixes",
+      },
+      components_schemas["ByteSize"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "description": "an object to abstract URL manipulation",
+      },
+      components_schemas["RDFURN"]
+    )
+    self.assertEqual(
+      {
+        "type": "string",
+        "description": "an rdfvalue object that represents a session_id",
+      },
+      components_schemas["SessionID"]
+    )
 
 
 def main(argv):

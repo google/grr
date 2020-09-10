@@ -22,6 +22,7 @@ from google.protobuf.descriptor import OneofDescriptor
 from grr_response_core import version
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import proto2 as protobuf2
+from grr_response_proto import semantic_pb2
 from grr_response_proto.api import metadata_pb2
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_handler_base
@@ -132,6 +133,56 @@ primitive_types: Dict[Union[int, str], PrimitiveDescription] = {
   },
 }
 
+rdf_types_schemas: Dict[str, Schema] = {
+  "RDFDatetime": {
+    "type": "string",
+    "format": "uint64",
+    "description": "the number of microseconds since epoch to a timestamp",
+  },
+  "RDFDatetimeSeconds": {
+    "type": "string",
+    "format": "uint64",
+    "description": "the number of seconds since epoch to a timestamp",
+  },
+  "Duration": {
+    "type": "string",
+    "format": "uint64",
+    "description": "the number of microseconds between two timestamps",
+  },
+  "DurationSeconds": {
+    "type": "string",
+    "format": "uint64",
+    "description": "the number of seconds between two timestamps",
+  },
+  "RDFBytes": {
+    "type": "string",
+    "format": "byte",
+    "description": "a buffer of bytes",
+  },
+  "HashDigest": {
+    "type": "string",
+    "format": "byte",
+    "description": "a binary hash digest with hex string representation",
+  },
+  "GlobExpression": {
+    "type": "string",
+    "description": "a glob expression for a client path",
+  },
+  "ByteSize": {
+    "type": "string",
+    "format": "uint64",
+    "description": "a size for bytes allowing standard unit prefixes",
+  },
+  "RDFURN": {
+    "type": "string",
+    "description": "an object to abstract URL manipulation",
+  },
+  "SessionID": {
+    "type": "string",
+    "description": "an rdfvalue object that represents a session_id",
+  },
+}
+
 
 class ApiGetGrrVersionResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper for result of the API method for getting GRR version."""
@@ -196,6 +247,13 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     self.schema_objs.update(
       cast(Dict[str, Dict[str, str]], primitive_types_schemas)
     )
+
+  def _AddRDFTypesSchemas(self) -> None:
+    """Adds the OpenAPI schemas for RDF types."""
+    if self.schema_objs is None:
+      raise AssertionError("OpenAPI type schemas not initialized.")
+
+    self.schema_objs.update(rdf_types_schemas)
 
   def _CreateEnumSchema(
       self,
@@ -395,6 +453,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
     self._AddPrimitiveTypesSchemas()
+    self._AddRDFTypesSchemas()
 
     # Holds state of types extraction (white/gray nodes).
     visiting: Set[str] = set()
@@ -474,15 +533,22 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         f"Only one field per oneof should be present."
       )
 
-    # `protobuf.map` related description.
-    if _IsMapField(field_descriptor):
-      if description:
-        description += " "
+    # Add the description of the field's type which is stored with the type's
+    # schema. Examples of such descriptions are the ones of RDF types, the ones
+    # generated for `protobuf.map` types and for `protobuf.enum` types.
+    type_schema = self.schema_objs.get(type_name)
+    if type_schema is not None:  # This happens with cyclic dependencies.
+      type_description = type_schema.get("description")
+      if type_description is not None:
+        if type_name in rdf_types_schemas:
+          type_description = (
+            f"RDF type is `{type_name}` and it represents {type_description}."
+          )
 
-      map_type_schema = self.schema_objs[type_name]
-      description += cast(
-        str, map_type_schema.get("description", "")
-      )
+        if description:
+          description += " "
+
+        description += cast(str, type_description)
 
     # The following `allOf` is required to display the description by
     # documentation generation tools because the OAS specifies that there
@@ -886,6 +952,11 @@ def _GetPathParamsFromPath(path: str) -> List[str]:
 def _GetTypeName(cls: Optional[TypeHinter]) -> str:
   """Extract type name from protobuf `Descriptor`/`type`/`int`/`str`."""
   if isinstance(cls, FieldDescriptor):
+    # First, check for the `sem_type` protobuf option and its `type` field.
+    sem_type_option = cls.GetOptions().Extensions[semantic_pb2.sem_type]
+    if sem_type_option.type in rdf_types_schemas:
+      return sem_type_option.type
+
     if _IsMapField(cls):
       map_type_name = _GetTypeName(cls.message_type)
       if map_type_name.endswith("Entry"):
