@@ -269,6 +269,8 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       filter(
           (clientVersions): clientVersions is Client[] =>
               clientVersions !== undefined),
+      // Reverse snapshots to provide reverse chronological order
+      map(snapshots => snapshots.slice().reverse()),
   );
 
   /** An observable emitting current flow configuration. */

@@ -1,0 +1,20 @@
+@use '~material-theme' as c;
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  font-weight: 500;
+  text-align: left;
+  color: c.mat-color(c.$foreground, text-light);
+}
+
+td {
+  text-align: left;
+  border-top: 1px solid c.mat-color(c.$foreground, divider-light);
+  border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+  padding: 0.3em 1.5em 0.3em 0;
+  vertical-align: top;
+}
