@@ -804,6 +804,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       ungrouped_routes = []
       for http_method, path, strip_root_types in router_method.http_methods:
         path_components = path.split("/")
+        # Remove trailing empty strings from the list of path components.
+        while path_components and len(path_components[-1]) == 0:
+          path_components.pop()
+
         ungrouped_routes.append([http_method] + path_components)
 
       grouped_routes = _GetGroupedRoutes(ungrouped_routes)
