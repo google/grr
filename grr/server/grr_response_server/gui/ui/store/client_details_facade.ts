@@ -23,23 +23,16 @@ interface ClientDetailsState {
   providedIn: 'root',
 })
 export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
-  constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly configService: ConfigService) {
+  constructor(private readonly httpApiService: HttpApiService) {
     super({});
+
+    this.select(state => state.clientId).subscribe(clientId => {
+      this.fetchSelectedClientSnapshots();
+    });
   }
 
-  /** Reducer updating the selected client. */
-  private readonly updateSelectedClient =
-      this.updater<Client>((state, client) => {
-        return {
-          ...state,
-          client,
-        };
-      });
-
   /** Reducer updating the clientId in the store's state. */
-  readonly selectClient = this.updater<string>((state, clientId) => {
+  readonly updateClientId = this.updater<string>((state, clientId) => {
     return {
       ...state,
       clientId,
@@ -55,31 +48,6 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
         };
       });
 
-  /** An effect fetching a client with a given id and updating the state. */
-  private readonly fetchClient = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.select(state => state.clientId)),
-          filter((clientId): clientId is string => clientId !== undefined),
-          mergeMap(clientId => {
-            return this.httpApiService.fetchClient(clientId);
-          }),
-          map(apiClient => translateClient(apiClient)),
-          tap(client => {
-            this.updateSelectedClient(client);
-          }),
-          ));
-
-  /** An observable emitting the client loaded by `selectClient`. */
-  readonly selectedClient$: Observable<Client> =
-      combineLatest(
-          timer(0, this.configService.config.selectedClientPollingIntervalMs)
-              .pipe(tap(() => this.fetchClient())),
-          this.select(state => state.client))
-          .pipe(
-              map(([i, client]) => client),
-              filter((client): client is Client => client !== undefined),
-          );
-
   /** An effect fetching the versions of the selected client */
   private readonly fetchSelectedClientSnapshots = this.effect<void>(
       obs$ => obs$.pipe(
@@ -88,14 +56,13 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
           mergeMap(
               clientId => this.httpApiService.fetchClientVersions(clientId)),
           map(apiClientVersions => apiClientVersions.map(translateClient)),
-          tap(clientVersions =>
-                  this.updateSelectedClientSnapshots(clientVersions)),
+          tap(clientSnapshots =>
+                  this.updateSelectedClientSnapshots(clientSnapshots)),
           ));
 
   /** An observable emitting the snapshots of the selected client. */
-  readonly selectedClientSnapshots$: Observable<ReadonlyArray<Client>> =
+  private readonly selectedClientSnapshots$: Observable<ReadonlyArray<Client>> =
       of(undefined).pipe(
-          tap(() => {this.fetchSelectedClientSnapshots()}),
           switchMapTo(this.select(state => state.clientSnapshots)),
           filter(
               (clientVersions): clientVersions is Client[] =>
@@ -117,7 +84,7 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
       Observable<Map<string, ReadonlyArray<Client>>> =
           this.selectedClientSnapshots$.pipe(
               map((snapshots) => getClientEntriesChanged(snapshots)),
-          )
+          );
 }
 
 /** Facade for client details related API calls. */
@@ -126,13 +93,6 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
 })
 export class ClientDetailsFacade {
   constructor(private readonly store: ClientDetailsStore) {}
-
-  /** An observable emitting the client loaded by `selectClient`. */
-  readonly selectedClient$: Observable<Client> = this.store.selectedClient$;
-
-  /** An observable emitting the snapshots of the selected client. */
-  readonly selectedClientSnapshots$: Observable<ReadonlyArray<Client>> =
-      this.store.selectedClientSnapshots$;
 
   /** An observable emitting the client versions of the selected client. */
   readonly selectedClientVersions$: Observable<ReadonlyArray<ClientVersion>> =
@@ -147,6 +107,6 @@ export class ClientDetailsFacade {
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
-    this.store.selectClient(clientId);
+    this.store.updateClientId(clientId);
   }
 }
