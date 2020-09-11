@@ -102,7 +102,6 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
   );
 }
 
-
 /** Facade for client details related API calls. */
 @Injectable({
   providedIn: 'root',

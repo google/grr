@@ -5,7 +5,7 @@ import {Router} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
-import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ClientDetailsFacade} from '@app/store/client_details_facade';
 import {ConfigFacade} from '@app/store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {Subject} from 'rxjs';
@@ -19,7 +19,7 @@ import {ClientDetailsModule} from './module';
 initTestEnvironment();
 
 describe('Client Details Component', () => {
-  let facade: ClientPageFacade;
+  let facade: ClientDetailsFacade;
   let configFacade: ConfigFacadeMock;
   const clientVersionsMock = [
     newClient({
@@ -61,7 +61,7 @@ describe('Client Details Component', () => {
         })
         .compileComponents();
 
-    facade = TestBed.inject(ClientPageFacade);
+    facade = TestBed.inject(ClientDetailsFacade);
   }));
 
   it('selects the first option in the timeline by default', () => {

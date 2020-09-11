@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ClientDetailsFacade} from '@app/store/client_details_facade';
 import {map} from 'rxjs/operators';
 
-import {ClientPageFacade} from '../../store/client_page_facade';
 import {getClientVersions} from './client_diff';
 
 /**
@@ -19,19 +19,20 @@ export class ClientDetails {
   readonly INITIAL_NUM_INTERFACES_SHOWN = 3;
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
 
-  readonly client$ = this.clientPageFacade.selectedClient$;
+  readonly client$ = this.clientDetailsFacade.selectedClient$;
 
   // TODO(danielberbece): Move this to ClientDetailsStore.
-  readonly clientVersions$ = this.clientPageFacade.selectedClientVersions$.pipe(
-      map(getClientVersions),
-  );
+  readonly clientVersions$ =
+      this.clientDetailsFacade.selectedClientVersions$.pipe(
+          map(getClientVersions),
+      );
 
   currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
   currentNumVolumesShown = this.INITIAL_NUM_VOLUMES_SHOWN;
 
   constructor(
-      private readonly clientPageFacade: ClientPageFacade,
+      private readonly clientDetailsFacade: ClientDetailsFacade,
   ) {}
 
   getAccordionButtonState(

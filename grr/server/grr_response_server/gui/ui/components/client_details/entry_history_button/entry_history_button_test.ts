@@ -4,7 +4,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
 import {newClient} from '@app/lib/models/model_test_util';
-import {ClientPageFacade} from '@app/store/client_page_facade';
+import {ClientDetailsFacade} from '@app/store/client_details_facade';
 import {Subject} from 'rxjs';
 
 import {initTestEnvironment} from '../../../testing';
@@ -15,7 +15,7 @@ import {EntryHistoryButtonModule} from './module';
 initTestEnvironment();
 
 describe('Entry History Button Component', () => {
-  let facade: ClientPageFacade;
+  let facade: ClientDetailsFacade;
   const clientVersionsMock = [
     newClient({
       clientId: 'C.1234',
@@ -59,7 +59,7 @@ describe('Entry History Button Component', () => {
         })
         .compileComponents();
 
-    facade = TestBed.inject(ClientPageFacade);
+    facade = TestBed.inject(ClientDetailsFacade);
   }));
 
   it('shows "1 change" button when there is one change', fakeAsync(() => {

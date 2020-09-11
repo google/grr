@@ -26,7 +26,6 @@ describe('ClientPageFacade', () => {
   let apiCancelFlow$: Subject<ApiFlow>;
   let configFacade: ConfigFacadeMock;
   let apiRemoveClientLabel$: Subject<string>;
-  let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
@@ -35,7 +34,6 @@ describe('ClientPageFacade', () => {
     apiStartFlow$ = new Subject();
     apiCancelFlow$ = new Subject();
     apiRemoveClientLabel$ = new Subject();
-    apiFetchClientVersions$ = new Subject();
     httpApiService = {
       listApprovals:
           jasmine.createSpy('listApprovals').and.returnValue(apiListApprovals$),
@@ -50,8 +48,6 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('listResultsForFlow').and.returnValue(of([])),
       removeClientLabel: jasmine.createSpy('removeClientLabel')
                              .and.returnValue(apiRemoveClientLabel$),
-      fetchClientVersions: jasmine.createSpy('fetchClientVersions')
-                               .and.returnValue(apiFetchClientVersions$)
     };
 
     configFacade = mockConfigFacade();
@@ -589,47 +585,6 @@ describe('ClientPageFacade', () => {
                (expectedClients.length - 1) +
            1);
        discardPeriodicTasks();
-     }));
-
-  it('fetches client versions from API when selectedClientVersions$ is subscribed to',
-     () => {
-       expect(httpApiService.fetchClientVersions).not.toHaveBeenCalled();
-       clientPageFacade.selectedClientVersions$.subscribe();
-
-       expect(httpApiService.fetchClientVersions)
-           .toHaveBeenCalledWith('C.1234');
-     });
-
-  it('emits an array of Client objects through selectedClientVersions$',
-     fakeAsync((done: DoneFn) => {
-       apiFetchClientVersions$.next([
-         {
-           clientId: 'C.1234',
-           fleetspeakEnabled: true,
-         },
-         {
-           clientId: 'C.1234',
-           fleetspeakEnabled: false,
-         },
-       ]);
-
-       const expectedClientVersions = [
-         newClient({
-           clientId: 'C.1234',
-           fleetspeakEnabled: true,
-         }),
-         newClient({
-           clientId: 'C.1234',
-           fleetspeakEnabled: false,
-         }),
-       ];
-
-       clientPageFacade.selectedClientVersions$.subscribe(clientVersions => {
-         expect(clientVersions).toEqual(expectedClientVersions);
-         done();
-       });
-
-       tick(1);
      }));
 
   it('calls API to remove a client label', () => {
