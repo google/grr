@@ -220,7 +220,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check that there are no extra/missing paths.
     self.assertCountEqual(
       {
-        "/metadata_test/method1/{metadata_id}",
+        "/metadata_test/method1/{metadataId}",
         "/metadata_test/method2",
         "/metadata_test/method3",
         "/metadata_test/method4",
@@ -228,10 +228,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method6",
         "/metadata_test/method7",
         "/metadata_test/method8",
-        "/metadata_test/method9/{metadata_id}",
-        "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
-        "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
-        "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+        "/metadata_test/method9/{metadataId}",
+        "/metadata_test/method9/{metadataId}/{metadataArg1}",
+        "/metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
+        "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
         "/metadata_test/method10",
       },
       openapi_paths_dict.keys()
@@ -240,7 +240,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check that there are no extra/missing HTTP methods for each path (routes).
     self.assertCountEqual(
       {"get", "head", "post"},
-      openapi_paths_dict["/metadata_test/method1/{metadata_id}"].keys()
+      openapi_paths_dict["/metadata_test/method1/{metadataId}"].keys()
     )
     self.assertCountEqual(
       {"get", "head", "post"},
@@ -272,23 +272,23 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     self.assertCountEqual(
       {"get"},
-      openapi_paths_dict["/metadata_test/method9/{metadata_id}"].keys()
+      openapi_paths_dict["/metadata_test/method9/{metadataId}"].keys()
     )
     self.assertCountEqual(
       {"post"},
       openapi_paths_dict
-        .get("/metadata_test/method9/{metadata_id}/{metadata_arg1}").keys()
+        .get("/metadata_test/method9/{metadataId}/{metadataArg1}").keys()
     )
     self.assertCountEqual(
       {"get"},
       openapi_paths_dict.get(
-        "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}"
+        "/metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}"
       ).keys()
     )
     self.assertCountEqual(
       {"get"},
       openapi_paths_dict.get(
-        "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}"
+        "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}"
       ).keys()
     )
 
@@ -300,7 +300,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Check the OpenAPI parameters of `Method1WithArgsType` routes.
     method1_path_dict = (
-      openapi_paths_dict["/metadata_test/method1/{metadata_id}"]
+      openapi_paths_dict["/metadata_test/method1/{metadataId}"]
     )
 
     # Parameters of `GET /metadata_test/method1/{metadata_id}`.
@@ -1071,7 +1071,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # grouped under the same route described in the OpenAPI description is
     # tested by `testAllRoutesAreInOpenApiDescription`.
 
-    # Test `GET /metadata_test/method9/{metadata_id}` parameters.
+    # Test `GET /metadata_test/method9/{metadataId}` parameters.
     self.assertCountEqual(
       [
         {
@@ -1097,16 +1097,16 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         },
       ],
       [
-        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
+        self._GetParamDescription("/metadata_test/method9/{metadataId}", "get",
                                   "metadataId"),
-        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
+        self._GetParamDescription("/metadata_test/method9/{metadataId}", "get",
                                   "metadataArg1"),
-        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
+        self._GetParamDescription("/metadata_test/method9/{metadataId}", "get",
                                   "metadataArg2"),
       ]
     )
 
-    # Test `GET /metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}`
+    # Test `GET /metadata_test/method9/{metadataId}/fixed1/{metadataArg1}`
     # parameters.
     self.assertCountEqual(
       [
@@ -1135,17 +1135,17 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       ],
       [
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
           "get",
           "metadataId"
         ),
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
           "get",
           "metadataArg1"
         ),
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
           "get",
           "metadataArg2"
         ),
@@ -1153,7 +1153,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
 
     # Test
-    # `GET /metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}`
+    # `GET /metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}`
     # parameters.
     self.assertCountEqual(
       [
@@ -1185,26 +1185,26 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       [
         self._GetParamDescription(
           "/metadata_test"
-          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
           "get",
           "metadataId"
         ),
         self._GetParamDescription(
           "/metadata_test"
-          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
           "get",
           "metadataArg1"
         ),
         self._GetParamDescription(
           "/metadata_test"
-          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
           "get",
           "metadataArg2"
         ),
       ]
     )
 
-    # Test `POST /metadata_test/method9/{metadata_id}/{metadata_arg1}`
+    # Test `POST /metadata_test/method9/{metadataId}/{metadataArg1}`
     # parameters.
     self.assertCountEqual(
       [
@@ -1227,12 +1227,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       ],
       [
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/{metadataArg1}",
           "post",
           "metadataId"
         ),
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/{metadataArg1}",
           "post",
           "metadataArg1"
         ),

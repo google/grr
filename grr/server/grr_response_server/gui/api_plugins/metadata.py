@@ -750,7 +750,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     query_params = []
     body_params = []
     for field_d in field_descriptors:
-      if field_d.name in path_param_names:
+      if casing.SnakeToCamel(field_d.name) in path_param_names:
         path_params.append(field_d)
       elif http_method.upper() in ("GET", "HEAD"):
         query_params.append(field_d)
@@ -832,13 +832,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         req_path_params = []
         opt_path_params = []
         for path_param in path_params:
-          if path_param.name in req_path_param_names:
+          path_param_name = casing.SnakeToCamel(path_param.name)
+          if path_param_name in req_path_param_names:
             req_path_params.append(path_param)
-          elif path_param.name in opt_path_param_names:
+          elif path_param_name in opt_path_param_names:
             opt_path_params.append(path_param)
           else:
             raise AssertionError(
-              f"Path parameter {path_param.name} was not classified as "
+              f"Path parameter {path_param_name} was not classified as "
               f"required/optional."
             )
 
@@ -884,6 +885,7 @@ def _NormalizePathComponent(component: str) -> str:
   if _IsPathParameter(component):
     component = component[1:-1]
     component = component.split(":")[-1]
+    component = casing.SnakeToCamel(component)
     component = f"{{{component}}}"
 
   return component
