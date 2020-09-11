@@ -44,7 +44,7 @@ export class EntryHistoryDialog {
     data.clientVersions.forEach((client) => {
       let property: any = client;
       data.path.forEach((token) => {
-        if (property === undefined) {
+        if (token === '' || property === undefined) {
           throw new Error(`Wrong "path" provided: ${data.path}`);
         }
 

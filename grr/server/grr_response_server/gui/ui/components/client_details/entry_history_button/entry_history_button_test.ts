@@ -11,6 +11,7 @@ import {initTestEnvironment} from '../../../testing';
 
 import {EntryHistoryButton} from './entry_history_button';
 import {EntryHistoryButtonModule} from './module';
+import {getClientEntriesChanged} from '@app/store/client_details_diff';
 
 initTestEnvironment();
 
@@ -63,15 +64,15 @@ describe('Entry History Button Component', () => {
   }));
 
   it('shows "1 change" button when there is one change', fakeAsync(() => {
-       const subject = new Subject<Client[]>();
+       const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
+           facade, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'knowledgeBase.fqdn';
        fixture.detectChanges();
 
-       subject.next(clientVersionsMock);
+       subject.next(getClientEntriesChanged(clientVersionsMock));
        tick();
        fixture.detectChanges();
 
@@ -82,15 +83,15 @@ describe('Entry History Button Component', () => {
 
   it('shows "N changes" button when there is more than one change',
      fakeAsync(() => {
-       const subject = new Subject<Client[]>();
+       const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
+           facade, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'memorySize';
        fixture.detectChanges();
 
-       subject.next(clientVersionsMock);
+       subject.next(getClientEntriesChanged(clientVersionsMock));
        tick();
        fixture.detectChanges();
 
@@ -101,15 +102,15 @@ describe('Entry History Button Component', () => {
 
   it('doesn\'t show button when there is no change in a defined property',
      fakeAsync(() => {
-       const subject = new Subject<Client[]>();
+       const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
+           facade, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'clientId';
        fixture.detectChanges();
 
-       subject.next(clientVersionsMock);
+       subject.next(getClientEntriesChanged(clientVersionsMock));
        tick();
        fixture.detectChanges();
 
@@ -119,15 +120,15 @@ describe('Entry History Button Component', () => {
 
   it('doesn\'t show button when the path points to an undefined property',
      fakeAsync(() => {
-       const subject = new Subject<Client[]>();
+       const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
+           facade, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'volumes.foo.bar';
        fixture.detectChanges();
 
-       subject.next(clientVersionsMock);
+       subject.next(getClientEntriesChanged(clientVersionsMock));
        tick();
        fixture.detectChanges();
 

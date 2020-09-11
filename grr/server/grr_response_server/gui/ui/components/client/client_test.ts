@@ -7,6 +7,7 @@ import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
 import {newClient} from '@app/lib/models/model_test_util';
+import {ClientDetailsFacade} from '@app/store/client_details_facade';
 import {Subject} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
@@ -14,6 +15,7 @@ import {ClientPageFacade} from '../../store/client_page_facade';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 import {initTestEnvironment} from '../../testing';
+import {ClientDetailsModule} from '../client_details/module';
 
 import {Client as ClientComponent} from './client';
 import {ClientModule} from './module';
@@ -23,7 +25,8 @@ initTestEnvironment();
 
 describe('Client Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
-  let facade: ClientPageFacade;
+  let clientPageFacade: ClientPageFacade;
+  let clientDetailsFacade: ClientDetailsFacade;
   let configFacade: ConfigFacadeMock;
   let location: Location;
   let router: Router;
@@ -38,6 +41,7 @@ describe('Client Component', () => {
             ApiModule,
             NoopAnimationsModule,
             ClientModule,
+            ClientDetailsModule,
             RouterTestingModule.withRoutes(CLIENT_ROUTES),
           ],
           providers: [
@@ -54,7 +58,8 @@ describe('Client Component', () => {
         })
         .compileComponents();
 
-    facade = TestBed.inject(ClientPageFacade);
+    clientPageFacade = TestBed.inject(ClientPageFacade);
+    clientDetailsFacade = TestBed.inject(ClientDetailsFacade);
     location = TestBed.get(Location);
     router = TestBed.get(Router);
   }));
@@ -63,7 +68,7 @@ describe('Client Component', () => {
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    const searchClientsSpy = spyOn(facade, 'selectClient');
+    const searchClientsSpy = spyOn(clientPageFacade, 'selectClient');
     paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
     fixture.detectChanges();
 
@@ -73,11 +78,12 @@ describe('Client Component', () => {
   it('correctly updates URL when navigating from main page to details page',
      fakeAsync(() => {
        // Prevent warnings from 404-ing API requests.
-       spyOn(facade, 'selectClient');
+       spyOn(clientPageFacade, 'selectClient');
+       spyOn(clientDetailsFacade, 'selectClient');
 
        const subject = new Subject<Client>();
-       Object.defineProperty(facade, 'selectedClient$', {get: () => subject});
-       spyOn(facade, 'removeClientLabel');
+       Object.defineProperty(clientPageFacade, 'selectedClient$', {get: () => subject});
+       spyOn(clientPageFacade, 'removeClientLabel');
 
        router.navigate(['v2/clients/C.1234']);
        tick();
@@ -112,11 +118,12 @@ describe('Client Component', () => {
   it('correctly updates URL when navigating from details page to main page',
      fakeAsync(() => {
        // Prevent warnings from 404-ing API requests.
-       spyOn(facade, 'selectClient');
+       spyOn(clientPageFacade, 'selectClient');
+       spyOn(clientDetailsFacade, 'selectClient');
 
        const subject = new Subject<Client>();
-       Object.defineProperty(facade, 'selectedClient$', {get: () => subject});
-       spyOn(facade, 'removeClientLabel');
+       Object.defineProperty(clientPageFacade, 'selectedClient$', {get: () => subject});
+       spyOn(clientPageFacade, 'removeClientLabel');
 
        const fixture = TestBed.createComponent(ClientComponent);
        router.navigate(['v2/clients/C.1234/details']);
