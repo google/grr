@@ -107,7 +107,7 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
 @Injectable({
   providedIn: 'root',
 })
-export class ClientPageFacade {
+export class ClientDetailsFacade {
   constructor(private readonly store: ClientDetailsStore) {}
 
   /** An observable emitting the client loaded by `selectClient`. */
