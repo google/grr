@@ -877,7 +877,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("application/json")
         .get("schema")
         .get("properties")
-        .get("field_enum")
+        .get("fieldEnum")
     )
     self.assertEqual(
       {
