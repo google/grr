@@ -149,7 +149,7 @@ describe('ClientDetailsFacade', () => {
   it('fetches client versions from API when selectedClientVersions$ is subscribed to',
      () => {
        expect(httpApiService.fetchClientVersions).not.toHaveBeenCalled();
-       clientDetailsFacade.selectedClientVersions$.subscribe();
+       clientDetailsFacade.selectedClientSnapshots$.subscribe();
 
        expect(httpApiService.fetchClientVersions)
            .toHaveBeenCalledWith('C.1234');
@@ -179,7 +179,7 @@ describe('ClientDetailsFacade', () => {
          }),
        ];
 
-       clientDetailsFacade.selectedClientVersions$.subscribe(clientVersions => {
+       clientDetailsFacade.selectedClientSnapshots$.subscribe(clientVersions => {
          expect(clientVersions).toEqual(expectedClientVersions);
          done();
        });

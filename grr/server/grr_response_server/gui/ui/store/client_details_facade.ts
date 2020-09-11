@@ -7,10 +7,12 @@ import {ComponentStore} from '@ngrx/component-store';
 import {combineLatest, Observable, of, timer} from 'rxjs';
 import {filter, map, mergeMap, switchMapTo, tap} from 'rxjs/operators';
 
+import {ClientVersion, getClientEntriesChanged, getClientVersions} from './client_details_diff';
+
 interface ClientDetailsState {
   readonly client?: Client;
   readonly clientId?: string;
-  readonly clientVersions?: Client[];
+  readonly clientSnapshots?: Client[];
 }
 /**
  * ComponentStore implementation used by the ClientDetailsFacade. Shouldn't be
@@ -44,6 +46,15 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
     };
   });
 
+  /** Reducer updating the selected client snapshots. */
+  private readonly updateSelectedClientSnapshots =
+      this.updater<Client[]>((state, clientVersions) => {
+        return {
+          ...state,
+          clientSnapshots: clientVersions,
+        };
+      });
+
   /** An effect fetching a client with a given id and updating the state. */
   private readonly fetchClient = this.effect<void>(
       obs$ => obs$.pipe(
@@ -69,17 +80,8 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
               filter((client): client is Client => client !== undefined),
           );
 
-  /** Reducer updating the selected client. */
-  private readonly updateSelectedClientVersions =
-      this.updater<Client[]>((state, clientVersions) => {
-        return {
-          ...state,
-          clientVersions,
-        };
-      });
-
   /** An effect fetching the versions of the selected client */
-  private readonly fetchSelectedClientVersions = this.effect<void>(
+  private readonly fetchSelectedClientSnapshots = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.select(state => state.clientId)),
           filter((clientId): clientId is string => clientId !== undefined),
@@ -87,19 +89,35 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
               clientId => this.httpApiService.fetchClientVersions(clientId)),
           map(apiClientVersions => apiClientVersions.map(translateClient)),
           tap(clientVersions =>
-                  this.updateSelectedClientVersions(clientVersions)),
+                  this.updateSelectedClientSnapshots(clientVersions)),
           ));
 
-  /** An observable emitting the client versions of the selected client. */
-  readonly selectedClientVersions$: Observable<Client[]> = of(undefined).pipe(
-      tap(() => {this.fetchSelectedClientVersions()}),
-      switchMapTo(this.select(state => state.clientVersions)),
-      filter(
-          (clientVersions): clientVersions is Client[] =>
-              clientVersions !== undefined),
-      // Reverse snapshots to provide reverse chronological order
-      map(snapshots => snapshots.slice().reverse()),
-  );
+  /** An observable emitting the snapshots of the selected client. */
+  readonly selectedClientSnapshots$: Observable<ReadonlyArray<Client>> =
+      of(undefined).pipe(
+          tap(() => {this.fetchSelectedClientSnapshots()}),
+          switchMapTo(this.select(state => state.clientSnapshots)),
+          filter(
+              (clientVersions): clientVersions is Client[] =>
+                  clientVersions !== undefined),
+          // Reverse snapshots to provide reverse chronological order
+          map(snapshots => snapshots.slice().reverse()),
+      );
+
+  /** An observable emitting the client versions of the selected client */
+  readonly selectedClientVersions$: Observable<ReadonlyArray<ClientVersion>> =
+      this.selectedClientSnapshots$.pipe(
+          map((snapshots) => getClientVersions(snapshots)),
+      );
+
+  /**
+   * An observable emitting the client changed entries of the selected client
+   */
+  readonly selectedClientEntriesChanged$:
+      Observable<Map<string, ReadonlyArray<Client>>> =
+          this.selectedClientSnapshots$.pipe(
+              map((snapshots) => getClientEntriesChanged(snapshots)),
+          )
 }
 
 /** Facade for client details related API calls. */
@@ -112,9 +130,20 @@ export class ClientDetailsFacade {
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> = this.store.selectedClient$;
 
+  /** An observable emitting the snapshots of the selected client. */
+  readonly selectedClientSnapshots$: Observable<ReadonlyArray<Client>> =
+      this.store.selectedClientSnapshots$;
+
   /** An observable emitting the client versions of the selected client. */
-  readonly selectedClientVersions$: Observable<Client[]> =
+  readonly selectedClientVersions$: Observable<ReadonlyArray<ClientVersion>> =
       this.store.selectedClientVersions$;
+
+  /**
+   * An observable emitting the client changed entries of the selected client
+   */
+  readonly selectedClientEntriesChanged$:
+      Observable<Map<string, ReadonlyArray<Client>>> =
+          this.store.selectedClientEntriesChanged$;
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {

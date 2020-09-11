@@ -1,8 +1,5 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input, OnChanges} from '@angular/core';
 import {ClientDetailsFacade} from '@app/store/client_details_facade';
-import {map} from 'rxjs/operators';
-
-import {getClientVersions} from './client_diff';
 
 /**
  * Component displaying the details for a single Client.
@@ -13,19 +10,15 @@ import {getClientVersions} from './client_diff';
   styleUrls: ['./client_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientDetails {
+export class ClientDetails implements OnChanges {
+  @Input() clientId!: string;
+
   // Not static & private because is referenced in the template
   readonly INITIAL_NUM_USERS_SHOWN = 1;
   readonly INITIAL_NUM_INTERFACES_SHOWN = 3;
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
 
-  readonly client$ = this.clientDetailsFacade.selectedClient$;
-
-  // TODO(danielberbece): Move this to ClientDetailsStore.
-  readonly clientVersions$ =
-      this.clientDetailsFacade.selectedClientVersions$.pipe(
-          map(getClientVersions),
-      );
+  readonly clientVersions$ = this.clientDetailsFacade.selectedClientVersions$;
 
   currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
@@ -34,6 +27,10 @@ export class ClientDetails {
   constructor(
       private readonly clientDetailsFacade: ClientDetailsFacade,
   ) {}
+
+  ngOnChanges() {
+    this.clientDetailsFacade.selectClient(this.clientId);
+  }
 
   getAccordionButtonState(
       totalNumElements: number, currentMaxNumElementsShown: number,

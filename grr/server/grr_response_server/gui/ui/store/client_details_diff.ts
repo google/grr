@@ -1,7 +1,8 @@
 import {Client} from '@app/lib/models/client';
 import {diff, Diff} from 'deep-diff';
 
-interface ClientVersion {
+/** Client Version */
+export interface ClientVersion {
   client: Client;
   changes: ReadonlyArray<string>;
 }
@@ -185,7 +186,7 @@ function getSnapshotChanges(
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
-export function getClientVersions(clientSnapshots: Client[]):
+export function getClientVersions(clientSnapshots: ReadonlyArray<Client>):
     ReadonlyArray<ClientVersion> {
   const clientChanges: ClientVersion[] = [];
 
@@ -230,7 +231,7 @@ function getStringsJoinedPath(path: any[]): string {
   return path.filter(val => typeof val === 'string').join('.');
 }
 
-function pairwise<T>(arr: T[]): ReadonlyArray<[T, T]> {
+function pairwise<T>(arr: ReadonlyArray<T>): ReadonlyArray<[T, T]> {
   const pairwiseArray: [T, T][] = [];
   for (let i = 0; i < arr.length - 1; i++) {
     pairwiseArray.push([arr[i], arr[i + 1]]);
@@ -263,7 +264,7 @@ function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
-export function getClientEntriesChanged(clientSnapshots: Client[]):
+export function getClientEntriesChanged(clientSnapshots: ReadonlyArray<Client>):
     Map<string, ReadonlyArray<Client>> {
   const clientChangedEntries: Map<string, Client[]> = new Map();
 

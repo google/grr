@@ -2,9 +2,7 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {Client} from '@app/lib/models/client';
 import {ClientDetailsFacade} from '@app/store/client_details_facade';
-import {map} from 'rxjs/operators';
 
-import {getClientEntriesChanged} from '../client_diff';
 import {EntryHistoryDialog, EntryHistoryDialogParams, EntryType} from '../entry_history_dialog/entry_history_dialog';
 
 /**
@@ -27,11 +25,8 @@ export class EntryHistoryButton {
       private readonly dialog: MatDialog,
   ) {}
 
-  // TODO(danielberbece): move this to ClientDetailsStore
   readonly clientEntryChanges$ =
-      this.clientDetailsFacade.selectedClientVersions$.pipe(
-          map(getClientEntriesChanged),
-      );
+      this.clientDetailsFacade.selectedClientEntriesChanged$;
 
   openEntryHistoryDialog(clientVersions: Client[]) {
     const data: EntryHistoryDialogParams = {

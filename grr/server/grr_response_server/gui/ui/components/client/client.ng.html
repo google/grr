@@ -1,6 +1,6 @@
 <mat-drawer-container class="container" [class.noscroll]="clientDetailsDrawer.opened">
   <mat-drawer #clientDetailsDrawer position="end">
-    <client-details></client-details>
+    <client-details [clientId]="id$ | async"></client-details>
   </mat-drawer>
 
   <mat-drawer-content>

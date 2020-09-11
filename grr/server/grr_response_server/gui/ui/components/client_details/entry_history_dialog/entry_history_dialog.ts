@@ -44,12 +44,12 @@ export class EntryHistoryDialog {
     data.clientVersions.forEach((client) => {
       let property: any = client;
       data.path.forEach((token) => {
+        if (property === undefined) {
+          throw new Error(`Wrong "path" provided: ${data.path}`);
+        }
+
         property = property[token];
       });
-
-      if (property === undefined) {
-        throw new Error(`Wrong "path" provided: ${data.path}`);
-      }
 
       this.tableRows.push({
         time: client.age,
