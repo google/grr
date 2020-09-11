@@ -3,31 +3,37 @@
 
 .details-container {
   display: flex;
-  height: calc(100vh - #{main.$toolbar-height} - #{main.$client-overview-height});
+  height: calc(100vh - #{main.$toolbar-height});
   width: 1200px;
 
   .timeline {
-    width: 20%;
     border-right: 1px solid c.mat-color(c.$foreground, divider-light);
-    padding: 2em;
+    padding-right: 1em;
     overflow: auto;
 
-    .heading {
-      padding-left: 16px;
+    .heading-since {
+      padding-top: 32px;
+      padding-left: 32px;
+
+      .heading {
       // Default material h1 style adds unwanted bottom margin
       margin-bottom: 0px;
-    }
+      }
 
-    .since {
-      font-size: 10px;
-      color: c.mat-color(c.$foreground, text-light);
-      padding-left: 16px;
+      .since {
+        font-size: 10px;
+        color: c.mat-color(c.$foreground, text-light);
+      }
     }
 
     .entry {
+      box-sizing: border-box;
       margin-top: 1em;
+      margin-right: 10px !important;
+      padding-left: 10px;
       background: transparent;
       height: auto;
+      border-radius: 0 14px 14px 0;
 
       .timestamp {
         margin-left: 20px;
@@ -46,12 +52,12 @@
 
     .entry[aria-selected="true"] {
       color: c.mat-color(c.$primary);
+      background: #E8F0FE;
     }
   }
 
   .info {
-    padding-left: 200px;
-    padding-right: 200px;
+    padding: 20px 150px 20px 150px;
     text-align: center;
     overflow: auto;
     flex-grow: 1;
