@@ -3,10 +3,10 @@
 
 from grr_response_core.lib import casing
 
-from grr.test_lib import test_lib
+from absl.testing import absltest
 
 
-class CasingTests(test_lib.GRRBaseTest):
+class CasingTests(absltest.TestCase):
   def testSnakeToCamelWorksOnEmptyString(self):
     self.assertEqual("", casing.SnakeToCamel(""))
 
