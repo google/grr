@@ -13,6 +13,7 @@ import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {ClientOverview} from './client_overview';
+import {ClipboardModule} from '@angular/cdk/clipboard';
 
 /**
  * Module for the client overview component.
@@ -29,6 +30,7 @@ import {ClientOverview} from './client_overview';
     OnlineChipModule,
     MatSnackBarModule,
     MatDialogModule,
+    ClipboardModule,
   ],
   declarations: [
     ClientOverview,
