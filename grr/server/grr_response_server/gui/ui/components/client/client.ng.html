@@ -1,4 +1,4 @@
-<mat-drawer-container class="container" [ngClass]="{'noscroll': clientDetailsDrawer.opened}">
+<mat-drawer-container class="container" [class.noscroll]="clientDetailsDrawer.opened">
   <mat-drawer #clientDetailsDrawer position="end">
     <client-details></client-details>
   </mat-drawer>
