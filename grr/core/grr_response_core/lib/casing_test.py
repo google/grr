@@ -6,7 +6,7 @@ from grr_response_core.lib import casing
 from absl.testing import absltest
 
 
-class CasingTests(absltest.TestCase):
+class SnakeToCamelTest(absltest.TestCase):
   def testSnakeToCamelWorksOnEmptyString(self):
     self.assertEqual("", casing.SnakeToCamel(""))
 
@@ -19,6 +19,8 @@ class CasingTests(absltest.TestCase):
     self.assertEqual("aCamelThisIs", casing.SnakeToCamel("a_camel_this_is"))
     self.assertEqual("aBCD", casing.SnakeToCamel("a_b_c_d"))
 
+
+class CamelToSnakeTest(absltest.TestCase):
   def testCamelToSnakeWorksOnEmptyString(self):
     self.assertEqual("", casing.CamelToSnake(""))
 
