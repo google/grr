@@ -1,10 +1,9 @@
 import {Injectable} from '@angular/core';
-import {ConfigService} from '@app/components/config/config';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateClient} from '@app/lib/api_translation/client';
 import {Client} from '@app/lib/models/client';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, timer} from 'rxjs';
+import {Observable} from 'rxjs';
 import {filter, map, mergeMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ClientVersion, getClientEntriesChanged, getClientVersions} from './client_details_diff';
@@ -13,6 +12,8 @@ interface ClientDetailsState {
   readonly client?: Client;
   readonly clientId?: string;
   readonly clientSnapshots?: Client[];
+  readonly clientVersions?: ReadonlyArray<ClientVersion>;
+  readonly clientEntriesChanged?: Map<string, ReadonlyArray<Client>>;
 }
 /**
  * ComponentStore implementation used by the ClientDetailsFacade. Shouldn't be
@@ -26,8 +27,13 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
   constructor(private readonly httpApiService: HttpApiService) {
     super({});
 
-    this.select(state => state.clientId).subscribe(clientId => {
+    this.clientId$.subscribe(clientId => {
       this.fetchSelectedClientSnapshots();
+    });
+
+    this.clientSnapshots$.subscribe(clientSnapshots => {
+      this.updateClientVersions(getClientVersions(clientSnapshots));
+      this.updateClientEntriesChanged(getClientEntriesChanged(clientSnapshots));
     });
   }
 
@@ -40,13 +46,40 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
   });
 
   /** Reducer updating the selected client snapshots. */
-  private readonly updateSelectedClientSnapshots =
-      this.updater<Client[]>((state, clientVersions) => {
+  private readonly updateClientSnapshots =
+      this.updater<Client[]>((state, clientSnapshots) => {
         return {
           ...state,
-          clientSnapshots: clientVersions,
+          clientSnapshots: clientSnapshots,
         };
       });
+
+  /** Reducer updating the selected client versions. */
+  private readonly updateClientVersions =
+      this.updater<ClientVersion[]>((state, clientVersions) => {
+        return {
+          ...state,
+          clientVersions,
+        };
+      });
+
+  /** Reducer updating the selected client versions. */
+  private readonly updateClientEntriesChanged =
+      this.updater<Map<string, ReadonlyArray<Client>>>(
+          (state, clientEntriesChanged) => {
+            return {
+              ...state,
+              clientEntriesChanged,
+            };
+          });
+
+  private readonly clientId$ = this.select(store => store.clientId);
+
+  private readonly clientSnapshots$ =
+      this.select(store => store.clientSnapshots)
+          .pipe(filter(
+              (clientVersions): clientVersions is Client[] =>
+                  clientVersions !== undefined));
 
   /** An effect fetching the versions of the selected client */
   private readonly fetchSelectedClientSnapshots = this.effect<void>(
@@ -56,35 +89,28 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
           mergeMap(
               clientId => this.httpApiService.fetchClientVersions(clientId)),
           map(apiClientVersions => apiClientVersions.map(translateClient)),
-          tap(clientSnapshots =>
-                  this.updateSelectedClientSnapshots(clientSnapshots)),
-          ));
-
-  /** An observable emitting the snapshots of the selected client. */
-  private readonly selectedClientSnapshots$: Observable<ReadonlyArray<Client>> =
-      of(undefined).pipe(
-          switchMapTo(this.select(state => state.clientSnapshots)),
-          filter(
-              (clientVersions): clientVersions is Client[] =>
-                  clientVersions !== undefined),
           // Reverse snapshots to provide reverse chronological order
           map(snapshots => snapshots.slice().reverse()),
-      );
+          tap(clientSnapshots => this.updateClientSnapshots(clientSnapshots)),
+          ));
 
   /** An observable emitting the client versions of the selected client */
-  readonly selectedClientVersions$: Observable<ReadonlyArray<ClientVersion>> =
-      this.selectedClientSnapshots$.pipe(
-          map((snapshots) => getClientVersions(snapshots)),
-      );
+  readonly selectedClientVersions$ =
+      this.select(store => store.clientVersions)
+          .pipe(filter(
+              (clientVersions):
+                  clientVersions is ReadonlyArray<ClientVersion> =>
+                      clientVersions !== undefined));
 
   /**
    * An observable emitting the client changed entries of the selected client
    */
-  readonly selectedClientEntriesChanged$:
-      Observable<Map<string, ReadonlyArray<Client>>> =
-          this.selectedClientSnapshots$.pipe(
-              map((snapshots) => getClientEntriesChanged(snapshots)),
-          );
+  readonly selectedClientEntriesChanged$ =
+      this.select(store => store.clientEntriesChanged)
+          .pipe(filter(
+              (clientEntriesChanged):
+                  clientEntriesChanged is Map<string, ReadonlyArray<Client>> =>
+                      clientEntriesChanged !== undefined));
 }
 
 /** Facade for client details related API calls. */

@@ -187,7 +187,7 @@ function getSnapshotChanges(
  *     snapshots
  */
 export function getClientVersions(clientSnapshots: ReadonlyArray<Client>):
-    ReadonlyArray<ClientVersion> {
+    ClientVersion[] {
   const clientChanges: ClientVersion[] = [];
 
   for (let i = 0; i < clientSnapshots.length; i++) {

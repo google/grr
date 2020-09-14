@@ -17,15 +17,11 @@ describe('ClientDetailsFacade', () => {
   let httpApiService: Partial<HttpApiService>;
   let clientDetailsFacade: ClientDetailsFacade;
   let configService: ConfigService;
-  let apiFetchClient$: Subject<ApiClient>;
   let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
   beforeEach(() => {
-    apiFetchClient$ = new Subject();
     apiFetchClientVersions$ = new Subject();
     httpApiService = {
-      fetchClient:
-          jasmine.createSpy('fetchClient').and.returnValue(apiFetchClient$),
       fetchClientVersions: jasmine.createSpy('fetchClientVersions')
                                .and.returnValue(apiFetchClientVersions$)
     };
@@ -46,16 +42,53 @@ describe('ClientDetailsFacade', () => {
     configService = TestBed.inject(ConfigService);
 
     clientDetailsFacade.selectClient('C.1234');
-    apiFetchClient$.next({
-      clientId: 'C.1234',
-    });
   });
 
   it('fetches client versions from API when "selectClient" is called', () => {
-    expect(httpApiService.fetchClientVersions).toHaveBeenCalledTimes(1);
+    expect(httpApiService.fetchClientVersions).toHaveBeenCalledWith('C.1234');
 
     clientDetailsFacade.selectClient('C.4321');
     expect(httpApiService.fetchClientVersions).toHaveBeenCalledWith('C.4321');
+  });
+
+  it('updates store\'s state clientVersions on selectClient call', (done) => {
+    apiFetchClientVersions$.next([
+      {
+        clientId: 'C.1234',
+        memorySize: '1',
+        age: '1580515200000',
+      },
+      {
+        clientId: 'C.1234',
+        memorySize: '123',
+        age: '1583020800000',
+      },
+    ]);
+
+    clientDetailsFacade.selectedClientVersions$.subscribe((versions) => {
+      expect(versions.length).toEqual(2);
+      done();
+    });
+  });
+
+  it('updates store\'s state clientEntriesChanged on selectClient call', (done) => {
+    apiFetchClientVersions$.next([
+      {
+        clientId: 'C.1234',
+        memorySize: '1',
+        age: '1580515200000',
+      },
+      {
+        clientId: 'C.1234',
+        memorySize: '123',
+        age: '1583020800000',
+      },
+    ]);
+
+    clientDetailsFacade.selectedClientEntriesChanged$.subscribe((clientEntriesChanged) => {
+      expect(clientEntriesChanged).toBeTruthy();
+      done();
+    });
   });
 
   it('getClientVersions() correctly translates snapshots into client changes',
