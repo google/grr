@@ -160,6 +160,11 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http(
     "GET", "/metadata_test/method9/<metadata_id>/fixed1/<metadata_arg1>"
   )
+  @api_call_router.Http("GET", "/metadata_test/method9/fixed2/")  # Trailing /.
+  @api_call_router.Http("GET", "/metadata_test/method9/fixed2/<metadata_arg1>/")
+  @api_call_router.Http(
+    "GET", "/metadata_test/method9/fixed2/<metadata_arg1>/<metadata_arg2>/"
+  )
   def Method9OptionalPathArgs(self, args, token=None):
     """Method 9 description"""
 
@@ -232,6 +237,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method9/{metadataId}/{metadataArg1}",
         "/metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
         "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
+        "/metadata_test/method9/fixed2/{metadataArg1}/{metadataArg2}",
         "/metadata_test/method10",
       },
       openapi_paths_dict.keys()
@@ -1238,6 +1244,52 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         ),
       ]
     )
+
+    # Test `GET /metadata_test/method9/fixed2/{metadataArg1}/{metadataArg2}`
+    # parameters.
+    self.assertCountEqual(
+      [
+        {
+          "name": "metadataId",
+          "in": "query",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
+          },
+        },
+        {
+          "name": "metadataArg1",
+          "in": "path",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
+          },
+        },
+        {
+          "name": "metadataArg2",
+          "in": "path",
+          "schema": {
+            "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
+          },
+        },
+      ],
+      [
+        self._GetParamDescription(
+          "/metadata_test/method9/fixed2/{metadataArg1}/{metadataArg2}",
+          "get",
+          "metadataId"
+        ),
+        self._GetParamDescription(
+          "/metadata_test/method9/fixed2/{metadataArg1}/{metadataArg2}",
+          "get",
+          "metadataArg1"
+        ),
+        self._GetParamDescription(
+          "/metadata_test/method9/fixed2/{metadataArg1}/{metadataArg2}",
+          "get",
+          "metadataArg2"
+        ),
+      ]
+    )
+
 
   def _GetParamDescription(self, method_path, http_method, param_name):
     params = (
