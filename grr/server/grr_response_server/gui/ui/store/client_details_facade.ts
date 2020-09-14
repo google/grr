@@ -1,17 +1,18 @@
 import {Injectable} from '@angular/core';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateClient} from '@app/lib/api_translation/client';
-import {Client} from '@app/lib/models/client';
 import {ComponentStore} from '@ngrx/component-store';
 import {Observable} from 'rxjs';
 import {filter, map, mergeMap, switchMapTo, tap} from 'rxjs/operators';
+
+import {HttpApiService} from '../lib/api/http_api_service';
+import {translateClient} from '../lib/api_translation/client';
+import {Client} from '../lib/models/client';
 
 import {ClientVersion, getClientEntriesChanged, getClientVersions} from './client_details_diff';
 
 interface ClientDetailsState {
   readonly client?: Client;
   readonly clientId?: string;
-  readonly clientSnapshots?: Client[];
+  readonly clientSnapshots?: ReadonlyArray<Client>;
   readonly clientVersions?: ReadonlyArray<ClientVersion>;
   readonly clientEntriesChanged?: Map<string, ReadonlyArray<Client>>;
 }
@@ -30,11 +31,6 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
     this.clientId$.subscribe(clientId => {
       this.fetchSelectedClientSnapshots();
     });
-
-    this.clientSnapshots$.subscribe(clientSnapshots => {
-      this.updateClientVersions(getClientVersions(clientSnapshots));
-      this.updateClientEntriesChanged(getClientEntriesChanged(clientSnapshots));
-    });
   }
 
   /** Reducer updating the clientId in the store's state. */
@@ -50,7 +46,7 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
       this.updater<Client[]>((state, clientSnapshots) => {
         return {
           ...state,
-          clientSnapshots: clientSnapshots,
+          clientSnapshots,
         };
       });
 
@@ -91,7 +87,12 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
           map(apiClientVersions => apiClientVersions.map(translateClient)),
           // Reverse snapshots to provide reverse chronological order
           map(snapshots => snapshots.slice().reverse()),
-          tap(clientSnapshots => this.updateClientSnapshots(clientSnapshots)),
+          tap(clientSnapshots => {
+            this.updateClientSnapshots(clientSnapshots);
+            this.updateClientVersions(getClientVersions(clientSnapshots));
+            this.updateClientEntriesChanged(
+                getClientEntriesChanged(clientSnapshots));
+          }),
           ));
 
   /** An observable emitting the client versions of the selected client */
