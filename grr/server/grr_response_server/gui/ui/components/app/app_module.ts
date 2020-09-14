@@ -10,8 +10,6 @@ import {UserMenuModule} from '@app/components/user_menu/module';
 import {ApiModule} from '@app/lib/api/module';
 import {StoreDevtoolsModule} from '@ngrx/store-devtools';
 
-import {ClientDetailsModule} from '../client_details/module';
-
 import {App} from './app';
 import {AppRoutingModule} from './routing';
 

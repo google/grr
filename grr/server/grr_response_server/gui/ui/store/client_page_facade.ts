@@ -1,4 +1,3 @@
-import {HttpResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ConfigService} from '@app/components/config/config';
 import {AnyObject} from '@app/lib/api/api_interfaces';
@@ -7,7 +6,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, Subject, timer} from 'rxjs';
+import {combineLatest, Observable, of, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
@@ -45,7 +44,6 @@ export type StartFlowState = {
 interface ClientPageState {
   readonly client?: Client;
   readonly clientId?: string;
-  readonly clientVersions?: Client[];
 
   readonly lastRemovedClientLabel?: string;
 
@@ -100,15 +98,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         return {
           ...state,
           client,
-        };
-      });
-
-  /** Reducer updating the selected client. */
-  private readonly updateSelectedClientVersions =
-      this.updater<Client[]>((state, clientVersions) => {
-        return {
-          ...state,
-          clientVersions,
         };
       });
 
@@ -263,16 +252,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       skip(1),
   );
 
-  readonly selectedClientVersions$: Observable<Client[]> = of(undefined).pipe(
-      tap(() => {this.fetchSelectedClientVersions()}),
-      switchMapTo(this.select(state => state.clientVersions)),
-      filter(
-          (clientVersions): clientVersions is Client[] =>
-              clientVersions !== undefined),
-      // Reverse snapshots to provide reverse chronological order
-      map(snapshots => snapshots.slice().reverse()),
-  );
-
   /** An observable emitting current flow configuration. */
   readonly flowInConfiguration$: Observable<FlowInConfiguration> =
       this.select(state => state.flowInConfiguration).pipe(filter(isNonNull));
@@ -367,18 +346,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           tap(client => {
             this.updateSelectedClient(client);
           }),
-          ));
-
-  /** An effect fetching the versions of the selected client */
-  private readonly fetchSelectedClientVersions = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.select(state => state.clientId)),
-          filter((clientId): clientId is string => clientId !== undefined),
-          mergeMap(
-              clientId => this.httpApiService.fetchClientVersions(clientId)),
-          map(apiClientVersions => apiClientVersions.map(translateClient)),
-          tap(clientVersions =>
-                  this.updateSelectedClientVersions(clientVersions)),
           ));
 
   /** An effect querying results of a given flow. */
@@ -620,10 +587,6 @@ export class ClientPageFacade {
   /** An observable emitting currently selected flow descriptor. */
   readonly selectedFlowDescriptor$: Observable<FlowDescriptor|undefined> =
       this.store.selectedFlowDescriptor$;
-
-  /** An observable emitting the client versions of the selected client. */
-  readonly selectedClientVersions$: Observable<Client[]> =
-      this.store.selectedClientVersions$;
 
   /** An observable emitting the last removed client label. */
   readonly lastRemovedClientLabel$: Observable<string> =
