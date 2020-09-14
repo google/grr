@@ -6,7 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
-from typing import Text
+from typing import Text, List
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -16,6 +16,7 @@ from grr_response_server import fleetspeak_connector
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 
 def IsFleetspeakEnabledClient(grr_id):
@@ -112,3 +113,23 @@ def GetLabelsFromFleetspeak(client_id):
       grr_labels.append(fs_label.label)
 
   return grr_labels
+
+
+def FetchClientResourceUsageRecords(
+    client_id: Text, limit: int) -> List[resource_pb2.ClientResourceUsageRecord]:
+  """Returns aggregated resource usage metrics of a client
+  in Fleetspeak-enabled database.
+
+  Args:
+    client_id: Id of the client to fetch Fleetspeak resource usage records for.
+    limit: Max number of resource usage records to retrieve.
+
+  Returns:
+    A list of client resource usage records retrieved from Fleetspeak.
+  """
+  res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(
+      admin_pb2.FetchClientResourceUsageRecordsRequest(
+          client_id=GRRIDToFleetspeakID(client_id), limit=limit))
+  if not res.records:
+    return []
+  return list(res.records)

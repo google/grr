@@ -15,7 +15,7 @@ from grr.test_lib import test_lib
 
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
 
 _TEST_CLIENT_ID = "C.0000000000000001"
 
@@ -132,6 +132,32 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     restart_req = fs_system_pb2.RestartServiceRequest()
     fs_message.data.Unpack(restart_req)
     self.assertEqual(restart_req.name, "GRR")
+
+  def testFetchClientResourceUsageRecords(self):
+    conn = mock.MagicMock()
+    conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
+        records=[{
+            "mean_user_cpu_rate": 1,
+            "max_system_cpu_rate": 2
+        }, {
+            "mean_user_cpu_rate": 4,
+            "max_system_cpu_rate": 8
+        }])
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      expected_records_list = [
+          resource_pb2.ClientResourceUsageRecord(mean_user_cpu_rate=1,
+                                                 max_system_cpu_rate=2),
+          resource_pb2.ClientResourceUsageRecord(mean_user_cpu_rate=4,
+                                                 max_system_cpu_rate=8)
+      ]
+      self.assertListEqual(
+          fleetspeak_utils.FetchClientResourceUsageRecords(
+              _TEST_CLIENT_ID, 10), expected_records_list)
+      conn.outgoing.FetchClientResourceUsageRecords.assert_called_once()
+      conn.outgoing.FetchClientResourceUsageRecords.assert_called_with(
+          admin_pb2.FetchClientResourceUsageRecordsRequest(
+              client_id=fleetspeak_utils.GRRIDToFleetspeakID(_TEST_CLIENT_ID),
+              limit=10))
 
 
 def main(argv):
