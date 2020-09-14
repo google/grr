@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 import binascii
 from typing import Text, List
 
+from google.protobuf import timestamp_pb2
+
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import text
@@ -116,20 +118,25 @@ def GetLabelsFromFleetspeak(client_id):
 
 
 def FetchClientResourceUsageRecords(
-    client_id: Text, limit: int) -> List[resource_pb2.ClientResourceUsageRecord]:
+    client_id: Text, start_range: timestamp_pb2.Timestamp,
+    end_range: timestamp_pb2.Timestamp
+) -> List[resource_pb2.ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client
-  in Fleetspeak-enabled database.
+  in Fleetspeak-enabled database within a specified time range.
 
   Args:
     client_id: Id of the client to fetch Fleetspeak resource usage records for.
-    limit: Max number of resource usage records to retrieve.
+    start_range: Start timestamp of range.
+    end_range: end timestamp of range.
 
   Returns:
     A list of client resource usage records retrieved from Fleetspeak.
   """
   res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(
       admin_pb2.FetchClientResourceUsageRecordsRequest(
-          client_id=GRRIDToFleetspeakID(client_id), limit=limit))
+          client_id=GRRIDToFleetspeakID(client_id),
+          start_timestamp=start_range,
+          end_timestamp = end_range))
   if not res.records:
     return []
   return list(res.records)
