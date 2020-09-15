@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 from absl import app
 import mock
 
+from google.protobuf import timestamp_pb2
+
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
@@ -150,14 +152,18 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
           resource_pb2.ClientResourceUsageRecord(mean_user_cpu_rate=4,
                                                  max_system_cpu_rate=8)
       ]
+      arbitrary_date = timestamp_pb2.Timestamp(seconds=1, nanos=1)
       self.assertListEqual(
           fleetspeak_utils.FetchClientResourceUsageRecords(
-              _TEST_CLIENT_ID, 10), expected_records_list)
+              client_id=_TEST_CLIENT_ID,
+              start_range=arbitrary_date,
+              end_range=arbitrary_date), expected_records_list)
       conn.outgoing.FetchClientResourceUsageRecords.assert_called_once()
       conn.outgoing.FetchClientResourceUsageRecords.assert_called_with(
           admin_pb2.FetchClientResourceUsageRecordsRequest(
               client_id=fleetspeak_utils.GRRIDToFleetspeakID(_TEST_CLIENT_ID),
-              limit=10))
+              start_timestamp=arbitrary_date,
+              end_timestamp=arbitrary_date))
 
 
 def main(argv):

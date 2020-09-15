@@ -6,6 +6,8 @@ from absl import app
 import copy
 import mock
 
+from google.protobuf import timestamp_pb2
+
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
 
 from grr_response_server import fleetspeak_connector
@@ -17,6 +19,8 @@ from werkzeug import test as werkzeug_test
 
 _TEST_CLIENT_ID_1 = "C.0000000000000001"
 _TEST_CLIENT_ID_2 = "C.0000000000000002"
+_START_RANGE_TIMESTAMP = "2020-08-13T14:20:17.158Z"
+_END_RANGE_TIMESTAMP = "2020-08-18T17:15:58.761Z"
 _TEST_CLIENT_RESOURCE_USAGE_RECORD_1 = {
     "scope": "system",
     "pid": 2714460,
@@ -62,56 +66,56 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "max_resident_memory_mib": 59
 }
 _TEST_VALID_QUERY = {
-  'app': 'dashboard',
-  'requestId': 'Q119',
-  'timezone': 'browser',
-  'panelId': 2,
-  'dashboardId': 77,
-  'range': {
-      'from': '2020-08-13T14:20:17.000Z',
-      'to': '2020-08-18T17:15:58.000Z',
-      'raw': {
-          'from': '2020-08-13T14:20:17.000Z',
-          'to': '2020-08-18T17:15:58.000Z'
-      }
-  },
-  'timeInfo': '',
-  'interval': '10m',
-  'intervalMs': 600000,
-  'targets': [{
-      'data': None,
-      'target': 'max_user_cpu_rate',
-      'refId': 'A',
-      'hide': False,
-      'type': 'timeseries'
-  }, {
-      'data': None,
-      'target': 'mean_system_cpu_rate',
-      'refId': 'A',
-      'hide': False,
-      'type': 'timeseries'
-  }],
-  'maxDataPoints': 800,
-  'scopedVars': {
-      'ClientID': {
-          'text': _TEST_CLIENT_ID_1,
-          'value': _TEST_CLIENT_ID_1
-      },
-      '__interval': {
-          'text': '10m',
-          'value': '10m'
-      },
-      '__interval_ms': {
-          'text': '600000',
-          'value': 600000
-      }
-  },
-  'startTime': 1598782453496,
-  'rangeRaw': {
-      'from': '2020-08-13T14:20:17.000Z',
-      'to': '2020-08-18T17:15:58.000Z'
-  },
-  'adhocFilters': []
+    'app': 'dashboard',
+    'requestId': 'Q119',
+    'timezone': 'browser',
+    'panelId': 2,
+    'dashboardId': 77,
+    'range': {
+        'from': _START_RANGE_TIMESTAMP,
+        'to': _END_RANGE_TIMESTAMP,
+        'raw': {
+            'from': _START_RANGE_TIMESTAMP,
+            'to': _END_RANGE_TIMESTAMP
+        }
+    },
+    'timeInfo': '',
+    'interval': '10m',
+    'intervalMs': 600000,
+    'targets': [{
+        'data': None,
+        'target': 'max_user_cpu_rate',
+        'refId': 'A',
+        'hide': False,
+        'type': 'timeseries'
+    }, {
+        'data': None,
+        'target': 'mean_system_cpu_rate',
+        'refId': 'A',
+        'hide': False,
+        'type': 'timeseries'
+    }],
+    'maxDataPoints': 800,
+    'scopedVars': {
+        'ClientID': {
+            'text': _TEST_CLIENT_ID_1,
+            'value': _TEST_CLIENT_ID_1
+        },
+        '__interval': {
+            'text': '10m',
+            'value': '10m'
+        },
+        '__interval_ms': {
+            'text': '600000',
+            'value': 600000
+        }
+    },
+    'startTime': 1598782453496,
+    'rangeRaw': {
+        'from': _START_RANGE_TIMESTAMP,
+        'to': _END_RANGE_TIMESTAMP
+    },
+    'adhocFilters': []
 }
 _TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
@@ -198,7 +202,25 @@ class GrrafanaTest(absltest.TestCase):
           "datapoints": [[0.31883034110069275, 1597328417823],
                          [0.07246342301368713, 1597328419403]]
       }])
-      self.assertRaises(NameError, self.client.post, "/query", json=_TEST_INVALID_TARGET_QUERY)
+
+  def testQueryInvalidRequest(self):
+    conn = _MockConnReturningRecords([
+        _TEST_CLIENT_RESOURCE_USAGE_RECORD_1,
+        _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
+    ])
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      self.assertRaises(NameError,
+                        self.client.post,
+                        "/query",
+                        json=_TEST_INVALID_TARGET_QUERY)
+
+  def testGrafanaTimestampToTimestampObj(self):
+    self.assertEqual(
+        grrafana._GrafanaTimestampToTimestampObj(_START_RANGE_TIMESTAMP),
+        timestamp_pb2.Timestamp(seconds=1597328417, nanos=(158 * 1000000)))
+    self.assertEqual(
+        grrafana._GrafanaTimestampToTimestampObj(_END_RANGE_TIMESTAMP),
+        timestamp_pb2.Timestamp(seconds=1597770958, nanos=(761 * 1000000)))
 
 
 def main(argv):
