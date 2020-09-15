@@ -40,32 +40,35 @@ describe('Client Component', () => {
     userFacade = mockUserFacade();
 
     TestBed
-        .configureTestingModule({
-          imports: [
-            ApiModule,
-            NoopAnimationsModule,
-            ClientModule,
-            ClientDetailsModule,
-            RouterTestingModule.withRoutes(CLIENT_ROUTES),
-          ],
-          providers: [
-            {
-              provide: ActivatedRoute,
-              useValue: {
-                paramMap: paramsSubject,
-                snapshot: {},
-              },
+      .configureTestingModule({
+        imports: [
+          ApiModule,
+          NoopAnimationsModule,
+          ClientModule,
+          ClientDetailsModule,
+          RouterTestingModule.withRoutes(CLIENT_ROUTES),
+        ],
+        providers: [
+          {
+            provide: ActivatedRoute,
+            useValue: {
+              paramMap: paramsSubject,
+              snapshot: {},
             },
-            {provide: ConfigFacade, useFactory: () => configFacade},
-            {provide: UserFacade, useFactory: () => userFacade},
-          ],
-        })
-        .compileComponents();
+          },
+          {provide: ConfigFacade, useFactory: () => configFacade},
+          {provide: UserFacade, useFactory: () => userFacade},
+        ],
+      })
+      .compileComponents();
 
     clientPageFacade = TestBed.inject(ClientPageFacade);
     clientDetailsFacade = TestBed.inject(ClientDetailsFacade);
     location = TestBed.get(Location);
     router = TestBed.get(Router);
+
+    // Prevent warnings from 404-ing API requests.
+    spyOn(clientDetailsFacade, 'selectClient');
   }));
 
   it('loads client information on route change', () => {
@@ -80,84 +83,82 @@ describe('Client Component', () => {
   });
 
   it('correctly updates URL when navigating from main page to details page',
-     fakeAsync(() => {
-       // Prevent warnings from 404-ing API requests.
-       spyOn(clientPageFacade, 'selectClient');
-       spyOn(clientDetailsFacade, 'selectClient');
+    fakeAsync(() => {
+      // Prevent warnings from 404-ing API requests.
+      spyOn(clientPageFacade, 'selectClient');
 
-       const subject = new Subject<Client>();
-       Object.defineProperty(
-           clientPageFacade, 'selectedClient$', {get: () => subject});
+      const subject = new Subject<Client>();
+      Object.defineProperty(
+        clientPageFacade, 'selectedClient$', {get: () => subject});
 
-       const fixture = TestBed.createComponent(ClientComponent);
-       router.navigate(['clients/C.1234']);
-       tick();
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
+      const fixture = TestBed.createComponent(ClientComponent);
+      router.navigate(['clients/C.1234']);
+      tick();
+      fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-       paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-       subject.next(newClient({
-         clientId: 'C.1234',
-         labels: [{name: 'testlabel', owner: ''}],
-       }));
-       fixture.detectChanges();
+      paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
+      subject.next(newClient({
+        clientId: 'C.1234',
+        labels: [{name: 'testlabel', owner: ''}],
+      }));
+      fixture.detectChanges();
 
-       expect(location.path()).toEqual('/clients/C.1234');
-       const drawer = fixture.debugElement.query(By.directive(MatDrawer));
-       expect(drawer.componentInstance.opened).toEqual(false);
-       let detailsButton =
-           fixture.debugElement.query(By.css('.goto-details')).nativeElement;
-       detailsButton.dispatchEvent(new MouseEvent('click'));
-       tick();
-       fixture.detectChanges();
+      expect(location.path()).toEqual('/clients/C.1234');
+      const drawer = fixture.debugElement.query(By.directive(MatDrawer));
+      expect(drawer.componentInstance.opened).toEqual(false);
+      let detailsButton =
+        fixture.debugElement.query(By.css('.goto-details')).nativeElement;
+      detailsButton.dispatchEvent(new MouseEvent('click'));
+      tick();
+      fixture.detectChanges();
 
-       // The following expectation is met when testing manually, but not on
-       // automated testing, because the drawer's openedStart observable is not
-       // firing
-       // expect(location.path()).toEqual('/clients/C.1234/details');
-       expect(drawer.componentInstance.opened).toEqual(true);
+      // The following expectation is met when testing manually, but not on
+      // automated testing, because the drawer's openedStart observable is not
+      // firing
+      // expect(location.path()).toEqual('/clients/C.1234/details');
+      expect(drawer.componentInstance.opened).toEqual(true);
 
-       discardPeriodicTasks();
-     }));
+      discardPeriodicTasks();
+    }));
 
   it('correctly updates URL when navigating from details page to main page',
-     fakeAsync(() => {
-       // Prevent warnings from 404-ing API requests.
-       spyOn(clientPageFacade, 'selectClient');
-       spyOn(clientDetailsFacade, 'selectClient');
+    fakeAsync(() => {
+      // Prevent warnings from 404-ing API requests.
+      spyOn(clientPageFacade, 'selectClient');
 
-       const subject = new Subject<Client>();
-       Object.defineProperty(
-           clientPageFacade, 'selectedClient$', {get: () => subject});
+      const subject = new Subject<Client>();
+      Object.defineProperty(
+        clientPageFacade, 'selectedClient$', {get: () => subject});
 
-       const fixture = TestBed.createComponent(ClientComponent);
-       router.navigate(['clients/C.1234/details']);
-       tick();
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
+      const fixture = TestBed.createComponent(ClientComponent);
+      router.navigate(['clients/C.1234/details']);
+      tick();
+      fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-       paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-       subject.next(newClient({
-         clientId: 'C.1234',
-         labels: [{name: 'testlabel', owner: ''}],
-       }));
-       fixture.detectChanges();
-       tick();
+      paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
+      subject.next(newClient({
+        clientId: 'C.1234',
+        labels: [{name: 'testlabel', owner: ''}],
+      }));
+      fixture.detectChanges();
+      tick();
 
-       fixture.detectChanges();
+      fixture.detectChanges();
 
-       expect(location.path()).toEqual('/clients/C.1234/details');
-       const drawer = fixture.debugElement.query(By.directive(MatDrawer));
-       expect(drawer.componentInstance.opened).toEqual(true);
-       const detailsButton =
-           fixture.debugElement.query(By.css('.goto-details')).nativeElement;
-       detailsButton.dispatchEvent(new MouseEvent('click'));
-       fixture.detectChanges();
+      expect(location.path()).toEqual('/clients/C.1234/details');
+      const drawer = fixture.debugElement.query(By.directive(MatDrawer));
+      expect(drawer.componentInstance.opened).toEqual(true);
+      const detailsButton =
+        fixture.debugElement.query(By.css('.goto-details')).nativeElement;
+      detailsButton.dispatchEvent(new MouseEvent('click'));
+      fixture.detectChanges();
 
-       expect(drawer.componentInstance.opened).toEqual(false);
-       // The following expectation is met when testing manually, but not on
-       // automated testing, because the drawer's closedStart observable is not
-       // firing
-       // expect(location.path()).toEqual('/clients/C.1234');
-       tick();
-       discardPeriodicTasks();
-     }));
+      expect(drawer.componentInstance.opened).toEqual(false);
+      // The following expectation is met when testing manually, but not on
+      // automated testing, because the drawer's closedStart observable is not
+      // firing
+      // expect(location.path()).toEqual('/clients/C.1234');
+      tick();
+      discardPeriodicTasks();
+    }));
 });
