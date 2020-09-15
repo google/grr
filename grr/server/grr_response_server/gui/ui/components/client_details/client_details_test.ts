@@ -25,13 +25,6 @@ describe('Client Details Component', () => {
     newClient({
       clientId: 'C.1234',
       knowledgeBase: {
-        fqdn: 'foo.unknown-first',
-      },
-      age: new Date(2020, 1, 1),
-    }),
-    newClient({
-      clientId: 'C.1234',
-      knowledgeBase: {
         fqdn: 'foo.unknown-changed',
       },
       users: [
@@ -40,6 +33,13 @@ describe('Client Details Component', () => {
         {username: 'hidden-username'},
       ],
       age: new Date(2020, 2, 1),
+    }),
+    newClient({
+      clientId: 'C.1234',
+      knowledgeBase: {
+        fqdn: 'foo.unknown-first',
+      },
+      age: new Date(2020, 1, 1),
     }),
   ];
 

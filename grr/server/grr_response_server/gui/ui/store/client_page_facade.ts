@@ -33,7 +33,6 @@ export type StartFlowState = {
   readonly state: 'scheduled',
   readonly scheduledFlow: ScheduledFlow,
 }|{
-} | {
   readonly state: 'success',
   readonly flow: Flow,
 } | {
