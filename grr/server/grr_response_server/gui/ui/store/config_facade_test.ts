@@ -104,6 +104,10 @@ describe('ConfigFacade', () => {
       expect(results).toEqual(expected);
       done();
     });
+
+    apiFetchUiConfig$.next({
+      profileImageUrl: 'https://foo',
+    });
   });
 
   it('calls the API on subscription to clientsLabels$', () => {

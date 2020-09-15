@@ -58,9 +58,7 @@ describe('Client Component', () => {
             },
             {provide: ConfigFacade, useFactory: () => configFacade},
             {provide: UserFacade, useFactory: () => userFacade},
-            {provide: Router, useValue: {}},
           ],
-
         })
         .compileComponents();
 
@@ -88,12 +86,12 @@ describe('Client Component', () => {
        spyOn(clientDetailsFacade, 'selectClient');
 
        const subject = new Subject<Client>();
-       Object.defineProperty(clientPageFacade, 'selectedClient$', {get: () => subject});
-       spyOn(clientPageFacade, 'removeClientLabel');
+       Object.defineProperty(
+           clientPageFacade, 'selectedClient$', {get: () => subject});
 
+       const fixture = TestBed.createComponent(ClientComponent);
        router.navigate(['clients/C.1234']);
        tick();
-       const fixture = TestBed.createComponent(ClientComponent);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
        paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
@@ -115,7 +113,7 @@ describe('Client Component', () => {
        // The following expectation is met when testing manually, but not on
        // automated testing, because the drawer's openedStart observable is not
        // firing
-       // expect(location.path()).toEqual('/v2/clients/C.1234/details');
+       // expect(location.path()).toEqual('/clients/C.1234/details');
        expect(drawer.componentInstance.opened).toEqual(true);
 
        discardPeriodicTasks();
@@ -128,11 +126,11 @@ describe('Client Component', () => {
        spyOn(clientDetailsFacade, 'selectClient');
 
        const subject = new Subject<Client>();
-       Object.defineProperty(clientPageFacade, 'selectedClient$', {get: () => subject});
-       spyOn(clientPageFacade, 'removeClientLabel');
+       Object.defineProperty(
+           clientPageFacade, 'selectedClient$', {get: () => subject});
 
        const fixture = TestBed.createComponent(ClientComponent);
-       router.navigate(['v2/clients/C.1234/details']);
+       router.navigate(['clients/C.1234/details']);
        tick();
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
