@@ -136,7 +136,7 @@ def FetchClientResourceUsageRecords(
       admin_pb2.FetchClientResourceUsageRecordsRequest(
           client_id=GRRIDToFleetspeakID(client_id),
           start_timestamp=start_range,
-          end_timestamp = end_range))
+          end_timestamp=end_range))
   if not res.records:
     return []
   return list(res.records)
