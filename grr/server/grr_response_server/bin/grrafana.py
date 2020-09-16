@@ -5,7 +5,7 @@ import collections
 import dateutil
 import json
 import os
-from typing import Any, cast, Dict, List, Text, Tuple, Iterable
+from typing import Any, cast, Dict, List, Tuple, Iterable
 
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 from google.protobuf import timestamp_pb2
@@ -143,13 +143,13 @@ _TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
 
 
 def _FetchDatapointsForTargets(
-    client_id: Text, start_range: Text,
-    end_range: Text,
-    targets: Iterable[Text]) -> List[_TargetWithDatapoints]:
+    client_id: str, start_range: str,
+    end_range: str,
+    targets: Iterable[str]) -> List[_TargetWithDatapoints]:
   """Fetches a list of <datapoint, timestamp> tuples for each target 
   metric from Fleetspeak database."""
-  start_range_timestamp = _GrafanaTimestampToTimestampObj(start_range)
-  end_range_timestamp = _GrafanaTimestampToTimestampObj(end_range)
+  start_range_timestamp = GrafanaTimestampToTimestampObj(start_range)
+  end_range_timestamp = GrafanaTimestampToTimestampObj(end_range)
   records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
       client_id, start_range_timestamp, end_range_timestamp)
   response = []
@@ -162,15 +162,15 @@ def _FetchDatapointsForTargets(
   return response
 
 
-def _GrafanaTimestampToTimestampObj(
-    grafana_time: Text) -> timestamp_pb2.Timestamp:
+def GrafanaTimestampToTimestampObj(
+    grafana_time: str) -> timestamp_pb2.Timestamp:
   date = dateutil.parser.parse(grafana_time)
   return timestamp_pb2.Timestamp(seconds=int(date.timestamp()),
                                  nanos=date.microsecond * 1000)
 
 
 def _CreateDatapointsForTarget(
-    target: Text,
+    target: str,
     records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
 ) -> _Datapoints:
   if target == "mean_user_cpu_rate":
@@ -197,7 +197,7 @@ def _CreateDatapointsForTarget(
   ]
 
 
-def _ExtractClientIdFromVariable(req: JSONRequest) -> Text:
+def _ExtractClientIdFromVariable(req: JSONRequest) -> str:
   """Extracts the client ID from a Grafana JSON request."""
   return req["scopedVars"]["ClientID"]["value"]
 

@@ -118,7 +118,7 @@ def GetLabelsFromFleetspeak(client_id):
 
 
 def FetchClientResourceUsageRecords(
-    client_id: Text, start_range: timestamp_pb2.Timestamp,
+    client_id: str, start_range: timestamp_pb2.Timestamp,
     end_range: timestamp_pb2.Timestamp
 ) -> List[resource_pb2.ClientResourceUsageRecord]:
   """Returns aggregated resource usage metrics of a client
