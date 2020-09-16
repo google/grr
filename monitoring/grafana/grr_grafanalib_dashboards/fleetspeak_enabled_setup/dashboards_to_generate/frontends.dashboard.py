@@ -1,4 +1,4 @@
-from grafanalib.core import Dashboard, Graph, Row, Target
+from grafanalib.core import Dashboard, Graph, Row, Target, YAxes, YAxis, SECONDS_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
 from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
@@ -21,15 +21,21 @@ dashboard = Dashboard(
             legendFormat="Requests",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format="reqps")
+        ),
       ),
       Graph(
-        title="Request Latency Rate",
+        title="Request Latency",
         targets=[
           Target(
             expr='sum(rate(frontend_request_latency_sum[10m])) / sum(rate(frontend_request_latency_count[10m]))',
             legendFormat="Latency",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Well Known Flows Requests Rate by Flow",

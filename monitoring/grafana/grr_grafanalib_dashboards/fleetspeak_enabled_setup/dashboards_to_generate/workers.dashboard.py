@@ -1,4 +1,4 @@
-from grafanalib.core import Dashboard, Graph, Row, Target
+from grafanalib.core import Dashboard, Graph, Row, Target, YAxes, YAxis, SECONDS_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
 from grr_grafanalib_dashboards.reusable_panels import GENERAL_PANELS
 from grr_grafanalib_dashboards.config import GRAFANA_DATA_SOURCE
@@ -27,7 +27,7 @@ dashboard = Dashboard(
         ],
       ),
       Graph(
-        title="Threadpool Latency Rate vs. Queuing Time Rate",
+        title="Threadpool Latency vs. Queuing Time",
         targets=[
           Target(
             expr='sum(rate(threadpool_working_time_sum{job="grr_worker"}[10m])) / sum(rate(threadpool_working_time_count{job="grr_worker"}[10m]))',
@@ -38,6 +38,9 @@ dashboard = Dashboard(
             legendFormat="Queueing Time",
           ),
         ],
+        yAxes=YAxes(
+          left=YAxis(format=SECONDS_FORMAT)
+        ),
       ),
       Graph(
         title="Rate of Flow States a GRR Worker has moved through by GRR Worker Instance",

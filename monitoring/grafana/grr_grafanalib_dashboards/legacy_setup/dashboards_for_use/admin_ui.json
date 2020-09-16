@@ -32,7 +32,7 @@
                 "query": {
                   "model": {
                     "datasource": "",
-                    "expr": "sum(up{job=\"fleetspeak\"})",
+                    "expr": "sum(up{job=\"grr_admin_ui\"})",
                     "format": "time_series",
                     "instant": false,
                     "interval": "",
@@ -60,14 +60,14 @@
             "for": "5m",
             "frequency": "60s",
             "handler": 1,
-            "message": "The number of active Fleetspeak Server processes is below 1",
+            "message": "The number of active Admin_ui processes is below 1",
             "name": "Number of Active Processes alert",
             "noDataState": "no_data",
             "notifications": []
           },
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -113,7 +113,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(up{job=\"fleetspeak\"})",
+              "expr": "sum(up{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -163,7 +163,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -209,12 +209,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(process_resident_memory_bytes{job=\"fleetspeak\"})",
+              "expr": "avg(rate(process_cpu_seconds_total{job=\"grr_admin_ui\"}[30s])) * 100",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Resident Memory",
+              "legendFormat": "Average Process CPU Usage",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -223,7 +223,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Sum of Process Memory Bytes (across all instances)",
+          "title": "CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -238,10 +238,10 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "percent",
               "label": null,
               "logBase": 1,
-              "max": null,
+              "max": 105,
               "min": 0,
               "show": true
             },
@@ -259,7 +259,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -305,12 +305,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "avg(rate(process_cpu_seconds_total{job=\"fleetspeak\"}[30s])) * 100",
+              "expr": "sum(process_resident_memory_bytes{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Average Process CPU Usage in %",
+              "legendFormat": "Resident Memory",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -319,7 +319,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "CPU Usage",
+          "title": "Sum of Process Memory Bytes (across all instances)",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -334,10 +334,10 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": null,
+              "format": "bytes",
               "label": null,
               "logBase": 1,
-              "max": 105,
+              "max": null,
               "min": 0,
               "show": true
             },
@@ -365,7 +365,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -411,12 +411,25 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_sum[10m]) / rate(fleetspeak_server_datastore_operations_completed_latency_count[10m]))",
+              "expr": "sum(threadpool_outstanding_tasks{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{operation}}",
+              "legendFormat": "Outstanding Tasks",
+              "metric": "",
+              "refId": "",
+              "step": 10,
+              "target": ""
+            },
+            {
+              "datasource": "",
+              "expr": "sum(threadpool_threads{job=\"grr_admin_ui\"})",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "intervalFactor": 2,
+              "legendFormat": "Threads",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -425,7 +438,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Datastore Latency per Operation",
+          "title": "Outstanding Tasks vs. Number of Threads",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -459,78 +472,105 @@
           ]
         },
         {
-          "cards": {
-            "cardPadding": null,
-            "cardRound": null
-          },
-          "color": {
-            "cardColor": "#b4ff00",
-            "colorScale": "sqrt",
-            "colorScheme": "interpolateOranges",
-            "exponent": 0.5,
-            "max": null,
-            "min": null,
-            "mode": "spectrum"
-          },
-          "dataFormat": "timeseries",
-          "datasource": null,
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "grr-server",
           "description": null,
-          "heatmap": {},
-          "hideZeroBuckets": false,
-          "highlightCards": true,
-          "id": 5,
-          "legend": {
-            "show": true
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
           },
-          "links": null,
-          "options": null,
-          "reverseYBuckets": false,
+          "id": 5,
+          "isNew": true,
+          "legend": {
+            "alignAsTable": false,
+            "avg": false,
+            "current": false,
+            "hideEmpty": false,
+            "hideZero": false,
+            "max": false,
+            "min": false,
+            "rightSide": false,
+            "show": true,
+            "sideWidth": null,
+            "sort": null,
+            "sortDesc": false,
+            "total": false,
+            "values": false
+          },
+          "lines": true,
+          "linewidth": 2,
+          "links": [],
+          "minSpan": null,
+          "nullPointMode": "connected",
+          "percentage": false,
+          "pointradius": 5,
+          "points": false,
+          "renderer": "flot",
+          "repeat": null,
+          "seriesOverrides": [],
           "span": 3,
+          "stack": false,
+          "steppedLine": false,
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])) by (le)",
+              "expr": "avg(rate(threadpool_cpu_use{job=\"grr_admin_ui\"}[30s])) * 100",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "",
+              "legendFormat": "Average Process CPU Usage in % (over all jobs & pools)",
               "metric": "",
               "refId": "",
               "step": 10,
               "target": ""
             }
           ],
-          "title": "Datastore Latency Distribution",
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Threadpool Average CPU Usage",
           "tooltip": {
             "msResolution": true,
             "shared": true,
             "sort": 0,
             "value_type": "cumulative"
           },
-          "type": "heatmap",
-          "xAxis": {
+          "transparent": false,
+          "type": "graph",
+          "xaxis": {
             "show": true
           },
-          "xBucketNumber": null,
-          "xBucketSize": null,
-          "yAxis": {
-            "decimals": null,
-            "format": null,
-            "label": null,
-            "logBase": 1,
-            "max": null,
-            "min": 0,
-            "show": true
-          },
-          "yBucketBound": null,
-          "yBucketNumber": null,
-          "yBucketSize": null
+          "yaxes": [
+            {
+              "decimals": null,
+              "format": "percent",
+              "label": null,
+              "logBase": 1,
+              "max": 105,
+              "min": 0,
+              "show": true
+            },
+            {
+              "decimals": null,
+              "format": "short",
+              "label": null,
+              "logBase": 1,
+              "max": null,
+              "min": 0,
+              "show": true
+            }
+          ]
         },
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -576,38 +616,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "histogram_quantile(0.5, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))",
+              "expr": "sum by (call) (rate(db_request_errors_total{job=\"grr_admin_ui\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "50th percentile",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.9, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "90th percentile",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.99, sum by (le) (rate(fleetspeak_server_datastore_operations_completed_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "99th percentile",
+              "legendFormat": "{{call}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -616,7 +630,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Datastore Latency Quantiles",
+          "title": "Database Operations Errors Rate by Call",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -631,7 +645,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "ops",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -652,7 +666,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -698,12 +712,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_count{errored=\"true\"}[10m]))",
+              "expr": "sum by (call) (rate(db_request_latency_sum{job=\"grr_admin_ui\"}[10m]) / rate(db_request_latency_count{job=\"grr_admin_ui\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{operation}}",
+              "legendFormat": "{{call}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -712,7 +726,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Datastore Errors Rate per Operation",
+          "title": "Database Operations Latency by Call",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -727,7 +741,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -758,7 +772,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -804,12 +818,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (operation) (rate(fleetspeak_server_datastore_operations_completed_latency_count{errored=\"false\"}[10m]))",
+              "expr": "sum by (method_name) (rate(api_method_latency_sum[10m]) / rate(api_method_latency_count[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{operation}}",
+              "legendFormat": "{{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -818,7 +832,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Successful Datastore Operations Rate per Operation",
+          "title": "API Method Latency Rate by Method",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -833,7 +847,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -854,7 +868,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -900,12 +914,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (poll_type) (rate(fleetspeak_server_client_polls_total[10m]))",
+              "expr": "sum(rate(api_method_latency_count{status=\"SUCCESS\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{poll_type}}",
+              "legendFormat": "Successful Calls Rate",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -914,7 +928,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Client Polls Rate per Type",
+          "title": "API Calls Count Rate with Status SUCCESS",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -929,7 +943,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "ops",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -950,7 +964,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -996,12 +1010,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (http_status_code) (rate(fleetspeak_server_client_polls_total{http_status_code=\"^(4|5).*\"}[10m]))",
+              "expr": "sum by (method_name) (rate(api_method_latency_count{status!=\"SUCCESS\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{http_status_code}}",
+              "legendFormat": "{{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -1010,7 +1024,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Client Polls Errors Rate per Status",
+          "title": "API Calls Count Rate with other statuses (not SUCCESS) by Method",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1025,7 +1039,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "ops",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1044,99 +1058,20 @@
           ]
         },
         {
-          "cards": {
-            "cardPadding": null,
-            "cardRound": null
-          },
-          "color": {
-            "cardColor": "#b4ff00",
-            "colorScale": "sqrt",
-            "colorScheme": "interpolateOranges",
-            "exponent": 0.5,
-            "max": null,
-            "min": null,
-            "mode": "spectrum"
-          },
-          "dataFormat": "timeseries",
-          "datasource": null,
+          "aliasColors": {},
+          "bars": false,
+          "datasource": "grr-server",
           "description": null,
-          "heatmap": {},
-          "hideZeroBuckets": false,
-          "highlightCards": true,
+          "editable": true,
+          "error": false,
+          "fill": 1,
+          "grid": {
+            "threshold1": null,
+            "threshold1Color": "rgba(216, 200, 27, 0.27)",
+            "threshold2": null,
+            "threshold2Color": "rgba(234, 112, 112, 0.22)"
+          },
           "id": 11,
-          "legend": {
-            "show": true
-          },
-          "links": null,
-          "options": null,
-          "reverseYBuckets": false,
-          "span": 3,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum(rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])) by (le)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "title": "Client Poll Latency Distribution",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "heatmap",
-          "xAxis": {
-            "show": true
-          },
-          "xBucketNumber": null,
-          "xBucketSize": null,
-          "yAxis": {
-            "decimals": null,
-            "format": null,
-            "label": null,
-            "logBase": 1,
-            "max": null,
-            "min": 0,
-            "show": true
-          },
-          "yBucketBound": null,
-          "yBucketNumber": null,
-          "yBucketSize": null
-        }
-      ],
-      "repeat": null,
-      "showTitle": false,
-      "title": "New row"
-    },
-    {
-      "collapse": false,
-      "editable": true,
-      "height": "250px",
-      "panels": [
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 12,
           "isNew": true,
           "legend": {
             "alignAsTable": false,
@@ -1171,38 +1106,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "histogram_quantile(0.5, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))",
+              "expr": "sum by (method_name) (rate(api_access_probe_latency_sum[10m]) / rate(api_access_probe_latency_count[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "50th percentile",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.9, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "90th percentile",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.99, sum by (le) (rate(fleetspeak_server_client_polls_operation_time_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "99th percentile",
+              "legendFormat": "{{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -1211,7 +1120,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Client Poll Latency Quantiles",
+          "title": "API Access Probe Latency by Method",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1226,688 +1135,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 13,
-          "isNew": true,
-          "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "hideEmpty": false,
-            "hideZero": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "sort": null,
-            "sortDesc": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "minSpan": null,
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [],
-          "span": 3,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum by (poll_type) (rate(fleetspeak_server_client_polls_operation_time_latency_sum[10m]) / rate(fleetspeak_server_client_polls_operation_time_latency_count[10m]))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "{{poll_type}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Client Poll Operation Time Latency per Poll Type",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "transparent": false,
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 14,
-          "isNew": true,
-          "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "hideEmpty": false,
-            "hideZero": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "sort": null,
-            "sortDesc": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "minSpan": null,
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [],
-          "span": 3,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum by (cache_hit) (rate(fleetspeak_server_client_polls_total[10m]))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "Hit: {{cache_hit}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Client Polls Rate per Cache",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "transparent": false,
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 15,
-          "isNew": true,
-          "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "hideEmpty": false,
-            "hideZero": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "sort": null,
-            "sortDesc": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "minSpan": null,
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [],
-          "span": 3,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum by (destination_service) (rate(fleetspeak_messages_ingested_total[10m]))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "{{destination_service}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Messages Ingested per Destination Service",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "transparent": false,
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            }
-          ]
-        }
-      ],
-      "repeat": null,
-      "showTitle": false,
-      "title": "New row"
-    },
-    {
-      "collapse": false,
-      "editable": true,
-      "height": "250px",
-      "panels": [
-        {
-          "cards": {
-            "cardPadding": null,
-            "cardRound": null
-          },
-          "color": {
-            "cardColor": "#b4ff00",
-            "colorScale": "sqrt",
-            "colorScheme": "interpolateOranges",
-            "exponent": 0.5,
-            "max": null,
-            "min": null,
-            "mode": "spectrum"
-          },
-          "dataFormat": "timeseries",
-          "datasource": null,
-          "description": null,
-          "heatmap": {},
-          "hideZeroBuckets": false,
-          "highlightCards": true,
-          "id": 16,
-          "legend": {
-            "show": true
-          },
-          "links": null,
-          "options": null,
-          "reverseYBuckets": false,
-          "span": 3,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum(rate(fleetspeak_server_messages_processed_latency_bucket[10m])) by (le)",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "title": "Message Processing Latency Distribution",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "type": "heatmap",
-          "xAxis": {
-            "show": true
-          },
-          "xBucketNumber": null,
-          "xBucketSize": null,
-          "yAxis": {
-            "decimals": null,
-            "format": null,
-            "label": null,
-            "logBase": 1,
-            "max": null,
-            "min": 0,
-            "show": true
-          },
-          "yBucketBound": null,
-          "yBucketNumber": null,
-          "yBucketSize": null
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 17,
-          "isNew": true,
-          "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "hideEmpty": false,
-            "hideZero": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "sort": null,
-            "sortDesc": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "minSpan": null,
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [],
-          "span": 3,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.5, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "50th percentile - {{service}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.9, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "90th percentile - {{service}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            },
-            {
-              "datasource": "",
-              "expr": "histogram_quantile(0.99, sum by (le, service) (rate(fleetspeak_server_messages_processed_latency_bucket[10m])))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "99th percentile - {{service}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Message Processing Latency Quantiles per Service",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "transparent": false,
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 18,
-          "isNew": true,
-          "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "hideEmpty": false,
-            "hideZero": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "sort": null,
-            "sortDesc": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "minSpan": null,
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [],
-          "span": 3,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum by (service) (rate(fleetspeak_messages_saved_payload_bytes_size[10m]))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "{{service}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Payload Bytes Saved per Service",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "transparent": false,
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            },
-            {
-              "decimals": null,
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": 0,
-              "show": true
-            }
-          ]
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "datasource": "fleetspeak",
-          "description": null,
-          "editable": true,
-          "error": false,
-          "fill": 1,
-          "grid": {
-            "threshold1": null,
-            "threshold1Color": "rgba(216, 200, 27, 0.27)",
-            "threshold2": null,
-            "threshold2Color": "rgba(234, 112, 112, 0.22)"
-          },
-          "id": 19,
-          "isNew": true,
-          "legend": {
-            "alignAsTable": false,
-            "avg": false,
-            "current": false,
-            "hideEmpty": false,
-            "hideZero": false,
-            "max": false,
-            "min": false,
-            "rightSide": false,
-            "show": true,
-            "sideWidth": null,
-            "sort": null,
-            "sortDesc": false,
-            "total": false,
-            "values": false
-          },
-          "lines": true,
-          "linewidth": 2,
-          "links": [],
-          "minSpan": null,
-          "nullPointMode": "connected",
-          "percentage": false,
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "repeat": null,
-          "seriesOverrides": [],
-          "span": 3,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "datasource": "",
-              "expr": "sum by (destination_service) (rate(fleetspeak_messages_ingested_payload_bytes_size[10m]))",
-              "format": "time_series",
-              "instant": false,
-              "interval": "",
-              "intervalFactor": 2,
-              "legendFormat": "{{destination_service}}",
-              "metric": "",
-              "refId": "",
-              "step": 10,
-              "target": ""
-            }
-          ],
-          "timeFrom": null,
-          "timeShift": null,
-          "title": "Payload Bytes Ingested per Destination Service",
-          "tooltip": {
-            "msResolution": true,
-            "shared": true,
-            "sort": 0,
-            "value_type": "cumulative"
-          },
-          "transparent": false,
-          "type": "graph",
-          "xaxis": {
-            "show": true
-          },
-          "yaxes": [
-            {
-              "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1968,7 +1196,7 @@
     ]
   },
   "timezone": "utc",
-  "title": "Fleetspeak Servers Dashboard",
+  "title": "Admin Uis Dashboard",
   "uid": null,
   "version": 0
 }

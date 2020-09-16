@@ -32,7 +32,7 @@
                 "query": {
                   "model": {
                     "datasource": "",
-                    "expr": "sum(up{job=\"grr_frontend\"})",
+                    "expr": "sum(up{job=\"grr_admin_ui\"})",
                     "format": "time_series",
                     "instant": false,
                     "interval": "",
@@ -60,7 +60,7 @@
             "for": "5m",
             "frequency": "60s",
             "handler": 1,
-            "message": "The number of active Frontend processes is below 1",
+            "message": "The number of active Admin_ui processes is below 1",
             "name": "Number of Active Processes alert",
             "noDataState": "no_data",
             "notifications": []
@@ -113,7 +113,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(up{job=\"grr_frontend\"})",
+              "expr": "sum(up{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -209,12 +209,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "avg(rate(process_cpu_seconds_total{job=\"grr_frontend\"}[30s])) * 100",
+              "expr": "avg(rate(process_cpu_seconds_total{job=\"grr_admin_ui\"}[30s])) * 100",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Average Process CPU Usage in %",
+              "legendFormat": "Average Process CPU Usage",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -238,7 +238,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": null,
+              "format": "percent",
               "label": null,
               "logBase": 1,
               "max": 105,
@@ -305,7 +305,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(process_resident_memory_bytes{job=\"grr_frontend\"})",
+              "expr": "sum(process_resident_memory_bytes{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -334,7 +334,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "bytes",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -411,7 +411,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(threadpool_outstanding_tasks{job=\"grr_frontend\"})",
+              "expr": "sum(threadpool_outstanding_tasks{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -424,7 +424,7 @@
             },
             {
               "datasource": "",
-              "expr": "sum(threadpool_threads{job=\"grr_frontend\"})",
+              "expr": "sum(threadpool_threads{job=\"grr_admin_ui\"})",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -520,7 +520,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "avg(rate(threadpool_cpu_use{job=\"grr_frontend\"}[30s])) * 100",
+              "expr": "avg(rate(threadpool_cpu_use{job=\"grr_admin_ui\"}[30s])) * 100",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -549,7 +549,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": null,
+              "format": "percent",
               "label": null,
               "logBase": 1,
               "max": 105,
@@ -616,7 +616,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (call) (rate(db_request_errors_total{job=\"grr_frontend\"}[10m]))",
+              "expr": "sum by (call) (rate(db_request_errors_total{job=\"grr_admin_ui\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -645,7 +645,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "ops",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -712,7 +712,7 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (call) (rate(db_request_latency_sum{job=\"grr_frontend\"}[10m]) / rate(db_request_latency_count{job=\"grr_frontend\"}[10m]))",
+              "expr": "sum by (call) (rate(db_request_latency_sum{job=\"grr_admin_ui\"}[10m]) / rate(db_request_latency_count{job=\"grr_admin_ui\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
@@ -741,7 +741,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -818,12 +818,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(rate(frontend_request_count_total[1m]))",
+              "expr": "sum by (method_name) (rate(api_method_latency_sum[10m]) / rate(api_method_latency_count[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Requests",
+              "legendFormat": "{{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -832,7 +832,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "QPS",
+          "title": "API Method Latency Rate by Method",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -847,7 +847,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -914,12 +914,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(rate(frontend_request_latency_sum[10m])) / sum(rate(frontend_request_latency_count[10m]))",
+              "expr": "sum(rate(api_method_latency_count{status=\"SUCCESS\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Latency",
+              "legendFormat": "Successful Calls Rate",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -928,7 +928,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Request Latency Rate",
+          "title": "API Calls Count Rate with Status SUCCESS",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -943,7 +943,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "ops",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1010,12 +1010,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum by (flow) (rate(well_known_flow_requests_total[10m]))",
+              "expr": "sum by (method_name) (rate(api_method_latency_count{status!=\"SUCCESS\"}[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "{{flow}}",
+              "legendFormat": "{{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -1024,7 +1024,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Well Known Flows Requests Rate by Flow",
+          "title": "API Calls Count Rate with other statuses (not SUCCESS) by Method",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1039,7 +1039,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "ops",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1106,12 +1106,12 @@
           "targets": [
             {
               "datasource": "",
-              "expr": "sum(rate(grr_client_crashes_total{job=\"grr_frontend\"}[10m]))",
+              "expr": "sum by (method_name) (rate(api_access_probe_latency_sum[10m]) / rate(api_access_probe_latency_count[10m]))",
               "format": "time_series",
               "instant": false,
               "interval": "",
               "intervalFactor": 2,
-              "legendFormat": "Rate of Client crashes",
+              "legendFormat": "{{method_name}}",
               "metric": "",
               "refId": "",
               "step": 10,
@@ -1120,7 +1120,7 @@
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "GRR Client Crashes",
+          "title": "API Access Probe Latency by Method",
           "tooltip": {
             "msResolution": true,
             "shared": true,
@@ -1135,7 +1135,7 @@
           "yaxes": [
             {
               "decimals": null,
-              "format": "short",
+              "format": "s",
               "label": null,
               "logBase": 1,
               "max": null,
@@ -1196,7 +1196,7 @@
     ]
   },
   "timezone": "utc",
-  "title": "Frontends Dashboard",
+  "title": "Admin Uis Dashboard",
   "uid": null,
   "version": 0
 }
