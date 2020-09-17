@@ -59,9 +59,9 @@ def CamelToSnake(lower_camel_str: str) -> str:
   snake_str = re.sub(r"_+", "_", snake_str)
 
   # Remove the underscore from the start/end, if any.
-  if len(snake_str) > 0 and snake_str[0] == "_":
+  if snake_str.startswith("_"):
     snake_str = snake_str[1:]
-  if len(snake_str) > 0 and snake_str[-1] == "_":
+  if snake_str.endswith("_"):
     snake_str = snake_str[:-1]
 
   return snake_str
