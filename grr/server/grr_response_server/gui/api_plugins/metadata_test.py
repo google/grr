@@ -220,7 +220,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check that there are no extra/missing paths.
     self.assertCountEqual(
       {
-        "/metadata_test/method1/{metadata_id}",
+        "/metadata_test/method1/{metadataId}",
         "/metadata_test/method2",
         "/metadata_test/method3",
         "/metadata_test/method4",
@@ -228,10 +228,10 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         "/metadata_test/method6",
         "/metadata_test/method7",
         "/metadata_test/method8",
-        "/metadata_test/method9/{metadata_id}",
-        "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
-        "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
-        "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+        "/metadata_test/method9/{metadataId}",
+        "/metadata_test/method9/{metadataId}/{metadataArg1}",
+        "/metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
+        "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
         "/metadata_test/method10",
       },
       openapi_paths_dict.keys()
@@ -240,7 +240,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # Check that there are no extra/missing HTTP methods for each path (routes).
     self.assertCountEqual(
       {"get", "head", "post"},
-      openapi_paths_dict["/metadata_test/method1/{metadata_id}"].keys()
+      openapi_paths_dict["/metadata_test/method1/{metadataId}"].keys()
     )
     self.assertCountEqual(
       {"get", "head", "post"},
@@ -272,23 +272,23 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     )
     self.assertCountEqual(
       {"get"},
-      openapi_paths_dict["/metadata_test/method9/{metadata_id}"].keys()
+      openapi_paths_dict["/metadata_test/method9/{metadataId}"].keys()
     )
     self.assertCountEqual(
       {"post"},
       openapi_paths_dict
-        .get("/metadata_test/method9/{metadata_id}/{metadata_arg1}").keys()
+        .get("/metadata_test/method9/{metadataId}/{metadataArg1}").keys()
     )
     self.assertCountEqual(
       {"get"},
       openapi_paths_dict.get(
-        "/metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}"
+        "/metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}"
       ).keys()
     )
     self.assertCountEqual(
       {"get"},
       openapi_paths_dict.get(
-        "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}"
+        "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}"
       ).keys()
     )
 
@@ -300,7 +300,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     # Check the OpenAPI parameters of `Method1WithArgsType` routes.
     method1_path_dict = (
-      openapi_paths_dict["/metadata_test/method1/{metadata_id}"]
+      openapi_paths_dict["/metadata_test/method1/{metadataId}"]
     )
 
     # Parameters of `GET /metadata_test/method1/{metadata_id}`.
@@ -310,14 +310,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in get_method1_dict["parameters"] if param["in"] == "path"
     ]
-    self.assertCountEqual(["metadata_id"], get_method1_params_path)
+    self.assertCountEqual(["metadataId"], get_method1_params_path)
 
     get_method1_params_query = [
       param["name"]
       for param in get_method1_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["metadata_arg1", "metadata_arg2"],
+      ["metadataArg1", "metadataArg2"],
       get_method1_params_query
     )
 
@@ -332,14 +332,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in head_method1_dict["parameters"] if param["in"] == "path"
     ]
-    self.assertCountEqual(["metadata_id"], head_method1_params_path)
+    self.assertCountEqual(["metadataId"], head_method1_params_path)
 
     head_method1_params_query = [
       param["name"]
       for param in get_method1_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["metadata_arg1", "metadata_arg2"],
+      ["metadataArg1", "metadataArg2"],
       head_method1_params_query
     )
 
@@ -352,7 +352,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in post_method1_dict["parameters"] if param["in"] == "path"
     ]
-    self.assertCountEqual(["metadata_id"], post_method1_params_path)
+    self.assertCountEqual(["metadataId"], post_method1_params_path)
 
     post_method1_params_query = [
       param["name"]
@@ -366,7 +366,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("application/json").get("schema").get("properties")
     ]
     self.assertCountEqual(
-      ["metadata_arg1", "metadata_arg2"],
+      ["metadataArg1", "metadataArg2"],
       post_method1_params_body
     )
 
@@ -386,7 +386,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in get_method4_dict["parameters"] if param["in"] == "query"
     ]
-    self.assertCountEqual(["field_repeated"], get_method4_params_query)
+    self.assertCountEqual(["fieldRepeated"], get_method4_params_query)
 
     self.assertIsNone(get_method4_dict.get("requestBody"))
 
@@ -410,7 +410,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in post_method4_dict.get("requestBody").get("content")
         .get("application/json").get("schema").get("properties")
     ]
-    self.assertCountEqual(["field_repeated"], post_method4_params_body)
+    self.assertCountEqual(["fieldRepeated"], post_method4_params_body)
 
     # Check the OpenAPI parameters of `Method5EnumField` routes.
     method5_path_dict = openapi_paths_dict["/metadata_test/method5"]
@@ -428,7 +428,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       param["name"]
       for param in get_method5_dict["parameters"] if param["in"] == "query"
     ]
-    self.assertCountEqual(["field_enum"], get_method5_params_query)
+    self.assertCountEqual(["fieldEnum"], get_method5_params_query)
 
     self.assertIsNone(get_method5_dict.get("requestBody"))
 
@@ -452,7 +452,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in post_method5_dict.get("requestBody").get("content")
         .get("application/json").get("schema").get("properties")
     ]
-    self.assertCountEqual(["field_enum"], post_method5_params_body)
+    self.assertCountEqual(["fieldEnum"], post_method5_params_body)
 
     # Check the OpenAPI parameters of `Method6TypeReferences` routes.
     method6_path_dict = openapi_paths_dict["/metadata_test/method6"]
@@ -471,7 +471,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in get_method6_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["field_int64", "child_1", "child_2"],
+      ["fieldInt64", "child1", "child2"],
       get_method6_params_query
     )
 
@@ -494,7 +494,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       for param in get_method7_dict["parameters"] if param["in"] == "query"
     ]
     self.assertCountEqual(
-      ["oneof_int64", "oneof_simplemsg", "field_int64"],
+      ["oneofInt64", "oneofSimplemsg", "fieldInt64"],
       get_method7_params_query
     )
 
@@ -642,63 +642,63 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # descriptions.
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_DOUBLE"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_double")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldDouble")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_FLOAT"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_float")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldFloat")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_INT64"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_int64")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldInt64")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_UINT64"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_uint64")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldUint64")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_INT32"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_int32")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldInt32")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED64"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_fixed64")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldFixed64")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_FIXED32"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_fixed32")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldFixed32")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_BOOL"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_bool")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldBool")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_STRING"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_string")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldString")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_BYTES"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_bytes")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldBytes")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_UINT32"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_uint32")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldUint32")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED32"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_sfixed32")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldSfixed32")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_SFIXED64"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_sfixed64")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldSfixed64")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_SINT32"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_sint32")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldSint32")
     )
     self.assertEqual(
       {"$ref": "#/components/schemas/protobuf2.TYPE_SINT64"},
-      self._GetParamSchema("/metadata_test/method3", "get", "field_sint64")
+      self._GetParamSchema("/metadata_test/method3", "get", "fieldSint64")
     )
 
     # Extract `BinaryStream` type reference from the response schema.
@@ -821,7 +821,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("application/json")
         .get("schema")
         .get("properties")
-        .get("field_repeated")
+        .get("fieldRepeated")
     )
     self.assertEqual(
       {
@@ -877,7 +877,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         .get("application/json")
         .get("schema")
         .get("properties")
-        .get("field_enum")
+        .get("fieldEnum")
     )
     self.assertEqual(
       {
@@ -928,11 +928,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     cyclic_ref = "#/components/schemas/grr.MetadataTypesHierarchyCyclic"
     leaf_ref = "#/components/schemas/grr.MetadataTypesHierarchyLeaf"
 
-    self.assertEqual(root["properties"]["child_1"]["$ref"], cyclic_ref)
-    self.assertEqual(root["properties"]["child_2"]["$ref"], leaf_ref)
+    self.assertEqual(root["properties"]["child1"]["$ref"], cyclic_ref)
+    self.assertEqual(root["properties"]["child2"]["$ref"], leaf_ref)
 
     self.assertEqual(cyclic["properties"]["root"]["$ref"], root_ref)  # Cycle.
-    self.assertEqual(cyclic["properties"]["child_1"]["$ref"], leaf_ref)
+    self.assertEqual(cyclic["properties"]["child1"]["$ref"], leaf_ref)
 
   def testProtobufOneofIsDescribedCorrectlyInOpenApiDescription(self):
     # The semantic of `protobuf.oneof` is not currently supported by the
@@ -956,7 +956,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         ],
       },
-      self._GetParamSchema("/metadata_test/method7", "get", "oneof_int64")
+      self._GetParamSchema("/metadata_test/method7", "get", "oneofInt64")
     )
     # Check the `oneof_simplemsg` inner field of the `metadata_oneof`.
     self.assertEqual(
@@ -969,7 +969,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         ],
       },
-      self._GetParamSchema("/metadata_test/method7", "get", "oneof_simplemsg")
+      self._GetParamSchema("/metadata_test/method7", "get", "oneofSimplemsg")
     )
 
     # Check the description of the `protobuf.oneof` from the `requestBody` field
@@ -985,7 +985,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         ],
       },
-      self._GetParamSchema("/metadata_test/method7", "post", "oneof_int64")
+      self._GetParamSchema("/metadata_test/method7", "post", "oneofInt64")
     )
     # Check the `oneof_simplemsg` inner field of the `metadata_oneof`.
     self.assertEqual(
@@ -998,7 +998,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         ],
       },
-      self._GetParamSchema("/metadata_test/method7", "post", "oneof_simplemsg")
+      self._GetParamSchema("/metadata_test/method7", "post", "oneofSimplemsg")
     )
 
   def testProtobufMapIsDescribedCorrectlyInOpenApiDescription(self):
@@ -1044,7 +1044,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         ],
       },
-      self._GetParamSchema("/metadata_test/method8", "get", "field_map")
+      self._GetParamSchema("/metadata_test/method8", "get", "fieldMap")
     )
 
     # Check the description of `field_map` from the `requestBody` field of the
@@ -1061,7 +1061,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         ],
       },
-      self._GetParamSchema("/metadata_test/method8", "post", "field_map")
+      self._GetParamSchema("/metadata_test/method8", "post", "fieldMap")
     )
 
   def testOptionalPathParamsAreCorrectlyDescribedInOpenApiDescription(self):
@@ -1071,25 +1071,25 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     # grouped under the same route described in the OpenAPI description is
     # tested by `testAllRoutesAreInOpenApiDescription`.
 
-    # Test `GET /metadata_test/method9/{metadata_id}` parameters.
+    # Test `GET /metadata_test/method9/{metadataId}` parameters.
     self.assertCountEqual(
       [
         {
-          "name": "metadata_id",
+          "name": "metadataId",
           "in": "path",
           "schema": {
             "$ref": "#/components/schemas/protobuf2.TYPE_STRING",
           },
         },
         {
-          "name": "metadata_arg1",
+          "name": "metadataArg1",
           "in": "query",
           "schema": {
             "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
           },
         },
         {
-          "name": "metadata_arg2",
+          "name": "metadataArg2",
           "in": "query",
           "schema": {
             "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
@@ -1097,21 +1097,21 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
         },
       ],
       [
-        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
-                                  "metadata_id"),
-        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
-                                  "metadata_arg1"),
-        self._GetParamDescription("/metadata_test/method9/{metadata_id}", "get",
-                                  "metadata_arg2"),
+        self._GetParamDescription("/metadata_test/method9/{metadataId}", "get",
+                                  "metadataId"),
+        self._GetParamDescription("/metadata_test/method9/{metadataId}", "get",
+                                  "metadataArg1"),
+        self._GetParamDescription("/metadata_test/method9/{metadataId}", "get",
+                                  "metadataArg2"),
       ]
     )
 
-    # Test `GET /metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}`
+    # Test `GET /metadata_test/method9/{metadataId}/fixed1/{metadataArg1}`
     # parameters.
     self.assertCountEqual(
       [
         {
-          "name": "metadata_id",
+          "name": "metadataId",
           "in": "path",
           "required": True,
           "schema": {
@@ -1119,14 +1119,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         },
         {
-          "name": "metadata_arg1",
+          "name": "metadataArg1",
           "in": "path",
           "schema": {
             "$ref": "#/components/schemas/protobuf2.TYPE_INT64",
           },
         },
         {
-          "name": "metadata_arg2",
+          "name": "metadataArg2",
           "in": "query",
           "schema": {
             "$ref": "#/components/schemas/protobuf2.TYPE_BOOL",
@@ -1135,30 +1135,30 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       ],
       [
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
           "get",
-          "metadata_id"
+          "metadataId"
         ),
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
           "get",
-          "metadata_arg1"
+          "metadataArg1"
         ),
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/fixed1/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/fixed1/{metadataArg1}",
           "get",
-          "metadata_arg2"
+          "metadataArg2"
         ),
       ]
     )
 
     # Test
-    # `GET /metadata_test/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}`
+    # `GET /metadata_test/method9/{metadataId}/{metadataArg1}/{metadataArg2}`
     # parameters.
     self.assertCountEqual(
       [
         {
-          "name": "metadata_id",
+          "name": "metadataId",
           "in": "path",
           "required": True,
           "schema": {
@@ -1166,7 +1166,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         },
         {
-          "name": "metadata_arg1",
+          "name": "metadataArg1",
           "in": "path",
           "required": True,
           "schema": {
@@ -1174,7 +1174,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         },
         {
-          "name": "metadata_arg2",
+          "name": "metadataArg2",
           "in": "path",
           "required": True,
           "schema": {
@@ -1185,31 +1185,31 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       [
         self._GetParamDescription(
           "/metadata_test"
-          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
           "get",
-          "metadata_id"
+          "metadataId"
         ),
         self._GetParamDescription(
           "/metadata_test"
-          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
           "get",
-          "metadata_arg1"
+          "metadataArg1"
         ),
         self._GetParamDescription(
           "/metadata_test"
-          "/method9/{metadata_id}/{metadata_arg1}/{metadata_arg2}",
+          "/method9/{metadataId}/{metadataArg1}/{metadataArg2}",
           "get",
-          "metadata_arg2"
+          "metadataArg2"
         ),
       ]
     )
 
-    # Test `POST /metadata_test/method9/{metadata_id}/{metadata_arg1}`
+    # Test `POST /metadata_test/method9/{metadataId}/{metadataArg1}`
     # parameters.
     self.assertCountEqual(
       [
         {
-          "name": "metadata_id",
+          "name": "metadataId",
           "in": "path",
           "required": True,
           "schema": {
@@ -1217,7 +1217,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
           },
         },
         {
-          "name": "metadata_arg1",
+          "name": "metadataArg1",
           "in": "path",
           "required": True,
           "schema": {
@@ -1227,14 +1227,14 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
       ],
       [
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/{metadataArg1}",
           "post",
-          "metadata_id"
+          "metadataId"
         ),
         self._GetParamDescription(
-          "/metadata_test/method9/{metadata_id}/{metadata_arg1}",
+          "/metadata_test/method9/{metadataId}/{metadataArg1}",
           "post",
-          "metadata_arg1"
+          "metadataArg1"
         ),
       ]
     )
@@ -1293,11 +1293,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_datetime,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_datetime")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldDatetime")
     )
     self.assertEqual(
       expected_field_datetime,
-      self._GetParamSchema("/metadata_test/method10", "post", "field_datetime")
+      self._GetParamSchema("/metadata_test/method10", "post", "fieldDatetime")
     )
 
     expected_field_datetimeseconds = {
@@ -1312,12 +1312,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(
       expected_field_datetimeseconds,
       self._GetParamSchema("/metadata_test/method10", "get",
-                           "field_datetimeseconds")
+                           "fieldDatetimeseconds")
     )
     self.assertEqual(
       expected_field_datetimeseconds,
       self._GetParamSchema("/metadata_test/method10", "post",
-                           "field_datetimeseconds")
+                           "fieldDatetimeseconds")
     )
 
     expected_field_duration = {
@@ -1331,11 +1331,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_duration,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_duration")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldDuration")
     )
     self.assertEqual(
       expected_field_duration,
-      self._GetParamSchema("/metadata_test/method10", "post", "field_duration")
+      self._GetParamSchema("/metadata_test/method10", "post", "fieldDuration")
     )
 
     expected_field_durationseconds = {
@@ -1350,12 +1350,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(
       expected_field_durationseconds,
       self._GetParamSchema("/metadata_test/method10", "get",
-                           "field_durationseconds")
+                           "fieldDurationseconds")
     )
     self.assertEqual(
       expected_field_durationseconds,
       self._GetParamSchema("/metadata_test/method10", "post",
-                           "field_durationseconds")
+                           "fieldDurationseconds")
     )
 
     expected_field_rdfbytes = {
@@ -1369,11 +1369,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_rdfbytes,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_rdfbytes")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldRdfbytes")
     )
     self.assertEqual(
       expected_field_rdfbytes,
-      self._GetParamSchema("/metadata_test/method10", "post", "field_rdfbytes")
+      self._GetParamSchema("/metadata_test/method10", "post", "fieldRdfbytes")
     )
 
     expected_field_hashdigest = {
@@ -1387,12 +1387,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_hashdigest,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_hashdigest")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldHashdigest")
     )
     self.assertEqual(
       expected_field_hashdigest,
       self._GetParamSchema("/metadata_test/method10", "post",
-                           "field_hashdigest")
+                           "fieldHashdigest")
     )
 
     expected_field_globexpression = {
@@ -1407,12 +1407,12 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(
       expected_field_globexpression,
       self._GetParamSchema("/metadata_test/method10", "get",
-                           "field_globexpression")
+                           "fieldGlobexpression")
     )
     self.assertEqual(
       expected_field_globexpression,
       self._GetParamSchema("/metadata_test/method10", "post",
-                           "field_globexpression")
+                           "fieldGlobexpression")
     )
 
     expected_field_bytesize = {
@@ -1426,11 +1426,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_bytesize,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_bytesize")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldBytesize")
     )
     self.assertEqual(
       expected_field_bytesize,
-      self._GetParamSchema("/metadata_test/method10", "post", "field_bytesize")
+      self._GetParamSchema("/metadata_test/method10", "post", "fieldBytesize")
     )
 
     expected_field_rdfurn = {
@@ -1444,11 +1444,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_rdfurn,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_rdfurn")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldRdfurn")
     )
     self.assertEqual(
       expected_field_rdfurn,
-      self._GetParamSchema("/metadata_test/method10", "post", "field_rdfurn")
+      self._GetParamSchema("/metadata_test/method10", "post", "fieldRdfurn")
     )
 
     expected_field_sessionid = {
@@ -1462,11 +1462,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_field_sessionid,
-      self._GetParamSchema("/metadata_test/method10", "get", "field_sessionid")
+      self._GetParamSchema("/metadata_test/method10", "get", "fieldSessionid")
     )
     self.assertEqual(
       expected_field_sessionid,
-      self._GetParamSchema("/metadata_test/method10", "post", "field_sessionid")
+      self._GetParamSchema("/metadata_test/method10", "post", "fieldSessionid")
     )
 
     # Check that descriptions get concatenated in the case we have a
@@ -1484,11 +1484,11 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
     }
     self.assertEqual(
       expected_oneof_datetime,
-      self._GetParamSchema("/metadata_test/method10", "get", "oneof_datetime")
+      self._GetParamSchema("/metadata_test/method10", "get", "oneofDatetime")
     )
     self.assertEqual(
       expected_oneof_datetime,
-      self._GetParamSchema("/metadata_test/method10", "post", "oneof_datetime")
+      self._GetParamSchema("/metadata_test/method10", "post", "oneofDatetime")
     )
 
     # Now check that the RDF types have their schemas correctly described.

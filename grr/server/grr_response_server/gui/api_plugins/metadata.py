@@ -20,6 +20,7 @@ from google.protobuf.descriptor import FieldDescriptor
 from google.protobuf.descriptor import OneofDescriptor
 
 from grr_response_core import version
+from grr_response_core.lib import casing
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import proto2 as protobuf2
 from grr_response_proto import semantic_pb2
@@ -302,8 +303,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     # Create schemas for the fields' types.
     for field_descriptor in descriptor.fields:
-      field_name = field_descriptor.name
       self._CreateSchema(field_descriptor, visiting)
+      field_name = casing.SnakeToCamel(field_descriptor.name)
 
       properties[field_name] = self._GetDescribedSchema(field_descriptor)
 
@@ -576,7 +577,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     opt_path_params_set = set(optional_path_params)
     query_params_set = set(query_params)
     for field_d in req_path_params_set | opt_path_params_set | query_params_set:
-      parameter_obj = {"name": field_d.name}
+      parameter_obj = {"name": casing.SnakeToCamel(field_d.name)}
       if field_d in req_path_params_set:
         parameter_obj["in"] = "path"
         parameter_obj["required"] = True
@@ -603,7 +604,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       Dict[str, Union[SchemaReference, ArraySchema, DescribedSchema]]
     ) = dict()
     for field_d in body_params:
-      field_name = field_d.name
+      field_name = casing.SnakeToCamel(field_d.name)
       properties[field_name] = self._GetDescribedSchema(field_d)
 
     return {
@@ -749,7 +750,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     query_params = []
     body_params = []
     for field_d in field_descriptors:
-      if field_d.name in path_param_names:
+      if casing.SnakeToCamel(field_d.name) in path_param_names:
         path_params.append(field_d)
       elif http_method.upper() in ("GET", "HEAD"):
         query_params.append(field_d)
@@ -831,13 +832,14 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
         req_path_params = []
         opt_path_params = []
         for path_param in path_params:
-          if path_param.name in req_path_param_names:
+          path_param_name = casing.SnakeToCamel(path_param.name)
+          if path_param_name in req_path_param_names:
             req_path_params.append(path_param)
-          elif path_param.name in opt_path_param_names:
+          elif path_param_name in opt_path_param_names:
             opt_path_params.append(path_param)
           else:
             raise AssertionError(
-              f"Path parameter {path_param.name} was not classified as "
+              f"Path parameter {path_param_name} was not classified as "
               f"required/optional."
             )
 
@@ -883,6 +885,7 @@ def _NormalizePathComponent(component: str) -> str:
   if _IsPathParameter(component):
     component = component[1:-1]
     component = component.split(":")[-1]
+    component = casing.SnakeToCamel(component)
     component = f"{{{component}}}"
 
   return component
