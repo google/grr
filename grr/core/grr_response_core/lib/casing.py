@@ -1,5 +1,6 @@
 # Lint as: python3
 """Functions to convert strings between different case styles."""
+import re
 
 
 def SnakeToCamel(snake_str: str) -> str:
@@ -23,9 +24,7 @@ def SnakeToCamel(snake_str: str) -> str:
 
   words[:] = map(str.lower, words)
 
-  lower_camel_str = words[0] + ''.join(map(str.capitalize, words[1:]))
-
-  return lower_camel_str
+  return words[0] + "".join(map(str.capitalize, words[1:]))
 
 
 def CamelToSnake(lower_camel_str: str) -> str:
@@ -54,20 +53,15 @@ def CamelToSnake(lower_camel_str: str) -> str:
   # Add the word at the end of the string, possibly the only word.
   words.append(lower_camel_str[i_word_start:camel_str_len])
 
-  temp_snake_str = "_".join(map(str.lower, words))
+  snake_str = "_".join(map(str.lower, words))
 
   # Remove duplicate underscores, if any.
-  snake_str_list = []
-  prev_char = ""
-  for char in temp_snake_str:
-    if not char == prev_char == "_":
-      snake_str_list.append(char)
-    prev_char = char
+  snake_str = re.sub(r"_+", "_", snake_str)
 
   # Remove the underscore from the start/end, if any.
-  if len(snake_str_list) > 0 and snake_str_list[0] == "_":
-    snake_str_list.pop(0)
-  if len(snake_str_list) > 0 and snake_str_list[-1] == "_":
-    snake_str_list.pop()
+  if len(snake_str) > 0 and snake_str[0] == "_":
+    snake_str = snake_str[1:]
+  if len(snake_str) > 0 and snake_str[-1] == "_":
+    snake_str = snake_str[:-1]
 
-  return "".join(snake_str_list)
+  return snake_str
