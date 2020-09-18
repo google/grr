@@ -144,6 +144,12 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(pathspec.mount_point, "C:\\")
     self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.TSK)
 
+  def testNtfsConstructor(self):
+    pathspec = rdf_paths.PathSpec.NTFS(mount_point="C:\\")
+
+    self.assertEqual(pathspec.mount_point, "C:\\")
+    self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.NTFS)
+
   def testRegistryConstructor(self):
     pathspec = rdf_paths.PathSpec.Registry(path="HKLM\\System\\foo\\bar")
 
@@ -293,6 +299,27 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual([c.glob_expression for c in components],
                      ["%%users.homedir%%", "/foo"])
     self.assertEqual(components[0].examples, ["/home/foo", "/home/bar"])
+
+  def _testAFF4Path_mountPointResolution(
+      self, pathtype: rdf_paths.PathSpec.PathType) -> None:
+    path = rdf_paths.PathSpec(
+        path="\\\\.\\Volume{1234}\\",
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        mount_point="/c:/",
+        nested_path=rdf_paths.PathSpec(
+            path="/windows/",
+            pathtype=pathtype,
+        ))
+    prefix = rdf_paths.PathSpec.AFF4_PREFIXES[pathtype]
+    self.assertEqual(
+        str(path.AFF4Path(rdf_client.ClientURN("C.0000000000000001"))),
+        f"aff4:/C.0000000000000001{prefix}/\\\\.\\Volume{{1234}}\\/windows")
+
+  def testAFF4Path_mountPointResolution_TSK(self):
+    self._testAFF4Path_mountPointResolution(rdf_paths.PathSpec.PathType.TSK)
+
+  def testAFF4Path_mountPointResolution_NTFS(self):
+    self._testAFF4Path_mountPointResolution(rdf_paths.PathSpec.PathType.NTFS)
 
 
 def main(argv):

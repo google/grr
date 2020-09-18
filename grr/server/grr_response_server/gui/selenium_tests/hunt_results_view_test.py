@@ -131,7 +131,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
         mock_method.assert_called_with(
             api_hunt.ApiGetExportedHuntResultsArgs(
                 hunt_id=hunt_id, plugin_name=plugin),
-            token=mock.ANY)
+            context=mock.ANY)
 
         return True
       except AssertionError:

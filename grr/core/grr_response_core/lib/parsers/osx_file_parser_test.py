@@ -43,7 +43,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
             st_mode=33261))
 
     parser = osx_file_parser.OSXUsersParser()
-    out = list(parser.ParseMultiple(statentries, None))
+    out = list(parser.ParseResponses(rdf_client.KnowledgeBase(), statentries))
     self.assertCountEqual([x.username for x in out], ["user1", "user2"])
     self.assertCountEqual([x.homedir for x in out],
                           ["/Users/user1", "/Users/user2"])

@@ -2,19 +2,21 @@ import {async, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router} from '@angular/router';
-import {ApiModule} from '@app/lib/api/module';
-import {Client} from '@app/lib/models/client';
-import {newClient} from '@app/lib/models/model_test_util';
-import {ClientVersion, getClientVersions} from '@app/store/client_details_diff';
-import {ClientDetailsFacade} from '@app/store/client_details_facade';
-import {ConfigFacade} from '@app/store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {Subject} from 'rxjs';
 
+import {ApiModule} from '../../lib/api/module';
+import {Client} from '../../lib/models/client';
+import {newClient} from '../../lib/models/model_test_util';
+import {ClientVersion, getClientVersions} from '../../store/client_details_diff';
+import {ClientDetailsFacade} from '../../store/client_details_facade';
+import {ConfigFacade} from '../../store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
 import {ClientDetailsModule} from './module';
+
+
 
 initTestEnvironment();
 
@@ -43,6 +45,9 @@ describe('Client Details Component', () => {
     }),
   ];
 
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     configFacade = mockConfigFacade();
 

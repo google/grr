@@ -1,6 +1,5 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
-import {ApiClientLabel} from '@app/lib/api/api_interfaces';
+import {ApiClientLabel, ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ConfigFacade} from '@app/store/config_facade';
 import {initTestEnvironment} from '@app/testing';

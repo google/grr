@@ -1,19 +1,18 @@
-import {formatDate} from '@angular/common';
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
-import {newClient} from '@app/lib/models/model_test_util';
 import {ClientSearchFacade} from '@app/store/client_search_facade';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
-import {RelativeTimestampPipe} from '../timestamp/relative_timestamp_pipe';
+import {newClient} from '../../lib/models/model_test_util';
 
 import {ClientSearch} from './client_search';
 import {ClientSearchModule} from './module';
+
 
 
 
@@ -35,6 +34,9 @@ describe('ClientSearch Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let facade: ClientSearchFacade;
 
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     paramsSubject = new Subject();
 
@@ -49,7 +51,7 @@ describe('ClientSearch Component', () => {
           providers: [{
             provide: ActivatedRoute,
             useValue: {
-              paramMap: paramsSubject,
+              queryParamMap: paramsSubject,
             },
           }],
 
@@ -66,7 +68,7 @@ describe('ClientSearch Component', () => {
 
     const searchClientsSpy = spyOn(facade, 'searchClients');
     paramsSubject.next(new Map([
-      ['query', 'foo'],
+      ['q', 'foo'],
     ]));
     fixture.detectChanges();
 

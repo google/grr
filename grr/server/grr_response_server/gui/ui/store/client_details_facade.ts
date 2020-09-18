@@ -71,12 +71,6 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
 
   private readonly clientId$ = this.select(store => store.clientId);
 
-  private readonly clientSnapshots$ =
-      this.select(store => store.clientSnapshots)
-          .pipe(filter(
-              (clientVersions): clientVersions is Client[] =>
-                  clientVersions !== undefined));
-
   /** An effect fetching the versions of the selected client */
   private readonly fetchSelectedClientSnapshots = this.effect<void>(
       obs$ => obs$.pipe(

@@ -4,13 +4,14 @@ import {ReactiveFormsModule} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ClientLabel} from '@app/lib/models/client';
-import {ConfigFacade} from '@app/store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
-import {initTestEnvironment} from '@app/testing';
+import {ClientLabel} from '../../lib/models/client';
+import {ConfigFacade} from '../../store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {ClientAddLabelDialog} from './client_add_label_dialog';
 import {ClientAddLabelDialogModule} from './module';
+
 
 initTestEnvironment();
 
@@ -21,17 +22,20 @@ describe('Client Add Label Dialog', () => {
       [{owner: '', name: 'label1'}, {owner: '', name: 'testlabel'}];
 
   let configFacadeMock: ConfigFacadeMock;
-  const dialogRefMock = {close(value: string|undefined) {}};
+  const dialogRefMock = {close() {}};
   let dialogCloseSpy: jasmine.Spy;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
 
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     configFacadeMock = mockConfigFacade();
 
     TestBed
         .configureTestingModule({
-          declarations: [ClientAddLabelDialog],
+          declarations: [],
           imports: [
             ClientAddLabelDialogModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
@@ -39,10 +43,11 @@ describe('Client Add Label Dialog', () => {
             MatDialogModule,
           ],
           providers: [
-            {provide: MatDialogRef, useValue: dialogRefMock},
-            {provide: MAT_DIALOG_DATA, useValue: clientLabels},
-            {provide: ConfigFacade, useValue: configFacadeMock}
+            {provide: MatDialogRef, useFactory: () => dialogRefMock},
+            {provide: MAT_DIALOG_DATA, useFactory: () => clientLabels},
+            {provide: ConfigFacade, useFactory: () => configFacadeMock}
           ],
+
         })
         .compileComponents();
 

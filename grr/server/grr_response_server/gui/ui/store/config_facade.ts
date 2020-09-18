@@ -1,13 +1,13 @@
 import {Injectable} from '@angular/core';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {getApiClientLabelName} from '@app/lib/api_translation/client';
-import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {ComponentStore} from '@ngrx/component-store';
+import {HttpApiService} from '@app/lib/api/http_api_service';
+import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ApiUiConfig} from '../lib/api/api_interfaces';
-import {ApprovalConfig, ClientLabel} from '../lib/models/client';
+import {getApiClientLabelName} from '../lib/api_translation/client';
+import {ApprovalConfig} from '../lib/models/client';
 import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 import {isNonNull} from '../lib/preconditions';
 
@@ -17,7 +17,7 @@ export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
   approvalConfig?: ApprovalConfig;
   uiConfig?: ApiUiConfig;
-  clientsLabels?: string[];
+  clientsLabels?: ReadonlyArray<string>;
 }
 
 /** ComponentStore implementation for the config facade. */
@@ -72,7 +72,9 @@ export class ConfigStore extends ComponentStore<ConfigState> {
            * implementation, so we extract only the label names
            */
           map(apiClientsLabels => apiClientsLabels.map(getApiClientLabelName)),
-          tap(clientsLabels => this.updateClientsLabels(clientsLabels)),
+          tap(clientsLabels => {
+            this.updateClientsLabels(clientsLabels);
+          }),
           ));
 
   /** An observable emitting available flow descriptors. */
@@ -123,7 +125,9 @@ export class ConfigStore extends ComponentStore<ConfigState> {
 
   /** An observable emitting a list of all clients labels. */
   readonly clientsLabels$ = of(undefined).pipe(
-      tap(() => this.fetchClientsLabels()),
+      tap(() => {
+        this.fetchClientsLabels();
+      }),
       switchMapTo(this.select(state => state.clientsLabels)),
       filter(
           (clientsLabels): clientsLabels is string[] =>

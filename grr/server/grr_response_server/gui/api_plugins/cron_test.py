@@ -88,7 +88,7 @@ class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
         hunt_runner_args=rdf_hunts.HuntRunnerArgs(
             # Default is True.
             add_foreman_rules=False))
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertTrue(
         result.args.hunt_cron_action.hunt_runner_args.add_foreman_rules)
 
@@ -110,7 +110,7 @@ class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.assertEqual(jobs[0], self.cron_job_id)
 
     args = cron_plugin.ApiDeleteCronJobArgs(cron_job_id=self.cron_job_id)
-    self.handler.Handle(args, token=self.token)
+    self.handler.Handle(args, context=self.context)
 
     jobs = list(cronjobs.CronManager().ListJobs())
     self.assertEmpty(jobs)

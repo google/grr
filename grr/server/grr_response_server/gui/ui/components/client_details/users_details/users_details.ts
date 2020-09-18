@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {User} from '@app/lib/models/client';
+import {User} from '../../../lib/models/client';
 
 /**
  * Component the details for a single User.

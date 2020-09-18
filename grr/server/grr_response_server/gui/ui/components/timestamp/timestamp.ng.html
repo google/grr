@@ -10,7 +10,8 @@
   <div class="inline_relative" *ngIf="completeFormat">
     {{date | relativeTimestamp}}
     <button mat-icon-button class="copy_button"
-      [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone">
+      [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone"
+      aria-label="Copy">
       <mat-icon aria-label="Copy">content_copy</mat-icon>
     </button>
   </div>

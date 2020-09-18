@@ -2,6 +2,8 @@
  * @fileoverview The module provides client-related data model entities.
  */
 
+
+
 /**
  * Client's knowledge base data.
  */
@@ -12,6 +14,7 @@ export interface KnowledgeBase {
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
 }
+
 
 /**
  * Windows specific volume details.
@@ -86,7 +89,7 @@ export interface NetworkAddress {
  * Network interface
  */
 export interface NetworkInterface {
-  readonly macAddress: string;
+  readonly macAddress?: string;
   readonly interfaceName: string;
   readonly addresses: ReadonlyArray<NetworkAddress>;
 }
@@ -185,7 +188,7 @@ export interface Invalid {
 }
 
 /** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid | Pending | Expired | Invalid;
+export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
 
 /** Approval for Client access. */
 export interface ClientApproval {
@@ -196,4 +199,5 @@ export interface ClientApproval {
   readonly status: ClientApprovalStatus;
   readonly requestedApprovers: ReadonlyArray<string>;
   readonly approvers: ReadonlyArray<string>;
+  readonly subject: Client;
 }

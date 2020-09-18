@@ -30,7 +30,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.TSK,
+                pathtype=rdf_paths.PathSpec.PathType.NTFS,
             )),
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[
@@ -59,7 +59,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         "label:contains('Path') ~ * input:text")
 
     self.WaitUntilEqual(
-        "TSK", self.GetText, "css=grr-new-hunt-wizard-form "
+        "NTFS", self.GetText, "css=grr-new-hunt-wizard-form "
         "label:contains('Pathtype') ~ * select option:selected")
 
     # Click on "Next" button
@@ -118,7 +118,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Review")
 
     # Check that review page contains expected values.
-    self.WaitUntil(self.IsTextPresent, "TSK")
+    self.WaitUntil(self.IsTextPresent, "NTFS")
     self.WaitUntil(self.IsTextPresent, "/tmp/evil.txt")
     self.WaitUntil(self.IsTextPresent, transfer.GetFile.__name__)
     self.WaitUntil(self.IsTextPresent, "DummyOutputPlugin")
@@ -360,7 +360,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.TSK,
+                pathtype=rdf_paths.PathSpec.PathType.NTFS,
             )),
         client_rule_set=foreman_rules.ForemanClientRuleSet(rules=[
             foreman_rules.ForemanClientRule(

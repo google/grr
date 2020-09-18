@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {NetworkInterface} from '@app/lib/models/client';
+import {NetworkInterface} from '../../../lib/models/client';
 
 /**
  * Component the details for a single NetworkInterface.

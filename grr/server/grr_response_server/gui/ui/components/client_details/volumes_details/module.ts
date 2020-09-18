@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {HumanReadableSizeModule} from '@app/components/human_readable_size/module';
-import {TimestampModule} from '@app/components/timestamp/module';
+import {HumanReadableSizeModule} from '../../human_readable_size/module';
+import {TimestampModule} from '../../timestamp/module';
 
 import {VolumesDetails} from './volumes_details';
 

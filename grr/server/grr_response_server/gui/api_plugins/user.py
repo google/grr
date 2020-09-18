@@ -620,14 +620,14 @@ here
         # don't exist. This should happen rarely but we need to catch this case.
         logging.error("Notification sent for unknown user %s!", user.strip())
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
     expiry = config.CONFIG["ACL.token_expiry"]
 
     request = rdf_objects.ApprovalRequest(
-        requestor_username=token.username,
+        requestor_username=context.username,
         approval_type=self.__class__.approval_type,
         reason=args.approval.reason,
         notified_users=args.approval.notified_users,
@@ -639,8 +639,8 @@ here
 
     data_store.REL_DB.GrantApproval(
         approval_id=request.approval_id,
-        requestor_username=token.username,
-        grantor_username=token.username)
+        requestor_username=context.username,
+        grantor_username=context.username)
 
     result = self.__class__.result_type().InitFromDatabaseObject(request)
 
@@ -673,7 +673,7 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   # objects.ApprovalRequest.ApprovalType value describing the approval type.
   approval_type = None
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     try:
       approval_obj = data_store.REL_DB.ReadApprovalRequest(
           args.username, args.approval_id)
@@ -704,7 +704,7 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   # Class to be used to grant the approval. Should be set by a subclass.
   approval_grantor = None
 
-  def SendGrantEmail(self, approval, token=None):
+  def SendGrantEmail(self, approval, context=None):
     if not config.CONFIG.Get("Email.send_approval_emails"):
       return
 
@@ -732,7 +732,7 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
         autoescape=True)
     body = template.render(
         subject_title=utils.SmartUnicode(approval.subject_title),
-        username=utils.SmartUnicode(token.username),
+        username=utils.SmartUnicode(context.username),
         reason=utils.SmartUnicode(approval.reason),
         admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"].strip("/")),
         subject_url=utils.SmartUnicode(approval.subject_url_path.strip("/")),
@@ -747,7 +747,7 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
 
     requestor_email = data_store.REL_DB.ReadGRRUser(
         approval.requestor).GetEmail()
-    username_email = data_store.REL_DB.ReadGRRUser(token.username).GetEmail()
+    username_email = data_store.REL_DB.ReadGRRUser(context.username).GetEmail()
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         requestor_email,
@@ -758,20 +758,20 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
         cc_addresses=",".join(approval.email_cc_addresses),
         headers=headers)
 
-  def CreateGrantNotification(self, approval, token=None):
+  def CreateGrantNotification(self, approval, context=None):
     notification_lib.Notify(
         approval.requestor, self.__class__.approval_notification_type,
         "%s has granted you access to %s." %
-        (token.username, approval.subject_title),
+        (context.username, approval.subject_title),
         approval.subject.ObjectReference())
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.username:
       raise ValueError("username can't be empty.")
 
     try:
       data_store.REL_DB.GrantApproval(args.username, args.approval_id,
-                                      token.username)
+                                      context.username)
 
       approval_obj = data_store.REL_DB.ReadApprovalRequest(
           args.username, args.approval_id)
@@ -783,8 +783,8 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
 
     result = self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
-    self.SendGrantEmail(result, token=token)
-    self.CreateGrantNotification(result, token=token)
+    self.SendGrantEmail(result, context=context)
+    self.CreateGrantNotification(result, context=context)
     return result
 
 
@@ -815,15 +815,15 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED)
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     result = super(ApiCreateClientApprovalHandler, self).Handle(
-        args, token=token)
+        args, context=context)
 
     if args.keep_client_alive:
       flow.StartFlow(
           client_id=str(args.client_id),
           flow_cls=administrative.KeepAlive,
-          creator=token.username,
+          creator=context.username,
           duration=3600)
 
     return result
@@ -862,8 +862,8 @@ class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_GRANTED)
 
-  def Handle(self, args, token=None):
-    approval = super().Handle(args, token=token)
+  def Handle(self, args, context=None):
+    approval = super().Handle(args, context=context)
 
     if approval.is_valid:
       flow.StartScheduledFlows(
@@ -898,7 +898,7 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
 
   def _CheckState(self, state, approval):
     try:
-      approval.CheckAccess(approval.token)
+      approval.CheckAccess(approval.context)
       is_valid = True
     except access_control.UnauthorizedAccess:
       is_valid = False
@@ -931,14 +931,14 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     else:
       return lambda approval: True  # Accept all by default.
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     subject_id = None
     if args.client_id:
       subject_id = str(args.client_id)
 
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
-            token.username,
+            context.username,
             rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=subject_id,
             include_expired=True),
@@ -1036,10 +1036,10 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
   args_type = ApiListHuntApprovalsArgs
   result_type = ApiListHuntApprovalsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
-            token.username,
+            context.username,
             rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
             subject_id=None,
             include_expired=True),
@@ -1141,10 +1141,10 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
   args_type = ApiListCronJobApprovalsArgs
   result_type = ApiListCronJobApprovalsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
-            token.username,
+            context.username,
             rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
             subject_id=None,
             include_expired=True),
@@ -1173,12 +1173,12 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
     super().__init__()
     self.interface_traits = interface_traits
 
-  def Handle(self, unused_args, token=None):
+  def Handle(self, unused_args, context=None):
     """Fetches and renders current user's settings."""
 
-    result = ApiGrrUser(username=token.username)
+    result = ApiGrrUser(username=context.username)
 
-    user_record = data_store.REL_DB.ReadGRRUser(token.username)
+    user_record = data_store.REL_DB.ReadGRRUser(context.username)
     result.InitFromDatabaseObject(user_record)
 
     result.interface_traits = (
@@ -1192,12 +1192,12 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGrrUser
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if args.username or args.HasField("interface_traits"):
       raise ValueError("Only user settings can be updated.")
 
     data_store.REL_DB.WriteGRRUser(
-        token.username,
+        context.username,
         ui_mode=args.settings.mode,
         canary_mode=args.settings.canary_mode)
 
@@ -1212,11 +1212,11 @@ class ApiGetPendingUserNotificationsCountHandler(
 
   result_type = ApiGetPendingUserNotificationsCountResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Fetches the pending notification count."""
     ns = list(
         data_store.REL_DB.ReadUserNotifications(
-            token.username,
+            context.username,
             state=rdf_objects.UserNotification.State.STATE_PENDING))
     return ApiGetPendingUserNotificationsCountResult(count=len(ns))
 
@@ -1242,10 +1242,10 @@ class ApiListPendingUserNotificationsHandler(
   args_type = ApiListPendingUserNotificationsArgs
   result_type = ApiListPendingUserNotificationsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Fetches the pending notifications."""
     ns = data_store.REL_DB.ReadUserNotifications(
-        token.username,
+        context.username,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         timerange=(args.timestamp, None))
 
@@ -1277,10 +1277,10 @@ class ApiDeletePendingUserNotificationHandler(
 
   args_type = ApiDeletePendingUserNotificationArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Deletes the notification from the pending notifications."""
     data_store.REL_DB.UpdateUserNotifications(
-        token.username, [args.timestamp],
+        context.username, [args.timestamp],
         state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
 
 
@@ -1302,12 +1302,12 @@ class ApiListAndResetUserNotificationsHandler(
   args_type = ApiListAndResetUserNotificationsArgs
   result_type = ApiListAndResetUserNotificationsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Fetches the user notifications."""
     back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
         180, rdfvalue.DAYS)
     ns = data_store.REL_DB.ReadUserNotifications(
-        token.username, timerange=(back_timestamp, None))
+        context.username, timerange=(back_timestamp, None))
 
     pending_timestamps = [
         n.timestamp
@@ -1315,7 +1315,7 @@ class ApiListAndResetUserNotificationsHandler(
         if n.state == rdf_objects.UserNotification.State.STATE_PENDING
     ]
     data_store.REL_DB.UpdateUserNotifications(
-        token.username,
+        context.username,
         pending_timestamps,
         state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
 
@@ -1366,12 +1366,12 @@ class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListApproverSuggestionsArgs
   result_type = ApiListApproverSuggestionsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     suggestions = []
 
     for username in _GetAllUsernames():
       if (username.startswith(args.username_query) and
-          username != token.username):
+          username != context.username):
         suggestions.append(ApproverSuggestion(username=username))
 
     return ApiListApproverSuggestionsResult(suggestions=suggestions)

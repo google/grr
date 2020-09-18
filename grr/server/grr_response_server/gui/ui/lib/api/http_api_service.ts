@@ -1,10 +1,10 @@
-import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest, HttpResponse} from '@angular/common/http';
+import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
 import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
 
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, GlobComponentExplanation} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -30,6 +30,12 @@ export interface FlowResultsWithSourceParams {
  * Common prefix for all API calls.
  */
 export const URL_PREFIX = '/api/v2';
+
+interface ClientApprovalKey {
+  readonly clientId: string;
+  readonly approvalId: string;
+  readonly requestor: string;
+}
 
 /** Interceptor that enables the sending of cookies for all HTTP requests. */
 @Injectable()
@@ -100,8 +106,24 @@ export class HttpApiService {
         .get<ApiListClientApprovalsResult>(
             `${URL_PREFIX}/users/me/approvals/client/${clientId}`)
         .pipe(
-            map(res => res.items),
+            map(res => res.items ?? []),
         );
+  }
+
+  /** Fetches a ClientApproval. */
+  fetchClientApproval({clientId, requestor, approvalId}: ClientApprovalKey):
+      Observable<ApiClientApproval> {
+    return this.http.get<ApiClientApproval>(`${URL_PREFIX}/users/${
+        requestor}/approvals/client/${clientId}/${approvalId}`);
+  }
+
+  /** Grants a ClientApproval. */
+  grantClientApproval({clientId, requestor, approvalId}: ClientApprovalKey):
+      Observable<ApiClientApproval> {
+    return this.http.post<ApiClientApproval>(
+        `${URL_PREFIX}/users/${requestor}/approvals/client/${clientId}/${
+            approvalId}/actions/grant`,
+        {});
   }
 
   private readonly flowDescriptors$ =
@@ -109,7 +131,7 @@ export class HttpApiService {
           .get<ApiListClientFlowDescriptorsResult>(
               `${URL_PREFIX}/flows/descriptors`)
           .pipe(
-              map(res => res.items),
+              map(res => res.items ?? []),
               shareReplay(1),  // Cache latest FlowDescriptors.
           );
 
@@ -135,7 +157,7 @@ export class HttpApiService {
     return this.http
         .get<ApiListFlowsResult>(
             `${URL_PREFIX}/clients/${clientId}/flows`, {params})
-        .pipe(map(res => res.items));
+        .pipe(map(res => res.items ?? []));
   }
 
   /** Lists all scheduled flows for the given client and user. */
@@ -275,6 +297,7 @@ export class HttpApiService {
     return this.http.get<ApiUiConfig>(`${URL_PREFIX}/config/ui`);
   }
 
+
   addClientLabel(clientId: string, label: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/labels/add`;
     return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]});
@@ -303,7 +326,7 @@ export class HttpApiService {
 
     const params = new HttpParams({
       fromObject: {
-        // If start not set, fetch from beggining of time
+        // If start not set, fetch from beginning of time
         start: ((start?.getTime() ?? 1) * 1000).toString(),
         end: ((end ?? new Date()).getTime() * 1000).toString(),
       }
@@ -311,6 +334,26 @@ export class HttpApiService {
 
     return this.http.get<ApiGetClientVersionsResult>(url, {params})
         .pipe(map(clientVersions => clientVersions.items ?? []));
+  }
+
+  suggestApprovers(usernameQuery: string):
+      Observable<ReadonlyArray<ApproverSuggestion>> {
+    const params = new HttpParams().set('username_query', usernameQuery);
+    return this.http
+        .get<ApiListApproverSuggestionsResult>(
+            `${URL_PREFIX}/users/approver-suggestions`, {params})
+        .pipe(
+            map(result => result.suggestions ?? []),
+        );
+  }
+
+  listRecentClientApprovals(): Observable<ReadonlyArray<ApiClientApproval>> {
+    return this.http
+        .get<ApiListClientApprovalsResult>(
+            `${URL_PREFIX}/users/me/approvals/client`)
+        .pipe(
+            map(result => result.items ?? []),
+        );
   }
 }
 

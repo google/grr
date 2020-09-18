@@ -16,10 +16,12 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import hunt_pb2
+from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import foreman_rules
@@ -29,6 +31,8 @@ from grr_response_server import notification
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.flows.general import export
+from grr_response_server.flows.general import transfer
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
@@ -145,11 +149,13 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
   ]
 
   def GetFlowArgsClass(self):
-    if self.flow_name:
+    if self.hunt_type == ApiHunt.HuntType.STANDARD and self.flow_name:
       flow_cls = registry.FlowRegistry.FlowClassByName(self.flow_name)
 
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
+    elif self.hunt_type == ApiHunt.HuntType.VARIABLE:
+      return rdf_hunt_objects.HuntArgumentsVariable
 
   def InitFromHuntObject(self,
                          hunt_obj,
@@ -175,8 +181,10 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     if (hunt_obj.args.hunt_type ==
         rdf_hunt_objects.HuntArguments.HuntType.STANDARD):
       self.name = "GenericHunt"
+      self.hunt_type = self.HuntType.STANDARD
     else:
       self.name = "VariableGenericHunt"
+      self.hunt_type = self.HuntType.VARIABLE
     self.state = str(hunt_obj.hunt_state)
     self.crash_limit = hunt_obj.crash_limit
     self.client_limit = hunt_obj.client_limit
@@ -257,6 +265,9 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
           rdf_hunt_objects.HuntArguments.HuntType.STANDARD):
         self.flow_name = hunt_obj.args.standard.flow_name
         self.flow_args = hunt_obj.args.standard.flow_args
+      elif (hunt_obj.args.hunt_type ==
+            rdf_hunt_objects.HuntArguments.HuntType.VARIABLE):
+        self.flow_args = hunt_obj.args.variable
 
     return self
 
@@ -401,13 +412,13 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   def _DescriptionContainsFilterRelational(self, substring, hunt_obj):
     return substring in hunt_obj.description
 
-  def _Username(self, username, token):
+  def _Username(self, username, context):
     if username == "me":
-      return token.username
+      return context.username
     else:
       return username
 
-  def _BuildFilter(self, args, token):
+  def _BuildFilter(self, args, context):
     filters = []
 
     if ((args.created_by or args.description_contains) and
@@ -419,7 +430,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     if args.created_by:
       filters.append(
           functools.partial(self._CreatedByFilterRelational,
-                            self._Username(args.created_by, token)))
+                            self._Username(args.created_by, context)))
 
     if args.description_contains:
       filters.append(
@@ -439,14 +450,14 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     else:
       return None
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if args.description_contains and not args.active_within:
       raise ValueError("description_contains filter has to be "
                        "used together with active_within filter")
 
     kw_args = {}
     if args.created_by:
-      kw_args["with_creator"] = self._Username(args.created_by, token)
+      kw_args["with_creator"] = self._Username(args.created_by, context)
     if args.description_contains:
       kw_args["with_description_match"] = args.description_contains
     if args.active_within:
@@ -476,7 +487,7 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetHuntArgs
   result_type = ApiHunt
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     try:
       hunt_id = str(args.hunt_id)
       hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
@@ -509,7 +520,7 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntResultsArgs
   result_type = ApiListHuntResultsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     results = data_store.REL_DB.ReadHuntResults(
         str(args.hunt_id),
         args.offset,
@@ -543,7 +554,7 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntCrashesArgs
   result_type = ApiListHuntCrashesResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flows = data_store.REL_DB.ReadHuntFlows(
         str(args.hunt_id),
         args.offset,
@@ -575,7 +586,7 @@ class ApiGetHuntResultsExportCommandHandler(api_call_handler_base.ApiCallHandler
   args_type = ApiGetHuntResultsExportCommandArgs
   result_type = ApiGetHuntResultsExportCommandResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     output_fname = re.sub("[^0-9a-zA-Z]+", "_", str(args.hunt_id))
     code_to_execute = ("""grrapi.Hunt("%s").GetFilesArchive()."""
                        """WriteToFile("./hunt_results_%s.zip")""") % (
@@ -609,7 +620,7 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntOutputPluginsArgs
   result_type = ApiListHuntOutputPluginsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     used_names = collections.Counter()
     result = []
     try:
@@ -654,7 +665,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
   collection_type = None
   collection_counter = None
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
 
     if self.__class__.log_entry_type is None:
@@ -752,7 +763,7 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntLogsArgs
   result_type = ApiListHuntLogsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     results = data_store.REL_DB.ReadHuntLogEntries(
         str(args.hunt_id),
         args.offset,
@@ -795,7 +806,7 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
 
     return False
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     total_count = data_store.REL_DB.CountHuntFlows(
         str(args.hunt_id),
         filter_condition=db.HuntFlowsCondition.FAILED_FLOWS_ONLY)
@@ -833,7 +844,7 @@ class ApiGetHuntClientCompletionStatsResult(rdf_structs.RDFProtoStruct):
   ]
 
   def InitFromDataPoints(self, start_stats, complete_stats):
-    """Check that this approval applies to the given token.
+    """Check that this approval applies to the given context.
 
     Args:
       start_stats: A list of lists, each containing two values (a timestamp and
@@ -865,7 +876,7 @@ class ApiGetHuntClientCompletionStatsHandler(
   args_type = ApiGetHuntClientCompletionStatsArgs
   result_type = ApiGetHuntClientCompletionStatsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     target_size = args.size
     if target_size <= 0:
       target_size = 1000
@@ -980,14 +991,14 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetHuntFilesArchiveArgs
 
-  def _WrapContentGenerator(self, generator, collection, args, token=None):
+  def _WrapContentGenerator(self, generator, collection, args, context=None):
     try:
 
       for item in generator.Generate(collection):
         yield item
 
       notification.Notify(
-          token.username,
+          context.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of hunt %s results (archived %d "
           "out of %d items, archive size is %d)" %
@@ -995,13 +1006,13 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
            generator.output_size), None)
     except Exception as e:
       notification.Notify(
-          token.username,
+          context.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for hunt %s: %s" % (args.hunt_id, e), None)
 
       raise
 
-  def _LoadData(self, args, token=None):
+  def _LoadData(self, args, context=None):
     hunt_id = str(args.hunt_id)
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     hunt_api_object = ApiHunt().InitFromHuntObject(hunt_obj)
@@ -1014,8 +1025,8 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         hunt_id, offset=0, count=db.MAX_COUNT)
     return results, description
 
-  def Handle(self, args, token=None):
-    collection, description = self._LoadData(args, token=token)
+  def Handle(self, args, context=None):
+    collection, description = self._LoadData(args, context=context)
     target_file_prefix = "hunt_" + str(args.hunt_id).replace(":", "_")
 
     if args.archive_format == args.ArchiveFormat.ZIP:
@@ -1032,7 +1043,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         description=description,
         archive_format=archive_format)
     content_generator = self._WrapContentGenerator(
-        generator, collection, args, token=token)
+        generator, collection, args, context=context)
     return api_call_handler_base.ApiBinaryStream(
         target_file_prefix + file_extension,
         content_generator=content_generator)
@@ -1063,7 +1074,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
       else:
         break
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.hunt_id:
       raise ValueError("ApiGetHuntFileArgs.hunt_id can't be unset")
 
@@ -1139,8 +1150,8 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetHuntStatsArgs
   result_type = ApiGetHuntStatsResult
 
-  def Handle(self, args, token=None):
-    del token  # Unused.
+  def Handle(self, args, context=None):
+    del context  # Unused.
     stats = data_store.REL_DB.ReadHuntClientResourcesStats(str(args.hunt_id))
     return ApiGetHuntStatsResult(stats=stats)
 
@@ -1165,7 +1176,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntClientsArgs
   result_type = ApiListHuntClientsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     hunt_id = str(args.hunt_id)
 
     filter_condition = db.HuntFlowsCondition.UNSET
@@ -1210,7 +1221,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetHuntContextArgs
   result_type = ApiGetHuntContextResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     hunt_id = str(args.hunt_id)
     h = data_store.REL_DB.ReadHuntObject(hunt_id)
     h_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
@@ -1253,7 +1264,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCreateHuntArgs
   result_type = ApiHunt
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     hra = args.hunt_runner_args
 
     hunt_obj = rdf_hunt_objects.Hunt(
@@ -1273,7 +1284,7 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
         client_rate=hra.client_rate,
         per_client_cpu_limit=hra.per_client_cpu_limit,
         per_client_network_bytes_limit=hra.per_client_network_limit_bytes,
-        creator=token.username,
+        creator=context.username,
     )
 
     if args.original_hunt and args.original_flow:
@@ -1312,7 +1323,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiModifyHuntArgs
   result_type = ApiHunt
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     hunt_id = str(args.hunt_id)
 
     has_change = False
@@ -1385,7 +1396,7 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiDeleteHuntArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     try:
       h = data_store.REL_DB.ReadHuntObject(str(args.hunt_id))
       h_flows_count = data_store.REL_DB.CountHuntFlows(h.hunt_id)
@@ -1414,15 +1425,17 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
   _RESULTS_PAGE_SIZE = 1000
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     hunt_id = str(args.hunt_id)
     source_urn = rdfvalue.RDFURN("hunts").Add(hunt_id)
 
     iop_cls = instant_output_plugin.InstantOutputPlugin
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
-    # TODO(user): Instant output plugins shouldn't depend on tokens
+    # TODO(user): Instant output plugins shouldn't depend on contexts
     # and URNs.
-    plugin = plugin_cls(source_urn=source_urn, token=token)
+    plugin = plugin_cls(
+        source_urn=source_urn,
+        token=access_control.ACLToken(username=context.username))
 
     types = data_store.REL_DB.CountHuntResultsByType(hunt_id)
 
@@ -1451,3 +1464,71 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
     return api_call_handler_base.ApiBinaryStream(
         plugin.output_file_name, content_generator=content_generator)
+
+
+class PerClientFileCollectionArgs(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.PerClientFileCollectionArgs
+  rdf_deps = [
+      api_client.ApiClientId,
+  ]
+
+
+class ApiCreatePerClientFileCollectionHuntArgs(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs
+  rdf_deps = [
+      rdfvalue.DurationSeconds,
+      PerClientFileCollectionArgs,
+  ]
+
+
+class ApiCreatePerClientFileCollectionHuntHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Creates a variable hunt to collect files across multiple clients."""
+
+  args_type = ApiCreatePerClientFileCollectionHuntArgs
+  result_type = ApiHunt
+
+  MAX_CLIENTS = 250
+  MAX_FILES = 1000
+
+  def _ArgsToHuntArgs(
+      self, args: ApiCreatePerClientFileCollectionHuntArgs
+  ) -> rdf_hunt_objects.HuntArguments:
+    flow_groups = []
+    for client_arg in args.per_client_args:
+      pathspecs = []
+      for p in client_arg.paths:
+        pathspecs.append(
+            rdf_paths.PathSpec(path=p, pathtype=client_arg.path_type))
+
+      flow_group = rdf_hunt_objects.VariableHuntFlowGroup(
+          client_ids=[client_arg.client_id],
+          flow_name=transfer.MultiGetFile.__name__,
+          flow_args=transfer.MultiGetFileArgs(pathspecs=pathspecs))
+      flow_groups.append(flow_group)
+
+    return rdf_hunt_objects.HuntArguments(
+        hunt_type=rdf_hunt_objects.HuntArguments.HuntType.VARIABLE,
+        variable=rdf_hunt_objects.HuntArgumentsVariable(
+            flow_groups=flow_groups))
+
+  def Handle(self, args: ApiCreatePerClientFileCollectionHuntArgs,
+             context: api_call_context.ApiCallContext):
+    if len(args.per_client_args) > self.MAX_CLIENTS:
+      raise ValueError(f"At most {self.MAX_CLIENTS} clients can be specified "
+                       "in a per-client file colletion hunt.")
+
+    if sum(len(pca.paths) for pca in args.per_client_args) > self.MAX_FILES:
+      raise ValueError(f"At most {self.MAX_FILES} file paths can be specified "
+                       "in a per-client file colletion hunt.")
+
+    hunt_obj = rdf_hunt_objects.Hunt(
+        args=self._ArgsToHuntArgs(args),
+        description=args.description,
+        duration=args.duration_secs,
+        creator=context.username,
+        client_rate=0,
+    )
+    hunt.CreateHunt(hunt_obj)
+
+    return ApiHunt().InitFromHuntObject(hunt_obj, with_full_summary=True)

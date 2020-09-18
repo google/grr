@@ -148,7 +148,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(
             client_id="C.0000000000000001", file_path="fs/os/c/proc"),
-        token=mock.ANY)
+        context=mock.ANY)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
@@ -167,7 +167,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(lambda: mock_method.call_count)
     mock_method.assert_called_with(
         api_vfs.ApiGetVfsFilesArchiveArgs(client_id="C.0000000000000001"),
-        token=mock.ANY)
+        context=mock.ANY)
 
 
 if __name__ == "__main__":

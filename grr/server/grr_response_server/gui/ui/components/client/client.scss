@@ -4,7 +4,6 @@
 $max-width: 1280px;
 $width: 80%;
 
-
 .noscroll {
   overflow: hidden;
 }
@@ -20,13 +19,11 @@ $width: 80%;
     }
   }
   .client-approval {
-    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
-    approval {
-      margin-left: auto;
-      margin-right: auto;
-      max-width: $max-width;
-      width: $width;
-    }
+    position: fixed;
+    bottom: 0;
+    background-color: white;
+    width: 100%;
+    z-index: 1;
   }
 
   .client-start-flow {

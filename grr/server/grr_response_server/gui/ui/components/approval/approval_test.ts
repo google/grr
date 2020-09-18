@@ -1,17 +1,20 @@
 import {CdkCopyToClipboard} from '@angular/cdk/clipboard';
+import {OverlayModule} from '@angular/cdk/overlay';
 import {async, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {newClient} from '@app/lib/models/model_test_util';
+import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
 
-import {Client, ClientApproval} from '../../lib/models/client';
+import {Client} from '../../lib/models/client';
+import {newClient} from '../../lib/models/model_test_util';
 import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 
 import {Approval} from './approval';
+import {ApprovalModule} from './module';
 
 
 initTestEnvironment();
@@ -24,30 +27,25 @@ function makeClient(args: Partial<Client> = {}): Client {
 }
 
 describe('Approval Component', () => {
-  let selectedClient$: Subject<Client>;
-  let latestApproval$: Subject<ClientApproval>;
-  let clientPageFacade: Partial<ClientPageFacade>;
+  let clientPageFacade: ClientPageFacadeMock;
   let configFacade: ConfigFacadeMock;
 
   beforeEach(async(() => {
-    selectedClient$ = new Subject();
-    latestApproval$ = new Subject();
-    clientPageFacade = {
-      selectedClient$,
-      latestApproval$,
-      requestApproval: jasmine.createSpy('requestApproval'),
-    };
+    clientPageFacade = mockClientPageFacade();
     configFacade = mockConfigFacade();
 
     TestBed
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
+            RouterTestingModule.withRoutes([]),
+            ApprovalModule,
           ],
 
           providers: [
             {provide: ClientPageFacade, useFactory: () => clientPageFacade},
-            {provide: ConfigFacade, useFactory: () => configFacade}
+            {provide: ConfigFacade, useFactory: () => configFacade},
+            OverlayModule,
           ]
         })
         .compileComponents();
@@ -57,11 +55,12 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    selectedClient$.next(makeClient());
+    clientPageFacade.selectedClientSubject.next(makeClient());
     configFacade.approvalConfigSubject.next({});
 
-    fixture.componentInstance.form.patchValue(
-        {approvers: 'rick,jerry', reason: 'sample reason'});
+    fixture.componentInstance.formRequestedApprovers.add('rick');
+    fixture.componentInstance.formRequestedApprovers.add('jerry');
+    fixture.componentInstance.form.patchValue({reason: 'sample reason'});
 
     fixture.debugElement.query(By.css('form'))
         .triggerEventHandler('submit', null);
@@ -79,7 +78,7 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    selectedClient$.next(makeClient());
+    clientPageFacade.selectedClientSubject.next(makeClient());
 
     configFacade.approvalConfigSubject.next(
         {optionalCcEmail: 'foo@example.org'});
@@ -93,7 +92,7 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    selectedClient$.next(makeClient());
+    clientPageFacade.selectedClientSubject.next(makeClient());
 
     configFacade.approvalConfigSubject.next(
         {optionalCcEmail: 'foo@example.org'});
@@ -115,7 +114,7 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    selectedClient$.next(makeClient());
+    clientPageFacade.selectedClientSubject.next(makeClient());
 
     configFacade.approvalConfigSubject.next(
         {optionalCcEmail: 'foo@example.org'});
@@ -136,8 +135,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    selectedClient$.next(makeClient());
-    latestApproval$.next({
+    const client = makeClient();
+    clientPageFacade.selectedClientSubject.next(client);
+    clientPageFacade.latestApprovalSubject.next({
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -145,6 +145,7 @@ describe('Approval Component', () => {
       approvers: [],
       reason: 'sample reason',
       requestedApprovers: ['foo'],
+      subject: client,
     });
     fixture.detectChanges();
 
@@ -157,8 +158,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    selectedClient$.next(makeClient());
-    latestApproval$.next({
+    const client = makeClient();
+    clientPageFacade.selectedClientSubject.next(client);
+    clientPageFacade.latestApprovalSubject.next({
       approvalId: '111',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -166,6 +168,7 @@ describe('Approval Component', () => {
       approvers: [],
       reason: 'sample reason',
       requestedApprovers: ['foo'],
+      subject: client,
     });
     fixture.detectChanges();
 
@@ -174,8 +177,61 @@ describe('Approval Component', () => {
     expect(directiveEl).not.toBeNull();
 
     const expected =
-        /^https?:\/\/.+#\/users\/testuser\/approvals\/client\/C\.1234\/111$/;
+        /^https?:\/\/.+\/clients\/C.1234\/users\/testuser\/approvals\/111$/;
     const copyToClipboard = directiveEl.injector.get(CdkCopyToClipboard);
     expect(copyToClipboard.text).toMatch(expected);
+  });
+
+  it('displays autocomplete suggestions when typing', () => {
+    const fixture = TestBed.createComponent(Approval);
+    fixture.detectChanges();
+
+    clientPageFacade.selectedClientSubject.next(makeClient());
+    configFacade.approvalConfigSubject.next({});
+
+    expect(clientPageFacade.suggestApprovers).not.toHaveBeenCalled();
+
+    const approversInput =
+        fixture.debugElement.query(By.css('mat-chip-list input'));
+    fixture.componentInstance.approversInputControl.setValue('ba');
+    approversInput.triggerEventHandler('focusin', null);
+    fixture.detectChanges();
+
+    expect(clientPageFacade.suggestApprovers).toHaveBeenCalledWith('ba');
+    clientPageFacade.approverSuggestionsSubject.next(['bar', 'baz']);
+    fixture.detectChanges();
+
+    const matOptions = document.querySelectorAll('mat-option');
+    expect(matOptions.length).toBe(2);
+    expect(matOptions[0].textContent).toContain('bar');
+    expect(matOptions[1].textContent).toContain('baz');
+  });
+
+  it('shows contents on click when closed', () => {
+    const fixture = TestBed.createComponent(Approval);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.hideContent).toBeTrue();
+
+    fixture.debugElement.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.hideContent).toBeFalse();
+  });
+
+  it('toggles contents on click on header', () => {
+    const fixture = TestBed.createComponent(Approval);
+    const header = fixture.debugElement.query(By.css('h1'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.hideContent).toBeTrue();
+
+    header.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.hideContent).toBeFalse();
+
+    header.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.hideContent).toBeTrue();
   });
 });

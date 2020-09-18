@@ -49,7 +49,28 @@ def FilterFnTable(fn_table, symbol):
   return new_table
 
 
-def SetCTypesForLibrary(libname, fn_table):
+def LoadLibrary(libname: str) -> ctypes.CDLL:
+  """Loads a CDLL by searching for the library name in well-known locations."""
+  # First, attempt to load the library from the path returned by find_library.
+  # This works up to macOS 11 (see https://bugs.python.org/issue41179). As
+  # fallback, try to load the library directly from well-known locations to
+  # work around the macOS 11 bug.
+  paths = [
+      ctypes.util.find_library(libname) or libname,
+      '/System/Library/Frameworks/{0}.framework/{0}',
+      '/usr/lib/{0}.dylib',
+  ]
+
+  for libpath in paths:
+    try:
+      return ctypes.cdll.LoadLibrary(libpath.format(libname))
+    except OSError:
+      pass
+
+  raise ErrorLibNotFound('Library {} not found'.format(libname))
+
+
+def _SetCTypesForLibrary(libname, fn_table):
   """Set function argument types and return types for an ObjC library.
 
   Args:
@@ -60,11 +81,7 @@ def SetCTypesForLibrary(libname, fn_table):
   Raises:
     ErrorLibNotFound: Can't find specified lib
   """
-  libpath = ctypes.util.find_library(libname)
-  if not libpath:
-    raise ErrorLibNotFound('Library %s not found' % libname)
-
-  lib = ctypes.cdll.LoadLibrary(libpath)
+  lib = LoadLibrary(libname)
 
   # We need to define input / output parameters for all functions we use
   for (function, args, result) in fn_table:
@@ -81,10 +98,10 @@ class Foundation(object):
   dll = None
 
   @classmethod
-  def LoadLibrary(cls, libname, cftable):
+  def _LoadLibrary(cls, libname, cftable):
     # Cache the library to only load it once.
     if cls.dll is None:
-      cls.dll = SetCTypesForLibrary(libname, cftable)
+      cls.dll = _SetCTypesForLibrary(libname, cftable)
 
   def __init__(self):
     self.cftable = [
@@ -122,7 +139,7 @@ class Foundation(object):
          ctypes.c_void_p)
     ]  # pyformat: disable
 
-    self.LoadLibrary('Foundation', self.cftable)
+    self._LoadLibrary('Foundation', self.cftable)
 
   def CFStringToPystring(self, value) -> Text:
     length = (self.dll.CFStringGetLength(value) * 4) + 1
@@ -195,7 +212,7 @@ class SystemConfiguration(Foundation):
     self.cftable.append(('SCDynamicStoreCopyProxies', [ctypes.c_void_p],
                          ctypes.c_void_p))
 
-    self.dll = SetCTypesForLibrary('SystemConfiguration', self.cftable)
+    self.dll = _SetCTypesForLibrary('SystemConfiguration', self.cftable)
 
 
 class ServiceManagement(Foundation):
@@ -211,7 +228,7 @@ class ServiceManagement(Foundation):
         # Only available 10.6 and later
         ('SMCopyAllJobDictionaries', [ctypes.c_void_p], ctypes.c_void_p),)
 
-    self.dll = SetCTypesForLibrary('ServiceManagement', self.cftable)
+    self.dll = _SetCTypesForLibrary('ServiceManagement', self.cftable)
 
   def SMGetJobDictionaries(self, domain='kSMDomainSystemLaunchd'):
     """Copy all Job Dictionaries from the ServiceManagement.

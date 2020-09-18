@@ -1,6 +1,5 @@
 import {Pipe, PipeTransform} from '@angular/core';
 
-
 const S_IFMT = 0o170000;    // type of file
 const S_IFIFO = 0o010000;   // named pipe
 const S_IFCHR = 0o020000;   // character device

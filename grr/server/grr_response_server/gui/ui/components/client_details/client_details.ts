@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input, OnChanges} from '@angular/core';
-import {ClientDetailsFacade} from '@app/store/client_details_facade';
+import {ClientDetailsFacade} from '../../store/client_details_facade';
 
 /**
  * Component displaying the details for a single Client.

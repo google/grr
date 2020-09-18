@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
-import {Client} from '@app/lib/models/client';
-import {ClientDetailsFacade} from '@app/store/client_details_facade';
+import {Client} from '../../../lib/models/client';
+import {ClientDetailsFacade} from '../../../store/client_details_facade';
 
 import {EntryHistoryDialog, EntryHistoryDialogParams, EntryType} from '../entry_history_dialog/entry_history_dialog';
 

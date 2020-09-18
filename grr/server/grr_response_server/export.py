@@ -537,6 +537,7 @@ class StatEntryToExportedFileConverter(ExportConverter):
         st_atime=stat_entry.st_atime,
         st_mtime=stat_entry.st_mtime,
         st_ctime=stat_entry.st_ctime,
+        st_btime=stat_entry.st_btime,
         st_blocks=stat_entry.st_blocks,
         st_blksize=stat_entry.st_blksize,
         st_rdev=stat_entry.st_rdev,
@@ -1156,7 +1157,9 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
   def IsFileStatEntry(self, original_result):
     """Checks if given RDFValue is a file StatEntry."""
     return (original_result.pathspec.pathtype in [
-        rdf_paths.PathSpec.PathType.OS, rdf_paths.PathSpec.PathType.TSK
+        rdf_paths.PathSpec.PathType.OS,
+        rdf_paths.PathSpec.PathType.TSK,
+        rdf_paths.PathSpec.PathType.NTFS,
     ])
 
   def BatchConvert(self, metadata_value_pairs):

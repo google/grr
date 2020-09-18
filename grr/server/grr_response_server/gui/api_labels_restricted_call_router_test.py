@@ -11,6 +11,7 @@ from grr_response_server import access_control
 from grr_response_server import data_store
 
 from grr_response_server.flows.general import processes
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_labels_restricted_call_router as api_router
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
@@ -38,8 +39,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
     api_router.CheckClientLabels(
         self.client_id,
         allow_labels=self.allow_labels,
-        allow_labels_owners=self.allow_labels_owners,
-        token=self.token)
+        allow_labels_owners=self.allow_labels_owners)
 
   def testDoesNotRaiseWhenLabelMatchesAmongManyLabels(self):
     self._AddLabel("bar", owner="GRR")
@@ -50,8 +50,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
     api_router.CheckClientLabels(
         self.client_id,
         allow_labels=self.allow_labels,
-        allow_labels_owners=self.allow_labels_owners,
-        token=self.token)
+        allow_labels_owners=self.allow_labels_owners)
 
   def testRaisesWhenLabelDoesNotMatch(self):
     self._AddLabel("bar", owner="GRR")
@@ -60,8 +59,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
       api_router.CheckClientLabels(
           self.client_id,
           allow_labels=self.allow_labels,
-          allow_labels_owners=self.allow_labels_owners,
-          token=self.token)
+          allow_labels_owners=self.allow_labels_owners)
 
   def testRaisesWhenLabelDoesNotMatchAmongManyLabels(self):
     self._AddLabel("foo1", owner="GRR")
@@ -73,8 +71,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
       api_router.CheckClientLabels(
           self.client_id,
           allow_labels=self.allow_labels,
-          allow_labels_owners=self.allow_labels_owners,
-          token=self.token)
+          allow_labels_owners=self.allow_labels_owners)
 
   def testRaisesIfOwnerDoesNotMatch(self):
     self._AddLabel("foo", owner="GRRother")
@@ -83,8 +80,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
       api_router.CheckClientLabels(
           self.client_id,
           allow_labels=self.allow_labels,
-          allow_labels_owners=self.allow_labels_owners,
-          token=self.token)
+          allow_labels_owners=self.allow_labels_owners)
 
 
 class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
@@ -134,7 +130,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
 
     for method_name, args in self.checks.items():
       try:
-        handler = getattr(router, method_name)(args, token=self.token)
+        handler = getattr(router, method_name)(args, context=self.context)
         result[method_name] = (True, handler)
       except (access_control.UnauthorizedAccess, NotImplementedError) as e:
         result[method_name] = (False, e)
@@ -148,6 +144,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     data_store.REL_DB.AddClientLabels(self.client_id, "GRR", ["foo"])
 
     self.hunt_id = "H:123456"
+    self.context = api_call_context.ApiCallContext("test")
 
     c = api_router.ApiLabelsRestrictedCallRouter
 
@@ -270,7 +267,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
 
   def testReturnsCustomHandlerForSearchClients(self):
     router = api_router.ApiLabelsRestrictedCallRouter()
-    handler = router.SearchClients(None, token=self.token)
+    handler = router.SearchClients(None, context=self.context)
     self.assertIsInstance(handler,
                           api_client.ApiLabelsRestrictedSearchClientsHandler)
 

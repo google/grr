@@ -229,6 +229,7 @@ class CronManager(object):
                   something else, ValueError is raised.
     """
     if not job_id:
+      # TODO: UInt16 is too small for randomly generated IDs.
       uid = random.UInt16()
       job_id = "%s_%s" % (cron_args.flow_name, uid)
 

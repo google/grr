@@ -16,10 +16,10 @@ class SingleMethodDummyApiCallRouter(api_call_router.ApiCallRouter):
   """Dummy ApiCallRouter implementation overriding just a single method."""
 
   @api_call_router.Http("GET", "/api/foo/bar")
-  def SomeRandomMethod(self, args, token=None):
+  def SomeRandomMethod(self, args, context=None):
     pass
 
-  def CreateFlow(self, args, token=None):
+  def CreateFlow(self, args, context=None):
     pass
 
 
@@ -36,7 +36,7 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
 
     for name in api_call_router.ApiCallRouter.GetAnnotatedMethods():
       with self.assertRaises(NotImplementedError):
-        getattr(router, name)(None, token=None)
+        getattr(router, name)(None, context=None)
 
   def testGetAnnotatedMethodsReturnsNonEmptyDict(self):
     methods = api_call_router.ApiCallRouterStub.GetAnnotatedMethods()

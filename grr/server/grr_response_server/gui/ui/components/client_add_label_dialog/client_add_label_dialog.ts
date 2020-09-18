@@ -1,11 +1,14 @@
 import {Component, Inject} from '@angular/core';
 import {AbstractControl, FormControl, ValidatorFn} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
-import {ClientLabel} from '@app/lib/models/client';
-import {ConfigFacade} from '@app/store/config_facade';
 import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
+import {ClientLabel} from '../../lib/models/client';
+import {isNonNull} from '../../lib/preconditions';
+import {ConfigFacade} from '../../store/config_facade';
+
+/** Dialog that displays a form to add a label to a client. */
 @Component({
   selector: 'client-add-label-dialog',
   templateUrl: './client_add_label_dialog.ng.html',
@@ -28,7 +31,7 @@ export class ClientAddLabelDialog {
    */
   private readonly inputAndAllLabels$ =
       this.labelInputControl.valueChanges.pipe(
-          filter((input): input is string|String => input !== undefined),
+          filter(isNonNull),
           map(input => input.trim()),
           withLatestFrom(this.allClientsLabels$),
       );
@@ -65,6 +68,7 @@ export class ClientAddLabelDialog {
   }
 
   private labelValidator(): ValidatorFn {
+    // tslint:disable-next-line:no-any
     return (control: AbstractControl): {[key: string]: any}|null => {
       if (control.value === undefined) {
         return null;
@@ -77,7 +81,7 @@ export class ClientAddLabelDialog {
 
       return null;
     };
-  };
+  }
 
   onCancelClick(): void {
     this.dialogRef.close(undefined);

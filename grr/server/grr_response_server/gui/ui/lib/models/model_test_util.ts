@@ -1,7 +1,7 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
 
-import {Client} from '@app/lib/models/client';
+import {Client, ClientApproval} from '@app/lib/models/client';
 
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from './flow';
 
@@ -25,7 +25,7 @@ export function newClient(args: Partial<Client> = {}): Client {
     users: [],
     networkInterfaces: [],
     labels: [],
-    age: new Date(1),
+    age: new Date(0),
     ...args,
   };
 }
@@ -75,6 +75,24 @@ export function newScheduledFlow(args: Partial<ScheduledFlow> = {}):
     flowName: 'FileFinder',
     flowArgs: {},
     createTime: new Date(Date.now() - 60000),
+    ...args,
+  };
+}
+
+export function newClientApproval(args: Partial<ClientApproval> = {}):
+    ClientApproval {
+  const clientId =
+      args.clientId ?? args.subject?.clientId ?? `C.${randomHex(16)}`;
+
+  return {
+    approvalId: randomHex(8),
+    clientId,
+    requestor: 'msan',
+    reason: 't/1234',
+    status: {type: 'pending', reason: 'Need 1 more approver'},
+    requestedApprovers: ['rsanchez'],
+    approvers: ['msan'],
+    subject: newClient({clientId, ...args.subject}),
     ...args,
   };
 }

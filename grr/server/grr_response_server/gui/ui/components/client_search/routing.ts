@@ -6,7 +6,7 @@ import {ClientSearch} from './client_search';
  * Routes used by the client search page.
  */
 export const CLIENT_SEARCH_ROUTES: Routes = [
-  {path: 'client-search/:query', component: ClientSearch},
+  {path: 'clients', component: ClientSearch},
 ];
 
 /**

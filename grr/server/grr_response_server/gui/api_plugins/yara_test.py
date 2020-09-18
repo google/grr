@@ -29,7 +29,7 @@ class ApiUploadYaraSignatureHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = api_yara.ApiUploadYaraSignatureArgs()
     args.signature = signature
 
-    blob_id = self.handler.Handle(args, token=self.token).blob_id
+    blob_id = self.handler.Handle(args, context=self.context).blob_id
     blob = data_store.BLOBS.ReadBlob(blob_id)
 
     self.assertEqual(blob.decode("utf-8"), signature)
@@ -38,7 +38,7 @@ class ApiUploadYaraSignatureHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = api_yara.ApiUploadYaraSignatureArgs()
     args.signature = "rule foo { condition: false };"
 
-    blob_id = self.handler.Handle(args, token=self.token).blob_id
+    blob_id = self.handler.Handle(args, context=self.context).blob_id
 
     self.assertTrue(data_store.REL_DB.VerifyYaraSignatureReference(blob_id))
 

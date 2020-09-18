@@ -1,6 +1,7 @@
-import {Component, Input, ChangeDetectionStrategy, OnChanges, SimpleChanges} from '@angular/core';
+
+import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {DateTime, Duration} from 'luxon';
-import {interval, Subject, merge} from 'rxjs';
+import {interval, merge, Subject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 /**
@@ -15,15 +16,14 @@ import {map} from 'rxjs/operators';
 export class OnlineChip implements OnChanges {
   private static readonly STATUS_OFFLINE = 'offline';
   private static readonly STATUS_ONLINE = 'online';
-  private static readonly ONLINE_TRESHOLD = Duration.fromObject({minutes: 15});
+  private static readonly ONLINE_THRESHOLD = Duration.fromObject({minutes: 15});
 
   @Input() lastSeen?: Date;
   private readonly lastSeenChange$ = new Subject<void>();
 
   // status observable that updates every second and when lastSeen changes
-  status$ = merge(interval(1000), this.lastSeenChange$).pipe(
-    map(() => this.getStatus())
-  );
+  status$ = merge(interval(1000), this.lastSeenChange$)
+                .pipe(map(() => this.getStatus()));
 
   ngOnChanges(changes: SimpleChanges): void {
     this.lastSeenChange$.next();
@@ -35,7 +35,7 @@ export class OnlineChip implements OnChanges {
     }
 
     const lastSeenLuxon = DateTime.fromJSDate(this.lastSeen);
-    if (lastSeenLuxon.diffNow().negate() < OnlineChip.ONLINE_TRESHOLD) {
+    if (lastSeenLuxon.diffNow().negate() < OnlineChip.ONLINE_THRESHOLD) {
       return OnlineChip.STATUS_ONLINE;
     } else {
       return OnlineChip.STATUS_OFFLINE;

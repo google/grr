@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {StorageVolume} from '@app/lib/models/client';
+import {StorageVolume} from '../../../lib/models/client';
 
 /**
  * Component the details for a single StorageVolume.

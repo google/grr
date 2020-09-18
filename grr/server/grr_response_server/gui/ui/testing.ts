@@ -12,3 +12,26 @@ export function initTestEnvironment() {
     // Ignore exceptions when calling it multiple times.
   }
 }
+
+/** Removes keys with value `undefined` to make testing of objects easier. */
+export function removeUndefinedKeys<T>(obj: T[]): T[];
+export function removeUndefinedKeys<T>(obj: T): Partial<T>|T;
+export function removeUndefinedKeys<T>(obj: T|T[]): T|Partial<T>|T[] {
+  if (Array.isArray(obj)) {
+    return obj.map<T>(removeUndefinedKeys);
+  } else if (obj === null) {
+    return obj;
+  } else if (typeof obj === 'object' && (obj as {}).constructor === Object) {
+    // TODO: Type '{ [k: string]: any; }' is not assignable to type
+    // 'T | Partial<T> | T[]'.
+    return Object.fromEntries(Object.entries(obj)
+                                  .filter(([, value]) => value !== undefined)
+                                  .map(([key, value]) => ([
+                                         key, removeUndefinedKeys(value)
+                                         // OSS code.
+                                         // tslint:disable-next-line:no-any
+                                       ]))) as any;
+  } else {
+    return obj;
+  }
+}

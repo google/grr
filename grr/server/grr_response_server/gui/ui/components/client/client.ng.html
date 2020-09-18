@@ -13,14 +13,19 @@
       </button>
     </client-overview>
 
-    <div class="client-approval">
-      <approval></approval>
-    </div>
     <div class="client-start-flow">
       <flow-form></flow-form>
     </div>
     <div class="client-flows">
       <flow-list></flow-list>
+      <div [style.height.px]="approvalHeight">
+        <!-- Placeholder behind Approval bottom sheet to allow scrolling to the
+             bottom of the flows list. -->
+      </div>
+    </div>
+
+    <div class="client-approval mat-elevation-z12">
+      <approval></approval>
     </div>
   </mat-drawer-content>
 </mat-drawer-container>

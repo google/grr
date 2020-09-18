@@ -6,11 +6,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import IO
+from typing import Iterator
+
 from absl import app
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.check_lib import checks
 from grr_response_server.check_lib import checks_test_lib
 from grr.test_lib import test_lib
@@ -176,11 +181,16 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # Need a parser
     self.assertRaises(ValueError, self.GenFileData, "EMPTY", [])
 
-    class VoidParser(parsers.SingleFileParser):
+    class VoidParser(parsers.SingleFileParser[None]):
 
-      def ParseFile(self, knowledge_base, pathspec, filedesc):
+      def ParseFile(
+          self,
+          knowledge_base: rdf_client.KnowledgeBase,
+          pathspec: rdf_paths.PathSpec,
+          filedesc: IO[bytes],
+      ) -> Iterator[None]:
         del knowledge_base, pathspec, filedesc  # Unused.
-        return []
+        return iter([])
 
     # Trivial empty case.
     result = self.GenFileData("EMPTY", [], VoidParser())

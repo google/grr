@@ -70,13 +70,13 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler.Handle(
         client_plugin.ApiAddClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
-        token=self.token)
+        context=self.context)
 
     cid = self.client_ids[0]
     labels = data_store.REL_DB.ReadClientLabels(cid)
     self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"foo")
-    self.assertEqual(labels[0].owner, self.token.username)
+    self.assertEqual(labels[0].owner, self.context.username)
 
     for client_id in self.client_ids[1:]:
       self.assertFalse(data_store.REL_DB.ReadClientLabels(client_id))
@@ -86,13 +86,13 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
         client_plugin.ApiAddClientsLabelsArgs(
             client_ids=[self.client_ids[0], self.client_ids[1]],
             labels=[u"foo", u"bar"]),
-        token=self.token)
+        context=self.context)
 
     for client_id in self.client_ids[:2]:
       labels = data_store.REL_DB.ReadClientLabels(client_id)
       self.assertLen(labels, 2)
-      self.assertEqual(labels[0].owner, self.token.username)
-      self.assertEqual(labels[1].owner, self.token.username)
+      self.assertEqual(labels[0].owner, self.context.username)
+      self.assertEqual(labels[1].owner, self.context.username)
       self.assertCountEqual([labels[0].name, labels[1].name], [u"bar", u"foo"])
 
     self.assertFalse(data_store.REL_DB.ReadClientLabels(self.client_ids[2]))
@@ -109,18 +109,18 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRemovesUserLabelFromSingleClient(self):
     data_store.REL_DB.WriteClientMetadata(
         self.client_ids[0], fleetspeak_enabled=False)
-    data_store.REL_DB.AddClientLabels(self.client_ids[0], self.token.username,
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], self.context.username,
                                       [u"foo", u"bar"])
 
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
-        token=self.token)
+        context=self.context)
 
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0])
     self.assertLen(labels, 1)
     self.assertEqual(labels[0].name, u"bar")
-    self.assertEqual(labels[0].owner, self.token.username)
+    self.assertEqual(labels[0].owner, self.context.username)
 
   def testDoesNotRemoveSystemLabelFromSingleClient(self):
     data_store.REL_DB.WriteClientMetadata(
@@ -132,7 +132,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
-        token=self.token)
+        context=self.context)
 
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0])
     self.assertLen(labels, 1)
@@ -142,7 +142,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testRemovesUserLabelWhenSystemLabelWithSimilarNameAlsoExists(self):
     data_store.REL_DB.WriteClientMetadata(
         self.client_ids[0], fleetspeak_enabled=False)
-    data_store.REL_DB.AddClientLabels(self.client_ids[0], self.token.username,
+    data_store.REL_DB.AddClientLabels(self.client_ids[0], self.context.username,
                                       [u"foo"])
     data_store.REL_DB.AddClientLabels(self.client_ids[0], u"GRR", [u"foo"])
     idx = client_index.ClientIndex()
@@ -151,7 +151,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler.Handle(
         client_plugin.ApiRemoveClientsLabelsArgs(
             client_ids=[self.client_ids[0]], labels=[u"foo"]),
-        token=self.token)
+        context=self.context)
 
     labels = data_store.REL_DB.ReadClientLabels(self.client_ids[0])
     self.assertLen(labels, 1)
@@ -195,7 +195,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
 
   def testSearchWithoutArgsReturnsOnlyClientsWithAllowedLabels(self):
     result = self.handler.Handle(
-        client_plugin.ApiSearchClientsArgs(), token=self.token)
+        client_plugin.ApiSearchClientsArgs(), context=self.context)
 
     self.assertLen(result.items, 2)
     sorted_items = sorted(result.items, key=lambda r: r.client_id)
@@ -206,42 +206,44 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
   def testSearchWithNonAllowedLabelReturnsNothing(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query="label:not-foo"),
-        token=self.token)
+        context=self.context)
     self.assertFalse(result.items)
 
   def testSearchWithAllowedLabelReturnsSubSet(self):
     result = self.handler.Handle(
-        client_plugin.ApiSearchClientsArgs(query="label:foo"), token=self.token)
+        client_plugin.ApiSearchClientsArgs(query="label:foo"),
+        context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[0])
 
     result = self.handler.Handle(
-        client_plugin.ApiSearchClientsArgs(query="label:bar"), token=self.token)
+        client_plugin.ApiSearchClientsArgs(query="label:bar"),
+        context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
   def testSearchWithAllowedClientIdsReturnsSubSet(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[0]),
-        token=self.token)
+        context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[0])
 
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[3]),
-        token=self.token)
+        context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, self.client_ids[3])
 
   def testSearchWithDisallowedClientIdsReturnsNothing(self):
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[1]),
-        token=self.token)
+        context=self.context)
     self.assertFalse(result.items)
 
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(query=self.client_ids[2]),
-        token=self.token)
+        context=self.context)
     self.assertFalse(result.items)
 
   def testSearchOrder(self):
@@ -250,7 +252,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     result = self.handler.Handle(
         client_plugin.ApiSearchClientsArgs(
             query="label:foo", offset=0, count=1000),
-        token=self.token)
+        context=self.context)
     self.assertEqual([str(res.client_id) for res in result.items],
                      self.client_ids)
 
@@ -260,7 +262,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
           self.handler.Handle(
               client_plugin.ApiSearchClientsArgs(
                   query="label:foo", offset=offset, count=count),
-              token=self.token).items)
+              context=self.context).items)
     self.assertEqual([str(res.client_id) for res in result], self.client_ids)
 
 
@@ -276,7 +278,7 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEmpty(data_store.REL_DB.ReadAllFlowObjects(self.client_id))
 
     args = client_plugin.ApiInterrogateClientArgs(client_id=self.client_id)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     results = data_store.REL_DB.ReadAllFlowObjects(self.client_id)
     self.assertLen(results, 1)
@@ -294,7 +296,7 @@ class ApiGetClientVersionTimesTestMixin(object):
   def testHandler(self):
     self._SetUpClient()
     args = client_plugin.ApiGetClientVersionTimesArgs(client_id=self.client_id)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertLen(result.times, 3)
     self.assertEqual(result.times[0].AsSecondsSinceEpoch(), 100)
@@ -425,7 +427,7 @@ class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = client_plugin.ApiAddClientsLabelsArgs()
     args.client_ids = [client_id]
     args.labels = labels
-    self.add_labels_handler.Handle(args=args, token=self.token)
+    self.add_labels_handler.Handle(args=args, context=self.context)
 
   def testSearchByLabel(self):
     client_id = self.SetupClient(
@@ -448,14 +450,14 @@ class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
     args_a = client_plugin.ApiSearchClientsArgs(
         query="label:gżegżółka", offset=0, count=128)
 
-    result_a = self.search_handler.Handle(args_a, token=self.token)
+    result_a = self.search_handler.Handle(args_a, context=self.context)
     self.assertLen(result_a.items, 1)
     self.assertEqual(result_a.items[0].client_id, client_a_id)
 
     args_b = client_plugin.ApiSearchClientsArgs(
         query="label:orłosęp", offset=0, count=128)
 
-    result_b = self.search_handler.Handle(args_b, token=self.token)
+    result_b = self.search_handler.Handle(args_b, context=self.context)
     self.assertLen(result_b.items, 1)
     self.assertEqual(result_b.items[0].client_id, client_b_id)
 
@@ -469,7 +471,7 @@ class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = client_plugin.ApiSearchClientsArgs(
         query="label:ścierwnik", offset=0, count=1000)
 
-    result = self.search_handler.Handle(args, token=self.token)
+    result = self.search_handler.Handle(args, context=self.context)
     result_client_ids = [item.client_id for item in result.items]
     self.assertCountEqual(result_client_ids, [client_a_id, client_b_id])
 
@@ -486,7 +488,7 @@ class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = client_plugin.ApiSearchClientsArgs(
         query="label:raróg label:sokół", offset=0, count=1000)
 
-    result = self.search_handler.Handle(args, token=self.token)
+    result = self.search_handler.Handle(args, context=self.context)
     result_client_ids = [item.client_id for item in result.items]
     self.assertCountEqual(result_client_ids, [client_a_id, client_c_id])
 
@@ -498,7 +500,7 @@ class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = client_plugin.ApiSearchClientsArgs(
         query="label:'dzięcioł białoszyi' label:'świergotek łąkowy'")
 
-    result = self.search_handler.Handle(args, token=self.token)
+    result = self.search_handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, client_id)
 

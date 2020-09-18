@@ -20,7 +20,7 @@ class ApiGetRDFValueDescriptorHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testSuccessfullyRendersReflectionDataForAllTypes(self):
     result = reflection_plugin.ApiListRDFValuesDescriptorsHandler().Handle(
-        None, token=self.token)
+        None, context=self.context)
     # TODO(user): enhance this test.
     self.assertTrue(result)
 
@@ -30,18 +30,18 @@ class DummyApiCallRouter(api_call_router.ApiCallRouter):
 
   @api_call_router.Http("GET", "/api/method1")
   @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
-  def SomeRandomMethodWithArgsType(self, args, token=None):
+  def SomeRandomMethodWithArgsType(self, args, context=None):
     """Doc 1."""
 
   @api_call_router.Http("GET", "/api/method2")
   @api_call_router.ResultType(api_test_lib.SampleGetHandlerArgs)
-  def SomeRandomMethodWithResultType(self, args, token=None):
+  def SomeRandomMethodWithResultType(self, args, context=None):
     """Doc 2."""
 
   @api_call_router.Http("GET", "/api/method3")
   @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
   @api_call_router.ResultType(api_test_lib.SampleGetHandlerArgs)
-  def SomeRandomMethodWithArgsTypeAndResultType(self, args, token=None):
+  def SomeRandomMethodWithArgsTypeAndResultType(self, args, context=None):
     """Doc 3."""
 
 
@@ -54,7 +54,7 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = reflection_plugin.ApiListApiMethodsHandler(self.router)
 
   def testRendersMethodWithArgsCorrectly(self):
-    result = self.handler.Handle(None, token=self.token)
+    result = self.handler.Handle(None, context=self.context)
 
     method = [
         item for item in result.items
@@ -71,7 +71,7 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertFalse(method.HasField("result_type"))
 
   def testRendersMethodWithResultTypeCorrectly(self):
-    result = self.handler.Handle(None, token=self.token)
+    result = self.handler.Handle(None, context=self.context)
 
     method = [
         item for item in result.items
@@ -88,7 +88,7 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
         "type.googleapis.com/grr.SampleGetHandlerArgs")
 
   def testRendersMethodWithArgsTypeAndResultTypeCorrectly(self):
-    result = self.handler.Handle(None, token=self.token)
+    result = self.handler.Handle(None, context=self.context)
 
     method = [
         item for item in result.items

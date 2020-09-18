@@ -1,6 +1,10 @@
-<div *ngIf="!hasProgress">
-  The flow didn't report its progress. It's either a legacy flow or this flow
-  did run before progress reporting was introduced as a feature.
+<div *ngIf="!hasProgress" class="fallback">
+  View
+  <a href="{{fallbackUrl$ | async}}">
+    Flow
+    <span class="monospace">{{ (flowListEntry$ | async).flow.flowId }}</span>
+  </a>
+  in legacy UI.
 </div>
 
 <div *ngIf="hasProgress">

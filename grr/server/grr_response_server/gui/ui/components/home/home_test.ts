@@ -1,7 +1,13 @@
-import {async, TestBed} from '@angular/core/testing';
+import {Location} from '@angular/common';
+import {Component} from '@angular/core';
+import {async, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router} from '@angular/router';
+import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
+
+import {newClientApproval} from '../../lib/models/model_test_util';
+import {HomePageFacade} from '../../store/home_page_facade';
+import {HomePageFacadeMock, mockHomePageFacade} from '../../store/home_page_facade_test_util';
 
 import {Home} from './home';
 import {HomeModule} from './module';
@@ -10,18 +16,29 @@ import {HomeModule} from './module';
 
 initTestEnvironment();
 
+@Component({template: ''})
+class TestComponent {
+}
+
 describe('Home Component', () => {
+  let homePageFacade: HomePageFacadeMock;
+
   beforeEach(async(() => {
-    const router = {navigate: jasmine.createSpy('navigate')};
+    homePageFacade = mockHomePageFacade();
 
     TestBed
         .configureTestingModule({
           imports: [
+            RouterTestingModule.withRoutes(
+                [{path: 'clients', component: TestComponent}]),
             HomeModule,
-            NoopAnimationsModule,  // This makes test faster and more stable.
+            NoopAnimationsModule,
+          ],
+          declarations: [
+            TestComponent,
           ],
           providers: [
-            {provide: Router, useValue: router},
+            {provide: HomePageFacade, useFactory: () => homePageFacade},
           ],
 
         })
@@ -34,12 +51,26 @@ describe('Home Component', () => {
     expect(componentInstance).toBeTruthy();
   });
 
-  it('changes the route when query is submitted', () => {
-    const fixture = TestBed.createComponent(Home);
-    const componentInstance = fixture.componentInstance;
-    componentInstance.onQuerySubmitted('foo');
+  it('changes the route when query is submitted', fakeAsync(() => {
+       const fixture = TestBed.createComponent(Home);
+       const componentInstance = fixture.componentInstance;
+       componentInstance.onQuerySubmitted('foo');
+       tick();
 
-    const router: Router = TestBed.inject(Router);
-    expect(router.navigate).toHaveBeenCalledWith(['/client-search', 'foo']);
+       const location = TestBed.inject(Location);
+       expect(location.path()).toEqual('/clients?q=foo');
+     }));
+
+  it('displays recently accessed clients', () => {
+    const fixture = TestBed.createComponent(Home);
+    homePageFacade.recentClientApprovalsSubject.next([
+      newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
+      newClientApproval({clientId: 'C.2222', status: {type: 'valid'}}),
+    ]);
+    fixture.detectChanges();
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain('C.1111');
+    expect(text).toContain('C.2222');
   });
 });

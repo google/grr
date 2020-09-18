@@ -82,3 +82,8 @@ config_lib.DEFINE_list(
     "Artifacts.netgroup_ignore_users", [],
     help="Exclude these users when parsing /etc/netgroup "
     "files.")
+
+config_lib.DEFINE_list(
+    name="Artifacts.edr_agents",
+    default=[],
+    help="Artifacts used for collecting metadata about EDR agents.")

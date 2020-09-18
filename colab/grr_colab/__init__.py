@@ -96,6 +96,8 @@ class Client(object):
     os: OS filesystem instance that encapsulates filesystem related operations.
     tsk: TSK filesystem instance that encapsulates filesystem related
       operations.
+    ntfs: NTFS filesystem instance that encapsulates filesystem related
+      operations.
     registry: REGISTRY filesystem instance that encapsulates filesystem related
       operations.
   """
@@ -215,6 +217,10 @@ class Client(object):
   @property
   def tsk(self) -> fs.FileSystem:
     return fs.FileSystem(self._client, jobs_pb2.PathSpec.TSK)
+
+  @property
+  def ntfs(self) -> fs.FileSystem:
+    return fs.FileSystem(self._client, jobs_pb2.PathSpec.NTFS)
 
   @property
   def registry(self) -> fs.FileSystem:

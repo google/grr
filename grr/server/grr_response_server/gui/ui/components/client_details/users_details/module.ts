@@ -1,7 +1,9 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+
+import {TimestampModule} from '../../timestamp/module';
+
 import {UsersDetails} from './users_details';
-import {TimestampModule} from '@app/components/timestamp/module';
 
 /**
  * Module for the users details component.

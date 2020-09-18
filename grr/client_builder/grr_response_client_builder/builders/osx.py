@@ -10,10 +10,10 @@ import logging
 import os
 import shutil
 import subprocess
-import zipfile
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
+from grr_response_client_builder import pkg_utils
 from grr_response_core import config
 from grr_response_core.lib import package
 from grr_response_core.lib import utils
@@ -24,11 +24,11 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   BUILDER_CONTEXT = "Target:Darwin"
 
-  def _SetBuildVars(self):
+  def _SetBuildVars(self, fleetspeak_enabled=False, fleetspeak_bundled=False):
     self.build_dir = config.CONFIG.Get(
         "PyInstaller.build_dir", context=self.context)
-    self.fleetspeak_enabled = config.CONFIG.Get(
-        "Client.fleetspeak_enabled", context=self.context)
+    self.fleetspeak_enabled = fleetspeak_enabled
+    self.fleetspeak_bundled = fleetspeak_bundled
     self.version = config.CONFIG.Get(
         "Source.version_string", context=self.context)
     self.client_name = config.CONFIG.Get("Client.name", context=self.context)
@@ -44,9 +44,13 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.template_binary_dir = os.path.join(
         config.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
-    self.fleetspeak_service_dir = config.CONFIG.Get(
-        "ClientBuilder.fleetspeak_service_dir", context=self.context)
+    if fleetspeak_bundled:
+      self.fleetspeak_services_dir = "/etc/fleetspeak-client/textservices"
+    else:
+      self.fleetspeak_service_dir = config.CONFIG.Get(
+          "ClientBuilder.fleetspeak_service_dir", context=self.context)
     self.pkg_root = os.path.join(self.build_root, "pkg-root")
+    self.universal_root = os.path.join(self.build_root, "universal-root")
     if self.fleetspeak_enabled:
       self.target_binary_dir = os.path.join(
           self.pkg_root,
@@ -64,34 +68,36 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.prodbuild_out_dir = os.path.join(self.build_root, "prodbuild-out")
     self.prodbuild_out_binary = os.path.join(self.prodbuild_out_dir,
                                              self.pkg_name)
+    self.fleetspeak_install_dir = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_install_dir", context=self.context)
+
+    self.zip_out_dir = os.path.join(self.build_root, "zip-out")
 
   def _MakeBuildDirectory(self):
-    build_helpers.MakeBuildDirectory(context=self.context)
-
     build_helpers.CleanDirectory(self.pkg_root)
     build_helpers.CleanDirectory(self.pkgbuild_out_dir)
     build_helpers.CleanDirectory(self.prodbuild_out_dir)
     self.script_dir = os.path.join(self.build_dir, "scripts")
     build_helpers.CleanDirectory(self.script_dir)
 
+  def _WriteBuildYaml(self):
+    build_yaml = io.StringIO()
+    build_helpers.WriteBuildYaml(build_yaml, context=self.context)
+    with open(os.path.join(self.universal_root, "build.yaml"), "w") as f:
+      f.write(build_yaml.getvalue())
+
   def _MakeZip(self, output_path):
-    """Add a zip to the end of the .xar containing build.yaml.
-
-    The build.yaml is already inside the .xar file, but we can't easily open
-    this on linux. To make repacking easier we add a zip to the end of the .xar
-    and add in the build.yaml. The repack step will then look at the build.yaml
-    and insert the config.yaml. We end up storing the build.yaml twice but it is
-    tiny, so this doesn't matter.
-
-    Args:
-      output_path: the path to the XAR file to be modified.
-    """
+    """Creates a ZIP archive of the universal_root."""
     logging.info("Generating zip template file at %s", output_path)
-    with zipfile.ZipFile(output_path, mode="a") as zf:
-      # Get the build yaml
-      build_yaml = io.StringIO()
-      build_helpers.WriteBuildYaml(build_yaml, context=self.context)
-      zf.writestr("build.yaml", build_yaml.getvalue())
+    build_helpers.CleanDirectory(self.zip_out_dir)
+    shutil.make_archive(
+        os.path.join(self.zip_out_dir, self.pkg_name),
+        "zip",
+        base_dir=".",
+        root_dir=self.universal_root,
+        verbose=True)
+    shutil.copy(
+        os.path.join(self.zip_out_dir, f"{self.pkg_name}.zip"), output_path)
 
   def _InterpolateFiles(self):
     if self.fleetspeak_enabled:
@@ -131,14 +137,28 @@ class DarwinClientBuilder(build.ClientBuilder):
         output_filename=os.path.join(self.build_dir, "Distribution.xml"),
         context=self.context)
 
-  def _RenameGRRPyinstallerBinaries(self):
-    if self.template_binary_dir != self.target_binary_dir:
-      shutil.move(self.template_binary_dir, self.target_binary_dir)
+  def _CopyGRRPyinstallerBinaries(self):
+    if self.template_binary_dir == self.target_binary_dir:
+      raise ValueError(
+          "template_binary_dir and target_binary dir must be different.")
+    shutil.copytree(self.template_binary_dir, self.target_binary_dir)
     shutil.move(
         os.path.join(self.target_binary_dir, "grr-client"),
         os.path.join(
             self.target_binary_dir,
             config.CONFIG.Get("Client.binary_name", context=self.context)))
+
+  def _CopyBundledFleetspeak(self):
+    files = [
+        "usr/local/bin/fleetspeak-client",
+        "etc/fleetspeak-client/communicator.txt",
+        "Library/LaunchDaemons/com.google.code.fleetspeak.plist",
+    ]
+    for filename in files:
+      src = os.path.join(self.fleetspeak_install_dir, filename)
+      dst = os.path.join(self.pkg_root, filename)
+      utils.EnsureDirExists(os.path.dirname(dst))
+      shutil.copy(src, dst)
 
   def _SignGRRPyinstallerBinaries(self):
     cert_name = config.CONFIG.Get(
@@ -192,9 +212,9 @@ class DarwinClientBuilder(build.ClientBuilder):
           build_helpers.GetClientConfig(
               ["Client Context"] + self.context, validate=False))
 
-  def _RunCmd(self, command):
+  def _RunCmd(self, command, cwd=None):
     print("Running: %s" % " ".join(command))
-    subprocess.check_call(command)
+    subprocess.check_call(command, cwd=cwd)
 
   def _Set755Permissions(self):
     command = ["/bin/chmod", "-R", "755", self.script_dir]
@@ -219,28 +239,41 @@ class DarwinClientBuilder(build.ClientBuilder):
     ]
     self._RunCmd(command)
 
-  def _RenamePkgToTemplate(self, output_path):
-    print("Copying output to templates location: %s -> %s" %
-          (self.prodbuild_out_binary, output_path))
-    utils.EnsureDirExists(os.path.dirname(output_path))
-    shutil.copyfile(self.prodbuild_out_binary, output_path)
-
-  def _BuildInstallerPkg(self, output_path):
+  def _BuildInstallerPkg(self, fleetspeak_enabled, fleetspeak_bundled):
     """Builds a package (.pkg) using PackageMaker."""
+    self._SetBuildVars(fleetspeak_enabled, fleetspeak_bundled)
+    self._MakeBuildDirectory()
     self._CreateInstallDirs()
     self._InterpolateFiles()
-    self._RenameGRRPyinstallerBinaries()
+    self._CopyGRRPyinstallerBinaries()
+    self._CopyBundledFleetspeak()
     self._SignGRRPyinstallerBinaries()
     self._WriteClientConfig()
     self._Set755Permissions()
     self._RunPkgBuild()
     self._RunProductBuild()
-    self._RenamePkgToTemplate(output_path)
+
+  def _ExtractInstallerPkg(self, variant):
+    variant_root = os.path.join(self.universal_root, variant)
+    blocks_dir = os.path.join(self.universal_root, "blocks")
+    pkg_utils.SplitPkg(self.prodbuild_out_binary, variant_root, blocks_dir)
 
   def MakeExecutableTemplate(self, output_path):
     """Create the executable template."""
-    self._SetBuildVars()
-    self._MakeBuildDirectory()
+    build_helpers.MakeBuildDirectory(context=self.context)
     build_helpers.BuildWithPyInstaller(context=self.context)
-    self._BuildInstallerPkg(output_path)
+
+    self._SetBuildVars()
+    build_helpers.CleanDirectory(self.universal_root)
+
+    self._BuildInstallerPkg(fleetspeak_enabled=False, fleetspeak_bundled=False)
+    self._ExtractInstallerPkg("legacy")
+
+    self._BuildInstallerPkg(fleetspeak_enabled=True, fleetspeak_bundled=False)
+    self._ExtractInstallerPkg("fleetspeak-enabled")
+
+    self._BuildInstallerPkg(fleetspeak_enabled=True, fleetspeak_bundled=True)
+    self._ExtractInstallerPkg("fleetspeak-bundled")
+
+    self._WriteBuildYaml()
     self._MakeZip(output_path)

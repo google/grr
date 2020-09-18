@@ -1,9 +1,9 @@
+
 import {Pipe, PipeTransform} from '@angular/core';
 import {DateTime} from 'luxon';
 
-@Pipe({
-  name: 'relativeTimestamp'
-})
+/** Angular Pipe that shows a relative time, e.g. 10 minutes ago. */
+@Pipe({name: 'relativeTimestamp'})
 export class RelativeTimestampPipe implements PipeTransform {
   private static readonly UNDEFINED_TIMESTAMP = '-';
 

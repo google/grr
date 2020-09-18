@@ -1,13 +1,13 @@
-import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {ConfigService} from '@app/components/config/config';
-import {ApiClient} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {Client} from '@app/lib/models/client';
-import {newClient} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
+import {TestBed} from '@angular/core/testing';
 import {Subject} from 'rxjs';
 
-import {ClientVersion, getClientVersions} from './client_details_diff';
+import {ConfigService} from '../components/config/config';
+import {ApiClient} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {newClient} from '../lib/models/model_test_util';
+import {initTestEnvironment} from '../testing';
+
+import {getClientVersions} from './client_details_diff';
 import {ClientDetailsFacade} from './client_details_facade';
 
 
@@ -71,25 +71,27 @@ describe('ClientDetailsFacade', () => {
     });
   });
 
-  it('updates store\'s state clientEntriesChanged on selectClient call', (done) => {
-    apiFetchClientVersions$.next([
-      {
-        clientId: 'C.1234',
-        memorySize: '1',
-        age: '1580515200000',
-      },
-      {
-        clientId: 'C.1234',
-        memorySize: '123',
-        age: '1583020800000',
-      },
-    ]);
+  it('updates store\'s state clientEntriesChanged on selectClient call',
+     (done) => {
+       apiFetchClientVersions$.next([
+         {
+           clientId: 'C.1234',
+           memorySize: '1',
+           age: '1580515200000',
+         },
+         {
+           clientId: 'C.1234',
+           memorySize: '123',
+           age: '1583020800000',
+         },
+       ]);
 
-    clientDetailsFacade.selectedClientEntriesChanged$.subscribe((clientEntriesChanged) => {
-      expect(clientEntriesChanged).toBeTruthy();
-      done();
-    });
-  });
+       clientDetailsFacade.selectedClientEntriesChanged$.subscribe(
+           (clientEntriesChanged) => {
+             expect(clientEntriesChanged).toBeTruthy();
+             done();
+           });
+     });
 
   it('getClientVersions() correctly translates snapshots into client changes',
      () => {
@@ -210,13 +212,12 @@ describe('ClientDetailsFacade', () => {
          },
          {
            client: snapshots[2],
-           changes: [
-             '2 User full name entries added', 'One User home directory added'
-           ],
+           changes:
+               ['2 User full name entries added', 'User home directory added'],
          },
          {
            client: snapshots[3],
-           changes: ['One User home directory updated', 'One User added'],
+           changes: ['User home directory updated', 'User added'],
          },
          {
            client: snapshots[4],
@@ -225,11 +226,11 @@ describe('ClientDetailsFacade', () => {
          // Next snapshot is identical to the one before, so it is skipped
          {
            client: snapshots[6],
-           changes: ['One Network interface added'],
+           changes: ['Network interface added'],
          },
          {
            client: snapshots[7],
-           changes: ['One Network address added', 'One IP address updated'],
+           changes: ['Network address added', 'IP address updated'],
          },
          {
            client: snapshots[8],
@@ -240,11 +241,10 @@ describe('ClientDetailsFacade', () => {
        const clientChanges = getClientVersions(snapshots.reverse());
 
        expect(clientChanges.map(
-                  change => {change.client, [...change.changes].sort()}))
-           .toEqual(expectedClientChanges.map(expectedChange => {
-             expectedChange.client,
-             expectedChange.changes.sort()
-           }));
+                  change => [change.client, [...change.changes].sort()]))
+           .toEqual(expectedClientChanges.map(
+               expectedChange =>
+                   [expectedChange.client, expectedChange.changes.sort()]));
      });
 
   it('getClientVersions() reduces sequences of identical snapshots to the oldest snapshot',

@@ -5,7 +5,10 @@
       <div class="flow-header">
         <div class="flow-title">{{flowDescriptor?.friendlyName || flow.name}}</div>
         <div class="flow-info">
-          <span class="user-name">{{flow.creator}}</span>
+          <span class="user-name">
+            <user-image [username]="flow.creator" size="16px"></user-image>
+            {{flow.creator}}
+          </span>
           –
           <span class="start-time">{{flow.startedAt | date}}</span>
         </div>

@@ -74,6 +74,6 @@ class ApiCallHandler(metaclass=MetaclassRegistry):
   # fields of the resulting proto.
   strip_json_root_fields_types = True
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Handles request and returns an RDFValue of result_type."""
     raise NotImplementedError()

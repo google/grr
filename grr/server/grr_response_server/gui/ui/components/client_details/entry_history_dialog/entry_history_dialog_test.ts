@@ -3,12 +3,14 @@ import {async, ComponentFixture, inject, TestBed} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Client} from '@app/lib/models/client';
-import {newClient} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
+import {Client} from '../../../lib/models/client';
+import {newClient} from '../../../lib/models/model_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {EntryHistoryDialog, EntryHistoryDialogParams} from './entry_history_dialog';
 import {EntryHistoryDialogModule} from './module';
+
+
 
 initTestEnvironment();
 
@@ -20,6 +22,9 @@ describe('Entry History Dialog', () => {
   let clientVersions: Client[];
   let providedData: EntryHistoryDialogParams;
 
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     clientVersions = [
       newClient({
@@ -50,6 +55,7 @@ describe('Entry History Dialog', () => {
           providers: [
             {provide: MAT_DIALOG_DATA, useFactory: () => providedData},
           ],
+
         })
         .compileComponents();
     inject([OverlayContainer], (oc: OverlayContainer) => {
@@ -86,8 +92,8 @@ describe('Entry History Dialog', () => {
     fixture.detectChanges();
 
     const expectedTableRows = [
-      {time: new Date(2020, 3, 11), version: 'x64' as any},
-      {time: new Date(2000, 2, 1), version: 'x86' as any},
+      {time: new Date(2020, 3, 11), version: 'x64'},
+      {time: new Date(2000, 2, 1), version: 'x86'},
     ];
 
     expect(component.tableRows).toEqual(expectedTableRows);
@@ -104,8 +110,8 @@ describe('Entry History Dialog', () => {
     fixture.detectChanges();
 
     const expectedTableRows = [
-      {time: new Date(2020, 3, 11), version: BigInt(123) as any},
-      {time: new Date(2000, 2, 1), version: BigInt(100) as any},
+      {time: new Date(2020, 3, 11), version: BigInt(123)},
+      {time: new Date(2000, 2, 1), version: BigInt(100)},
     ];
 
     expect(component.tableRows).toEqual(expectedTableRows);
@@ -121,7 +127,7 @@ describe('Entry History Dialog', () => {
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
-  it('throws error for paths to non-existant properties', () => {
+  it('throws error for paths to non-existent properties', () => {
     providedData = {
       path: ['osInfo', 'asdf', 'memorySize'],
       type: 'primitive',

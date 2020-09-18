@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 
 class Connector(object):
+  """An abstract GRR connector class."""
 
   @property
   def page_size(self):

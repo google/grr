@@ -24,7 +24,7 @@ class ApiCreateGrrUserHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCreateGrrUserArgs
   result_type = api_user.ApiGrrUser
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.username:
       raise ValueError("username can't be empty.")
 
@@ -59,7 +59,7 @@ class ApiDeleteGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiDeleteGrrUserArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.username:
       raise ValueError("username can't be empty.")
 
@@ -79,7 +79,7 @@ class ApiModifyGrrUserHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiModifyGrrUserArgs
   result_type = api_user.ApiGrrUser
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.username:
       raise ValueError("username can't be empty.")
 
@@ -136,7 +136,7 @@ class ApiListGrrUsersHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListGrrUsersArgs
   result_type = ApiListGrrUsersResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     total_count = data_store.REL_DB.CountGRRUsers()
     db_users = data_store.REL_DB.ReadGRRUsers(
         offset=args.offset, count=args.count)
@@ -154,7 +154,7 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetGrrUserArgs
   result_type = api_user.ApiGrrUser
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.username:
       raise ValueError("username can't be empty.")
 

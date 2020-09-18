@@ -1,4 +1,4 @@
-import {Component, Input, OnChanges, SimpleChanges} from '@angular/core';
+import {Component, Input} from '@angular/core';
 
 /**
  * Shows a size in a human readable format.
@@ -29,7 +29,7 @@ export class HumanReadableSizeComponent {
       i++;
     }
 
-    if (i == 0) {
+    if (i === 0) {
       decimals = 0;
     }
     const fixed = Math.pow(10, decimals);

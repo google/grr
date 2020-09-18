@@ -21,10 +21,10 @@ from grr_api_client import api_shell_lib
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
-from grr_response_server import access_control
 from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup
 from grr_response_server.bin import api_shell_raw_access_lib
+from grr_response_server.gui import api_call_context
 
 flags.DEFINE_integer(
     "page_size", 1000,
@@ -79,7 +79,7 @@ def main(argv=None):
 
   grrapi = api.GrrApi(
       connector=api_shell_raw_access_lib.RawConnector(
-          token=access_control.ACLToken(username=username),
+          context=api_call_context.ApiCallContext(username=username),
           page_size=flags.FLAGS.page_size))
 
   if flags.FLAGS.exec_code and flags.FLAGS.exec_file:

@@ -1,6 +1,6 @@
 import {Component, Inject} from '@angular/core';
 import {MAT_DIALOG_DATA} from '@angular/material/dialog';
-import {Client} from '@app/lib/models/client';
+import {Client} from '../../../lib/models/client';
 
 /** Entry type */
 export type EntryType =
@@ -29,10 +29,11 @@ interface EntryHistoryTableRow<T> {
 export class EntryHistoryDialog {
   readonly entryType: EntryType;
   // tslint:disable-next-line:no-any
-  readonly tableRows: EntryHistoryTableRow<any>[] = [];
+  readonly tableRows: Array<EntryHistoryTableRow<any>> = [];
 
-  constructor(@Inject(MAT_DIALOG_DATA) private readonly data:
-                  EntryHistoryDialogParams) {
+  constructor(
+      @Inject(MAT_DIALOG_DATA) private readonly data: EntryHistoryDialogParams,
+  ) {
     if (this.data.path.length === 0) {
       throw new Error('Empty "path" provided');
     }
@@ -42,6 +43,7 @@ export class EntryHistoryDialog {
 
   private initTableRows(data: EntryHistoryDialogParams) {
     data.clientVersions.forEach((client) => {
+      // tslint:disable-next-line:no-any
       let property: any = client;
       data.path.forEach((token) => {
         if (token === '' || property === undefined) {

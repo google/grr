@@ -1,11 +1,12 @@
+import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {Timestamp} from './timestamp';
-import {RelativeTimestampPipe} from './relative_timestamp_pipe';
-import {MatTooltipModule} from '@angular/material/tooltip';
-import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
-import {ClipboardModule} from '@angular/cdk/clipboard';
+import {MatIconModule} from '@angular/material/icon';
+import {MatTooltipModule} from '@angular/material/tooltip';
+
+import {RelativeTimestampPipe} from './relative_timestamp_pipe';
+import {Timestamp} from './timestamp';
 
 /**
  * Module for the flow_picker details component.

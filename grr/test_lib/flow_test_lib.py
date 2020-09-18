@@ -597,3 +597,14 @@ def MarkFlowAsFinished(client_id: str, flow_id: str) -> None:
   flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
   flow_obj.flow_state = flow_obj.FlowState.FINISHED
   data_store.REL_DB.WriteFlowObject(flow_obj)
+
+
+def MarkFlowAsFailed(client_id: str,
+                     flow_id: str,
+                     error_message: Optional[str] = None) -> None:
+  """Marks the given flow as finished without executing it."""
+  flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+  flow_obj.flow_state = flow_obj.FlowState.ERROR
+  if error_message is not None:
+    flow_obj.error_message = error_message
+  data_store.REL_DB.WriteFlowObject(flow_obj)

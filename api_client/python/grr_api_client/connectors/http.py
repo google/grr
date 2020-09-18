@@ -19,10 +19,9 @@ from werkzeug import routing
 
 from google.protobuf import json_format
 from google.protobuf import symbol_database
-from grr_api_client import connector
 from grr_api_client import errors
 from grr_api_client import utils
-
+from grr_api_client.connectors import abstract
 from grr_response_proto.api import metadata_pb2
 from grr_response_proto.api import reflection_pb2
 
@@ -36,7 +35,7 @@ class Error(Exception):
   """Base error class for HTTP connector."""
 
 
-class HttpConnector(connector.Connector):
+class HttpConnector(abstract.Connector):
   """API connector implementation that works through HTTP API."""
 
   JSON_PREFIX = ")]}\'\n"

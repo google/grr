@@ -1,5 +1,11 @@
-import {Client} from '@app/lib/models/client';
-import {diff, Diff} from 'deep-diff';
+import * as DeepDiff from 'deep-diff';
+
+import {Client} from '../lib/models/client';
+
+// TODO(user): Use proper typing once @types/deep_diff has been upgraded.
+// tslint:disable-next-line:no-any
+type Diff<T> = any;
+const {diff} = DeepDiff;
 
 /** Client Version */
 export interface ClientVersion {
@@ -94,7 +100,7 @@ function classifyDiffItem(
     default:
       updated.set(label, (updated.get(label) ?? 0) + 1);
   }
-};
+}
 
 /**
  * Creates the descriptions for the aggregated changes
@@ -108,17 +114,17 @@ function getChangeDescriptions(
     changeKeyword: string): ReadonlyArray<string> {
   const changeDescriptions: string[] = [];
 
-  changesMap.forEach((occurences, label) => {
-    if (occurences === 1) {
+  changesMap.forEach((occurrences, label) => {
+    if (occurrences === 1) {
       changeDescriptions.push(`${label} ${changeKeyword}`);
     } else {
       changeDescriptions.push(
-          `${occurences} ${label} entries ${changeKeyword}`);
+          `${occurrences} ${label} entries ${changeKeyword}`);
     }
   });
 
   return changeDescriptions;
-};
+}
 
 function getNumEntriesChanged(changesMap: Map<string, number>): number {
   let numEntriesChanged = 0;
@@ -134,20 +140,22 @@ function getNumEntriesChanged(changesMap: Map<string, number>): number {
  * Returns the number of entries changed and a list of the aggregated changes
  * descriptions (e.g. "2 users added")
  */
-function aggregateDiffs(differences?: Diff<Client>[]):
+function aggregateDiffs(differences?: ReadonlyArray<Diff<Client>>):
+    // tslint:disable-next-line:array-type
     [number, ReadonlyArray<string>] {
   if (differences === undefined) {
     return [0, []];
   }
 
-  const added: Map<string, number> = new Map();
-  const deleted: Map<string, number> = new Map();
-  const updated: Map<string, number> = new Map();
+  const added = new Map<string, number>();
+  const deleted = new Map<string, number>();
+  const updated = new Map<string, number>();
   const changesDescriptions: string[] = [];
   let numEntriesChanged = 0;
 
-  differences.forEach(
-      (item) => classifyDiffItem(item, added, deleted, updated));
+  differences.forEach((item) => {
+    classifyDiffItem(item, added, deleted, updated);
+  });
 
   changesDescriptions.push(...getChangeDescriptions(added, 'added'));
   changesDescriptions.push(...getChangeDescriptions(deleted, 'deleted'));
@@ -174,7 +182,7 @@ function getSnapshotChanges(
   const diffDescriptions = aggregateDiffs(diff(old, current));
 
   if (diffDescriptions[1].length > 3) {
-    return [`${diffDescriptions[0]} new changes`]
+    return [`${diffDescriptions[0]} new changes`];
   }
 
   return diffDescriptions[1];
@@ -217,7 +225,7 @@ export function getClientVersions(clientSnapshots: ReadonlyArray<Client>):
  */
 // tslint:disable-next-line:no-any Provided by deep-diff typing.
 function getFirstStringsJoinedPath(path: any[]): string {
-  let tokens: string[] = [];
+  const tokens: string[] = [];
 
   for (let i = 0; i < path.length; i++) {
     if (typeof path[i] !== 'string') break;
@@ -227,12 +235,13 @@ function getFirstStringsJoinedPath(path: any[]): string {
   return tokens.join('.');
 }
 
+// tslint:disable-next-line:no-any
 function getStringsJoinedPath(path: any[]): string {
   return path.filter(val => typeof val === 'string').join('.');
 }
 
 function pairwise<T>(arr: ReadonlyArray<T>): ReadonlyArray<[T, T]> {
-  const pairwiseArray: [T, T][] = [];
+  const pairwiseArray: Array<[T, T]> = [];
   for (let i = 0; i < arr.length - 1; i++) {
     pairwiseArray.push([arr[i], arr[i + 1]]);
   }
@@ -240,16 +249,18 @@ function pairwise<T>(arr: ReadonlyArray<T>): ReadonlyArray<[T, T]> {
   return pairwiseArray;
 }
 
-function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
+function getPathsOfChangedEntries(differences: ReadonlyArray<Diff<Client>>):
     ReadonlyArray<string> {
-  const changedPaths: Set<string> = new Set();
+  const changedPaths = new Set<string>();
 
   differences.filter(diffItem => diffItem.path !== undefined)
       .filter(
           diffItem => RELEVANT_ENTRIES_LABEL_MAP.has(
-              getStringsJoinedPath(diffItem.path!)))
-      .map(diffItem => getFirstStringsJoinedPath(diffItem.path!))
-      .forEach(path => changedPaths.add(path));
+              getStringsJoinedPath(diffItem.path)))
+      .map(diffItem => getFirstStringsJoinedPath(diffItem.path))
+      .forEach(path => {
+        changedPaths.add(path);
+      });
 
   return Array.from(changedPaths);
 }
@@ -266,7 +277,7 @@ function getPathsOfChangedEntries(differences: Diff<Client, Client>[]):
  */
 export function getClientEntriesChanged(clientSnapshots: ReadonlyArray<Client>):
     Map<string, ReadonlyArray<Client>> {
-  const clientChangedEntries: Map<string, Client[]> = new Map();
+  const clientChangedEntries = new Map<string, Client[]>();
 
   pairwise(clientSnapshots).forEach(([newerClient, olderClient]) => {
     const differences = diff(olderClient, newerClient);
@@ -283,7 +294,7 @@ export function getClientEntriesChanged(clientSnapshots: ReadonlyArray<Client>):
   // Add the first client snapshot, as a point of reference
   clientChangedEntries.forEach(value => {
     value.push(clientSnapshots[clientSnapshots.length - 1]);
-  })
+  });
 
   return clientChangedEntries;
 }

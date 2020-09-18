@@ -21,6 +21,7 @@ import yara
 from grr_response_client import actions
 from grr_response_client import communicator
 from grr_response_client.client_actions import tempfiles
+from grr_response_client.client_actions import timeline
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import queues
@@ -233,14 +234,15 @@ class UpdateConfiguration(actions.ActionPlugin):
     self._UpdateConfig(smart_arg, config.CONFIG)
 
 
-def GetClientInformation():
+def GetClientInformation() -> rdf_client.ClientInformation:
   return rdf_client.ClientInformation(
       client_name=config.CONFIG["Client.name"],
       client_binary_name=psutil.Process().name(),
       client_description=config.CONFIG["Client.description"],
       client_version=int(config.CONFIG["Source.version_numeric"]),
       build_time=config.CONFIG["Client.build_time"],
-      labels=config.CONFIG.Get("Client.labels", default=None))
+      labels=config.CONFIG.Get("Client.labels", default=None),
+      timeline_btime_support=timeline.BTIME_SUPPORT)
 
 
 class GetClientInfo(actions.ActionPlugin):

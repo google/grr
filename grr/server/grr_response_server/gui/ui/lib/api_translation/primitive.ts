@@ -25,9 +25,9 @@ export function createDate(apiTimestamp: string): Date {
 export function createOptionalDate(apiTimestamp: undefined): undefined;
 export function createOptionalDate(apiTimestamp: ''): undefined;
 export function createOptionalDate(apiTimestamp: string): Date;
-export function createOptionalDate(apiTimestamp?: string): Date | undefined;
+export function createOptionalDate(apiTimestamp?: string): Date|undefined;
 
-export function createOptionalDate(apiTimestamp?: string): Date | undefined {
+export function createOptionalDate(apiTimestamp?: string): Date|undefined {
   if (!apiTimestamp) {
     return undefined;  // Return undefined for undefined and empty string.
   }
@@ -38,13 +38,13 @@ export function createOptionalDate(apiTimestamp?: string): Date | undefined {
  * Constructs a Date from a unixtime string with seconds precision.
  */
 export function createOptionalDateSeconds(timestampSeconds: undefined):
-  undefined;
+    undefined;
 export function createOptionalDateSeconds(timestampSeconds: string): Date;
-export function createOptionalDateSeconds(timestampSeconds?: string): Date |
-  undefined;
+export function createOptionalDateSeconds(timestampSeconds?: string): Date|
+    undefined;
 
-export function createOptionalDateSeconds(timestampSeconds?: string): Date |
-  undefined {
+export function createOptionalDateSeconds(timestampSeconds?: string): Date|
+    undefined {
   if (!timestampSeconds) {
     return undefined;
   }
@@ -62,7 +62,7 @@ export function createOptionalDateSeconds(timestampSeconds?: string): Date |
  * Unknown is different from any as, unlike any, it has to be explicitly cast
  * to a type for any use.
  */
-export function createUnknownObject(anyObject?: AnyObject): unknown | undefined {
+export function createUnknownObject(anyObject?: AnyObject): unknown|undefined {
   if (!anyObject) {
     return undefined;
   }
@@ -78,7 +78,7 @@ export function createUnknownObject(anyObject?: AnyObject): unknown | undefined 
  */
 export function decodeBase64(encodedString?: string): Uint8Array {
   if (encodedString === undefined) {
-    return new Uint8Array();
+    return new Uint8Array(0);
   }
 
   const decodedString = atob(encodedString);
@@ -91,7 +91,10 @@ export function decodeBase64(encodedString?: string): Uint8Array {
   return byteArray;
 }
 
-/** Returns the uppercase hex representation of the least significant byte of the provided number */
+/**
+ * Returns the uppercase hex representation of the least significant byte of
+ * the provided number
+ */
 export function leastSignificantByteToHex(number: number): string {
   number = number & 0xFF;
 
@@ -115,9 +118,11 @@ export function createIpv6Address(bytes: Uint8Array): string {
     return '';
   }
 
-  let ipString = `${leastSignificantByteToHex(bytes[0])}${leastSignificantByteToHex(bytes[1])}`;
+  let ipString = `${leastSignificantByteToHex(bytes[0])}${
+      leastSignificantByteToHex(bytes[1])}`;
   for (let i = 2; i < 16; i += 2) {
-    ipString += `:${leastSignificantByteToHex(bytes[i])}${leastSignificantByteToHex(bytes[i + 1])}`;
+    ipString += `:${leastSignificantByteToHex(bytes[i])}${
+        leastSignificantByteToHex(bytes[i + 1])}`;
   }
 
   return ipString;

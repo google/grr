@@ -1,1 +1,8 @@
-<span>This flow has no dedicated view plugin.</span>
+<span>
+  View
+  <a href="{{fallbackUrl$ | async}}">
+    Flow
+    <span class="monospace">{{ (flowListEntry$ | async).flow.flowId }}</span>
+  </a>
+  in legacy UI.
+</span>

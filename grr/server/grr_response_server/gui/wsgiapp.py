@@ -33,6 +33,7 @@ from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server import server_logging
 from grr_response_server.gui import http_api
+from grr_response_server.gui import http_response
 from grr_response_server.gui import webauth
 
 # pylint: disable=g-import-not-at-top
@@ -186,7 +187,7 @@ def LogAccessWrapper(func):
       # all possible exceptions and generate a proper Response object.
       # Still, handling exceptions here to guarantee that the access is logged
       # no matter what.
-      response = werkzeug_wrappers.Response("", status=500)
+      response = http_response.HttpResponse("", status=500)
       server_logging.LOGGER.LogHttpAdminUIAccess(request, response)
       raise
 
@@ -254,7 +255,7 @@ class AdminUIApp(object):
         autoescape=True)
 
     create_time = psutil.Process(os.getpid()).create_time()
-    context = {
+    template_context = {
         "heading":
             config.CONFIG["AdminUI.heading"],
         "report_url":
@@ -276,8 +277,8 @@ class AdminUIApp(object):
             config.CONFIG["Source.version_string"]
     }
     template = env.get_template("base.html")
-    response = werkzeug_wrappers.Response(
-        template.render(context), mimetype="text/html")
+    response = http_response.HttpResponse(
+        template.render(template_context), mimetype="text/html")
 
     # For a redirect-based Firebase authentication scheme we won't have any
     # user information at this point - therefore checking if the user is
@@ -303,7 +304,7 @@ class AdminUIApp(object):
         loader=jinja2.FileSystemLoader(config.CONFIG["AdminUI.template_root"]),
         autoescape=True)
     template = env.get_template("base-v2.html")
-    response = werkzeug_wrappers.Response(
+    response = http_response.HttpResponse(
         template.render(context), mimetype="text/html")
 
     return response
@@ -337,7 +338,7 @@ class AdminUIApp(object):
 
     # We have to redirect via JavaScript to have access to and to preserve the
     # URL hash. We don't know the hash part of the url on the server.
-    return werkzeug_wrappers.Response(
+    return http_response.HttpResponse(
         """
 <script>
 var friendly_hash = window.location.hash;

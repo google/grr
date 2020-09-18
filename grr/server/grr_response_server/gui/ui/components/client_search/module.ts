@@ -3,9 +3,10 @@ import {MatTableModule} from '@angular/material/table';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
+import {TimestampModule} from '../timestamp/module';
+
 import {ClientSearch} from './client_search';
 import {ClientSearchRoutingModule} from './routing';
-import {TimestampModule} from '../timestamp/module';
 
 /**
  * Module for the client search results page and related components.
@@ -22,6 +23,7 @@ import {TimestampModule} from '../timestamp/module';
     // GRR modules.
     ClientSearchRoutingModule,
     TimestampModule,
+
   ],
   declarations: [
     ClientSearch,

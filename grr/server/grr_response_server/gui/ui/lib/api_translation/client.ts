@@ -2,11 +2,11 @@
  * @fileoverview Functions to convert API data to internal models.
  */
 
+import {ApiClient, ApiClientApproval, ApiClientInformation, ApiClientLabel, ApiInterface, ApiKnowledgeBase, ApiNetworkAddress, ApiUname, ApiUnixVolume, ApiUser, ApiVolume, ApiWindowsVolume} from '../api/api_interfaces';
+import {AgentInfo, Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, NetworkAddress, NetworkInterface, OsInfo, StorageVolume, UnixVolume, User, WindowsVolume} from '../models/client';
 import {assertKeyTruthy} from '../preconditions';
-import {ApiClient, ApiClientApproval, ApiClientLabel, ApiKnowledgeBase, ApiClientInformation, ApiUname, ApiUser, ApiInterface, ApiNetworkAddress, ApiVolume, ApiWindowsVolume, ApiUnixVolume} from '../api/api_interfaces';
-import {Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, AgentInfo, OsInfo, User, NetworkInterface, NetworkAddress, StorageVolume, WindowsVolume, UnixVolume} from '../models/client';
 
-import {createOptionalDate, createIpv4Address, decodeBase64, createMacAddress, createIpv6Address, createDate} from './primitive';
+import {createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, decodeBase64} from './primitive';
 
 function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
   return {
@@ -42,11 +42,11 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   return {
     clientName: apiAgentInfo.clientName,
     clientVersion: apiAgentInfo.clientVersion,
-    revision: revision,
+    revision,
     buildTime: apiAgentInfo.buildTime,
     clientBinaryName: apiAgentInfo.clientBinaryName,
     clientDescription: apiAgentInfo.clientDescription,
-  }
+  };
 }
 
 function createOsInfo(apiUname: ApiUname): OsInfo {
@@ -61,7 +61,7 @@ function createOsInfo(apiUname: ApiUname): OsInfo {
     installDate: createOptionalDate(apiUname.installDate),
     libcVer: apiUname.libcVer,
     architecture: apiUname.architecture,
-  }
+  };
 }
 
 function createUser(apiUser: ApiUser): User {
@@ -73,14 +73,19 @@ function createUser(apiUser: ApiUser): User {
     gid: apiUser.gid,
     shell: apiUser.shell,
     homedir: apiUser.homedir,
-  }
+  };
 }
 
-function createNetworkAddress(apiNetAddress: ApiNetworkAddress): NetworkAddress {
-  if (!apiNetAddress.addressType) throw new Error('addressType attribute is missing.');
-  if (!apiNetAddress.packedBytes) throw new Error('packedBytes attribute is missing.');
+function createNetworkAddress(apiNetAddress: ApiNetworkAddress):
+    NetworkAddress {
+  if (!apiNetAddress.addressType) {
+    throw new Error('addressType attribute is missing.');
+  }
+  if (!apiNetAddress.packedBytes) {
+    throw new Error('packedBytes attribute is missing.');
+  }
 
-  let addressType = 'IPv4'
+  let addressType = 'IPv4';
   if (apiNetAddress.addressType === 'INET6') {
     addressType = 'IPv6';
   }
@@ -88,23 +93,28 @@ function createNetworkAddress(apiNetAddress: ApiNetworkAddress): NetworkAddress 
   const addressBytes = decodeBase64(apiNetAddress.packedBytes);
 
   return {
-    addressType: addressType,
-    ipAddress: (addressType === 'IPv4') ? createIpv4Address(addressBytes) : createIpv6Address(addressBytes),
-  }
+    addressType,
+    ipAddress: (addressType === 'IPv4') ? createIpv4Address(addressBytes) :
+                                          createIpv6Address(addressBytes),
+  };
 }
 
 function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
-  if (!apiInterface.macAddress) throw new Error('macAddress attribute is missing.');
-  if (!apiInterface.ifname) throw new Error('ifname attribute is missing.');
+  if (!apiInterface.ifname) {
+    throw new Error('ifname attribute is missing.');
+  }
 
   return {
-    macAddress: createMacAddress(decodeBase64(apiInterface.macAddress)),
+    macAddress: apiInterface.macAddress ?
+        createMacAddress(decodeBase64(apiInterface.macAddress)) :
+        undefined,
     interfaceName: apiInterface.ifname,
     addresses: (apiInterface.addresses ?? []).map(createNetworkAddress),
-  }
+  };
 }
 
-function createOptionalWindowsVolume(volume?: ApiWindowsVolume): WindowsVolume | undefined {
+function createOptionalWindowsVolume(volume?: ApiWindowsVolume): WindowsVolume|
+    undefined {
   if (volume === undefined) {
     return undefined;
   }
@@ -113,10 +123,11 @@ function createOptionalWindowsVolume(volume?: ApiWindowsVolume): WindowsVolume |
     attributes: volume.attributesList,
     driveLetter: volume.driveLetter,
     driveType: volume.driveType,
-  }
+  };
 }
 
-function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume | undefined {
+function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume|
+    undefined {
   if (volume === undefined) {
     return undefined;
   }
@@ -124,7 +135,7 @@ function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume | undefine
   return {
     mountPoint: volume.mountPoint,
     mountOptions: volume.options,
-  }
+  };
 }
 
 function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
@@ -132,10 +143,12 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
   let freeSpace = undefined;
   let bytesPerSector = undefined;
 
-  if (apiVolume.bytesPerSector !== undefined && apiVolume.sectorsPerAllocationUnit !== undefined) {
+  if (apiVolume.bytesPerSector !== undefined &&
+      apiVolume.sectorsPerAllocationUnit !== undefined) {
     if (apiVolume.totalAllocationUnits !== undefined) {
       totalSize = BigInt(apiVolume.bytesPerSector) *
-          BigInt(apiVolume.sectorsPerAllocationUnit) * BigInt(apiVolume.totalAllocationUnits);
+          BigInt(apiVolume.sectorsPerAllocationUnit) *
+          BigInt(apiVolume.totalAllocationUnits);
     }
 
     if (apiVolume.actualAvailableAllocationUnits !== undefined) {
@@ -153,13 +166,13 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
     name: apiVolume.name,
     devicePath: apiVolume.devicePath,
     fileSystemType: apiVolume.fileSystemType,
-    bytesPerSector: bytesPerSector,
-    totalSize: totalSize,
-    freeSpace: freeSpace,
+    bytesPerSector,
+    totalSize,
+    freeSpace,
     creationTime: createOptionalDate(apiVolume.creationTime),
     unixDetails: createOptionalUnixVolume(apiVolume.unixvolume),
     windowsDetails: createOptionalWindowsVolume(apiVolume.windowsvolume),
-  }
+  };
 }
 
 /**
@@ -184,7 +197,7 @@ export function translateClient(client: ApiClient): Client {
     users: (client.users ?? []).map(createUser),
     networkInterfaces: (client.interfaces ?? []).map(createNetworkInterface),
     volumes: (client.volumes ?? []).map(createStorageVolume),
-    memorySize: memorySize,
+    memorySize,
     firstSeenAt: createOptionalDate(client.firstSeenAt),
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),
@@ -199,6 +212,7 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
   assertKeyTruthy(approval, 'subject');
   assertKeyTruthy(approval, 'reason');
   assertKeyTruthy(approval, 'requestor');
+  assertKeyTruthy(approval, 'subject');
 
   const {subject} = approval;
   assertKeyTruthy(subject, 'clientId');
@@ -221,9 +235,9 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
     approvalId: approval.id,
     clientId: subject.clientId,
     reason: approval.reason,
-    requestedApprovers: approval.notifiedUsers || [],
-    // Skip first approver, which is the requestor themselves.
-    approvers: (approval.approvers || []).slice(1),
+    requestedApprovers: approval.notifiedUsers ?? [],
+    approvers: (approval.approvers ?? []).filter(u => u !== approval.requestor),
     requestor: approval.requestor,
+    subject: translateClient(approval.subject),
   };
 }

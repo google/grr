@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import csv
 import io
+import os
 import stat
 import zipfile
 
@@ -15,6 +16,8 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import chunked
+from grr_response_proto import jobs_pb2
+from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import timeline_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
@@ -26,6 +29,7 @@ from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -414,6 +418,29 @@ class ApiClientLibHuntTest(
         chunks = chunked.ReadAll(file)
         entries = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
         self.assertEqual(entries, [entry_1, entry_2])
+
+  def testCreatePerClientFileCollectionHunt(self):
+    client_ids = self.SetupClients(1)
+
+    args = hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs(
+        description="test hunt")
+    pca = args.per_client_args.add()
+    pca.client_id = client_ids[0]
+    pca.path_type = jobs_pb2.PathSpec.OS
+    path = os.path.join(self.base_path, "numbers.txt")
+    pca.paths.append(path)
+
+    h = self.api.CreatePerClientFileCollectionHunt(args)
+    h.Start()
+    self.RunHunt(
+        client_ids=client_ids,
+        client_mock=action_mocks.MultiGetFileClientMock())
+
+    results = list(h.ListResults())
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client.client_id, client_ids[0])
+    self.assertEqual(results[0].payload.pathspec.path, path)
+    self.assertEqual(results[0].payload.pathspec.pathtype, jobs_pb2.PathSpec.OS)
 
 
 def main(argv):

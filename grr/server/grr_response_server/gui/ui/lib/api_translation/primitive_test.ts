@@ -76,7 +76,7 @@ describe('createOptionalDateSeconds', () => {
 
 describe('decodeBase64', () => {
   it('returns empty byte array for undefined', () => {
-    expect(decodeBase64(undefined)).toEqual(new Uint8Array());
+    expect(decodeBase64(undefined)).toEqual(new Uint8Array(0));
   });
 
   it('throws an error on invalid input', () => {
@@ -103,7 +103,7 @@ describe('leastSignificantByteToHex', () => {
 
 describe('createIpv4Address', () => {
   it('creates an empty string on non 4 bytes array input', () => {
-    expect(createIpv4Address(new Uint8Array())).toEqual('');
+    expect(createIpv4Address(new Uint8Array(0))).toEqual('');
     expect(createIpv4Address(new Uint8Array([1, 2, 3]))).toEqual('');
     expect(createIpv4Address(new Uint8Array([1, 2, 3, 4, 5]))).toEqual('');
   });
@@ -124,7 +124,7 @@ describe('createIpv4Address', () => {
 
 describe('createIpv6Address', () => {
   it('creates an empty string on non 16 bytes array input', () => {
-    expect(createIpv6Address(new Uint8Array())).toEqual('');
+    expect(createIpv6Address(new Uint8Array(0))).toEqual('');
     expect(createIpv6Address(new Uint8Array([
       1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15
     ]))).toEqual('');
@@ -157,7 +157,7 @@ describe('createIpv6Address', () => {
 
 describe('createMacAddress', () => {
   it('creates an empty string on non 6 bytes array input', () => {
-    expect(createMacAddress(new Uint8Array())).toEqual('');
+    expect(createMacAddress(new Uint8Array(0))).toEqual('');
     expect(createMacAddress(new Uint8Array([1, 2, 3, 4, 5]))).toEqual('');
     expect(createMacAddress(new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).toEqual('');
   });

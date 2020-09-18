@@ -10,7 +10,7 @@
 
 export declare interface AnyObject {
   '@type'?: string;
-  [key: string]: undefined | null | string | number | boolean | object;
+  [key: string]: undefined|null|string|number|boolean|object;
 }
 
 /**
@@ -18,7 +18,7 @@ export declare interface AnyObject {
  * JSON because JS loses precision for big numeric types. During
  * deserialization, both decimal strings and numbers are accepted.
  */
-export type DecimalString = string | number;
+export type DecimalString = string|number;
 
 /**
  * ApiUser protomapping.
@@ -61,7 +61,6 @@ export type ByteString = string;
 export declare interface ApiKnowledgeBase {
   readonly fqdn?: string;
   readonly timeZone?: string;
-
   readonly os?: string;
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
@@ -155,6 +154,7 @@ export declare interface ApiClient {
   readonly urn?: string;
 
   readonly fleetspeakEnabled?: boolean;
+
   readonly agentInfo?: ApiClientInformation;
   readonly knowledgeBase?: ApiKnowledgeBase;
 
@@ -168,7 +168,6 @@ export declare interface ApiClient {
   readonly lastBootedAt?: string;
   readonly lastClock?: string;
   readonly labels?: ReadonlyArray<ApiClientLabel>;
-
   readonly age?: string;
 }
 
@@ -192,7 +191,7 @@ export declare interface ApiSearchClientsArgs {
  * ApiSearchClientResult proto mapping.
  */
 export declare interface ApiSearchClientResult {
-  readonly items: ReadonlyArray<ApiClient>;
+  readonly items?: ReadonlyArray<ApiClient>;
 }
 
 /** /config/Email.approval_optional_cc_address proto mapping. */
@@ -217,7 +216,7 @@ export declare interface ApiClientApproval {
 
 /** ApiListClientApprovalsResult proto mapping */
 export declare interface ApiListClientApprovalsResult {
-  readonly items: ApiClientApproval[];
+  readonly items?: ApiClientApproval[];
 }
 
 /** ApiFlowDescriptor proto mapping. */
@@ -230,7 +229,7 @@ export declare interface ApiFlowDescriptor {
 
 /** ApiListClientFlowDescriptorsResult proto mapping. */
 export declare interface ApiListClientFlowDescriptorsResult {
-  readonly items: ReadonlyArray<ApiFlowDescriptor>;
+  readonly items?: ReadonlyArray<ApiFlowDescriptor>;
 }
 
 /** ApiFlow.State proto enum mapping. */
@@ -256,7 +255,7 @@ export declare interface ApiFlow {
 
 /** ApiListFlowsResult proto mapping. */
 export declare interface ApiListFlowsResult {
-  readonly items: ReadonlyArray<ApiFlow>;
+  readonly items?: ReadonlyArray<ApiFlow>;
 }
 
 /** ApiCreateFlowArgs proto mapping. */
@@ -610,4 +609,14 @@ export declare interface ApiUiConfig {
   readonly helpUrl?: string;
   readonly grrVersion?: string;
   readonly profileImageUrl?: string;
+}
+
+/** ApiListApproverSuggestionsResult proto mapping. */
+export declare interface ApiListApproverSuggestionsResult {
+  readonly suggestions?: ReadonlyArray<ApproverSuggestion>;
+}
+
+/** ApproverSuggestion proto mapping. */
+export declare interface ApproverSuggestion {
+  readonly username?: string;
 }

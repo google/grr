@@ -1,19 +1,21 @@
 import {Injectable} from '@angular/core';
+import {ComponentStore} from '@ngrx/component-store';
 import {ConfigService} from '@app/components/config/config';
 import {AnyObject} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateApproval, translateClient} from '@app/lib/api_translation/client';
 import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
-import {ComponentStore} from '@ngrx/component-store';
-import {combineLatest, Observable, of, timer} from 'rxjs';
+import {combineLatest, Observable, of, Subject, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
+import {translateApproverSuggestions} from '../lib/api_translation/user';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 import {isNonNull} from '../lib/preconditions';
 
 import {ConfigFacade} from './config_facade';
 import {UserFacade} from './user_facade';
+
 
 
 interface FlowInConfiguration {
@@ -24,7 +26,7 @@ interface FlowInConfiguration {
 /** State of a flow being started. */
 export type StartFlowState = {
   readonly state: 'request_not_sent'
-} | {
+}|{
   readonly state: 'request_sent',
 }|{
   readonly state: 'started',
@@ -33,9 +35,6 @@ export type StartFlowState = {
   readonly state: 'scheduled',
   readonly scheduledFlow: ScheduledFlow,
 }|{
-  readonly state: 'success',
-  readonly flow: Flow,
-} | {
   readonly state: 'error',
   readonly error: string,
 };
@@ -55,6 +54,8 @@ interface ClientPageState {
 
   readonly flowInConfiguration?: FlowInConfiguration;
   readonly startFlowState: StartFlowState;
+
+  readonly approverSuggestions?: ReadonlyArray<string>;
 }
 
 /**
@@ -108,7 +109,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     };
   });
 
-  /** Reducer updating the requested approval. */
+  // Reducer updating the requested approval.
   private readonly updateApprovals =
       this.updater<ClientApproval[]>((state, approvals) => {
         const approvalsMap: {[key: string]: ClientApproval} = {};
@@ -146,7 +147,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       flowListEntrySequence: sortedFlows.map(f => f.flowId),
     };
   }
-  /** Reducer updating flows. */
+  // Reducer updating flows.
   private readonly updateFlows = this.updater<Flow[]>(this.updateFlowsFn);
 
   private readonly updateScheduledFlows =
@@ -155,7 +156,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                                       scheduledFlows,
                                     }));
 
-  /** Reducer updating flow results. */
+  // Reducer updating flow results.
   private readonly updateFlowResults =
       this.updater<FlowResultSet>((state, resultSet) => {
         const fle = state.flowListEntries[resultSet.sourceQuery.flowId];
@@ -173,7 +174,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  /** Reducer updating state after a flow is started. */
+  // Reducer updating state after a flow is started.
   private readonly updateStartedFlow = this.updater<Flow>((state, flow) => {
     return {
       ...this.updateFlowsFn(state, [flow]),
@@ -202,7 +203,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  /** Updates the state after a flow scheduling fails with a given error. */
+  // Updates the state after a flow scheduling fails with a given error.
   private readonly updateStartFlowFailure =
       this.updater<string>((state, error) => {
         return {
@@ -214,31 +215,32 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  /** An observable emitting the last removed client label. */
-  readonly lastRemovedClientLabel$: Observable<string> =
-      this.select(state => state.lastRemovedClientLabel)
-          .pipe(
-              filter(
-                  (lastRemovedClientLabel): lastRemovedClientLabel is string =>
-                      lastRemovedClientLabel !== undefined),
-          );
-
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
-      combineLatest(
-          timer(0, this.configService.config.selectedClientPollingIntervalMs)
-              .pipe(tap(() => this.fetchClient())),
-          this.select(state => state.client))
+      combineLatest([
+        timer(0, this.configService.config.selectedClientPollingIntervalMs)
+            .pipe(
+                tap(() => {
+                  this.fetchClient();
+                }),
+                ),
+        this.select(state => state.client),
+      ])
           .pipe(
-              map(([i, client]) => client),
-              filter((client): client is Client => client !== undefined),
+              map(([, client]) => client),
+              filter(isNonNull),
           );
 
   /** An observable emitting the client id of the selected client. */
   readonly selectedClientId$: Observable<string> =
-      this.select(state => state.clientId)
+      this.select(state => state.clientId).pipe(filter(isNonNull));
+
+  /** An observable emitting the last removed client label. */
+  readonly lastRemovedClientLabel$: Observable<string> =
+      this.select(state => state.lastRemovedClientLabel)
           .pipe(
-              filter((clientId): clientId is string => clientId !== undefined));
+              filter(isNonNull),
+          );
 
   /**
    * An observable that is triggered when selected client id changes.
@@ -258,13 +260,17 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   /** An observable emitting the latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
       of(undefined).pipe(
-          tap(() => this.listApprovals()), switchMapTo(this.select(state => {
+          tap(() => {
+            this.listApprovals();
+          }),
+          switchMapTo(this.select(state => {
             // Approvals are expected to be in reversed chronological order.
             const foundId = state.approvalSequence.find(
                 approvalId =>
                     state.approvals[approvalId].status.type !== 'expired');
             return foundId ? state.approvals[foundId] : undefined;
-          })));
+          })),
+      );
 
   private readonly flowListEntriesImpl$:
       Observable<ReadonlyArray<FlowListEntry>> = this.select(state => {
@@ -333,11 +339,10 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
               shareReplay(1),
           );
 
-  /** An effect fetching a client with a given id and updating the state. */
   private readonly fetchClient = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.select(state => state.clientId)),
-          filter((clientId): clientId is string => clientId !== undefined),
+          filter(isNonNull),
           mergeMap(clientId => {
             return this.httpApiService.fetchClient(clientId);
           }),
@@ -370,11 +375,16 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
+  /** A subject triggered every time the queryFlowResults() method is called. */
+  private readonly queryFlowResultsSubject$ = new Subject<FlowResultsQuery>();
+
   /**
    * Triggers flow results query. Results will be automatically updated until
    * the flow completes or another client is selected.
    */
   queryFlowResults(query: FlowResultsQuery) {
+    this.queryFlowResultsSubject$.next(query);
+
     const fleSelector =
         this.select((state) => state.flowListEntries[query.flowId]);
 
@@ -384,6 +394,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
            ])
         .pipe(
             takeUntil(this.selectedClientIdChanged$),
+            takeUntil(this.queryFlowResultsSubject$.pipe(
+                // If queryFlowResults gets called again for the query for the
+                // same flow id, tag and type, then stop doing the updates
+                // (as they'll be done by the subscribed observable initialized
+                // by the latest queryFlowResults call).
+                filter(
+                    (incomingQuery) => incomingQuery.flowId === query.flowId &&
+                        incomingQuery.withTag === query.withTag &&
+                        incomingQuery.withType === query.withType))),
             takeWhile(([i, fle]) => fle !== undefined),
             // Inclusive: the line below will trigger one more time, once
             // the flow state becomes FINISHED. This guarantees that results
@@ -460,6 +479,32 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
+  private readonly updateApproverSuggestions =
+      this.updater<ReadonlyArray<string>>((state, approverSuggestions) => {
+        return {
+          ...state,
+          approverSuggestions,
+        };
+      });
+
+  readonly suggestApprovers = this.effect<string>(
+      obs$ => obs$.pipe(
+          concatMap((usernameQuery) => {
+            if (usernameQuery) {
+              return this.httpApiService.suggestApprovers(usernameQuery);
+            } else {
+              return of([]);
+            }
+          }),
+          map(translateApproverSuggestions),
+          tap((suggestions) => {
+            this.updateApproverSuggestions(suggestions);
+          }),
+          ));
+
+  readonly approverSuggestions$ =
+      this.select((state) => state.approverSuggestions).pipe(filter(isNonNull));
+
   /** Unschedules a previously scheduled flow. */
   readonly unscheduleFlow = this.effect<string>(
       obs$ => obs$.pipe(
@@ -506,7 +551,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.updateApprovals(approvals);
           })));
 
-  /** An effect to list flows. */
+  // An effect to list flows.
   private readonly listFlows = this.effect<void>(
       obs$ => obs$.pipe(
           switchMapTo(this.selectedClientId$),
@@ -518,7 +563,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
-  /** An effect to list all scheduled flows. */
+  // An effect to list all scheduled flows.
   private readonly listScheduledFlows = this.effect<void>(
       obs$ => obs$.pipe(
           switchMap(() => this.userFacade.currentUser$),
@@ -540,7 +585,9 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           switchMap(
               ([label, clientId]) =>
                   this.httpApiService.addClientLabel(clientId, label)),
-          tap(() => this.fetchClient()),
+          tap(() => {
+            this.fetchClient();
+          }),
           ));
 
   /** An effect to remove a label from the selected client */
@@ -591,6 +638,7 @@ export class ClientPageFacade {
   readonly lastRemovedClientLabel$: Observable<string> =
       this.store.lastRemovedClientLabel$;
 
+
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
     this.store.selectClient(clientId);
@@ -635,6 +683,12 @@ export class ClientPageFacade {
   stopFlowConfiguration() {
     this.store.stopFlowConfiguration();
   }
+
+  suggestApprovers(usernameQuery: string) {
+    this.store.suggestApprovers(usernameQuery);
+  }
+
+  readonly approverSuggestions$ = this.store.approverSuggestions$;
 
   /** Adds a label to the selected client */
   addClientLabel(label: string) {

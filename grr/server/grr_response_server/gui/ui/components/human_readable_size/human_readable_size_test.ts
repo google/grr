@@ -6,9 +6,14 @@ import {initTestEnvironment} from '../../testing';
 import {HumanReadableSizeComponent} from './human_readable_size';
 import {HumanReadableSizeModule} from './module';
 
+
+
 initTestEnvironment();
 
 describe('HumanReadableSizeComponent', () => {
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     TestBed
         .configureTestingModule({
@@ -16,6 +21,7 @@ describe('HumanReadableSizeComponent', () => {
             NoopAnimationsModule,
             HumanReadableSizeModule,
           ],
+
         })
         .compileComponents();
   }));

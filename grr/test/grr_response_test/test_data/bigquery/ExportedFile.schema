@@ -229,6 +229,11 @@
     "name": "st_ctime"
   },
   {
+    "type": "TIMESTAMP",
+    "description": "File creation time.",
+    "name": "st_btime"
+  },
+  {
     "type": "INTEGER",
     "description": "",
     "name": "st_blocks"

@@ -1,11 +1,12 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {ClientAddLabelDialog} from '@app/components/client_add_label_dialog/client_add_label_dialog';
-import {ClientLabel} from '@app/lib/models/client';
-import {ClientPageFacade} from '@app/store/client_page_facade';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
+
+import {ClientLabel} from '../../lib/models/client';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
 /**
  * Component displaying overview info of a Client.
@@ -17,7 +18,7 @@ import {takeUntil} from 'rxjs/operators';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientOverview implements OnInit, OnDestroy {
-  private static LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
+  private static readonly LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
 
   readonly client$ = this.clientPageFacade.selectedClient$;
   private readonly unsubscribe$ = new Subject<void>();

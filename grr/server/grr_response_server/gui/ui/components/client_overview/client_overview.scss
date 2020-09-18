@@ -35,10 +35,10 @@ $width: 80%;
       .add_label {
         margin-left: 0.5em;
         border-radius: 2em;
-        padding-left: 8px !important;
+        padding-left: 8px;
         min-height: 26px;
-        line-height: 16px !important;
-        font-family: c.$google-sans-family !important;
+        line-height: 16px;
+        font-family: c.$google-sans-family;
       }
     }
   }
@@ -54,5 +54,4 @@ $width: 80%;
       margin-right: 10px;
     }
   }
-
 }

@@ -24,6 +24,8 @@ export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
 function translateApiFlowState(state: ApiFlowState): FlowState {
   if (state === ApiFlowState.RUNNING) {
     return FlowState.RUNNING;
+  } else if (state === ApiFlowState.ERROR) {
+    return FlowState.ERROR;
   } else {
     return FlowState.FINISHED;
   }

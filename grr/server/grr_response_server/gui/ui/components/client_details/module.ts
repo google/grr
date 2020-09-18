@@ -13,6 +13,7 @@ import {TimestampModule} from '../timestamp/module';
 
 import {ClientDetails} from './client_details';
 import {EntryHistoryButtonModule} from './entry_history_button/module';
+import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
 import {EntryHistoryDialogModule} from './entry_history_dialog/module';
 import {InterfacesDetailsModule} from './interfaces_details/module';
 import {UsersDetailsModule} from './users_details/module';
@@ -41,6 +42,9 @@ import {VolumesDetailsModule} from './volumes_details/module';
   ],
   declarations: [
     ClientDetails,
+  ],
+  entryComponents: [
+    EntryHistoryDialog,
   ],
   exports: [
     ClientDetails,

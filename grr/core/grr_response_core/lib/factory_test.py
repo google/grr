@@ -75,13 +75,6 @@ class FactoryTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, "foo"):
       int_factory.Create("foo")
 
-  def testCreateWrongTypeThrows(self):
-    int_factory = factory.Factory(int)
-    int_factory.Register("foo", lambda: "Foo")
-
-    with self.assertRaises(TypeError):
-      int_factory.Create("foo")
-
   def testCreateAllEmpty(self):
     obj_factory = factory.Factory(object)
 

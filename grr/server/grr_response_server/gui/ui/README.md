@@ -1,7 +1,6 @@
 # Frontend
 
 ## Development server
-First make sure `grr_admin_ui` is up and running.
 
 First make sure `grr_admin_ui` is up and running.
 

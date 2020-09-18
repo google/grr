@@ -6,13 +6,18 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import re
+from typing import IO
+from typing import Iterator
+
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
-class DebianPackagesStatusParser(parsers.SingleFileParser):
+class DebianPackagesStatusParser(
+    parsers.SingleFileParser[rdf_client.SoftwarePackages]):
   """Parser for /var/lib/dpkg/status. Yields SoftwarePackage semantic values."""
 
   output_types = [rdf_client.SoftwarePackages]
@@ -28,7 +33,12 @@ class DebianPackagesStatusParser(parsers.SingleFileParser):
     """
     self._deb822 = deb822
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_client.SoftwarePackages]:
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 

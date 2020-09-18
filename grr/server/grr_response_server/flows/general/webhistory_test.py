@@ -192,7 +192,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
       fd = self.RunCollectorAndGetCollection(
           [webhistory.ChromeHistory.__name__],
           client_mock=self.client_mock,
-          use_tsk=True)
+          use_raw_filesystem_access=True)
 
     self.assertLen(fd, 71)
     self.assertIn("/home/john/Downloads/funcats_scr.exe",
@@ -208,7 +208,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
       fd = self.RunCollectorAndGetCollection(
           [webhistory.FirefoxHistory.__name__],
           client_mock=self.client_mock,
-          use_tsk=True)
+          use_raw_filesystem_access=True)
 
     self.assertLen(fd, 5)
     self.assertEqual(fd[0].access_time.AsSecondsSinceEpoch(), 1340623334)

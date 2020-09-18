@@ -4,12 +4,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import ctypes
 import hashlib
 import io
 import os
 import platform
 import random
 import stat as stat_mode
+import time
 from typing import Text
 
 from absl.testing import absltest
@@ -139,6 +141,56 @@ class WalkTest(absltest.TestCase):
       for entry in entries[:-1]:
         self.assertTrue(stat_mode.S_ISDIR(entry.mode))
       self.assertTrue(stat_mode.S_ISLNK(entries[-1].mode))
+
+  @skip.Unless(hasattr(time, "time_ns"), reason="timing precision too low")
+  def testTimestamp(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      filepath = os.path.join(dirpath, "foo")
+
+      with open(filepath, mode="wb"):
+        pass
+
+      with open(filepath, mode="wb") as filedesc:
+        filedesc.write(b"quux")
+
+      with open(filepath, mode="rb") as filedesc:
+        _ = filedesc.read()
+
+      now_ns = time.time_ns()
+
+      entries = list(timeline.Walk(dirpath.encode("utf-8")))
+      self.assertLen(entries, 2)
+
+      self.assertEqual(entries[0].path, dirpath.encode("utf-8"))
+      self.assertEqual(entries[1].path, filepath.encode("utf-8"))
+
+      self.assertGreater(entries[1].ctime_ns, 0)
+      self.assertGreaterEqual(entries[1].mtime_ns, entries[1].ctime_ns)
+      self.assertGreaterEqual(entries[1].atime_ns, entries[1].mtime_ns)
+      self.assertLess(entries[1].atime_ns, now_ns)
+
+  @skip.Unless(hasattr(time, "time_ns"), reason="timing precision too low")
+  def testBirthTimestamp(self):
+    if platform.system() == "Linux":
+      try:
+        ctypes.CDLL("libc.so.6").statx
+      except AttributeError:
+        raise absltest.SkipTest("`statx` not available")
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      filepath = os.path.join(dirpath, "foo")
+
+      with open(filepath, mode="wb") as filedesc:
+        filedesc.write(b"foobar")
+
+      entries = list(timeline.Walk(dirpath.encode("utf-8")))
+      self.assertLen(entries, 2)
+
+      self.assertEqual(entries[0].path, dirpath.encode("utf-8"))
+      self.assertEqual(entries[1].path, filepath.encode("utf-8"))
+
+      now_ns = time.time_ns()
+      self.assertBetween(entries[1].btime_ns, 0, now_ns)
 
   def testIncorrectPath(self):
     not_existing_path = os.path.join("some", "not", "existing", "path")

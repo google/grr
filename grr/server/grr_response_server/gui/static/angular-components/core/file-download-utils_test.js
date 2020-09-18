@@ -71,6 +71,28 @@ describe('statEntryDirective.buildAff4Path', () => {
     expect(pathSpecToAff4Path(pathspec, 'C.1234567812345678'))
         .toBe('aff4:/C.1234567812345678/fs/tsk/\\\\.\\Volume{1234}\\/Test Directory/notes.txt:ads');
   });
+
+  it('converts os+ntfs pathspec correctly', () => {
+    const pathspec = {
+      type: 'PathSpec',
+      value: {
+        path: {value: '\\\\.\\Volume{1234}\\', type: 'RDFString'},
+        pathtype: {value: 'OS', type: 'EnumNamedValue'},
+        mount_point: '/c:/',
+        nested_path: {
+          type: 'PathSpec',
+          value: {
+            path: {value: '/windows', type: 'RDFString'},
+            pathtype: {value: 'NTFS', type: 'EnumNamedValue'},
+          },
+        },
+      },
+    };
+
+    expect(pathSpecToAff4Path(pathspec, 'C.1234567812345678'))
+        .toBe('aff4:/C.1234567812345678/fs/ntfs/\\\\.\\Volume{1234}\\/windows');
+  });
+
 });
 
 

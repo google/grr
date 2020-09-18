@@ -1,17 +1,19 @@
 import {async, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ApiModule} from '@app/lib/api/module';
-import {Client} from '@app/lib/models/client';
-import {newClient} from '@app/lib/models/model_test_util';
-import {ClientDetailsFacade} from '@app/store/client_details_facade';
 import {Subject} from 'rxjs';
 
+import {ApiModule} from '../../../lib/api/module';
+import {Client} from '../../../lib/models/client';
+import {newClient} from '../../../lib/models/model_test_util';
+import {getClientEntriesChanged} from '../../../store/client_details_diff';
+import {ClientDetailsFacade} from '../../../store/client_details_facade';
 import {initTestEnvironment} from '../../../testing';
 
 import {EntryHistoryButton} from './entry_history_button';
 import {EntryHistoryButtonModule} from './module';
-import {getClientEntriesChanged} from '@app/store/client_details_diff';
+
+
 
 initTestEnvironment();
 
@@ -49,6 +51,9 @@ describe('Entry History Button Component', () => {
     }),
   ];
 
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     TestBed
         .configureTestingModule({
@@ -57,6 +62,7 @@ describe('Entry History Button Component', () => {
             NoopAnimationsModule,
             EntryHistoryButtonModule,
           ],
+
         })
         .compileComponents();
 

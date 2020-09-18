@@ -9,7 +9,7 @@
       <mat-chip-list>
         <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
         <mat-chip *ngFor="let label of client.labels; trackBy: labelsTrackByName" (removed)="removeLabel(label.name)">
-          {{label.name}} <mat-icon matChipRemove>close</mat-icon>
+          {{label.name}} <mat-icon matChipRemove aria-label="Remove label">close</mat-icon>
         </mat-chip>
       </mat-chip-list>
       <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
@@ -27,7 +27,8 @@
       <span>{{client.clientId}}
         <button mat-icon-button
           class="copy-button"
-          [cdkCopyToClipboard]="client.clientId">
+          [cdkCopyToClipboard]="client.clientId"
+          aria-label="Copy">
           <mat-icon aria-label="Copy">content_copy</mat-icon>
         </button>
       </span>

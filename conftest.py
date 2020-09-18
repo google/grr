@@ -14,7 +14,14 @@ from absl import flags
 import pytest
 
 from grr_response_core.lib.util import compatibility
-from grr.test_lib import testing_startup
+# pylint: disable=g-import-not-at-top
+try:
+  # This depends on grr_response_server, which is NOT available on all
+  # (especially non-Linux development) platforms.
+  from grr.test_lib import testing_startup
+except ModuleNotFoundError:
+  testing_startup = None
+# pylint: enable=g-import-not-at-top
 
 FLAGS = flags.FLAGS
 
@@ -58,7 +65,8 @@ def pytest_runtest_setup(item):
   global last_module
   if last_module != item.module:
     FLAGS(sys.argv)
-    testing_startup.TestInit()
+    if testing_startup:
+      testing_startup.TestInit()
   last_module = item.module
 
 

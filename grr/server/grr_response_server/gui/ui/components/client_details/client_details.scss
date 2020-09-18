@@ -16,8 +16,8 @@
       padding-left: 32px;
 
       .heading {
-      // Default material h1 style adds unwanted bottom margin
-      margin-bottom: 0px;
+        // Default material h1 style adds unwanted bottom margin
+        margin-bottom: 0px;
       }
 
       .since {
@@ -29,7 +29,7 @@
     .entry {
       box-sizing: border-box;
       margin-top: 1em;
-      margin-right: 10px !important;
+      margin-right: 10px;
       padding-left: 10px;
       background: transparent;
       height: auto;
@@ -50,14 +50,14 @@
       }
     }
 
-    .entry[aria-selected="true"] {
+    .entry[aria-selected='true'] {
       color: c.mat-color(c.$primary);
-      background: #E8F0FE;
+      background: #e8f0fe;
     }
   }
 
   .info {
-    padding: 20px 150px 20px 150px;
+    padding: 20px 150px;
     text-align: center;
     overflow: auto;
     flex-grow: 1;

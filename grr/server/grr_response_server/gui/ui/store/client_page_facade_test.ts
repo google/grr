@@ -1,12 +1,12 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {ConfigService} from '@app/components/config/config';
-import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow} from '@app/lib/api/api_interfaces';
+import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow, ApproverSuggestion} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from '@app/lib/models/flow';
 import {newClient, newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade} from '@app/store/client_page_facade';
-import {initTestEnvironment} from '@app/testing';
+import {initTestEnvironment, removeUndefinedKeys} from '@app/testing';
 import {of, Subject} from 'rxjs';
 
 import {ConfigFacade} from './config_facade';
@@ -14,8 +14,8 @@ import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
 import {UserFacade} from './user_facade';
 import {mockUserFacade, UserFacadeMock} from './user_facade_test_util';
 
-
 initTestEnvironment();
+
 
 describe('ClientPageFacade', () => {
   let httpApiService: Partial<HttpApiService>;
@@ -28,9 +28,10 @@ describe('ClientPageFacade', () => {
   let apiStartFlow$: Subject<ApiFlow>;
   let apiScheduleFlow$: Subject<ApiScheduledFlow>;
   let apiCancelFlow$: Subject<ApiFlow>;
+  let apiSuggestApprovers$: Subject<ReadonlyArray<ApproverSuggestion>>;
+  let apiRemoveClientLabel$: Subject<string>;
   let configFacade: ConfigFacadeMock;
   let userFacade: UserFacadeMock;
-  let apiRemoveClientLabel$: Subject<string>;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
@@ -41,6 +42,7 @@ describe('ClientPageFacade', () => {
     apiScheduleFlow$ = new Subject();
     apiCancelFlow$ = new Subject();
     apiRemoveClientLabel$ = new Subject();
+    apiSuggestApprovers$ = new Subject();
     httpApiService = {
       listApprovals:
           jasmine.createSpy('listApprovals').and.returnValue(apiListApprovals$),
@@ -57,6 +59,8 @@ describe('ClientPageFacade', () => {
           jasmine.createSpy('cancelFlow').and.returnValue(apiCancelFlow$),
       listResultsForFlow:
           jasmine.createSpy('listResultsForFlow').and.returnValue(of([])),
+      suggestApprovers: jasmine.createSpy('suggestApprovers')
+                            .and.returnValue(apiSuggestApprovers$),
       removeClientLabel: jasmine.createSpy('removeClientLabel')
                              .and.returnValue(apiRemoveClientLabel$),
     };
@@ -102,34 +106,50 @@ describe('ClientPageFacade', () => {
       approvalId: '2',
       requestedApprovers: ['b', 'c'],
       approvers: [],
+      subject: newClient({
+        clientId: 'C.1234',
+        fleetspeakEnabled: false,
+      }),
     };
 
     clientPageFacade.latestApproval$.subscribe(approval => {
       if (approval !== undefined) {
-        expect(approval).toEqual(expected);
+        expect(removeUndefinedKeys(approval)).toEqual(expected);
         done();
       }
     });
 
     apiListApprovals$.next([
       {
-        subject: {clientId: 'C.1234'},
+        subject: {
+          clientId: 'C.1234',
+          fleetspeakEnabled: false,
+          knowledgeBase: {},
+          labels: [],
+          age: '0',
+        },
         id: '1',
         reason: 'Old reason',
         requestor: 'testuser',
         isValid: false,
         isValidMessage: 'Approval request is expired.',
-        approvers: ['me', 'b'],
+        approvers: ['testuser'],
         notifiedUsers: ['b', 'c'],
       },
       {
-        subject: {clientId: 'C.1234'},
+        subject: {
+          clientId: 'C.1234',
+          fleetspeakEnabled: false,
+          knowledgeBase: {},
+          labels: [],
+          age: '0',
+        },
         id: '2',
         reason: 'Pending reason',
         requestor: 'testuser',
         isValid: false,
         isValidMessage: 'Need at least 1 more approvers.',
-        approvers: ['me'],
+        approvers: ['testuser'],
         notifiedUsers: ['b', 'c'],
       },
     ]);
@@ -269,6 +289,56 @@ describe('ClientPageFacade', () => {
        discardPeriodicTasks();
 
        expect(httpApiService.listResultsForFlow).toHaveBeenCalledTimes(3);
+     }));
+
+  it('correctly handles conflicting queryFlowResults calls', fakeAsync(() => {
+       clientPageFacade.flowListEntries$.subscribe();
+
+       httpApiService.listFlowsForClient =
+           jasmine.createSpy('listFlowsForClient')
+               .and.callFake(() => of([
+                               {
+                                 flowId: '1',
+                                 clientId: 'C.1234',
+                                 lastActiveAt: '999000',
+                                 startedAt: '123000',
+                                 creator: 'rick',
+                                 name: 'ListProcesses',
+                                 state: ApiFlowState.RUNNING,
+                               },
+                             ]));
+       tick(1);
+
+       httpApiService.listResultsForFlow =
+           jasmine.createSpy('listResultsForFlow').and.callFake(() => of([]));
+
+       // Ensure that there's a results query to be updated.
+       const query1 = {
+         flowId: '1',
+         offset: 0,
+         count: 100,
+       };
+       clientPageFacade.queryFlowResults(query1);
+       tick(configService.config.flowResultsPollingIntervalMs - 1);
+       const query2 = {
+         flowId: '1',
+         offset: 100,
+         count: 200,
+       };
+       // As soon as the second request for the same flow/type/tag is issued,
+       // the timer-based refreshing of the previous query should stop.
+       clientPageFacade.queryFlowResults(query2);
+       tick(2);
+
+       discardPeriodicTasks();
+
+       expect(httpApiService.listResultsForFlow).toHaveBeenCalledTimes(2);
+       expect(
+           (httpApiService.listResultsForFlow as jasmine.Spy).calls.argsFor(0))
+           .toEqual(['C.1234', query1]);
+       expect(
+           (httpApiService.listResultsForFlow as jasmine.Spy).calls.argsFor(1))
+           .toEqual(['C.1234', query2]);
      }));
 
   it('does not update flow list entries results when queryFlowResults wasn\'t called',
@@ -648,6 +718,7 @@ describe('ClientPageFacade', () => {
        // and the next one at flowListPollingIntervalMs * 2.
        expect(httpApiService.listScheduledFlows).toHaveBeenCalledTimes(3);
      }));
+
   it('fetches client data only after selectedClient$ is subscribed to',
      fakeAsync(() => {
        expect(httpApiService.fetchClient).not.toHaveBeenCalled();
@@ -725,7 +796,7 @@ describe('ClientPageFacade', () => {
        apiFetchClient$.next({
          clientId: 'C.5678',
          fleetspeakEnabled: true,
-       })
+       });
 
        let i = 0;
        clientPageFacade.selectedClient$.subscribe(client => {
@@ -772,5 +843,21 @@ describe('ClientPageFacade', () => {
 
     clientPageFacade.removeClientLabel('testlabel2');
     apiRemoveClientLabel$.next('testlabel2');
+  });
+
+  it('calls the API when suggestApprovers is called', () => {
+    clientPageFacade.suggestApprovers('ba');
+    expect(httpApiService.suggestApprovers).toHaveBeenCalledWith('ba');
+  });
+
+  it('emits approver autocomplete in approverSuggestions$', (done) => {
+    clientPageFacade.suggestApprovers('ba');
+
+    clientPageFacade.approverSuggestions$.subscribe(approverSuggestions => {
+      expect(approverSuggestions).toEqual(['bar', 'baz']);
+      done();
+    });
+
+    apiSuggestApprovers$.next([{username: 'bar'}, {username: 'baz'}]);
   });
 });

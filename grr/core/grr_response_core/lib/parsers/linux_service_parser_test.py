@@ -6,12 +6,15 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import io
+
 from absl import app
+from absl.testing import absltest
 
 from grr_response_core.lib.parsers import linux_service_parser
 from grr_response_core.lib.parsers import parsers_test_lib
-from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import artifact_test_lib
 from grr.test_lib import test_lib
 
@@ -88,40 +91,39 @@ class LinuxXinetdParserTest(test_lib.GRRBaseTest):
         self.assertTrue(rslt.starts)
 
 
-class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
+class LinuxSysVInitParserTest(absltest.TestCase):
   """Test parsing of sysv startup and shutdown links."""
 
-  results = None
-
-  def setUp(self, *args, **kwargs):
-    super(LinuxSysVInitParserTest, self).setUp(*args, **kwargs)
-    if self.results is None:
-      # Create a fake filesystem.
-      dirs = ["/etc", "/etc/rc1.d", "/etc/rc2.d", "/etc/rc6.d", "/etc/rcS.d"]
-      d_stat, d_files = parsers_test_lib.GenTestData(
-          dirs, [""] * len(dirs), st_mode=16877)
-      files = ["/etc/rc.local", "/etc/ignoreme", "/etc/rc2.d/S20ssh"]
-      f_stat, f_files = parsers_test_lib.GenTestData(files, [""] * len(files))
-      links = [
-          "/etc/rc1.d/S90single", "/etc/rc1.d/K20ssh", "/etc/rc1.d/ignore",
-          "/etc/rc2.d/S20ntp", "/etc/rc2.d/S30ufw", "/etc/rc6.d/K20ssh",
-          "/etc/rcS.d/S20firewall"
-      ]
-      l_stat, l_files = parsers_test_lib.GenTestData(
-          links, [""] * len(links), st_mode=41471)
-      stats = d_stat + f_stat + l_stat
-      files = d_files + f_files + l_files
-
-      parser = linux_service_parser.LinuxSysVInitParser()
-      self.results = list(parser.ParseMultiple(stats, files, None))
-
   def testParseServices(self):
-    """SysV init links return accurate LinuxServiceInformation values."""
-    services = {
-        s.name: s
-        for s in self.results
-        if isinstance(s, rdf_client.LinuxServiceInformation)
-    }
+    knowledge_base = rdf_client.KnowledgeBase()
+
+    paths = [
+        # Directories.
+        "/etc",
+        "/etc/rc1.d",
+        "/etc/rc2.d",
+        "/etc/rc6.d",
+        "/etc/rcS.d",
+        # Files.
+        "/etc/rc.local",
+        "/etc/ignoreme",
+        "/etc/rc2.d/S20ssh",
+        # Links.
+        "/etc/rc1.d/S90single",
+        "/etc/rc1.d/K20ssh",
+        "/etc/rc1.d/ignore",
+        "/etc/rc2.d/S20ntp",
+        "/etc/rc2.d/S30ufw",
+        "/etc/rc6.d/K20ssh",
+        "/etc/rcS.d/S20firewall",
+    ]
+    pathspecs = [rdf_paths.PathSpec(path=path) for path in paths]
+    filedescs = [io.BytesIO(b"") for _ in paths]
+
+    parser = linux_service_parser.LinuxSysVInitParser()
+    results = list(parser.ParseFiles(knowledge_base, pathspecs, filedescs))
+
+    services = {service.name: service for service in results}
     self.assertLen(services, 5)
     self.assertCountEqual(["single", "ssh", "ntp", "ufw", "firewall"], services)
     self.assertCountEqual([2], services["ssh"].start_on)
@@ -129,14 +131,6 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
     self.assertTrue(services["ssh"].starts)
     self.assertCountEqual([1], services["firewall"].start_on)
     self.assertTrue(services["firewall"].starts)
-
-  def testDetectAnomalies(self):
-    anomalies = [a for a in self.results if isinstance(a, rdf_anomaly.Anomaly)]
-    self.assertLen(anomalies, 1)
-    rslt = anomalies[0]
-    self.assertEqual("Startup script is not a symlink.", rslt.explanation)
-    self.assertEqual(["/etc/rc2.d/S20ssh"], rslt.finding)
-    self.assertEqual("PARSER_ANOMALY", rslt.type)
 
 
 def main(args):
