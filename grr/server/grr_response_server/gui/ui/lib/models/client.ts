@@ -37,9 +37,9 @@ export interface StorageVolume {
   readonly name?: string;
   readonly devicePath?: string;
   readonly fileSystemType?: string;
-  readonly totalSize?: BigInt;
-  readonly bytesPerSector?: BigInt;
-  readonly freeSpace?: BigInt;
+  readonly totalSize?: bigint;
+  readonly bytesPerSector?: bigint;
+  readonly freeSpace?: bigint;
   readonly creationTime?: Date;
   readonly unixDetails?: UnixVolume;
   readonly windowsDetails?: WindowsVolume;
@@ -97,7 +97,7 @@ export interface NetworkInterface {
 export interface AgentInfo {
   readonly clientName?: string;
   readonly clientVersion?: number;
-  readonly revision?: BigInt;
+  readonly revision?: bigint;
   readonly buildTime?: string;
   readonly clientBinaryName?: string;
   readonly clientDescription?: string;
@@ -132,7 +132,7 @@ export interface Client {
   /** Storage volumes available to the client */
   readonly volumes: ReadonlyArray<StorageVolume>;
   /** Memory available to this client */
-  readonly memorySize?: BigInt;
+  readonly memorySize?: bigint;
   // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
@@ -185,7 +185,7 @@ export interface Invalid {
 }
 
 /** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
+export type ClientApprovalStatus = Valid | Pending | Expired | Invalid;
 
 /** Approval for Client access. */
 export interface ClientApproval {
