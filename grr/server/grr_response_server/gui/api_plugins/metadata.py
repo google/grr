@@ -804,9 +804,10 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
       ungrouped_routes = []
       for http_method, path, strip_root_types in router_method.http_methods:
         path_components = path.split("/")
-        # Remove trailing empty strings from the list of path components.
-        while path_components and len(path_components[-1]) == 0:
-          path_components.pop()
+        # Remove any empty strings from the list of path components.
+        path_components = list(
+          filter(lambda comp: len(comp) > 0, path_components)
+        )
 
         ungrouped_routes.append([http_method] + path_components)
 
@@ -920,6 +921,8 @@ def _NormalizePath(path: str) -> str:
     normalized_components.insert(2, "v2")
 
   normalized_path = "/".join(normalized_components)
+  if not normalized_path.startswith("/"):
+    normalized_path = "/" + normalized_path
 
   return normalized_path
 
