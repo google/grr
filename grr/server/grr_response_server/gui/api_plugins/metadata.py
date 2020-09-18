@@ -908,6 +908,12 @@ def _NormalizePath(path: str) -> str:
   normalized_components = [
     _NormalizePathComponent(component) for component in components
   ]
+  if (
+      normalized_components[1] == "api"
+      and (len(normalized_components) == 2 or normalized_components[2] != "v2")
+  ):
+    # We describe the v2 API in the OpenAPI description.
+    normalized_components.insert(2, "v2")
 
   normalized_path = "/".join(normalized_components)
 
