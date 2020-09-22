@@ -148,8 +148,8 @@ def _FetchDatapointsForTargets(
     targets: Iterable[str]) -> List[_TargetWithDatapoints]:
   """Fetches a list of <datapoint, timestamp> tuples for each target 
   metric from Fleetspeak database."""
-  start_range_timestamp = GrafanaTimestampToTimestampObj(start_range)
-  end_range_timestamp = GrafanaTimestampToTimestampObj(end_range)
+  start_range_timestamp = timeToProtoTimestamp(start_range)
+  end_range_timestamp = timeToProtoTimestamp(end_range)
   records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
       client_id, start_range_timestamp, end_range_timestamp)
   response = []
@@ -162,7 +162,7 @@ def _FetchDatapointsForTargets(
   return response
 
 
-def GrafanaTimestampToTimestampObj(
+def timeToProtoTimestamp(
     grafana_time: str) -> timestamp_pb2.Timestamp:
   date = dateutil.parser.parse(grafana_time)
   return timestamp_pb2.Timestamp(seconds=int(date.timestamp()),

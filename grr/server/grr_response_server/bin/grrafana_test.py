@@ -215,16 +215,16 @@ class GrrafanaTest(absltest.TestCase):
                         json=_TEST_INVALID_TARGET_QUERY)
 
 
-class GrafanaTimestampToTimestampObjTest(absltest.TestCase):
+class timeToProtoTimestampTest(absltest.TestCase):
   """Test the conversion between a timestamp issued by Grafana
   (ISO 8601) to a Timestamp object transferable to Fleetspeak by gRPC."""
 
-  def testGrafanaTimestampToTimestampObj(self):
+  def testtimeToProtoTimestamp(self):
     self.assertEqual(
-        grrafana.GrafanaTimestampToTimestampObj(_START_RANGE_TIMESTAMP),
+        grrafana.timeToProtoTimestamp(_START_RANGE_TIMESTAMP),
         timestamp_pb2.Timestamp(seconds=1597328417, nanos=(158 * 1000000)))
     self.assertEqual(
-        grrafana.GrafanaTimestampToTimestampObj(_END_RANGE_TIMESTAMP),
+        grrafana.timeToProtoTimestamp(_END_RANGE_TIMESTAMP),
         timestamp_pb2.Timestamp(seconds=1597770958, nanos=(761 * 1000000)))
 
 
