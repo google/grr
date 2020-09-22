@@ -2,11 +2,13 @@
 # Lint as: python3
 from absl import app, flags
 import collections
+import dateutil
 import json
 import os
-from typing import Any, cast, Dict, List, Text, Tuple, Iterable
+from typing import Any, cast, Dict, List, Tuple, Iterable
 
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
+from google.protobuf import timestamp_pb2
 
 from grr_response_core import config
 from grr_response_core.config import server as config_server
@@ -122,9 +124,11 @@ class Grrafana(object):
     requested_client_id = _ExtractClientIdFromVariable(
         json_data)  # There must be a ClientID variable declated in Grafana.
     requested_targets = [entry["target"] for entry in json_data["targets"]]
-    list_targets_with_datapoints = _FetchDatapointsForTargets(requested_client_id,
-                                          json_data["maxDataPoints"],
-                                          requested_targets)
+    list_targets_with_datapoints = _FetchDatapointsForTargets(
+        client_id=requested_client_id,
+        start_range=json_data["range"]["from"],
+        end_range=json_data["range"]["to"],
+        targets=requested_targets)
     response = [t._asdict() for t in list_targets_with_datapoints]
     return JSONResponse(response=response)
 
@@ -139,12 +143,15 @@ _TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
 
 
 def _FetchDatapointsForTargets(
-    client_id: Text, limit: int,
-    targets: Iterable[Text]) -> List[_TargetWithDatapoints]:
+    client_id: str, start_range: str,
+    end_range: str,
+    targets: Iterable[str]) -> List[_TargetWithDatapoints]:
   """Fetches a list of <datapoint, timestamp> tuples for each target 
   metric from Fleetspeak database."""
+  start_range_timestamp = timeToProtoTimestamp(start_range)
+  end_range_timestamp = timeToProtoTimestamp(end_range)
   records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
-      client_id, limit)
+      client_id, start_range_timestamp, end_range_timestamp)
   response = []
   for target in targets:
     datapoints_for_single_target = _CreateDatapointsForTarget(
@@ -155,8 +162,15 @@ def _FetchDatapointsForTargets(
   return response
 
 
+def timeToProtoTimestamp(
+    grafana_time: str) -> timestamp_pb2.Timestamp:
+  date = dateutil.parser.parse(grafana_time)
+  return timestamp_pb2.Timestamp(seconds=int(date.timestamp()),
+                                 nanos=date.microsecond * 1000)
+
+
 def _CreateDatapointsForTarget(
-    target: Text,
+    target: str,
     records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
 ) -> _Datapoints:
   if target == "mean_user_cpu_rate":
@@ -183,7 +197,7 @@ def _CreateDatapointsForTarget(
   ]
 
 
-def _ExtractClientIdFromVariable(req: JSONRequest) -> Text:
+def _ExtractClientIdFromVariable(req: JSONRequest) -> str:
   """Extracts the client ID from a Grafana JSON request."""
   return req["scopedVars"]["ClientID"]["value"]
 
