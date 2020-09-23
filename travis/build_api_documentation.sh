@@ -10,7 +10,7 @@ function setup_environment() {
   # Set up virtual python and node environment.
   python3 -m venv "${HOME}/DOCUMENTATION_VENV"
   source "${HOME}/DOCUMENTATION_VENV/bin/activate"
-  pip3 install --upgrade pip wheel six setuptools nodeenv absl-py
+  pip3 install --upgrade pip wheel six setuptools nodeenv absl-py mysqlclient
   nodeenv -p --prebuilt --node=12.18.0
   source "${HOME}/DOCUMENTATION_VENV/bin/activate"
 
