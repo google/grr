@@ -862,7 +862,7 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: None,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> ApiGetOpenApiDescriptionResult:
     """Handle requests for the OpenAPI description of the GRR API."""
     result = ApiGetOpenApiDescriptionResult()

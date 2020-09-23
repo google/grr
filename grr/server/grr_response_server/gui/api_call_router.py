@@ -1403,13 +1403,13 @@ class ApiCallRouterStub(ApiCallRouter):
   def GetOpenApiDescription(
       self,
       args: None,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
     """Returns a description of the API following the OpenAPI specification.
 
     Args:
       args: None, this API method does not require any arguments.
-      token: access_control.ACLToken used for ACL verification.
+      context: the API call context.
 
     Returns:
       An ApiGetOpenApiDescriptionHandler object whose Handle method is used to

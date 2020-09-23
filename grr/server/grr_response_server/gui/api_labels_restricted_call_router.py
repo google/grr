@@ -17,6 +17,7 @@ from grr_response_server import data_store
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import api_call_context
 
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import user as api_user
@@ -363,11 +364,11 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   def GetOpenApiDescription(
       self,
       args: None,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
     """Returns a description of the API following the OpenAPI specification.
 
     Everybody can get the OpenAPI description.
     """
 
-    return self.delegate.GetOpenApiDescription(args, token=token)
+    return self.delegate.GetOpenApiDescription(args, context=context)

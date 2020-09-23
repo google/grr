@@ -12,9 +12,9 @@ from __future__ import unicode_literals
 
 from typing import Optional
 
-from grr_response_server import access_control
 
 from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_context
 
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import metadata as api_metadata
@@ -117,6 +117,6 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   def GetOpenApiDescription(
       self,
       args: None,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
     return api_metadata.ApiGetOpenApiDescriptionHandler(self)
