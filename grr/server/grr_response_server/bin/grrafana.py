@@ -25,12 +25,12 @@ from werkzeug import wsgi as werkzeug_wsgi
 from werkzeug.wrappers import json as werkzeug_wrappers_json
 
 AVAILABLE_METRICS = [
-    "mean_user_cpu_rate",
-    "max_user_cpu_rate",
-    "mean_system_cpu_rate",
-    "max_system_cpu_rate",
-    "mean_resident_memory_mib",
-    "max_resident_memory_mib",
+    "Mean User CPU Rate",
+    "Max User CPU Rate",
+    "Mean System CPU Rate",
+    "Max System CPU Rate",
+    "Mean Resident Memory MB",
+    "Max Resident Memory MB",
 ]
 
 JSON_MIME_TYPE = "application/json"
@@ -173,18 +173,23 @@ def _CreateDatapointsForTarget(
     target: str,
     records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
 ) -> _Datapoints:
-  if target == "mean_user_cpu_rate":
+  if target == "Mean User CPU Rate":
     record_values = [record.mean_user_cpu_rate for record in records_list]
-  elif target == "max_user_cpu_rate":
+  elif target == "Max User CPU Rate":
     record_values = [record.max_user_cpu_rate for record in records_list]
-  elif target == "mean_system_cpu_rate":
+  elif target == "Mean System CPU Rate":
     record_values = [record.mean_system_cpu_rate for record in records_list]
-  elif target == "max_system_cpu_rate":
+  elif target == "Max System CPU Rate":
     record_values = [record.max_system_cpu_rate for record in records_list]
-  elif target == "mean_resident_memory_mib":
-    record_values = [record.mean_resident_memory_mib for record in records_list]
-  elif target == "max_resident_memory_mib":
-    record_values = [record.max_resident_memory_mib for record in records_list]
+  elif target == "Mean Resident Memory MB":
+    record_values = [
+        # conversion from MiB to MB.
+        record.mean_resident_memory_mib * 1.049 for record in records_list
+    ]
+  elif target == "Max Resident Memory MB":
+    record_values = [
+        record.max_resident_memory_mib * 1.049 for record in records_list
+    ]
   else:
     raise NameError(
         f"Target {target} is not a resource usage metric that can be " \

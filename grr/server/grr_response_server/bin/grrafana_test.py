@@ -84,13 +84,13 @@ _TEST_VALID_QUERY = {
     'intervalMs': 600000,
     'targets': [{
         'data': None,
-        'target': 'max_user_cpu_rate',
+        'target': 'Max User CPU Rate',
         'refId': 'A',
         'hide': False,
         'type': 'timeseries'
     }, {
         'data': None,
-        'target': 'mean_system_cpu_rate',
+        'target': 'Mean System CPU Rate',
         'refId': 'A',
         'hide': False,
         'type': 'timeseries'
@@ -175,12 +175,12 @@ class GrrafanaTest(absltest.TestCase):
                                 })
     self.assertEqual(200, response.status_code)
     self.assertListEqual(response.json, [
-        "mean_user_cpu_rate",
-        "max_user_cpu_rate",
-        "mean_system_cpu_rate",
-        "max_system_cpu_rate",
-        "mean_resident_memory_mib",
-        "max_resident_memory_mib",
+        "Mean User CPU Rate",
+        "Max User CPU Rate",
+        "Mean System CPU Rate",
+        "Max System CPU Rate",
+        "Mean Resident Memory MB",
+        "Max Resident Memory MB",
     ])
 
   def testQuery(self):
@@ -193,12 +193,12 @@ class GrrafanaTest(absltest.TestCase):
       self.assertEqual(200, valid_response.status_code)
       self.assertEqual(valid_response.json, [{
           "target":
-              "max_user_cpu_rate",
+              "Max User CPU Rate",
           "datapoints": [[4.999776840209961, 1597328417823],
                          [4.999615669250488, 1597328419403]]
       }, {
           "target":
-              "mean_system_cpu_rate",
+              "Mean System CPU Rate",
           "datapoints": [[0.31883034110069275, 1597328417823],
                          [0.07246342301368713, 1597328419403]]
       }])
