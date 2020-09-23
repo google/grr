@@ -10,12 +10,12 @@ function setup_environment() {
   # Set up virtual python and node environment.
   python3 -m venv "${HOME}/DOCUMENTATION_VENV"
   source "${HOME}/DOCUMENTATION_VENV/bin/activate"
-  pip3 install --upgrade pip wheel six setuptools nodeenv
+  pip3 install --upgrade pip wheel six setuptools nodeenv absl-py
   nodeenv -p --prebuilt --node=12.18.0
   source "${HOME}/DOCUMENTATION_VENV/bin/activate"
 
   # Install GRR pip packages from local pyindex.
-  pip install --no-index --no-cache-dir --find-links=grr/local_pypi \
+  pip install --no-index --no-cache-dir --find-links=local_pypi \
     local_pypi/grr-response-proto-*.zip \
     local_pypi/grr-response-core-*.zip \
     local_pypi/grr-response-client-*.zip \
