@@ -5,98 +5,102 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for TimerangeFormDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const TimerangeFormController =
-    function($scope, grrReflectionService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const TimerangeFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.reflectionService.ReflectionService}
+   *     grrReflectionService
+   * @ngInject
+   */
+  constructor($scope, grrReflectionService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
-  this.grrReflectionService_ = grrReflectionService;
+    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    this.grrReflectionService_ = grrReflectionService;
 
-  /** @type {number} */
-  this.startTimeSecs;
+    /** @type {number} */
+    this.startTimeSecs;
 
-  // The underlaying proto expects microseconds.
-  /** @type {Object} */
-  this.formStartTime;
+    // The underlaying proto expects microseconds.
+    /** @type {Object} */
+    this.formStartTime;
 
-  /** @type {number} */
-  this.durationSecs;
+    /** @type {number} */
+    this.durationSecs;
 
-  // The underlaying proto expects seconds.
-  /** @type {Object} */
-  this.formDuration;
+    // The underlaying proto expects seconds.
+    /** @type {Object} */
+    this.formDuration;
 
-  /** @type {string} */
-  this.startTimeLabel;
+    /** @type {string} */
+    this.startTimeLabel;
 
-  /** @type {string} */
-  this.durationLabel;
+    /** @type {string} */
+    this.durationLabel;
 
-  this.grrReflectionService_.getRDFValueDescriptor('RDFDatetime').then(
-      function(rdfDesc) {
-    this.formStartTime = angular.copy(rdfDesc['default']);
+    this.grrReflectionService_.getRDFValueDescriptor('RDFDatetime')
+        .then(function(rdfDesc) {
+          this.formStartTime = angular.copy(rdfDesc['default']);
 
-    return this.grrReflectionService_.getRDFValueDescriptor('DurationSeconds');
-  }.bind(this)).then(function(rdfDesc) {
-    this.formDuration = angular.copy(rdfDesc['default']);
+          return this.grrReflectionService_.getRDFValueDescriptor(
+              'DurationSeconds');
+        }.bind(this))
+        .then(function(rdfDesc) {
+          this.formDuration = angular.copy(rdfDesc['default']);
 
-    // these watchers require initialized typed fields
-    this.scope_.$watchGroup(
-        ['controller.startTimeSecs', 'controller.durationSecs'],
-        this.onParamsChange_.bind(this));
-    this.scope_.$watchGroup(
-        ['controller.formStartTime.value', 'controller.formDuration.value'],
-        this.onSubformsChange_.bind(this));
+          // these watchers require initialized typed fields
+          this.scope_.$watchGroup(
+              ['controller.startTimeSecs', 'controller.durationSecs'],
+              this.onParamsChange_.bind(this));
+          this.scope_.$watchGroup(
+              [
+                'controller.formStartTime.value',
+                'controller.formDuration.value'
+              ],
+              this.onSubformsChange_.bind(this));
 
-    // Ensure onParamsChange_ gets called first so the default values don't
-    // override the given scope values.
-    this.onParamsChange_([this.startTimeSecs, this.durationSecs]);
-  }.bind(this));
-
-};
-
-
-/**
- * Handles changes to the scope parameters.
- *
- * @private
- */
-TimerangeFormController.prototype.onParamsChange_ = function(
-    [startTimeSecs, durationSecs]) {
-  if (startTimeSecs !== null) {
-    // Conversion to μs.
-    this.formStartTime['value'] = startTimeSecs * 1e6;
+          // Ensure onParamsChange_ gets called first so the default values
+          // don't override the given scope values.
+          this.onParamsChange_([this.startTimeSecs, this.durationSecs]);
+        }.bind(this));
   }
 
-  if (durationSecs !== null) {
-    // No conversion to μs, intentionally.
-    this.formDuration['value'] = durationSecs;
+  /**
+   * Handles changes to the scope parameters.
+   *
+   * @private
+   */
+  onParamsChange_([startTimeSecs, durationSecs]) {
+    if (startTimeSecs !== null) {
+      // Conversion to μs.
+      this.formStartTime['value'] = startTimeSecs * 1e6;
+    }
+
+    if (durationSecs !== null) {
+      // No conversion to μs, intentionally.
+      this.formDuration['value'] = durationSecs;
+    }
+  }
+
+  /**
+   * Handles changes to the enclosed forms' parameters.
+   *
+   * @private
+   */
+  onSubformsChange_([formStartTime, formDuration]) {
+    if (formStartTime !== null) {
+      // Conversion to s.
+      this.startTimeSecs = formStartTime / 1e6;
+    }
+
+    // No conversion necessary, both variables are in s.
+    this.durationSecs = formDuration;
   }
 };
 
-
-/**
- * Handles changes to the enclosed forms' parameters.
- *
- * @private
- */
-TimerangeFormController.prototype.onSubformsChange_ = function(
-    [formStartTime, formDuration]) {
-  if (formStartTime !== null) {
-    // Conversion to s.
-    this.startTimeSecs = formStartTime / 1e6;
-  }
-
-  // No conversion necessary, both variables are in s.
-  this.durationSecs = formDuration;
-};
 
 
 /**

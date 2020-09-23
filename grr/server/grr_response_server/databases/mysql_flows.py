@@ -1351,12 +1351,15 @@ class MySQLDBFlowMixin(object):
                                with_substring=None,
                                cursor=None):
     """Reads flow results/errors of a given flow using given query options."""
+    client_id_int = db_utils.ClientIDToInt(client_id)
+    flow_id_int = db_utils.FlowIDToInt(flow_id)
 
-    query = ("SELECT payload, type, UNIX_TIMESTAMP(timestamp), tag "
-             f"FROM {table_name} "
-             f"FORCE INDEX ({table_name}_by_client_id_flow_id_timestamp) "
-             "WHERE client_id = %s AND flow_id = %s ")
-    args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
+    query = f"""
+        SELECT payload, type, UNIX_TIMESTAMP(timestamp), tag, hunt_id
+        FROM {table_name}
+        FORCE INDEX ({table_name}_by_client_id_flow_id_timestamp)
+        WHERE client_id = %s AND flow_id = %s """
+    args = [client_id_int, flow_id_int]
 
     if with_tag is not None:
       query += "AND tag = %s "
@@ -1377,7 +1380,7 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query, args)
 
     ret = []
-    for serialized_payload, payload_type, ts, tag in cursor.fetchall():
+    for serialized_payload, payload_type, ts, tag, hid in cursor.fetchall():
       if payload_type in rdfvalue.RDFValue.classes:
         payload = rdfvalue.RDFValue.classes[payload_type].FromSerializedBytes(
             serialized_payload)
@@ -1386,7 +1389,15 @@ class MySQLDBFlowMixin(object):
             type_name=payload_type, value=serialized_payload)
 
       timestamp = mysql_utils.TimestampToRDFDatetime(ts)
-      result = result_cls(payload=payload, timestamp=timestamp)
+      result = result_cls(
+          client_id=db_utils.IntToClientID(client_id_int),
+          flow_id=db_utils.IntToFlowID(flow_id_int),
+          payload=payload,
+          timestamp=timestamp)
+
+      if hid:
+        result.hunt_id = db_utils.IntToHuntID(hid)
+
       if tag:
         result.tag = tag
 

@@ -10,56 +10,56 @@ var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 /**
  * Controller for DownloadCollectionAsDirective.
- *
- * @constructor
- * @param {!angular.Scope} $rootScope
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const DownloadCollectionAsController = function(
-    $rootScope, $scope, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.rootScope_ = $rootScope;
+const DownloadCollectionAsController = class {
+  /**
+   * @param {!angular.Scope} $rootScope
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($rootScope, $scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.rootScope_ = $rootScope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @type {Object} */
-  this.pluginToDisplayName = {
-    'csv-zip': 'CSV (zipped)',
-    'flattened-yaml-zip': 'Flattened YAML (zipped)',
-    'sqlite-zip': 'SQLite scripts (zipped)'
-  };
+    /** @type {Object} */
+    this.pluginToDisplayName = {
+      'csv-zip': 'CSV (zipped)',
+      'flattened-yaml-zip': 'Flattened YAML (zipped)',
+      'sqlite-zip': 'SQLite scripts (zipped)'
+    };
 
-  /** @type {string} */
-  this.selectedPlugin = 'csv-zip';
+    /** @type {string} */
+    this.selectedPlugin = 'csv-zip';
+  }
+
+  /**
+   * Handles clicks on "download as" buttons.
+   *
+   * @param {string} pluginName Name of the plugin to use for export.
+   * @export
+   */
+  downloadAs(pluginName) {
+    var url = this.scope_['baseUrl'] + '/' + pluginName;
+    this.grrApiService_.downloadFile(url).then(
+        function success() {}.bind(this),
+        function failure(response) {
+          if (angular.isUndefined(response.status)) {
+            this.rootScope_.$broadcast(
+                ERROR_EVENT_NAME,
+                {message: 'Couldn\'t download exported results.'});
+          }
+        }.bind(this));
+  }
 };
 
-
-/**
- * Handles clicks on "download as" buttons.
- *
- * @param {string} pluginName Name of the plugin to use for export.
- * @export
- */
-DownloadCollectionAsController.prototype.downloadAs = function(pluginName) {
-  var url = this.scope_['baseUrl'] + '/' + pluginName;
-  this.grrApiService_.downloadFile(url).then(
-      function success() {}.bind(this),
-      function failure(response) {
-        if (angular.isUndefined(response.status)) {
-          this.rootScope_.$broadcast(
-              ERROR_EVENT_NAME, {
-                message: 'Couldn\'t download exported results.'
-              });
-        }
-      }.bind(this)
-  );
-};
 
 
 /**

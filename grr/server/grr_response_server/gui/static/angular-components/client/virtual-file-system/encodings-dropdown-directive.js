@@ -5,23 +5,26 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for EncodingsDropdownDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const EncodingsDropdownController = function(
-    $scope, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const EncodingsDropdownController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  this.grrApiService_.get('reflection/file-encodings').then(function(response){
-    this.encodings = response.data['encodings'];
-  }.bind(this));
+    this.grrApiService_.get('reflection/file-encodings')
+        .then(function(response) {
+          this.encodings = response.data['encodings'];
+        }.bind(this));
+  }
 };
 
 
@@ -36,7 +39,8 @@ exports.EncodingsDropdownDirective = function() {
     scope: {
       encoding: '=',
     },
-    templateUrl: '/static/angular-components/client/virtual-file-system/encodings-dropdown.html',
+    templateUrl:
+        '/static/angular-components/client/virtual-file-system/encodings-dropdown.html',
     controller: EncodingsDropdownController,
     controllerAs: 'controller'
   };

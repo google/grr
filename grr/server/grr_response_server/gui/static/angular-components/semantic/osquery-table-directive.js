@@ -43,45 +43,51 @@ const parseRow = (row) => {
 
 /**
  * A controller for osquery output tables.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const OsqueryTableController = function($scope) {
+const OsqueryTableController = class {
   /**
-   * @type {string}
+   * @param {!angular.Scope} $scope
+   * @ngInject
    */
-  this.query;
+  constructor($scope) {
+    /**
+     * @type {string}
+     */
+    this.query;
 
-  /**
-   * @type {!Array<!Column>}
-   */
-  this.columns;
+    /**
+     * @type {!Array<!Column>}
+     */
+    this.columns;
 
-  /**
-   * @type {!Array<!Row>}
-   */
-  this.rows;
+    /**
+     * @type {!Array<!Row>}
+     */
+    this.rows;
 
-  $scope.$watch('::value', (table) => this.onValueChange_(table));
-};
-
-/**
- * Handles changes of the value.
- *
- * @param {!Object} table A typed object corresponding to the osquery table.
- * @private
- */
-OsqueryTableController.prototype.onValueChange_ = function(table) {
-  if (table === undefined) {
-    return;
+    $scope.$watch('::value', (table) => this.onValueChange_(table));
   }
 
-  this.query = table['value']['query']['value'];
-  this.columns = table['value']['header']['value']['columns'].map(parseColumn);
-  this.rows = table['value']['rows'].map(parseRow);
+  /**
+   * Handles changes of the value.
+   *
+   * @param {!Object} table A typed object corresponding to the osquery table.
+   * @private
+   */
+  onValueChange_(table) {
+    if (table === undefined) {
+      return;
+    }
+
+    this.query = table['value']['query']['value'];
+    this.columns =
+        table['value']['header']['value']['columns'].map(parseColumn);
+    this.rows = table['value']['rows'].map(parseRow);
+  }
 };
+
+
 
 /**
  * A directive that displays osquery output tables.

@@ -87,11 +87,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     job_id = cron_manager.CreateJob(cron_args=cron_args)
 
     # Check that CronJob definition is saved properly
-    jobs = cron_manager.ListJobs(token=self.token)
+    jobs = cron_manager.ListJobs()
     self.assertLen(jobs, 1)
     self.assertEqual(jobs[0], job_id)
 
-    cron_job = cron_manager.ReadJob(job_id, token=self.token)
+    cron_job = cron_manager.ReadJob(job_id)
     hunt_args = cron_job.args.hunt_cron_action
     self.assertEqual(hunt_args.flow_name, flow_name)
 
@@ -107,15 +107,15 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-    cron_job = cron_manager.ReadJob(job_id, token=self.token)
-    self.assertFalse(cron_manager.JobIsRunning(cron_job, token=self.token))
+    cron_job = cron_manager.ReadJob(job_id)
+    self.assertFalse(cron_manager.JobIsRunning(cron_job))
     # The job never ran, so JobDueToRun() should return true.
     self.assertTrue(cron_manager.JobDueToRun(cron_job))
 
-    cron_manager.RunOnce(token=self.token)
+    cron_manager.RunOnce()
     cron_manager._GetThreadPool().Join()
 
-    runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+    runs = cron_manager.ReadJobRuns(job_id)
     self.assertLen(runs, 1)
     run = runs[0]
     self.assertTrue(run.run_id)
@@ -130,21 +130,21 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     job_id1 = cron_manager.CreateJob(cron_args=create_flow_args)
     job_id2 = cron_manager.CreateJob(cron_args=create_flow_args)
 
-    cron_manager.DisableJob(job_id1, token=self.token)
+    cron_manager.DisableJob(job_id1)
 
     event = threading.Event()
     waiting_func = functools.partial(WaitForEvent, event)
     try:
       with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
-        cron_manager.RunOnce(token=self.token)
+        cron_manager.RunOnce()
 
-      cron_job1 = cron_manager.ReadJob(job_id1, token=self.token)
-      cron_job2 = cron_manager.ReadJob(job_id2, token=self.token)
+      cron_job1 = cron_manager.ReadJob(job_id1)
+      cron_job2 = cron_manager.ReadJob(job_id2)
 
       # Disabled flow shouldn't be running, while not-disabled flow should run
       # as usual.
-      self.assertFalse(cron_manager.JobIsRunning(cron_job1, token=self.token))
-      self.assertTrue(cron_manager.JobIsRunning(cron_job2, token=self.token))
+      self.assertFalse(cron_manager.JobIsRunning(cron_job1))
+      self.assertTrue(cron_manager.JobIsRunning(cron_job2))
     finally:
       event.set()
 
@@ -160,10 +160,13 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           frequency="1h", lifetime="1h")
       with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         job_ids = []
-        for _ in range(cron_manager.max_threads * 2):
-          job_ids.append(cron_manager.CreateJob(cron_args=create_flow_args))
+        for i in range(cron_manager.max_threads * 2):
+          # TODO: The CronJob ID space is small. Using 20 random
+          #  IDs already causes flaky tests. Use hardcoded IDs instead.
+          job_ids.append(
+              cron_manager.CreateJob(cron_args=create_flow_args, job_id=f"{i}"))
 
-        cron_manager.RunOnce(token=self.token)
+        cron_manager.RunOnce()
 
         count_scheduled = 0
         for job_id in job_ids:
@@ -184,7 +187,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
     # Now all the cron jobs that weren't scheduled in previous RunOnce call
     # due to max_threads limit should get scheduled.
-    cron_manager.RunOnce(token=self.token)
+    cron_manager.RunOnce()
 
     count_scheduled = 0
     for job_id in job_ids:
@@ -243,9 +246,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
               allow_overruns=False, frequency="1h")
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
           job = cron_manager.ReadJob(job_id)
@@ -253,9 +256,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
         fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
       finally:
@@ -274,9 +277,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
               allow_overruns=False, frequency="1h")
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
           job = cron_manager.ReadJob(job_id)
@@ -285,27 +288,27 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           # At this point, there is a run currently executing and also the job
           # is not due to run for another hour. We can still force execute the
           # job.
-          cron_manager.RunOnce(token=self.token)
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_manager.RunOnce()
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
           cron_manager.RequestForcedRun(job_id)
-          cron_manager.RunOnce(token=self.token)
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_manager.RunOnce()
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 2)
 
           # The only way to prevent a forced run is to disable the job.
           cron_manager.DisableJob(job_id)
           cron_manager.RequestForcedRun(job_id)
-          cron_manager.RunOnce(token=self.token)
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_manager.RunOnce()
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 2)
 
           # And enable again.
           cron_manager.EnableJob(job_id)
           cron_manager.RequestForcedRun(job_id)
-          cron_manager.RunOnce(token=self.token)
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_manager.RunOnce()
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 3)
 
       finally:
@@ -321,9 +324,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
       job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-      cron_manager.RunOnce(token=self.token)
+      cron_manager.RunOnce()
 
-      cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+      cron_job_runs = cron_manager.ReadJobRuns(job_id)
       self.assertLen(cron_job_runs, 1)
 
     # Let 59 minutes pass. Frequency is 1 hour, so new flow is not
@@ -331,9 +334,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
     fake_time += rdfvalue.Duration.From(59, rdfvalue.MINUTES)
     with test_lib.FakeTime(fake_time):
 
-      cron_manager.RunOnce(token=self.token)
+      cron_manager.RunOnce()
 
-      cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+      cron_job_runs = cron_manager.ReadJobRuns(job_id)
       self.assertLen(cron_job_runs, 1)
 
   def testCronJobRunPreventsOverrunsWhenAllowOverrunsIsFalse(self):
@@ -349,9 +352,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
         # Let two hours pass. Frequency is 1h (i.e. cron job iterations are
@@ -361,9 +364,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
 
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
     finally:
@@ -383,9 +386,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
           job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 1)
 
         # Let two hours pass. Frequency is 1h (i.e. cron job iterations are
@@ -395,9 +398,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
         with test_lib.FakeTime(fake_time):
 
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
 
-          cron_job_runs = cron_manager.ReadJobRuns(job_id, token=self.token)
+          cron_job_runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(cron_job_runs, 2)
 
     finally:
@@ -431,9 +434,9 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue(fields=[job_id])
       prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
-      cron_manager.RunOnce(token=self.token)
+      cron_manager.RunOnce()
 
-      cron_job = cron_manager.ReadJob(job_id, token=self.token)
+      cron_job = cron_manager.ReadJob(job_id)
       self.assertTrue(cron_manager.JobIsRunning(cron_job))
       runs = cron_manager.ReadJobRuns(job_id)
       self.assertLen(runs, 1)
@@ -445,7 +448,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       event.set()
       cron_manager._GetThreadPool().Join()
 
-      cron_job = cron_manager.ReadJob(job_id, token=self.token)
+      cron_job = cron_manager.ReadJob(job_id)
       self.assertFalse(cron_manager.JobIsRunning(cron_job))
       runs = cron_manager.ReadJobRuns(job_id)
       self.assertLen(runs, 1)
@@ -478,11 +481,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
         job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-        cron_manager.RunOnce(token=self.token)
+        cron_manager.RunOnce()
         # Make sure the cron job has actually been started.
         signal_event.wait(10)
 
-        cron_job = cron_manager.ReadJob(job_id, token=self.token)
+        cron_job = cron_manager.ReadJob(job_id)
         self.assertTrue(cron_manager.JobIsRunning(cron_job))
         runs = cron_manager.ReadJobRuns(job_id)
         self.assertLen(runs, 1)
@@ -498,20 +501,20 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         with test_lib.FakeTime(fake_time):
           signal_event.clear()
           # First RunOnce call will mark the stuck job as failed.
-          cron_manager.RunOnce(token=self.token)
-          cron_job = cron_manager.ReadJob(job_id, token=self.token)
+          cron_manager.RunOnce()
+          cron_job = cron_manager.ReadJob(job_id)
           self.assertEqual(cron_job.last_run_status, "LIFETIME_EXCEEDED")
           runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(runs, 1)
           self.assertEqual(runs[0].status, "LIFETIME_EXCEEDED")
 
           # Second RunOnce call will schedule a new invocation.
-          cron_manager.RunOnce(token=self.token)
+          cron_manager.RunOnce()
           signal_event.wait(10)
 
           # Previous job run should be considered stuck by now. A new one
           # has to be started.
-          cron_job = cron_manager.ReadJob(job_id, token=self.token)
+          cron_job = cron_manager.ReadJob(job_id)
           runs = cron_manager.ReadJobRuns(job_id)
           self.assertLen(runs, 2)
 
@@ -544,7 +547,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         cron_manager._GetThreadPool().Join()
 
       # Make sure cron job got updated correctly after stuck job as finished.
-      cron_job = cron_manager.ReadJob(job_id, token=self.token)
+      cron_job = cron_manager.ReadJob(job_id)
       self.assertEqual(cron_job.last_run_status, "FINISHED")
 
   def testTimeoutOfLongRunningJobIsHandledCorrectly(self):
@@ -561,11 +564,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
         job_id = cron_manager.CreateJob(cron_args=create_flow_args)
 
-        cron_manager.RunOnce(token=self.token)
+        cron_manager.RunOnce()
         # Make sure the cron job has actually been started.
         signal_event.wait(10)
 
-        cron_job = cron_manager.ReadJob(job_id, token=self.token)
+        cron_job = cron_manager.ReadJob(job_id)
         self.assertTrue(cron_manager.JobIsRunning(cron_job))
         runs = cron_manager.ReadJobRuns(job_id)
         self.assertLen(runs, 1)
@@ -581,7 +584,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         wait_event.set()
         cron_manager._GetThreadPool().Join()
 
-        cron_job = cron_manager.ReadJob(job_id, token=self.token)
+        cron_job = cron_manager.ReadJob(job_id)
         runs = cron_manager.ReadJobRuns(job_id)
         self.assertLen(runs, 1)
         run = runs[0]
@@ -614,10 +617,10 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       prev_failure_value = cronjobs.CRON_JOB_FAILURE.GetValue([job_id])
       prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
-      cron_manager.RunOnce(token=self.token)
+      cron_manager.RunOnce()
       cron_manager._GetThreadPool().Join()
 
-      cron_job = cron_manager.ReadJob(job_id, token=self.token)
+      cron_job = cron_manager.ReadJob(job_id)
       self.assertFalse(cron_manager.JobIsRunning(cron_job))
       runs = cron_manager.ReadJobRuns(job_id)
       self.assertLen(runs, 1)

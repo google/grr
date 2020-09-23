@@ -5,44 +5,132 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for OutputPluginNoteDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.artifact.artifactDialogService.ArtifactDialogService} grrArtifactDialogService
- * @ngInject
+ * @unrestricted
  */
-const ArtifactManagerViewController =
-    function($scope, grrApiService, grrArtifactDialogService) {
+const ArtifactManagerViewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!grrUi.artifact.artifactDialogService.ArtifactDialogService}
+   *     grrArtifactDialogService
+   * @ngInject
+   */
+  constructor($scope, grrApiService, grrArtifactDialogService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
- /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /**
+     * @private {!grrUi.artifact.artifactDialogService.ArtifactDialogService}
+     */
+    this.grrArtifactDialogService_ = grrArtifactDialogService;
 
-  /** @private {!grrUi.artifact.artifactDialogService.ArtifactDialogService} */
-  this.grrArtifactDialogService_ = grrArtifactDialogService;
+    /**
+     * This variable is bound to grr-infinite-table's trigger-update attribute
+     * and therefore is set by that directive to a function that triggers
+     * table update.
+     * @export {function()}
+     */
+    this.triggerUpdate;
+
+    /** @export {Array.<Object>} */
+    this.descriptors = [];
+
+    /** @export {Object.<string, boolean>} */
+    this.selectedDescriptors = {};
+
+    /** @export {number} */
+    this.numSelectedDescriptors = 0;
+
+    /** @export {boolean} */
+    this.allDescriptorsSelected = false;
+  }
 
   /**
-   * This variable is bound to grr-infinite-table's trigger-update attribute
-   * and therefore is set by that directive to a function that triggers
-   * table update.
-   * @export {function()}
+   * Transforms table items before they get shown.
+   *
+   * @param {!Array<Object>} items Items to be transformed.
+   * @return {!Array<Object>} Transformed items.
+   * @export
+   * @suppress {missingProperties} For items, as they crom from JSON response.
    */
-  this.triggerUpdate;
+  transformItems(items) {
+    this.descriptors = [];
 
-  /** @export {Array.<Object>} */
-  this.descriptors = [];
+    angular.forEach(items, function(item) {
+      if (item.value.is_custom.value) {
+        this.descriptors.push(item);
+      }
+    }.bind(this));
 
-  /** @export {Object.<string, boolean>} */
-  this.selectedDescriptors = {};
+    return this.descriptors;
+  }
 
-  /** @export {number} */
-  this.numSelectedDescriptors = 0;
+  /**
+   * Selects all artifacts in the table
+   *
+   * @export
+   */
+  selectAll() {
+    angular.forEach(this.descriptors, function(descriptor) {
+      this.selectedDescriptors[descriptor.value.artifact.value.name.value] =
+          this.allDescriptorsSelected;
+    }.bind(this));
 
-  /** @export {boolean} */
-  this.allDescriptorsSelected = false;
+    this.updateNumSelectedDescriptors();
+  }
+
+  /**
+   * Shows "Upload artifact dialog.
+   *
+   * @export
+   */
+  upload() {
+    var result = this.grrArtifactDialogService_.openUploadArtifact();
+    result.then(function resolve() {
+      this.triggerUpdate();
+    }.bind(this));
+  }
+
+  /**
+   * Shows confirmation dialog and deletes selected artifacts.
+   *
+   * @export
+   */
+  deleteSelected() {
+    var namesToDelete = [];
+    for (var name in this.selectedDescriptors) {
+      if (this.selectedDescriptors[name]) {
+        namesToDelete.push(name);
+      }
+    }
+
+    var result =
+        this.grrArtifactDialogService_.openDeleteArtifacts(namesToDelete);
+    result.then(function resolve() {
+      this.selectedDescriptors = {};
+      this.numSelectedDescriptors = 0;
+      this.triggerUpdate();
+    }.bind(this));
+  }
+
+  /**
+   * Updates number of selected descriptors by traversing selection dictionary.
+   *
+   * @export
+   */
+  updateNumSelectedDescriptors() {
+    var count = 0;
+    for (var key in this.selectedDescriptors) {
+      if (this.selectedDescriptors[key]) {
+        ++count;
+      }
+    }
+
+    this.numSelectedDescriptors = count;
+  }
 };
 
 
@@ -52,94 +140,6 @@ const ArtifactManagerViewController =
  */
 ArtifactManagerViewController.prototype.artifactsUrl = '/artifacts';
 
-
-/**
- * Transforms table items before they get shown.
- *
- * @param {!Array<Object>} items Items to be transformed.
- * @return {!Array<Object>} Transformed items.
- * @export
- * @suppress {missingProperties} For items, as they crom from JSON response.
- */
-ArtifactManagerViewController.prototype.transformItems = function(items) {
-  this.descriptors = [];
-
-  angular.forEach(items, function(item) {
-    if (item.value.is_custom.value) {
-      this.descriptors.push(item);
-    }
-  }.bind(this));
-
-  return this.descriptors;
-};
-
-
-/**
- * Selects all artifacts in the table
- *
- * @export
- */
-ArtifactManagerViewController.prototype.selectAll = function() {
-  angular.forEach(this.descriptors, function(descriptor) {
-    this.selectedDescriptors[descriptor.value.artifact.value.name.value] =
-        this.allDescriptorsSelected;
-  }.bind(this));
-
-  this.updateNumSelectedDescriptors();
-};
-
-
-/**
- * Shows "Upload artifact dialog.
- *
- * @export
- */
-ArtifactManagerViewController.prototype.upload = function() {
-  var result = this.grrArtifactDialogService_.openUploadArtifact();
-  result.then(function resolve() {
-    this.triggerUpdate();
-  }.bind(this));
-};
-
-
-/**
- * Shows confirmation dialog and deletes selected artifacts.
- *
- * @export
- */
-ArtifactManagerViewController.prototype.deleteSelected = function() {
-  var namesToDelete = [];
-  for (var name in this.selectedDescriptors) {
-    if (this.selectedDescriptors[name]) {
-      namesToDelete.push(name);
-    }
-  }
-
-  var result = this.grrArtifactDialogService_.openDeleteArtifacts(namesToDelete);
-  result.then(function resolve() {
-    this.selectedDescriptors = {};
-    this.numSelectedDescriptors = 0;
-    this.triggerUpdate();
-  }.bind(this));
-};
-
-
-/**
- * Updates number of selected descriptors by traversing selection dictionary.
- *
- * @export
- */
-ArtifactManagerViewController.prototype.updateNumSelectedDescriptors =
-    function() {
-  var count = 0;
-  for (var key in this.selectedDescriptors) {
-    if (this.selectedDescriptors[key]) {
-      ++count;
-    }
-  }
-
-  this.numSelectedDescriptors = count;
-};
 
 
 /**

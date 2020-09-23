@@ -13,6 +13,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
 from grr_response_server import flow_base
 from grr_response_server.flows.general import file_finder as flows_file_finder
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import user as user_plugin
 from grr.test_lib import test_lib
@@ -142,7 +143,8 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
 
     handler = user_plugin.ApiListClientApprovalsHandler()
     args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id)
-    res = handler.Handle(args=args, token=self.token)
+    res = handler.Handle(
+        args=args, context=api_call_context.ApiCallContext(self.token.username))
     self.assertLen(res.items, 1)
     self.assertLen(res.items[0].notified_users, 1)
     self.assertEqual(res.items[0].notified_users[0], "sanchezrick")

@@ -93,9 +93,7 @@ exports.toggleFlowExpansion = function(flows, index) {
     // If this is not null, ignore all flows with a depth > ignoreDepth.
     var ignoreDepth = null;
     for (i = index + 1; i < flows.length; ++i) {
-
       if (flows[i].depth > flowToExpand.depth) {
-
         if (!ignoreDepth || ignoreDepth >= flows[i].depth) {
           flows[i].shown = true;
 
@@ -138,126 +136,127 @@ var toggleFlowExpansion = exports.toggleFlowExpansion;
 
 /**
  * Controller for FlowsListDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.jQuery} $element
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const FlowsListController = function(
-    $scope, $element, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const FlowsListController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.jQuery} $element
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, $element, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
+    /** @private {!angular.jQuery} */
+    this.element_ = $element;
 
-  /** @type {!Object<string, Object>} */
-  this.flowsById = {};
+    /** @type {!Object<string, Object>} */
+    this.flowsById = {};
 
-  /** @type {?string} */
-  this.selectedFlowId;
+    /** @type {?string} */
+    this.selectedFlowId;
 
-  /** @type {function(boolean)} */
-  this.triggerTableUpdate;
+    /** @type {function(boolean)} */
+    this.triggerTableUpdate;
 
-  /** @type {number} */
-  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
+    /** @type {number} */
+    this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
-  /** @type {number} */
-  this.pageSize = PAGE_SIZE;
+    /** @type {number} */
+    this.pageSize = PAGE_SIZE;
 
-  // Push the selection changes back to the scope, so that other UI components
-  // can react on the change.
-  this.scope_.$watch('controller.selectedFlowId', function(newValue) {
-    // Only propagate real changes, don't propagate initial undefined
-    // value.
-    if (angular.isDefined(newValue)) {
-      this.scope_['selectedFlowId'] = newValue;
-    }
-  }.bind(this));
+    // Push the selection changes back to the scope, so that other UI components
+    // can react on the change.
+    this.scope_.$watch('controller.selectedFlowId', function(newValue) {
+      // Only propagate real changes, don't propagate initial undefined
+      // value.
+      if (angular.isDefined(newValue)) {
+        this.scope_['selectedFlowId'] = newValue;
+      }
+    }.bind(this));
 
-  // If outer binding changes, we want to update our selection.
-  this.scope_.$watch('selectedFlowId', function(newValue) {
-    if (angular.isDefined(newValue)) {
-      this.selectedFlowId = newValue;
-    }
-  }.bind(this));
+    // If outer binding changes, we want to update our selection.
+    this.scope_.$watch('selectedFlowId', function(newValue) {
+      if (angular.isDefined(newValue)) {
+        this.selectedFlowId = newValue;
+      }
+    }.bind(this));
 
-  // Propagate our triggerUpdate implementation to the scope so that users of
-  // this directive can use it.
-  this.scope_['triggerUpdate'] = this.triggerUpdate.bind(this);
+    // Propagate our triggerUpdate implementation to the scope so that users of
+    // this directive can use it.
+    this.scope_['triggerUpdate'] = this.triggerUpdate.bind(this);
+  }
+
+  /**
+   * Selects given item in the list.
+   *
+   * @param {!Object} item Item to be selected.
+   * @export
+   */
+  selectItem(item) {
+    this.selectedFlowId = item['value']['flow_id']['value'];
+  }
+
+  /**
+   * Transforms items fetched by API items provider so that they can be
+   * correctly presented as flows tree.
+   *
+   * @param {!Array<Object>} items Items to be transformed.
+   * @return {!Array<Object>} Transformed items.
+   * @export
+   */
+  transformItems(items) {
+    var flattenedItems = flattenFlowsList(items);
+
+    angular.forEach(flattenedItems, function(item, index) {
+      var components = item['value']['flow_id']['value'].split('/');
+      item.shortId = components[components.length - 1];
+      item.shown = item.depth == 0;
+      if (index < flattenedItems.length - 1 &&
+          flattenedItems[index + 1].depth > item.depth) {
+        item.expanded = false;
+      }
+
+      item.expand = function(e) {
+        e.stopPropagation();
+        toggleFlowExpansion(flattenedItems, index);
+      };
+
+      // If the flow couldn't be parsed by the AdminUI, it won't have
+      // proper "state" and "last_active_at" attributes. Getting
+      // these attributes conditionally.
+      // NOTE: It's only safe to assume that the "flow_id" attribute
+      // is present.
+      var state = 'BROKEN';
+      if (angular.isDefined(item['value']['state'])) {
+        state = item['value']['state']['value'];
+      }
+
+      var last_active_at = 0;
+      if (angular.isDefined(item['value']['last_active_at'])) {
+        last_active_at = item['value']['last_active_at']['value'];
+      }
+
+      item[TABLE_KEY_NAME] = item['value']['flow_id']['value'];
+      item[TABLE_ROW_HASH] = [state, last_active_at];
+    }.bind(this));
+
+    return flattenedItems;
+  }
+
+  /**
+   * Triggers a graceful update of the infinite table.
+   *
+   * @export
+   */
+  triggerUpdate() {
+    this.triggerTableUpdate(true);
+  }
 };
 
 
-/**
- * Selects given item in the list.
- *
- * @param {!Object} item Item to be selected.
- * @export
- */
-FlowsListController.prototype.selectItem = function(item) {
-  this.selectedFlowId = item['value']['flow_id']['value'];
-};
-
-
-/**
- * Transforms items fetched by API items provider so that they can be
- * correctly presented as flows tree.
- *
- * @param {!Array<Object>} items Items to be transformed.
- * @return {!Array<Object>} Transformed items.
- * @export
- */
-FlowsListController.prototype.transformItems = function(items) {
-  var flattenedItems = flattenFlowsList(items);
-
-  angular.forEach(flattenedItems, function(item, index) {
-    var components = item['value']['flow_id']['value'].split('/');
-    item.shortId = components[components.length - 1];
-    item.shown = item.depth == 0;
-    if (index < flattenedItems.length - 1 &&
-        flattenedItems[index + 1].depth > item.depth) {
-      item.expanded = false;
-    }
-
-    item.expand = function(e) {
-      e.stopPropagation();
-      toggleFlowExpansion(flattenedItems, index);
-    };
-
-    // If the flow couldn't be parsed by the AdminUI, it won't have
-    // proper "state" and "last_active_at" attributes. Getting
-    // these attributes conditionally.
-    // NOTE: It's only safe to assume that the "flow_id" attribute
-    // is present.
-    var state = 'BROKEN';
-    if (angular.isDefined(item['value']['state'])) {
-      state = item['value']['state']['value'];
-    }
-
-    var last_active_at = 0;
-    if (angular.isDefined(item['value']['last_active_at'])) {
-      last_active_at = item['value']['last_active_at']['value'];
-    }
-
-    item[TABLE_KEY_NAME] = item['value']['flow_id']['value'];
-    item[TABLE_ROW_HASH] = [state, last_active_at];
-  }.bind(this));
-
-  return flattenedItems;
-};
-
-
-/**
- * Triggers a graceful update of the infinite table.
- *
- * @export
- */
-FlowsListController.prototype.triggerUpdate = function() {
-  this.triggerTableUpdate(true);
-};
 
 /**
  * FlowsListDirective definition.
@@ -266,11 +265,7 @@ FlowsListController.prototype.triggerUpdate = function() {
  */
 exports.FlowsListDirective = function() {
   return {
-    scope: {
-      flowsUrl: '=',
-      selectedFlowId: '=?',
-      triggerUpdate: '=?'
-    },
+    scope: {flowsUrl: '=', selectedFlowId: '=?', triggerUpdate: '=?'},
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flows-list.html',
     controller: FlowsListController,

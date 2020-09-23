@@ -5,49 +5,51 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for OutputPluginsNotesDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const OutputPluginsNotesController =
-    function($scope, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const OutputPluginsNotesController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @export {?string} */
-  this.error;
+    /** @export {?string} */
+    this.error;
 
-  /** @export {Array<Object>} */
-  this.outputPlugins;
+    /** @export {Array<Object>} */
+    this.outputPlugins;
 
-  this.scope_.$watch('outputPluginsUrl',
-                     this.onOutputPluginsUrlChange_.bind(this));
-};
+    this.scope_.$watch(
+        'outputPluginsUrl', this.onOutputPluginsUrlChange_.bind(this));
+  }
 
-
-/**
- * Handles changes in metadata url.
- *
- * @param {?string} newValue New metadata url.
- * @private
- */
-OutputPluginsNotesController.prototype.onOutputPluginsUrlChange_ = function(
-    newValue) {
-  if (angular.isDefined(newValue)) {
-    this.grrApiService_.get(/** @type {string} */ (newValue)).then(
-        function success(response) {
-          this.outputPlugins = response['data']['items'];
-        }.bind(this),
-        function failure(response) {
-          this.error = response['data']['message'];
-        }.bind(this));
+  /**
+   * Handles changes in metadata url.
+   *
+   * @param {?string} newValue New metadata url.
+   * @private
+   */
+  onOutputPluginsUrlChange_(newValue) {
+    if (angular.isDefined(newValue)) {
+      this.grrApiService_.get(/** @type {string} */ (newValue))
+          .then(
+              function success(response) {
+                this.outputPlugins = response['data']['items'];
+              }.bind(this),
+              function failure(response) {
+                this.error = response['data']['message'];
+              }.bind(this));
+    }
   }
 };
+
 
 
 /**
@@ -59,9 +61,7 @@ OutputPluginsNotesController.prototype.onOutputPluginsUrlChange_ = function(
  */
 exports.OutputPluginsNotesDirective = function() {
   return {
-    scope: {
-      outputPluginsUrl: '='
-    },
+    scope: {outputPluginsUrl: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/output-plugins/' +
         'output-plugins-notes.html',

@@ -34,8 +34,7 @@ describe('multi-get-file-details component', () => {
         newFlowListEntry({name: 'MultiGetFile'});
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText)
-        .toContain('The flow didn\'t report its progress');
+    expect(fixture.nativeElement.innerText).toContain('legacy UI');
   });
 
   const FLOW_LIST_ENTRY = Object.freeze(newFlowListEntry({

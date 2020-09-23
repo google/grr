@@ -5,97 +5,100 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for WizardFormDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-exports.WizardFormController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+exports.WizardFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {Array<Object>} */
-  this.pages = [];
+    /** @type {Array<Object>} */
+    this.pages = [];
 
-  /** @type {Object} */
-  this.currentPage;
+    /** @type {Object} */
+    this.currentPage;
 
-  /** @type {number} */
-  this.currentPageIndex;
+    /** @type {number} */
+    this.currentPageIndex;
 
-  this.scope_.$watchCollection('controller.pages',
-                               this.onPagesOrCurrentPageChange_.bind(this));
-  this.scope_.$watch('controller.currentPage',
-                     this.onPagesOrCurrentPageChange_.bind(this));
-  this.scope_.$watch('controller.currentPage', function(newValue) {
-    if (angular.isDefined(newValue)) {
-      newValue.onShow();
+    this.scope_.$watchCollection(
+        'controller.pages', this.onPagesOrCurrentPageChange_.bind(this));
+    this.scope_.$watch(
+        'controller.currentPage', this.onPagesOrCurrentPageChange_.bind(this));
+    this.scope_.$watch('controller.currentPage', function(newValue) {
+      if (angular.isDefined(newValue)) {
+        newValue.onShow();
+      }
+    }.bind(this));
+  }
+
+  /**
+   * Handles changes of a current page.
+   *
+   * @private
+   */
+  onPagesOrCurrentPageChange_() {
+    this.currentPageIndex = this.pages.indexOf(this.currentPage);
+  }
+
+  /**
+   * Called when user presses 'Back' button.
+   *
+   * @export
+   */
+  back() {
+    var index = this.pages.indexOf(this.currentPage);
+    if (index == 0) {
+      throw new Error('Can\'t go back from the first page.');
     }
-  }.bind(this));
+
+    this.currentPage = this.pages[index - 1];
+  }
+
+  /**
+   * Called when user presses 'Next' button.
+   *
+   * @export
+   */
+  next() {
+    var index = this.pages.indexOf(this.currentPage);
+    if (index < this.pages.length - 1) {
+      this.currentPage = this.pages[index + 1];
+    } else {
+      this.scope_['onResolve']();
+    }
+  }
+
+  /**
+   * Called when 'x' button in the modal header is clicked.
+   *
+   * @export
+   */
+  reject() {
+    this.scope_['onReject']();
+  }
+
+  /**
+   * Registers a new page. Used by grr-wizard-form-page directives.
+   *
+   * @param {grrUi.core.wizardFormPageDirective.WizardFormPageController}
+   *     pageController
+   * @export
+   */
+  registerPage(pageController) {
+    this.pages.push(pageController);
+
+    if (angular.isUndefined(this.currentPage)) {
+      this.currentPage = pageController;
+    }
+  }
 };
 var WizardFormController = exports.WizardFormController;
 
-
-/**
- * Handles changes of a current page.
- *
- * @private
- */
-WizardFormController.prototype.onPagesOrCurrentPageChange_ = function() {
-  this.currentPageIndex = this.pages.indexOf(this.currentPage);
-};
-
-/**
- * Called when user presses 'Back' button.
- *
- * @export
- */
-WizardFormController.prototype.back = function() {
-  var index = this.pages.indexOf(this.currentPage);
-  if (index == 0) {
-    throw new Error('Can\'t go back from the first page.');
-  }
-
-  this.currentPage = this.pages[index - 1];
-};
-
-/**
- * Called when user presses 'Next' button.
- *
- * @export
- */
-WizardFormController.prototype.next = function() {
-  var index = this.pages.indexOf(this.currentPage);
-  if (index < this.pages.length - 1) {
-    this.currentPage = this.pages[index + 1];
-  } else {
-    this.scope_['onResolve']();
-  }
-};
-
-/**
- * Called when 'x' button in the modal header is clicked.
- *
- * @export
- */
-WizardFormController.prototype.reject = function() {
-  this.scope_['onReject']();
-};
-
-/**
- * Registers a new page. Used by grr-wizard-form-page directives.
- *
- * @param {grrUi.core.wizardFormPageDirective.WizardFormPageController}
- *     pageController
- * @export
- */
-WizardFormController.prototype.registerPage = function(pageController) {
-  this.pages.push(pageController);
-
-  if (angular.isUndefined(this.currentPage)) {
-    this.currentPage = pageController;
-  }
-};
 
 
 /**
@@ -107,11 +110,7 @@ WizardFormController.prototype.registerPage = function(pageController) {
  */
 exports.WizardFormDirective = function() {
   return {
-    scope: {
-      title: '@',
-      onResolve: '&',
-      onReject: '&'
-    },
+    scope: {title: '@', onResolve: '&', onReject: '&'},
     restrict: 'E',
     transclude: true,
     templateUrl: '/static/angular-components/core/wizard-form.html',

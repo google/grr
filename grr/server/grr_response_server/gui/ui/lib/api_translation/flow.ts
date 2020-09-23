@@ -1,15 +1,13 @@
-import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow} from '@app/lib/api/api_interfaces';
 import {createDate, createUnknownObject} from '@app/lib/api_translation/primitive';
-import {Flow, FlowDescriptor, FlowResult, FlowState} from '@app/lib/models/flow';
+import {Flow, FlowDescriptor, FlowResult, FlowState, ScheduledFlow} from '@app/lib/models/flow';
+import {assertKeyNonNull} from '../preconditions';
 
 /** Constructs a FlowDescriptor from the corresponding API data structure */
 export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
-  if (!fd.name) throw new Error('name attribute is missing.');
-  if (!fd.category) throw new Error('category attribute is missing.');
-  if (!fd.defaultArgs) throw new Error('defaultArgs attribute is missing.');
-  if (!fd.defaultArgs['@type']) {
-    throw new Error('defaultArgs["@type"] attribute is missing.');
-  }
+  assertKeyNonNull(fd, 'name');
+  assertKeyNonNull(fd, 'category');
+  assertKeyNonNull(fd, 'defaultArgs');
 
   const result = {
     name: fd.name,
@@ -26,6 +24,8 @@ export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
 function translateApiFlowState(state: ApiFlowState): FlowState {
   if (state === ApiFlowState.RUNNING) {
     return FlowState.RUNNING;
+  } else if (state === ApiFlowState.ERROR) {
+    return FlowState.ERROR;
   } else {
     return FlowState.FINISHED;
   }
@@ -33,14 +33,12 @@ function translateApiFlowState(state: ApiFlowState): FlowState {
 
 /** Constructs a Flow from the corresponding API data structure. */
 export function translateFlow(apiFlow: ApiFlow): Flow {
-  if (!apiFlow.flowId) throw new Error('flowId attribute is missing.');
-  if (!apiFlow.clientId) throw new Error('clientId attribute is missing.');
-  if (!apiFlow.lastActiveAt) {
-    throw new Error('lastActiveAt attribute is missing.');
-  }
-  if (!apiFlow.startedAt) throw new Error('startedAt attribute is missing.');
-  if (!apiFlow.name) throw new Error('name attribute is missing.');
-  if (!apiFlow.state) throw new Error('state attribute missing');
+  assertKeyNonNull(apiFlow, 'flowId');
+  assertKeyNonNull(apiFlow, 'clientId');
+  assertKeyNonNull(apiFlow, 'lastActiveAt');
+  assertKeyNonNull(apiFlow, 'startedAt');
+  assertKeyNonNull(apiFlow, 'name');
+  assertKeyNonNull(apiFlow, 'state');
 
   return {
     flowId: apiFlow.flowId,
@@ -57,14 +55,32 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
 
 /** Construct a FlowResult model object, corresponding to ApiFlowResult.  */
 export function translateFlowResult(apiFlowResult: ApiFlowResult): FlowResult {
-  if (!apiFlowResult.payload) throw new Error('payload attribute is missing.');
-  if (!apiFlowResult.timestamp) {
-    throw new Error('timestamp attribute is missing.');
-  }
+  assertKeyNonNull(apiFlowResult, 'payload');
+  assertKeyNonNull(apiFlowResult, 'timestamp');
 
   return {
     payload: createUnknownObject(apiFlowResult.payload),
     tag: apiFlowResult.tag ?? '',
     timestamp: createDate(apiFlowResult.timestamp),
+  };
+}
+
+/** Constructs a ScheduledFlow from the corresponding API data structure. */
+export function translateScheduledFlow(apiSF: ApiScheduledFlow): ScheduledFlow {
+  assertKeyNonNull(apiSF, 'scheduledFlowId');
+  assertKeyNonNull(apiSF, 'clientId');
+  assertKeyNonNull(apiSF, 'creator');
+  assertKeyNonNull(apiSF, 'flowName');
+  assertKeyNonNull(apiSF, 'flowArgs');
+  assertKeyNonNull(apiSF, 'createTime');
+
+  return {
+    scheduledFlowId: apiSF.scheduledFlowId,
+    clientId: apiSF.clientId,
+    creator: apiSF.creator,
+    flowName: apiSF.flowName,
+    flowArgs: createUnknownObject(apiSF.flowArgs),
+    createTime: createDate(apiSF.createTime),
+    error: apiSF.error,
   };
 }

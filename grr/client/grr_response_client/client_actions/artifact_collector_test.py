@@ -9,6 +9,9 @@ import builtins
 import glob
 import io
 import os
+from typing import IO
+from typing import Iterable
+from typing import Iterator
 
 from absl import app
 import mock
@@ -539,12 +542,17 @@ class TestEchoCmdParser(parser.CommandParser):
     ])
 
 
-class FakeFileParser(parsers.SingleFileParser):
+class FakeFileParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]):
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["FakeFileArtifact"]
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_protodict.AttributedDict]:
     del knowledge_base  # Unused.
 
     lines = set(l.strip() for l in filedesc.read().splitlines())
@@ -557,12 +565,18 @@ class FakeFileParser(parsers.SingleFileParser):
     yield rdf_protodict.AttributedDict(**cfg)
 
 
-class FakeFileMultiParser(parsers.MultiFileParser):
+class FakeFileMultiParser(parsers.MultiFileParser[rdf_protodict.AttributedDict]
+                         ):
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["FakeFileArtifact2"]
 
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[rdf_protodict.AttributedDict]:
     del knowledge_base  # Unused.
 
     lines = set()

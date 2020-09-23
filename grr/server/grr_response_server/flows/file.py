@@ -25,10 +25,18 @@ class CollectSingleFile(transfer.MultiGetFileLogic, flow_base.FlowBase):
   category = "/Filesystem/"
   args_type = rdf_file_finder.CollectSingleFileArgs
   result_types = (rdf_file_finder.CollectSingleFileResult,)
+  progress_type = rdf_file_finder.CollectSingleFileProgress
   behaviours = flow_base.BEHAVIOUR_DEBUG
+
+  def GetProgress(self) -> rdf_file_finder.CollectSingleFileProgress:
+    return self.state.progress
 
   def Start(self):
     super().Start(file_size=self.args.max_size_bytes)
+
+    self.state.progress = rdf_file_finder.CollectSingleFileProgress(
+        status=rdf_file_finder.CollectSingleFileProgress.Status.IN_PROGRESS)
+
     pathspec = rdf_paths.PathSpec.OS(path=self.args.path)
     self.StartFileFetch(pathspec)
 
@@ -44,6 +52,9 @@ class CollectSingleFile(transfer.MultiGetFileLogic, flow_base.FlowBase):
         stat=stat_entry, hash=hash_obj)
     self.SendReply(result)
 
+    self.state.progress.result = result
+    self.state.progress.status = rdf_file_finder.CollectSingleFileProgress.Status.COLLECTED
+
   def FileFetchFailed(self,
                       pathspec: rdf_paths.PathSpec,
                       request_data: Any = None,
@@ -55,12 +66,27 @@ class CollectSingleFile(transfer.MultiGetFileLogic, flow_base.FlowBase):
       tsk_pathspec = rdf_paths.PathSpec.TSK(path=self.args.path)
       self.StartFileFetch(tsk_pathspec)
     elif status is not None and status.error_message:
-      raise flow_base.FlowError("{} when fetching {} with {}".format(
-          status.error_message, pathspec.path, pathspec.pathtype))
+      error_description = "{} when fetching {} with {}".format(
+          status.error_message, pathspec.path, pathspec.pathtype)
+
+      # TODO: this is a really bad hack and should be fixed by
+      # passing the 'not found' status in a more structured way.
+      if "File not found" in status.error_message:
+        self.state.progress.status = rdf_file_finder.CollectSingleFileProgress.Status.NOT_FOUND
+      else:
+        self.state.progress.status = rdf_file_finder.CollectSingleFileProgress.Status.FAILED
+        self.state.progress.error_description = error_description
+
+      raise flow_base.FlowError(error_description)
     else:
-      raise flow_base.FlowError(
+      error_description = (
           "File {} could not be fetched with {} due to an unknown error. "
           "Check the flow logs.".format(pathspec.path, pathspec.pathtype))
+
+      self.state.progress.tatus = rdf_file_finder.CollectSingleFileProgress.Status.FAILED
+      self.state.progress.error_description = error_description
+
+      raise flow_base.FlowError(error_description)
 
   @classmethod
   def GetDefaultArgs(cls, username=None):

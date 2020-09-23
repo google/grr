@@ -85,80 +85,81 @@ var isByteString = exports.isByteString;
 
 /**
  * Controller for BytesFormDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$window} $window
- * @ngInject
+ * @unrestricted
  */
-const BytesFormController = function(
-    $scope, $window) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const BytesFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$window} $window
+   * @ngInject
+   */
+  constructor($scope, $window) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.$window} */
-  this.window_ = $window;
+    /** @private {!angular.$window} */
+    this.window_ = $window;
 
-  /** @export {string} */
-  this.valueString = '';
+    /** @export {string} */
+    this.valueString = '';
 
-  this.scope_.$watch('value.value',
-                     this.onValueChange_.bind(this));
-  this.scope_.$watch('controller.valueString',
-                     this.onValueStringChange_.bind(this));
-};
+    this.scope_.$watch('value.value', this.onValueChange_.bind(this));
+    this.scope_.$watch(
+        'controller.valueString', this.onValueStringChange_.bind(this));
+  }
 
-
-/**
- * Handles changes in the value bound to be edited by this directive.
- * As the value may be changed in onValueStringChange handler (i.e. when
- * user types a symbol), we're only changing this.valueString if
- * the bytes sequence it represents is different from newValue.
- *
- * @param {string} newValue New time value.
- * @private
- */
-BytesFormController.prototype.onValueChange_ = function(newValue) {
-  if (angular.isString(newValue)) {
-    try {
-      var base64DecodedBytes = this.window_.atob(newValue);
-      if (base64DecodedBytes != hexEncodedStringToBytes(this.valueString)) {
-        this.valueString = bytesToHexEncodedString(base64DecodedBytes);
+  /**
+   * Handles changes in the value bound to be edited by this directive.
+   * As the value may be changed in onValueStringChange handler (i.e. when
+   * user types a symbol), we're only changing this.valueString if
+   * the bytes sequence it represents is different from newValue.
+   *
+   * @param {string} newValue New time value.
+   * @private
+   */
+  onValueChange_(newValue) {
+    if (angular.isString(newValue)) {
+      try {
+        var base64DecodedBytes = this.window_.atob(newValue);
+        if (base64DecodedBytes != hexEncodedStringToBytes(this.valueString)) {
+          this.valueString = bytesToHexEncodedString(base64DecodedBytes);
+        }
+      } catch (err) {
+        this.valueString = '';
       }
-    } catch (err) {
-      this.valueString = '';
     }
   }
+
+  /**
+   * Handles changes in string representation of the time value being edited.
+   * Called when user types or deletes a symbol. Updates the actual value
+   * that's bound to this directive via "value" binding.
+   *
+   * @param {string} newValue New string from the text input.
+   * @private
+   */
+  onValueStringChange_(newValue) {
+    if (angular.isUndefined(newValue)) {
+      return;
+    }
+
+    if (!isByteString(newValue)) {
+      // Annotate the value with 'validationError' annotation.
+      // These annotations are meant to be used by the higher-level
+      // UI components to disable submit buttons and show errors
+      // summary.
+      this.scope_['value']['validationError'] =
+          'Unicode characters are not allowed in a byte string.';
+      return;
+    } else {
+      delete this.scope_['value']['validationError'];
+    }
+
+    this.scope_['value']['value'] =
+        this.window_.btoa(hexEncodedStringToBytes(newValue));
+  }
 };
 
-/**
- * Handles changes in string representation of the time value being edited.
- * Called when user types or deletes a symbol. Updates the actual value
- * that's bound to this directive via "value" binding.
- *
- * @param {string} newValue New string from the text input.
- * @private
- */
-BytesFormController.prototype.onValueStringChange_ = function(newValue) {
-  if (angular.isUndefined(newValue)) {
-    return;
-  }
-
-  if (!isByteString(newValue)) {
-    // Annotate the value with 'validationError' annotation.
-    // These annotations are meant to be used by the higher-level
-    // UI components to disable submit buttons and show errors
-    // summary.
-    this.scope_['value']['validationError'] =
-        'Unicode characters are not allowed in a byte string.';
-    return;
-  } else {
-    delete this.scope_['value']['validationError'];
-  }
-
-  this.scope_['value']['value'] =
-      this.window_.btoa(hexEncodedStringToBytes(newValue));
-};
 
 
 /**
@@ -169,10 +170,7 @@ BytesFormController.prototype.onValueStringChange_ = function(newValue) {
 exports.BytesFormDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      value: '=',
-      metadata: '='
-    },
+    scope: {value: '=', metadata: '='},
     templateUrl: '/static/angular-components/forms/bytes-form.html',
     controller: BytesFormController,
     controllerAs: 'controller'

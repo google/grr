@@ -6,6 +6,8 @@
 // Include all theme-styles for the components based on the current theme.
 @include angular-material-theme($theme);
 
+$toolbar-height: 64px;
+
 app,
 body,
 html {
@@ -19,6 +21,7 @@ html {
   position: absolute;
   right: 86px;
   top: 1.6em;
+  height: 3em;
 }
 
 .flow-details-summary-aligned {

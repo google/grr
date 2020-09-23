@@ -639,12 +639,20 @@ class ClientCrash(rdf_structs.RDFProtoStruct):
   ]
 
 
+class EdrAgent(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for protobuf message containing EDR agent metadata."""
+
+  protobuf = jobs_pb2.EdrAgent
+  rdf_deps = []
+
+
 class ClientSummary(rdf_structs.RDFProtoStruct):
   """Object containing client's summary data."""
   protobuf = jobs_pb2.ClientSummary
   rdf_deps = [
       ClientInformation,
       ClientURN,
+      EdrAgent,
       rdf_client_network.Interface,
       rdfvalue.RDFDatetime,
       Uname,

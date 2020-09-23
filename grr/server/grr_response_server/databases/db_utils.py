@@ -132,7 +132,13 @@ def FlowIDToInt(flow_id):
 
 
 def IntToFlowID(flow_id):
-  return "%08X" % flow_id
+  # Stringify legacy IDs (32-bit) to 8 characters to allow string equality
+  # comparison, otherwise "11111111" would be != "0000000011111111", but both
+  # represent the same actual number 0x11111111.
+  if flow_id <= 0xFFFFFFFF:
+    return "{:08X}".format(flow_id)
+  else:
+    return "{:016X}".format(flow_id)
 
 
 def HuntIDToInt(hunt_id):
@@ -152,7 +158,7 @@ def HuntIDToInt(hunt_id):
 
 
 def IntToHuntID(hunt_id):
-  return "%08X" % hunt_id
+  return IntToFlowID(hunt_id)
 
 
 def OutputPluginIDToInt(output_plugin_id):

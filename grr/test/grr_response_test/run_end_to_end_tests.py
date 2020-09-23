@@ -33,13 +33,11 @@ flags.DEFINE_string("api_password", "", "Password for GRR API.")
 flags.DEFINE_string("client_id", "", "Id for client to run tests against.")
 
 flags.DEFINE_list(
-    "whitelisted_tests", [],
+    "run_only_tests", [],
     "(Optional) comma-separated list of tests to run (skipping all others).")
 
-flags.DEFINE_list(
-    "blacklisted_tests", [],
-    "(Optional) comma-separated list of tests to skip. Trumps "
-    "--whitelisted_tests if there are any conflicts.")
+flags.DEFINE_list("skip_tests", [],
+                  "(Optional) comma-separated list of tests to skip.")
 
 flags.DEFINE_list(
     name="manual_tests",
@@ -85,8 +83,8 @@ def main(argv):
       api_endpoint=flags.FLAGS.api_endpoint,
       api_user=flags.FLAGS.api_user,
       api_password=flags.FLAGS.api_password,
-      whitelisted_tests=flags.FLAGS.whitelisted_tests,
-      blacklisted_tests=flags.FLAGS.blacklisted_tests,
+      run_only_tests=flags.FLAGS.run_only_tests,
+      skip_tests=flags.FLAGS.skip_tests,
       manual_tests=flags.FLAGS.manual_tests,
       upload_test_binaries=flags.FLAGS.upload_test_binaries)
   test_runner.Initialize()

@@ -4,6 +4,8 @@ import {Flow, FlowDescriptor, FlowListEntry, FlowResultsQuery, FlowState} from '
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
+import {assertNonNull} from '../../lib/preconditions';
+
 import {FLOW_DETAILS_DEFAULT_PLUGIN, FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
 
 /** Enum of Actions that can be triggered in the Flow Context Menu. */
@@ -62,9 +64,7 @@ export class FlowDetails implements OnChanges, OnDestroy {
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {
-    if (this.flowListEntry === undefined) {
-      throw new Error('@Input() "flow" is required');
-    }
+    assertNonNull(this.flowListEntry, '@Input() flow');
 
     const componentClass =
         FLOW_DETAILS_PLUGIN_REGISTRY[this.flowListEntry.flow.name] ||

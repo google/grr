@@ -12,6 +12,7 @@ import unittest
 from absl import app
 
 from grr_response_client import vfs
+from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -99,7 +100,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                               rdf_paths.PathSpec.Options.CASE_LITERAL))
     self.assertEqual(str(s.st_atime), "2020-03-03 20:10:46")
     self.assertEqual(str(s.st_mtime), "2020-03-03 20:10:46")
-    self.assertEqual(str(s.st_crtime), "2020-03-03 16:46:00")
+    self.assertEqual(str(s.st_btime), "2020-03-03 16:46:00")
     self.assertEqual(s.st_size, 3893)
 
   def testNTFSListNames(self):
@@ -142,7 +143,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 16:48:16"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 16:47:43"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 16:47:50"),
@@ -157,7 +158,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 14:57:02"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:23:07"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 14:56:47"),
@@ -172,7 +173,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:38"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:38"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:38"),
@@ -189,7 +190,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 20:10:46"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 16:46:00"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-03-03 20:10:46"),
@@ -205,7 +206,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:33"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:33"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-08 20:14:33"),
@@ -222,7 +223,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-06-10 13:34:36"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-06-10 13:34:36"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-06-10 13:34:36"),
@@ -248,7 +249,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 path_options=rdf_paths.PathSpec.Options.CASE_LITERAL),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:51"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
@@ -265,7 +266,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 stream_name="one"),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:51"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
@@ -282,7 +283,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
                 stream_name="two"),
             st_atime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:51"),
-            st_crtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
+            st_btime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:18:53"),
             st_mtime=rdfvalue.RDFDatetimeSeconds.FromHumanReadable(
                 "2020-04-07 13:48:56"),
@@ -343,7 +344,7 @@ class NTFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
             path_options=rdf_paths.PathSpec.Options.CASE_LITERAL))
     self.assertEqual(str(s.st_atime), "2020-04-07 13:48:51")
     self.assertEqual(str(s.st_mtime), "2020-04-07 13:48:56")
-    self.assertEqual(str(s.st_crtime), "2020-04-07 13:18:53")
+    self.assertEqual(str(s.st_btime), "2020-04-07 13:18:53")
     self.assertEqual(s.st_size, 6)
 
   def testNTFSOpenByInode_alternateDataStreams(self):
@@ -373,6 +374,16 @@ class NTFSNativeWindowsTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
           path=path, pathtype=rdf_paths.PathSpec.PathType.NTFS)
       fd = vfs.VFSOpen(pathspec)
       self.assertEqual(fd.Read(100).decode("utf-8"), file_data)
+
+  def testGlobComponentGenerate(self):
+    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)
+    paths = globbing.GlobComponent(u"Windows", opts=opts).Generate("C:\\")
+    self.assertEqual(list(paths), [u"C:\\Windows"])
+
+  def testGlobbingExpandPath(self):
+    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.NTFS)
+    paths = globbing.ExpandPath("C:/Windows/System32/notepad.exe", opts=opts)
+    self.assertEqual(list(paths), [u"C:\\Windows\\System32\\notepad.exe"])
 
 
 def main(argv):

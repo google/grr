@@ -20,7 +20,22 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class TimelineFlow(flow_base.FlowBase):
-  """A flow mixin wrapping the timeline client action."""
+  """A flow recursively collecting stat information under the given directory.
+
+  The timeline flow collects stat information for every file under the given
+  directory (including all subfolders recursively). Unlike the file finder flow,
+  the search does not have any depth limit and is extremely fast—it should
+  complete the scan within minutes on an average machine.
+
+  The results can be then exported in multiple formats (e.g. BODY [1]) and
+  analyzed locally using existing forensic tools.
+
+  Note that the flow is optimized for collecting stat data only. If any extra
+  information about the file (e.g. its content or hash) is needed, other more
+  flows (like the file finder flow) should be utilized instead.
+
+  [1]: https://wiki.sleuthkit.org/index.php?title=Body_file
+  """
 
   friendly_name = "Timeline"
   category = "/Collectors/"
@@ -33,6 +48,9 @@ class TimelineFlow(flow_base.FlowBase):
 
     if not self.args.root:
       raise ValueError("The timeline root directory not specified")
+
+    if not self.client_info.timeline_btime_support:
+      self.Log("Collecting file birth time is not supported on this client.")
 
     self.CallClient(
         action_cls=server_stubs.Timeline,

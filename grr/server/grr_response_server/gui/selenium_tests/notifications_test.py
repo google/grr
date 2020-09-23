@@ -158,7 +158,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
   def testServerErrorInApiShowsErrorButton(self):
 
-    def MockRender(self, args, token):  # pylint: disable=unused-argument
+    def MockRender(self, args, context):  # pylint: disable=unused-argument
       """Fake render method to force an exception."""
       raise RuntimeError("This is a another forced exception")
 

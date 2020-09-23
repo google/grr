@@ -5,55 +5,55 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for SemanticEnumFormDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const SemanticEnumFormController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const SemanticEnumFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {!Array<Object>} */
-  this.allowedOptions = [];
-
-  this.scope_.$watch('metadata.allowed_values',
-                     this.onAllowedValuesChange_.bind(this));
-};
-
-
-/**
- * Handles changes of the list of allowed values.
- *
- * @param {!Array<Object>} newValue
- * @private
- */
-SemanticEnumFormController.prototype.onAllowedValuesChange_ = function(
-    newValue) {
-  this.allowedOptions = [];
-
-  if (angular.isDefined(newValue)) {
+    /** @type {!Array<Object>} */
     this.allowedOptions = [];
-    angular.forEach(newValue, function(option) {
-      var defaultLabel = '';
-      var defaultOptionName = this.scope_.$eval('metadata.default.value');
-      if (defaultOptionName == option.name) {
-        defaultLabel = ' (default)';
-      }
 
-      var label = option.name;
-      if (option.doc) {
-        label = option.doc;
-      }
+    this.scope_.$watch(
+        'metadata.allowed_values', this.onAllowedValuesChange_.bind(this));
+  }
 
-      this.allowedOptions.push({
-        value: option.name,
-        label: label + defaultLabel
-      });
-    }.bind(this));
+  /**
+   * Handles changes of the list of allowed values.
+   *
+   * @param {!Array<Object>} newValue
+   * @private
+   */
+  onAllowedValuesChange_(newValue) {
+    this.allowedOptions = [];
+
+    if (angular.isDefined(newValue)) {
+      this.allowedOptions = [];
+      angular.forEach(newValue, function(option) {
+        var defaultLabel = '';
+        var defaultOptionName = this.scope_.$eval('metadata.default.value');
+        if (defaultOptionName == option.name) {
+          defaultLabel = ' (default)';
+        }
+
+        var label = option.name;
+        if (option.doc) {
+          label = option.doc;
+        }
+
+        this.allowedOptions.push(
+            {value: option.name, label: label + defaultLabel});
+      }.bind(this));
+    }
   }
 };
+
+
 
 /**
  * SemanticEnumFormDirective renders an EnumNamedValue.
@@ -63,10 +63,7 @@ SemanticEnumFormController.prototype.onAllowedValuesChange_ = function(
 exports.SemanticEnumFormDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      value: '=',
-      metadata: '='
-    },
+    scope: {value: '=', metadata: '='},
     templateUrl: '/static/angular-components/forms/semantic-enum-form.html',
     controller: SemanticEnumFormController,
     controllerAs: 'controller'

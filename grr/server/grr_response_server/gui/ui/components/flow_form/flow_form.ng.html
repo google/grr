@@ -7,8 +7,13 @@
 
   <mat-error *ngIf="error$ | async as error">{{error}}</mat-error>
 
-  <button *ngIf="selectedFD$ | async" mat-flat-button color="primary"
-  type="submit" [disabled]="disabled$ | async">
-    Start
-  </button>
+  <div *ngIf="selectedFD$ | async">
+    <button mat-flat-button color="primary" type="submit" [disabled]="disabled$ | async">
+      {{ (hasApproval$ | async) ? "Start" : "Schedule" }}
+    </button>
+    <span *ngIf="(hasApproval$ | async) !== true" class="mat-small">
+      Scheduled flows will be started automatically when approval is granted.
+    </span>
+  </div>
+
 </form>

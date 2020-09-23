@@ -95,6 +95,41 @@ class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
     self.assertEqual(got[1], "SampleCallWithDBError")
 
 
+class IdToIntConversionTest(absltest.TestCase):
+
+  def testFlowIdToInt(self):
+    self.assertEqual(db_utils.FlowIDToInt("00000001"), 1)
+    self.assertEqual(db_utils.FlowIDToInt("1234ABCD"), 0x1234ABCD)
+    self.assertEqual(db_utils.FlowIDToInt("FFFFFFFF"), 0xFFFFFFFF)
+    self.assertEqual(db_utils.FlowIDToInt("0000000100000000"), 0x100000000)
+    self.assertEqual(
+        db_utils.FlowIDToInt("FFFFFFFFFFFFFFFF"), 0xFFFFFFFFFFFFFFFF)
+
+  def testIntToFlowId(self):
+    self.assertEqual(db_utils.IntToFlowID(1), "00000001")
+    self.assertEqual(db_utils.IntToFlowID(0x1234ABCD), "1234ABCD")
+    self.assertEqual(db_utils.IntToFlowID(0xFFFFFFFF), "FFFFFFFF")
+    self.assertEqual(db_utils.IntToFlowID(0x100000000), "0000000100000000")
+    self.assertEqual(
+        db_utils.IntToFlowID(0xFFFFFFFFFFFFFFFF), "FFFFFFFFFFFFFFFF")
+
+  def testHuntIdToInt(self):
+    self.assertEqual(db_utils.HuntIDToInt("00000001"), 1)
+    self.assertEqual(db_utils.HuntIDToInt("1234ABCD"), 0x1234ABCD)
+    self.assertEqual(db_utils.HuntIDToInt("FFFFFFFF"), 0xFFFFFFFF)
+    self.assertEqual(db_utils.HuntIDToInt("0000000100000000"), 0x100000000)
+    self.assertEqual(
+        db_utils.HuntIDToInt("FFFFFFFFFFFFFFFF"), 0xFFFFFFFFFFFFFFFF)
+
+  def testIntToHuntId(self):
+    self.assertEqual(db_utils.IntToHuntID(1), "00000001")
+    self.assertEqual(db_utils.IntToHuntID(0x1234ABCD), "1234ABCD")
+    self.assertEqual(db_utils.IntToHuntID(0xFFFFFFFF), "FFFFFFFF")
+    self.assertEqual(db_utils.IntToHuntID(0x100000000), "0000000100000000")
+    self.assertEqual(
+        db_utils.IntToHuntID(0xFFFFFFFFFFFFFFFF), "FFFFFFFFFFFFFFFF")
+
+
 _one_second_timestamp = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)
 
 if __name__ == "__main__":

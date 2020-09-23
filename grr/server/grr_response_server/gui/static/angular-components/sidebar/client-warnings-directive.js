@@ -17,64 +17,68 @@ const checkIfLabelMatchesRule = (label, rule) => {
 
 /**
  * Controller for ClientWarningsDirective..
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ClientWarningsController = function(
-    $scope, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ClientWarningsController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!Array<Object>} */
-  this.rules_ = [];
+    /** @private {!Array<Object>} */
+    this.rules_ = [];
 
-  /** @type {!Array<string>} */
-  this.warnings = [];
+    /** @type {!Array<string>} */
+    this.warnings = [];
 
-  this.grrApiService_.getV2Cached('/config/AdminUI.client_warnings').then((response) => {
-    const data = response['data'];
-    if (data['value']) {
-      this.rules_ = data['value']['rules'];
-      for (const rule of this.rules_) {
-        // Make sure we store all labels names as lowercase.
-        rule['withLabels'] = rule['withLabels'].map(l => l.toLowerCase());
-      }
-    }
-  }).then(() => {
-    this.scope_.$watch('client', this.onClientChange_.bind(this));
-  });
-};
-
-
-/**
- * Handles changes of scope.client attribute.
- *
- * @param {number} newValue Client object (with types or without)
- * @private
- */
-ClientWarningsController.prototype.onClientChange_ = function(newValue) {
-  this.warnings = [];
-
-  if (angular.isUndefined(newValue) ||
-      angular.isUndefined(newValue['value']['labels'])) {
-    return;
+    this.grrApiService_.getV2Cached('/config/AdminUI.client_warnings')
+        .then((response) => {
+          const data = response['data'];
+          if (data['value']) {
+            this.rules_ = data['value']['rules'];
+            for (const rule of this.rules_) {
+              // Make sure we store all labels names as lowercase.
+              rule['withLabels'] = rule['withLabels'].map(l => l.toLowerCase());
+            }
+          }
+        })
+        .then(() => {
+          this.scope_.$watch('client', this.onClientChange_.bind(this));
+        });
   }
 
-  for (let rule of this.rules_) {
-    for (let label of newValue['value']['labels']) {
-      if (checkIfLabelMatchesRule(label, rule)) {
-        this.warnings.push(rule['message']);
-        break;
+  /**
+   * Handles changes of scope.client attribute.
+   *
+   * @param {number} newValue Client object (with types or without)
+   * @private
+   */
+  onClientChange_(newValue) {
+    this.warnings = [];
+
+    if (angular.isUndefined(newValue) ||
+        angular.isUndefined(newValue['value']['labels'])) {
+      return;
+    }
+
+    for (let rule of this.rules_) {
+      for (let label of newValue['value']['labels']) {
+        if (checkIfLabelMatchesRule(label, rule)) {
+          this.warnings.push(rule['message']);
+          break;
+        }
       }
     }
   }
 };
+
 
 
 /**
@@ -87,9 +91,7 @@ ClientWarningsController.prototype.onClientChange_ = function(newValue) {
  */
 exports.ClientWarningsDirective = function() {
   return {
-    scope: {
-      client: '='
-    },
+    scope: {client: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/sidebar/client-warnings.html',
     controller: ClientWarningsController,

@@ -5,67 +5,67 @@ const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonD
 
 
 
-var ERROR_EVENT_NAME =
-  ServerErrorButtonDirective.error_event_name;
+var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
-var ERROR_PREVIEW_INTERVAL = 5000; //ms
+var ERROR_PREVIEW_INTERVAL = 5000;  // ms
 
 
 /**
  * Controller for ServerErrorPreviewDirective.
- *
- * @param {!angular.Scope} $rootScope
- * @param {!angular.Scope} $scope
- * @param {!angular.$timeout} $timeout
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ServerErrorPreviewController = function($rootScope, $scope, $timeout) {
+const ServerErrorPreviewController = class {
+  /**
+   * @param {!angular.Scope} $rootScope
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$timeout} $timeout
+   * @ngInject
+   */
+  constructor($rootScope, $scope, $timeout) {
+    /** @private {!angular.Scope} */
+    this.rootScope_ = $rootScope;
 
-  /** @private {!angular.Scope} */
-  this.rootScope_ = $rootScope;
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!angular.$timeout} */
+    this.timeout_ = $timeout;
 
-  /** @private {!angular.$timeout} */
-  this.timeout_ = $timeout;
+    /** @type {?{message: string, traceBack: string}} */
+    this.error;
 
-  /** @type {?{message: string, traceBack: string}} */
-  this.error;
+    /** @type {boolean} */
+    this.labelVisible;
 
-  /** @type {boolean} */
-  this.labelVisible;
-
-  this.rootScope_.$on(ERROR_EVENT_NAME, this.onErrorEvent.bind(this));
-};
-
-
-
-/**
- * Handles server error events
- *
- * @param {?} unused_event The event object
- * @param {{message: string, traceBack: string}} error The server error
- */
-ServerErrorPreviewController.prototype.onErrorEvent = function(unused_event, error) {
-  if (!angular.isObject(error) || !angular.isString(error.message)) {
-    return;
+    this.rootScope_.$on(ERROR_EVENT_NAME, this.onErrorEvent.bind(this));
   }
 
-  if (error.message.length) {
-    this.error = error;
-    this.labelVisible = true;
+  /**
+   * Handles server error events
+   *
+   * @param {?} unused_event The event object
+   * @param {{message: string, traceBack: string}} error The server error
+   */
+  onErrorEvent(unused_event, error) {
+    if (!angular.isObject(error) || !angular.isString(error.message)) {
+      return;
+    }
 
-    // hide error preview after ERROR_PREVIEW_INTERVAL ms.
-    this.timeout_(function() {
+    if (error.message.length) {
+      this.error = error;
+      this.labelVisible = true;
+
+      // hide error preview after ERROR_PREVIEW_INTERVAL ms.
+      this.timeout_(function() {
+        this.labelVisible = false;
+      }.bind(this), ERROR_PREVIEW_INTERVAL);
+    } else {
+      this.error = null;
       this.labelVisible = false;
-    }.bind(this), ERROR_PREVIEW_INTERVAL);
-  } else {
-    this.error = null;
-    this.labelVisible = false;
+    }
   }
 };
+
 
 
 /**
@@ -82,8 +82,8 @@ exports.ServerErrorPreviewDirective = function() {
     restrict: 'E',
     replace: true,
     template: '<div class="navbar-text" ng-show="controller.labelVisible">' +
-    '    {$ controller.error.message $}' +
-    '</div>',
+        '    {$ controller.error.message $}' +
+        '</div>',
     controller: ServerErrorPreviewController,
     controllerAs: 'controller'
   };
@@ -106,5 +106,3 @@ ServerErrorPreviewDirective.directive_name = 'grrServerErrorPreview';
  * @export
  */
 ServerErrorPreviewDirective.error_preview_interval = 5000;
-
-

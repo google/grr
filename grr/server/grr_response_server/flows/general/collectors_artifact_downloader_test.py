@@ -60,7 +60,10 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
     sff_stubber.Start()
     self.addCleanup(sff_stubber.Stop)
 
-  def RunFlow(self, client_id, artifact_list=None, use_tsk=False):
+  def RunFlow(self,
+              client_id,
+              artifact_list=None,
+              use_raw_filesystem_access=False):
     if artifact_list is None:
       artifact_list = ["WindowsRunKeys"]
 
@@ -68,7 +71,7 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
         collectors.ArtifactFilesDownloaderFlow.__name__,
         client_id=client_id,
         artifact_list=artifact_list,
-        use_tsk=use_tsk,
+        use_raw_filesystem_access=use_raw_filesystem_access,
         token=self.token)
 
     return flow_test_lib.GetFlowResults(client_id, session_id)

@@ -5,49 +5,52 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for ClientCrashesDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ClientCrashesController = function(
-    $scope, grrApiService, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ClientCrashesController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrApiService, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {string} */
-  this.clientId;
+    /** @type {string} */
+    this.clientId;
 
-  /** @type {Array.<Object>} */
-  this.crashes;
+    /** @type {Array.<Object>} */
+    this.crashes;
 
-  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
-      this.onClientIdChange_.bind(this));
+    this.grrRoutingService_.uiOnParamsChanged(
+        this.scope_, 'clientId', this.onClientIdChange_.bind(this));
+  }
+
+  /**
+   * Handles changes to the client id state param.
+   *
+   * @param {string} clientId The new client id.
+   * @private
+   */
+  onClientIdChange_(clientId) {
+    this.clientId = clientId;
+
+    this.grrApiService_.get('clients/' + clientId + '/crashes')
+        .then(function(response) {
+          this.crashes = response['data']['items'];
+        }.bind(this));
+  }
 };
 
 
-/**
- * Handles changes to the client id state param.
- *
- * @param {string} clientId The new client id.
- * @private
- */
-ClientCrashesController.prototype.onClientIdChange_ = function(clientId) {
-  this.clientId = clientId;
-
-  this.grrApiService_.get('clients/' + clientId + '/crashes').then(
-      function (response) {
-    this.crashes = response['data']['items'];
-  }.bind(this));
-};
 
 /**
  * ClientCrashesDirective definition.

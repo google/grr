@@ -5,31 +5,31 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for ClientContextDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const ClientContextController = function(
-    $scope) {
+const ClientContextController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @type {?string} */
+    this.clientId;
 
-  /** @type {?string} */
-  this.clientId;
+    $scope.$watch('clientId', this.onClientIdChange_.bind(this));
+  }
 
-  $scope.$watch('clientId', this.onClientIdChange_.bind(this));
+  /**
+   * Handles clientId attribute changes.
+   *
+   * @param {?string} clientId
+   * @private
+   */
+  onClientIdChange_(clientId) {
+    this.clientId = clientId;
+  }
 };
 
-
-
-/**
- * Handles clientId attribute changes.
- *
- * @param {?string} clientId
- * @private
- */
-ClientContextController.prototype.onClientIdChange_ = function(clientId) {
-  this.clientId = clientId;
-};
 
 
 /**
@@ -40,9 +40,7 @@ ClientContextController.prototype.onClientIdChange_ = function(clientId) {
  */
 exports.ClientContextDirective = function() {
   return {
-    scope: {
-      clientId: '='
-    },
+    scope: {clientId: '='},
     restrict: 'E',
     transclude: true,
     template: '<ng-transclude ng-if="controller.clientId"></ng-transclude>',

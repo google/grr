@@ -1891,6 +1891,25 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(results[0].payload, sample_result.payload)
     self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
 
+  def testReadResultsRestoresAllFlowResultsFields(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+    sample_result = rdf_flow_objects.FlowResult(
+        client_id=client_id,
+        flow_id=flow_id,
+        hunt_id="ABC123",
+        payload=rdf_client.ClientSummary(client_id=client_id))
+
+    with test_lib.FakeTime(42):
+      self.db.WriteFlowResults([sample_result])
+
+    results = self.db.ReadFlowResults(client_id, flow_id, 0, 100)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].client_id, client_id)
+    self.assertEqual(results[0].flow_id, flow_id)
+    self.assertEndsWith(results[0].hunt_id, "ABC123")  # Ignore leading 0s.
+    self.assertEqual(results[0].payload, sample_result.payload)
+    self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
+
   def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
     client_id, flow_id = self._SetupClientAndFlow()
     sample_results = self._WriteFlowResults(

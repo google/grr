@@ -141,12 +141,9 @@ message ClientArtifactCollectorArgs {
   optional KnowledgeBase knowledge_base = 2 [(sem_type) = {
     description: "The knowledge base containing information about the client."
   }];
-  optional bool use_tsk = 3 [
-    (sem_type) = {
-      description: "Whether raw filesystem access should be used.",
-    },
-    default = false
-  ];
+  // Removed, since it wasn't used.
+  // optional bool use_tsk = 3
+  reserved 3;
   optional bool apply_parsers = 6 [
     (sem_type) = {
       description: "If True, apply any relevant parser to the collected data. "

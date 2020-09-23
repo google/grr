@@ -1,0 +1,23 @@
+<ng-template ngFor let-interface [ngForOf]="interfaces" let-isLast="last">
+  <table class="section">
+    <tr>
+      <td class="description">Interface name</td>
+      <td class="value">{{interface.interfaceName}}</td>
+    </tr>
+    <tr>
+      <td class="description">MAC</td>
+      <td class="value">{{interface.macAddress}}</td>
+    </tr>
+    <tr>
+      <td class="description">IP addresses</td>
+      <td class="value">
+        <div *ngFor="let address of interface.addresses">
+          {{address.ipAddress}}
+        </div>
+      </td>
+    </tr>
+  </table>
+  <br *ngIf="!isLast">
+</ng-template>
+<div class="section" *ngIf="interfaces.length === 0">None.</div>
+

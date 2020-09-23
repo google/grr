@@ -5,36 +5,37 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for CronJobApprovalViewDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const CronJobApprovalViewController = function(
-    $scope, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const CronJobApprovalViewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {string} */
-  this.username;
+    /** @type {string} */
+    this.username;
 
-  /** @type {string} */
-  this.cronJobId;
+    /** @type {string} */
+    this.cronJobId;
 
-  /** @type {string} */
-  this.approvalId;
+    /** @type {string} */
+    this.approvalId;
 
-  this.grrRoutingService_.uiOnParamsChanged(
-      this.scope_, ['username', 'cronJobId', 'approvalId'],
-      function(params) {
-        this.username = params[0];
-        this.cronJobId = params[1];
-        this.approvalId = params[2];
-      }.bind(this));
+    this.grrRoutingService_.uiOnParamsChanged(
+        this.scope_, ['username', 'cronJobId', 'approvalId'], function(params) {
+          this.username = params[0];
+          this.cronJobId = params[1];
+          this.approvalId = params[2];
+        }.bind(this));
+  }
 };
 
 

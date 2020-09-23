@@ -15,6 +15,11 @@ from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
+from grr_response_core.lib.util import statx
+
+
+# Indicates whether the timeline action will also collect file birth time.
+BTIME_SUPPORT: bool = statx.BTIME_SUPPORT
 
 
 class Timeline(actions.ActionPlugin):
@@ -64,14 +69,14 @@ def Walk(root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
   def Recurse(path: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
     """Performs the recursive walk over the file hierarchy."""
     try:
-      stat = os.lstat(path)
+      stat = statx.Get(path)
     except OSError:
       return
 
-    yield rdf_timeline.TimelineEntry.FromStat(path, stat)
+    yield rdf_timeline.TimelineEntry.FromStatx(path, stat)
 
     # We want to recurse only to folders on the same device.
-    if not stat_mode.S_ISDIR(stat.st_mode) or stat.st_dev != dev:
+    if not stat_mode.S_ISDIR(stat.mode) or stat.dev != dev:
       return
 
     try:

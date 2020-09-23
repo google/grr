@@ -25,7 +25,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import proto2 as protobuf2
 from grr_response_proto import semantic_pb2
 from grr_response_proto.api import metadata_pb2
-from grr_response_server import access_control
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 
 # Type aliases used throughout the metadata module.
@@ -200,9 +200,9 @@ class ApiGetGrrVersionHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: None,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> ApiGetGrrVersionResult:
-    del args, token  # Unused.
+    del args, context  # Unused.
 
     version_dict = version.Version()
 

@@ -40,8 +40,7 @@ class ApiListCronJobsHandlerRegressionTest(
           periodicity="1d",
           lifetime="2h",
           description="foo",
-          enabled=False,
-          token=self.token)
+          enabled=False)
 
     # ...one disabled cron job,
     with test_lib.FakeTime(84):
@@ -49,16 +48,14 @@ class ApiListCronJobsHandlerRegressionTest(
           flow_name=file_finder.ClientFileFinder.__name__,
           periodicity="7d",
           lifetime="1d",
-          description="bar",
-          token=self.token)
+          description="bar")
 
     # ...and one failing cron job.
     with test_lib.FakeTime(126):
       cron_id_3 = self.CreateCronJob(
           flow_name=filesystem.ListDirectory.__name__,
           periodicity="7d",
-          lifetime="1d",
-          token=self.token)
+          lifetime="1d")
 
     with test_lib.FakeTime(230):
       data_store.REL_DB.UpdateCronJob(
@@ -76,8 +73,8 @@ class ApiListCronJobsHandlerRegressionTest(
         })
 
 
-def _GetRunId(cron_job_name, token=None):
-  runs = cronjobs.CronManager().ReadJobRuns(cron_job_name, token=token)
+def _GetRunId(cron_job_name):
+  runs = cronjobs.CronManager().ReadJobRuns(cron_job_name)
 
   try:
     return runs[0].run_id
@@ -112,7 +109,7 @@ class ApiCreateCronJobHandlerRegressionTest(
   def Run(self):
 
     def ReplaceCronJobUrn():
-      jobs = list(cronjobs.CronManager().ListJobs(token=self.token))
+      jobs = list(cronjobs.CronManager().ListJobs())
       return {jobs[0]: "CreateAndRunGenericHuntFlow_1234"}
 
     flow_name = file_finder.FileFinder.__name__
@@ -148,7 +145,7 @@ class ApiListCronJobRunsHandlerRegressionTest(
 
   def Run(self):
     cron_job_id = _SetupAndRunVersionBreakDownCronjob()
-    run_id = _GetRunId(cron_job_id, token=self.token)
+    run_id = _GetRunId(cron_job_id)
 
     self.Check(
         "ListCronJobRuns",
@@ -168,7 +165,7 @@ class ApiGetCronJobRunHandlerRegressionTest(
 
   def Run(self):
     cron_job_id = _SetupAndRunVersionBreakDownCronjob()
-    run_id = _GetRunId(cron_job_id, token=self.token)
+    run_id = _GetRunId(cron_job_id)
 
     self.Check(
         "GetCronJobRun",
@@ -189,8 +186,7 @@ class ApiForceRunCronJobRegressionTest(
   handler = cron_plugin.ApiForceRunCronJobHandler
 
   def Run(self):
-    cron_job_id = self.CreateCronJob(
-        flow_name=file_finder.FileFinder.__name__, token=self.token)
+    cron_job_id = self.CreateCronJob(flow_name=file_finder.FileFinder.__name__)
 
     self.Check(
         "ForceRunCronJob",
@@ -208,9 +204,9 @@ class ApiModifyCronJobRegressionTest(api_regression_test_lib.ApiRegressionTest,
   def Run(self):
     with test_lib.FakeTime(44):
       cron_job_id1 = self.CreateCronJob(
-          flow_name=file_finder.FileFinder.__name__, token=self.token)
+          flow_name=file_finder.FileFinder.__name__)
       cron_job_id2 = self.CreateCronJob(
-          flow_name=file_finder.ClientFileFinder.__name__, token=self.token)
+          flow_name=file_finder.ClientFileFinder.__name__)
 
     self.Check(
         "ModifyCronJob",

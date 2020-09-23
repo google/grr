@@ -106,10 +106,10 @@ message HuntContext {
     type: "RDFDatetime",
   }];
   optional ClientResourcesStats usage_stats = 12;
-  optional uint64 clients_with_results_count = 13;
-  optional uint64 results_count = 14;
-  optional uint64 completed_clients_count = 15;
-  optional uint64 clients_queued_count = 16;
+  reserved 13;
+  reserved 14;
+  reserved 15;
+  reserved 16;
 }
 
 // This is the user's access token.
@@ -577,6 +577,12 @@ message ExecutePythonHackArgs {
       [(sem_type) = { description: "Python Hack Arguments." }];
 }
 
+/// A message representing a result of an execution of a Python script.
+message ExecutePythonHackResult {
+  /// A string value that the Python script returned.
+  optional string result_string = 1;
+}
+
 // Next field ID: 4
 message ExecuteCommandArgs {
   optional string cmd = 1 [(sem_type) = {
@@ -634,58 +640,25 @@ message LaunchBinaryArgs {
   }];
 }
 
-// Next field ID: 8
-message WinUserActivityInvestigationArgs {
-  optional string username = 1 [(sem_type) = {
-    description: "The user to target the actions to.",
-  }];
-
-  optional bool get_browser_history = 2 [
-    (sem_type) = {
-      description: "Call each of the browser history flows.",
-    },
-    default = true
-  ];
-
-  optional uint64 recursive_list_homedir = 3 [
-    (sem_type) = {
-      description: "Recursively list the users homedir to this depth.",
-    },
-    default = 5
-  ];
-
-  optional uint64 recursive_list_user_registry = 4 [
-    (sem_type) = {
-      description: "Recursively list the users registry hive.",
-    },
-    default = 5
-  ];
-
-  repeated string artifact_list = 5 [(sem_type) = {
-    description: "A list of Artifact names.",
-    type: "ArtifactName",
-  }];
-
-  optional bool timeline_collected_data = 6 [
-    (sem_type) = {
-      description: "Once complete create a timeline for the host.",
-    },
-    default = true
-  ];
-
-  optional bool use_tsk = 7 [(sem_type) = {
-    description: "Use raw filesystem access where possible.",
-  }];
-}
-
-// Next field ID: 15
+// Next field ID: 16
 message ArtifactCollectorFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {
     type: "ArtifactName",
     description: "A list of Artifact class names.",
   }];
 
+  // Deprecated.
+  // TODO: Remove after 2021-04-01.
   optional bool use_tsk = 2 [
+    (sem_type) = {
+      description: "(Deprecated) Whether raw filesystem access should be used. "
+                   "Use use_raw_filesystem_access insteaed."
+      label: HIDDEN,
+    },
+    default = false
+  ];
+
+  optional bool use_raw_filesystem_access = 15 [
     (sem_type) = {
       description: "Whether raw filesystem access should be used.",
     },
@@ -778,14 +751,25 @@ message ArtifactCollectorFlowArgs {
   }];
 }
 
-// Next field ID: 10
+// Next field ID: 11
 message ArtifactFilesDownloaderFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {
     type: "ArtifactName",
     description: "A list of Artifact class names.",
   }];
 
+  // Deprecated.
+  // TODO: Remove after 2021-04-01.
   optional bool use_tsk = 2 [
+    (sem_type) = {
+      description: "(Deprecated) Whether raw filesystem access should be used. "
+                   "Use use_raw_filesystem_access insted."
+      label: HIDDEN,
+    },
+    default = false
+  ];
+
+  optional bool use_raw_filesystem_access = 10 [
     (sem_type) = {
       description: "Whether raw filesystem access should be used.",
     },
@@ -1953,6 +1937,19 @@ message CollectSingleFileArgs {
 message CollectSingleFileResult {
   optional StatEntry stat = 1;
   optional Hash hash = 2;
+}
+
+message CollectSingleFileProgress {
+  enum Status {
+    UNDEFINED = 0;
+    IN_PROGRESS = 1;
+    COLLECTED = 2;
+    NOT_FOUND = 3;
+    FAILED = 4;
+  }
+  optional Status status = 1;
+  optional CollectSingleFileResult result = 2;
+  optional string error_description = 3;
 }
 
 message CollectMultipleFilesArgs {

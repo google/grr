@@ -22,8 +22,9 @@ const filterOutDuplicateApprovals = function(approvals) {
     const prevApproval = approvalsMap[itemKey];
 
     if (prevApproval) {
-      const prevApprovalHasPrecedence = (prevApproval['value']['is_valid']['value'] ||
-                                         !item['value']['is_valid']['value']);
+      const prevApprovalHasPrecedence =
+          (prevApproval['value']['is_valid']['value'] ||
+           !item['value']['is_valid']['value']);
       if (prevApprovalHasPrecedence) {
         continue;
       }
@@ -49,83 +50,82 @@ exports.filterOutDuplicateApprovals = filterOutDuplicateApprovals;
 
 /**
  * Controller for UserDashboardDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @ngInject
+ * @unrestricted
  */
-const UserDashboardController = function(
-    $scope, grrApiService, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const UserDashboardController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrApiService, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {Array<Object>} */
-  this.clientApprovals;
+    /** @type {Array<Object>} */
+    this.clientApprovals;
 
-  // We need at most 7 approvals, but as there may be more
-  // than 1 approval for the same client, we fetch 20 and then filter
-  // the duplicates out.
-  this.grrApiService_.get('/users/me/approvals/client', {count: 20})
-      .then(r => this.onClientApprovals_(r));
-  this.grrApiService_.get('/hunts',
-                          {
-                            count: 5,
-                            active_within: '31d',
-                            created_by: 'me'
-                          }).then(r => this.onHunts_(r));
+    // We need at most 7 approvals, but as there may be more
+    // than 1 approval for the same client, we fetch 20 and then filter
+    // the duplicates out.
+    this.grrApiService_.get('/users/me/approvals/client', {count: 20})
+        .then(r => this.onClientApprovals_(r));
+    this.grrApiService_
+        .get('/hunts', {count: 5, active_within: '31d', created_by: 'me'})
+        .then(r => this.onHunts_(r));
+  }
+
+  /**
+   * Handles results of the user approvals request.
+   *
+   * @param {!Object} response API response.
+   * @private
+   */
+  onClientApprovals_(response) {
+    this.clientApprovals =
+        filterOutDuplicateApprovals(response['data']['items'])
+            .slice(0, MAX_SHOWN_CLIENTS);
+  }
+
+  /**
+   * Handles results of the hunts request.
+   *
+   * @param {!Object} response API response.
+   * @private
+   */
+  onHunts_(response) {
+    this.hunts = response['data']['items'];
+  }
+
+  /**
+   * Handles clicks in the client panel.
+   *
+   * @param {string} clientId Client ID corresponding to a clicked row.
+   * @export
+   */
+  onClientClicked(clientId) {
+    this.grrRoutingService_.go('client', {clientId: clientId});
+  }
+
+  /**
+   * Handles clicks in the hunts panel.
+   *
+   * @param {!Object} hunt Hunt object corresponding to a clicked row.
+   * @export
+   */
+  onHuntClicked(hunt) {
+    var huntId = hunt['value']['urn']['value'].split('/')[2];
+    this.grrRoutingService_.go('hunts', {huntId: huntId});
+  }
 };
 
-
-/**
- * Handles results of the user approvals request.
- *
- * @param {!Object} response API response.
- * @private
- */
-UserDashboardController.prototype.onClientApprovals_ = function(response) {
-  this.clientApprovals = filterOutDuplicateApprovals(
-      response['data']['items']).slice(0, MAX_SHOWN_CLIENTS);
-};
-
-
-/**
- * Handles results of the hunts request.
- *
- * @param {!Object} response API response.
- * @private
- */
-UserDashboardController.prototype.onHunts_ = function(response) {
-  this.hunts = response['data']['items'];
-};
-
-/**
- * Handles clicks in the client panel.
- *
- * @param {string} clientId Client ID corresponding to a clicked row.
- * @export
- */
-UserDashboardController.prototype.onClientClicked = function(clientId) {
-  this.grrRoutingService_.go('client', {clientId: clientId});
-};
-
-/**
- * Handles clicks in the hunts panel.
- *
- * @param {!Object} hunt Hunt object corresponding to a clicked row.
- * @export
- */
-UserDashboardController.prototype.onHuntClicked = function(hunt) {
-  var huntId = hunt['value']['urn']['value'].split('/')[2];
-  this.grrRoutingService_.go('hunts', {huntId: huntId});
-};
 
 
 /**

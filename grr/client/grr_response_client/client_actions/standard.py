@@ -302,7 +302,7 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
 
   def ProcessFile(self, path, args):
     res = client_utils_common.Execute(
-        path, args.args, args.time_limit, bypass_whitelist=True)
+        path, args.args, args.time_limit, bypass_allowlist=True)
     (stdout, stderr, status, time_used) = res
 
     # Limit output to 10MB so our response doesn't get too big.

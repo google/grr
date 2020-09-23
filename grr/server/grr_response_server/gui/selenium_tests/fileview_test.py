@@ -158,8 +158,8 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
     downloaded_files = []
 
-    def FakeDownloadHandle(unused_self, args, token=None):
-      _ = token  # Avoid unused variable linter warnings.
+    def FakeDownloadHandle(unused_self, args, context=None):
+      _ = context  # Avoid unused variable linter warnings.
       downloaded_files.append((args.file_path, args.timestamp))
 
       return api_call_handler_base.ApiBinaryStream(

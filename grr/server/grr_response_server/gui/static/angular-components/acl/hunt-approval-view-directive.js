@@ -5,39 +5,40 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for HuntApprovalViewDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const HuntApprovalViewController = function(
-    $scope, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const HuntApprovalViewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {string} */
-  this.username;
+    /** @type {string} */
+    this.username;
 
-  /** @type {string} */
-  this.huntId;
+    /** @type {string} */
+    this.huntId;
 
-  /** @type {string} */
-  this.approvalId;
+    /** @type {string} */
+    this.approvalId;
 
-  /** @type {Object} */
-  this.approvalObject;
+    /** @type {Object} */
+    this.approvalObject;
 
-  this.grrRoutingService_.uiOnParamsChanged(
-      this.scope_, ['username', 'huntId', 'approvalId'],
-      function(params) {
-        this.username = params[0];
-        this.huntId = params[1];
-        this.approvalId = params[2];
-      }.bind(this));
+    this.grrRoutingService_.uiOnParamsChanged(
+        this.scope_, ['username', 'huntId', 'approvalId'], function(params) {
+          this.username = params[0];
+          this.huntId = params[1];
+          this.approvalId = params[2];
+        }.bind(this));
+  }
 };
 
 

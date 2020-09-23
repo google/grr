@@ -14,6 +14,7 @@ import mock
 
 from grr_response_client import vfs
 from grr_response_client.vfs_handlers import files as vfs_files
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
 from grr_response_server import flow_base
@@ -139,6 +140,58 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
               client_id=self.client_id,
               path=self.files["bar"].path,
               token=self.token)
+
+  def testCorrectlyReportsProgressInFlight(self):
+    flow_id = flow_test_lib.StartFlow(
+        file.CollectSingleFile, client_id=self.client_id, path="/some/path")
+    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    self.assertEqual(
+        progress.status,
+        rdf_file_finder.CollectSingleFileProgress.Status.IN_PROGRESS)
+
+  def testProgressContainsResultOnSuccess(self):
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectSingleFile,
+        self.client_mock,
+        client_id=self.client_id,
+        path=self.files["bar"].path)
+
+    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    self.assertEqual(progress.status,
+                     rdf_file_finder.CollectSingleFileProgress.Status.COLLECTED)
+    self.assertEqual(progress.result.stat.pathspec.path, self.files["bar"].path)
+    self.assertEqual(progress.result.stat.pathspec.pathtype,
+                     rdf_paths.PathSpec.PathType.OS)
+    self.assertEqual(str(progress.result.hash.sha1), self.files["bar"].sha1)
+
+  def testProgressCorrectlyIndicatesNotFoundStatus(self):
+    flow_id = flow_test_lib.StartAndRunFlow(
+        file.CollectSingleFile,
+        self.client_mock,
+        client_id=self.client_id,
+        check_flow_errors=False,
+        path="/nonexistent")
+
+    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    self.assertEqual(progress.status,
+                     rdf_file_finder.CollectSingleFileProgress.Status.NOT_FOUND)
+
+  def testProgressCorrectlyIndicatesErrorStatus(self):
+    with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
+      with mock.patch.object(vfs, "VFSOpen", side_effect=IOError("mock err")):
+        flow_id = flow_test_lib.StartAndRunFlow(
+            file.CollectSingleFile,
+            self.client_mock,
+            client_id=self.client_id,
+            check_flow_errors=False,
+            path="/nonexistent")
+
+    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    self.assertEqual(progress.status,
+                     rdf_file_finder.CollectSingleFileProgress.Status.FAILED)
+    self.assertEqual(progress.error_description,
+                     "mock err when fetching /nonexistent with TSK")
 
 
 class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):

@@ -176,7 +176,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
         data=b"user2:x:1000:1000:User2 Name,,,:/home/user2:/bin/bash\n")
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
-    out = list(parser.Parse(ff_result, None))
+    out = list(parser.ParseResponse(rdf_client.KnowledgeBase(), ff_result))
     self.assertLen(out, 2)
     self.assertIsInstance(out[1], rdf_client.User)
     self.assertIsInstance(out[1], rdf_client.User)
@@ -197,7 +197,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
     dat_fd = io.BytesIO(dat.encode("utf-8"))
 
     with test_lib.ConfigOverrider(
-        {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+        {"Artifacts.netgroup_ignore_users": ["user2", "user3"]}):
       out = list(parser.ParseFile(None, None, dat_fd))
       users = []
       for result in out:
@@ -226,8 +226,8 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 
     ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     with test_lib.ConfigOverrider(
-        {"Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
-      out = list(parser.Parse(ff_result, None))
+        {"Artifacts.netgroup_ignore_users": ["user2", "user3"]}):
+      out = list(parser.ParseResponse(rdf_client.KnowledgeBase, ff_result))
       self.assertCountEqual([x.username for x in out],
                             [u"user1", u"user5", u"user6"])
 

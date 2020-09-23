@@ -4,14 +4,17 @@ goog.module.declareLegacyNamespace();
 
 /**
  * A controller for the `FileFinderExtFlagsCondition`.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const ExtFlagsConditionFormController = function($scope) {
-  this.linuxPickerShown = false;
-  this.osxPickerShown = false;
+const ExtFlagsConditionFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    this.linuxPickerShown = false;
+    this.osxPickerShown = false;
+  }
 };
 
 /**

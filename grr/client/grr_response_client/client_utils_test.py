@@ -36,7 +36,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     self.assertStartsWith(raw_pathspec.path, "\\\\?\\Volume{")
     self.assertEqual("/", path)
 
-  def testExecutionWhiteList(self):
+  def testExecutionAllowlist(self):
     """Test if unknown commands are filtered correctly."""
 
     # ls is not allowed
@@ -47,7 +47,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     (stdout, stderr, status, _) = client_utils_common.Execute(*cmd)
     self.assertEqual(status, -1)
     self.assertEqual(stdout, b"")
-    self.assertEqual(stderr, b"Execution disallowed by whitelist.")
+    self.assertEqual(stderr, b"Execution disallowed by allowlist.")
 
     # "echo 1" is
     if platform.system() == "Windows":
@@ -67,7 +67,7 @@ class ClientUtilsTest(test_lib.GRRBaseTest):
     (stdout, stderr, status, _) = client_utils_common.Execute(*cmd)
     self.assertEqual(status, -1)
     self.assertEqual(stdout, b"")
-    self.assertEqual(stderr, b"Execution disallowed by whitelist.")
+    self.assertEqual(stderr, b"Execution disallowed by allowlist.")
 
   def AppendTo(self, list_obj, element):
     list_obj.append(element)

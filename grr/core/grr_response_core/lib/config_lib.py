@@ -53,8 +53,11 @@ flags.DEFINE_bool("config_help", False, "Print help about the configuration.")
 
 flags.DEFINE_list("context", [], "Use these contexts for the config.")
 
-flags.DEFINE_bool("disallow_missing_config_definitions", False,
-                  "If true, we raise an error on undefined config options.")
+flags.DEFINE_bool(
+    "disallow_missing_config_definitions", False,
+    "If true, we raise an error on undefined config options. "
+    "This flag has an effect only on clients because it is set "
+    "as True by default for server components.")
 
 flags.DEFINE_multi_string(
     "parameter",
@@ -62,7 +65,6 @@ flags.DEFINE_multi_string(
     help="Global override of config values. "
     "For example -p Database.implementation: MysqlDB",
     short_name="p")
-
 
 
 class Error(Exception):

@@ -7,12 +7,16 @@ from __future__ import unicode_literals
 
 import os
 import re
-
+from typing import IO
+from typing import Iterable
+from typing import Iterator
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 
 class PAMFieldParser(config_file.FieldParser):
@@ -183,7 +187,7 @@ class PAMFieldParser(config_file.FieldParser):
     return result, external
 
 
-class PAMParser(parsers.MultiFileParser):
+class PAMParser(parsers.MultiFileParser[rdf_config_file.PamConfig]):
   """Artifact parser for PAM configurations."""
 
   output_types = [rdf_config_file.PamConfig]
@@ -193,7 +197,12 @@ class PAMParser(parsers.MultiFileParser):
     super().__init__(*args, **kwargs)
     self._field_parser = PAMFieldParser()
 
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[rdf_config_file.PamConfig]:
     del knowledge_base  # Unused.
 
     results, externals = self._field_parser.EnumerateAllConfigs(

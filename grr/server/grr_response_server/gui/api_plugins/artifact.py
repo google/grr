@@ -55,7 +55,7 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
     return result
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Get available artifact information for rendering."""
 
     # Get all artifacts that aren't Bootstrap and aren't the base class.
@@ -84,7 +84,7 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiUploadArtifactArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     artifact.UploadArtifactYamlFile(
         args.artifact, overwrite=True, overwrite_system_artifacts=False)
 
@@ -98,5 +98,5 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiDeleteArtifactsArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     artifact_registry.DeleteArtifactsFromDatastore(set(args.names))

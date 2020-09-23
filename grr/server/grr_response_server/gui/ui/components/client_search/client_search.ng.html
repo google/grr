@@ -15,11 +15,11 @@
          dates rendering (with changeable timezone stored in the global
          store). -->
     <td mat-cell *matCellDef="let element">
-      {{ element.lastSeenAt ? (element.lastSeenAt | date:'short':'UTC') : '-' }}
+      <timestamp [date]="element.lastSeenAt"></timestamp>
     </td>
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="columns"></tr>
   <tr mat-row *matRowDef="let row; columns: columns"
-      [routerLink]="['/v2/clients/', row.clientId]"></tr>
+      [routerLink]="['/clients/', row.clientId]"></tr>
 </table>

@@ -17,10 +17,9 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
 
-# TODO(user): look into using 48-bit or 64-bit ids to avoid clashes.
-def RandomHuntId():
+def RandomHuntId() -> str:
   """Returns a random hunt id encoded as a hex string."""
-  return "%08X" % random.PositiveUInt32()
+  return "{:016X}".format(random.Id64())
 
 
 class HuntArgumentsStandard(rdf_structs.RDFProtoStruct):

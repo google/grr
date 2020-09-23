@@ -26,24 +26,33 @@ class ObjcTest(test_lib.GRRBaseTest):
     self.restype = ctypes.c_void_p
     self.cftable = [("CFMockFunc", self.argtypes, self.restype)]
 
-  @mock.patch(
-      "grr_response_client.osx.objc.ctypes.util"
-      ".find_library")
+  @mock.patch("ctypes.util.find_library")
   def testSetCTypesForLibraryLibNotFound(self, find_library_mock):
     find_library_mock.return_value = None
 
     with self.assertRaises(objc.ErrorLibNotFound):
-      objc.SetCTypesForLibrary("mock", self.cftable)
+      objc._SetCTypesForLibrary("mock", self.cftable)
 
       # Check that hte first argument of the first find_library call is "mock".
       find_library_mock.assert_called_with("mock")
 
-  @mock.patch(
-      "grr_response_client.osx.objc.ctypes.util"
-      ".find_library")
-  @mock.patch(
-      "grr_response_client.osx.objc.ctypes.cdll"
-      ".LoadLibrary")
+  @mock.patch("ctypes.util.find_library")
+  @mock.patch("ctypes.cdll.LoadLibrary")
+  def testLoadLibraryUsesWellKnownPathAsFallback(self, load_library_mock,
+                                                 find_library_mock):
+    mock_cdll = mock.Mock()
+    find_library_mock.return_value = None
+    load_library_mock.side_effect = [OSError("not found"), mock_cdll]
+
+    result = objc.LoadLibrary("Foobazzle")
+
+    self.assertGreaterEqual(load_library_mock.call_count, 1)
+    load_library_mock.assert_called_with(
+        "/System/Library/Frameworks/Foobazzle.framework/Foobazzle")
+    self.assertIs(result, mock_cdll)
+
+  @mock.patch("ctypes.util.find_library")
+  @mock.patch("ctypes.cdll.LoadLibrary")
   def testSetCTypesForLibrary(self, load_library_mock, find_library_mock):
 
     mock_dll = mock.MagicMock()
@@ -51,7 +60,7 @@ class ObjcTest(test_lib.GRRBaseTest):
     find_library_mock.return_value = "/mock/path"
     load_library_mock.return_value = mock_dll
 
-    dll = objc.SetCTypesForLibrary("mock", self.cftable)
+    dll = objc._SetCTypesForLibrary("mock", self.cftable)
 
     find_library_mock.assert_called_with("mock")
     self.assertEqual(dll.CFMockFunc.argtypes, self.argtypes)

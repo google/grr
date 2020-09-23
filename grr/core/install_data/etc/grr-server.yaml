@@ -126,6 +126,11 @@ Target:Linux:
     Client.install_path: |
       /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
 
+    ClientBuilder.fleetspeak_service_dir: |
+      /etc/fleetspeak-client/textservices
+
+    Client.fleetspeak_service_name: fleetspeak-client
+
   # This indicates that we are building a client for debugging. It needs to
   # be nested deeper than the Client context so it always takes precedence
   # when both contexts apply.

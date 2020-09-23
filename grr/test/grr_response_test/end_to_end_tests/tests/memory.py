@@ -77,8 +77,8 @@ rule test_rule {
 
       self.assertEqual(list(rules), ["test_rule"])
 
-      # Ten seconds seems reasonable here, actual values are 0.5s.
-      self.assertLess(process_scan_match.scan_time_us, 10 * 1e6)
+      # 20 seconds seems reasonable here, actual values are 0.5s.
+      self.assertLess(process_scan_match.scan_time_us, 20 * 1e6)
 
   def testYaraSignatureReference(self):
     text = "".join(random.choice(string.ascii_letters) for _ in range(256))

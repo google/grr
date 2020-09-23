@@ -9,6 +9,8 @@ import logging
 import os
 import platform
 
+from absl import flags
+
 import prometheus_client
 
 from grr_response_core import config
@@ -67,6 +69,10 @@ def Init():
   else:
     handler = logging.handlers.SysLogHandler()
   syslog_logger.addHandler(handler)
+
+  # The default behavior of server components is to raise errors when
+  # encountering unknown config options.
+  flags.FLAGS.disallow_missing_config_definitions = True
 
   try:
     config_lib.SetPlatformArchContext()

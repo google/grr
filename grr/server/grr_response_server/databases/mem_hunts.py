@@ -300,6 +300,8 @@ class InMemoryDBHuntMixin(object):
             if r and r[0].hunt_id == hunt_id))
     num_crashed_clients = self.CountHuntFlows(
         hunt_id, filter_condition=db.HuntFlowsCondition.CRASHED_FLOWS_ONLY)
+    num_running_clients = self.CountHuntFlows(
+        hunt_id, filter_condition=db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY)
     num_results = self.CountHuntResults(hunt_id)
 
     total_cpu_seconds = 0
@@ -315,6 +317,7 @@ class InMemoryDBHuntMixin(object):
         num_failed_clients=num_failed_clients,
         num_clients_with_results=num_clients_with_results,
         num_crashed_clients=num_crashed_clients,
+        num_running_clients=num_running_clients,
         num_results=num_results,
         total_cpu_seconds=total_cpu_seconds,
         total_network_bytes_sent=total_network_bytes_sent)

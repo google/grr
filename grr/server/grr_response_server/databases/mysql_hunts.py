@@ -679,6 +679,8 @@ class MySQLDBHuntMixin(object):
         int(rdf_flow_objects.Flow.FlowState.ERROR), 0)
     num_crashed_clients = counts_by_state.get(
         int(rdf_flow_objects.Flow.FlowState.CRASHED), 0)
+    num_running_clients = counts_by_state.get(
+        int(rdf_flow_objects.Flow.FlowState.RUNNING), 0)
     num_clients = sum(counts_by_state.values())
 
     query = """
@@ -714,6 +716,7 @@ class MySQLDBHuntMixin(object):
         num_failed_clients=num_failed_clients,
         num_clients_with_results=num_clients_with_results,
         num_crashed_clients=num_crashed_clients,
+        num_running_clients=num_running_clients,
         num_results=int(num_results or 0),
         total_cpu_seconds=db_utils.MicrosToSeconds(int(total_cpu_seconds or 0)),
         total_network_bytes_sent=int(total_network_bytes_sent or 0))

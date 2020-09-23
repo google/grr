@@ -83,3 +83,11 @@ message ApiGetGrrBinaryBlobArgs {
       [(sem_type) = { description: "Binary type." }];
   optional string path = 2 [(sem_type) = { description: "Binary path." }];
 }
+
+message ApiUiConfig {
+  optional string heading = 1;
+  optional string report_url = 2;
+  optional string help_url = 3;
+  optional string grr_version = 4;
+  optional string profile_image_url = 5;
+}

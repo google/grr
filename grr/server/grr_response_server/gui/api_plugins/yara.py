@@ -7,8 +7,8 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import yara_pb2
-from grr_response_server import access_control
 from grr_response_server import data_store
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -36,12 +36,12 @@ class ApiUploadYaraSignatureHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiUploadYaraSignatureArgs,
-      token: access_control.ACLToken,
+      context: api_call_context.ApiCallContext,
   ) -> ApiUploadYaraSignatureResult:
     blob = args.signature.encode("utf-8")
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob)
 
-    data_store.REL_DB.WriteYaraSignatureReference(blob_id, token.username)
+    data_store.REL_DB.WriteYaraSignatureReference(blob_id, context.username)
 
     result = ApiUploadYaraSignatureResult()
     result.blob_id = blob_id

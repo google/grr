@@ -10,9 +10,9 @@ from typing import Optional
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import client_management_pb2
-from grr_response_server import access_control
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 
 
@@ -35,7 +35,7 @@ class ApiKillFleetspeakHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self,
              args: ApiKillFleetspeakArgs,
-             token: Optional[access_control.ACLToken] = None) -> None:
+             context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
     fleetspeak_utils.KillFleetspeak(args.client_id.Basename(), args.force)
 
@@ -55,6 +55,6 @@ class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
 
   def Handle(self,
              args: ApiRestartFleetspeakGrrServiceArgs,
-             token: Optional[access_control.ACLToken] = None) -> None:
+             context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
     fleetspeak_utils.RestartFleetspeakGrrService(args.client_id.Basename())

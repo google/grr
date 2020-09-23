@@ -60,7 +60,12 @@ class GrrApplicationLogger(object):
     event_id = self.GetNewEventId()
 
     api_method = response.headers.get("X-API-Method", "unknown")
-    api_reason = response.headers.get("X-GRR-Reason", "none")
+    api_reason = "none"
+    if response.context:
+      approval = response.context.approval
+      if approval:
+        api_reason = approval.reason
+
     log_msg = "%s API call [%s] by %s (reason: %s): %s [%d]" % (
         event_id, api_method, request.user, api_reason, request.full_path,
         response.status_code)

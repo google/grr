@@ -1,9 +1,8 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
+
 import {Plugin} from './plugin';
 
-/**
- * Component that allows selecting, configuring, and starting a Flow.
- */
+/** Fallback component when flow results have not been implemented. */
 @Component({
   selector: 'default-flow-details',
   templateUrl: './default_details.ng.html',

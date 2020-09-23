@@ -79,7 +79,7 @@ export class ClientSearchStore extends ComponentStore<ClientSearchState> {
               return of<ApiSearchClientResult>({items: []});
             }
           }),
-          map(apiResult => apiResult.items.map(translateClient)),
+          map(apiResult => apiResult.items?.map(translateClient) ?? []),
           tap(results => {
             this.updateClients(results);
           })));

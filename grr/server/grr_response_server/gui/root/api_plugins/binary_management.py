@@ -43,7 +43,7 @@ class ApiUploadGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiUploadGrrBinaryArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.path:
       raise ValueError("Invalid binary path: %s" % args.path)
 
@@ -57,7 +57,7 @@ class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiDeleteGrrBinaryArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if not args.path:
       raise ValueError("Invalid binary path: %s" % args.path)
 

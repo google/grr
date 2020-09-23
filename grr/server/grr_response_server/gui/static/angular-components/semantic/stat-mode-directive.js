@@ -38,210 +38,211 @@ var S_IXOTH = 1;       // 0000001 others, execute/search permission
 
 /**
  * Controller for StatModeDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const StatModeController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const StatModeController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {?} */
-  this.scope_.value;
+    /** @type {?} */
+    this.scope_.value;
 
-  /** @type {string} */
-  this.statMode;
+    /** @type {string} */
+    this.statMode;
 
-  /** @type {string} */
-  this.octalStatMode;
+    /** @type {string} */
+    this.octalStatMode;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
+  }
 
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {Object} newValue
+   * @suppress {missingProperties} as value can be anything.
+   */
+  onValueChange(newValue) {
+    if (!newValue || !angular.isNumber(newValue.value)) {
+      this.octalStatMode = '-';
+      this.statMode = '-';
+    } else {
+      var statMode = newValue.value;
+      this.octalStatMode = this.calculateOctalMode_(statMode);
+      this.statMode = this.calculateModeString_(statMode);
+    }
+  }
 
+  /**
+   * Calculates the octal representation of the stat mode.
+   *
+   * @param {number} statMode
+   * @return {string} The octal representation of the stat mode.
+   * @private
+   */
+  calculateOctalMode_(statMode) {
+    return this.getMode_(statMode).toString(8);
+  }
 
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {Object} newValue
- * @suppress {missingProperties} as value can be anything.
- */
-StatModeController.prototype.onValueChange = function(newValue) {
-  if(!newValue || !angular.isNumber(newValue.value)){
-    this.octalStatMode = '-';
-    this.statMode = '-';
-  } else {
-    var statMode = newValue.value;
-    this.octalStatMode = this.calculateOctalMode_(statMode);
-    this.statMode = this.calculateModeString_(statMode);
+  /**
+   * Calculates the string representation of the stat mode.
+   *
+   * @param {number} statMode
+   * @return {string} The string representation of the stat mode.
+   * @private
+   */
+  calculateModeString_(statMode) {
+    var fileType = '-';
+    if (this.isRegularFile_(statMode)) {
+      fileType = '-';
+    } else if (this.isBlockDevice_(statMode)) {
+      fileType = 'b';
+    } else if (this.isCharacterDevice_(statMode)) {
+      fileType = 'c';
+    } else if (this.isDirectory_(statMode)) {
+      fileType = 'd';
+    } else if (this.isFifo_(statMode)) {
+      fileType = 'p';
+    } else if (this.isLink_(statMode)) {
+      fileType = 'l';
+    } else if (this.isSocket_(statMode)) {
+      fileType = 's';
+    }
+
+    var permissions = '';
+
+    permissions += (statMode & S_IRUSR) ? 'r' : '-';
+    permissions += (statMode & S_IWUSR) ? 'w' : '-';
+    if (statMode & S_ISUID) {
+      permissions += (statMode & S_IXUSR) ? 's' : 'S';
+    } else {
+      permissions += (statMode & S_IXUSR) ? 'x' : '-';
+    }
+
+    permissions += (statMode & S_IRGRP) ? 'r' : '-';
+    permissions += (statMode & S_IWGRP) ? 'w' : '-';
+    if (statMode & S_ISGID) {
+      permissions += (statMode & S_IXGRP) ? 's' : 'S';
+    } else {
+      permissions += (statMode & S_IXGRP) ? 'x' : '-';
+    }
+
+    permissions += (statMode & S_IROTH) ? 'r' : '-';
+    permissions += (statMode & S_IWOTH) ? 'w' : '-';
+    if (statMode & S_ISVTX) {
+      permissions += (statMode & S_IXOTH) ? 't' : 'T';
+    } else {
+      permissions += (statMode & S_IXOTH) ? 'x' : '-';
+    }
+
+    return fileType + permissions;
+  }
+
+  /**
+   * Returns the mode part of the given stat mode.
+   *
+   * @param {number} mode
+   * @return {number} The mode part of the stat mode.
+   * @private
+   */
+  getMode_(mode) {
+    return mode & S_IMODE;
+  }
+
+  /**
+   * Returns the file type part of the given stat mode.
+   *
+   * @param {number} mode
+   * @return {number} The type part of the stat mode.
+   * @private
+   */
+  getType_(mode) {
+    return mode & S_IFMT;
+  }
+
+  /**
+   * Checks whether the type of the given mode is directory.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a directory or not.
+   * @private
+   */
+  isDirectory_(mode) {
+    return this.getType_(mode) === S_IFDIR;
+  }
+
+  /**
+   * Checks whether the type of the given mode is a character device.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a character decive or not.
+   * @private
+   */
+  isCharacterDevice_(mode) {
+    return this.getType_(mode) === S_IFCHR;
+  }
+
+  /**
+   * Checks whether the type of the given mode is block device.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a block decive or not.
+   * @private
+   */
+  isBlockDevice_(mode) {
+    return this.getType_(mode) === S_IFBLK;
+  }
+
+  /**
+   * Checks whether the type of the given mode is regular file.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a regular file or not.
+   * @private
+   */
+  isRegularFile_(mode) {
+    return this.getType_(mode) === S_IFREG;
+  }
+
+  /**
+   * Checks whether the type of the given mode is FIFO.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a FIFO pipe or not.
+   * @private
+   */
+  isFifo_(mode) {
+    return this.getType_(mode) === S_IFIFO;
+  }
+
+  /**
+   * Checks whether the type of the given mode is symbolic link.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a link or not.
+   * @private
+   */
+  isLink_(mode) {
+    return this.getType_(mode) === S_IFLNK;
+  }
+
+  /**
+   * Checks whether the type of the given mode is socket.
+   *
+   * @param {number} mode
+   * @return {boolean} Whether the stat mode is a socket or not.
+   * @private
+   */
+  isSocket_(mode) {
+    return this.getType_(mode) === S_IFSOCK;
   }
 };
 
-/**
- * Calculates the octal representation of the stat mode.
- *
- * @param {number} statMode
- * @return {string} The octal representation of the stat mode.
- * @private
- */
-StatModeController.prototype.calculateOctalMode_ = function(statMode) {
-  return this.getMode_(statMode).toString(8);
-};
-
-/**
- * Calculates the string representation of the stat mode.
- *
- * @param {number} statMode
- * @return {string} The string representation of the stat mode.
- * @private
- */
-StatModeController.prototype.calculateModeString_ = function(statMode) {
-  var fileType = '-';
-  if (this.isRegularFile_(statMode)) {
-    fileType = '-';
-  } else if (this.isBlockDevice_(statMode)) {
-    fileType = 'b';
-  } else if (this.isCharacterDevice_(statMode)) {
-    fileType = 'c';
-  } else if (this.isDirectory_(statMode)) {
-    fileType = 'd';
-  } else if (this.isFifo_(statMode)) {
-    fileType = 'p';
-  } else if (this.isLink_(statMode)) {
-    fileType = 'l';
-  } else if (this.isSocket_(statMode)) {
-    fileType = 's';
-  }
-
-  var permissions = '';
-
-  permissions += (statMode & S_IRUSR) ? "r" : "-";
-  permissions += (statMode & S_IWUSR) ? "w" : "-";
-  if (statMode & S_ISUID) {
-    permissions += (statMode & S_IXUSR) ? "s" : "S";
-  } else {
-    permissions += (statMode & S_IXUSR) ? "x" : "-";
-  }
-
-  permissions += (statMode & S_IRGRP) ? "r" : "-";
-  permissions += (statMode & S_IWGRP) ? "w" : "-";
-  if (statMode & S_ISGID) {
-    permissions += (statMode & S_IXGRP) ? "s" : "S";
-  } else {
-    permissions += (statMode & S_IXGRP) ? "x" : "-";
-  }
-
-  permissions += (statMode & S_IROTH) ? "r" : "-";
-  permissions += (statMode & S_IWOTH) ? "w" : "-";
-  if (statMode & S_ISVTX) {
-    permissions += (statMode & S_IXOTH) ? "t" : "T";
-  } else {
-    permissions += (statMode & S_IXOTH) ? "x" : "-";
-  }
-
-  return fileType + permissions;
-};
-
-/**
- * Returns the mode part of the given stat mode.
- *
- * @param {number} mode
- * @return {number} The mode part of the stat mode.
- * @private
- */
-StatModeController.prototype.getMode_ = function(mode) {
-  return mode & S_IMODE;
-};
-
-/**
- * Returns the file type part of the given stat mode.
- *
- * @param {number} mode
- * @return {number} The type part of the stat mode.
- * @private
- */
-StatModeController.prototype.getType_ = function(mode) {
-  return mode & S_IFMT;
-};
-
-/**
- * Checks whether the type of the given mode is directory.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a directory or not.
- * @private
- */
-StatModeController.prototype.isDirectory_ = function(mode) {
-  return this.getType_(mode) === S_IFDIR;
-};
-
-/**
- * Checks whether the type of the given mode is a character device.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a character decive or not.
- * @private
- */
-StatModeController.prototype.isCharacterDevice_ = function(mode) {
-  return this.getType_(mode) === S_IFCHR;
-};
-
-/**
- * Checks whether the type of the given mode is block device.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a block decive or not.
- * @private
- */
-StatModeController.prototype.isBlockDevice_ = function(mode) {
-  return this.getType_(mode) === S_IFBLK;
-};
-
-/**
- * Checks whether the type of the given mode is regular file.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a regular file or not.
- * @private
- */
-StatModeController.prototype.isRegularFile_ = function(mode) {
-  return this.getType_(mode) === S_IFREG;
-};
-
-/**
- * Checks whether the type of the given mode is FIFO.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a FIFO pipe or not.
- * @private
- */
-StatModeController.prototype.isFifo_ = function(mode) {
-  return this.getType_(mode) === S_IFIFO;
-};
-
-/**
- * Checks whether the type of the given mode is symbolic link.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a link or not.
- * @private
- */
-StatModeController.prototype.isLink_ = function(mode) {
-  return this.getType_(mode) === S_IFLNK;
-};
-
-/**
- * Checks whether the type of the given mode is socket.
- *
- * @param {number} mode
- * @return {boolean} Whether the stat mode is a socket or not.
- * @private
- */
-StatModeController.prototype.isSocket_ = function(mode) {
-  return this.getType_(mode) === S_IFSOCK;
-};
 
 
 /**
@@ -254,13 +255,11 @@ StatModeController.prototype.isSocket_ = function(mode) {
  */
 exports.StatModeDirective = function($filter) {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     template: '<abbr title="Mode {$ ::controller.octalStatMode $}">' +
-              '  {$ ::controller.statMode $}' +
-              '</abbr>',
+        '  {$ ::controller.statMode $}' +
+        '</abbr>',
     controller: StatModeController,
     controllerAs: 'controller'
   };

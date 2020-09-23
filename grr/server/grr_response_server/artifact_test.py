@@ -12,6 +12,7 @@ import os
 import subprocess
 from typing import Collection
 from typing import Iterable
+from typing import Iterator
 
 from absl import app
 from absl.testing import absltest
@@ -141,12 +142,16 @@ class MultiProvideParser(parser.RegistryValueParser):
     yield rdf_protodict.Dict(test_dict)
 
 
-class RaisingParser(parsers.SingleResponseParser):
+class RaisingParser(parsers.SingleResponseParser[None]):
 
   output_types = [None]
   supported_artifacts = ["RaisingArtifact"]
 
-  def ParseResponse(self, knowledge_base, response):
+  def ParseResponse(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      response: rdfvalue.RDFValue,
+  ) -> Iterator[None]:
     del knowledge_base, response  # Unused.
     raise parsers.ParseError("It was bound to happen.")
 
@@ -412,7 +417,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           client_id=client_id,
-          use_tsk=False,
+          use_raw_filesystem_access=False,
           artifact_list=["TestCmdArtifact"],
           token=self.token)
 
@@ -729,7 +734,7 @@ class GrrKbLinuxTest(GrrKbTest):
             "LinuxReleaseInfo"
         ],
         "Artifacts.netgroup_filter_regexes": ["^login$"],
-        "Artifacts.netgroup_user_blacklist": ["isaac"]
+        "Artifacts.netgroup_ignore_users": ["isaac"]
     }):
       with vfs_test_lib.FakeTestDataVFSOverrider():
         with test_lib.SuppressLogs():
@@ -909,7 +914,7 @@ class ParserApplicatorTest(absltest.TestCase):
 
   def testApplyMultiResponseSuccess(self):
 
-    class QuuxParser(parsers.MultiResponseParser):
+    class QuuxParser(parsers.MultiResponseParser[rdfvalue.RDFInteger]):
 
       supported_artifacts = ["Quux"]
 
@@ -942,7 +947,7 @@ class ParserApplicatorTest(absltest.TestCase):
     class QuuxParseError(parsers.ParseError):
       pass
 
-    class QuuxParser(parsers.MultiResponseParser):
+    class QuuxParser(parsers.MultiResponseParser[rdfvalue.RDFInteger]):
 
       supported_artifacts = ["Quux"]
 
@@ -971,7 +976,7 @@ class ParserApplicatorTest(absltest.TestCase):
 
   def testSingleFileResponse(self):
 
-    class NorfParser(parsers.SingleFileParser):
+    class NorfParser(parsers.SingleFileParser[rdfvalue.RDFBytes]):
 
       supported_artifacts = ["Norf"]
 
@@ -1009,7 +1014,7 @@ class ParserApplicatorTest(absltest.TestCase):
     class NorfParseError(parsers.ParseError):
       pass
 
-    class NorfParser(parsers.SingleFileParser):
+    class NorfParser(parsers.SingleFileParser[None]):
 
       supported_artifacts = ["Norf"]
 
@@ -1044,7 +1049,7 @@ class ParserApplicatorTest(absltest.TestCase):
 
   def testMultiFileSuccess(self):
 
-    class ThudParser(parsers.MultiFileParser):
+    class ThudParser(parsers.MultiFileParser[rdf_protodict.Dict]):
 
       supported_artifacts = ["Thud"]
 
@@ -1093,7 +1098,7 @@ class ParserApplicatorTest(absltest.TestCase):
     class ThudParseError(parsers.ParseError):
       pass
 
-    class ThudParser(parsers.MultiFileParser):
+    class ThudParser(parsers.MultiFileParser[rdf_protodict.Dict]):
 
       supported_artifacts = ["Thud"]
 
@@ -1144,7 +1149,7 @@ class ParserApplicatorTest(absltest.TestCase):
 
   def testTimestamp(self):
 
-    class BlarghParser(parsers.SingleFileParser):
+    class BlarghParser(parsers.SingleFileParser[rdfvalue.RDFBytes]):
 
       supported_artifacts = ["Blargh"]
 

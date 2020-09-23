@@ -12,10 +12,8 @@ import time
 import traceback
 from typing import Text
 
-from urllib import parse as urlparse
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
-from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import json_format
 from grr_response_core import config
@@ -30,9 +28,11 @@ from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_value_renderers
+from grr_response_server.gui import http_response
 
 
 API_METHOD_LATENCY = metrics.Event(
@@ -261,36 +261,18 @@ def GetRequestFormatMode(request, method_metadata):
 class HttpRequestHandler(object):
   """Handles HTTP requests."""
 
-  @staticmethod
-  def BuildToken(request, execution_time):
-    """Build an ACLToken from the request."""
-
-    # The request.args dictionary will also be filled on HEAD calls.
-    if request.method in ["GET", "HEAD"]:
-      reason = request.args.get("reason", "")
-    elif request.method in ["POST", "DELETE", "PATCH"]:
-      # The header X-GRR-Reason is set in api-service.js.
-      reason = urlparse.unquote(request.headers.get("X-Grr-Reason", ""))
+  def _BuildContext(self, request):
+    """Build the API call context from the request."""
 
     # We assume that request.user contains the username that we can trust.
     # No matter what authentication method is used, the WebAuthManager is
     # responsible for authenticating the userand setting request.user to
     # a correct value (see gui/webauth.py).
     #
-    # The token that's built here will be later used to find an API router,
+    # The context that's built here will be later used to find an API router,
     # get the ApiCallHandler from the router, and then to call the handler's
     # Handle() method. API router will be responsible for all the ACL checks.
-    token = access_control.ACLToken(
-        username=request.user,
-        reason=reason,
-        process="GRRAdminUI",
-        expiry=rdfvalue.RDFDatetime.Now() + execution_time)
-
-    for field in ["Remote_Addr", "X-Forwarded-For"]:
-      remote_addr = request.headers.get(field, "")
-      if remote_addr:
-        token.source_ips.append(remote_addr)
-    return token
+    return api_call_context.ApiCallContext(request.user)
 
   def _FormatResultAsJson(self, result, format_mode=None):
     if result is None:
@@ -322,10 +304,10 @@ class HttpRequestHandler(object):
       raise ValueError("Invalid format_mode: %s" % format_mode)
 
   @staticmethod
-  def CallApiHandler(handler, args, token=None):
-    """Handles API call to a given handler with given args and token."""
+  def CallApiHandler(handler, args, context=None):
+    """Handles API call to a given handler with given args and context."""
 
-    result = handler.Handle(args, token=token)
+    result = handler.Handle(args, context=context)
 
     expected_type = handler.result_type
     if expected_type is None:
@@ -347,9 +329,9 @@ class HttpRequestHandler(object):
                      method_name=None,
                      headers=None,
                      content_length=None,
-                     token=None,
+                     context=None,
                      no_audit_log=False):
-    """Builds HTTPResponse object from rendered data and HTTP status."""
+    """Builds HttpResponse object from rendered data and HTTP status."""
 
     # To avoid IE content sniffing problems, escape the tags. Otherwise somebody
     # may send a link with malicious payload that will be opened in IE (which
@@ -362,20 +344,21 @@ class HttpRequestHandler(object):
     rendered_str = ")]}'\n" + str_data.replace("<", r"\u003c").replace(
         ">", r"\u003e")
 
-    response = werkzeug_wrappers.Response(
+    response = http_response.HttpResponse(
         rendered_str,
         status=status,
-        content_type="application/json; charset=utf-8")
+        content_type="application/json; charset=utf-8",
+        context=context)
     response.headers[
         "Content-Disposition"] = "attachment; filename=response.json"
     response.headers["X-Content-Type-Options"] = "nosniff"
 
-    if token and token.reason:
-      response.headers["X-GRR-Reason"] = token.reason
     if method_name:
       response.headers["X-API-Method"] = method_name
     if no_audit_log:
       response.headers["X-No-Log"] = "True"
+    if context:
+      response.headers["X-API-User"] = context.username
 
     for key, value in (headers or {}).items():
       response.headers[key] = value
@@ -385,8 +368,11 @@ class HttpRequestHandler(object):
 
     return response
 
-  def _BuildStreamingResponse(self, binary_stream, method_name=None):
-    """Builds HTTPResponse object for streaming."""
+  def _BuildStreamingResponse(self,
+                              binary_stream,
+                              method_name=None,
+                              context=None):
+    """Builds HttpResponse object for streaming."""
     precondition.AssertType(method_name, Text)
 
     # For the challenges of implemeting correct streaming response logic:
@@ -402,10 +388,11 @@ class HttpRequestHandler(object):
     except StopIteration:
       stream = []
 
-    response = werkzeug_wrappers.Response(
+    response = http_response.HttpResponse(
         response=stream,
         content_type="binary/octet-stream",
-        direct_passthrough=True)
+        direct_passthrough=True,
+        context=context)
     response.headers["Content-Disposition"] = ((
         "attachment; filename=%s" % binary_stream.filename).encode("utf-8"))
     if method_name:
@@ -468,10 +455,7 @@ class HttpRequestHandler(object):
     request.method_metadata = method_metadata
     request.parsed_args = args
 
-    # SetUID() is called here so that ACL checks done by the router do not
-    # clash with datastore ACL checks.
-    # TODO(user): increase token expiry time.
-    token = self.BuildToken(request, 60).SetUID()
+    context = self._BuildContext(request)
 
     data_store.REL_DB.WriteGRRUser(request.user, email=request.email)
 
@@ -480,7 +464,7 @@ class HttpRequestHandler(object):
       # ACL checks are done here by the router. If this method succeeds (i.e.
       # does not raise), then handlers run without further ACL checks (they're
       # free to do some in their own implementations, though).
-      handler = getattr(router, method_metadata.name)(args, token=token)
+      handler = getattr(router, method_metadata.name)(args, context=context)
 
       if handler.args_type != method_metadata.args_type:
         raise RuntimeError("Handler args type doesn't match "
@@ -504,28 +488,28 @@ class HttpRequestHandler(object):
         # header to the response.
         if (method_metadata.result_type ==
             method_metadata.BINARY_STREAM_RESULT_TYPE):
-          binary_stream = handler.Handle(args, token=token)
+          binary_stream = handler.Handle(args, context=context)
           return self._BuildResponse(
               200, {"status": "OK"},
               method_name=method_metadata.name,
               no_audit_log=method_metadata.no_audit_log_required,
               content_length=binary_stream.content_length,
-              token=token)
+              context=context)
         else:
           return self._BuildResponse(
               200, {"status": "OK"},
               method_name=method_metadata.name,
               no_audit_log=method_metadata.no_audit_log_required,
-              token=token)
+              context=context)
 
       if (method_metadata.result_type ==
           method_metadata.BINARY_STREAM_RESULT_TYPE):
-        binary_stream = handler.Handle(args, token=token)
+        binary_stream = handler.Handle(args, context=context)
         return self._BuildStreamingResponse(
-            binary_stream, method_name=method_metadata.name)
+            binary_stream, method_name=method_metadata.name, context=context)
       else:
         format_mode = GetRequestFormatMode(request, method_metadata)
-        result = self.CallApiHandler(handler, args, token=token)
+        result = self.CallApiHandler(handler, args, context=context)
         rendered_data = self._FormatResultAsJson(
             result, format_mode=format_mode)
 
@@ -534,7 +518,7 @@ class HttpRequestHandler(object):
             rendered_data,
             method_name=method_metadata.name,
             no_audit_log=method_metadata.no_audit_log_required,
-            token=token)
+            context=context)
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
       logging.warning("Access denied for %s (HTTP %s %s): %s",
@@ -553,7 +537,7 @@ class HttpRequestHandler(object):
           headers=additional_headers,
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          token=token)
+          context=context)
     except api_call_handler_base.ResourceNotFoundError as e:
       error_message = str(e)
       return self._BuildResponse(
@@ -561,7 +545,7 @@ class HttpRequestHandler(object):
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          token=token)
+          context=context)
     # ValueError is commonly raised by GRR code in arguments checks.
     except ValueError as e:
       error_message = str(e)
@@ -570,7 +554,7 @@ class HttpRequestHandler(object):
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          token=token)
+          context=context)
     except NotImplementedError as e:
       error_message = str(e)
       return self._BuildResponse(
@@ -578,7 +562,7 @@ class HttpRequestHandler(object):
           dict(message=error_message),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          token=token)
+          context=context)
     except Exception as e:  # pylint: disable=broad-except
       error_message = str(e)
       logging.exception("Error while processing %s (%s) with %s: %s",
@@ -589,7 +573,7 @@ class HttpRequestHandler(object):
           dict(message=error_message, traceBack=traceback.format_exc()),
           method_name=method_metadata.name,
           no_audit_log=method_metadata.no_audit_log_required,
-          token=token)
+          context=context)
 
 
 def RenderHttpResponse(request):

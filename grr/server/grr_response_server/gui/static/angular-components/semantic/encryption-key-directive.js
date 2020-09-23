@@ -25,32 +25,32 @@ exports.stringifyEncryptionKey = function(base64Bytes) {
 
 /**
  * Controller for EncryptionKeyDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const EncryptionKeyController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const EncryptionKeyController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.stringifiedKey;
+    /** @type {string} */
+    this.stringifiedKey;
 
-  this.scope_.$watch('::value.value', this.onValueChange.bind(this));
-};
+    this.scope_.$watch('::value.value', this.onValueChange.bind(this));
+  }
 
-
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {string} newValue New base64-encoded encryption key value.
- */
-EncryptionKeyController.prototype.onValueChange = function(newValue) {
-  if (angular.isDefined(newValue)) {
-    this.stringifiedKey = exports.stringifyEncryptionKey(newValue);
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {string} newValue New base64-encoded encryption key value.
+   */
+  onValueChange(newValue) {
+    if (angular.isDefined(newValue)) {
+      this.stringifiedKey = exports.stringifyEncryptionKey(newValue);
+    }
   }
 };
 
@@ -65,9 +65,7 @@ EncryptionKeyController.prototype.onValueChange = function(newValue) {
  */
 exports.EncryptionKeyDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     template: '{$ ::controller.stringifiedKey $}',
     controller: EncryptionKeyController,

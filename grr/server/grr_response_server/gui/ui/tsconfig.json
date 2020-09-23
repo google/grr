@@ -24,7 +24,8 @@
     ],
     "lib": [
       "es2019",
-      "dom"
+      "dom",
+      "esnext.bigint"
     ],
     "paths": {
       "@app/*": ["./*"]

@@ -93,7 +93,7 @@ class TSKFile(vfs_base.VFSHandler):
   }
 
   # Files we won't return in directories.
-  BLACKLIST_FILES = [
+  _IGNORE_FILES = [
       "$OrphanFiles"  # Special TSK dir that invokes processing.
   ]
 
@@ -355,7 +355,7 @@ class TSKFile(vfs_base.VFSHandler):
       try:
         name = _DecodeUTF8WithWarning(f.info.name.name)
         # Drop these useless entries.
-        if name in [".", ".."] or name in self.BLACKLIST_FILES:
+        if name in [".", ".."] or name in self._IGNORE_FILES:
           continue
 
         # First we yield a standard response using the default attributes.

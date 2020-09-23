@@ -6,10 +6,13 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
-
+from typing import Any
+from typing import List
+from typing import Sequence
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
@@ -79,6 +82,14 @@ class Interrogate(flow_base.FlowBase):
     self.CallClient(
         server_stubs.EnumerateFilesystems,
         next_state=compatibility.GetName(self.EnumerateFilesystems))
+
+    flow_args_cls = rdf_artifacts.ArtifactCollectorFlowArgs
+    if config.CONFIG["Artifacts.edr_agents"]:
+      self.CallFlow(
+          collectors.ArtifactCollectorFlow.__name__,
+          artifact_list=config.CONFIG["Artifacts.edr_agents"],
+          dependencies=flow_args_cls.Dependency.IGNORE_DEPS,
+          next_state=compatibility.GetName(self.ProcessEdrAgents))
 
   def CloudMetadata(self, responses):
     """Process cloud metadata and store in the client."""
@@ -307,6 +318,20 @@ class Interrogate(flow_base.FlowBase):
     response = responses.First()
     for k, v in response.items():
       self.state.client.library_versions.Append(key=k, value=str(v))
+
+  def ProcessEdrAgents(self, responses: Sequence[Any]) -> None:
+    if not responses.success:
+      return
+
+    edr_agents: List[rdf_client.EdrAgent] = []
+
+    for response in responses:
+      if not isinstance(response, rdf_client.EdrAgent):
+        raise TypeError(f"Unexpected EDR agent response type: {type(response)}")
+
+      edr_agents.append(response)
+
+    self.state.client.edr_agents = edr_agents
 
   def NotifyAboutEnd(self):
     notification.Notify(

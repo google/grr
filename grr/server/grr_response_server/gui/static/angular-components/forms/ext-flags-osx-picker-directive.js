@@ -5,28 +5,30 @@ const {OSX_FLAGS} = goog.require('grrUi.client.extFlags');
 const {TroggableFlags} = goog.require('grrUi.forms.extFlagsTroggling');
 
 
-/**
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
- */
-const ExtFlagsOsxPickerController = function($scope) {
-  /** @type {!TroggableFlags} */
-  this.flags = new TroggableFlags(OSX_FLAGS);
+/** @unrestricted */
+const ExtFlagsOsxPickerController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @type {!TroggableFlags} */
+    this.flags = new TroggableFlags(OSX_FLAGS);
 
-  $scope.$watch('bitsSet.value', (value) => {
-    this.flags.bitsSet = value;
-  });
-  $scope.$watch('bitsUnset.value', (value) => {
-    this.flags.bitsUnset = value;
-  });
+    $scope.$watch('bitsSet.value', (value) => {
+      this.flags.bitsSet = value;
+    });
+    $scope.$watch('bitsUnset.value', (value) => {
+      this.flags.bitsUnset = value;
+    });
 
-  $scope.$watch('controller.flags.bitsSet', (value) => {
-    $scope['bitsSet']['value'] = value;
-  });
-  $scope.$watch('controller.flags.bitsUnset', (value) => {
-    $scope['bitsUnset']['value'] = value;
-  });
+    $scope.$watch('controller.flags.bitsSet', (value) => {
+      $scope['bitsSet']['value'] = value;
+    });
+    $scope.$watch('controller.flags.bitsUnset', (value) => {
+      $scope['bitsUnset']['value'] = value;
+    });
+  }
 };
 
 

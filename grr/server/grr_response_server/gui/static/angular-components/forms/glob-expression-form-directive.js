@@ -47,30 +47,32 @@ exports.getSuggestions = function(expression, entries) {
 
 /**
  * Controller for GlobExpressionFormDirective.
- *
- * @constructor
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const GlobExpressionFormController = function(grrApiService, $scope) {
-  this.fields = [];
+const GlobExpressionFormController = class {
+  /**
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor(grrApiService, $scope) {
+    this.fields = [];
 
-  grrApiService
-      .get('/clients/kb-fields')
-      .then(res => res.data.items.map(item => item.value))
-      .then(fields => this.fields = fields);
+    grrApiService.get('/clients/kb-fields')
+        .then(res => res.data.items.map(item => item.value))
+        .then(fields => this.fields = fields);
+  }
+
+  /**
+   * @see exports.getSuggestions
+   * @param {string} expression
+   * @return {Array<{stringWithSuggestion: string, suggestion: string}>!}
+   */
+  getSuggestions(expression) {
+    return exports.getSuggestions(expression, this.fields);
+  }
 };
 
-
-/**
- * @see exports.getSuggestions
- * @param {string} expression
- * @return {Array<{stringWithSuggestion: string, suggestion: string}>!}
- */
-GlobExpressionFormController.prototype.getSuggestions = function(expression) {
-  return exports.getSuggestions(expression, this.fields);
-};
 
 
 /**
@@ -81,10 +83,7 @@ GlobExpressionFormController.prototype.getSuggestions = function(expression) {
 exports.GlobExpressionFormDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      value: '=',
-      metadata: '='
-    },
+    scope: {value: '=', metadata: '='},
     templateUrl: '/static/angular-components/forms/glob-expression-form.html',
     controller: GlobExpressionFormController,
     controllerAs: 'controller'

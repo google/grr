@@ -33,7 +33,12 @@ class GetCloudVMMetadata(actions.ActionPlugin):
   LINUX_BIOS_VERSION_COMMAND = ["/usr/sbin/dmidecode", "-s", "bios-version"]
   WINDOWS_SERVICES_COMMAND = [
       "%s\\System32\\sc.exe" % os.environ.get("SYSTEMROOT", r"C:\Windows"),
-      "query"
+      "query",
+      # Make sure that stopped services are included into the list.
+      # A particular cloud service doesn't have to actually be running to
+      # be an indicator of a cloud machine.
+      "state=",
+      "all",
   ]
 
   def IsCloud(self, request, bios_version, services):
