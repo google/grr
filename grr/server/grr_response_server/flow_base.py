@@ -7,9 +7,10 @@ from __future__ import unicode_literals
 
 import logging
 import traceback
-from typing import Iterator, NamedTuple
+from typing import Iterator, NamedTuple, Optional
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -204,6 +205,7 @@ class FlowBase(metaclass=FlowRegistry):
     self._client_version = None
     self._client_os = None
     self._client_knowledge_base = None
+    self._client_info: Optional[rdf_client.ClientInformation] = None
 
   def Start(self):
     """The first state of the flow."""
@@ -989,6 +991,16 @@ class FlowBase(metaclass=FlowRegistry):
           self.client_id)
 
     return self._client_knowledge_base
+
+  @property
+  def client_info(self) -> rdf_client.ClientInformation:
+    if self._client_info is not None:
+      return self._client_info
+
+    client_info = data_store_utils.GetClientInformation(self.client_id)
+    self._client_info = client_info
+
+    return client_info
 
   @property
   def creator(self):

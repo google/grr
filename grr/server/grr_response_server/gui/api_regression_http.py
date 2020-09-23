@@ -15,7 +15,7 @@ import portpicker
 import requests
 
 from google.protobuf import json_format
-from grr_api_client.connectors import http_connector
+from grr_api_client import connectors
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -60,8 +60,7 @@ class HttpApiRegressionTestMixinBase(object):
 
         _HTTP_ENDPOINTS[api_version] = "http://localhost:%d" % port
 
-      return http_connector.HttpConnector(
-          api_endpoint=_HTTP_ENDPOINTS[api_version])
+      return connectors.HttpConnector(api_endpoint=_HTTP_ENDPOINTS[api_version])
 
   def setUp(self):
     super(HttpApiRegressionTestMixinBase, self).setUp()

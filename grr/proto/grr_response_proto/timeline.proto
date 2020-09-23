@@ -58,4 +58,10 @@ message TimelineEntry {
 
   // A time of the last status change of the file in nanoseconds since epoch.
   optional int64 ctime_ns = 10;
+
+  // A time of the file creation in nanoseconds since epoch.
+  optional int64 btime_ns = 11;
+
+  // Extra file attributes.
+  optional uint64 attributes = 12;
 }

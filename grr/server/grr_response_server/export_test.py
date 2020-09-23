@@ -164,7 +164,8 @@ class ExportTest(ExportTestBase):
         st_ino=1063090,
         st_atime=1336469177,
         st_mtime=1336129892,
-        st_ctime=1336129892)
+        st_ctime=1336129892,
+        st_btime=1331331331)
 
     converter = export.StatEntryToExportedFileConverter()
     results = list(converter.Convert(self.metadata, stat))
@@ -178,6 +179,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(results[0].st_atime, 1336469177)
     self.assertEqual(results[0].st_mtime, 1336129892)
     self.assertEqual(results[0].st_ctime, 1336129892)
+    self.assertEqual(results[0].st_btime, 1331331331)
 
     self.assertFalse(results[0].HasField("content"))
     self.assertFalse(results[0].HasField("content_sha256"))
@@ -315,7 +317,8 @@ class ExportTest(ExportTestBase):
         st_ino=1063090,
         st_atime=1336469177,
         st_mtime=1336129892,
-        st_ctime=1336129892)
+        st_ctime=1336129892,
+        st_btime=1333333331)
 
     converter = export.StatEntryToExportedRegistryKeyConverter()
     results = list(converter.Convert(self.metadata, stat))
@@ -576,7 +579,8 @@ class ExportTest(ExportTestBase):
         st_ino=1063090,
         st_atime=1336469177,
         st_mtime=1336129892,
-        st_ctime=1336129892)
+        st_ctime=1336129892,
+        st_btime=1313131313)
 
     file_finder_result = rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, matches=[match1, match2])
@@ -598,6 +602,7 @@ class ExportTest(ExportTestBase):
     self.assertEqual(exported_files[0].st_atime, 1336469177)
     self.assertEqual(exported_files[0].st_mtime, 1336129892)
     self.assertEqual(exported_files[0].st_ctime, 1336129892)
+    self.assertEqual(exported_files[0].st_btime, 1313131313)
 
     self.assertFalse(exported_files[0].HasField("content"))
     self.assertFalse(exported_files[0].HasField("content_sha256"))
@@ -664,7 +669,8 @@ class ExportTest(ExportTestBase):
         st_ino=1063090,
         st_atime=1336469177,
         st_mtime=1336129892,
-        st_ctime=1336129892)
+        st_ctime=1336129892,
+        st_btime=1331133113)
     hash_entry = rdf_crypto.Hash(
         sha256=sha256,
         sha1=sha1,
@@ -685,7 +691,8 @@ class ExportTest(ExportTestBase):
         st_ino=1063090,
         st_atime=1336469177,
         st_mtime=1336129892,
-        st_ctime=1336129892)
+        st_ctime=1336129892,
+        st_btime=1331331331)
     hash_entry2 = rdf_crypto.Hash(
         sha256=sha256,
         sha1=sha1,

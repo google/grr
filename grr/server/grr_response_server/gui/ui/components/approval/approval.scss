@@ -1,33 +1,48 @@
 :host {
   display: block;
-  margin-top: 2em;
-  margin-bottom: 1.75em;
+  padding-top: 2em;
+}
+
+:host.closed {
+  cursor: pointer;
+}
+
+:host.closed .content {
+  max-height: 0;
+  padding-bottom: 0;
+}
+
+:host .content {
+  transition: max-height ease 0.4s;
+  overflow: hidden;
+  padding-bottom: 1.75em;
+}
+
+.wrapper {
+  display: block;
+  margin: 0 auto;
+  max-width: 1280px;
+  width: 80%;
 }
 
 button {
   text-transform: uppercase;
 }
 
+.form-border {
+  padding-top: 2em;
+  border-top: 1px solid #d0d0d0;
+  margin-top: 2em;
+}
+
 form {
-  display: flex;
-  align-items: stretch;
+  max-width: 500px;
 
   mat-form-field {
-    padding-right: 1em;
+    display: block;
   }
 
   .approvers {
-    display: flex;
-    flex-direction: column;
-
-    mat-form-field {
-      ::ng-deep {
-        .mat-form-field-wrapper {
-          padding-bottom: 0.75em;
-        }
-      }
-    }
-
     mat-checkbox {
       position: relative;
       left: 3px;

@@ -15,7 +15,7 @@
          dates rendering (with changeable timezone stored in the global
          store). -->
     <td mat-cell *matCellDef="let element">
-      {{ element.lastSeenAt ? (element.lastSeenAt | date:'short':'UTC') : '-' }}
+      <timestamp [date]="element.lastSeenAt"></timestamp>
     </td>
   </ng-container>
 

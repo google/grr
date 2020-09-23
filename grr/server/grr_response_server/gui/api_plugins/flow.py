@@ -33,6 +33,7 @@ from grr_response_server import notification
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui import archive_generator
@@ -139,16 +140,16 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     return "%s\n\n%s" % (getattr(flow_cls, "__doc__",
                                  ""), self._GetFlowArgsHelpAsString(flow_cls))
 
-  def InitFromFlowClass(self, flow_cls, token=None):
-    if not token:
-      raise ValueError("token can't be None")
+  def InitFromFlowClass(self, flow_cls, context=None):
+    if not context:
+      raise ValueError("context can't be None")
 
     self.name = flow_cls.__name__
     self.friendly_name = flow_cls.friendly_name
     self.category = flow_cls.category.strip("/")
     self.doc = self._GetFlowDocumentation(flow_cls)
     self.args_type = flow_cls.args_type.__name__
-    self.default_args = flow_cls.GetDefaultArgs(username=token.username)
+    self.default_args = flow_cls.GetDefaultArgs(username=context.username)
     self.behaviours = sorted(flow_cls.behaviours)
 
     return self
@@ -362,7 +363,7 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetFlowArgs
   result_type = ApiFlow
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
     return ApiFlow().InitFromFlowObject(
@@ -390,7 +391,7 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowRequestsArgs
   result_type = ApiListFlowRequestsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     client_id = args.client_id.ToString()
     requests_and_responses = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, str(args.flow_id))
@@ -445,7 +446,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowResultsArgs
   result_type = ApiListFlowResultsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     results = data_store.REL_DB.ReadFlowResults(
         str(args.client_id),
         str(args.flow_id),
@@ -492,7 +493,7 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiListParsedFlowResultsArgs,
-      token: access_control.ACLToken,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> ApiListParsedFlowResultsResult:
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)
@@ -577,7 +578,7 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowLogsArgs
   result_type = ApiListFlowLogsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     count = args.count or db.MAX_COUNT
 
     logs = data_store.REL_DB.ReadFlowLogEntries(
@@ -611,7 +612,7 @@ class ApiGetFlowResultsExportCommandHandler(api_call_handler_base.ApiCallHandler
   args_type = ApiGetFlowResultsExportCommandArgs
   result_type = ApiGetFlowResultsExportCommandResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     output_fname = re.sub("[^0-9a-zA-Z]+", "_",
                           "%s_%s" % (args.client_id, args.flow_id))
     code_to_execute = ("""grrapi.Client("%s").Flow("%s").GetFilesArchive()."""
@@ -669,7 +670,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     self.exclude_path_globs = exclude_path_globs
     self.include_only_path_globs = include_only_path_globs
 
-  def _WrapContentGenerator(self, generator, flow_results, args, token=None):
+  def _WrapContentGenerator(self, generator, flow_results, args, context=None):
     flow_ref = rdf_objects.FlowReference(
         client_id=args.client_id, flow_id=args.flow_id)
     object_reference = rdf_objects.ObjectReference(
@@ -679,7 +680,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         yield item
 
       notification.Notify(
-          token.username,
+          context.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of flow %s from client %s (archived %d "
           "out of %d items, archive size is %d)" %
@@ -688,7 +689,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     except Exception as e:
       notification.Notify(
-          token.username,
+          context.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s" %
           (args.flow_id, args.client_id, e), object_reference)
@@ -699,7 +700,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
                                         generator,
                                         mappings,
                                         args,
-                                        token=None):
+                                        context=None):
     flow_ref = rdf_objects.FlowReference(
         client_id=args.client_id, flow_id=args.flow_id)
     object_reference = rdf_objects.ObjectReference(
@@ -709,7 +710,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         yield item
 
       notification.Notify(
-          token.username,
+          context.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATED,
           "Downloaded archive of flow %s from client %s (archived %d files, "
           "archive size is %d)" %
@@ -718,14 +719,14 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     except Exception as e:
       notification.Notify(
-          token.username,
+          context.username,
           rdf_objects.UserNotification.Type.TYPE_FILE_ARCHIVE_GENERATION_FAILED,
           "Archive generation failed for flow %s on client %s: %s" %
           (args.flow_id, args.client_id, e), object_reference)
 
       raise
 
-  def _BuildPredicate(self, client_id, token=None):
+  def _BuildPredicate(self, client_id, context=None):
     if self.include_only_path_globs is None:
       return None
 
@@ -749,7 +750,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     return Predicate
 
-  def _GetFlow(self, args, token=None):
+  def _GetFlow(self, args, context=None):
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -758,8 +759,8 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     return flow_obj, flow_results
 
-  def Handle(self, args, token=None):
-    flow_object, flow_results = self._GetFlow(args, token)
+  def Handle(self, args, context=None):
+    flow_object, flow_results = self._GetFlow(args, context)
     flow_api_object = ApiFlow().InitFromFlowObject(flow_object)
     flow_instance = flow_base.FlowBase.CreateFlowInstance(flow_object)
     try:
@@ -791,16 +792,16 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       a_gen = archive_generator.FlowArchiveGenerator(flow_object,
                                                      archive_format)
       content_generator = self._WrapContentGeneratorWithMappings(
-          a_gen, mappings, args, token=token)
+          a_gen, mappings, args, context=context)
     else:
       a_gen = archive_generator.CollectionArchiveGenerator(
           prefix=target_file_prefix,
           description=description,
           archive_format=archive_format,
-          predicate=self._BuildPredicate(str(args.client_id), token=token),
+          predicate=self._BuildPredicate(str(args.client_id), context=context),
           client_id=args.client_id.ToString())
       content_generator = self._WrapContentGenerator(
-          a_gen, flow_results, args, token=token)
+          a_gen, flow_results, args, context=context)
 
     return api_call_handler_base.ApiBinaryStream(
         target_file_prefix + file_extension,
@@ -828,7 +829,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowOutputPluginsArgs
   result_type = ApiListFlowOutputPluginsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
     output_plugins_states = flow_obj.output_plugins_states
@@ -910,7 +911,7 @@ class ApiListFlowOutputPluginLogsHandlerBase(
 
   log_entry_type = None
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
 
@@ -1006,7 +1007,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowsArgs
   result_type = ApiListFlowsResult
 
-  def _HandleTopFlowsOnly(self, args, token=None):
+  def _HandleTopFlowsOnly(self, args, context=None):
     top_flows = data_store.REL_DB.ReadAllFlowObjects(
         client_id=str(args.client_id),
         min_create_time=args.min_started_at,
@@ -1025,7 +1026,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
       result = result[:args.count]
     return ApiListFlowsResult(items=result)
 
-  def _HandleAllFlows(self, args, token=None):
+  def _HandleAllFlows(self, args, context=None):
     all_flows = data_store.REL_DB.ReadAllFlowObjects(
         client_id=str(args.client_id),
         min_create_time=args.min_started_at,
@@ -1063,11 +1064,11 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
       result = result[:args.count]
     return ApiListFlowsResult(items=result)
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if args.top_flows_only:
-      return self._HandleTopFlowsOnly(args, token=token)
+      return self._HandleTopFlowsOnly(args, context=context)
     else:
-      return self._HandleAllFlows(args, token=token)
+      return self._HandleAllFlows(args, context=context)
 
 
 class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
@@ -1117,7 +1118,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCreateFlowArgs
   result_type = ApiFlow
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_cls, runner_args = _SanitizeApiCreateFlowArgs(args)
 
     cpu_limit = None
@@ -1130,7 +1131,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     flow_id = flow.StartFlow(
         client_id=str(args.client_id),
         cpu_limit=cpu_limit,
-        creator=token.username,
+        creator=context.username,
         flow_args=args.flow.args,
         flow_cls=flow_cls,
         network_bytes_limit=network_bytes_limit,
@@ -1158,7 +1159,7 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCancelFlowArgs
   result_type = ApiFlow
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_base.TerminateFlow(
         str(args.client_id), str(args.flow_id), reason="Cancelled in GUI")
     flow_obj = data_store.REL_DB.ReadFlowObject(
@@ -1182,7 +1183,7 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     super().__init__()
     self.access_check_fn = access_check_fn
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     """Renders list of descriptors for all the flows."""
 
     result = []
@@ -1195,11 +1196,11 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
       # Only show flows that the user is allowed to start.
       try:
         if self.access_check_fn:
-          self.access_check_fn(token.username, name)
+          self.access_check_fn(context.username, name)
       except access_control.UnauthorizedAccess:
         continue
 
-      result.append(ApiFlowDescriptor().InitFromFlowClass(cls, token=token))
+      result.append(ApiFlowDescriptor().InitFromFlowClass(cls, context=context))
 
     return ApiListFlowDescriptorsResult(items=result)
 
@@ -1219,15 +1220,17 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
   _RESULTS_PAGE_SIZE = 1000
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     iop_cls = instant_output_plugin.InstantOutputPlugin
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
 
-    # TODO(user): Instant output plugins shouldn't depend on tokens
+    # TODO(user): Instant output plugins shouldn't depend on contexts
     # and URNs.
     flow_urn = rdfvalue.RDFURN("{}/flows/{}".format(args.client_id,
                                                     args.flow_id))
-    plugin = plugin_cls(source_urn=flow_urn, token=token)
+    plugin = plugin_cls(
+        source_urn=flow_urn,
+        token=access_control.ACLToken(username=context.username))
 
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)
@@ -1282,7 +1285,7 @@ class ApiExplainGlobExpressionHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiExplainGlobExpressionArgs
   result_type = ApiExplainGlobExpressionResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     ge = rdf_paths.GlobExpression(args.glob_expression)
     ge.Validate()
 
@@ -1317,7 +1320,7 @@ class ApiScheduleFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiCreateFlowArgs
   result_type = ApiScheduledFlow
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_cls, runner_args = _SanitizeApiCreateFlowArgs(args)
 
     args.flow.args.Validate()
@@ -1327,7 +1330,7 @@ class ApiScheduleFlowHandler(api_call_handler_base.ApiCallHandler):
 
     scheduled_flow = flow.ScheduleFlow(
         client_id=str(args.client_id),
-        creator=token.username,
+        creator=context.username,
         flow_name=flow_cls.__name__,
         flow_args=args.flow.args,
         runner_args=runner_args)
@@ -1352,7 +1355,7 @@ class ApiListScheduledFlowsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListScheduledFlowsArgs
   result_type = ApiListScheduledFlowsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     results = flow.ListScheduledFlows(
         client_id=args.client_id, creator=args.creator)
     results = sorted(results, key=lambda sf: sf.create_time)
@@ -1378,9 +1381,9 @@ class ApiUnscheduleFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiUnscheduleFlowArgs
   result_type = ApiUnscheduleFlowResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow.UnscheduleFlow(
         client_id=args.client_id,
-        creator=token.username,
+        creator=context.username,
         scheduled_flow_id=args.scheduled_flow_id)
     return ApiUnscheduleFlowResult()

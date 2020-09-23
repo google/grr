@@ -19,7 +19,9 @@ from typing import Text
 from grr_colab import magics_impl
 
 
-_PATH_TYPE_CHOICES = [magics_impl.OS, magics_impl.TSK, magics_impl.REGISTRY]
+_PATH_TYPE_CHOICES = [
+    magics_impl.OS, magics_impl.TSK, magics_impl.NTFS, magics_impl.REGISTRY
+]
 
 
 def grr_set_no_flow_timeout(line: Text) -> None:

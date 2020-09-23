@@ -42,6 +42,7 @@ from grr_response_server.flows import file
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr_response_server.gui.api_plugins import flow as flow_plugin
@@ -131,7 +132,7 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
             name=processes.ListProcesses.__name__,
             runner_args=flow_runner_args))
 
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertNotStartsWith(str(result.urn), "aff4:/foo")
 
 
@@ -193,7 +194,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
             client_id=self.client_id,
             flow_id=self.flow_id,
             archive_format="ZIP"),
-        token=self.token)
+        context=self.context)
     manifest = self._GetZipManifest(result)
 
     self.assertEqual(manifest["archived_files"], 1)
@@ -210,7 +211,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
             client_id=self.client_id,
             flow_id=self.flow_id,
             archive_format="ZIP"),
-        token=self.token)
+        context=self.context)
     manifest = self._GetZipManifest(result)
     self.assertEqual(manifest["archived_files"], 0)
     self.assertEqual(manifest["failed_files"], 0)
@@ -229,7 +230,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
             client_id=self.client_id,
             flow_id=self.flow_id,
             archive_format="ZIP"),
-        token=self.token)
+        context=self.context)
     manifest = self._GetZipManifest(result)
     self.assertEqual(manifest["archived_files"], 1)
     self.assertEqual(manifest["failed_files"], 0)
@@ -245,7 +246,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
             client_id=self.client_id,
             flow_id=self.flow_id,
             archive_format="ZIP"),
-        token=self.token)
+        context=self.context)
     manifest = self._GetZipManifest(result)
     self.assertEqual(manifest["archived_files"], 0)
     self.assertEqual(manifest["failed_files"], 0)
@@ -261,7 +262,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
             client_id=self.client_id,
             flow_id=self.flow_id,
             archive_format="TAR_GZ"),
-        token=self.token)
+        context=self.context)
 
     manifest = self._GetTarGzManifest(result)
     self.assertEqual(manifest["archived_files"], 1)
@@ -285,7 +286,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
               client_id=self.client_id,
               flow_id=self.flow_id,
               archive_format="ZIP"),
-          token=self.token)
+          context=self.context)
 
     manifest = self._GetZipManifest(result)
     self.assertEqual(manifest["client_id"], self.client_id)
@@ -309,7 +310,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
               client_id=self.client_id,
               flow_id=self.flow_id,
               archive_format="TAR_GZ"),
-          token=self.token)
+          context=self.context)
 
     manifest = self._GetTarGzManifest(result)
     self.assertEqual(manifest["client_id"], self.client_id)
@@ -326,6 +327,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
 
     self.handler = flow_plugin.ApiGetExportedFlowResultsHandler()
     self.client_id = self.SetupClient(0)
+    self.context = api_call_context.ApiCallContext("test")
 
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
@@ -339,7 +341,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
             client_id=self.client_id,
             flow_id=sid,
             plugin_name=test_plugins.TestInstantOutputPlugin.plugin_name),
-        token=self.token)
+        context=self.context)
 
     chunks = list(result.GenerateContent())
 
@@ -438,7 +440,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testValidatesFlowName(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
 
     class FakeFlow(flow_base.FlowBase):
 
@@ -450,7 +452,9 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
     client_id = db_test_utils.InitializeClient(db)
     flow_id = flow_test_lib.TestFlowHelper(
-        FakeFlow.__name__, client_id=client_id, token=token)
+        FakeFlow.__name__,
+        client_id=client_id,
+        token=access_control.ACLToken(username=context.username))
 
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -459,11 +463,11 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     args.flow_id = flow_id
 
     with self.assertRaisesRegex(ValueError, "artifact-collector"):
-      self.handler.Handle(args, token=token)
+      self.handler.Handle(args, context=context)
 
   @db_test_lib.WithDatabase
   def testValidatesParsersWereNotApplied(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
 
     client_id = db_test_utils.InitializeClient(db)
 
@@ -480,7 +484,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=token)
+          token=access_control.ACLToken(username=context.username))
 
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -489,11 +493,11 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     args.flow_id = flow_id
 
     with self.assertRaisesRegex(ValueError, "already parsed"):
-      self.handler.Handle(args, token=token)
+      self.handler.Handle(args, context=context)
 
   @db_test_lib.WithDatabase
   def testParsesArtifactCollectionResults(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
 
     with mock.patch.object(artifact_registry, "REGISTRY",
                            artifact_registry.ArtifactRegistry()) as registry:
@@ -509,11 +513,13 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=token)
+          token=access_control.ACLToken(username=context.username))
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
-    class FakeParser(abstract_parser.SingleResponseParser):
+    class FakeParser(
+        abstract_parser.SingleResponseParser[rdf_client_action.ExecuteResponse],
+    ):
 
       supported_artifacts = [self.ECHO1337_ARTIFACT.name]
 
@@ -533,7 +539,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       args = flow_plugin.ApiListParsedFlowResultsArgs(
           client_id=client_id, flow_id=flow_id, offset=0, count=1024)
 
-      result = self.handler.Handle(args, token=token)
+      result = self.handler.Handle(args, context=context)
 
     self.assertEmpty(result.errors)
     self.assertLen(result.items, 1)
@@ -545,7 +551,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testReportsArtifactCollectionErrors(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
 
     with mock.patch.object(artifact_registry, "REGISTRY",
                            artifact_registry.ArtifactRegistry()) as registry:
@@ -561,11 +567,13 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=token)
+          token=access_control.ACLToken(username=context.username))
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
-    class FakeParser(abstract_parser.SingleResponseParser):
+    class FakeParser(
+        abstract_parser.SingleResponseParser[rdf_client_action.ExecuteResponse],
+    ):
 
       supported_artifacts = [self.ECHO1337_ARTIFACT.name]
 
@@ -580,7 +588,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       args = flow_plugin.ApiListParsedFlowResultsArgs(
           client_id=client_id, flow_id=flow_id, offset=0, count=1024)
 
-      result = self.handler.Handle(args, token=token)
+      result = self.handler.Handle(args, context=context)
 
     self.assertEmpty(result.items)
     self.assertLen(result.errors, 1)
@@ -588,7 +596,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testUsesKnowledgebaseFromFlow(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
 
     client_id = db_test_utils.InitializeClient(db)
 
@@ -612,9 +620,11 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=token)
+          token=access_control.ACLToken(username=context.username))
 
-    class FakeParser(abstract_parser.SingleResponseParser):
+    class FakeParser(
+        abstract_parser.SingleResponseParser[rdf_client_action.ExecuteResponse],
+    ):
 
       supported_artifacts = [self.ECHO1337_ARTIFACT.name]
 
@@ -641,7 +651,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       args = flow_plugin.ApiListParsedFlowResultsArgs(
           client_id=client_id, flow_id=flow_id, offset=0, count=1024)
 
-      result = self.handler.Handle(args, token=token)
+      result = self.handler.Handle(args, context=context)
 
     self.assertEmpty(result.errors)
     self.assertLen(result.items, 1)
@@ -653,7 +663,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testUsesCollectionTimeFiles(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
     snapshot = rdf_objects.ClientSnapshot()
@@ -691,7 +701,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
             action_mocks.FileFinderClientMock(),
             client_id=client_id,
             args=flow_args,
-            token=token)
+            token=access_control.ACLToken(username=context.username))
 
         flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -710,11 +720,11 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
             action_mocks.FileFinderClientMock(),
             client_id=client_id,
             args=flow_args,
-            token=token)
+            token=access_control.ACLToken(username=context.username))
 
         flow_test_lib.FinishAllFlowsOnClient(client_id)
 
-    class FakeFileParser(abstract_parser.SingleFileParser):
+    class FakeFileParser(abstract_parser.SingleFileParser[rdfvalue.RDFBytes]):
 
       supported_artifacts = [fake_artifact.name]
 
@@ -731,7 +741,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       args = flow_plugin.ApiListParsedFlowResultsArgs(
           client_id=client_id, flow_id=flow_id, offset=0, count=1024)
 
-      result = self.handler.Handle(args, token=token)
+      result = self.handler.Handle(args, context=context)
 
     self.assertEmpty(result.errors)
     self.assertLen(result.items, 1)
@@ -741,7 +751,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testEmptyResults(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
     fake_artifact = rdf_artifacts.Artifact(
@@ -760,29 +770,29 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=token)
+          token=access_control.ACLToken(username=context.username))
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
     args = flow_plugin.ApiListParsedFlowResultsArgs(
         client_id=client_id, flow_id=flow_id, offset=0, count=1024)
 
-    result = self.handler.Handle(args, token=token)
+    result = self.handler.Handle(args, context=context)
     self.assertEmpty(result.errors)
     self.assertEmpty(result.items)
 
 
-def _CreateToken(db: abstract_db.Database) -> access_control.ACLToken:
+def _CreateContext(db: abstract_db.Database) -> api_call_context.ApiCallContext:
   username = "".join(random.choice("abcdef") for _ in range(8))
   db.WriteGRRUser(username)
-  return access_control.ACLToken(username=username, reason="Lorem ipsum.")
+  return api_call_context.ApiCallContext(username)
 
 
 class ApiApiExplainGlobExpressionHandlerTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testHandlerUsesKnowledgeBase(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
     snapshot = rdf_objects.ClientSnapshot()
@@ -795,7 +805,7 @@ class ApiApiExplainGlobExpressionHandlerTest(absltest.TestCase):
         example_count=2,
         client_id=client_id,
         glob_expression="%%users.homedir%%/foo")
-    results = handler.Handle(args, token=token)
+    results = handler.Handle(args, context=context)
     self.assertEqual(
         list(results.components), [
             rdf_paths.GlobComponentExplanation(
@@ -809,7 +819,7 @@ class ApiScheduleFlowsTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testScheduleFlow(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
     handler = flow_plugin.ApiScheduleFlowHandler()
@@ -820,9 +830,9 @@ class ApiScheduleFlowsTest(absltest.TestCase):
             args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
             runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60)))
 
-    sf = handler.Handle(args, token=token)
+    sf = handler.Handle(args, context=context)
     self.assertEqual(sf.client_id, client_id)
-    self.assertEqual(sf.creator, token.username)
+    self.assertEqual(sf.creator, context.username)
     self.assertNotEmpty(sf.scheduled_flow_id)
     self.assertEqual(sf.flow_name, file.CollectSingleFile.__name__)
     self.assertEqual(sf.flow_args.path, "/foo")
@@ -830,7 +840,7 @@ class ApiScheduleFlowsTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testListScheduledFlows(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
     client_id1 = db_test_utils.InitializeClient(db)
     client_id2 = db_test_utils.InitializeClient(db)
 
@@ -842,7 +852,7 @@ class ApiScheduleFlowsTest(absltest.TestCase):
                 name=file.CollectSingleFile.__name__,
                 args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
                 runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        token=token)
+        context=context)
     sf2 = handler.Handle(
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id1,
@@ -850,7 +860,7 @@ class ApiScheduleFlowsTest(absltest.TestCase):
                 name=file.CollectSingleFile.__name__,
                 args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
                 runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        token=token)
+        context=context)
     handler.Handle(
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id2,
@@ -858,18 +868,18 @@ class ApiScheduleFlowsTest(absltest.TestCase):
                 name=file.CollectSingleFile.__name__,
                 args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
                 runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        token=token)
+        context=context)
 
     handler = flow_plugin.ApiListScheduledFlowsHandler()
     args = flow_plugin.ApiListScheduledFlowsArgs(
-        client_id=client_id1, creator=token.username)
-    results = handler.Handle(args, token=token)
+        client_id=client_id1, creator=context.username)
+    results = handler.Handle(args, context=context)
 
     self.assertEqual(results.scheduled_flows, [sf1, sf2])
 
   @db_test_lib.WithDatabase
   def testUnscheduleFlowRemovesScheduledFlow(self, db: abstract_db.Database):
-    token = _CreateToken(db)
+    context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
     handler = flow_plugin.ApiScheduleFlowHandler()
@@ -880,7 +890,7 @@ class ApiScheduleFlowsTest(absltest.TestCase):
                 name=file.CollectSingleFile.__name__,
                 args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
                 runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        token=token)
+        context=context)
     sf2 = handler.Handle(
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id,
@@ -888,18 +898,18 @@ class ApiScheduleFlowsTest(absltest.TestCase):
                 name=file.CollectSingleFile.__name__,
                 args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
                 runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        token=token)
+        context=context)
 
     handler = flow_plugin.ApiUnscheduleFlowHandler()
     args = flow_plugin.ApiUnscheduleFlowArgs(
         client_id=client_id,
         scheduled_flow_id=sf1.scheduled_flow_id)
-    handler.Handle(args, token=token)
+    handler.Handle(args, context=context)
 
     handler = flow_plugin.ApiListScheduledFlowsHandler()
     args = flow_plugin.ApiListScheduledFlowsArgs(
-        client_id=client_id, creator=token.username)
-    results = handler.Handle(args, token=token)
+        client_id=client_id, creator=context.username)
+    results = handler.Handle(args, context=context)
 
     self.assertEqual(results.scheduled_flows, [sf2])
 

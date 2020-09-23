@@ -89,6 +89,10 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
 
+    if self.args.use_tsk and self.args.use_raw_filesystem_access:
+      raise ValueError(
+          "Only one of use_tsk and use_raw_filesystem_access can be set.")
+
     if (self.args.dependencies ==
         rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
       # String due to dependency loop with discover.py.
@@ -417,7 +421,8 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     self.CallFlow(
         ArtifactCollectorFlow.__name__,
         artifact_list=artifact_list,
-        use_tsk=self.args.use_tsk,
+        use_raw_filesystem_access=(self.args.use_raw_filesystem_access or
+                                   self.args.use_tsk),
         apply_parsers=self.args.apply_parsers,
         max_file_size=self.args.max_file_size,
         ignore_interpolation_errors=self.args.ignore_interpolation_errors,
@@ -683,7 +688,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
 
       if isinstance(pathspec, Text):
         pathspec = rdf_paths.PathSpec(path=pathspec)
-        if self.args.use_tsk:
+        if self.args.use_raw_filesystem_access or self.args.use_tsk:
           pathspec.pathtype = rdf_paths.PathSpec.PathType.TSK
         else:
           pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
@@ -782,19 +787,21 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
     # and guess.
     if (isinstance(response, rdf_client_fs.StatEntry) and
         response.pathspec.pathtype in [
-            rdf_paths.PathSpec.PathType.TSK, rdf_paths.PathSpec.PathType.OS
+            rdf_paths.PathSpec.PathType.TSK,
+            rdf_paths.PathSpec.PathType.OS,
+            rdf_paths.PathSpec.PathType.NTFS,
         ]):
       return [response.pathspec]
 
     knowledge_base = _ReadClientKnowledgeBase(self.client_id)
 
-    if self.args.use_tsk:
+    if self.args.use_raw_filesystem_access or self.args.use_tsk:
       path_type = rdf_paths.PathSpec.PathType.TSK
     else:
       path_type = rdf_paths.PathSpec.PathType.OS
 
     p = windows_persistence.WindowsPersistenceMechanismsParser()
-    parsed_items = p.Parse(response, knowledge_base)
+    parsed_items = p.ParseResponse(knowledge_base, response)
     parsed_pathspecs = [item.pathspec for item in parsed_items]
 
     for pathspec in parsed_pathspecs:
@@ -805,6 +812,10 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
   def Start(self):
     super().Start()
 
+    if self.args.use_tsk and self.args.use_raw_filesystem_access:
+      raise ValueError(
+          "Only one of use_tsk and use_raw_filesystem_access can be set.")
+
     self.state.file_size = self.args.max_file_size
     self.state.results_to_download = []
 
@@ -812,7 +823,8 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
         ArtifactCollectorFlow.__name__,
         next_state=compatibility.GetName(self._DownloadFiles),
         artifact_list=self.args.artifact_list,
-        use_tsk=self.args.use_tsk,
+        use_raw_filesystem_access=(self.args.use_tsk or
+                                   self.args.use_raw_filesystem_access),
         max_file_size=self.args.max_file_size)
 
   def _DownloadFiles(self, responses):
@@ -994,7 +1006,6 @@ def GetArtifactCollectorArgs(flow_args, knowledge_base):
   args.apply_parsers = flow_args.apply_parsers
   args.ignore_interpolation_errors = flow_args.ignore_interpolation_errors
   args.max_file_size = flow_args.max_file_size
-  args.use_tsk = flow_args.use_tsk
 
   if not flow_args.recollect_knowledge_base:
     artifact_names = flow_args.artifact_list

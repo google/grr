@@ -76,9 +76,9 @@ const SearchBoxController = class {
    * @private
    */
   isHuntId_(input) {
-    var hunt_regex = /^([A-Z0-9]+:)?[A-F0-9]{6,12}$/i;
+    var huntRegex = /^([A-Z0-9]+:)?[A-F0-9]{6,16}$/i;
 
-    if (!hunt_regex.test(input)) {
+    if (!huntRegex.test(input)) {
       return false;
     }
 

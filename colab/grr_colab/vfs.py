@@ -286,6 +286,8 @@ def get_vfs_path(path: Text, path_type: jobs_pb2.PathSpec.PathType) -> Text:
     return 'fs/os{}'.format(path)
   elif path_type == jobs_pb2.PathSpec.TSK:
     return 'fs/tsk{}'.format(path)
+  elif path_type == jobs_pb2.PathSpec.NTFS:
+    return 'fs/ntfs{}'.format(path)
   elif path_type == jobs_pb2.PathSpec.REGISTRY:
     return 'registry{}'.format(path)
   raise errors.UnsupportedPathTypeError(path_type)

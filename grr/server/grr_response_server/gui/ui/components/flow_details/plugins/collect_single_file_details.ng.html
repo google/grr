@@ -10,6 +10,13 @@
     {{ (args$ | async).path }}
   </div>
   <div class="collected-result" *ngIf="progress.result">
+    <div class="path-type-note" *ngIf="(filePathType$ | async) === pathSpecPathType.TSK">
+      File was fetched by parsing the raw disk image with libtsk.
+    </div>
+    <div class="path-type-note" *ngIf="(filePathType$ | async) === pathSpecPathType.NTFS">
+      File was fetched by parsing the raw disk image with libfsntfs.
+    </div>
+
     <file-results-table
       [results]="fileResults$ | async"
       [totalCount]="1">
@@ -18,6 +25,12 @@
 </div>
 
 <ng-template #noProgress>
-    The flow didn't report its progress. It's either a legacy flow or it
-    did run before progress reporting was introduced as a feature.
+  <div class="fallback">
+  View
+  <a href="{{fallbackUrl$ | async}}">
+    Flow
+    <span class="monospace">{{ (flowListEntry$ | async).flow.flowId }}</span>
+  </a>
+  in legacy UI.
+</div>
 </ng-template>

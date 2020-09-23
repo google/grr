@@ -13,11 +13,11 @@ import mock
 import requests
 
 from werkzeug import test as werkzeug_test
-from werkzeug import wrappers as werkzeug_wrappers
 
 from google.oauth2 import id_token
 
 from grr_response_server import data_store
+from grr_response_server.gui import http_response
 from grr_response_server.gui import validate_iap
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp
@@ -30,7 +30,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
     super(RemoteUserWebAuthManagerTest, self).setUp()
 
     self.manager = webauth.RemoteUserWebAuthManager()
-    self.success_response = werkzeug_wrappers.Response("foobar")
+    self.success_response = http_response.HttpResponse("foobar")
 
   def HandlerStub(self, request, *args, **kwargs):
     del request, args, kwargs  # Unused.
@@ -122,7 +122,7 @@ class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
     self.addCleanup(config_overrider.Stop)
 
     self.manager = webauth.FirebaseWebAuthManager()
-    self.success_response = werkzeug_wrappers.Response("foobar")
+    self.success_response = http_response.HttpResponse("foobar")
 
     self.checked_request = None
 
@@ -249,7 +249,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
     def Handler(request, *args, **kwargs):
       del request, args, kwargs  # Unused.
 
-      return werkzeug_wrappers.Response("foobar", status=200)
+      return http_response.HttpResponse("foobar", status=200)
 
     manager = webauth.IAPWebAuthManager()
     response = manager.SecurityCheck(Handler, request)
@@ -317,7 +317,7 @@ class IAPWebAuthManagerTest(test_lib.GRRBaseTest):
       del args, kwargs  # Unused.
 
       self.assertEqual(request.user, "temp")
-      return werkzeug_wrappers.Response("success", status=200)
+      return http_response.HttpResponse("success", status=200)
 
     manager = webauth.IAPWebAuthManager()
     response = manager.SecurityCheck(Handler, request)
@@ -351,7 +351,7 @@ class BasicWebAuthManagerTest(test_lib.GRRBaseTest):
       del args, kwargs  # Unused.
 
       self.assertEqual(request.user, user)
-      return werkzeug_wrappers.Response(b"foobar", status=200)
+      return http_response.HttpResponse(b"foobar", status=200)
 
     manager = webauth.BasicWebAuthManager()
     response = manager.SecurityCheck(Handler, request)

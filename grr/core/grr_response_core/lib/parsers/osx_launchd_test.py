@@ -47,7 +47,7 @@ class DarwinPersistenceMechanismsParserTest(flow_test_lib.FlowTestsBaseclass):
     parser = osx_launchd.DarwinPersistenceMechanismsParser()
     serv_info = rdf_client.OSXServiceInformation(
         label="blah", args=["/blah/test", "-v"])
-    results = list(parser.Parse(serv_info, None))
+    results = list(parser.ParseResponse(rdf_client.KnowledgeBase(), serv_info))
     self.assertEqual(results[0].pathspec.path, "/blah/test")
 
 

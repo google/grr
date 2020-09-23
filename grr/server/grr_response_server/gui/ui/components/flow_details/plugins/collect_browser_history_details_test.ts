@@ -35,8 +35,7 @@ describe('collect-browser-history-details component', () => {
         newFlowListEntry({name: 'CollectBrowserHistory'});
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText)
-        .toContain('The flow didn\'t report its progress');
+    expect(fixture.nativeElement.innerText).toContain('legacy UI');
   });
 
   it('does not show "Download all" button on non-finished flow', () => {

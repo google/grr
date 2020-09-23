@@ -9,7 +9,8 @@ from __future__ import unicode_literals
 import logging
 import os
 import re
-
+from typing import Iterable
+from typing import Iterator
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parser
@@ -250,7 +251,8 @@ class WinUserSpecialDirs(parser.RegistryMultiParser):
     return user_dict.values()
 
 
-class WinServicesParser(parsers.MultiResponseParser):
+class WinServicesParser(
+    parsers.MultiResponseParser[rdf_client.WindowsServiceInformation]):
   """Parser for Windows services values from the registry.
 
   See service key doco:
@@ -276,7 +278,11 @@ class WinServicesParser(parsers.MultiResponseParser):
       return None
     return key_name.lower()
 
-  def ParseResponses(self, knowledge_base, responses):
+  def ParseResponses(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      responses: Iterable[rdfvalue.RDFValue],
+  ) -> Iterator[rdf_client.WindowsServiceInformation]:
     """Parse Service registry keys and return WindowsServiceInformation."""
     del knowledge_base  # Unused.
     precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)

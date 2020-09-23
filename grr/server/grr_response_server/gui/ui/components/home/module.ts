@@ -11,9 +11,12 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
 
+import {TimestampModule} from '../timestamp/module';
+
 import {Home} from './home';
 import {HomeRoutingModule} from './routing';
 import {SearchBox} from './search_box';
+
 
 /**
  * Module for the home page and related components.
@@ -38,6 +41,7 @@ import {SearchBox} from './search_box';
     // GRR modules.
     HomeRoutingModule,
     ApiModule,
+    TimestampModule,
   ],
   declarations: [Home, SearchBox],
 })

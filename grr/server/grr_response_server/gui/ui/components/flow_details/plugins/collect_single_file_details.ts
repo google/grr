@@ -1,13 +1,12 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, CollectSingleFileResult} from '@app/lib/api/api_interfaces';
+import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {EMPTY, Observable, of} from 'rxjs';
 import {filter, map, mergeMap} from 'rxjs/operators';
-
 import {isNonNull} from '../../../lib/preconditions';
-
 import {Plugin} from './plugin';
+
 
 
 /**
@@ -24,6 +23,8 @@ export class CollectSingleFileDetails extends Plugin {
     super();
   }
 
+  pathSpecPathType = PathSpecPathType;
+
   progress$: Observable<CollectSingleFileProgress|undefined> =
       this.flowListEntry$.pipe(
           map((flowListEntry) =>
@@ -38,7 +39,7 @@ export class CollectSingleFileDetails extends Plugin {
         }
 
         if (progress.status === CollectSingleFileProgressStatus.NOT_FOUND) {
-          return of('Not found');
+          return of('File not found');
         } else if (progress.status === CollectSingleFileProgressStatus.FAILED) {
           return of(progress.errorDescription!);
         } else {
@@ -50,6 +51,11 @@ export class CollectSingleFileDetails extends Plugin {
       map((progress) => progress?.result),
       filter(isNonNull),
       map((result) => [flowFileResultFromStatEntry(result.stat!)]),
+  );
+
+  filePathType$: Observable<PathSpecPathType> = this.progress$.pipe(
+      map((progress) => progress?.result?.stat?.pathspec?.pathtype),
+      filter(isNonNull),
   );
 
   args$: Observable<CollectSingleFileArgs> = this.flowListEntry$.pipe(

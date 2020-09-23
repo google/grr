@@ -11,6 +11,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_response_core import config
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -45,3 +46,14 @@ def GetClientKnowledgeBase(client_id):
   if client is None:
     return None
   return client.knowledge_base
+
+
+def GetClientInformation(client_id: str) -> rdf_client.ClientInformation:
+  startup_info = data_store.REL_DB.ReadClientStartupInfo(client_id)
+  if startup_info is None:
+    # If we have no startup information, we just return an empty message. This
+    # makes the code that handles it easier (as it does not have to consider the
+    # null case) and missing fields have to be taken into consideration anyway.
+    return rdf_client.ClientInformation()
+  else:
+    return startup_info.client_info

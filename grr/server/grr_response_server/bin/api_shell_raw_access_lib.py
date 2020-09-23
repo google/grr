@@ -5,7 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_api_client import connector
+from grr_api_client import connectors
 from grr_api_client import errors
 from grr_api_client import utils
 from grr_response_core.lib.util import compatibility
@@ -15,19 +15,19 @@ from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui.root import api_root_router
 
 
-class RawConnector(connector.Connector):
+class RawConnector(connectors.Connector):
   """API connector that uses API routers directly."""
 
-  def __init__(self, page_size=None, token=None):
+  def __init__(self, page_size=None, context=None):
     super().__init__()
 
     if not page_size:
       raise ValueError("page_size has to be specified.")
     self._page_size = page_size
 
-    if not token:
-      raise ValueError("token has to be specified.")
-    self._token = token
+    if not context:
+      raise ValueError("context has to be specified.")
+    self._context = context
 
     self._router = api_call_router_without_checks.ApiCallRouterWithoutChecks()
     self._root_router = api_root_router.ApiRootRouter()
@@ -71,8 +71,8 @@ class RawConnector(connector.Connector):
 
     method = getattr(router, method_name)
     try:
-      handler = method(rdf_args, token=self._token)
-      return handler.Handle(rdf_args, token=self._token)
+      handler = method(rdf_args, context=self._context)
+      return handler.Handle(rdf_args, context=self._context)
     except access_control.UnauthorizedAccess as e:
       raise errors.AccessForbiddenError(e)
     except api_call_handler_base.ResourceNotFoundError as e:

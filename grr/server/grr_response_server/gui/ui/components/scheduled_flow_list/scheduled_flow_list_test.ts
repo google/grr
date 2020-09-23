@@ -7,6 +7,7 @@ import {newScheduledFlow} from '../../lib/models/model_test_util';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 
+import {ScheduledFlowListModule} from './module';
 
 import {ScheduledFlowList} from './scheduled_flow_list';
 
@@ -25,6 +26,7 @@ describe('ScheduledFlowList Component', () => {
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
+            ScheduledFlowListModule,
           ],
 
           providers: [

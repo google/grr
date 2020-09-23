@@ -20,6 +20,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import registry_init  # pylint: disable=unused-import
 from grr_response_server.gui import api_auth_manager
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
@@ -35,14 +36,15 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     super(ApiIntegrationTest, self).setUp()
 
     api_auth_manager.InitializeApiAuthManager()
-    self.token.username = "api_test_robot_user"
+    self.context = api_call_context.ApiCallContext("api_test_robot_user")
+    self.token.username = self.context.username
     try:
-      webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+      webauth.WEBAUTH_MANAGER.SetUserName(self.context.username)
     except AttributeError:
       # Only the NullWebAuthManager supports SetUserName
       pass
 
-    self.CreateUser(self.token.username)
+    self.CreateUser(self.context.username)
 
     self.port = ApiIntegrationTest.server_port
     self.endpoint = "http://localhost:%s" % self.port

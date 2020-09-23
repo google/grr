@@ -1,8 +1,7 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {ClientSearchFacade} from '@app/store/client_search_facade';
-import {Subject} from 'rxjs';
-import {map, takeUntil} from 'rxjs/operators';
+import {map} from 'rxjs/operators';
 
 /**
  * Component displaying the client search results.
@@ -12,24 +11,20 @@ import {map, takeUntil} from 'rxjs/operators';
   styleUrls: ['./client_search.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientSearch implements OnInit, OnDestroy {
-  private readonly query$ = this.route.paramMap.pipe(
-      map(params => params.get('query') || ''),
+export class ClientSearch implements OnInit {
+  private readonly query$ = this.route.queryParamMap.pipe(
+      map(params => params.get('q') ?? ''),
   );
-
-  private readonly unsubscribe$ = new Subject<void>();
 
   /**
    * Table rows for the MatTable component.
    */
   readonly rows$ = this.clientSearchFacade.clients$.pipe(
-      map(clients => clients.map((c) => {
-        return {
-          clientId: c.clientId,
-          fqdn: c.knowledgeBase.fqdn,
-          lastSeenAt: c.lastSeenAt,
-        };
-      })),
+      map(clients => clients.map((c) => ({
+                                   clientId: c.clientId,
+                                   fqdn: c.knowledgeBase.fqdn,
+                                   lastSeenAt: c.lastSeenAt,
+                                 }))),
   );
 
   /**
@@ -43,13 +38,8 @@ export class ClientSearch implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    this.query$.pipe(takeUntil(this.unsubscribe$)).subscribe(query => {
+    this.query$.subscribe(query => {
       this.clientSearchFacade.searchClients(query);
     });
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 }

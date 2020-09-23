@@ -1,0 +1,42 @@
+:host {
+  display: block;
+}
+
+.wrapper {
+  padding: 2em;
+  background-color: #bdc1c6;
+
+  mat-card {
+    width: 80%;
+    max-width: 1280px;
+    margin: 0 auto;
+
+    mat-card-header {
+      font-size: 18px;
+      margin-top: 0.8em;
+      margin-bottom: 0.8em;
+    }
+
+    table {
+      margin-left: 1em;
+
+      td {
+        padding-right: 0.7em;
+        padding-bottom: 0.7em;
+      }
+    }
+
+    mat-card-actions {
+      margin-left: 1em;
+      margin-bottom: 1em;
+    }
+
+    .explanation {
+      display: inline-block;
+      width: 53%;
+      vertical-align: middle;
+      font-size: 14px;
+      padding-left: 2em;
+    }
+  }
+}

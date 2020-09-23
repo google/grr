@@ -412,7 +412,7 @@ class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
 
   @property
   def path_type(self):
-    if self.use_tsk:
+    if self.use_tsk or self.use_raw_filesystem_access:
       return rdf_paths.PathSpec.PathType.TSK
     else:
       return rdf_paths.PathSpec.PathType.OS

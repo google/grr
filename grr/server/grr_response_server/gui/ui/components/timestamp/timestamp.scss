@@ -1,0 +1,18 @@
+@use '~material-theme' as c;
+
+.timestamp {
+  display: inline-block;
+}
+
+.tooltip {
+  margin-bottom: 3px;
+}
+
+.inline_relative {
+  display: inline-block;
+  color: c.mat-color(c.$foreground, text-light);
+}
+
+.copy_button {
+  color: c.mat-color(c.$foreground, icon-grey);
+}

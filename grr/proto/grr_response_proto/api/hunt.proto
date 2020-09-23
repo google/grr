@@ -17,7 +17,7 @@ package grr;
 // Entities.
 //
 
-// Next id: 32
+// Next id: 33
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -27,20 +27,28 @@ message ApiHunt {
     COMPLETED = 3;
   }
 
+  enum HuntType {
+    UNSET = 0;
+    STANDARD = 1;
+    VARIABLE = 2;
+  }
+
   optional string urn = 1
       [(sem_type) = { type: "SessionID", description: "Hunt URN." }];
   optional string hunt_id = 25
       [(sem_type) = { type: "ApiHuntId", description: "The hunt id." }];
+  optional HuntType hunt_type = 32;
   optional string name = 2 [(sem_type) = {
-    description: "Hunt name.",
+    description: "DEPRECATED (use hunt_type instead). Hunt name.",
   }];
+
   optional State state = 4
       [(sem_type) = { description: "Current hunt state." }];
 
   optional string flow_name = 20
-      [(sem_type) = { description: "Cron flow name." }];
+      [(sem_type) = { description: "Hunt flow name." }];
   optional google.protobuf.Any flow_args = 21 [(sem_type) = {
-    description: "Cron flow arguments.",
+    description: "Hunt flow arguments.",
     dynamic_type: "GetFlowArgsClass"
   }];
   optional HuntRunnerArgs hunt_runner_args = 6
@@ -507,4 +515,23 @@ message ApiGetExportedHuntResultsArgs {
       [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
   optional string plugin_name = 2
       [(sem_type) = { description: "Instant output plugin name." }];
+}
+
+message PerClientFileCollectionArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional PathSpec.PathType path_type = 2 [
+    (sem_type) = { description: "Path type used to collect given file paths." }
+  ];
+  repeated string paths = 3
+      [(sem_type) = { description: "File paths to collect." }];
+}
+
+message ApiCreatePerClientFileCollectionHuntArgs {
+  optional string description = 1;
+  optional uint64 duration_secs = 2 [(sem_type) = {
+    type: "DurationSeconds",
+    description: "Maximum amount of time the hunt is allowed to run."
+  }];
+  repeated PerClientFileCollectionArgs per_client_args = 3;
 }

@@ -80,7 +80,7 @@ class ApiListOutputPluginDescriptorsHandler(
 
     return items
 
-  def Handle(self, unused_args, token=None):
+  def Handle(self, unused_args, context=None):
     result = ApiListOutputPluginDescriptorsResult()
     result.items = itertools.chain(
         self._GetPlugins(output_plugin.OutputPlugin),

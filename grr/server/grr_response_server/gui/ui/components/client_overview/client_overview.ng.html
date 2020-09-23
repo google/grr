@@ -1,0 +1,41 @@
+<div *ngIf="client$ | async as client" class="client-header mat-body-1">
+  <div class="fqdn-chips">
+    <mat-icon class="computer-icon">computer</mat-icon>
+    <div class="fqdn">
+      <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
+    </div>
+
+    <div class="chips">
+      <mat-chip-list>
+        <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+        <mat-chip *ngFor="let label of client.labels; trackBy: labelsTrackByName" (removed)="removeLabel(label.name)">
+          {{label.name}} <mat-icon matChipRemove aria-label="Remove label">close</mat-icon>
+        </mat-chip>
+      </mat-chip-list>
+      <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
+      ><mat-icon>add</mat-icon>Add label</button>
+    </div>
+
+    <ng-content></ng-content>
+  </div>
+
+  <div class="info mat-body-1">
+    <div>
+      <span class="os">
+        {{client.knowledgeBase.os}}
+      </span>
+      <span>{{client.clientId}}
+        <button mat-icon-button
+          class="copy-button"
+          [cdkCopyToClipboard]="client.clientId"
+          aria-label="Copy">
+          <mat-icon aria-label="Copy">content_copy</mat-icon>
+        </button>
+      </span>
+    </div>
+
+    <div class="last-seen">
+      Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
+    </div>
+  </div>
+</div>

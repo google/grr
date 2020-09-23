@@ -37,8 +37,8 @@ class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetRDFValueDescriptorArgs
   result_type = api_value_renderers.ApiRDFValueDescriptor
 
-  def Handle(self, args, token=None):
-    _ = token
+  def Handle(self, args, context=None):
+    _ = context
 
     rdfvalue_class = _GetAllTypes()[args.type]
     return api_value_renderers.BuildTypeDescriptor(rdfvalue_class)
@@ -57,7 +57,7 @@ class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
   args_type = None
   result_type = ApiListRDFValueDescriptorsResult
 
-  def Handle(self, unused_args, token=None):
+  def Handle(self, unused_args, context=None):
     result = ApiListRDFValueDescriptorsResult()
 
     all_types = _GetAllTypes()
@@ -125,7 +125,7 @@ class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
   def __init__(self, router):
     self.router = router
 
-  def Handle(self, unused_args, token=None):
+  def Handle(self, unused_args, context=None):
     router_methods = self.router.__class__.GetAnnotatedMethods()
 
     result = ApiListApiMethodsResult()

@@ -10,6 +10,7 @@ import {initTestEnvironment} from '@app/testing';
 import {ClientPageFacade} from '../../store/client_page_facade';
 
 import {FlowPicker} from './flow_picker';
+import {FlowPickerModule} from './module';
 
 
 initTestEnvironment();
@@ -51,6 +52,7 @@ describe('FlowPicker Component', () => {
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
+            FlowPickerModule,
           ],
 
           providers: [

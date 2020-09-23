@@ -1,0 +1,175 @@
+<div class="details-container mat-body-1" *ngIf="clientVersions$ | async as clientVersions">
+  <div class="timeline">
+    <div class="heading-since">
+      <div class="mat-h1 heading">Change logs</div>
+      <div class="since">Since {{clientVersions[clientVersions.length - 1].client.age | date:'dd-MM-yyyy'}}</div>
+    </div>
+    <mat-selection-list #timeline [multiple]="false" disableRipple>
+      <mat-list-option *ngFor="let version of clientVersions; index as i; first as isFirst"
+        [value]="version.client"
+        [selected]="isFirst"
+        class="entry">
+
+        <div>
+          <mat-icon inline class="bullet-icon">stop_circle</mat-icon>
+          <timestamp [date]="version.client.age" [tooltipEnabled]="false" class="timestamp"></timestamp>
+        </div>
+        <div class="change-list mat-body-2">
+          <div *ngFor="let change of version.changes">
+            {{change}}
+          </div>
+        </div>
+      </mat-list-option>
+    </mat-selection-list>
+  </div>
+
+  <div *ngIf="timeline.selectedOptions.selected[0]?.value as client" class="info">
+    <div class="section-title mat-h3">OS Info</div>
+    <table class="section">
+      <tr *ngIf="client.osInfo.system">
+        <td class="description">System</td>
+        <td class="value">{{client.osInfo.system}}
+          <entry-history-button path="osInfo.system"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.osInfo.release">
+        <td class="description">Release</td>
+        <td class="value">{{client.osInfo.release}}
+          <entry-history-button path="osInfo.release"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.osInfo.version">
+        <td class="description">Version</td>
+        <td class="value">{{client.osInfo.version}}
+          <entry-history-button path="osInfo.version"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.osInfo.kernel">
+        <td class="description">Kernel</td>
+        <td class="value">{{client.osInfo.kernel}}
+          <entry-history-button path="osInfo.kernel"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.knowledgeBase.osMajorVersion">
+        <td class="description">OS major version</td>
+        <td class="value">{{client.knowledgeBase.osMajorVersion}}
+          <entry-history-button path="knowledgeBase.osMajorVersion"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.knowledgeBase.osMinorVersion">
+        <td class="description">OS minor version</td>
+        <td class="value">{{client.knowledgeBase.osMinorVersion}}
+          <entry-history-button path="knowledgeBase.osMinorVersion"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.osInfo.installDate">
+        <td class="description">Install date</td>
+        <td class="value">
+          <timestamp [date]="client.osInfo.installDate"></timestamp>
+          <entry-history-button path="osInfo.installDate" type="timestamp"></entry-history-button>
+        </td>
+      </tr>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">Users
+      <entry-history-button path="users" type="user-list"></entry-history-button>
+    </div>
+    <users-details [users]="client.users.slice(0, currentNumUsersShown)"></users-details>
+    <button
+      *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-more'"
+      mat-button color="primary" (click)="currentNumUsersShown = client.users.length">
+        Show {{client.users.length - currentNumUsersShown}} more user<ng-template [ngIf]="client.users.length - currentNumUsersShown > 1">s</ng-template> <mat-icon>keyboard_arrow_down</mat-icon>
+    </button>
+    <button
+      *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-less'"
+      mat-button color="primary" (click)="currentNumUsersShown = INITIAL_NUM_USERS_SHOWN">
+        Show less <mat-icon>keyboard_arrow_up</mat-icon>
+    </button>
+
+    <br>
+    <div class="section-title mat-h3">CPU & Memory</div>
+    <table class="section">
+      <tr *ngIf="client.osInfo.machine">
+        <td class="description">CPU architecture</td>
+        <td class="value">{{client.osInfo.machine}}
+          <entry-history-button path="osInfo.machine"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.memorySize">
+        <td class="description">Memory size</td>
+        <td class="value">
+          <human-readable-size [size]="client.memorySize"></human-readable-size>
+          <entry-history-button path="memorySize" type="size"></entry-history-button>
+        </td>
+      </tr>
+    </table>
+
+    <br>
+    <div class="section-title mat-h3">Network Interfaces
+      <entry-history-button path="networkInterfaces" type="interface-list"></entry-history-button>
+    </div>
+    <interfaces-details [interfaces]="client.networkInterfaces.slice(0, currentNumInterfacesShown)"></interfaces-details>
+    <button
+      *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-more'"
+      mat-button color="primary" (click)="currentNumInterfacesShown = client.networkInterfaces.length">
+        Show {{client.networkInterfaces.length - currentNumInterfacesShown}} more network interface<ng-template [ngIf]="client.networkInterfaces.length - currentNumInterfacesShown > 1">s</ng-template><mat-icon>keyboard_arrow_down</mat-icon>
+    </button>
+    <button
+      *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-less'"
+      mat-button color="primary" (click)="currentNumInterfacesShown = INITIAL_NUM_INTERFACES_SHOWN">
+        Show less <mat-icon>keyboard_arrow_up</mat-icon>
+    </button>
+
+    <br>
+    <div class="section-title mat-h3">Storage Volumes
+      <entry-history-button path="volumes" type="volume-list"></entry-history-button>
+    </div>
+    <volumes-details [volumes]="client.volumes.slice(0, currentNumVolumesShown)"></volumes-details>
+    <button
+      *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-more'"
+      mat-button color="primary" (click)="currentNumVolumesShown = client.volumes.length">
+        Show {{client.volumes.length - currentNumVolumesShown}} more storage volume<ng-template [ngIf]="client.volumes.length - currentNumVolumesShown > 1">s</ng-template><mat-icon>keyboard_arrow_down</mat-icon>
+    </button>
+    <button
+      *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-less'"
+      mat-button color="primary" (click)="currentNumVolumesShown = INITIAL_NUM_VOLUMES_SHOWN">
+        Show less <mat-icon>keyboard_arrow_up</mat-icon>
+    </button>
+
+    <br>
+    <div class="section-title mat-h3">Agent Info</div>
+    <table class="section">
+      <tr *ngIf="client.agentInfo.clientName">
+        <td class="description">Client name</td>
+        <td class="value">{{client.agentInfo.clientName}}
+          <entry-history-button path="agentInfo.clientName"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.agentInfo.clientVersion">
+        <td class="description">Client version</td>
+        <td class="value">{{client.agentInfo.clientVersion}}
+          <entry-history-button path="agentInfo.clientVersion"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.agentInfo.buildTime">
+        <td class="description">Build time</td>
+        <td class="value">{{client.agentInfo.buildTime}}
+          <entry-history-button path="agentInfo.buildTime"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.agentInfo.clientBinaryName">
+        <td class="description">Client binary name</td>
+        <td class="value">{{client.agentInfo.clientBinaryName}}
+          <entry-history-button path="agentInfo.clientBinaryName"></entry-history-button>
+        </td>
+      </tr>
+      <tr *ngIf="client.agentInfo.clientDescription">
+        <td class="description">Client description</td>
+        <td class="value">{{client.agentInfo.clientDescription}}
+          <entry-history-button path="agentInfo.clientDescription"></entry-history-button>
+        </td>
+      </tr>
+    </table>
+  </div>
+</div>

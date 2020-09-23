@@ -59,7 +59,7 @@ def CollectionItemToClientPath(item, client_id=None):
     client_id = item.client_id
     item = item.payload
 
-  if client_id is None:
+  if not client_id:  # Fail if client_id is '' or None.
     raise ValueError("Could not determine client_id.")
 
   if isinstance(item, rdf_client_fs.StatEntry):

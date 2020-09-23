@@ -96,7 +96,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
               st_size=0,
               st_atime=1336469177,
               st_mtime=1336129892,
-              st_ctime=1336129892))
+              st_ctime=1336129892,
+              st_btime=1338111338))
 
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
@@ -196,7 +197,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
               st_size=0,
               st_atime=1336469177,
               st_mtime=1336129892,
-              st_ctime=1336129892))
+              st_ctime=1336129892,
+              st_btime=1338111338))
 
     sizes = [37, 687, 722, 755, 788, 821, 684, 719, 752, 785]
 

@@ -17,6 +17,7 @@ from grr_response_server import flow_base
 from grr_response_server.flows.general import processes as flows_processes
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.flows.general import webhistory as flows_webhistory
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -215,7 +216,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     flow_data = api_flow.ApiGetFlowHandler().Handle(
         api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_2),
-        token=self.token)
+        context=api_call_context.ApiCallContext("test"))
 
     for index, nested_flow in enumerate(flow_data.nested_flows):
       self.WaitUntil(

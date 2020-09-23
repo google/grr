@@ -24,6 +24,7 @@ const apiClients: ReadonlyArray<ApiClient> = [
     },
     lastSeenAt: '1571789996679000',
     labels: [],
+    age: '1571789996679000',
   },
   {
     clientId: 'C.1234',
@@ -33,6 +34,7 @@ const apiClients: ReadonlyArray<ApiClient> = [
     },
     lastSeenAt: '1571789996679000',
     labels: [],
+    age: '1571789996679000',
   },
   {
     clientId: 'C.1234',
@@ -42,6 +44,7 @@ const apiClients: ReadonlyArray<ApiClient> = [
     },
     lastSeenAt: '1571789996679000',
     labels: [],
+    age: '1571789996679000',
   }
 ];
 
@@ -169,6 +172,7 @@ describe('SearchBox Component', () => {
          },
          lastSeenAt: String(date.getTime() * 1000),
          labels: [],
+         age: '1571789996679000',
        };
 
        date.setMinutes(date.getMinutes() + CLIENT_ONLINE_WINDOW);
@@ -181,6 +185,7 @@ describe('SearchBox Component', () => {
          },
          lastSeenAt: String(date.getTime() * 1000),
          labels: [],
+         age: '1571789996679000',
        };
 
        const searchResults: ApiSearchClientResult = {items: [clientA, clientB]};

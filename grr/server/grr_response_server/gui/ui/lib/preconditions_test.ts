@@ -41,7 +41,9 @@ describe('assertNonNull', () => {
 
   it('does not throw for falsey values', () => {
     assertNonNull(0);
-    assertNonNull(false);
+    // TypeScript's unreachable code detection has a bug with `false` < v4.0.
+    // See: https://github.com/microsoft/TypeScript/issues/40017
+    assertNonNull(false as boolean);
     assertNonNull('');
     expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
   });

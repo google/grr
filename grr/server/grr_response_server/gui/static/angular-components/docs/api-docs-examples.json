@@ -205,12 +205,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -220,6 +228,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -364,12 +376,15 @@
                   "address_type": "INET6",
                   "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "mac_address": "qrvM3e4A"
             },
             {
+              "ifname": "if2",
               "mac_address": "u8zd7v8A"
             }
           ],
@@ -1103,6 +1118,10 @@
                   }
                 }
               },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
+              },
               "is_robot": {
                 "type": "bool",
                 "value": false
@@ -1209,6 +1228,7 @@
             "hunt_name": "GenericHunt",
             "original_object": {}
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "remaining_clients_count": 0,
@@ -1220,6 +1240,267 @@
         }
       },
       "url": "/api/users/me/approvals/hunt/H:123456"
+    }
+  ],
+  "ApiCreatePerClientFileCollectionHuntHandler": [
+    {
+      "api_method": "CreatePerClientFileCollectionHunt",
+      "method": "POST",
+      "request_payload": {
+        "description": "Per-client file collection",
+        "per_client_args": [
+          {
+            "client_id": "C.1000000000000000",
+            "paths": [
+              "/etc/hosts",
+              "/foo/bar"
+            ]
+          }
+        ]
+      },
+      "response": {
+        "type": "ApiHunt",
+        "value": {
+          "all_clients_count": {
+            "type": "long",
+            "value": 0
+          },
+          "client_limit": {
+            "type": "long",
+            "value": 100
+          },
+          "client_rate": {
+            "type": "long",
+            "value": 0
+          },
+          "client_rule_set": {
+            "type": "ForemanClientRuleSet",
+            "value": {}
+          },
+          "clients_with_results_count": {
+            "type": "long",
+            "value": 0
+          },
+          "completed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
+          "crash_limit": {
+            "type": "long",
+            "value": 100
+          },
+          "creator": {
+            "type": "unicode",
+            "value": "api_test_user"
+          },
+          "description": {
+            "type": "unicode",
+            "value": "Per-client file collection"
+          },
+          "duration": {
+            "type": "DurationSeconds",
+            "value": 1209600
+          },
+          "flow_args": {
+            "type": "HuntArgumentsVariable",
+            "value": {
+              "flow_groups": [
+                {
+                  "type": "VariableHuntFlowGroup",
+                  "value": {
+                    "client_ids": [
+                      {
+                        "type": "unicode",
+                        "value": "C.1000000000000000"
+                      }
+                    ],
+                    "flow_args": {
+                      "type": "MultiGetFileArgs",
+                      "value": {
+                        "pathspecs": [
+                          {
+                            "type": "PathSpec",
+                            "value": {
+                              "path": {
+                                "type": "unicode",
+                                "value": "/etc/hosts"
+                              },
+                              "pathtype": {
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                              }
+                            }
+                          },
+                          {
+                            "type": "PathSpec",
+                            "value": {
+                              "path": {
+                                "type": "unicode",
+                                "value": "/foo/bar"
+                              },
+                              "pathtype": {
+                                "type": "EnumNamedValue",
+                                "value": "OS"
+                              }
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    "flow_name": {
+                      "type": "unicode",
+                      "value": "MultiGetFile"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "hunt_id": {
+            "type": "ApiHuntId",
+            "value": "H:123456"
+          },
+          "hunt_runner_args": {
+            "type": "HuntRunnerArgs",
+            "value": {
+              "avg_cpu_seconds_per_client_limit": {
+                "type": "long",
+                "value": 60
+              },
+              "avg_network_bytes_per_client_limit": {
+                "type": "long",
+                "value": 10485760
+              },
+              "avg_results_per_client_limit": {
+                "type": "long",
+                "value": 1000
+              },
+              "client_rate": {
+                "type": "long",
+                "value": 0
+              },
+              "client_rule_set": {
+                "type": "ForemanClientRuleSet",
+                "value": {}
+              },
+              "crash_limit": {
+                "type": "long",
+                "value": 100
+              },
+              "description": {
+                "type": "unicode",
+                "value": "Per-client file collection"
+              },
+              "expiry_time": {
+                "type": "DurationSeconds",
+                "value": 1209600
+              },
+              "hunt_name": {
+                "type": "unicode",
+                "value": "VariableGenericHunt"
+              },
+              "original_object": {
+                "type": "FlowLikeObjectReference",
+                "value": {}
+              }
+            }
+          },
+          "hunt_type": {
+            "type": "EnumNamedValue",
+            "value": "VARIABLE"
+          },
+          "is_robot": {
+            "type": "bool",
+            "value": false
+          },
+          "name": {
+            "type": "unicode",
+            "value": "VariableGenericHunt"
+          },
+          "remaining_clients_count": {
+            "type": "long",
+            "value": 0
+          },
+          "results_count": {
+            "type": "long",
+            "value": 0
+          },
+          "state": {
+            "type": "EnumNamedValue",
+            "value": "PAUSED"
+          },
+          "total_cpu_usage": {
+            "type": "long",
+            "value": 0
+          },
+          "total_net_usage": {
+            "type": "long",
+            "value": 0
+          },
+          "urn": {
+            "type": "SessionID",
+            "value": "aff4:/hunts/H:123456"
+          }
+        }
+      },
+      "test_class": "ApiCreatePerClientFileCollectionHuntRegressionTest_http_v1",
+      "type_stripped_response": {
+        "all_clients_count": 0,
+        "client_limit": 100,
+        "client_rate": 0,
+        "client_rule_set": {},
+        "clients_with_results_count": 0,
+        "completed_clients_count": 0,
+        "crash_limit": 100,
+        "creator": "api_test_user",
+        "description": "Per-client file collection",
+        "duration": 1209600,
+        "flow_args": {
+          "flow_groups": [
+            {
+              "client_ids": [
+                "C.1000000000000000"
+              ],
+              "flow_args": {
+                "pathspecs": [
+                  {
+                    "path": "/etc/hosts",
+                    "pathtype": "OS"
+                  },
+                  {
+                    "path": "/foo/bar",
+                    "pathtype": "OS"
+                  }
+                ]
+              },
+              "flow_name": "MultiGetFile"
+            }
+          ]
+        },
+        "hunt_id": "H:123456",
+        "hunt_runner_args": {
+          "avg_cpu_seconds_per_client_limit": 60,
+          "avg_network_bytes_per_client_limit": 10485760,
+          "avg_results_per_client_limit": 1000,
+          "client_rate": 0,
+          "client_rule_set": {},
+          "crash_limit": 100,
+          "description": "Per-client file collection",
+          "expiry_time": 1209600,
+          "hunt_name": "VariableGenericHunt",
+          "original_object": {}
+        },
+        "hunt_type": "VARIABLE",
+        "is_robot": false,
+        "name": "VariableGenericHunt",
+        "remaining_clients_count": 0,
+        "results_count": 0,
+        "state": "PAUSED",
+        "total_cpu_usage": 0,
+        "total_net_usage": 0,
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "url": "/api/hunts/per-client-file-collection"
     }
   ],
   "ApiCreateVfsRefreshOperationHandler": [
@@ -1436,12 +1717,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -1451,6 +1740,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -1592,12 +1885,15 @@
                   "address_type": "INET6",
                   "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "mac_address": "qrvM3e4A"
             },
             {
+              "ifname": "if2",
               "mac_address": "u8zd7v8A"
             }
           ],
@@ -1764,12 +2060,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4B"
@@ -1779,6 +2083,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8B"
@@ -1920,12 +2228,15 @@
                   "address_type": "INET6",
                   "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "mac_address": "qrvM3e4B"
             },
             {
+              "ifname": "if2",
               "mac_address": "u8zd7v8B"
             }
           ],
@@ -2054,12 +2365,20 @@
                       }
                     }
                   }
-                ]
+                ],
+                "ifname": {
+                  "type": "unicode",
+                  "value": "if0"
+                }
               }
             },
             {
               "type": "Interface",
               "value": {
+                "ifname": {
+                  "type": "unicode",
+                  "value": "if1"
+                },
                 "mac_address": {
                   "type": "MacAddress",
                   "value": "qrvM3e4A"
@@ -2069,6 +2388,10 @@
             {
               "type": "Interface",
               "value": {
+                "ifname": {
+                  "type": "unicode",
+                  "value": "if2"
+                },
                 "mac_address": {
                   "type": "MacAddress",
                   "value": "u8zd7v8A"
@@ -2198,12 +2521,15 @@
                 "address_type": "INET6",
                 "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
               }
-            ]
+            ],
+            "ifname": "if0"
           },
           {
+            "ifname": "if1",
             "mac_address": "qrvM3e4A"
           },
           {
+            "ifname": "if2",
             "mac_address": "u8zd7v8A"
           }
         ],
@@ -2368,12 +2694,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -2383,6 +2717,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -2561,12 +2899,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -2576,6 +2922,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -2704,12 +3054,15 @@
                     "address_type": "INET6",
                     "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "mac_address": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "mac_address": "u8zd7v8A"
               }
             ],
@@ -2771,12 +3124,15 @@
                     "address_type": "INET6",
                     "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "mac_address": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "mac_address": "u8zd7v8A"
               }
             ],
@@ -2902,12 +3258,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -2917,6 +3281,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -3045,12 +3413,15 @@
                     "address_type": "INET6",
                     "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "mac_address": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "mac_address": "u8zd7v8A"
               }
             ],
@@ -3176,12 +3547,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -3191,6 +3570,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -3319,12 +3702,15 @@
                     "address_type": "INET6",
                     "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "mac_address": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "mac_address": "u8zd7v8A"
               }
             ],
@@ -4459,6 +4845,10 @@
                   }
                 }
               },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
+              },
               "is_robot": {
                 "type": "bool",
                 "value": false
@@ -4562,6 +4952,7 @@
             "hunt_name": "GenericHunt",
             "original_object": {}
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "remaining_clients_count": 0,
@@ -4785,6 +5176,10 @@
                   }
                 }
               },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
+              },
               "is_robot": {
                 "type": "bool",
                 "value": false
@@ -4888,6 +5283,7 @@
             "hunt_name": "GenericHunt",
             "original_object": {}
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "remaining_clients_count": 0,
@@ -5079,6 +5475,10 @@
                     "value": {}
                   }
                 }
+              },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
               },
               "is_robot": {
                 "type": "bool",
@@ -5327,6 +5727,10 @@
                   }
                 }
               },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
+              },
               "is_robot": {
                 "type": "bool",
                 "value": false
@@ -5438,6 +5842,7 @@
             "hunt_name": "GenericHunt",
             "original_object": {}
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "remaining_clients_count": 0,
@@ -5514,6 +5919,7 @@
               "object_type": "HUNT_REFERENCE"
             }
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "original_object": {
@@ -5819,6 +6225,10 @@
                   }
                 }
               },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
+              },
               "is_robot": {
                 "type": "bool",
                 "value": false
@@ -5966,6 +6376,7 @@
               "object_type": "FLOW_REFERENCE"
             }
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "original_object": {
@@ -6422,6 +6833,10 @@
               }
             }
           },
+          "hunt_type": {
+            "type": "EnumNamedValue",
+            "value": "STANDARD"
+          },
           "is_robot": {
             "type": "bool",
             "value": false
@@ -6537,6 +6952,7 @@
             "object_type": "FLOW_REFERENCE"
           }
         },
+        "hunt_type": "STANDARD",
         "is_robot": false,
         "name": "GenericHunt",
         "original_object": {
@@ -6740,6 +7156,10 @@
               }
             }
           },
+          "hunt_type": {
+            "type": "EnumNamedValue",
+            "value": "STANDARD"
+          },
           "is_robot": {
             "type": "bool",
             "value": false
@@ -6850,6 +7270,7 @@
             "object_type": "HUNT_REFERENCE"
           }
         },
+        "hunt_type": "STANDARD",
         "is_robot": false,
         "name": "GenericHunt",
         "original_object": {
@@ -7038,6 +7459,10 @@
               }
             }
           },
+          "hunt_type": {
+            "type": "EnumNamedValue",
+            "value": "STANDARD"
+          },
           "is_robot": {
             "type": "bool",
             "value": false
@@ -7125,6 +7550,7 @@
           "hunt_name": "GenericHunt",
           "original_object": {}
         },
+        "hunt_type": "STANDARD",
         "is_robot": false,
         "name": "GenericHunt",
         "remaining_clients_count": 0,
@@ -9221,12 +9647,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -9236,6 +9670,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -9377,12 +9815,15 @@
                   "address_type": "INET6",
                   "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "mac_address": "qrvM3e4A"
             },
             {
+              "ifname": "if2",
               "mac_address": "u8zd7v8A"
             }
           ],
@@ -9786,6 +10227,10 @@
                   }
                 }
               },
+              "hunt_type": {
+                "type": "EnumNamedValue",
+                "value": "STANDARD"
+              },
               "is_robot": {
                 "type": "bool",
                 "value": false
@@ -9889,6 +10334,7 @@
             "hunt_name": "GenericHunt",
             "original_object": {}
           },
+          "hunt_type": "STANDARD",
           "is_robot": false,
           "name": "GenericHunt",
           "remaining_clients_count": 0,
@@ -10668,12 +11114,20 @@
                               }
                             }
                           }
-                        ]
+                        ],
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if0"
+                        }
                       }
                     },
                     {
                       "type": "Interface",
                       "value": {
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if1"
+                        },
                         "mac_address": {
                           "type": "MacAddress",
                           "value": "qrvM3e4B"
@@ -10683,6 +11137,10 @@
                     {
                       "type": "Interface",
                       "value": {
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if2"
+                        },
                         "mac_address": {
                           "type": "MacAddress",
                           "value": "u8zd7v8B"
@@ -10907,12 +11365,20 @@
                               }
                             }
                           }
-                        ]
+                        ],
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if0"
+                        }
                       }
                     },
                     {
                       "type": "Interface",
                       "value": {
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if1"
+                        },
                         "mac_address": {
                           "type": "MacAddress",
                           "value": "qrvM3e4A"
@@ -10922,6 +11388,10 @@
                     {
                       "type": "Interface",
                       "value": {
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if2"
+                        },
                         "mac_address": {
                           "type": "MacAddress",
                           "value": "u8zd7v8A"
@@ -11067,12 +11537,15 @@
                       "address_type": "INET6",
                       "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
                     }
-                  ]
+                  ],
+                  "ifname": "if0"
                 },
                 {
+                  "ifname": "if1",
                   "mac_address": "qrvM3e4B"
                 },
                 {
+                  "ifname": "if2",
                   "mac_address": "u8zd7v8B"
                 }
               ],
@@ -11150,12 +11623,15 @@
                       "address_type": "INET6",
                       "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                     }
-                  ]
+                  ],
+                  "ifname": "if0"
                 },
                 {
+                  "ifname": "if1",
                   "mac_address": "qrvM3e4A"
                 },
                 {
+                  "ifname": "if2",
                   "mac_address": "u8zd7v8A"
                 }
               ],
@@ -11326,12 +11802,20 @@
                               }
                             }
                           }
-                        ]
+                        ],
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if0"
+                        }
                       }
                     },
                     {
                       "type": "Interface",
                       "value": {
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if1"
+                        },
                         "mac_address": {
                           "type": "MacAddress",
                           "value": "qrvM3e4A"
@@ -11341,6 +11825,10 @@
                     {
                       "type": "Interface",
                       "value": {
+                        "ifname": {
+                          "type": "unicode",
+                          "value": "if2"
+                        },
                         "mac_address": {
                           "type": "MacAddress",
                           "value": "u8zd7v8A"
@@ -11486,12 +11974,15 @@
                       "address_type": "INET6",
                       "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                     }
-                  ]
+                  ],
+                  "ifname": "if0"
                 },
                 {
+                  "ifname": "if1",
                   "mac_address": "qrvM3e4A"
                 },
                 {
+                  "ifname": "if2",
                   "mac_address": "u8zd7v8A"
                 }
               ],
@@ -13763,6 +14254,10 @@
                       }
                     }
                   },
+                  "hunt_type": {
+                    "type": "EnumNamedValue",
+                    "value": "STANDARD"
+                  },
                   "is_robot": {
                     "type": "bool",
                     "value": false
@@ -13870,6 +14365,7 @@
                 "hunt_name": "GenericHunt",
                 "original_object": {}
               },
+              "hunt_type": "STANDARD",
               "is_robot": false,
               "name": "GenericHunt",
               "remaining_clients_count": 0,
@@ -16553,6 +17049,10 @@
               }
             }
           },
+          "hunt_type": {
+            "type": "EnumNamedValue",
+            "value": "STANDARD"
+          },
           "is_robot": {
             "type": "bool",
             "value": false
@@ -16641,6 +17141,7 @@
           "hunt_name": "GenericHunt",
           "original_object": {}
         },
+        "hunt_type": "STANDARD",
         "is_robot": false,
         "name": "GenericHunt",
         "remaining_clients_count": 0,
@@ -16830,6 +17331,10 @@
               }
             }
           },
+          "hunt_type": {
+            "type": "EnumNamedValue",
+            "value": "STANDARD"
+          },
           "is_robot": {
             "type": "bool",
             "value": false
@@ -16918,6 +17423,7 @@
           "hunt_name": "GenericHunt",
           "original_object": {}
         },
+        "hunt_type": "STANDARD",
         "is_robot": false,
         "name": "GenericHunt",
         "remaining_clients_count": 0,
@@ -17022,12 +17528,20 @@
                           }
                         }
                       }
-                    ]
+                    ],
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if0"
+                    }
                   }
                 },
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if1"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "qrvM3e4A"
@@ -17037,6 +17551,10 @@
                 {
                   "type": "Interface",
                   "value": {
+                    "ifname": {
+                      "type": "unicode",
+                      "value": "if2"
+                    },
                     "mac_address": {
                       "type": "MacAddress",
                       "value": "u8zd7v8A"
@@ -17166,12 +17684,15 @@
                     "address_type": "INET6",
                     "packed_bytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "mac_address": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "mac_address": "u8zd7v8A"
               }
             ],

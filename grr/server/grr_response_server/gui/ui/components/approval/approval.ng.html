@@ -1,51 +1,98 @@
-<h1 class="mat-h1">
-  Access approval
+<div class="wrapper">
+  <h1 class="mat-h1" (click)="toggleContent($event)">
+    Access approval
 
-  <span class="mat-body-1">
-    <!--
-      Note: coloring doesn't work without selected, see:
-      https://github.com/angular/components/issues/9851
-    -->
-    <mat-chip *ngIf="(latestApproval$ | async)?.status.type === 'pending'"
-      color="warn" selected>pending</mat-chip>
-    <mat-chip *ngIf="(latestApproval$ | async)?.status.type === 'valid'"
-      color="success" selected>pending</mat-chip>
-  </span>
-</h1>
+    <span class="mat-body-1">
+      <mat-chip *ngIf="(latestApprovalState$ | async) === 'pending'" style="background: #f9ab01;">pending</mat-chip>
+      <mat-chip *ngIf="(latestApprovalState$ | async) === 'valid'" style="background: #8afab1;">granted</mat-chip>
+      <mat-chip *ngIf="(latestApprovalState$ | async) === 'missing'" style="background: #ea4335;">missing</mat-chip>
+    </span>
+  </h1>
 
-<div *ngIf="latestApproval$ | async as latestApproval">
-  <p *ngIf="latestApproval?.status.type === 'pending'" class="mat-body-1">
-    An approval request with reason "{{latestApproval.reason}}" has been sent to
-    {{latestApproval.requestedApprovers.join(", ")}}.
+  <div class="content mat-body-1">
+  <div *ngIf="latestApproval$ | async as latestApproval">
 
-    <button id="copy-approval-link" mat-flat-button [cdkCopyToClipboard]="latestApproval.url">Copy link</button>
-  </p>
-  <p *ngIf="latestApproval?.status.type === 'valid'" class="mat-body-1">
-    {{latestApproval.approvers.join(", ")}} approved access for reason
-    "{{latestApproval.reason}}".
-  </p>
-</div>
+      <table *ngIf="latestApproval.status.type === 'pending'">
+        <tr>
+          <td><strong>Request sent to: </strong></td>
+          <td><span *ngFor="let approver of latestApproval.requestedApprovers; last as isLast">
+              <user-image [username]="approver" size="16px"></user-image>
+              {{approver}}{{isLast ? "" : ","}}
+            </span></td>
+        </tr>
+        <tr>
+          <td><strong>Request reason: </strong></td>
+          <td>{{latestApproval.reason}}</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td><button id="copy-approval-link" mat-flat-button [cdkCopyToClipboard]="latestApproval.url">Copy
+              link</button></td>
+        </tr>
+      </table>
 
-<form (submit)="submitRequest()" [formGroup]="form">
-  <mat-form-field appearance="outline">
-    <mat-label>Reason for approval</mat-label>
-    <input matInput formControlName="reason">
-  </mat-form-field>
+      <table *ngIf="latestApproval.status.type === 'valid'" class="mat-body-1">
+        <tr>
+          <td><strong>Request approved by: </strong></td>
+          <td>
+            <span *ngFor="let approver of latestApproval.approvers; last as isLast">
+              <user-image [username]="approver" size="16px"></user-image>
+              {{approver}}{{isLast ? "" : ","}}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Request reason: </strong></td>
+          <td>{{latestApproval.reason}}</td>
+        </tr>
+      </table>
+    </div>
 
-  <div class="approvers">
-    <mat-form-field appearance="outline">
-      <mat-label>Approvers</mat-label>
-      <input matInput formControlName="approvers">
-    </mat-form-field>
-    <mat-checkbox *ngIf="ccEmail$ | async as ccEmail"
-      color="primary" formControlName="ccEnabled">
-      CC: {{ccEmail}}
-    </mat-checkbox>
+    <button *ngIf="!showForm && (latestApprovalState$ | async) !== 'missing'" (click)="showForm = true" mat-button
+      color="primary">
+      <mat-icon>add</mat-icon>
+      Send new request
+    </button>
+
+    <form *ngIf="showForm || (latestApprovalState$ | async) === 'missing'" (submit)="submitRequest()" [formGroup]="form"
+      [class.form-border]="(latestApproval$ | async) !== undefined" autocomplete="off">
+      <mat-form-field appearance="outline">
+        <mat-label>Reason for approval</mat-label>
+        <input matInput formControlName="reason">
+      </mat-form-field>
+
+      <div class="approvers">
+        <mat-form-field appearance="outline">
+          <mat-chip-list #chipList aria-label="Select approvers">
+            <mat-chip *ngFor="let username of formRequestedApprovers" [selectable]="true" [removable]="true"
+              (removed)="removeRequestedApprover(username)">
+              <user-image [username]="username" size="16px"></user-image>
+              {{username}}
+              <mat-icon matChipRemove>cancel</mat-icon>
+            </mat-chip>
+            <input #approversInput placeholder="Approvers..." [formControl]="approversInputControl"
+              [matAutocomplete]="auto" [matChipInputFor]="chipList"
+              [matChipInputSeparatorKeyCodes]="separatorKeysCodes">
+          </mat-chip-list>
+          <mat-autocomplete #auto="matAutocomplete" autoActiveFirstOption
+            (optionSelected)="addRequestedApprover($event.option.viewValue)">
+            <mat-option *ngFor="let username of approverSuggestions$ | async" [value]="username">
+              <user-image [username]="username" size="16px"></user-image> {{username}}
+            </mat-option>
+          </mat-autocomplete>
+        </mat-form-field>
+
+        <mat-checkbox *ngIf="ccEmail$ | async as ccEmail" color="primary" formControlName="ccEnabled">
+          CC: {{ccEmail}}
+        </mat-checkbox>
+      </div>
+
+      <button mat-flat-button color="primary" type="submit">Request access</button>
+    </form>
+
+    <div *ngIf="(scheduledFlows$ | async)?.length">
+      <h2 class="mat-h2">Scheduled flows</h2>
+      <scheduled-flow-list></scheduled-flow-list>
+    </div>
   </div>
-
-  <button mat-flat-button color="primary" type="submit">Request access</button>
-</form>
-
-<div *ngIf="(scheduledFlows$ | async)?.length">
-  <h2 class="mat-h2">Scheduled flows</h2>
-  <scheduled-flow-list></scheduled-flow-list>
+</div>

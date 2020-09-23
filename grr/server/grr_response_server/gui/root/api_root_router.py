@@ -29,13 +29,13 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.ArgsType(api_user_management.ApiCreateGrrUserArgs)
   @api_call_router.ResultType(api_user.ApiGrrUser)
   @api_call_router.Http("POST", "/api/root/grr-users", strip_root_types=False)
-  def CreateGrrUser(self, args, token=None):
+  def CreateGrrUser(self, args, context=None):
     return api_user_management.ApiCreateGrrUserHandler()
 
   @api_call_router.Category("User management")
   @api_call_router.ArgsType(api_user_management.ApiDeleteGrrUserArgs)
   @api_call_router.Http("DELETE", "/api/root/grr-users/<username>")
-  def DeleteGrrUser(self, args, token=None):
+  def DeleteGrrUser(self, args, context=None):
     return api_user_management.ApiDeleteGrrUserHandler()
 
   @api_call_router.Category("User management")
@@ -43,21 +43,21 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.ResultType(api_user.ApiGrrUser)
   @api_call_router.Http(
       "PATCH", "/api/root/grr-users/<username>", strip_root_types=False)
-  def ModifyGrrUser(self, args, token=None):
+  def ModifyGrrUser(self, args, context=None):
     return api_user_management.ApiModifyGrrUserHandler()
 
   @api_call_router.Category("User management")
   @api_call_router.ArgsType(api_user_management.ApiListGrrUsersArgs)
   @api_call_router.ResultType(api_user_management.ApiListGrrUsersResult)
   @api_call_router.Http("GET", "/api/root/grr-users")
-  def ListGrrUsers(self, args, token=None):
+  def ListGrrUsers(self, args, context=None):
     return api_user_management.ApiListGrrUsersHandler()
 
   @api_call_router.Category("User management")
   @api_call_router.ArgsType(api_user_management.ApiGetGrrUserArgs)
   @api_call_router.ResultType(api_user.ApiGrrUser)
   @api_call_router.Http("GET", "/api/root/grr-users/<username>")
-  def GetGrrUser(self, args, token=None):
+  def GetGrrUser(self, args, context=None):
     return api_user_management.ApiGetGrrUserHandler()
 
   # Binary management.
@@ -66,13 +66,13 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.Category("Binary management")
   @api_call_router.ArgsType(api_binary_management.ApiUploadGrrBinaryArgs)
   @api_call_router.Http("POST", "/api/root/grr-binaries/<type>/<path:path>")
-  def UploadGrrBinary(self, args, token=None):
+  def UploadGrrBinary(self, args, context=None):
     return api_binary_management.ApiUploadGrrBinaryHandler()
 
   @api_call_router.Category("Binary management")
   @api_call_router.ArgsType(api_binary_management.ApiDeleteGrrBinaryArgs)
   @api_call_router.Http("DELETE", "/api/root/grr-binaries/<type>/<path:path>")
-  def DeleteGrrBinary(self, args, token=None):
+  def DeleteGrrBinary(self, args, context=None):
     return api_binary_management.ApiDeleteGrrBinaryHandler()
 
   # Client management.
@@ -81,7 +81,7 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.Category("Client management")
   @api_call_router.ArgsType(api_client_management.ApiKillFleetspeakArgs)
   @api_call_router.Http("PATCH", "/api/root/client/<client_id>/fleetspeak/kill")
-  def KillFleetspeak(self, args, token=None):
+  def KillFleetspeak(self, args, context=None):
     return api_client_management.ApiKillFleetspeakHandler()
 
   @api_call_router.Category("Client management")
@@ -89,7 +89,7 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
       api_client_management.ApiRestartFleetspeakGrrServiceArgs)
   @api_call_router.Http("PATCH",
                         "/api/root/client/<client_id>/fleetspeak/grr/restart")
-  def RestartFleetspeakGrrService(self, args, token=None):
+  def RestartFleetspeakGrrService(self, args, context=None):
     return api_client_management.ApiRestartFleetspeakGrrServiceHandler()
 
   # Reflection methiods (needed for client libraries to work).
@@ -99,5 +99,5 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.ResultType(api_reflection.ApiListApiMethodsResult)
   @api_call_router.Http("GET", "/api/reflection/api-methods")
   @api_call_router.NoAuditLogRequired()
-  def ListApiMethods(self, args, token=None):
+  def ListApiMethods(self, args, context=None):
     return api_reflection.ApiListApiMethodsHandler(self)

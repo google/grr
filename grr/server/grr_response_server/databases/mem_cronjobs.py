@@ -136,6 +136,7 @@ class InMemoryDBCronJobMixin(object):
       raise ValueError("Some jobs could not be returned: %s" %
                        ",".join(job.cron_job_id for job in errored_jobs))
 
+  @utils.Synchronized
   def WriteCronJobRun(self, run_object):
     """Stores a cron job run object in the database."""
     if run_object.cron_job_id not in self.cronjobs:
@@ -146,6 +147,7 @@ class InMemoryDBCronJobMixin(object):
     clone.timestamp = rdfvalue.RDFDatetime.Now()
     self.cronjob_runs[(clone.cron_job_id, clone.run_id)] = clone
 
+  @utils.Synchronized
   def ReadCronJobRuns(self, job_id):
     """Reads all cron job runs for a given job id."""
     runs = [
@@ -153,6 +155,7 @@ class InMemoryDBCronJobMixin(object):
     ]
     return sorted(runs, key=lambda run: run.timestamp, reverse=True)
 
+  @utils.Synchronized
   def ReadCronJobRun(self, job_id, run_id):
     """Reads a single cron job run from the db."""
     for run in self.cronjob_runs.values():
@@ -161,6 +164,7 @@ class InMemoryDBCronJobMixin(object):
     raise db.UnknownCronJobRunError(
         "Run with job id %s and run id %s not found." % (job_id, run_id))
 
+  @utils.Synchronized
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
     """Deletes cron job runs for a given job id."""
     deleted = 0

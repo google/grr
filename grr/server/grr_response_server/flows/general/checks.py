@@ -21,8 +21,8 @@ from grr_response_server.flows.general import collectors
 class CheckFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.CheckFlowArgs
 
-  # TODO(hanuszczak): Add a `use_tsk` field to the flow args because otherwise
-  # it is useless on Windows.
+  # TODO(hanuszczak): Add a `use_raw_filesystem_access` field to the flow args
+  # because otherwise it is useless on Windows.
   @property
   def path_type(self):
     return rdf_paths.PathSpec.PathType.OS

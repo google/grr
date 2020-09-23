@@ -86,12 +86,15 @@
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "macAddress": "qrvM3e4A"
             },
             {
+              "ifname": "if2",
               "macAddress": "u8zd7v8A"
             }
           ],
@@ -315,6 +318,7 @@
             "huntName": "GenericHunt",
             "originalObject": {}
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "remainingClientsCount": "0",
@@ -327,6 +331,84 @@
       },
       "test_class": "ApiCreateHuntApprovalHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/approvals/hunt/H:123456"
+    }
+  ],
+  "ApiCreatePerClientFileCollectionHuntHandler": [
+    {
+      "api_method": "CreatePerClientFileCollectionHunt",
+      "method": "POST",
+      "request_payload": {
+        "description": "Per-client file collection",
+        "perClientArgs": [
+          {
+            "clientId": "C.1000000000000000",
+            "paths": [
+              "/etc/hosts",
+              "/foo/bar"
+            ]
+          }
+        ]
+      },
+      "response": {
+        "allClientsCount": "0",
+        "clientLimit": "100",
+        "clientRate": 0.0,
+        "clientRuleSet": {},
+        "clientsWithResultsCount": "0",
+        "completedClientsCount": "0",
+        "crashLimit": "100",
+        "creator": "api_test_user",
+        "description": "Per-client file collection",
+        "duration": "1209600",
+        "flowArgs": {
+          "@type": "type.googleapis.com/grr.HuntArgumentsVariable",
+          "flowGroups": [
+            {
+              "clientIds": [
+                "C.1000000000000000"
+              ],
+              "flowArgs": {
+                "@type": "type.googleapis.com/grr.MultiGetFileArgs",
+                "pathspecs": [
+                  {
+                    "path": "/etc/hosts",
+                    "pathtype": "OS"
+                  },
+                  {
+                    "path": "/foo/bar",
+                    "pathtype": "OS"
+                  }
+                ]
+              },
+              "flowName": "MultiGetFile"
+            }
+          ]
+        },
+        "huntId": "H:123456",
+        "huntRunnerArgs": {
+          "avgCpuSecondsPerClientLimit": "60",
+          "avgNetworkBytesPerClientLimit": "10485760",
+          "avgResultsPerClientLimit": "1000",
+          "clientRate": 0.0,
+          "clientRuleSet": {},
+          "crashLimit": "100",
+          "description": "Per-client file collection",
+          "expiryTime": "1209600",
+          "huntName": "VariableGenericHunt",
+          "originalObject": {}
+        },
+        "huntType": "VARIABLE",
+        "isRobot": false,
+        "name": "VariableGenericHunt",
+        "remainingClientsCount": "0",
+        "resultsCount": "0",
+        "state": "PAUSED",
+        "totalCpuUsage": 0.0,
+        "totalNetUsage": "0",
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiCreatePerClientFileCollectionHuntRegressionTest_http_v2",
+      "url": "/api/v2/hunts/per-client-file-collection"
     }
   ],
   "ApiCreateVfsRefreshOperationHandler": [
@@ -432,12 +514,15 @@
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "macAddress": "qrvM3e4A"
             },
             {
+              "ifname": "if2",
               "macAddress": "u8zd7v8A"
             }
           ],
@@ -519,12 +604,15 @@
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "macAddress": "qrvM3e4B"
             },
             {
+              "ifname": "if2",
               "macAddress": "u8zd7v8B"
             }
           ],
@@ -595,12 +683,15 @@
                 "addressType": "INET6",
                 "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
               }
-            ]
+            ],
+            "ifname": "if0"
           },
           {
+            "ifname": "if1",
             "macAddress": "qrvM3e4A"
           },
           {
+            "ifname": "if2",
             "macAddress": "u8zd7v8A"
           }
         ],
@@ -710,12 +801,15 @@
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "macAddress": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "macAddress": "u8zd7v8A"
               }
             ],
@@ -776,12 +870,15 @@
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "macAddress": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "macAddress": "u8zd7v8A"
               }
             ],
@@ -852,12 +949,15 @@
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "macAddress": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "macAddress": "u8zd7v8A"
               }
             ],
@@ -928,12 +1028,15 @@
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "macAddress": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "macAddress": "u8zd7v8A"
               }
             ],
@@ -1367,6 +1470,7 @@
             "huntName": "GenericHunt",
             "originalObject": {}
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "remainingClientsCount": "0",
@@ -1449,6 +1553,7 @@
             "huntName": "GenericHunt",
             "originalObject": {}
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "remainingClientsCount": "0",
@@ -1522,6 +1627,7 @@
             "huntName": "GenericHunt",
             "originalObject": {}
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "remainingClientsCount": "0",
@@ -1598,6 +1704,7 @@
               "objectType": "HUNT_REFERENCE"
             }
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "originalObject": {
@@ -1710,6 +1817,7 @@
               "objectType": "FLOW_REFERENCE"
             }
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "originalObject": {
@@ -2040,6 +2148,7 @@
             "objectType": "FLOW_REFERENCE"
           }
         },
+        "huntType": "STANDARD",
         "isRobot": false,
         "name": "GenericHunt",
         "originalObject": {
@@ -2120,6 +2229,7 @@
             "objectType": "HUNT_REFERENCE"
           }
         },
+        "huntType": "STANDARD",
         "isRobot": false,
         "name": "GenericHunt",
         "originalObject": {
@@ -2194,6 +2304,7 @@
           "huntName": "GenericHunt",
           "originalObject": {}
         },
+        "huntType": "STANDARD",
         "isRobot": false,
         "name": "GenericHunt",
         "remainingClientsCount": "0",
@@ -2968,12 +3079,15 @@
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                 }
-              ]
+              ],
+              "ifname": "if0"
             },
             {
+              "ifname": "if1",
               "macAddress": "qrvM3e4A"
             },
             {
+              "ifname": "if2",
               "macAddress": "u8zd7v8A"
             }
           ],
@@ -3124,6 +3238,7 @@
             "huntName": "GenericHunt",
             "originalObject": {}
           },
+          "huntType": "STANDARD",
           "isRobot": false,
           "name": "GenericHunt",
           "remainingClientsCount": "0",
@@ -3407,12 +3522,15 @@
                       "addressType": "INET6",
                       "packedBytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
                     }
-                  ]
+                  ],
+                  "ifname": "if0"
                 },
                 {
+                  "ifname": "if1",
                   "macAddress": "qrvM3e4B"
                 },
                 {
+                  "ifname": "if2",
                   "macAddress": "u8zd7v8B"
                 }
               ],
@@ -3488,12 +3606,15 @@
                       "addressType": "INET6",
                       "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                     }
-                  ]
+                  ],
+                  "ifname": "if0"
                 },
                 {
+                  "ifname": "if1",
                   "macAddress": "qrvM3e4A"
                 },
                 {
+                  "ifname": "if2",
                   "macAddress": "u8zd7v8A"
                 }
               ],
@@ -3579,12 +3700,15 @@
                       "addressType": "INET6",
                       "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                     }
-                  ]
+                  ],
+                  "ifname": "if0"
                 },
                 {
+                  "ifname": "if1",
                   "macAddress": "qrvM3e4A"
                 },
                 {
+                  "ifname": "if2",
                   "macAddress": "u8zd7v8A"
                 }
               ],
@@ -4008,12 +4132,12 @@
               },
               "stAtime": "1336469177",
               "stCtime": "1336129892",
-              "stDev": 64512,
+              "stDev": "64512",
               "stGid": 5000,
-              "stIno": 1063090,
+              "stIno": "1063090",
               "stMode": "33184",
               "stMtime": "1336129892",
-              "stNlink": 1,
+              "stNlink": "1",
               "stSize": "12",
               "stUid": 139592
             },
@@ -4278,6 +4402,7 @@
                 "huntName": "GenericHunt",
                 "originalObject": {}
               },
+              "huntType": "STANDARD",
               "isRobot": false,
               "name": "GenericHunt",
               "remainingClientsCount": "0",
@@ -5094,6 +5219,7 @@
           "huntName": "GenericHunt",
           "originalObject": {}
         },
+        "huntType": "STANDARD",
         "isRobot": false,
         "name": "GenericHunt",
         "remainingClientsCount": "0",
@@ -5166,6 +5292,7 @@
           "huntName": "GenericHunt",
           "originalObject": {}
         },
+        "huntType": "STANDARD",
         "isRobot": false,
         "name": "GenericHunt",
         "remainingClientsCount": "0",
@@ -5213,12 +5340,15 @@
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
                   }
-                ]
+                ],
+                "ifname": "if0"
               },
               {
+                "ifname": "if1",
                 "macAddress": "qrvM3e4A"
               },
               {
+                "ifname": "if2",
                 "macAddress": "u8zd7v8A"
               }
             ],
