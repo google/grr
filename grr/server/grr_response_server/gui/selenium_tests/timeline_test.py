@@ -228,7 +228,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
             client_id=self.client_id,
             file_path="fs/os/c/proc",
             format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.GRR),
-        token=mock.ANY)
+        context=mock.ANY)
 
   @mock.patch.object(
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks,
@@ -251,7 +251,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
             client_id=self.client_id,
             file_path="fs/os/c/proc",
             format=api_vfs.ApiGetVfsTimelineAsCsvArgs.Format.BODY),
-        token=mock.ANY)
+        context=mock.ANY)
 
 
 if __name__ == "__main__":

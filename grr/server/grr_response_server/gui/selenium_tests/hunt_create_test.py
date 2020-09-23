@@ -63,7 +63,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.Select(
         "css=grr-new-hunt-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Pathtype')) "
-        "select", "TSK")
+        "select", "NTFS")
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -92,7 +92,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
             "grr-form-proto-repeated-field:has(label:contains('Paths')) input"))
 
     self.assertEqual(
-        "TSK",
+        "NTFS",
         self.GetSelectedLabel(
             "css=grr-new-hunt-wizard-form "
             "grr-form-proto-single-field:has(label:contains('Pathtype')) select"
@@ -265,7 +265,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
                      file_finder.FileFinder.__name__)
     self.assertEqual(hunt.args.standard.flow_args.paths[0], "/tmp")
     self.assertEqual(hunt.args.standard.flow_args.pathtype,
-                     rdf_paths.PathSpec.PathType.TSK)
+                     rdf_paths.PathSpec.PathType.NTFS)
     # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
     self.assertEqual(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
 
@@ -550,7 +550,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.TSK,
+                pathtype=rdf_paths.PathSpec.PathType.NTFS,
             )),
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[

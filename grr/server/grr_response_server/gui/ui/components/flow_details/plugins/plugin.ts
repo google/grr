@@ -1,6 +1,7 @@
 import {EventEmitter, Input, Output} from '@angular/core';
 import {FlowListEntry, FlowResultsQuery} from '@app/lib/models/flow';
 import {ReplaySubject} from 'rxjs';
+import {map} from 'rxjs/operators';
 
 /**
  * Flow results query without the flowId field.
@@ -21,7 +22,7 @@ export abstract class Plugin {
    * Subject emitting new FlowListEntry values on every "flowListEntry"
    * binding change.
    */
-  flowListEntry$ = new ReplaySubject<FlowListEntry>(1);
+  readonly flowListEntry$ = new ReplaySubject<FlowListEntry>(1);
 
   /**
    * Event that is triggered when additional flow results data is needed to
@@ -29,6 +30,14 @@ export abstract class Plugin {
    */
   @Output()
   flowResultsQuery = new EventEmitter<FlowResultsQueryWithoutFlowId>();
+
+  readonly fallbackUrl$ = this.flowListEntry$.pipe(map(fle => {
+    const {flowId, clientId} = fle.flow;
+    const url = new URL(window.location.origin);
+    url.pathname = '/';
+    url.hash = `#/clients/${clientId}/flows/${flowId}`;
+    return url.toString();
+  }));
 
   /**
    * Flow input binding containing flow data information to display.

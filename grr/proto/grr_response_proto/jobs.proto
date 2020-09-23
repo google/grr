@@ -386,7 +386,7 @@ message FlowNotification {
 }
 
 // Stores information about the GRR client itself
-// Next field: 8
+// Next field: 9
 message ClientInformation {
   optional string client_name = 1;
   optional uint32 client_version = 2;
@@ -395,6 +395,10 @@ message ClientInformation {
   optional string client_binary_name = 7;
   optional string client_description = 5;
   repeated string labels = 6;
+
+  // Indicates whether the client supports file birth time collection in the
+  // timeline action.
+  optional bool timeline_btime_support = 8;
 }
 
 // A generic protobuf to deliver some data
@@ -589,7 +593,7 @@ message PathSpec {
   enum PathType {
     UNSET = -1;
     OS = 0;
-    TSK = 1;
+    TSK = 1 [(description) = "TSK (Deprecated, use NTFS)"];
     REGISTRY = 2;
     // DEPRECATED: MEMORY = 3 [(label) = HIDDEN];
     TMPFILE = 4 [(label) = HIDDEN];
@@ -717,9 +721,9 @@ message StatEntry {
     default = 0
   ];
 
-  optional uint32 st_ino = 3;
-  optional uint32 st_dev = 4;
-  optional uint32 st_nlink = 5;
+  optional uint64 st_ino = 3;
+  optional uint64 st_dev = 4;
+  optional uint64 st_nlink = 5;
   optional uint32 st_uid = 6;
   optional uint32 st_gid = 7;
   optional uint64 st_size = 8;
@@ -738,9 +742,9 @@ message StatEntry {
     description: "Last inode change time."
   }];
 
-  optional uint32 st_blocks = 12;
-  optional uint32 st_blksize = 13;
-  optional uint32 st_rdev = 14;
+  optional uint64 st_blocks = 12;
+  optional uint64 st_blksize = 13;
+  optional uint64 st_rdev = 14;
   optional uint32 st_flags_osx = 21 [
     (sem_type) = {
       type: "StatExtFlagsOsx",
@@ -791,7 +795,7 @@ message StatEntry {
     description: "If this entry represents a registry value, this field will "
                  "contain that value encoded according to the correct type."
   }];
-  optional uint64 st_crtime = 20 [
+  optional uint64 st_btime = 20 [
     (sem_type) = { type: "RDFDatetimeSeconds", description: "Creation time." }
   ];
 
@@ -1820,7 +1824,7 @@ message CloudInstance {
 }
 
 // This is a summary of a GRR client.
-// Next field: 15
+// Next field: 16
 message ClientSummary {
   option (semantic) = {
     description: "A summary of the client information."
@@ -1884,6 +1888,21 @@ message ClientSummary {
     type: "RDFDatetime",
     description: "The last time the client communicated with GRR's servers.",
   }];
+
+  // Information about EDR agents present on the client.
+  repeated EdrAgent edr_agents = 15;
+}
+
+// Information about Endpoint Detection and Response agents.
+message EdrAgent {
+  // A name of the EDR agent the information corresponds to.
+  optional string name = 1;
+
+  // A unique identifier of the EDR agent running on the machine.
+  optional string agent_id = 2;
+
+  // An identifier of the backend that the EDR agent talks to.
+  optional string backend_id = 3;
 }
 
 message CronJobRunStatus {

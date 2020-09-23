@@ -1,5 +1,8 @@
 #!/usr/bin/env python
 """Python GRR API connectors library."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
+from grr_api_client.connectors import abstract
+from grr_api_client.connectors import http
+
+# Re-export useful connectors.
+Connector = abstract.Connector
+HttpConnector = http.HttpConnector

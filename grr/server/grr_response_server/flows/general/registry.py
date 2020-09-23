@@ -146,7 +146,7 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
     self.CallFlow(
         collectors.ArtifactCollectorFlow.__name__,
         artifact_list=["WindowsRunKeys"],
-        use_tsk=True,
+        use_raw_filesystem_access=True,
         next_state=compatibility.GetName(self.ParseRunKeys))
 
   def ParseRunKeys(self, responses):

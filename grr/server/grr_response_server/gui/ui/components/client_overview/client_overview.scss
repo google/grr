@@ -1,0 +1,57 @@
+@use '~material-theme' as c;
+@use '~main' as main;
+
+$max-width: 1280px;
+$width: 80%;
+
+.client-header {
+  padding: 15px 0 10px 140px;
+  border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+
+  .fqdn-chips {
+    display: flex;
+    align-items: center;
+
+    .computer-icon {
+      margin-right: 10px;
+    }
+
+    h1 {
+      margin-bottom: 0;
+    }
+
+    .chips {
+      margin-left: 1em;
+      display: flex;
+      flex-wrap: wrap;
+
+      mat-chip {
+        min-height: 26px;
+        font-size: 13px;
+        border: 1px solid c.mat-color(c.$foreground, divider);
+        background-color: c.mat-color(c.$background, app-bar);
+      }
+
+      .add_label {
+        margin-left: 0.5em;
+        border-radius: 2em;
+        padding-left: 8px;
+        min-height: 26px;
+        line-height: 16px;
+        font-family: c.$google-sans-family;
+      }
+    }
+  }
+
+  .info {
+    margin-left: 35px;
+
+    .copy-button {
+      color: c.mat-color(c.$foreground, icon-grey);
+    }
+
+    .os {
+      margin-right: 10px;
+    }
+  }
+}

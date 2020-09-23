@@ -6,6 +6,11 @@
   .mat-form-field {
     width: 100%;
 
+    .mat-form-field-wrapper {
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
     mat-icon {
       margin-right: 0.5em;
       color: c.mat-color(c.$foreground, divider);

@@ -12,6 +12,7 @@ from typing import Iterator
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import gzchunked
+from grr_response_core.lib.util import statx
 from grr_response_proto import timeline_pb2
 
 
@@ -59,6 +60,29 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
       entry.mtime_ns = stat.st_mtime_ns
       entry.ctime_ns = stat.st_ctime_ns
       # pytype: enable=attribute-error
+
+    return entry
+
+  @classmethod
+  def FromStatx(cls, path: bytes, stat: statx.Result) -> "TimelineEntry":
+    entry = cls()
+    entry.path = path
+
+    entry.mode = stat.mode
+    entry.size = stat.size
+
+    entry.dev = stat.dev
+    entry.ino = stat.ino
+
+    entry.uid = stat.uid
+    entry.gid = stat.gid
+
+    entry.attributes = stat.attributes
+
+    entry.atime_ns = stat.atime_ns
+    entry.btime_ns = stat.btime_ns
+    entry.mtime_ns = stat.mtime_ns
+    entry.ctime_ns = stat.ctime_ns
 
     return entry
 

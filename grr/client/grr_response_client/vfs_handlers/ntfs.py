@@ -180,7 +180,7 @@ class NTFSFile(vfs_base.VFSHandler):
         entry.get_access_time())
     st.st_mtime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
         entry.get_modification_time())
-    st.st_crtime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
+    st.st_btime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
         entry.get_creation_time())
     st.st_ctime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
         entry.get_entry_modification_time())

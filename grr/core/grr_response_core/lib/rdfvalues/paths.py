@@ -58,6 +58,10 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     return cls(pathtype=PathSpec.PathType.TSK, **kwargs)
 
   @classmethod
+  def NTFS(cls, **kwargs):
+    return cls(pathtype=PathSpec.PathType.NTFS, **kwargs)
+
+  @classmethod
   def Registry(cls, **kwargs):
     return cls(pathtype=PathSpec.PathType.REGISTRY, **kwargs)
 
@@ -208,6 +212,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       1: "/fs/tsk",  # PathSpec.PathType.TSK
       2: "/registry",  # PathSpec.PathType.REGISTRY
       4: "/temp",  # PathSpec.PathType.TMPFILE
+      5: "/fs/ntfs",  # PathSpec.PathType.NTFS
   }
 
   def AFF4Path(self, client_urn):
@@ -232,6 +237,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
     #    pathtype: TSK
     # }
     # We map this to aff4://client_id/fs/tsk/\\\\.\\Volume{1234}\\/windows/
+    # (The same applies for NTFS)
 
     if not self.HasField("pathtype"):
       raise ValueError(
@@ -245,8 +251,8 @@ class PathSpec(rdf_structs.RDFProtoStruct):
       dev += ":{}".format(first_component.offset // 512)
 
     if (len(self) > 1 and first_component.pathtype == PathSpec.PathType.OS and
-        self[1].pathtype == PathSpec.PathType.TSK):
-      result = [self.AFF4_PREFIXES[PathSpec.PathType.TSK], dev]
+        self[1].pathtype in (PathSpec.PathType.TSK, PathSpec.PathType.NTFS)):
+      result = [self.AFF4_PREFIXES[self[1].pathtype], dev]
 
       # Skip the top level pathspec.
       start = 1

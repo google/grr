@@ -93,31 +93,31 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnNonexistentPath(self):
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path="/fs/os/foo/bar")
     with self.assertRaises(vfs_plugin.FileNotFoundError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testHandlerReturnsNewestVersionByDefault(self):
     # Get file version without specifying a timestamp.
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     # Should return the newest version.
     self.assertEqual(result.file.path, self.file_path)
@@ -132,7 +132,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=self.client_id,
         file_path=self.file_path,
         timestamp=self.time_1)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     # The age of the returned version might have a slight deviation.
     self.assertEqual(result.file.path, self.file_path)
@@ -150,7 +150,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     attributes_by_type = {}
     attributes_by_type["VFSFile"] = ["STAT"]
@@ -172,12 +172,12 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.file_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertFalse(result.file.is_directory)
 
     args = vfs_plugin.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=dir_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertTrue(result.file.is_directory)
 
 
@@ -192,17 +192,17 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def testDoesNotRaiseIfFirstCompomentIsEmpty(self):
     args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="")
-    self.handler.Handle(args, token=self.token)
+    self.handler.Handle(args, context=self.context)
 
   def testDoesNotRaiseIfPathIsRoot(self):
     args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="/")
-    self.handler.Handle(args, token=self.token)
+    self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentIsNotAllowlisted(self):
     args = vfs_plugin.ApiListFilesArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testHandlerListsFilesAndDirectories(self):
     fixture_test_lib.ClientFixture(self.client_id)
@@ -210,7 +210,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     # Fetch all children of a directory.
     args = vfs_plugin.ApiListFilesArgs(
         client_id=self.client_id, file_path=self.file_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertLen(result.items, 4)
     for item in result.items:
@@ -225,7 +225,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id,
         file_path=self.file_path,
         directories_only=True)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].is_directory, True)
@@ -239,7 +239,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id,
         file_path=self.file_path,
         timestamp=self.time_2)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
     self.assertIsInstance(result.items[0].last_collected_size, int)
     self.assertEqual(result.items[0].last_collected_size, 13)
@@ -248,7 +248,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id,
         file_path=self.file_path,
         timestamp=self.time_1)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].last_collected_size, 11)
 
@@ -256,8 +256,21 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id,
         file_path=self.file_path,
         timestamp=self.time_0)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertEmpty(result.items)
+
+  def testRoot(self):
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="/")
+    result = self.handler.Handle(args, context=self.context)
+    self.assertSameElements([(item.name, item.path) for item in result.items],
+                            [("fs", "fs"), ("temp", "temp")])
+
+  def testFs(self):
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="fs")
+    result = self.handler.Handle(args, context=self.context)
+    self.assertSameElements([(item.name, item.path) for item in result.items],
+                            [("os", "fs/os"), ("tsk", "fs/tsk"),
+                             ("ntfs", "fs/ntfs")])
 
 
 class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
@@ -273,19 +286,19 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiGetFileTextArgs(client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetFileTextArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileTextArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testDifferentTimestampsYieldDifferentFileContents(self):
     args = vfs_plugin.ApiGetFileTextArgs(
@@ -294,14 +307,14 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         encoding=vfs_plugin.ApiGetFileTextArgs.Encoding.UTF_8)
 
     # Retrieving latest version by not setting a timestamp.
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertEqual(result.content, "Goodbye World")
     self.assertEqual(result.total_size, 13)
 
     # Change timestamp to get a different file version.
     args.timestamp = self.time_1
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertEqual(result.content, "Hello World")
     self.assertEqual(result.total_size, 11)
@@ -313,7 +326,7 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         encoding=vfs_plugin.ApiGetFileTextArgs.Encoding.UTF_16)
 
     # Retrieving latest version by not setting a timestamp.
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertNotEqual(result.content, "Goodbye World")
     self.assertEqual(result.total_size, 13)
@@ -332,7 +345,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="fs/os/foo/bar")
     with self.assertRaises(vfs_plugin.FileNotFoundError) as context:
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
     exception = context.exception
     self.assertEqual(exception.client_id, self.client_id)
@@ -347,7 +360,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id, file_path="fs/os/foo/bar")
 
     with self.assertRaises(vfs_plugin.FileContentNotFoundError) as context:
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
     exception = context.exception
     self.assertEqual(exception.client_id, self.client_id)
@@ -358,24 +371,24 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   def testRaisesOnEmptyPath(self):
     args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testNewestFileContentIsReturnedByDefault(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path=self.file_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     self.assertEqual(next(result.GenerateContent()), b"Goodbye World")
@@ -383,7 +396,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   def testOffsetAndLengthRestrictResult(self):
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path=self.file_path, offset=2, length=3)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     self.assertEqual(next(result.GenerateContent()), b"odb")
@@ -393,7 +406,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
         client_id=self.client_id,
         file_path=self.file_path,
         timestamp=self.time_1)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     self.assertEqual(next(result.GenerateContent()), b"Hello World")
@@ -412,7 +425,7 @@ class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
     args = vfs_plugin.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path="fs/os/c/Downloads/huge.txt")
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     for chunk, char in zip(result.GenerateContent(), chars):
@@ -431,19 +444,19 @@ class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = vfs_plugin.ApiGetFileVersionTimesArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetFileVersionTimesArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileVersionTimesArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
 
 class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -458,19 +471,19 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = vfs_plugin.ApiGetFileDownloadCommandArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetFileDownloadCommandArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetFileDownloadCommandArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
 
 class ApiCreateVfsRefreshOperationHandlerTest(
@@ -489,7 +502,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path="fs/os/foo/bar")
     with self.assertRaises(vfs_plugin.FileNotFoundError) as context:
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
     exception = context.exception
     self.assertEqual(exception.client_id, self.client_id)
@@ -500,26 +513,26 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testHandlerRefreshStartsListDirectoryFlow(self):
     fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.file_path, max_depth=1)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
@@ -530,7 +543,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.file_path, max_depth=5)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
@@ -544,12 +557,12 @@ class ApiCreateVfsRefreshOperationHandlerTest(
         file_path=self.file_path,
         max_depth=0,
         notify_user=True)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     flow_test_lib.RunFlow(
         self.client_id, result.operation_id, check_flow_errors=False)
 
-    pending_notifications = self.GetUserNotifications(self.token.username)
+    pending_notifications = self.GetUserNotifications(self.context.username)
 
     self.assertIn("Recursive Directory Listing complete",
                   pending_notifications[0].message)
@@ -576,14 +589,14 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=self.client_id, operation_id=flow_id)
 
     # Flow was started and should be running.
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
     flow_base.TerminateFlow(self.client_id, flow_id, "Fake error")
 
     # Recheck status and see if it changed.
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertEqual(result.state, "FINISHED")
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
@@ -596,7 +609,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Our mock flow is not a RecursiveListFlow, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsRefreshOperationNotFoundError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testHandlerThrowsExceptionOnUnknownFlowId(self):
     # Create args with an operation id not referencing any flow.
@@ -605,7 +618,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     # Our mock flow can't be read, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsRefreshOperationNotFoundError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
 
 class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -621,31 +634,31 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testHandlerStartsFlow(self):
     fixture_test_lib.ClientFixture(self.client_id)
 
     args = vfs_plugin.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path=self.file_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
                                                 result.operation_id)
     self.assertEqual(flow_obj.flow_class_name, transfer.MultiGetFile.__name__)
-    self.assertEqual(flow_obj.creator, self.token.username)
+    self.assertEqual(flow_obj.creator, self.context.username)
 
 
 class ApiGetVfsFileContentUpdateStateHandlerTest(
@@ -666,14 +679,14 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
         client_id=self.client_id, operation_id=flow_id)
 
     # Flow was started and should be running.
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
     flow_base.TerminateFlow(self.client_id, flow_id, "Fake error")
 
     # Recheck status and see if it changed.
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertEqual(result.state, "FINISHED")
 
   def testHandlerRaisesOnArbitraryFlowId(self):
@@ -686,7 +699,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
     # Our mock flow is not a MultiGetFile flow, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testHandlerThrowsExceptionOnUnknownFlowId(self):
     # Create args with an operation id not referencing any flow.
@@ -695,7 +708,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
 
     # Our mock flow can't be read, so an error should be raised.
     with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
 
 class VfsTimelineTestMixin(object):
@@ -750,19 +763,19 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testTimelineIsReturnedInChunks(self):
     # Change chunk size to see if the handler behaves correctly.
@@ -770,7 +783,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path=self.folder_path)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     # Check rows returned correctly.
     self.assertTrue(hasattr(result, "GenerateContent"))
@@ -792,7 +805,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
   def testEmptyTimelineIsReturnedOnNonexistantPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path="fs/os/non-existent/file/path")
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     with self.assertRaises(StopIteration):
@@ -803,7 +816,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=self.client_id,
         file_path=self.folder_path,
         format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     content = b"".join(result.GenerateContent())
     expected_csv = u"|%s|0|----------|0|0|0|0|4|0|0\n" % self.file_path
@@ -825,7 +838,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=client_id,
         file_path=u"fs/os/foo",
         format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     content = b"".join(result.GenerateContent())
     expected_csv = u"71757578|fs/os/foo/bar|0|----------|0|0|1337|0|0|0|0\n"
@@ -840,7 +853,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
         client_id=client_id,
         file_path=u"fs/os/foo",
         format=vfs_plugin.ApiGetVfsTimelineAsCsvArgs.Format.BODY)
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
 
     content = b"".join(result.GenerateContent())
     self.assertEqual(content, b"")
@@ -858,19 +871,19 @@ class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
     args = vfs_plugin.ApiGetVfsTimelineArgs(
         client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesOnRootPath(self):
     args = vfs_plugin.ApiGetVfsTimelineArgs(
         client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
   def testRaisesIfFirstComponentNotInAllowlist(self):
     args = vfs_plugin.ApiGetVfsTimelineArgs(
         client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
-      self.handler.Handle(args, token=self.token)
+      self.handler.Handle(args, context=self.context)
 
 
 class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -892,7 +905,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(client_id=self.client_id),
-        token=self.token)
+        context=self.context)
 
     out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
@@ -913,7 +926,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, file_path="fs/os/c/Downloads"),
-        token=self.token)
+        context=self.context)
 
     out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
@@ -929,7 +942,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, file_path="fs/os/blah/blah"),
-        token=self.token)
+        context=self.context)
 
     with self.assertRaises(db.UnknownPathError):
       out_fd = io.BytesIO()
@@ -941,7 +954,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
       self.handler.Handle(
           vfs_plugin.ApiGetVfsFilesArchiveArgs(
               client_id=self.client_id, file_path="invalid-prefix/path"),
-          token=self.token)
+          context=self.context)
 
   def testHandlerRespectsTimestamp(self):
     archive_path1 = "vfs_C_1000000000000000/fs/os/c/Downloads/a.txt"
@@ -950,7 +963,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, timestamp=self.time_2),
-        token=self.token)
+        context=self.context)
     out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
@@ -963,7 +976,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
     result = self.handler.Handle(
         vfs_plugin.ApiGetVfsFilesArchiveArgs(
             client_id=self.client_id, timestamp=self.time_1),
-        token=self.token)
+        context=self.context)
     out_fd = io.BytesIO()
     for chunk in result.GenerateContent():
       out_fd.write(chunk)
@@ -1017,7 +1030,7 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
     args.client_id = self.client_id
     args.file_path = "fs/os/foo/bar/baz"
 
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertEqual(result.decoder_names, ["Foo"])
 
   def testMultipleDecoders(self):
@@ -1048,7 +1061,7 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
     args.client_id = self.client_id
 
     args.file_path = "fs/os/foo/bar"
-    result = self.handler.Handle(args, token=self.token)
+    result = self.handler.Handle(args, context=self.context)
     self.assertCountEqual(result.decoder_names, ["BarQuux"])
 
     args.file_path = "fs/os/foo/baz"
@@ -1068,7 +1081,7 @@ class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
     self.handler = vfs_plugin.ApiGetDecodedFileHandler()
 
   def _Result(self, args):
-    stream = self.handler.Handle(args, token=self.token)
+    stream = self.handler.Handle(args, context=self.context)
     return b"".join(stream.GenerateContent())
 
   def testSimpleDecoder(self):

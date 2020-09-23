@@ -9,16 +9,17 @@ from __future__ import unicode_literals
 import logging
 import os
 import re
-import stat
+from typing import IO
+from typing import Iterable
+from typing import Iterator
 from typing import Text
 
 from grr_response_core.lib import lexer
-from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import config_file
-from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import precondition
 
@@ -112,7 +113,8 @@ def GetRunlevelsNonLSB(states):
   return set([convert_table[s] for s in states.split() if s in convert_table])
 
 
-class LinuxLSBInitParser(parsers.MultiFileParser):
+class LinuxLSBInitParser(
+    parsers.MultiFileParser[rdf_client.LinuxServiceInformation]):
   """Parses LSB style /etc/init.d entries."""
 
   output_types = [rdf_client.LinuxServiceInformation]
@@ -185,7 +187,12 @@ class LinuxLSBInitParser(parsers.MultiFileParser):
       for v in vals:
         self.insserv[k].extend(self._InsservExpander(facilities, v))
 
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[rdf_client.LinuxServiceInformation]:
     del knowledge_base  # Unused.
 
     self.insserv = {}
@@ -203,7 +210,8 @@ class LinuxLSBInitParser(parsers.MultiFileParser):
       yield rslt
 
 
-class LinuxXinetdParser(parsers.MultiFileParser):
+class LinuxXinetdParser(
+    parsers.MultiFileParser[rdf_client.LinuxServiceInformation]):
   """Parses xinetd entries."""
 
   output_types = [rdf_client.LinuxServiceInformation]
@@ -266,7 +274,12 @@ class LinuxXinetdParser(parsers.MultiFileParser):
       service.start_after = ["xinetd"]
     return service
 
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[rdf_client.LinuxServiceInformation]:
     del knowledge_base  # Unused.
 
     self.entries = {}
@@ -279,10 +292,8 @@ class LinuxXinetdParser(parsers.MultiFileParser):
       yield self._GenService(name, cfg)
 
 
-# TODO(hanuszczak): Why is this a file parser if it does not care about file
-# contents? If it only needs stat entries, it should be an ordinary response
-# parser.
-class LinuxSysVInitParser(parser.FileMultiParser):
+class LinuxSysVInitParser(
+    parsers.MultiFileParser[rdf_client.LinuxServiceInformation]):
   """Parses SysV runlevel entries.
 
   Reads the stat entries for files under /etc/rc* runlevel scripts.
@@ -299,7 +310,12 @@ class LinuxSysVInitParser(parser.FileMultiParser):
   runlevel_re = re.compile(r"/etc/rc(?:\.)?([0-6S]|local$)(?:\.d)?")
   runscript_re = re.compile(r"(?P<action>[KS])(?P<prio>\d+)(?P<name>\S+)")
 
-  def ParseMultiple(self, stats, unused_file_obj, unused_kb):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[rdf_client.LinuxServiceInformation]:
     """Identify the init scripts and the start/stop scripts at each runlevel.
 
     Evaluate all the stat entries collected from the system.
@@ -307,18 +323,18 @@ class LinuxSysVInitParser(parser.FileMultiParser):
     sysv init symlink process the link as a service.
 
     Args:
-      stats: An iterator of StatEntry rdfs.
-      unused_file_obj: An iterator of file contents. Not needed as the parser
-        only evaluates link attributes.
-      unused_kb: Unused KnowledgeBase rdf.
+      knowledge_base: A client's knowledge base.
+      pathspecs: A list of path description for collected files.
+      filedescs: A list of file descriptors of collected files.
 
     Yields:
-      rdf_anomaly.Anomaly if the startup link seems wierd.
       rdf_client.LinuxServiceInformation for each detected service.
     """
+    del knowledge_base, filedescs  # Unused.
+
     services = {}
-    for stat_entry in stats:
-      path = stat_entry.pathspec.path
+    for pathspec in pathspecs:
+      path = pathspec.path
       runlevel = self.runlevel_re.match(os.path.dirname(path))
       runscript = self.runscript_re.match(os.path.basename(path))
       if runlevel and runscript:
@@ -333,10 +349,6 @@ class LinuxSysVInitParser(parser.FileMultiParser):
           service.starts = True
         elif runlvl:
           service.stop_on.append(runlvl.pop())
-        if not stat.S_ISLNK(int(stat_entry.st_mode)):
-          yield rdf_anomaly.Anomaly(
-              type="PARSER_ANOMALY",
-              finding=[path],
-              explanation="Startup script is not a symlink.")
+
     for svc in services.values():
       yield svc

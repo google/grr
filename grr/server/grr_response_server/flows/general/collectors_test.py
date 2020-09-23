@@ -11,6 +11,7 @@ from __future__ import unicode_literals
 
 import os
 import shutil
+from typing import IO
 
 from absl import app
 import mock
@@ -231,7 +232,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
-        use_tsk=False,
+        use_raw_filesystem_access=False,
         token=self.token,
         client_id=client_id)
 
@@ -259,7 +260,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
-        use_tsk=False,
+        use_raw_filesystem_access=False,
         token=self.token,
         client_id=client_id)
 
@@ -866,12 +867,17 @@ class TestCmdNullParser(parser.CommandParser):
     return []
 
 
-class TestFileParser(parsers.SingleFileParser):
+class TestFileParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]):
 
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["TestFileArtifact"]
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ):
     del knowledge_base  # Unused.
 
     lines = set([l.strip() for l in filedesc.read().splitlines()])

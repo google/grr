@@ -3,6 +3,8 @@
 $header-left-padding: 24px;
 
 .requested-path {
+  color: c.mat-color(c.$foreground, text-light);
+
   border-top: 1px solid c.mat-color(c.$foreground, divider-light);
   padding: 0.5em 0 0.5em $header-left-padding;
 
@@ -17,6 +19,13 @@ $header-left-padding: 24px;
 
 .collected-result {
   border-top: 1px dashed c.mat-color(c.$foreground, divider-light);
+
+  .path-type-note {
+    color: c.mat-color(c.$foreground, text-light);
+    font-style: italic;
+    padding: 0.5em 0 0.5em $header-left-padding;
+    border-bottom: 1px dashed c.mat-color(c.$foreground, divider-light);
+  }
 }
 
 .download button {
@@ -33,4 +42,8 @@ $header-left-padding: 24px;
   align-items: center;
   color: c.mat-color(c.$danger);
   font-size: 90%;
+}
+
+.fallback {
+  padding: 0 0 24px 24px;
 }

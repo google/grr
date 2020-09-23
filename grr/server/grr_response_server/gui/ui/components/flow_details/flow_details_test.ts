@@ -9,6 +9,9 @@ import {FlowDescriptor, FlowListEntry, flowListEntryFromFlow} from '@app/lib/mod
 import {newFlowListEntry} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
+import {ConfigFacade} from '../../store/config_facade';
+import {mockConfigFacade} from '../../store/config_facade_test_util';
+
 import {FlowDetailsModule} from './module';
 
 import {FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
@@ -50,7 +53,9 @@ describe('FlowDetails Component', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [
+            {provide: ConfigFacade, useFactory: mockConfigFacade},
+          ]
         })
         .compileComponents();
   }));

@@ -4,6 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_test.end_to_end_tests import test_base
 
 
@@ -50,6 +51,27 @@ class TestRootDiskVolumeUsage(test_base.EndToEndTest):
     self.assertEqual(results[0].payload.unixvolume.mount_point, "/")
     self.assertGreater(results[0].payload.actual_available_allocation_units, 0)
     self.assertGreater(results[0].payload.total_allocation_units, 0)
+
+
+class TestUseTsk(test_base.EndToEndTest):
+  """Tests that the deprecated, hidden field use_tsk works via the API."""
+
+  platforms = [
+      test_base.EndToEndTest.Platform.LINUX,
+  ]
+
+  def runTest(self):
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    # This is deprecated and has label: HIDDEN set.
+    # Test that the field works via the API.
+    args.use_tsk = True
+    args.artifact_list.append("UserHomeDirs")
+    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
+
+    results = list(f.ListResults())
+    self.assertIn(
+        results[0].payload.pathspec.nested_path.pathtype,
+        (rdf_paths.PathSpec.PathType.TSK, rdf_paths.PathSpec.PathType.NTFS))
 
 
 class TestParserDependency(test_base.EndToEndTest):

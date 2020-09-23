@@ -9,7 +9,7 @@ import pkg_resources
 
 from grr_api_client import api as grr_api
 from grr_api_client import errors
-from grr_response_server import access_control
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.gui.api_plugins import metadata
 from grr.test_lib import skip
@@ -59,9 +59,9 @@ class VersionValidationTest(api_integration_test_lib.ApiIntegrationTest):
     def Handle(
         self,
         args: None,
-        token: Optional[access_control.ACLToken],
+        context: Optional[api_call_context.ApiCallContext] = None,
     ) -> metadata.ApiGetGrrVersionResult:
-      result = this._original_handler_handle(self, args, token=token)
+      result = this._original_handler_handle(self, args, context=context)
       result.release += 1
       return result
 

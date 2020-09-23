@@ -29,6 +29,7 @@ function validApproval(): ClientApproval {
     status: {type: 'valid'},
     requestedApprovers: ['rick'],
     approvers: ['rick', 'testuser'],
+    subject: newClient(),
   };
 }
 

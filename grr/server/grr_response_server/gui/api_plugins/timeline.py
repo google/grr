@@ -14,9 +14,9 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import body
 from grr_response_core.lib.util import chunked
 from grr_response_proto.api import timeline_pb2
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.flows.general import timeline
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
@@ -47,7 +47,7 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiGetCollectedTimelineArgs,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the timeline export API call."""
     client_id = str(args.client_id)
@@ -101,7 +101,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiGetCollectedHuntTimelinesArgs,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the hunt timelines export API call."""
     hunt_id = str(args.hunt_id)

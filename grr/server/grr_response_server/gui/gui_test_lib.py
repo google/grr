@@ -554,6 +554,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     action_chains.ActionChains(self.driver).move_to_element(element).perform()
 
   @SeleniumAction
+  def ScrollToBottom(self):
+    self.driver.execute_script(
+        "window.scrollTo(0, document.body.scrollHeight);")
+
+  @SeleniumAction
   def DoubleClick(self, target):
     # Selenium clicks elements by obtaining their position and then issuing a
     # click action in the middle of this area. This may lead to misclicks when

@@ -472,6 +472,11 @@ class ClientPath(object):
     return cls(client_id=client_id, path_type=path_type, components=components)
 
   @classmethod
+  def NTFS(cls, client_id, components):
+    path_type = rdf_objects.PathInfo.PathType.NTFS
+    return cls(client_id=client_id, path_type=path_type, components=components)
+
+  @classmethod
   def Registry(cls, client_id, components):
     path_type = rdf_objects.PathInfo.PathType.REGISTRY
     return cls(client_id=client_id, path_type=path_type, components=components)

@@ -20,22 +20,32 @@ from __future__ import unicode_literals
 import logging
 import operator
 import struct
+from typing import IO
+from typing import Iterator
 from urllib import parse as urlparse
 
 from grr_response_core.lib import parsers
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
 
 
-class IEHistoryParser(parsers.SingleFileParser):
+class IEHistoryParser(
+    parsers.SingleFileParser[rdf_webhistory.BrowserHistoryItem]):
   """Parse IE index.dat files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["InternetExplorerHistory"]
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_webhistory.BrowserHistoryItem]:
     del knowledge_base  # Unused.
 
     # TODO(user): Convert this to use the far more intelligent plaso parser.

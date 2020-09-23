@@ -478,6 +478,15 @@ class GrrLsImplTest(absltest.TestCase):
 
         mock_client.tsk.ls.assert_called_once_with('/quux/foo/bar')
 
+  def testNtfsPathType(self):
+    mock_client = mock.MagicMock()
+
+    with mock.patch.object(magics_impl._state, 'client', mock_client):
+      with mock.patch.object(magics_impl._state, 'cur_dir', '/quux'):
+        magics_impl.grr_ls_impl('foo/bar', path_type=magics_impl.NTFS)
+
+        mock_client.ntfs.ls.assert_called_once_with('/quux/foo/bar')
+
   def testRegistryPathType(self):
     mock_client = mock.MagicMock()
 
@@ -519,6 +528,14 @@ class GrrStatImplTest(absltest.TestCase):
       magics_impl.grr_stat_impl('/foo/bar', path_type=magics_impl.TSK)
 
       mock_client.tsk.glob.assert_called_once_with('/foo/bar')
+
+  def testNtfsPathType(self):
+    mock_client = mock.MagicMock()
+
+    with mock.patch.object(magics_impl._state, 'client', mock_client):
+      magics_impl.grr_stat_impl('/foo/bar', path_type=magics_impl.NTFS)
+
+      mock_client.ntfs.glob.assert_called_once_with('/foo/bar')
 
   def testRegistryPathType(self):
     mock_client = mock.MagicMock()
@@ -574,6 +591,15 @@ class GrrHeadImplTest(absltest.TestCase):
 
     with mock.patch.object(magics_impl._state, 'client', mock_client):
       data = magics_impl.grr_head_impl('/foo/bar', path_type=magics_impl.TSK)
+
+    self.assertEqual(data, b'foo bar')
+
+  def testNtfsPathType(self):
+    mock_client = _MockClient()
+    mock_client.ntfs.add_file('/foo/bar', b'foo bar')
+
+    with mock.patch.object(magics_impl._state, 'client', mock_client):
+      data = magics_impl.grr_head_impl('/foo/bar', path_type=magics_impl.NTFS)
 
     self.assertEqual(data, b'foo bar')
 
@@ -653,6 +679,15 @@ class GrrGrepImplTest(absltest.TestCase):
 
       mock_client.tsk.grep.assert_called_once_with('/foo/bar', b'foo bar')
 
+  def testNtfsPathType(self):
+    mock_client = mock.MagicMock()
+
+    with mock.patch.object(magics_impl._state, 'client', mock_client):
+      magics_impl.grr_grep_impl(
+          'foo bar', '/foo/bar', path_type=magics_impl.NTFS)
+
+      mock_client.ntfs.grep.assert_called_once_with('/foo/bar', b'foo bar')
+
   def testRegistryPathType(self):
     mock_client = mock.MagicMock()
 
@@ -704,6 +739,15 @@ class GrrFgrepImplTest(absltest.TestCase):
           'foo bar', '/foo/bar', path_type=magics_impl.TSK)
 
       mock_client.tsk.fgrep.assert_called_once_with('/foo/bar', b'foo bar')
+
+  def testNtfsPathType(self):
+    mock_client = mock.MagicMock()
+
+    with mock.patch.object(magics_impl._state, 'client', mock_client):
+      magics_impl.grr_fgrep_impl(
+          'foo bar', '/foo/bar', path_type=magics_impl.NTFS)
+
+      mock_client.ntfs.fgrep.assert_called_once_with('/foo/bar', b'foo bar')
 
   def testRegistryPathType(self):
     mock_client = mock.MagicMock()
@@ -939,6 +983,14 @@ class GrrWgetImplTest(absltest.TestCase):
 
       mock_client.tsk.wget.assert_called_once_with('/foo/bar')
 
+  def testNtfsPathType(self):
+    mock_client = mock.MagicMock()
+
+    with mock.patch.object(magics_impl._state, 'client', mock_client):
+      magics_impl.grr_wget_impl('/foo/bar', path_type=magics_impl.NTFS)
+
+      mock_client.ntfs.wget.assert_called_once_with('/foo/bar')
+
   def testRegistryPathType(self):
     mock_client = mock.MagicMock()
 
@@ -997,6 +1049,7 @@ class _MockClient(grr_colab.Client):
     self._summary = None
     self._os = _MockClient.MockFileSystem()
     self._tsk = _MockClient.MockFileSystem()
+    self._ntfs = _MockClient.MockFileSystem()
     self._registry = _MockClient.MockFileSystem()
     self.set_id(client_id)
     self.set_last_seen_at(last_seen_at)
@@ -1011,6 +1064,10 @@ class _MockClient(grr_colab.Client):
   @property
   def tsk(self):
     return self._tsk
+
+  @property
+  def ntfs(self):
+    return self._ntfs
 
   @property
   def registry(self):

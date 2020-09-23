@@ -246,8 +246,13 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
           self.IsElementPresent,
           "css=.results tr:nth(101):contains('/home/foo/chrome-100')")
 
-      # Check that clicking Load More loads the rest.
-      self.Click("css=button:contains('Load More')")
+      # Check that clicking Load More loads the rest. The button can be hidden
+      # under the approval bottom sheet, so for now we workaround by clicking it
+      # programmatically and not with a mouse event.
+      self.WaitUntil(self.IsElementPresent, "css=button:contains('Load More')")
+      self.driver.execute_script(
+          """$("button:contains('Load More')").click();""")
+
       self.WaitUntil(
           self.IsElementPresent,
           "css=.results tr:nth(200):contains('/home/foo/chrome-199')")
@@ -255,7 +260,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
 
       # Check that the "load more" button disappears when everything is loaded.
       self.WaitUntilNot(self.IsElementPresent,
-                        "css=button:contains('Load more')")
+                        "css=button:contains('Load More')")
 
   def testAllowsCopyingResultPathToClipboard(self):
     # TODO: remove the skip instruction as soon as latest Chrome

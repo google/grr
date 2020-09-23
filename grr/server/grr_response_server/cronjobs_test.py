@@ -160,8 +160,11 @@ class RelationalCronTest(test_lib.GRRBaseTest):
           frequency="1h", lifetime="1h")
       with mock.patch.object(cronjobs.RunHunt, "Run", wraps=waiting_func):
         job_ids = []
-        for _ in range(cron_manager.max_threads * 2):
-          job_ids.append(cron_manager.CreateJob(cron_args=create_flow_args))
+        for i in range(cron_manager.max_threads * 2):
+          # TODO: The CronJob ID space is small. Using 20 random
+          #  IDs already causes flaky tests. Use hardcoded IDs instead.
+          job_ids.append(
+              cron_manager.CreateJob(cron_args=create_flow_args, job_id=f"{i}"))
 
         cron_manager.RunOnce()
 

@@ -56,6 +56,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       StringMapEntry,
       rdf_cloud.CloudInstance,
+      rdf_client.EdrAgent,
       rdf_client_fs.Filesystem,
       rdf_client.HardwareInfo,
       rdf_client_network.Interface,
@@ -134,6 +135,8 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
         if kb.os_major_version:
           summary.system_info.version = "%d.%d" % (kb.os_major_version,
                                                    kb.os_minor_version)
+
+    summary.edr_agents = self.edr_agents
 
     hwi = self.hardware_info
     if hwi:
