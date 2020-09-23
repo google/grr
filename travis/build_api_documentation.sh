@@ -20,6 +20,7 @@ function setup_environment() {
     local_pypi/grr-response-core-*.zip \
     local_pypi/grr-response-client-*.zip \
     local_pypi/grr-api-client-*.zip \
+    local_pypi/grr-response-client-builder-*.zip \
     local_pypi/grr-response-server-*.zip
 }
 
