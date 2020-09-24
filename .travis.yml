@@ -1,7 +1,7 @@
 env:
   global:
     - GCS_BUCKET=autobuilds.grr-response.com
-    - GCS_BUCKET_OPENAPI=autobuilds-grr-openapi.grr-response.com
+    - GCS_BUCKET_OPENAPI=autobuilds-grr-openapi
     - CLOUDSDK_CORE_DISABLE_PROMPTS=1
     - APPVEYOR_ACCOUNT_NAME=grr
     - APPVEYOR_WINDOWS_TEMPLATES_SLUG=grr-5wmt5

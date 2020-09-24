@@ -254,10 +254,14 @@ def main(argv):
     gcs_bucket = gcs_client.get_bucket(os.environ[_GCS_BUCKET])
     gcs_build_results_dir = _GetGCSBuildResultsDir()
     _UploadBuildResults(gcs_bucket, gcs_build_results_dir)
-    # Upload the documentation generated based on the OpenAPI description.
-    gcs_bucket_openapi = gcs_client.get_bucket(os.environ[_GCS_BUCKET_OPENAPI])
-    _UploadOpenApiJson(gcs_bucket_openapi, "openapi_description")
-    _UploadDocumentation(gcs_bucket_openapi, "documentation")
+
+    # Upload the generated OpenAPI description and the generated documentation.
+    if len(flags.FLAGS.openapi_json_dir) > 0:
+      gcs_bucket_openapi = (
+        gcs_client.get_bucket(os.environ[_GCS_BUCKET_OPENAPI])
+      )
+      _UploadOpenApiJson(gcs_bucket_openapi, "openapi_description")
+      _UploadDocumentation(gcs_bucket_openapi, "documentation")
   finally:
     shutil.rmtree(temp_dir)
 
