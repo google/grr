@@ -22,6 +22,12 @@ flags.DEFINE_string("encrypted_service_key", "",
                     "Path to Travis's GCP service account key.")
 flags.DEFINE_string("build_results_dir", "",
                     "Path to the local directory containing build results.")
+flags.DEFINE_string("openapi_json_dir", "",
+                    "Path to the local directory containing the generated "
+                    "OpenAPI description JSON.")
+flags.DEFINE_string("openapi_docs_dir", "",
+                    "Path to the local directory containing the generated "
+                    "documentation HTML.")
 
 # Environment variables.
 _TRAVIS_COMMIT = "TRAVIS_COMMIT"
@@ -30,6 +36,7 @@ _TRAVIS_JOB_NUMBER = "TRAVIS_JOB_NUMBER"
 _SERVICE_FILE_ENCRYPTION_KEY_VAR = "SERVICE_FILE_ENCRYPTION_KEY_VAR"
 _SERVICE_FILE_ENCRYPTION_IV_VAR = "SERVICE_FILE_ENCRYPTION_IV_VAR"
 _GCS_BUCKET = "GCS_BUCKET"
+_GCS_BUCKET_OPENAPI = "GCS_BUCKET_OPENAPI"
 _GCS_TAG = "GCS_TAG"
 _APPVEYOR_ACCOUNT_NAME = "APPVEYOR_ACCOUNT_NAME"
 _APPVEYOR_TOKEN = "APPVEYOR_TOKEN"
@@ -125,22 +132,53 @@ def _DecryptGCPServiceFileTo(service_file_path: str):
             e.__class__.__name__, redacted_message))
 
 
+def _UploadDirectory(local_dir:str, gcs_bucket: storage.Bucket, gcs_dir: str):
+  """Upload the contents of a local directory to a GCS Bucket."""
+  for file_name in os.listdir(local_dir):
+    path = os.path.join(local_dir, file_name)
+    if not os.path.isfile(path):
+      logging.info("Skipping %s as it's not a file.", path)
+      continue
+    logging.info("Uploading: %s", path)
+    gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_dir,
+                                              file_name))
+    gcs_blob.upload_from_filename(path)
+
+
 def _UploadBuildResults(gcs_bucket: storage.Bucket, gcs_build_results_dir: str):
   """Uploads all build results to Google Cloud Storage."""
   logging.info("Will upload build results to gs://%s/%s.",
                os.environ[_GCS_BUCKET], gcs_build_results_dir)
 
-  for build_result in os.listdir(flags.FLAGS.build_results_dir):
-    path = os.path.join(flags.FLAGS.build_results_dir, build_result)
-    if not os.path.isfile(path):
-      logging.info("Skipping %s as it's not a file.", path)
-      continue
-    logging.info("Uploading: %s", path)
-    gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_build_results_dir,
-                                              build_result))
-    gcs_blob.upload_from_filename(path)
+  _UploadDirectory(
+    flags.FLAGS.build_results_dir, gcs_bucket, gcs_build_results_dir
+  )
 
-  logging.info("GCS upload done.")
+  logging.info("GCS build results upload done.")
+
+
+def _UploadOpenApiJson(gcs_bucket: storage.Bucket, gcs_openapi_dir: str):
+  """Uploads the generated OpenAPI description JSON to Google Cloud Storage."""
+  logging.info("Will upload generated OpenAPI JSON to gs://%s/%s.",
+               os.environ[_GCS_BUCKET_OPENAPI], gcs_openapi_dir)
+
+  _UploadDirectory(
+    flags.FLAGS.openapi_json_dir, gcs_bucket, gcs_openapi_dir
+  )
+
+  logging.info("GCS OpenAPI JSON upload done.")
+
+
+def _UploadDocumentation(gcs_bucket: storage.Bucket, gcs_docs_dir: str):
+  """Uploads the generated GRR API documentation to Google Cloud Storage."""
+  logging.info("Will upload generated GRR API documentation to gs://%s/%s.",
+               os.environ[_GCS_BUCKET_OPENAPI], gcs_docs_dir)
+
+  _UploadDirectory(
+    flags.FLAGS.openapi_docs_dir, gcs_bucket, gcs_docs_dir
+  )
+
+  logging.info("GCS GRR API documentation upload done.")
 
 
 def _TriggerAppveyorBuild(project_slug_var_name: str):
@@ -216,6 +254,10 @@ def main(argv):
     gcs_bucket = gcs_client.get_bucket(os.environ[_GCS_BUCKET])
     gcs_build_results_dir = _GetGCSBuildResultsDir()
     _UploadBuildResults(gcs_bucket, gcs_build_results_dir)
+    # Upload the documentation generated based on the OpenAPI description.
+    gcs_bucket_openapi = gcs_client.get_bucket(os.environ[_GCS_BUCKET_OPENAPI])
+    _UploadOpenApiJson(gcs_bucket_openapi, "openapi_description")
+    _UploadDocumentation(gcs_bucket_openapi, "documentation")
   finally:
     shutil.rmtree(temp_dir)
 

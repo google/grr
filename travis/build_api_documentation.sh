@@ -39,3 +39,11 @@ generate_openapi_description
 generate_documentation
 
 deactivate
+
+# TODO: Delete debug commands below
+pwd
+ls -ltr .
+ls -ltr "${HOME}"
+ls -ltr "${HOME}/${OPENAPI_JSON_FOLDER_NAME}"
+ls -ltr "${HOME}/${OPENAPI_DOCUMENTATION_FOLDER_NAME}"
+# TODO: Delete above
