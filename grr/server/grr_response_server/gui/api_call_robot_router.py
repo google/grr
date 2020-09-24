@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -21,9 +22,11 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import reflection as api_reflection
+from grr_response_server.gui.api_plugins import metadata as api_metadata
 
 
 class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
@@ -352,3 +355,11 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
   # API libraries.
   def ListApiMethods(self, args, context=None):
     return api_reflection.ApiListApiMethodsHandler(self)
+
+  # Metadata methods.
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    return api_metadata.ApiGetOpenApiDescriptionHandler(self)

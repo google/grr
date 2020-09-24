@@ -447,3 +447,10 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetGrrVersionHandler:
     return api_metadata.ApiGetGrrVersionHandler()
+
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    return api_metadata.ApiGetOpenApiDescriptionHandler(self)

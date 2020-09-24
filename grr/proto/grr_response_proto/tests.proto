@@ -149,3 +149,119 @@ message EnumMessage {
   }
   optional NestedEnum foo = 1;
 }
+
+// For metadata_test.py
+message MetadataSimpleMessage {
+  optional string metadata_id = 1;
+  optional int64 metadata_arg1 = 2;
+  optional bool metadata_arg2 = 3;
+}
+
+message MetadataPrimitiveTypesMessage {
+  optional double field_double = 1;
+  optional float field_float = 2;
+  optional int64 field_int64 = 3;
+  optional uint64 field_uint64 = 4;
+  optional int32 field_int32 = 5;
+  optional fixed64 field_fixed64 = 6;
+  optional fixed32 field_fixed32 = 7;
+  optional bool field_bool = 8;
+  optional string field_string = 9;
+  optional bytes field_bytes = 10;
+  optional uint32 field_uint32 = 11;
+  optional sfixed32 field_sfixed32 = 12;
+  optional sfixed64 field_sfixed64 = 13;
+  optional sint32 field_sint32 = 14;
+  optional sint64 field_sint64 = 15;
+}
+
+message MetadataRepeatedFieldMessage {
+  repeated int64 field_repeated = 1;
+}
+
+message MetadataEnumFieldMessage {
+  enum metadata_enum {
+    A = 1;
+    B = 2;
+    C = 3;
+  }
+  optional metadata_enum field_enum = 1;
+}
+
+message MetadataTypesHierarchyRoot {
+  optional int64 field_int64 = 1;
+  optional MetadataTypesHierarchyCyclic child_1 = 2;
+  optional MetadataTypesHierarchyLeaf child_2 = 3;
+}
+
+message MetadataTypesHierarchyCyclic {
+  optional MetadataTypesHierarchyRoot root = 1;
+  optional MetadataTypesHierarchyLeaf child_1 = 2;
+}
+
+message MetadataTypesHierarchyLeaf {
+  optional string field_string = 1;
+}
+
+message MetadataOneofMessage {
+  oneof metadata_oneof {
+    int64 oneof_int64 = 1;
+    MetadataSimpleMessage oneof_simplemsg = 2;
+  }
+  optional int64 field_int64 = 3;
+}
+
+message MetadataMapMessage {
+  map<sfixed64, MetadataSimpleMessage> field_map = 1;
+}
+
+message MetadataSemTypeMessage {
+  optional uint64 field_datetime = 1 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "field_datetime with `sem_type` option."
+  }];
+  optional uint64 field_datetimeseconds = 2 [(sem_type) = {
+    type: "RDFDatetimeSeconds",
+    description: "field_datetimeseconds with `sem_type` option."
+  }];
+  optional uint64 field_duration = 3 [(sem_type) = {
+    type: "Duration",
+    description: "field_duration with `sem_type` option."
+  }];
+  optional uint64 field_durationseconds = 4 [(sem_type) = {
+    type: "DurationSeconds",
+    description: "field_durationseconds with `sem_type` option."
+  }];
+  optional bytes field_rdfbytes = 5 [(sem_type) = {
+    type: "RDFBytes",
+    description: "field_rdfbytes with `sem_type` option."
+  }];
+  optional bytes field_hashdigest = 6 [(sem_type) = {
+    type: "HashDigest",
+    description: "field_hashdigest with `sem_type` option."
+  }];
+  optional string field_globexpression = 7 [(sem_type) = {
+    type: "GlobExpression",
+    description: "field_globexpression with `sem_type` option."
+  }];
+  optional uint64 field_bytesize = 8 [(sem_type) = {
+    type: "ByteSize",
+    description: "field_bytesize with `sem_type` option."
+  }];
+  optional string field_rdfurn = 9 [(sem_type) = {
+    type: "RDFURN",
+    description: "field_rdfurn with `sem_type` option."
+  }];
+  optional string field_sessionid = 10 [(sem_type) = {
+    type: "SessionID",
+    description: "field_sessionid with `sem_type` option."
+  }];
+
+  oneof semtype_oneof {
+    uint64 oneof_datetime = 11 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Oneof field with `sem_type` option."
+    }];
+    string oneof_string = 12;
+  }
+}
