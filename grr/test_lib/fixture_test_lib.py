@@ -70,10 +70,12 @@ class ClientFixture(object):
 
       components = [component for component in path.split("/") if component]
       if (len(components) > 1 and components[0] == "fs" and
-          components[1] in ["os", "tsk"]):
+          components[1] in ["os", "tsk", "ntfs"]):
         path_info = rdf_objects.PathInfo()
         if components[1] == "os":
           path_info.path_type = rdf_objects.PathInfo.PathType.OS
+        elif components[1] == "ntfs":
+          path_info.path_type = rdf_objects.PathInfo.PathType.NTFS
         else:
           path_info.path_type = rdf_objects.PathInfo.PathType.TSK
         path_info.components = components[2:]

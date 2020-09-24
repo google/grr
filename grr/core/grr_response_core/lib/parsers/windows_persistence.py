@@ -6,8 +6,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Iterator
+
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import parser
+from grr_response_core.lib import parsers
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -15,7 +18,8 @@ from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.path_detection import windows as path_detection_windows
 
 
-class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
+class WindowsPersistenceMechanismsParser(
+    parsers.SingleResponseParser[rdf_standard.PersistenceFile]):
   """Turn various persistence objects into PersistenceFiles."""
   output_types = [rdf_standard.PersistenceFile]
   supported_artifacts = ["WindowsPersistenceMechanisms"]
@@ -39,20 +43,23 @@ class WindowsPersistenceMechanismsParser(parser.ArtifactFilesParser):
         for path in path_guesses
     ]
 
-  def Parse(self, persistence, knowledge_base):
+  def ParseResponse(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      response: rdfvalue.RDFValue,
+  ) -> Iterator[rdf_standard.PersistenceFile]:
     """Convert persistence collector output to downloadable rdfvalues."""
     pathspecs = []
 
-    if isinstance(persistence, rdf_client.WindowsServiceInformation):
-      if persistence.HasField("binary"):
-        pathspecs.append(persistence.binary.pathspec)
-      elif persistence.HasField("image_path"):
-        pathspecs = self._GetFilePaths(persistence.image_path, knowledge_base)
+    if isinstance(response, rdf_client.WindowsServiceInformation):
+      if response.HasField("binary"):
+        pathspecs.append(response.binary.pathspec)
+      elif response.HasField("image_path"):
+        pathspecs = self._GetFilePaths(response.image_path, knowledge_base)
 
-    if isinstance(
-        persistence,
-        rdf_client_fs.StatEntry) and persistence.HasField("registry_type"):
-      pathspecs = self._GetFilePaths(persistence.registry_data.string,
+    if (isinstance(response, rdf_client_fs.StatEntry) and
+        response.HasField("registry_type")):
+      pathspecs = self._GetFilePaths(response.registry_data.string,
                                      knowledge_base)
 
     for pathspec in pathspecs:

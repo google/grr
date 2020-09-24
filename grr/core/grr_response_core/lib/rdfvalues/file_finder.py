@@ -235,6 +235,14 @@ class CollectSingleFileResult(rdf_structs.RDFProtoStruct):
   ]
 
 
+class CollectSingleFileProgress(rdf_structs.RDFProtoStruct):
+  """Progress returned by CollectSingleFile."""
+  protobuf = flows_pb2.CollectSingleFileProgress
+  rdf_deps = [
+      CollectSingleFileResult,
+  ]
+
+
 class CollectMultipleFilesArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectMultipleFiles."""
   protobuf = flows_pb2.CollectMultipleFilesArgs

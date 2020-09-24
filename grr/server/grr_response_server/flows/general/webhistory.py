@@ -8,8 +8,11 @@ from __future__ import unicode_literals
 
 # DISABLED for now until it gets converted to artifacts.
 
+import collections
 import datetime
 import os
+
+from typing import cast, Iterator
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import chrome_history
@@ -27,6 +30,7 @@ from grr_response_server import flow_utils
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
 
 class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):
@@ -414,6 +418,25 @@ class CollectBrowserHistory(flow_base.FlowBase):
 
   def GetProgress(self) -> CollectBrowserHistoryProgress:
     return self.state.progress
+
+  def GetFilesArchiveMappings(
+      self, flow_results: Iterator[rdf_flow_objects.FlowResult]
+  ) -> Iterator[flow_base.ClientPathArchiveMapping]:
+    path_counters = collections.Counter()
+    for r in flow_results:
+      p = cast(CollectBrowserHistoryResult, r.payload)
+      client_path = db.ClientPath.FromPathSpec(self.client_id,
+                                               p.stat_entry.pathspec)
+
+      target_path = os.path.join(p.browser.name.lower(),
+                                 p.stat_entry.pathspec.Basename())
+      if path_counters[target_path] > 0:
+        fname, ext = os.path.splitext(target_path)
+        target_path = f"{fname}_{path_counters[target_path]}{ext}"
+
+      path_counters[target_path] += 1
+
+      yield flow_base.ClientPathArchiveMapping(client_path, target_path)
 
   def Start(self):
     super(CollectBrowserHistory, self).Start()

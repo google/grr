@@ -14,49 +14,50 @@ const FlagsStatus = {
   NONE: 'NONE',
 };
 
-/**
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
- */
-const StatExtFlagsOsxController = function(
-    $scope) {
+/** @unrestricted */
+const StatExtFlagsOsxController = class {
   /**
-   * @private {!angular.Scope}
-   * @const
+   * @param {!angular.Scope} $scope
+   * @ngInject
    */
-  this.scope_ = $scope;
+  constructor($scope) {
+    /**
+     * @private {!angular.Scope}
+     * @const
+     */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.value;
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
+    /** @type {string} */
+    this.scope_.value;
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
 
-  /** @type {!FlagsStatus} */
-  this.status = FlagsStatus.NONE;
+    /** @type {!FlagsStatus} */
+    this.status = FlagsStatus.NONE;
 
-  /** @type {!Array<!Flag>} */
-  this.flags = [];
-};
-
-
-/**
- * @param {{type: string, value: number}|undefined} value
- * @export
- */
-StatExtFlagsOsxController.prototype.onValueChange = function(value) {
-  if (angular.isUndefined(value)) {
-    return;
+    /** @type {!Array<!Flag>} */
+    this.flags = [];
   }
 
-  const mask = value.value;
-  if (!Number.isInteger(mask) || mask < 0) {
-    this.status = FlagsStatus.MALFORMED;
-    return;
-  }
+  /**
+   * @param {{type: string, value: number}|undefined} value
+   * @export
+   */
+  onValueChange(value) {
+    if (angular.isUndefined(value)) {
+      return;
+    }
 
-  this.status = FlagsStatus.SOME;
-  this.flags = OSX_FLAGS.filter((flag) => (flag.mask & mask) !== 0);
+    const mask = value.value;
+    if (!Number.isInteger(mask) || mask < 0) {
+      this.status = FlagsStatus.MALFORMED;
+      return;
+    }
+
+    this.status = FlagsStatus.SOME;
+    this.flags = OSX_FLAGS.filter((flag) => (flag.mask & mask) !== 0);
+  }
 };
+
 
 
 /**

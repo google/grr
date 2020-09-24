@@ -1,0 +1,10 @@
+<ul class="mat-body">
+  <li *ngFor="let scheduledFlow of scheduledFlows$ | async; trackBy: trackScheduledFlow">
+    {{scheduledFlow.flowName}}
+
+    <button mat-icon-button aria-label="Unschedule"
+      (click)="unscheduleFlow(scheduledFlow.scheduledFlowId)">
+      <mat-icon>clear</mat-icon>
+    </button>
+  </li>
+</ul>

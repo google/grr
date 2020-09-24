@@ -21,71 +21,72 @@ exports.setAutoRefreshInterval = function(millis) {
 
 /**
  * Controller for HuntOverviewDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @ngInject
+ * @unrestricted
  */
-const HuntOverviewController = function(
-    $scope, grrApiService, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const HuntOverviewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrApiService, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.huntId;
+    /** @type {string} */
+    this.scope_.huntId;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @export {string} */
-  this.huntId;
+    /** @export {string} */
+    this.huntId;
 
-  /** @export {(!Object|undefined)} */
-  this.hunt;
+    /** @export {(!Object|undefined)} */
+    this.hunt;
 
-  /** @export {(!Object|undefined)} */
-  this.huntExpirationTime;
+    /** @export {(!Object|undefined)} */
+    this.huntExpirationTime;
 
-  /** @private {!angular.$q.Promise|undefined} */
-  this.pollPromise_;
+    /** @private {!angular.$q.Promise|undefined} */
+    this.pollPromise_;
 
-  this.scope_.$on('$destroy', function() {
+    this.scope_.$on('$destroy', function() {
+      this.grrApiService_.cancelPoll(this.pollPromise_);
+    }.bind(this));
+
+    this.scope_.$watch('huntId', this.startPolling_.bind(this));
+  }
+
+  /**
+   * Fetches hunt data;
+   *
+   * @private
+   */
+  startPolling_() {
     this.grrApiService_.cancelPoll(this.pollPromise_);
-  }.bind(this));
+    this.pollPromise_ = undefined;
 
-  this.scope_.$watch('huntId', this.startPolling_.bind(this));
-};
+    if (angular.isDefined(this.scope_['huntId'])) {
+      this.huntId = this.scope_['huntId'];
 
+      var huntUrl = 'hunts/' + this.huntId;
+      var interval = AUTO_REFRESH_INTERVAL_MS;
 
-
-/**
- * Fetches hunt data;
- *
- * @private
- */
-HuntOverviewController.prototype.startPolling_ = function() {
-  this.grrApiService_.cancelPoll(this.pollPromise_);
-  this.pollPromise_ = undefined;
-
-  if (angular.isDefined(this.scope_['huntId'])) {
-    this.huntId = this.scope_['huntId'];
-
-    var huntUrl = 'hunts/' + this.huntId;
-    var interval = AUTO_REFRESH_INTERVAL_MS;
-
-    this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
-    this.pollPromise_.then(undefined, undefined, (response) => {
-      const hunt = response['data'];
-      this.hunt = hunt;
-      this.huntExpirationTime = huntExpirationTime(hunt);
-    });
+      this.pollPromise_ = this.grrApiService_.poll(huntUrl, interval);
+      this.pollPromise_.then(undefined, undefined, (response) => {
+        const hunt = response['data'];
+        this.hunt = hunt;
+        this.huntExpirationTime = huntExpirationTime(hunt);
+      });
+    }
   }
 };
+
 
 
 /**

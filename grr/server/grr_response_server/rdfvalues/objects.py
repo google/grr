@@ -56,6 +56,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       StringMapEntry,
       rdf_cloud.CloudInstance,
+      rdf_client.EdrAgent,
       rdf_client_fs.Filesystem,
       rdf_client.HardwareInfo,
       rdf_client_network.Interface,
@@ -134,6 +135,8 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
         if kb.os_major_version:
           summary.system_info.version = "%d.%d" % (kb.os_major_version,
                                                    kb.os_minor_version)
+
+    summary.edr_agents = self.edr_agents
 
     hwi = self.hardware_info
     if hwi:
@@ -536,7 +539,8 @@ def ParseCategorizedPath(path):
   elif components[0:2] == ("fs", "ntfs"):
     return PathInfo.PathType.NTFS, components[2:]
   else:
-    raise ValueError("Incorrect path: '%s'" % path)
+    raise ValueError(
+        "Path {!r} does not start with a VFS prefix like /fs/os/".format(path))
 
 
 def ToCategorizedPath(path_type, components):

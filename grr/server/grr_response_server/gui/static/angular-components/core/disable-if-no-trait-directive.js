@@ -5,59 +5,62 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for DisableIfNoTraitDirective.
- *
- * @constructor
- * @param {!angular.Attributes} $attrs
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const DisableIfNoTraitController = function(
-    $attrs, grrApiService) {
-  /** @private {!angular.Attributes} */
-  this.attrs_ = $attrs;
+const DisableIfNoTraitController = class {
+  /**
+   * @param {!angular.Attributes} $attrs
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($attrs, grrApiService) {
+    /** @private {!angular.Attributes} */
+    this.attrs_ = $attrs;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {string|undefined} */
-  this.traitName_;
+    /** @private {string|undefined} */
+    this.traitName_;
 
-  this.attrs_.$observe('grrDisableIfNoTrait',
-                       this.onTraitNameChange_.bind(this));
-};
-
-
-/**
- * @param {?} newValue
- * @private
- */
-DisableIfNoTraitController.prototype.onTraitNameChange_ = function(newValue) {
-  this.traitName_ = newValue;
-
-  if (angular.isUndefined(newValue)) {
-    this.attrs_.$set('disable', false);
-  } else {
-    this.grrApiService_.getCached('users/me').then(
-        this.onUserInfo_.bind(this));
+    this.attrs_.$observe(
+        'grrDisableIfNoTrait', this.onTraitNameChange_.bind(this));
   }
-};
 
-/**
- * @param {Object} response
- * @private
- */
-DisableIfNoTraitController.prototype.onUserInfo_ = function(response) {
-  var traitValue = false;
+  /**
+   * @param {?} newValue
+   * @private
+   */
+  onTraitNameChange_(newValue) {
+    this.traitName_ = newValue;
 
-  var interfaceTraits = response['data']['value']['interface_traits'];
-  if (angular.isDefined(interfaceTraits)) {
-    if (angular.isDefined(interfaceTraits['value'][this.traitName_])) {
-      traitValue = interfaceTraits['value'][this.traitName_]['value'];
+    if (angular.isUndefined(newValue)) {
+      this.attrs_.$set('disable', false);
+    } else {
+      this.grrApiService_.getCached('users/me')
+          .then(this.onUserInfo_.bind(this));
     }
   }
 
-  this.attrs_.$set('disabled', !traitValue);
+  /**
+   * @param {Object} response
+   * @private
+   */
+  onUserInfo_(response) {
+    var traitValue = false;
+
+    var interfaceTraits = response['data']['value']['interface_traits'];
+    if (angular.isDefined(interfaceTraits)) {
+      if (angular.isDefined(interfaceTraits['value'][this.traitName_])) {
+        traitValue = interfaceTraits['value'][this.traitName_]['value'];
+      }
+    }
+
+    this.attrs_.$set('disabled', !traitValue);
+  }
 };
+
+
 
 /**
  * Directive for download links to aff4 streams.

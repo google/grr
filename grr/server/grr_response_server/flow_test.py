@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 import random
 
 from absl import app
+from absl.testing import absltest
 
 import mock
 
@@ -705,6 +706,26 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     flow.StartScheduledFlows(client_id, username)
 
     self.assertLen(data_store.REL_DB.ReadAllFlowObjects(client_id), 1)
+
+
+class RandomFlowIdTest(absltest.TestCase):
+
+  def testFlowIdGeneration(self):
+    self.assertLen(flow.RandomFlowId(), 16)
+
+    with mock.patch.object(
+        flow.random, "Id64", return_value=0xF0F1F2F3F4F5F6F7):
+      self.assertEqual(flow.RandomFlowId(), "F0F1F2F3F4F5F6F7")
+
+    with mock.patch.object(flow.random, "Id64", return_value=0):
+      self.assertEqual(flow.RandomFlowId(), "0000000000000000")
+
+    with mock.patch.object(flow.random, "Id64", return_value=1):
+      self.assertEqual(flow.RandomFlowId(), "0000000000000001")
+
+    with mock.patch.object(
+        flow.random, "Id64", return_value=0x0000000100000000):
+      self.assertEqual(flow.RandomFlowId(), "0000000100000000")
 
 
 def main(argv):

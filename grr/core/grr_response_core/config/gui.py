@@ -153,3 +153,8 @@ config_lib.DEFINE_string(
     "AdminUI.google_cloud_backend_service_id", None,
     "GCP Cloud Backend Service ID for IAP. This must be set if "
     "the IAPWebAuthManager is used.")
+
+config_lib.DEFINE_string(
+    "AdminUI.profile_image_url", None,
+    "URL to user's profile images. The placeholder {username} is replaced with "
+    "the actual value. E.g. https://avatars.example.com/{username}.jpg")

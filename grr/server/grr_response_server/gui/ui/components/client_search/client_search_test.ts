@@ -8,6 +8,8 @@ import {ClientSearchFacade} from '@app/store/client_search_facade';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
+import {newClient} from '../../lib/models/model_test_util';
+
 import {ClientSearch} from './client_search';
 import {ClientSearchModule} from './module';
 
@@ -32,6 +34,9 @@ describe('ClientSearch Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let facade: ClientSearchFacade;
 
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
   beforeEach(async(() => {
     paramsSubject = new Subject();
 
@@ -46,7 +51,7 @@ describe('ClientSearch Component', () => {
           providers: [{
             provide: ActivatedRoute,
             useValue: {
-              paramMap: paramsSubject,
+              queryParamMap: paramsSubject,
             },
           }],
 
@@ -63,7 +68,7 @@ describe('ClientSearch Component', () => {
 
     const searchClientsSpy = spyOn(facade, 'searchClients');
     paramsSubject.next(new Map([
-      ['query', 'foo'],
+      ['q', 'foo'],
     ]));
     fixture.detectChanges();
 
@@ -83,23 +88,19 @@ describe('ClientSearch Component', () => {
     fixture.detectChanges();
 
     subject.next([
-      {
+      newClient({
         clientId: 'C.1234',
-        fleetspeakEnabled: true,
         knowledgeBase: {
           fqdn: 'foo.unknown',
         },
         lastSeenAt: new Date(1571789996678),
-        labels: [],
-      },
-      {
+      }),
+      newClient({
         clientId: 'C.5678',
-        fleetspeakEnabled: true,
         knowledgeBase: {
           fqdn: 'bar.unknown',
         },
-        labels: [],
-      },
+      }),
     ]);
     fixture.detectChanges();
 
@@ -113,10 +114,10 @@ describe('ClientSearch Component', () => {
     // Check the first data row.
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.1234', 'foo.unknown', '10/23/19, 12:19 AM']);
+        .toEqual(['C.1234', 'foo.unknown', '2019-10-23 00:19:56 UTC']);
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.5678', 'bar.unknown', '-']);
+        .toEqual(['C.5678', 'bar.unknown', 'Unknown']);
   });
 });

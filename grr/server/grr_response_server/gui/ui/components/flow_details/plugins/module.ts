@@ -12,8 +12,12 @@ import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+import {ApiModule} from '@app/lib/api/module';
+
 import {HelpersModule} from '../helpers/module';
+
 import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
+import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
 
@@ -23,6 +27,7 @@ import {MultiGetFileDetails} from './multi_get_file_details';
  */
 @NgModule({
   imports: [
+    ApiModule,
     BrowserAnimationsModule,
     RouterModule,
     CommonModule,
@@ -44,16 +49,19 @@ import {MultiGetFileDetails} from './multi_get_file_details';
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
+    CollectSingleFileDetails,
   ],
   exports: [
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
+    CollectSingleFileDetails,
   ],
   entryComponents: [
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
+    CollectSingleFileDetails,
   ]
 })
 export class PluginsModule {

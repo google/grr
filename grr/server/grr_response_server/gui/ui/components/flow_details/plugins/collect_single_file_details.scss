@@ -1,0 +1,49 @@
+@use '~material-theme' as c;
+
+$header-left-padding: 24px;
+
+.requested-path {
+  color: c.mat-color(c.$foreground, text-light);
+
+  border-top: 1px solid c.mat-color(c.$foreground, divider-light);
+  padding: 0.5em 0 0.5em $header-left-padding;
+
+  display: flex;
+  align-items: center;
+
+  font-family: c.$google-sans-display-family;
+  font-weight: 400;
+
+  word-break: break-word;
+}
+
+.collected-result {
+  border-top: 1px dashed c.mat-color(c.$foreground, divider-light);
+
+  .path-type-note {
+    color: c.mat-color(c.$foreground, text-light);
+    font-style: italic;
+    padding: 0.5em 0 0.5em $header-left-padding;
+    border-bottom: 1px dashed c.mat-color(c.$foreground, divider-light);
+  }
+}
+
+.download button {
+  font-size: 90%;
+  font-weight: 400;
+  color: c.mat-color(c.$foreground, text-light);
+
+  border-color: c.mat-color(c.$foreground, divider-light);
+  margin-left: 1.5em;
+}
+
+.error {
+  display: flex;
+  align-items: center;
+  color: c.mat-color(c.$danger);
+  font-size: 90%;
+}
+
+.fallback {
+  padding: 0 0 24px 24px;
+}

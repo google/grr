@@ -327,12 +327,18 @@ class ExecutePythonHackArgs(rdf_structs.RDFProtoStruct):
   ]
 
 
+class ExecutePythonHackResult(rdf_structs.RDFProtoStruct):
+
+  protobuf = flows_pb2.ExecutePythonHackResult
+  rdf_deps = []
+
+
 class ExecutePythonHack(flow_base.FlowBase):
   """Execute a signed python hack on a client."""
 
   category = "/Administrative/"
   args_type = ExecutePythonHackArgs
-  result_types = (rdfvalue.RDFString,)
+  result_types = (ExecutePythonHackResult,)
 
   def Start(self):
     """The start method."""
@@ -367,7 +373,10 @@ class ExecutePythonHack(flow_base.FlowBase):
       if len(result) >= 200:
         str_result += "...[truncated]"
       self.Log("Result: %s" % str_result)
-      self.SendReply(rdfvalue.RDFString(response.return_val))
+
+      result = ExecutePythonHackResult()
+      result.result_string = response.return_val
+      self.SendReply(result)
 
 
 class ExecuteCommandArgs(rdf_structs.RDFProtoStruct):
@@ -438,7 +447,7 @@ class OnlineNotification(flow_base.FlowBase):
 <p>
   Client {{ client_id }} ({{ hostname }}) just came online. Click
   <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
-  <br />This notification was created by %(creator)s.
+  <br />This notification was created by {{ creator }}.
 </p>
 
 <p>Thanks,</p>

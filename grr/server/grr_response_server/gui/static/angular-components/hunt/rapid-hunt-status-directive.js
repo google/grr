@@ -27,15 +27,16 @@ exports.isEligible = (flowName, flowArgs) => {
     return false;
   }
 
-  const hasInvalidPath = (flowArgs['value']['paths'] || []).find(
-      isPathInvalid_);
+  const hasInvalidPath =
+      (flowArgs['value']['paths'] || []).find(isPathInvalid_);
   if (hasInvalidPath) {
     return false;
   }
 
   if (flowArgs['value']['action'] !== undefined &&
       flowArgs['value']['action']['value']['action_type'] &&
-      flowArgs['value']['action']['value']['action_type']['value'] === 'DOWNLOAD') {
+      flowArgs['value']['action']['value']['action_type']['value'] ===
+          'DOWNLOAD') {
     return false;
   }
 
@@ -45,48 +46,53 @@ const isEligible = exports.isEligible;
 
 /**
  * Controller for RapidHuntStatusDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
- * @ngInject
+ * @unrestricted
  */
-const RapidHuntStatusController = function($scope, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const RapidHuntStatusController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!grrUi.core.apiService.ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  this.enabled = false;
+    this.enabled = false;
 
-  this.isEligible = false;
+    this.isEligible = false;
 
-  this.grrApiService_.getCached('/config/AdminUI.rapid_hunts_enabled')
-      .then((response) => {
-        this.enabled = response['data']['value']['value'];
+    this.grrApiService_.getCached('/config/AdminUI.rapid_hunts_enabled')
+        .then((response) => {
+          this.enabled = response['data']['value']['value'];
 
-        if (this.enabled) {
-          this.scope_.$watch('flowName', this.onFlowChange_.bind(this));
-          this.scope_.$watch('flowArgs', this.onFlowChange_.bind(this));
-        }
-      });
-};
-
-/**
- * Callback called every time either flowName or flowArgs binding changes.
- *
- * @private
- */
-RapidHuntStatusController.prototype.onFlowChange_ = function() {
-  if (angular.isUndefined(this.scope_['flowName']) ||
-      angular.isUndefined(this.scope_['flowArgs'])) {
-    return;
+          if (this.enabled) {
+            this.scope_.$watch('flowName', this.onFlowChange_.bind(this));
+            this.scope_.$watch('flowArgs', this.onFlowChange_.bind(this));
+          }
+        });
   }
 
-  this.scope_['isEligible'] = this.isEligible = isEligible(
-      this.scope_['flowName'], this.scope_['flowArgs']);
+  /**
+   * Callback called every time either flowName or flowArgs binding changes.
+   *
+   * @private
+   */
+  onFlowChange_() {
+    if (angular.isUndefined(this.scope_['flowName']) ||
+        angular.isUndefined(this.scope_['flowArgs'])) {
+      return;
+    }
+
+    this.scope_['isEligible'] = this.isEligible =
+        isEligible(this.scope_['flowName'], this.scope_['flowArgs']);
+  }
 };
+
+
 
 /**
  * Directive for displaying rapid hunting eligibility status note.

@@ -7,105 +7,107 @@ const {RoutingService} = goog.require('grrUi.routing.routingService');
 
 /**
  * Controller for NavigatorDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!ApiService} grrApiService
- * @param {!RoutingService} grrRoutingService
- * @ngInject
+ * @unrestricted
  */
-const NavigatorController = function(
-    $scope, grrApiService, grrRoutingService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const NavigatorController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!ApiService} grrApiService
+   * @param {!RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrApiService, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @private {!RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @private {!RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {Object} */
-  this.client;
+    /** @type {Object} */
+    this.client;
 
-  /** @type {?string} */
-  this.clientId;
+    /** @type {?string} */
+    this.clientId;
 
-  /** @type {boolean} */
-  this.hasClientAccess = false;
+    /** @type {boolean} */
+    this.hasClientAccess = false;
 
-  /** @type {Object} */
-  this.uiTraits;
+    /** @type {Object} */
+    this.uiTraits;
 
-  // Fetch UI traits.
-  this.grrApiService_.getCached('users/me').then(function (response) {
-    this.uiTraits = stripTypeInfo(response['data'])['interface_traits'];
-  }.bind(this));
+    // Fetch UI traits.
+    this.grrApiService_.getCached('users/me').then(function(response) {
+      this.uiTraits = stripTypeInfo(response['data'])['interface_traits'];
+    }.bind(this));
 
-  // Subscribe to legacy grr events to be notified on client change.
-  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
-      this.onClientSelectionChange_.bind(this), true);
-};
-
-
-
-/**
- * Handles selection of a client.
- *
- * @param {string} clientId The id of the selected client.
- * @private
- */
-NavigatorController.prototype.onClientSelectionChange_ = function(clientId) {
-  if (!clientId) {
-    return; // Stil display the last client for convenience.
-  }
-  if (clientId.indexOf('aff4:/') === 0) {
-    clientId = clientId.split('/')[1];
-  }
-  if (this.clientId === clientId) {
-    return;
+    // Subscribe to legacy grr events to be notified on client change.
+    this.grrRoutingService_.uiOnParamsChanged(
+        this.scope_, 'clientId', this.onClientSelectionChange_.bind(this),
+        true);
   }
 
-  this.clientId = clientId;
-  this.client = null; // Set to null so the loader is shown.
+  /**
+   * Handles selection of a client.
+   *
+   * @param {string} clientId The id of the selected client.
+   * @private
+   */
+  onClientSelectionChange_(clientId) {
+    if (!clientId) {
+      return;  // Stil display the last client for convenience.
+    }
+    if (clientId.indexOf('aff4:/') === 0) {
+      clientId = clientId.split('/')[1];
+    }
+    if (this.clientId === clientId) {
+      return;
+    }
 
-  this.refreshClientDetails();
-  this.checkClientAccess_();
+    this.clientId = clientId;
+    this.client = null;  // Set to null so the loader is shown.
+
+    this.refreshClientDetails();
+    this.checkClientAccess_();
+  }
+
+  /**
+   * Fetches new client details.
+   */
+  refreshClientDetails() {
+    var url = 'clients/' + this.clientId;
+    this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
+  }
+
+  /**
+   * Called when the client details were fetched.
+   *
+   * @param {Object} response
+   * @private
+   */
+  onClientDetailsFetched_(response) {
+    this.client = response['data'];
+  }
+
+  /**
+   * Checks client access.
+   *
+   * @private
+   */
+  checkClientAccess_() {
+    this.grrApiService_.head('clients/' + this.clientId + '/flows')
+        .then(
+            function resolve() {
+              this.hasClientAccess = true;
+            }.bind(this),
+            function reject() {
+              this.hasClientAccess = false;
+            }.bind(this));
+  }
 };
 
-
-/**
- * Fetches new client details.
- */
-NavigatorController.prototype.refreshClientDetails = function() {
-  var url = 'clients/' + this.clientId;
-  this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
-};
-
-/**
- * Called when the client details were fetched.
- *
- * @param {Object} response
- * @private
- */
-NavigatorController.prototype.onClientDetailsFetched_ = function(response) {
-  this.client = response['data'];
-};
-
-/**
- * Checks client access.
- *
- * @private
- */
-NavigatorController.prototype.checkClientAccess_ = function() {
-  this.grrApiService_.head('clients/' + this.clientId + '/flows').then(
-      function resolve() {
-        this.hasClientAccess = true;
-      }.bind(this),
-      function reject() {
-        this.hasClientAccess = false;
-      }.bind(this));
-};
 
 
 /**

@@ -6,56 +6,58 @@ const {ApiService, stripTypeInfo} = goog.require('grrUi.core.apiService');
 
 /**
  * Controller for ClientLabelFormDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!ApiService} grrApiService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ClientLabelFormController =
-    function($scope, grrApiService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ClientLabelFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!ApiService} grrApiService
+   * @ngInject
+   */
+  constructor($scope, grrApiService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!ApiService} */
-  this.grrApiService_ = grrApiService;
+    /** @private {!ApiService} */
+    this.grrApiService_ = grrApiService;
 
-  /** @type {*} */
-  this.labelsList;
+    /** @type {*} */
+    this.labelsList;
 
-  /** @type {string} */
-  this.clientLabel;
+    /** @type {string} */
+    this.clientLabel;
 
-  /** @type {string} */
-  this.formLabel;
+    /** @type {string} */
+    this.formLabel;
 
-  /** @type {boolean} */
-  this.hideEmptyOption;
+    /** @type {boolean} */
+    this.hideEmptyOption;
 
-  /** @type {string} */
-  this.emptyOptionLabel;
+    /** @type {string} */
+    this.emptyOptionLabel;
 
-  this.grrApiService_.get('/clients/labels').then(function(response) {
-    this.labelsList = stripTypeInfo(response['data']['items']);
+    this.grrApiService_.get('/clients/labels').then(function(response) {
+      this.labelsList = stripTypeInfo(response['data']['items']);
 
-    this.scope_.$watch('controller.hideEmptyOption', function() {
-      if (!this.clientLabel &&  // Handles all falsey values, including ''.
-          this.hideEmptyOption &&
-          this.labelsList.length > 0) {
-        this.clientLabel = this.labelsList[0]['name'];
-      }
+      this.scope_.$watch('controller.hideEmptyOption', function() {
+        if (!this.clientLabel &&  // Handles all falsey values, including ''.
+            this.hideEmptyOption && this.labelsList.length > 0) {
+          this.clientLabel = this.labelsList[0]['name'];
+        }
+      }.bind(this));
     }.bind(this));
-  }.bind(this));
+  }
+
+  /**
+   * Initializes the client label form controller.
+   */
+  $onInit() {
+    this.hideEmptyOption = this.hideEmptyOption || false;
+    this.emptyOptionLabel = this.emptyOptionLabel || '-- All clients --';
+  }
 };
 
 
-/**
- * Initializes the client label form controller.
- */
-ClientLabelFormController.prototype.$onInit = function() {
-  this.hideEmptyOption = this.hideEmptyOption || false;
-  this.emptyOptionLabel = this.emptyOptionLabel || '-- All clients --';
-};
 
 /**
  * Directive that displays a client label selector.

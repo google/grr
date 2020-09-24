@@ -1,0 +1,36 @@
+# Breaking Changes
+
+## Upcoming version
+
+* The server YAML configuration options path_globs_blacklist and
+  path_globs_whitelist in get_flow_files_archive of router_params of
+  ApiCallRobotRouter have been renamed to exclude_path_globs and
+  include_only_path_globs.
+* The server YAML configuration option Artifacts.netgroup_user_blacklist has
+  been renamed to Artifacts.netgroup_ignore_users.
+* The server YAML configuration options labels_whitelist and
+  labels_owners_whitelist in router_params of ApiLabelsRestrictedCallRouter
+  have been renamed to allow_labels and allow_labels_owners.
+* The server YAML configuration option artifacts_whitelist of
+  artifact_collector_flow of router_params of ApiCallRobotRouter has been
+  renamed to allow_artifacts.
+* The `ExecutePythonHack` flow returns a `ExecutePythonHackResponse` message
+  rather than raw string object as a response.
+* ApiHunt.hunt_type was introduced and should be used instead of
+  a now-deprecated ApiHunt.name.
+* Variable hunts now have their arguments filled in the ApiHunt.flow_args
+  attribute.
+* JSON representation of `st_ino`, `st_dev`, `st_nlink`, `st_blocks`,
+  `st_blksize`, `st_rdev` fields of `StatEntry` now use strings rather than
+  integers. This is a consequence of increasing the supported integer size of
+  these values which might be out of bounds for JSON numbers.
+* The `st_crtime` field of `StatEntry` has been renamed to `st_btime`.
+* ArtifactCollectorFlowArgs, ArtifactFilesDownloaderFlowArgs:
+  * use_tsk is replaced with use_raw_filesystem_access
+  * use_tsk is kept for compatibilty until 2021-04-01
+    * please migrate away from use_tsk to use_raw_filesystem_access until then
+  * ValueError is raised if both fields are set
+* WinUserActivityInvestigationargs:
+  * This message is obsolete, removing it.
+* ClientArtifactCollectorArgs
+  * Removing use_tsk, since it hasn't been used on the client side

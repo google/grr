@@ -33,7 +33,7 @@ fi
 cp -R \%{_builddir}/* \%{buildroot}
 DIR="\%{buildroot}%(ClientBuilder.daemon_link)"
 mkdir -p "$\(dirname ${DIR}\)"
-ln -s %(ClientBuilder.target_dir)/%(Client.binary_name) \%{buildroot}%(ClientBuilder.daemon_link)
+ln -s %(ClientBuilder.target_dir)/wrapper.sh \%{buildroot}%(ClientBuilder.daemon_link)
 
 %clean
 
@@ -48,15 +48,51 @@ elif [ -x "/etc/init.d/%(Client.name)" ]; then
   /sbin/chkconfig --del %(Client.name) >/dev/null 2>&1 || true
 fi
 
+if [ "%(ClientBuilder.fleetspeak_bundled)" = "True" ]; then
+  # Upgrade
+  if [ "$1" -ne 1 ]; then
+    if [ -x /bin/systemctl ]; then
+      systemctl stop %(Client.fleetspeak_service_name) >/dev/null 2>&1 || true
+    fi
+  fi
+fi
+
 %post
-%restart_fleetspeak
+if [ "%(ClientBuilder.fleetspeak_bundled)" = "True" ]; then
+  if [ -x /bin/systemctl ]; then
+    systemctl enable %(Client.fleetspeak_service_name) >/dev/null 2>&1 || true
+    systemctl restart %(Client.fleetspeak_service_name) >/dev/null 2>&1 || true
+  fi
+else
+  %restart_fleetspeak
+fi
+
+%preun
+if [ "%(ClientBuilder.fleetspeak_bundled)" = "True" ]; then
+  # Removed completely.
+  if [ "$1" -eq 0 ]; then
+    if [ -x /bin/systemctl ]; then
+      systemctl --no-reload disable %(Client.fleetspeak_service_name) > /dev/null 2>&1 || true
+      systemctl stop %(Client.fleetspeak_service_name) > /dev/null 2>&1 || true
+    fi
+  fi
+fi
 
 %postun
-# The first argument to preun and postun is 0 when the package is
-# being uninstalled.
-if [ "$1" -eq 0 ]; then
-  # Restart Fleetspeak after uninstalling GRR.
-  %restart_fleetspeak
+if [ "%(ClientBuilder.fleetspeak_bundled)" = "True" ]; then
+  # Upgrade
+  if [ "$1" -ge 1 ] ; then
+    if [ -x /bin/systemctl ]; then
+      systemctl try-restart %(Client.fleetspeak_service_name) >/dev/null 2>&1 || true
+    fi
+  fi
+else
+  # The first argument to preun and postun is 0 when the package is
+  # being uninstalled.
+  if [ "$1" -eq 0 ]; then
+    # Restart Fleetspeak after uninstalling GRR.
+    %restart_fleetspeak
+  fi
 fi
 # Delete service config files for any legacy GRR installation if
 # present.
@@ -68,6 +104,12 @@ rm -f "/usr/lib/systemd/system/%(Client.name).service" || true
 \%attr\(755,root,root\) %(ClientBuilder.daemon_link)
 \%attr\(755,root,root\) %(ClientBuilder.fleetspeak_service_dir)/%(Client.fleetspeak_unsigned_config_fname)
 \%attr\(444,root,root\) /etc/prelink.conf.d/%(Client.name).conf
+%if "%(ClientBuilder.fleetspeak_bundled)" == "True"
+\%attr\(755,root,root\) /usr/bin/fleetspeak-client
+\%attr\(644,root,root\) /etc/fleetspeak-client/communicator.txt
+\%attr\(644,root,root\) /etc/fleetspeak-client/client.config
+\%attr\(644,root,root\) /lib/systemd/system/fleetspeak-client.service
+%endif
 
 %changelog
 * %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)

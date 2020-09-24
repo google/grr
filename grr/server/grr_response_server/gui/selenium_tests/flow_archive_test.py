@@ -188,7 +188,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
                 client_id=self.client_id,
                 flow_id=session_id,
                 plugin_name=plugin),
-            token=mock.ANY)
+            context=mock.ANY)
 
         return True
       except AssertionError:

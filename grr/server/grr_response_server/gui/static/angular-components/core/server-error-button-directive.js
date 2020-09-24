@@ -8,84 +8,86 @@ var ERROR_EVENT_NAME = 'ServerError';
 
 /**
  * Controller for ServerErrorButtonDirective.
- *
- * @param {!angular.Scope} $rootScope
- * @param {!angular.Scope} $scope
- * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ServerErrorButtonController = function($rootScope, $scope, $uibModal) {
+const ServerErrorButtonController = class {
+  /**
+   * @param {!angular.Scope} $rootScope
+   * @param {!angular.Scope} $scope
+   * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
+   * @ngInject
+   */
+  constructor($rootScope, $scope, $uibModal) {
+    /** @private {!angular.Scope} */
+    this.rootScope_ = $rootScope;
 
-  /** @private {!angular.Scope} */
-  this.rootScope_ = $rootScope;
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!angularUi.$uibModal} */
+    this.uibModal_ = $uibModal;
 
-  /** @private {!angularUi.$uibModal} */
-  this.uibModal_ = $uibModal;
+    /** @type {?{message: string, traceBack: string}} */
+    this.error;
 
-  /** @type {?{message: string, traceBack: string}} */
-  this.error;
-
-  /** @type {boolean} */
-  this.buttonVisible;
+    /** @type {boolean} */
+    this.buttonVisible;
 
 
-  this.rootScope_.$on(ERROR_EVENT_NAME, this.onErrorEvent.bind(this));
-};
-
-
-
-/**
- * Handles server error events
- *
- * @param {?} unused_event The event object
- * @param {{message: string, traceBack: string}} error The server error
- */
-ServerErrorButtonController.prototype.onErrorEvent = function(unused_event, error) {
-  if (!angular.isObject(error) || !angular.isString(error.message)) {
-    return;
+    this.rootScope_.$on(ERROR_EVENT_NAME, this.onErrorEvent.bind(this));
   }
 
-  if (error.message.length) {
-    this.error = error;
-    this.buttonVisible = true;
-  } else {
-    this.error = null;
-    this.buttonVisible = false;
+  /**
+   * Handles server error events
+   *
+   * @param {?} unused_event The event object
+   * @param {{message: string, traceBack: string}} error The server error
+   */
+  onErrorEvent(unused_event, error) {
+    if (!angular.isObject(error) || !angular.isString(error.message)) {
+      return;
+    }
+
+    if (error.message.length) {
+      this.error = error;
+      this.buttonVisible = true;
+    } else {
+      this.error = null;
+      this.buttonVisible = false;
+    }
+  }
+
+  /**
+   * Shows the server error in a dialog.
+   *
+   * @export
+   */
+  showError() {
+    var modalScope = this.scope_.$new();
+    modalScope.message = this.error.message;
+    modalScope.traceBack = this.error.traceBack;
+    modalScope.close = function() {
+      modalInstance.close();
+    };
+    this.scope_.$on('$destroy', function() {
+      modalScope.$destroy();
+    });
+
+    var modalInstance = this.uibModal_.open({
+      template:
+          '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack" />',
+      scope: modalScope,
+      windowClass: 'wide-modal high-modal',
+      size: 'lg'
+    });
+
+    modalInstance.result.finally(function() {
+      this.error = null;
+      this.buttonVisible = false;
+    }.bind(this));
   }
 };
 
-/**
- * Shows the server error in a dialog.
- *
- * @export
- */
-ServerErrorButtonController.prototype.showError = function() {
-  var modalScope = this.scope_.$new();
-  modalScope.message = this.error.message;
-  modalScope.traceBack = this.error.traceBack;
-  modalScope.close = function() {
-    modalInstance.close();
-  };
-  this.scope_.$on('$destroy', function() {
-    modalScope.$destroy();
-  });
-
-  var modalInstance = this.uibModal_.open({
-    template: '<grr-server-error-dialog close="close()" message="message" trace-back="traceBack" />',
-    scope: modalScope,
-    windowClass: 'wide-modal high-modal',
-    size: 'lg'
-  });
-
-  modalInstance.result.finally(function() {
-    this.error = null;
-    this.buttonVisible = false;
-  }.bind(this));
-};
 
 
 /**
@@ -123,5 +125,3 @@ ServerErrorButtonDirective.directive_name = 'grrServerErrorButton';
  * @export
  */
 ServerErrorButtonDirective.error_event_name = ERROR_EVENT_NAME;
-
-

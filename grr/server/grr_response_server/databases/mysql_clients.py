@@ -168,6 +168,9 @@ class MySQLDBClientMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientSnapshot(self, client_ids, cursor=None):
     """Reads the latest client snapshots for a list of clients."""
+    if not client_ids:
+      return {}
+
     int_ids = [db_utils.ClientIDToInt(cid) for cid in client_ids]
     query = (
         "SELECT h.client_id, h.client_snapshot, UNIX_TIMESTAMP(h.timestamp),"

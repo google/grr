@@ -97,7 +97,7 @@ def _CopyNonFleetspeakDpkgFiles(dist_dir, package_dir):
           "install_data/systemd/client/grr-client.service"), outdir)
 
 
-def _CopyBundledFleetspeakDpkgFiles(src_dir, package_dir):
+def _CopyBundledFleetspeakFiles(src_dir, package_dir):
   """Copies the bundled fleetspeak installation into the package dir."""
   files = [
       "etc/fleetspeak-client/communicator.txt",
@@ -123,7 +123,9 @@ def _MakeZip(input_dir, output_file):
   zf = zipfile.ZipFile(output_file, "w")
   oldwd = os.getcwd()
   os.chdir(input_dir)
-  for path in ["debian", "rpmbuild", "fleetspeak", "bundled-fleetspeak"]:
+  for path in [
+      "debian", "rpmbuild", "fleetspeak", "bundled-fleetspeak", "legacy"
+  ]:
     for root, _, files in os.walk(path):
       for f in files:
         zf.write(os.path.join(root, f))
@@ -167,32 +169,21 @@ class DebianClientBuilder(build.ClientBuilder):
 
     _CopyFleetspeakDpkgFiles(self.package_dir, context=self.context)
     _CopyNonFleetspeakDpkgFiles(output_dir, self.package_dir)
-    _CopyBundledFleetspeakDpkgFiles(self.fleetspeak_install_dir,
-                                    self.package_dir)
+    _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
     _MakeZip(self.package_dir, output_file)
 
 
-def _CopyCommonRpmFiles(dist_dir):
+def _CopyCommonRpmFiles(package_dir, dist_dir):
+  """Copies common (fleetspeak and legacy) files into the template folder."""
   # Copy the wrapper script.
   shutil.copy(
       package.ResourcePath("grr-response-core", "install_data/wrapper.sh.in"),
       dist_dir)
 
-
-def _CopyFleetspeakRpmFiles(package_dir, context=None):
-  """Copies Fleetspeak-enabled RPM files into the template folder."""
-  if context is None:
-    raise ValueError("context can't be None")
-
   shutil.move(
       os.path.join(package_dir, "debian"), os.path.join(package_dir,
                                                         "rpmbuild"))
-  shutil.copy(
-      config_lib.Resource().Filter(
-          "install_data/centos/fleetspeak.grr.spec.in"),
-      os.path.join(package_dir, "rpmbuild/grr.spec.in"))
-
   # Copy prelink blacklist file. Without this file, prelink will mangle
   # the GRR binary.
   shutil.copy(
@@ -200,8 +191,21 @@ def _CopyFleetspeakRpmFiles(package_dir, context=None):
           "install_data/centos/prelink_blacklist.conf.in"),
       os.path.join(package_dir, "rpmbuild/prelink_blacklist.conf.in"))
 
+
+def _CopyFleetspeakRpmFiles(package_dir, context=None):
+  """Copies Fleetspeak-enabled RPM files into the template folder."""
+  if context is None:
+    raise ValueError("context can't be None")
+
+  utils.EnsureDirExists(os.path.join(package_dir, "fleetspeak/rpmbuild"))
+
+  shutil.copy(
+      config_lib.Resource().Filter(
+          "install_data/centos/fleetspeak.grr.spec.in"),
+      os.path.join(package_dir, "fleetspeak/rpmbuild/grr.spec.in"))
+
   # Include the Fleetspeak service config in the template.
-  fleetspeak_dir = os.path.join(package_dir, "fleetspeak")
+  fleetspeak_dir = os.path.join(package_dir, "fleetspeak/fleetspeak")
   utils.EnsureDirExists(fleetspeak_dir)
   shutil.copy(
       config.CONFIG.Get(
@@ -212,27 +216,18 @@ def _CopyFleetspeakRpmFiles(package_dir, context=None):
 def _CopyNonFleetspeakRpmFiles(package_dir):
   """Copies non-Fleetspeak-enabled RPM files into the template folder."""
 
-  shutil.move(
-      os.path.join(package_dir, "debian"), os.path.join(package_dir,
-                                                        "rpmbuild"))
+  utils.EnsureDirExists(os.path.join(package_dir, "legacy/rpmbuild"))
 
   shutil.copy(
       config_lib.Resource().Filter("install_data/centos/grr-client.initd.in"),
-      os.path.join(package_dir, "rpmbuild/grr-client.initd.in"))
+      os.path.join(package_dir, "legacy/rpmbuild/grr-client.initd.in"))
   shutil.copy(
       config_lib.Resource().Filter(
           "install_data/systemd/client/grr-client.service"),
-      os.path.join(package_dir, "rpmbuild/grr-client.service.in"))
+      os.path.join(package_dir, "legacy/rpmbuild/grr-client.service.in"))
 
   shutil.copy(config_lib.Resource().Filter("install_data/centos/grr.spec.in"),
-              os.path.join(package_dir, "rpmbuild/grr.spec.in"))
-
-  # Copy prelink blacklist file. Without this file, prelink will mangle
-  # the GRR binary.
-  shutil.copy(
-      config_lib.Resource().Filter(
-          "install_data/centos/prelink_blacklist.conf.in"),
-      os.path.join(package_dir, "rpmbuild/prelink_blacklist.conf.in"))
+              os.path.join(package_dir, "legacy/rpmbuild/grr.spec.in"))
 
 
 class CentosClientBuilder(build.ClientBuilder):
@@ -241,12 +236,13 @@ class CentosClientBuilder(build.ClientBuilder):
   BUILDER_CONTEXT = "Target:Linux"
 
   @property
-  def fleetspeak_enabled(self):
-    return config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context)
-
-  @property
   def package_dir(self):
     return config.CONFIG.Get("PyInstaller.dpkg_root", context=self.context)
+
+  @property
+  def fleetspeak_install_dir(self):
+    return config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_install_dir", context=self.context)
 
   def MakeExecutableTemplate(self, output_file):
     build_helpers.MakeBuildDirectory(context=self.context)
@@ -254,10 +250,9 @@ class CentosClientBuilder(build.ClientBuilder):
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
 
     _StripLibraries(output_dir)
-    _CopyCommonRpmFiles(output_dir)
-    if self.fleetspeak_enabled:
-      _CopyFleetspeakRpmFiles(self.package_dir, context=self.context)
-    else:
-      _CopyNonFleetspeakRpmFiles(self.package_dir)
+    _CopyCommonRpmFiles(self.package_dir, output_dir)
+    _CopyFleetspeakRpmFiles(self.package_dir, context=self.context)
+    _CopyNonFleetspeakRpmFiles(self.package_dir)
+    _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
     _MakeZip(self.package_dir, output_file)

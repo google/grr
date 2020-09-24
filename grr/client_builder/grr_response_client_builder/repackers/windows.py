@@ -103,6 +103,12 @@ class WindowsClientRepacker(build.ClientRepacker):
       self._ValidateFleetspeakServiceConfig(orig_fs_config_path)
       zip_file.write(orig_fs_config_path, final_fs_config_fname)
 
+  def _AddFleetspeakConfig(self, zip_file):
+    zip_file.write(
+        config.CONFIG.Get(
+            "ClientBuilder.fleetspeak_client_config", context=self.context),
+        "fleetspeak-client.config")
+
   def _ValidateFleetspeakServiceConfig(self, config_path):
     """Validates a Fleetspeak service config.
 
@@ -271,6 +277,12 @@ class WindowsClientRepacker(build.ClientRepacker):
       service_bin_name = config.CONFIG.Get(
           "Nanny.service_binary_name", context=context)
       output_zip.writestr(service_bin_name, z_template.read(service_template))
+
+    if config.CONFIG["ClientBuilder.fleetspeak_bundled"]:
+      self._AddFleetspeakConfig(output_zip)
+    else:
+      # Remove bundled fleetspeak-client
+      completed_files.append("fleetspeak-client.exe")
 
     if self.signed_template:
       # If the template libs were already signed we can skip signing

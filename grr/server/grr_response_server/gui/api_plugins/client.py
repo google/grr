@@ -221,7 +221,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     end = args.count or db.MAX_COUNT
 
     keywords = compatibility.ShlexSplit(args.query)
@@ -248,28 +248,20 @@ class ApiLabelsRestrictedSearchClientsHandler(
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
 
-  def __init__(self, labels_whitelist=None, labels_owners_whitelist=None):
+  def __init__(self, allow_labels=None, allow_labels_owners=None):
     super().__init__()
 
-    self.labels_whitelist = set(labels_whitelist or [])
-    self.labels_owners_whitelist = set(labels_owners_whitelist or [])
-
-  def _CheckClientLabels(self, client_obj, token=None):
-    for label in client_obj.GetLabels():
-      if (label.name in self.labels_whitelist and
-          label.owner in self.labels_owners_whitelist):
-        return True
-
-    return False
+    self.allow_labels = set(allow_labels or [])
+    self.allow_labels_owners = set(allow_labels_owners or [])
 
   def _VerifyLabels(self, labels):
     for label in labels:
-      if (label.name in self.labels_whitelist and
-          label.owner in self.labels_owners_whitelist):
+      if (label.name in self.allow_labels and
+          label.owner in self.allow_labels_owners):
         return True
     return False
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     if args.count:
       end = args.offset + args.count
       # Read <count> clients ahead in case some of them fail to open / verify.
@@ -288,7 +280,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
     # should be on small subsets though so this might not be worth
     # it.
     all_client_ids = set()
-    for label in self.labels_whitelist:
+    for label in self.allow_labels:
       label_filter = ["label:" + label] + keywords
       all_client_ids.update(index.LookupClients(label_filter))
 
@@ -328,7 +320,7 @@ class ApiVerifyAccessHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiVerifyAccessArgs
   result_type = ApiVerifyAccessResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     return ApiVerifyAccessResult()
 
 
@@ -346,7 +338,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetClientArgs
   result_type = ApiClient
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     client_id = str(args.client_id)
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
     if info is None:
@@ -387,7 +379,7 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetClientVersionsArgs
   result_type = ApiGetClientVersionsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     end_time = args.end or rdfvalue.RDFDatetime.Now()
     start_time = args.start or end_time - rdfvalue.Duration.From(
         3, rdfvalue.MINUTES)
@@ -426,7 +418,7 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetClientVersionTimesArgs
   result_type = ApiGetClientVersionTimesResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     # TODO(amoser): Again, this is rather inefficient,if we moved
     # this call to the datastore we could make it much
     # faster. However, there is a chance that this will not be
@@ -456,11 +448,11 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiInterrogateClientArgs
   result_type = ApiInterrogateClientResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     flow_id = flow.StartFlow(
         flow_cls=discovery.Interrogate,
         client_id=str(args.client_id),
-        creator=token.username)
+        creator=context.username)
 
     # TODO(user): don't encode client_id inside the operation_id, but
     # rather have it as a separate field.
@@ -485,7 +477,7 @@ class ApiGetInterrogateOperationStateHandler(
   args_type = ApiGetInterrogateOperationStateArgs
   result_type = ApiGetInterrogateOperationStateResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     client_id = str(args.client_id)
     flow_id = str(args.operation_id)
 
@@ -544,7 +536,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetLastClientIPAddressArgs
   result_type = ApiGetLastClientIPAddressResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     client_id = str(args.client_id)
 
     md = data_store.REL_DB.ReadClientMetadata(client_id)
@@ -583,7 +575,7 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListClientCrashesArgs
   result_type = ApiListClientCrashesResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     crashes = data_store.REL_DB.ReadClientCrashInfoHistory(str(args.client_id))
     total_count = len(crashes)
     result = api_call_handler_utils.FilterList(
@@ -604,10 +596,10 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiAddClientsLabelsArgs
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     for api_client_id in args.client_ids:
       cid = str(api_client_id)
-      data_store.REL_DB.AddClientLabels(cid, token.username, args.labels)
+      data_store.REL_DB.AddClientLabels(cid, context.username, args.labels)
       idx = client_index.ClientIndex()
       idx.AddClientLabels(cid, args.labels)
 
@@ -635,10 +627,10 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     for owner in affected_owners:
       client.RemoveLabels(labels_names, owner=owner)
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     for client_id in args.client_ids:
       cid = str(client_id)
-      data_store.REL_DB.RemoveClientLabels(cid, token.username, args.labels)
+      data_store.REL_DB.RemoveClientLabels(cid, context.username, args.labels)
       labels_to_remove = set(args.labels)
       existing_labels = data_store.REL_DB.ReadClientLabels(cid)
       for label in existing_labels:
@@ -660,7 +652,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   result_type = ApiListClientsLabelsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     labels = data_store.REL_DB.ReadAllClientLabels()
 
     label_objects = []
@@ -680,7 +672,7 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
 
   result_type = ApiListKbFieldsResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return ApiListKbFieldsResult(items=sorted(fields))
 
@@ -707,7 +699,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
   REQUESTS_NUM_LIMIT = 1000
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     result = ApiListClientActionRequestsResult()
 
     request_cache = {}
@@ -773,7 +765,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
   # pyformat: enable
   MAX_SAMPLES = 100
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     start_time = args.start
     end_time = args.end
 

@@ -23,11 +23,15 @@ describe('UserFacade', () => {
       imports: [],
       providers: [
         UserFacade,
-        {provide: HttpApiService, useValue: httpApiService},
+        {provide: HttpApiService, useFactory: () => httpApiService},
       ],
     });
 
     userFacade = TestBed.inject(UserFacade);
+  });
+
+  it('does not call the API without subscription', () => {
+    expect(httpApiService.fetchCurrentUser).not.toHaveBeenCalled();
   });
 
   it('calls the API on first currentUser subscription', () => {

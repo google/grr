@@ -105,7 +105,6 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       converted_responses = export.ConvertValues(
           default_metadata,
           responses,
-          token=self.token,
           options=self.args.export_options)
     else:
       converted_responses = responses

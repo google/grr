@@ -5,32 +5,33 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Cotnroller for ApiDescriptionDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const ApiDescriptionController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ApiDescriptionController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @export {!Array.<string>} */
-  this.paragraphs = [];
+    /** @export {!Array.<string>} */
+    this.paragraphs = [];
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
+  }
 
-
-/**
- * Handles value attribute changes.
- *
- * @param {string} newValue New route value.
- * @export
- */
-ApiDescriptionController.prototype.onValueChange = function(newValue) {
-  if (angular.isString(newValue)) {
-    this.paragraphs = newValue.split('\n\n');
+  /**
+   * Handles value attribute changes.
+   *
+   * @param {string} newValue New route value.
+   * @export
+   */
+  onValueChange(newValue) {
+    if (angular.isString(newValue)) {
+      this.paragraphs = newValue.split('\n\n');
+    }
   }
 };
 
@@ -45,9 +46,7 @@ ApiDescriptionController.prototype.onValueChange = function(newValue) {
  */
 exports.ApiDescriptionDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/docs/api-description.html',
     controller: ApiDescriptionController,

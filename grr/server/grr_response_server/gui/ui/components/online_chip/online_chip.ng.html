@@ -1,0 +1,7 @@
+<mat-chip *ngIf="(status$ | async) === 'online'; else offlineChip"
+  class="mat-body-1"
+  color="success"
+  selected>Online</mat-chip>
+<ng-template #offlineChip>
+  <mat-chip class="mat-body-1">Offline</mat-chip>
+</ng-template>

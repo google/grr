@@ -476,7 +476,7 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     time_limit = args.time_limit
 
     res = client_utils_common.Execute(
-        cmd, cmd_args, time_limit=time_limit, bypass_whitelist=True)
+        cmd, cmd_args, time_limit=time_limit, bypass_allowlist=True)
     (stdout, stderr, status, time_used) = res
 
     # Limit output to 10MB so our response doesn't get too big.

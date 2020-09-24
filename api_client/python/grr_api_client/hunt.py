@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from grr_api_client import client
+from grr_api_client import context as context_lib
 from grr_api_client import utils
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import timeline_pb2
@@ -280,9 +281,13 @@ class HuntBase(object):
         hunt_id=self.hunt_id, plugin_name=plugin_name)
     return self._context.SendStreamingRequest("GetExportedHuntResults", args)
 
-  def GetCollectedTimelines(self):
+  def GetCollectedTimelines(
+      self,
+      fmt=timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED,
+  ):
     args = timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = self.hunt_id
+    args.format = fmt
 
     return self._context.SendStreamingRequest("GetCollectedHuntTimelines", args)
 
@@ -345,6 +350,15 @@ def CreateHunt(flow_name=None,
     request.hunt_runner_args.CopyFrom(hunt_runner_args)
 
   data = context.SendRequest("CreateHunt", request)
+  return Hunt(data=data, context=context)
+
+
+def CreatePerClientFileCollectionHunt(
+    hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
+    context: context_lib.GrrApiContext) -> Hunt:
+  """Createt a per-client file collection hunt."""
+
+  data = context.SendRequest("CreatePerClientFileCollectionHunt", hunt_args)
   return Hunt(data=data, context=context)
 
 

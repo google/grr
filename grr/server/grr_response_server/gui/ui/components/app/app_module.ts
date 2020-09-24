@@ -10,6 +10,8 @@ import {HomeModule} from '@app/components/home/module';
 import {UserMenuModule} from '@app/components/user_menu/module';
 import {ApiModule} from '@app/lib/api/module';
 
+import {ApprovalPageModule} from '../approval_page/approval_page_module';
+
 import {App} from './app';
 import {AppRoutingModule} from './routing';
 
@@ -26,6 +28,7 @@ const GRR_MODULES = [
   ClientModule,
   HomeModule,
   UserMenuModule,
+  ApprovalPageModule,
 ];
 
 /**

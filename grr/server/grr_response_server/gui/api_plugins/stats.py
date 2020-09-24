@@ -40,7 +40,7 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
 
   result_type = ApiListReportsResult
 
-  def Handle(self, args, token):
+  def Handle(self, args, context):
     return ApiListReportsResult(reports=sorted(
         (rdf_report_plugins.ApiReport(
             desc=report_cls.GetReportDescriptor(), data=None)
@@ -62,7 +62,7 @@ class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetReportArgs
   result_type = rdf_report_plugins.ApiReport
 
-  def Handle(self, args, token):
+  def Handle(self, args, context):
     report = report_plugins.GetReportByName(args.name)
 
     if not args.client_label:
@@ -70,4 +70,4 @@ class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
 
     return rdf_report_plugins.ApiReport(
         desc=report.GetReportDescriptor(),
-        data=report.GetReportData(args, token))
+        data=report.GetReportData(args, context))

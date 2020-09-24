@@ -5,83 +5,84 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for OutputPluginNoteBodyDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$compile} $compile
- * @param {!angular.jQuery} $element
- * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
- *     grrOutputPluginsDirectivesRegistryService
- * @ngInject
+ * @unrestricted
  */
-const OutputPluginNoteBodyController = function(
-        $scope, $compile, $element,
-        grrOutputPluginsDirectivesRegistryService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const OutputPluginNoteBodyController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$compile} $compile
+   * @param {!angular.jQuery} $element
+   * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+   *     grrOutputPluginsDirectivesRegistryService
+   * @ngInject
+   */
+  constructor(
+      $scope, $compile, $element, grrOutputPluginsDirectivesRegistryService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {Object} */
-  this.scope_.outputPlugin;
+    /** @type {Object} */
+    this.scope_.outputPlugin;
 
-  /** @private {!angular.$compile} */
-  this.compile_ = $compile;
+    /** @private {!angular.$compile} */
+    this.compile_ = $compile;
 
-  /** @private {!angular.jQuery} */
-  this.element_ = $element;
+    /** @private {!angular.jQuery} */
+    this.element_ = $element;
 
-  /** @private {!grrUi.core.semanticRegistryService.SemanticRegistryService} */
-  this.grrOutputPluginsDirectivesRegistryService_ =
-      grrOutputPluginsDirectivesRegistryService;
+    /**
+     * @private {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+     */
+    this.grrOutputPluginsDirectivesRegistryService_ =
+        grrOutputPluginsDirectivesRegistryService;
 
-  this.scope_.$watch('outputPlugin',
-                     this.onOutputPluginChange_.bind(this));
-};
+    this.scope_.$watch('outputPlugin', this.onOutputPluginChange_.bind(this));
+  }
 
+  /**
+   * Converts camelCaseStrings to dash-delimited-strings.
+   *
+   * @param {string} directiveName String to be converted.
+   * @return {string} Converted string.
+   */
+  camelCaseToDashDelimited(directiveName) {
+    return directiveName.replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
+  }
 
+  /**
+   * Handles changes in descriptor or state.
+   *
+   * @private
+   */
+  onOutputPluginChange_() {
+    if (angular.isDefined(this.scope_['outputPlugin'])) {
+      var descriptor =
+          this.scope_['outputPlugin']['value']['plugin_descriptor'];
+      var pluginName = descriptor['value']['plugin_name']['value'];
 
-/**
- * Converts camelCaseStrings to dash-delimited-strings.
- *
- * @param {string} directiveName String to be converted.
- * @return {string} Converted string.
- */
-OutputPluginNoteBodyController.prototype.camelCaseToDashDelimited = function(
-    directiveName) {
-  return directiveName.replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
-};
+      var directive =
+          this.grrOutputPluginsDirectivesRegistryService_.findDirectiveForMro(
+              [pluginName]);
 
+      if (angular.isDefined(directive)) {
+        var element = angular.element('<span />');
+        element.html(
+            '<' + this.camelCaseToDashDelimited(directive.directive_name) +
+            ' output-plugin="outputPlugin" />');
 
-/**
- * Handles changes in descriptor or state.
- *
- * @private
- */
-OutputPluginNoteBodyController.prototype.onOutputPluginChange_ = function() {
-  if (angular.isDefined(this.scope_['outputPlugin'])) {
-    var descriptor =
-        this.scope_['outputPlugin']['value']['plugin_descriptor'];
-    var pluginName = descriptor['value']['plugin_name']['value'];
-
-    var directive = this.grrOutputPluginsDirectivesRegistryService_
-        .findDirectiveForMro([pluginName]);
-
-    if (angular.isDefined(directive)) {
-      var element = angular.element('<span />');
-      element.html('<' +
-        this.camelCaseToDashDelimited(directive.directive_name) +
-        ' output-plugin="outputPlugin" />');
-
-      var template = this.compile_(element);
-      template(this.scope_, function(cloned, opt_scope) {
+        var template = this.compile_(element);
+        template(this.scope_, function(cloned, opt_scope) {
+          this.element_.html('');
+          this.element_.append(cloned);
+        }.bind(this));
+      } else {
         this.element_.html('');
-        this.element_.append(cloned);
-      }.bind(this));
-    } else {
-      this.element_.html('');
+      }
     }
-
   }
 };
+
+
 
 /**
  * Directive for displaying notes for output plugins of a flow or hunt.
@@ -92,9 +93,7 @@ OutputPluginNoteBodyController.prototype.onOutputPluginChange_ = function() {
  */
 exports.OutputPluginNoteBodyDirective = function() {
   return {
-    scope: {
-      outputPlugin: '='
-    },
+    scope: {outputPlugin: '='},
     restrict: 'E',
     controller: OutputPluginNoteBodyController,
     controllerAs: 'controller'

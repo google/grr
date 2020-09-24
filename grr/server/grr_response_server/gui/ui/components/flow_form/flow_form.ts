@@ -1,8 +1,9 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {ClientPageFacade} from '@app/store/client_page_facade';
 import {fromEvent, Subject} from 'rxjs';
+import {startWith} from 'rxjs/operators';
 import {map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {ClientPageFacade} from '../../store/client_page_facade';
 import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 
 /**
@@ -28,6 +29,11 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   readonly error$ = this.clientPageFacade.startFlowState$.pipe(
       map(state => state.state === 'error' ? state.error : undefined));
 
+  readonly hasApproval$ = this.clientPageFacade.latestApproval$.pipe(
+      map(approval => approval?.status.type === 'valid'),
+      startWith(false),
+  );
+
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
   ) {}
@@ -38,12 +44,16 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
     fromEvent(this.form.nativeElement, 'submit')
         .pipe(
             takeUntil(this.unsubscribe$),
-            withLatestFrom(this.flowArgsForm.flowArgValues$),
+            withLatestFrom(this.flowArgsForm.flowArgValues$, this.hasApproval$),
             )
-        .subscribe(([e, flowArgs]) => {
+        .subscribe(([e, flowArgs, hasApproval]) => {
           e.preventDefault();
 
-          this.clientPageFacade.startFlow(flowArgs);
+          if (hasApproval) {
+            this.clientPageFacade.startFlow(flowArgs);
+          } else {
+            this.clientPageFacade.scheduleFlow(flowArgs);
+          }
         });
 
     this.flowArgsForm.valid$.pipe(takeUntil(this.unsubscribe$))

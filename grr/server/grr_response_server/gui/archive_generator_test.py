@@ -21,10 +21,13 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import file_store
+from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.gui import archive_generator
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from grr.test_lib import vfs_test_lib
 
 
 class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
@@ -251,6 +254,135 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
             "ignored_files_list":
                 ["aff4:/%s/fs/os/foo/bar/中国新闻网新闻中.txt" % self.client_id]
         })
+
+
+class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
+  """Test for CollectionArchiveGenerator."""
+
+  def _GenerateArchive(self, generator):
+    fd_path = os.path.join(self.temp_dir, "archive")
+    with open(fd_path, "wb") as out_fd:
+      for chunk in generator:
+        out_fd.write(chunk)
+
+    return fd_path
+
+  def setUp(self):
+    super(FlowArchiveGeneratorTest, self).setUp()
+
+    self.client_id = self.SetupClient(0)
+    self.flow_id = flow_test_lib.StartFlow(
+        flow_test_lib.DummyFlow, client_id=self.client_id)
+    self.flow = data_store.REL_DB.ReadFlowObject(self.client_id, self.flow_id)
+
+    self.path1 = db.ClientPath.OS(self.client_id, ["foo", "bar", "hello1.txt"])
+    self.path1_content = "hello1".encode("utf-8")
+    self.path2 = db.ClientPath.TSK(
+        self.client_id, ["foo", "bar", "中国新闻网新闻中.txt"])
+    self.path2_content = "hello2".encode("utf-8")
+
+    vfs_test_lib.CreateFile(self.path1, self.path1_content)
+    vfs_test_lib.CreateFile(self.path2, self.path2_content)
+
+  def testCreatesZipContainingTwoMappedFilesAndManifest(self):
+    generator = archive_generator.FlowArchiveGenerator(
+        self.flow, archive_generator.ArchiveFormat.ZIP)
+    mappings = [
+        flow_base.ClientPathArchiveMapping(self.path1, "foo/file"),
+        flow_base.ClientPathArchiveMapping(self.path2, "foo/bar/file"),
+    ]
+    fd_path = self._GenerateArchive(generator.Generate(mappings))
+
+    zip_fd = zipfile.ZipFile(fd_path)
+    names = [str(s) for s in sorted(zip_fd.namelist())]
+
+    # Expecting in the archive: 2 files and a manifest.
+    self.assertLen(names, 3)
+
+    contents = zip_fd.read(os.path.join(generator.prefix, "foo", "file"))
+    self.assertEqual(contents, b"hello1")
+
+    contents = zip_fd.read(os.path.join(generator.prefix, "foo", "bar", "file"))
+    self.assertEqual(contents, b"hello2")
+
+    manifest = yaml.safe_load(
+        zip_fd.read(os.path.join(generator.prefix, "MANIFEST")))
+    self.assertCountEqual(manifest["processed_files"].items(),
+                          [(self.path1.vfs_path, "foo/file"),
+                           (self.path2.vfs_path, "foo/bar/file")])
+    self.assertCountEqual(manifest["missing_files"], [])
+    self.assertEqual(manifest["client_id"], self.client_id)
+    self.assertEqual(manifest["flow_id"], self.flow_id)
+
+  def testCreatesTarContainingTwoMappedFilesAndManifest(self):
+    generator = archive_generator.FlowArchiveGenerator(
+        self.flow, archive_generator.ArchiveFormat.TAR_GZ)
+    mappings = [
+        flow_base.ClientPathArchiveMapping(self.path1, "foo/file"),
+        flow_base.ClientPathArchiveMapping(self.path2, "foo/bar/file"),
+    ]
+    fd_path = self._GenerateArchive(generator.Generate(mappings))
+
+    with tarfile.open(fd_path, encoding="utf-8") as tar_fd:
+      self.assertLen(tar_fd.getnames(), 3)
+
+      contents = tar_fd.extractfile(
+          os.path.join(generator.prefix, "foo", "file")).read()
+      self.assertEqual(contents, b"hello1")
+
+      contents = tar_fd.extractfile(
+          os.path.join(generator.prefix, "foo", "bar", "file")).read()
+      self.assertEqual(contents, b"hello2")
+
+      manifest = yaml.safe_load(
+          tar_fd.extractfile(os.path.join(generator.prefix, "MANIFEST")).read())
+      self.assertCountEqual(manifest["processed_files"].items(),
+                            [(self.path1.vfs_path, "foo/file"),
+                             (self.path2.vfs_path, "foo/bar/file")])
+      self.assertCountEqual(manifest["missing_files"], [])
+      self.assertEqual(manifest["client_id"], self.client_id)
+      self.assertEqual(manifest["flow_id"], self.flow_id)
+
+  def testPropagatesStreamingExceptions(self):
+    generator = archive_generator.FlowArchiveGenerator(
+        self.flow, archive_generator.ArchiveFormat.TAR_GZ)
+    mappings = [
+        flow_base.ClientPathArchiveMapping(self.path1, "foo/file"),
+        flow_base.ClientPathArchiveMapping(self.path2, "foo/bar/file"),
+    ]
+
+    with mock.patch.object(
+        file_store, "StreamFilesChunks", side_effect=Exception("foobar")):
+      with self.assertRaises(Exception) as context:
+        self._GenerateArchive(generator.Generate(mappings))
+      self.assertEqual(str(context.exception), "foobar")
+
+  def testMissingFilesAreListedInManifest(self):
+    generator = archive_generator.FlowArchiveGenerator(
+        self.flow, archive_generator.ArchiveFormat.ZIP)
+    mappings = [
+        flow_base.ClientPathArchiveMapping(self.path1, "foo/file"),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id, ["non", "existing"]),
+            "foo/bar/file"),
+    ]
+    fd_path = self._GenerateArchive(generator.Generate(mappings))
+
+    zip_fd = zipfile.ZipFile(fd_path)
+    names = [str(s) for s in sorted(zip_fd.namelist())]
+
+    # Expecting in the archive: 1 file (the other shouldn't be found)
+    # and a manifest.
+    self.assertLen(names, 2)
+
+    contents = zip_fd.read(os.path.join(generator.prefix, "foo", "file"))
+    self.assertEqual(contents, b"hello1")
+
+    manifest = yaml.safe_load(
+        zip_fd.read(os.path.join(generator.prefix, "MANIFEST")))
+    self.assertCountEqual(manifest["processed_files"].items(),
+                          [(self.path1.vfs_path, "foo/file")])
+    self.assertCountEqual(manifest["missing_files"], ["fs/os/non/existing"])
 
 
 def main(argv):

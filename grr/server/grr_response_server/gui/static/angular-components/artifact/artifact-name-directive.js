@@ -15,53 +15,56 @@ var UNKNOWN_ARTIFACT_TYPE = 'UNKNOWN';
 
 /**
  * Controller for ArtifactNameDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
- *     grrArtifactDescriptorsService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ArtifactNameController = function(
-    $scope, grrArtifactDescriptorsService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ArtifactNameController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+   *     grrArtifactDescriptorsService
+   * @ngInject
+   */
+  constructor($scope, grrArtifactDescriptorsService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} */
-  this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
+    /**
+     * @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+     */
+    this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 
-  /** @type {string} */
-  this.artifactType;
+    /** @type {string} */
+    this.artifactType;
 
-  this.scope_.$watch('::value', this.onValueChange_.bind(this));
-};
-
-
-
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {number} newArtifactName New ArtifactName RDFValue.
- * @private
- */
-ArtifactNameController.prototype.onValueChange_ = function(newArtifactName) {
-  if (!angular.isObject(newArtifactName)) {
-    return;
+    this.scope_.$watch('::value', this.onValueChange_.bind(this));
   }
 
-  this.grrArtifactDescriptorsService_.getDescriptorByName(
-      newArtifactName['value']).then(
-          function(descriptor) {
-            if (angular.isDefined(descriptor)) {
-              var isCustom = descriptor['value']['is_custom']['value'];
-              this.artifactType =
-                  isCustom ? USER_ARTIFACT_TYPE : SYSTEM_ARTIFACT_TYPE;
-            } else {
-              this.artifactType = UNKNOWN_ARTIFACT_TYPE;
-            }
-          }.bind(this));
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {number} newArtifactName New ArtifactName RDFValue.
+   * @private
+   */
+  onValueChange_(newArtifactName) {
+    if (!angular.isObject(newArtifactName)) {
+      return;
+    }
+
+    this.grrArtifactDescriptorsService_
+        .getDescriptorByName(newArtifactName['value'])
+        .then(function(descriptor) {
+          if (angular.isDefined(descriptor)) {
+            var isCustom = descriptor['value']['is_custom']['value'];
+            this.artifactType =
+                isCustom ? USER_ARTIFACT_TYPE : SYSTEM_ARTIFACT_TYPE;
+          } else {
+            this.artifactType = UNKNOWN_ARTIFACT_TYPE;
+          }
+        }.bind(this));
+  }
 };
+
+
 
 /**
  * Directive that displays ArtifactName values.
@@ -72,9 +75,7 @@ ArtifactNameController.prototype.onValueChange_ = function(newArtifactName) {
  */
 exports.ArtifactNameDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/artifact/artifact-name.html',
     controller: ArtifactNameController,

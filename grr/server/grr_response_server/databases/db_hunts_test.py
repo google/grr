@@ -1206,6 +1206,7 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(hunt_counters.num_failed_clients, 0)
     self.assertEqual(hunt_counters.num_clients_with_results, 0)
     self.assertEqual(hunt_counters.num_crashed_clients, 0)
+    self.assertEqual(hunt_counters.num_running_clients, 0)
     self.assertEqual(hunt_counters.num_results, 0)
     self.assertEqual(hunt_counters.total_cpu_seconds, 0)
     self.assertEqual(hunt_counters.total_network_bytes_sent, 0)
@@ -1223,6 +1224,8 @@ class DatabaseTestHuntMixin(object):
                    hunt_counters.num_successful_clients)
     self.assertLen(expectations[db.HuntFlowsCondition.FAILED_FLOWS_ONLY],
                    hunt_counters.num_failed_clients)
+    self.assertLen(expectations[db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY],
+                   hunt_counters.num_running_clients)
 
     # _BuildFilterConditionExpectations writes 10 sample results for one client.
     self.assertEqual(hunt_counters.num_clients_with_results, 1)

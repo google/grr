@@ -5,17 +5,20 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for FlowIdDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const FlowIdController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const FlowIdController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.clientId;
+    /** @type {string} */
+    this.clientId;
+  }
 };
 
 
@@ -27,9 +30,7 @@ const FlowIdController = function($scope) {
  */
 exports.FlowIdDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     require: '?^grrClientContext',
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/flow-id.html',

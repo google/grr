@@ -5,18 +5,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import enum
 import io
 import os
+from typing import Dict, Iterable, Iterator
 import zipfile
-
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util.compat import yaml
 from grr_response_server import data_store
 from grr_response_server import file_store
+from grr_response_server import flow_base
 from grr_response_server.flows.general import export as flow_export
 from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 def _ClientPathToString(client_path, prefix=""):
@@ -24,11 +28,20 @@ def _ClientPathToString(client_path, prefix=""):
   return os.path.join(prefix, client_path.client_id, client_path.vfs_path)
 
 
+class ArchiveFormat(enum.Enum):
+  ZIP = 1
+  TAR_GZ = 2
+
+
+# TODO(user): this is a general purpose class that is designed to export
+# files archives for any flow or hunt. I'd expect this class to be phased out
+# as soon as flow-specific implementations mapping-based implementations
+# are done for all the flows (see FlowArchiveGenerator below).
 class CollectionArchiveGenerator(object):
   """Class that generates downloaded files archive from a collection."""
 
-  ZIP = "zip"
-  TAR_GZ = "tar.gz"
+  ZIP = ArchiveFormat.ZIP
+  TAR_GZ = ArchiveFormat.TAR_GZ
 
   FILES_SKIPPED_WARNING = (
       "# NOTE: Some files were skipped because they were referenced in the \n"
@@ -206,3 +219,119 @@ class CollectionArchiveGenerator(object):
     if chunk.chunk_index == chunk.total_chunks - 1:
       yield self.archive_generator.WriteFileFooter()
       self.archived_files.add(chunk.client_path)
+
+
+class FlowArchiveGenerator:
+  """Archive generator for new-style flows that provide custom file mappings."""
+
+  BATCH_SIZE = 1000
+
+  def __init__(self, flow: rdf_flow_objects.Flow,
+               archive_format: ArchiveFormat):
+    self.flow = flow
+    self.archive_format = archive_format
+    if archive_format == ArchiveFormat.ZIP:
+      self.archive_generator = utils.StreamingZipGenerator(
+          compression=zipfile.ZIP_DEFLATED)
+      extension = "zip"
+    elif archive_format == ArchiveFormat.TAR_GZ:
+      self.archive_generator = utils.StreamingTarGenerator()
+      extension = "tar.gz"
+    else:
+      raise ValueError(f"Unknown archive format: {archive_format}")
+
+    self.prefix = "{}_{}_{}".format(
+        flow.client_id.replace(".", "_"), flow.flow_id, flow.flow_class_name)
+    self.filename = f"{self.prefix}.{extension}"
+    self.num_archived_files = 0
+
+  def _GenerateDescription(self, processed_files: Dict[str, str],
+                           missing_files: Iterable[str]) -> Iterable[bytes]:
+    """Generates a MANIFEST file in the archive."""
+
+    manifest = {
+        "processed_files": processed_files,
+        "missing_files": missing_files,
+        "client_id": self.flow.client_id,
+        "flow_id": self.flow.flow_id,
+    }
+
+    manifest_fd = io.BytesIO()
+    manifest_fd.write(yaml.Dump(manifest).encode("utf-8"))
+
+    manifest_fd.seek(0)
+    st = os.stat_result(
+        (0o644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0, 0))
+
+    for chunk in self.archive_generator.WriteFromFD(
+        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
+      yield chunk
+
+  def _WriteFileChunk(self, chunk: file_store.StreamedFileChunk,
+                      archive_paths_by_id: Dict[rdf_objects.PathID, str]):
+    """Yields binary chunks, respecting archive file headers and footers.
+
+    Args:
+      chunk: the StreamedFileChunk to be written
+      archive_paths_by_id:
+    """
+    if chunk.chunk_index == 0:
+      # Make sure size of the original file is passed. It's required
+      # when output_writer is StreamingTarWriter.
+      st = os.stat_result((0o644, 0, 0, 0, 0, 0, chunk.total_size, 0, 0, 0))
+      archive_path = (archive_paths_by_id or {}).get(chunk.client_path.path_id)
+      target_path = os.path.join(self.prefix, archive_path)
+
+      yield self.archive_generator.WriteFileHeader(target_path, st=st)
+
+    yield self.archive_generator.WriteFileChunk(chunk.data)
+
+    if chunk.chunk_index == chunk.total_chunks - 1:
+      self.num_archived_files += 1
+      yield self.archive_generator.WriteFileFooter()
+
+  def Generate(
+      self, mappings: Iterator[flow_base.ClientPathArchiveMapping]
+  ) -> Iterator[bytes]:
+    """Generates archive from a given set of client path mappings.
+
+    Iterates the mappings and generates an archive by yielding contents
+    of every referenced file.
+
+    Args:
+      mappings: A set of mappings defining the archive structure.
+
+    Yields:
+      Chunks of bytes of the generated archive.
+    """
+    processed_files = {}
+    missing_files = set()
+    for mappings_batch in collection.Batch(mappings, self.BATCH_SIZE):
+
+      archive_paths_by_id = {}
+      for mapping in mappings_batch:
+        archive_paths_by_id[mapping.client_path.path_id] = mapping.archive_path
+
+      processed_in_batch = set()
+      for chunk in file_store.StreamFilesChunks(
+          [m.client_path for m in mappings_batch]):
+        processed_in_batch.add(chunk.client_path.path_id)
+        processed_files[chunk.client_path.vfs_path] = archive_paths_by_id[
+            chunk.client_path.path_id]
+        for output in self._WriteFileChunk(chunk, archive_paths_by_id):
+          yield output
+
+      for mapping in mappings_batch:
+        if mapping.client_path.path_id in processed_in_batch:
+          continue
+
+        missing_files.add(mapping.client_path.vfs_path)
+
+    for chunk in self._GenerateDescription(processed_files, missing_files):
+      yield chunk
+
+    yield self.archive_generator.Close()
+
+  @property
+  def output_size(self):
+    return self.archive_generator.output_size

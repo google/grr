@@ -110,9 +110,9 @@ def GetOutputPluginStates(output_plugins, source=None, token=None):
   return output_plugins_states
 
 
-def RandomFlowId():
+def RandomFlowId() -> str:
   """Returns a random flow id encoded as a hex string."""
-  return "%08X" % random.PositiveUInt32()
+  return "{:016X}".format(random.Id64())
 
 
 def StartFlow(client_id=None,

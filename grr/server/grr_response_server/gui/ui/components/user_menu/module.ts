@@ -9,8 +9,10 @@ import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
-import {UserMenu} from './user_menu';
 
+import {UserImageModule} from '../user_image/module';
+
+import {UserMenu} from './user_menu';
 
 
 /**
@@ -30,6 +32,7 @@ import {UserMenu} from './user_menu';
     FormsModule,
     MatInputModule,
     MatCardModule,
+    UserImageModule,
   ],
   declarations: [
     UserMenu,

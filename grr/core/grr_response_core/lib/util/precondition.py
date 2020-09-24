@@ -110,3 +110,6 @@ def ValidateClientId(client_id):
 def ValidateFlowId(flow_id):
   """Raises, if the given value is not a valid FlowId string."""
   _ValidateStringId("flow_id", flow_id)
+  if (len(flow_id) not in [8, 16] or
+      re.match(r"^[0-9a-fA-F]*$", flow_id) is None):
+    raise ValueError("Flow id has incorrect format: `%s`" % flow_id)

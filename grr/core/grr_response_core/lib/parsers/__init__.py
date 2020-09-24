@@ -5,10 +5,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Any
 from typing import Iterator
 from typing import Text
 
 from grr_response_core.lib import factory
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import abstract
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
@@ -21,10 +23,20 @@ SingleFileParser = abstract.SingleFileParser
 MultiResponseParser = abstract.MultiResponseParser
 MultiFileParser = abstract.MultiFileParser
 
-SINGLE_RESPONSE_PARSER_FACTORY = factory.Factory(SingleResponseParser)
-MULTI_RESPONSE_PARSER_FACTORY = factory.Factory(MultiResponseParser)
-SINGLE_FILE_PARSER_FACTORY = factory.Factory(SingleFileParser)
-MULTI_FILE_PARSER_FACTORY = factory.Factory(MultiFileParser)
+_Factory = factory.Factory
+_RDFValue = rdfvalue.RDFValue
+
+SINGLE_RESPONSE_PARSER_FACTORY: _Factory[SingleResponseParser[_RDFValue]] = (
+    _Factory(SingleResponseParser[_RDFValue]))
+
+MULTI_RESPONSE_PARSER_FACTORY: _Factory[MultiResponseParser[_RDFValue]] = (
+    _Factory(MultiResponseParser[_RDFValue]))
+
+SINGLE_FILE_PARSER_FACTORY: _Factory[SingleFileParser[_RDFValue]] = (
+    _Factory(SingleFileParser[_RDFValue]))
+
+MULTI_FILE_PARSER_FACTORY: _Factory[MultiFileParser[_RDFValue]] = (
+    _Factory(MultiFileParser[_RDFValue]))
 
 
 class ArtifactParserFactory(object):
@@ -47,7 +59,7 @@ class ArtifactParserFactory(object):
   def HasSingleResponseParsers(self) -> bool:
     return any(self.SingleResponseParsers())
 
-  def SingleResponseParsers(self) -> Iterator[SingleResponseParser]:
+  def SingleResponseParsers(self) -> Iterator[SingleResponseParser[_RDFValue]]:
     # TODO: Apparently, pytype does not understand that we use
     # `filter` from the `future` package (which returns an iterator), instead of
     # builtin one which in Python 2 returns lists.
@@ -56,21 +68,21 @@ class ArtifactParserFactory(object):
   def HasMultiResponseParsers(self) -> bool:
     return any(self.MultiResponseParsers())
 
-  def MultiResponseParsers(self) -> Iterator[MultiResponseParser]:
+  def MultiResponseParsers(self) -> Iterator[MultiResponseParser[_RDFValue]]:
     # TODO: See above.
     return filter(self._IsSupported, MULTI_RESPONSE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
 
   def HasSingleFileParsers(self) -> bool:
     return any(self.SingleFileParsers())
 
-  def SingleFileParsers(self) -> Iterator[SingleFileParser]:
+  def SingleFileParsers(self) -> Iterator[SingleFileParser[_RDFValue]]:
     # TODO: See above.
     return filter(self._IsSupported, SINGLE_FILE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
 
   def HasMultiFileParsers(self) -> bool:
     return any(self.MultiFileParsers())
 
-  def MultiFileParsers(self) -> Iterator[MultiFileParser]:
+  def MultiFileParsers(self) -> Iterator[MultiFileParser[_RDFValue]]:
     # TODO: See above.
     return filter(self._IsSupported, MULTI_FILE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
 
@@ -79,7 +91,7 @@ class ArtifactParserFactory(object):
   # common interface. It should be considered to be a temporary hack to get rid
   # of metaclass registries and is only used to generate descriptors for all
   # parsers, but some better approach needs to be devised in the future.
-  def AllParsers(self) -> Iterator[Parser]:
+  def AllParsers(self) -> Iterator[Parser[_RDFValue]]:
     """Retrieves all known parser applicable for the artifact.
 
     Returns:
@@ -92,5 +104,7 @@ class ArtifactParserFactory(object):
         self.MultiFileParsers(),
     ])
 
-  def _IsSupported(self, parser_obj: Parser) -> bool:
+  # TODO(hanuszczak): Figure out why pytype complains if a type variable is used
+  # here.
+  def _IsSupported(self, parser_obj: Parser[Any]) -> bool:
     return self._artifact_name in parser_obj.supported_artifacts

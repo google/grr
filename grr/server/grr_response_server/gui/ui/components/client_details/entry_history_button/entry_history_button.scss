@@ -1,0 +1,14 @@
+@use '~material-theme' as c;
+
+button {
+  background: none;
+  border: none;
+  padding: 0 3px;
+  color: c.mat-color(c.$mat-blue, 700);
+  cursor: pointer;
+  vertical-align: center;
+}
+
+button:hover {
+  text-decoration: underline;
+}

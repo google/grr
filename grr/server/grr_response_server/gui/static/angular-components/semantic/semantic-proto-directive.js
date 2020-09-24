@@ -162,66 +162,68 @@ exports.buildItems = function(
   if (angular.isDefined(descriptor['union_field'])) {
     return buildUnionItems(value, descriptor);
   } else {
-    return buildNonUnionItems(value,
-                              descriptor,
-                              opt_visibleFields,
-                              opt_hiddenFields);
+    return buildNonUnionItems(
+        value, descriptor, opt_visibleFields, opt_hiddenFields);
   }
 };
 var buildItems = exports.buildItems;
 
 /**
  * Controller for SemanticProtoDirective.
- *
- * @param {!angular.Scope} $scope Directive's scope.
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-var SemanticProtoController = function($scope, grrReflectionService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+var SemanticProtoController = class {
+  /**
+   * @param {!angular.Scope} $scope Directive's scope.
+   * @param {!grrUi.core.reflectionService.ReflectionService}
+   *     grrReflectionService
+   * @ngInject
+   */
+  constructor($scope, grrReflectionService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
-  this.grrReflectionService_ = grrReflectionService;
+    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    this.grrReflectionService_ = grrReflectionService;
 
-  /** @export {Array.<Object>} */
-  this.items;
+    /** @export {Array.<Object>} */
+    this.items;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
+  }
+
+  /**
+   * Handles value changes.
+   *
+   * @param {Object} newValue
+   * @param {Object} oldValue
+   * @export
+   */
+  onValueChange(newValue, oldValue) {
+    // newValue and oldValue are both undefined if the watcher is called to do
+    // initialization before the value binding is actually set. In this case
+    // we have to do nothing and wait until the watcher is called with a real
+    // value.
+    if (newValue === undefined && oldValue === undefined) {
+      return;
+    }
+
+    if (angular.isObject(this.scope_['value'])) {
+      var valueType = this.scope_['value']['type'];
+      this.grrReflectionService_.getRDFValueDescriptor(valueType).then(
+          function success(descriptor) {
+            this.items = buildItems(
+                this.scope_['value'], descriptor, this.scope_['visibleFields'],
+                this.scope_['hiddenFields']);
+          }.bind(this));  // TODO(user): Reflection failure scenario should
+                          // be handled globally by reflection service.
+    } else {
+      this.items = [];
+    }
+  }
 };
 
 
-/**
- * Handles value changes.
- *
- * @param {Object} newValue
- * @param {Object} oldValue
- * @export
- */
-SemanticProtoController.prototype.onValueChange = function(newValue, oldValue) {
-  // newValue and oldValue are both undefined if the watcher is called to do
-  // initialization before the value binding is actually set. In this case
-  // we have to do nothing and wait until the watcher is called with a real
-  // value.
-  if (newValue === undefined && oldValue === undefined) {
-    return;
-  }
-
-  if (angular.isObject(this.scope_['value'])) {
-    var valueType = this.scope_['value']['type'];
-    this.grrReflectionService_.getRDFValueDescriptor(valueType).then(
-        function success(descriptor) {
-          this.items = buildItems(this.scope_['value'],
-                                  descriptor,
-                                  this.scope_['visibleFields'],
-                                  this.scope_['hiddenFields']);
-        }.bind(this)); // TODO(user): Reflection failure scenario should be
-                       // handled globally by reflection service.
-  } else {
-    this.items = [];
-  }
-};
 
 /**
  * Directive that displays semantic proto fetched from the server.
@@ -232,11 +234,7 @@ SemanticProtoController.prototype.onValueChange = function(newValue, oldValue) {
  */
 exports.SemanticProtoDirective = function() {
   return {
-    scope: {
-      value: '=',
-      visibleFields: '=',
-      hiddenFields: '='
-    },
+    scope: {value: '=', visibleFields: '=', hiddenFields: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/semantic-proto.html',
     controller: SemanticProtoController,

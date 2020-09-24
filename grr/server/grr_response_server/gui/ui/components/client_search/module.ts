@@ -3,6 +3,8 @@ import {MatTableModule} from '@angular/material/table';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
+import {TimestampModule} from '../timestamp/module';
+
 import {ClientSearch} from './client_search';
 import {ClientSearchRoutingModule} from './routing';
 
@@ -20,6 +22,8 @@ import {ClientSearchRoutingModule} from './routing';
 
     // GRR modules.
     ClientSearchRoutingModule,
+    TimestampModule,
+
   ],
   declarations: [
     ClientSearch,

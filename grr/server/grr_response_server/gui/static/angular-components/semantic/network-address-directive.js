@@ -10,8 +10,7 @@ goog.module.declareLegacyNamespace();
  * @param {string} address Byte-string with IPv4 address.
  * @return {string} Human-readable IPv4 address.
  */
-const convertIpv4AddressToString = function(
-    address) {
+const convertIpv4AddressToString = function(address) {
   var result = [];
   for (var i = 0; i < address.length; ++i) {
     var part = address.charCodeAt(i).toString(10);
@@ -31,8 +30,7 @@ const convertIpv4AddressToString = function(
  * @param {string} address Byte-string with IPv6 address.
  * @return {string} Human-readable IPv6 address.
  */
-const convertIpv6AddressToString = function(
-    address) {
+const convertIpv6AddressToString = function(address) {
   var result = [];
   var colonCounter = 0;
   for (var i = 0; i < address.length; ++i) {
@@ -76,55 +74,54 @@ const convertBase64AddressToString = function(address, addressType) {
 
 /**
  * Controller for NetworkAddressDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const NetworkAddressController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const NetworkAddressController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.convertedAddress;
+    /** @type {string} */
+    this.convertedAddress;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
-
-
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {number} newValue Timestamp value in microseconds.
- * @suppress {missingProperties} as value can be anything.
- */
-NetworkAddressController.prototype.onValueChange = function(newValue) {
-  if (!angular.isObject(newValue)) {
-    this.convertedAddress = '-';
-    return;
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
   }
 
-  if (angular.isObject(newValue.value)) {
-    if (angular.isDefined(newValue.value.packed_bytes)) {
-      this.convertedAddress = convertBase64AddressToString(
-          newValue.value.packed_bytes.value,
-          newValue.value.address_type.value);
-    } else if (angular.isDefined(newValue.value.human_readable)) {
-      this.convertedAddress = newValue.value.human_readable.value;
-    } else {
-      this.convertedAddress = '<unknown>';
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {number} newValue Timestamp value in microseconds.
+   * @suppress {missingProperties} as value can be anything.
+   */
+  onValueChange(newValue) {
+    if (!angular.isObject(newValue)) {
+      this.convertedAddress = '-';
+      return;
     }
-  } else if (angular.isObject(newValue)) {
-    if (angular.isDefined(newValue.packed_bytes)) {
-      this.convertedAddress = convertBase64AddressToString(
-          newValue.packed_bytes,
-          newValue.address_type);
-    } else if (angular.isDefined(newValue.human_readable)) {
-      this.convertedAddress = newValue.human_readable;
-    } else {
-      this.convertedAddress = '<unknown>';
+
+    if (angular.isObject(newValue.value)) {
+      if (angular.isDefined(newValue.value.packed_bytes)) {
+        this.convertedAddress = convertBase64AddressToString(
+            newValue.value.packed_bytes.value,
+            newValue.value.address_type.value);
+      } else if (angular.isDefined(newValue.value.human_readable)) {
+        this.convertedAddress = newValue.value.human_readable.value;
+      } else {
+        this.convertedAddress = '<unknown>';
+      }
+    } else if (angular.isObject(newValue)) {
+      if (angular.isDefined(newValue.packed_bytes)) {
+        this.convertedAddress = convertBase64AddressToString(
+            newValue.packed_bytes, newValue.address_type);
+      } else if (angular.isDefined(newValue.human_readable)) {
+        this.convertedAddress = newValue.human_readable;
+      } else {
+        this.convertedAddress = '<unknown>';
+      }
     }
   }
 };
@@ -140,9 +137,7 @@ NetworkAddressController.prototype.onValueChange = function(newValue) {
  */
 exports.NetworkAddressDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     template: '<nobr ng-if="::controller.convertedAddress !== undefined">' +
         '{$ ::controller.convertedAddress $}</nobr>',

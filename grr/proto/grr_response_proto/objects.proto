@@ -21,7 +21,7 @@ message StringMapEntry {
   optional string value = 2;
 }
 
-// Next field: 17
+// Next field: 18
 message ClientSnapshot {
   optional string client_id = 1 [(sem_type) = {
     description: "The client id of this client.",
@@ -73,6 +73,9 @@ message ClientSnapshot {
   optional StartupInfo startup_info = 16 [(sem_type) = {
     description: "Information about the GRR client.",
   }];
+
+  // Information about EDR agents present on the client.
+  repeated EdrAgent edr_agents = 17;
 }
 
 message ClientMetadata {

@@ -5,45 +5,46 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for TimestampSecondsDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const TimestampSecondsController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const TimestampSecondsController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {?} */
-  this.scope_.value;
+    /** @type {?} */
+    this.scope_.value;
 
-  /** @private {number} */
-  this.timestampValue;
+    /** @private {number} */
+    this.timestampValue;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
+  }
 
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {number} newValue Timestamp value in seconds.
+   * @suppress {missingProperties} as value can be anything.
+   */
+  onValueChange(newValue) {
+    if (angular.isDefined(newValue)) {
+      var timestamp;
+      if (angular.isObject(newValue)) {
+        timestamp = newValue.value;
+      } else {
+        timestamp = newValue;
+      }
 
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {number} newValue Timestamp value in seconds.
- * @suppress {missingProperties} as value can be anything.
- */
-TimestampSecondsController.prototype.onValueChange = function(newValue) {
-  if (angular.isDefined(newValue)) {
-    var timestamp;
-    if (angular.isObject(newValue)) {
-      timestamp = newValue.value;
-    } else {
-      timestamp = newValue;
+      this.timestampValue = timestamp * 1000000;
     }
-
-    this.timestampValue = timestamp * 1000000;
   }
 };
+
 
 
 /**
@@ -55,11 +56,10 @@ TimestampSecondsController.prototype.onValueChange = function(newValue) {
  */
 exports.TimestampSecondsDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
-    template: '<grr-timestamp value="::controller.timestampValue"></grr-timestamp>',
+    template:
+        '<grr-timestamp value="::controller.timestampValue"></grr-timestamp>',
     controller: TimestampSecondsController,
     controllerAs: 'controller'
   };

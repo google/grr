@@ -136,6 +136,7 @@ message ExportedDNSClientConfiguration {
   optional string dns_suffixes = 3;
 }
 
+// Next field id: 33.
 message ExportedFile {
   optional ExportedMetadata metadata = 1;
 
@@ -171,6 +172,11 @@ message ExportedFile {
   optional uint64 st_ctime = 13 [(sem_type) = {
     type: "RDFDatetimeSeconds",
     description: "Last inode change time."
+  }];
+
+  optional uint64 st_btime = 32 [(sem_type) = {
+    type: "RDFDatetimeSeconds",
+    description: "File creation time."
   }];
 
   optional uint32 st_blocks = 14;

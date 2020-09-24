@@ -5,26 +5,29 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for ConfigViewDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$http} $http Angular HTTP service.
- * @ngInject
+ * @unrestricted
  */
-const ConfigViewController = function($scope, $http) {
-  $http.get('/api/config').then(function(config) {
-    this.items = {};
+const ConfigViewController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$http} $http Angular HTTP service.
+   * @ngInject
+   */
+  constructor($scope, $http) {
+    $http.get('/api/config').then(function(config) {
+      this.items = {};
 
-    angular.forEach(config['data']['sections'], function(section) {
-      var sectionName = section['value']['name']['value'];
-      var sectionOptions = section['value']['options'];
+      angular.forEach(config['data']['sections'], function(section) {
+        var sectionName = section['value']['name']['value'];
+        var sectionOptions = section['value']['options'];
 
-      this.items[sectionName] = {};
-      angular.forEach(sectionOptions, function(option) {
-        this.items[sectionName][option['value']['name']['value']] = option;
+        this.items[sectionName] = {};
+        angular.forEach(sectionOptions, function(option) {
+          this.items[sectionName][option['value']['name']['value']] = option;
+        }.bind(this));
       }.bind(this));
     }.bind(this));
-  }.bind(this));
+  }
 };
 
 

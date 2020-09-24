@@ -1,13 +1,24 @@
 @use '~material-theme' as c;
+@use '~main' as main;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
 
 .toolbar {
+  box-sizing: border-box;
+  height: main.$toolbar-height;
   box-shadow: 0px 0px 4px c.mat-color(c.$background, shadow);
+  border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
 
   .brand {
     margin-left: 0.5em;
 
     display: inline-flex;
     align-items: center;
+    text-decoration: none;
 
     .logo {
       height: 38px;

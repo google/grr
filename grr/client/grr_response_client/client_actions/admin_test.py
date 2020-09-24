@@ -9,6 +9,7 @@ import io
 import os
 
 from absl import app
+from absl.testing import absltest
 import mock
 import psutil
 import requests
@@ -88,8 +89,7 @@ Client.server_urls:
     # Since the request is successful we only connect to one location.
     self.assertIn(location[0], self.urls[0])
 
-  def testUpdateConfigBlacklist(self):
-    """Tests that disallowed fields are not getting updated."""
+  def testOnlyUpdatableFieldsAreUpdated(self):
     with test_lib.ConfigOverrider({
         "Client.server_urls": [u"http://something.com/"],
         "Client.server_serial_number": 1
@@ -266,6 +266,17 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
     self.assertLen(response.io_samples, 1)
     self.assertEqual(response.io_samples[0].timestamp,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(110))
+
+
+class GetClientInformationTest(absltest.TestCase):
+
+  def testTimelineBtimeSupport(self):
+    client_info = admin.GetClientInformation()
+
+    # We cannot assume anything about the support being there or not, so we just
+    # check that some information is set. This should be enough to guarantee
+    # line coverage.
+    self.assertTrue(client_info.HasField("timeline_btime_support"))
 
 
 def main(argv):

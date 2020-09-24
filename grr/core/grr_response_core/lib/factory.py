@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from typing import Callable
+from typing import Dict
 from typing import Generic
 from typing import Iterator
 from typing import Text
@@ -37,8 +38,8 @@ class Factory(Generic[T]):
     Args:
       cls: The type of produced instances.
     """
-    self._cls = cls
-    self._constructors = {}
+    self._cls: Type[T] = cls
+    self._constructors: Dict[str, Callable[[], T]] = {}
 
   def Register(self, name: Text, constructor: Callable[[], T]):
     """Registers a new constructor in the factory.
@@ -93,14 +94,7 @@ class Factory(Generic[T]):
       message %= name
       raise ValueError(message)
 
-    instance = constructor()
-    if not isinstance(instance, self._cls):
-      message = ("Constructor %r for name '%s' returned instance of type %r "
-                 "(expected %r)")
-      message %= (constructor, name, type(instance), self._cls)
-      raise TypeError(message)
-
-    return instance
+    return constructor()
 
   def CreateAll(self) -> Iterator[T]:
     """Creates instances using all registered constructors."""

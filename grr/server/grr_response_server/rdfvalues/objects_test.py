@@ -13,6 +13,7 @@ from absl.testing import absltest
 
 from google.protobuf import text_format
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
@@ -131,6 +132,22 @@ class ObjectTest(absltest.TestCase):
     snapshot.startup_info.client_info.client_name = "Foo"
     self.assertEqual(snapshot.GetGRRVersionString(),
                      "GRR windows amd64 %s" % rdf_objects._UNKNOWN_GRR_VERSION)
+
+
+class ClientSnapshotTest(absltest.TestCase):
+
+  def testGetSummaryEdrAgents(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = "C.0123456789012345"
+    snapshot.edr_agents.append(rdf_client.EdrAgent(name="foo", agent_id="1337"))
+    snapshot.edr_agents.append(rdf_client.EdrAgent(name="bar", agent_id="108"))
+
+    summary = snapshot.GetSummary()
+    self.assertLen(summary.edr_agents, 2)
+    self.assertEqual(summary.edr_agents[0].name, "foo")
+    self.assertEqual(summary.edr_agents[1].name, "bar")
+    self.assertEqual(summary.edr_agents[0].agent_id, "1337")
+    self.assertEqual(summary.edr_agents[1].agent_id, "108")
 
 
 class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -439,6 +456,12 @@ class CategorizedPathTest(absltest.TestCase):
     self.assertEqual(path_type, rdf_objects.PathInfo.PathType.TSK)
     self.assertEqual(components, ("quux", "norf"))
 
+  def testParseNtfs(self):
+    path_type, components = rdf_objects.ParseCategorizedPath(
+        "fs/ntfs/quux/norf")
+    self.assertEqual(path_type, rdf_objects.PathInfo.PathType.NTFS)
+    self.assertEqual(components, ("quux", "norf"))
+
   def testParseRegistry(self):
     path_type, components = rdf_objects.ParseCategorizedPath(
         "registry/thud/blargh")
@@ -462,10 +485,10 @@ class CategorizedPathTest(absltest.TestCase):
     self.assertEqual(components, ("foo", "bar"))
 
   def testParseIncorrect(self):
-    with self.assertRaisesRegex(ValueError, "path"):
+    with self.assertRaisesRegex(ValueError, "does not start with a VFS prefix"):
       rdf_objects.ParseCategorizedPath("foo/bar")
 
-    with self.assertRaisesRegex(ValueError, "path"):
+    with self.assertRaisesRegex(ValueError, "does not start with a VFS prefix"):
       rdf_objects.ParseCategorizedPath("fs")
 
   def testSerializeOs(self):
@@ -477,6 +500,11 @@ class CategorizedPathTest(absltest.TestCase):
     path_type = rdf_objects.PathInfo.PathType.TSK
     path = rdf_objects.ToCategorizedPath(path_type, ("quux", "norf"))
     self.assertEqual(path, "fs/tsk/quux/norf")
+
+  def testSerializeNtfs(self):
+    path_type = rdf_objects.PathInfo.PathType.NTFS
+    path = rdf_objects.ToCategorizedPath(path_type, ("quux", "norf"))
+    self.assertEqual(path, "fs/ntfs/quux/norf")
 
   def testSerializeRegistry(self):
     path_type = rdf_objects.PathInfo.PathType.REGISTRY
@@ -517,6 +545,13 @@ class VfsFileReferenceTest(absltest.TestCase):
         path_type="TSK",
         path_components=["a", "b", "c"])
     self.assertEqual(v.ToPath(), "fs/tsk/a/b/c")
+
+  def testNtfsPathIsConvertedVfsPathStringCorrectly(self):
+    v = rdf_objects.VfsFileReference(
+        client_id=self.client_id,
+        path_type="NTFS",
+        path_components=["a", "b", "c"])
+    self.assertEqual(v.ToPath(), "fs/ntfs/a/b/c")
 
   def testRegistryPathIsConvertedVfsPathStringCorrectly(self):
     v = rdf_objects.VfsFileReference(

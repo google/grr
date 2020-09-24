@@ -97,52 +97,52 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http("GET", "/metadata_test/method1/<metadata_id>")
   @api_call_router.Http("HEAD", "/metadata_test/method1/<metadata_id>")
   @api_call_router.Http("POST", "/metadata_test/method1/<metadata_id>")
-  def Method1WithArgsType(self, args, token=None):
+  def Method1WithArgsType(self, args, context=None):
     """Method 1 description."""
 
   @api_call_router.ResultType(MetadataSimpleMessage)
   @api_call_router.Http("GET", "/metadata_test/method2")
   @api_call_router.Http("HEAD", "/metadata_test/method2")
   @api_call_router.Http("POST", "/metadata_test/method2")
-  def Method2WithResultType(self, args, token=None):
+  def Method2WithResultType(self, args, context=None):
     """Method 2 description."""
 
   @api_call_router.ArgsType(MetadataPrimitiveTypesMessage)
   @api_call_router.ResultBinaryStream()
   @api_call_router.Http("GET", "/metadata_test/method3")
-  def Method3PrimitiveTypes(self, args, token=None):
+  def Method3PrimitiveTypes(self, args, context=None):
     """Method 3 description."""
 
   @api_call_router.ArgsType(MetadataRepeatedFieldMessage)
   @api_call_router.Http("GET", "/metadata_test/method4")
   @api_call_router.Http("POST", "/metadata_test/method4")
-  def Method4RepeatedField(self, args, token=None):
+  def Method4RepeatedField(self, args, context=None):
     """Method 4 description."""
 
   @api_call_router.ArgsType(MetadataEnumFieldMessage)
   @api_call_router.Http("GET", "/metadata_test/method5")
   @api_call_router.Http("POST", "/metadata_test/method5")
-  def Method5EnumField(self, args, token=None):
+  def Method5EnumField(self, args, context=None):
     """Method 5 description."""
 
   @api_call_router.ArgsType(MetadataTypesHierarchyRoot)
   @api_call_router.ResultType(MetadataTypesHierarchyLeaf)
   @api_call_router.Http("GET", "/metadata_test/method6")
-  def Method6TypeReferences(self, args, token=None):
+  def Method6TypeReferences(self, args, context=None):
     """Method 6 description."""
 
   @api_call_router.ArgsType(MetadataOneofMessage)
   @api_call_router.ResultType(MetadataOneofMessage)
   @api_call_router.Http("GET", "/metadata_test/method7")
   @api_call_router.Http("POST", "/metadata_test/method7")
-  def Method7ProtobufOneof(self, args, token=None):
+  def Method7ProtobufOneof(self, args, context=None):
     """Method 7 description."""
 
   @api_call_router.ArgsType(MetadataMapMessage)
   @api_call_router.ResultType(MetadataMapMessage)
   @api_call_router.Http("GET", "/metadata_test/method8")
   @api_call_router.Http("POST", "/metadata_test/method8")
-  def Method8ProtobufMap(self, args, token=None):
+  def Method8ProtobufMap(self, args, context=None):
     """Method 8 description."""
 
   @api_call_router.ArgsType(MetadataSimpleMessage)
@@ -165,7 +165,7 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http(
     "GET", "/metadata_test/method9/fixed2/<metadata_arg1>/<metadata_arg2>/"
   )
-  def Method9OptionalPathArgs(self, args, token=None):
+  def Method9OptionalPathArgs(self, args, context=None):
     """Method 9 description"""
 
 
@@ -173,7 +173,7 @@ class MetadataDummyApiCallRouter(api_call_router.ApiCallRouter):
   @api_call_router.ResultType(MetadataSemTypeMessage)
   @api_call_router.Http("GET", "/metadata_test/method10")
   @api_call_router.Http("POST", "/metadata_test/method10")
-  def Method10SemTypeProtobufOption(self, args, token=None):
+  def Method10SemTypeProtobufOption(self, args, context=None):
     """Method 10 description"""
 
 
@@ -186,7 +186,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.handler = metadata_plugin.ApiGetOpenApiDescriptionHandler(self.router)
 
-    result = self.handler.Handle(None, token=self.token)
+    result = self.handler.Handle(None, context=self.context)
     self.openapi_desc = result.openapi_description
     self.openapi_desc_dict = json.loads(self.openapi_desc)
 

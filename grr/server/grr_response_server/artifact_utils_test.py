@@ -6,6 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+from typing import IO
+from typing import Iterable
+from typing import Iterator
 
 from absl import app
 
@@ -13,6 +16,7 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import artifact_registry as ar
 from grr.test_lib import artifact_test_lib
@@ -378,12 +382,18 @@ class Parser1(parsers.SingleResponseParser):
     raise NotImplementedError()
 
 
-class Parser2(parsers.MultiFileParser):
+class Parser2(parsers.MultiFileParser[None]):
 
   supported_artifacts = ["artifact"]
   knowledgebase_dependencies = ["sid", "desktop"]
 
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[None]:
+    del knowledge_base, pathspecs, filedescs  # Unused.
     raise NotImplementedError()
 
 

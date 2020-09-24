@@ -1,6 +1,8 @@
+import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatChipsModule} from '@angular/material/chips';
@@ -10,6 +12,9 @@ import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
+import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
+import {UserImageModule} from '../user_image/module';
+
 import {Approval} from './approval';
 
 /**
@@ -18,16 +23,20 @@ import {Approval} from './approval';
 @NgModule({
   imports: [
     BrowserAnimationsModule,
-    RouterModule,
-    MatChipsModule,
+    ClipboardModule,
     CommonModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatCheckboxModule,
-    MatIconModule,
-    MatButtonModule,
     FormsModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatCheckboxModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
     ReactiveFormsModule,
+    RouterModule,
+    ScheduledFlowListModule,
+    UserImageModule,
   ],
   declarations: [
     Approval,

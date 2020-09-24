@@ -6,8 +6,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from urllib import parse as urlparse
-
 from absl import app
 import mock
 
@@ -37,7 +35,7 @@ class SampleGetHandler(api_call_handler_base.ApiCallHandler):
   args_type = api_test_lib.SampleGetHandlerArgs
   result_type = SampleGetHandlerResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     return SampleGetHandlerResult(method="GET", path=args.path, foo=args.foo)
 
 
@@ -48,7 +46,7 @@ class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
     for chunk in content_chunks:
       yield chunk
 
-  def Handle(self, unused_args, token=None):
+  def Handle(self, unused_args, context=None):
     return api_call_handler_base.ApiBinaryStream(
         "test.ext", content_generator=self._Generate(), content_length=1337)
 
@@ -66,7 +64,7 @@ class SampleDeleteHandler(api_call_handler_base.ApiCallHandler):
   args_type = SampleDeleteHandlerArgs
   result_type = SampleDeleteHandlerResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     return SampleDeleteHandlerResult(method="DELETE", resource=args.resource_id)
 
 
@@ -83,7 +81,7 @@ class SamplePatchHandler(api_call_handler_base.ApiCallHandler):
   args_type = SamplePatchHandlerArgs
   result_type = SamplePatchHandlerResult
 
-  def Handle(self, args, token=None):
+  def Handle(self, args, context=None):
     return SamplePatchHandlerResult(method="PATCH", resource=args.resource_id)
 
 
@@ -93,50 +91,50 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   @api_call_router.Http("GET", "/test_sample/<path:path>")
   @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
   @api_call_router.ResultType(SampleGetHandlerResult)
-  def SampleGet(self, args, token=None):
+  def SampleGet(self, args, context=None):
     return SampleGetHandler()
 
   @api_call_router.Http("GET", "/test_sample/raising/<path:path>")
   @api_call_router.ArgsType(api_test_lib.SampleGetHandlerArgs)
   @api_call_router.ResultType(SampleGetHandlerResult)
-  def SampleRaisingGet(self, args, token=None):
+  def SampleRaisingGet(self, args, context=None):
     raise access_control.UnauthorizedAccess("oh no", subject="aff4:/foo/bar")
 
   @api_call_router.Http("GET", "/test_sample/streaming")
   @api_call_router.ResultBinaryStream()
-  def SampleStreamingGet(self, args, token=None):
+  def SampleStreamingGet(self, args, context=None):
     return SampleStreamingHandler()
 
   @api_call_router.Http("DELETE", "/test_resource/<resource_id>")
   @api_call_router.ArgsType(SampleDeleteHandlerArgs)
   @api_call_router.ResultType(SampleDeleteHandlerResult)
-  def SampleDelete(self, args, token=None):
+  def SampleDelete(self, args, context=None):
     return SampleDeleteHandler()
 
   @api_call_router.Http("PATCH", "/test_resource/<resource_id>")
   @api_call_router.ArgsType(SamplePatchHandlerArgs)
   @api_call_router.ResultType(SamplePatchHandlerResult)
-  def SamplePatch(self, args, token=None):
+  def SamplePatch(self, args, context=None):
     return SamplePatchHandler()
 
   @api_call_router.Http("GET", "/failure/not-found")
-  def FailureNotFound(self, args, token=None):
+  def FailureNotFound(self, args, context=None):
     raise api_call_handler_base.ResourceNotFoundError()
 
   @api_call_router.Http("GET", "/failure/server-error")
-  def FailureServerError(self, args, token=None):
+  def FailureServerError(self, args, context=None):
     raise RuntimeError("Some error")
 
   @api_call_router.Http("GET", "/failure/not-implemented")
-  def FailureNotImplemented(self, args, token=None):
+  def FailureNotImplemented(self, args, context=None):
     raise NotImplementedError()
 
   @api_call_router.Http("GET", "/failure/unauthorized")
-  def FailureUnauthorized(self, args, token=None):
+  def FailureUnauthorized(self, args, context=None):
     raise access_control.UnauthorizedAccess("oh no")
 
   @api_call_router.Http("GET", "/failure/invalid-argument")
-  def FailureInvalidArgument(self, args, token=None):
+  def FailureInvalidArgument(self, args, context=None):
     raise ValueError("oh no")
 
 
@@ -237,13 +235,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     api_auth_manager.InitializeApiAuthManager()
 
     self.request_handler = http_api.HttpRequestHandler()
-
-  def testBuildToken(self):
-    request = self._CreateRequest("POST", "/test_sample/some/path")
-    request.headers["X-Grr-Reason"] = urlparse.quote(
-        "区最 trailing space ".encode("utf-8"))
-    token = self.request_handler.BuildToken(request, 20)
-    self.assertEqual(token.reason, "区最 trailing space ")
 
   def testSystemUsernameIsNotAllowed(self):
     response = self._RenderResponse(

@@ -9,6 +9,7 @@ from typing import Text, Dict, Any
 from grr_api_client import artifact
 from grr_api_client import client
 from grr_api_client import config
+from grr_api_client import connectors
 from grr_api_client import context
 from grr_api_client import hunt
 from grr_api_client import root
@@ -16,7 +17,7 @@ from grr_api_client import types
 from grr_api_client import user
 from grr_api_client import yara
 from grr_api_client import metadata
-from grr_api_client.connectors import http_connector
+from grr_response_proto.api import hunt_pb2
 
 
 class GrrApi(object):
@@ -44,6 +45,12 @@ class GrrApi(object):
         flow_args=flow_args,
         hunt_runner_args=hunt_runner_args,
         context=self._context)
+
+  def CreatePerClientFileCollectionHunt(
+      self, hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs
+  ) -> hunt.Hunt:
+    return hunt.CreatePerClientFileCollectionHunt(
+        hunt_args, context=self._context)
 
   def ListHunts(self):
     return hunt.ListHunts(context=self._context)
@@ -94,7 +101,7 @@ def InitHttp(api_endpoint=None,
              validate_version=True):
   """Inits an GRR API object with a HTTP connector."""
 
-  connector = http_connector.HttpConnector(
+  connector = connectors.HttpConnector(
       api_endpoint=api_endpoint,
       page_size=page_size,
       auth=auth,

@@ -69,7 +69,8 @@ def Init():
 
     # We need some translation here, TSK needs an OS virtual root base. For
     # every other handler we can just keep the type the same.
-    if handler == rdf_paths.PathSpec.PathType.TSK:
+    if handler in (rdf_paths.PathSpec.PathType.TSK,
+                   rdf_paths.PathSpec.PathType.NTFS):
       base_type = rdf_paths.PathSpec.PathType.OS
     else:
       base_type = handler

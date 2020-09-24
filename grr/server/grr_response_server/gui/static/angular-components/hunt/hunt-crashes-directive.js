@@ -19,40 +19,42 @@ exports.setAutoRefreshInterval = function(millis) {
 
 /**
  * Controller for HuntCrashesDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const HuntCrashesController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const HuntCrashesController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.huntId;
+    /** @type {string} */
+    this.scope_.huntId;
 
-  /** @export {string} */
-  this.crashesUrl;
+    /** @export {string} */
+    this.crashesUrl;
 
-  /** @type {number} */
-  this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
+    /** @type {number} */
+    this.autoRefreshInterval = AUTO_REFRESH_INTERVAL_MS;
 
-  this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
-};
+    this.scope_.$watch('huntId', this.onHuntIdChange_.bind(this));
+  }
 
-
-
-/**
- * Handles huntId attribute changes.
- *
- * @param {string} huntId
- * @private
- */
-HuntCrashesController.prototype.onHuntIdChange_ = function(huntId) {
-  if (angular.isDefined(huntId)) {
-    this.crashesUrl = 'hunts/' + huntId + '/crashes';
+  /**
+   * Handles huntId attribute changes.
+   *
+   * @param {string} huntId
+   * @private
+   */
+  onHuntIdChange_(huntId) {
+    if (angular.isDefined(huntId)) {
+      this.crashesUrl = 'hunts/' + huntId + '/crashes';
+    }
   }
 };
+
 
 
 /**
@@ -64,9 +66,7 @@ HuntCrashesController.prototype.onHuntIdChange_ = function(huntId) {
  */
 exports.HuntCrashesDirective = function() {
   return {
-    scope: {
-      huntId: '='
-    },
+    scope: {huntId: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-crashes.html',
     controller: HuntCrashesController,

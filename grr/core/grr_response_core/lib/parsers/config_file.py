@@ -8,16 +8,20 @@ from __future__ import unicode_literals
 import collections
 import logging
 import re
+from typing import IO
+from typing import Iterable
+from typing import Iterator
 from typing import Text
-
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.util import compatibility
@@ -318,7 +322,7 @@ class KeyValueParser(FieldParser):
     return result
 
 
-class NfsExportsParser(parsers.SingleFileParser):
+class NfsExportsParser(parsers.SingleFileParser[rdf_config_file.NfsExport]):
   """Parser for NFS exports."""
 
   output_types = [rdf_config_file.NfsExport]
@@ -328,7 +332,12 @@ class NfsExportsParser(parsers.SingleFileParser):
     super().__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_config_file.NfsExport]:
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 
@@ -532,7 +541,7 @@ class SshdFieldParser(object):
     yield rdf_config_file.SshdConfig(config=self.config, matches=matches)
 
 
-class SshdConfigParser(parsers.SingleFileParser):
+class SshdConfigParser(parsers.SingleFileParser[rdf_config_file.SshdConfig]):
   """A parser for sshd_config files."""
 
   supported_artifacts = ["SshdConfigFile"]
@@ -542,7 +551,12 @@ class SshdConfigParser(parsers.SingleFileParser):
     super().__init__(*args, **kwargs)
     self._field_parser = SshdFieldParser()
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_config_file.SshdConfig]:
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 
@@ -581,7 +595,7 @@ class SshdConfigCmdParser(parser.CommandParser):
       yield result
 
 
-class MtabParser(parsers.SingleFileParser):
+class MtabParser(parsers.SingleFileParser[rdf_client_fs.Filesystem]):
   """Parser for mounted filesystem data acquired from /proc/mounts."""
   output_types = [rdf_client_fs.Filesystem]
   supported_artifacts = ["LinuxProcMounts", "LinuxFstab"]
@@ -590,7 +604,12 @@ class MtabParser(parsers.SingleFileParser):
     super().__init__(*args, **kwargs)
     self._field_parser = FieldParser()
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_client_fs.Filesystem]:
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 
@@ -692,7 +711,7 @@ class RsyslogFieldParser(FieldParser):
     return rslt
 
 
-class RsyslogParser(parsers.MultiFileParser):
+class RsyslogParser(parsers.MultiFileParser[rdf_protodict.AttributedDict]):
   """Artifact parser for syslog configurations."""
 
   output_types = [rdf_protodict.AttributedDict]
@@ -702,7 +721,12 @@ class RsyslogParser(parsers.MultiFileParser):
     super().__init__(*args, **kwargs)
     self._field_parser = RsyslogFieldParser()
 
-  def ParseFiles(self, knowledge_base, pathspecs, filedescs):
+  def ParseFiles(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspecs: Iterable[rdf_paths.PathSpec],
+      filedescs: Iterable[IO[bytes]],
+  ) -> Iterator[rdf_protodict.AttributedDict]:
     del knowledge_base  # Unused.
     del pathspecs  # Unused.
 
@@ -717,17 +741,23 @@ class RsyslogParser(parsers.MultiFileParser):
           target = self._field_parser.ParseAction(entry[1])
           target.facility, target.priority = log_rule.groups()
           result.targets.append(target)
-    return [result]
+    yield result
 
 
-class PackageSourceParser(parsers.SingleFileParser):
+class PackageSourceParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]
+                         ):
   """Common code for APT and YUM source list parsing."""
   output_types = [rdf_protodict.AttributedDict]
 
   # Prevents this from automatically registering.
   __abstract = True  # pylint: disable=g-bad-name
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_protodict.AttributedDict]:
     del knowledge_base  # Unused.
 
     uris_to_parse = self.FindPotentialURIs(filedesc)
@@ -829,12 +859,18 @@ class YumPackageSourceParser(PackageSourceParser):
         utils.ReadFileBytesAsUnicode(file_obj), "=", "baseurl")
 
 
-class CronAtAllowDenyParser(parsers.SingleFileParser):
+class CronAtAllowDenyParser(
+    parsers.SingleFileParser[rdf_protodict.AttributedDict]):
   """Parser for /etc/cron.allow /etc/cron.deny /etc/at.allow & /etc/at.deny."""
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["CronAtAllowDenyFiles"]
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_protodict.AttributedDict]:
     del knowledge_base  # Unused.
 
     lines = set([
@@ -985,10 +1021,15 @@ class NtpdFieldParser(FieldParser):
         prev_settings.append(" ".join(values))
 
 
-class NtpdParser(parsers.SingleFileParser):
+class NtpdParser(parsers.SingleFileParser[rdf_config_file.NtpConfig]):
   """Artifact parser for ntpd.conf file."""
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_config_file.NtpConfig]:
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 
@@ -1138,7 +1179,7 @@ class SudoersFieldParser(FieldParser):
     return data
 
 
-class SudoersParser(parsers.SingleFileParser):
+class SudoersParser(parsers.SingleFileParser[rdf_config_file.SudoersConfig]):
   """Artifact parser for privileged configuration files."""
 
   output_types = [rdf_config_file.SudoersConfig]
@@ -1148,7 +1189,12 @@ class SudoersParser(parsers.SingleFileParser):
     super().__init__(*args, **kwargs)
     self._field_parser = SudoersFieldParser()
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_config_file.SudoersConfig]:
     del knowledge_base  # Unused.
     del pathspec  # Unused.
 

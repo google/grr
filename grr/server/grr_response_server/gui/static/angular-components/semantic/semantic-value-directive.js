@@ -43,42 +43,45 @@ exports.getCachedSingleValueTemplate = function(name) {
 
 /**
  * Controller for the RegistryOverrideDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @ngInject
+ * @unrestricted
  */
-const RegistryOverrideController = function(
-    $scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const RegistryOverrideController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {Object<string, Object>} */
-  this.map;
+    /** @type {Object<string, Object>} */
+    this.map;
 
-  /** @type {string} */
-  this.overrideKey;
+    /** @type {string} */
+    this.overrideKey;
 
-  this.scope_.$watch(function() { return this.map; }.bind(this),
-                     this.onMapChange_.bind(this));
+    this.scope_.$watch(function() {
+      return this.map;
+    }.bind(this), this.onMapChange_.bind(this));
+  }
+
+  /**
+   * Handles changes of the 'map' binding and calculates unique map identifier
+   * to be used in the templates cache.
+   *
+   * @param {Object} newValue
+   * @private
+   */
+  onMapChange_(newValue) {
+    this.overrideKey = '';
+    angular.forEach(
+        Object.keys(/** @type {!Object} */ (this.map)).sort(), function(key) {
+          var value = this.map[key];
+          this.overrideKey += ':' + key + '_' + value['directive_name'];
+        }.bind(this));
+  }
 };
 
-
-
-/**
- * Handles changes of the 'map' binding and calculates unique map identifier
- * to be used in the templates cache.
- *
- * @param {Object} newValue
- * @private
- */
-RegistryOverrideController.prototype.onMapChange_ = function(newValue) {
-  this.overrideKey = '';
-  angular.forEach(Object.keys(/** @type {!Object} */(this.map)).sort(), function(key) {
-    var value = this.map[key];
-    this.overrideKey += ':' + key + '_' + value['directive_name'];
-  }.bind(this));
-};
 
 
 /**
@@ -89,9 +92,7 @@ RegistryOverrideController.prototype.onMapChange_ = function(newValue) {
  */
 exports.RegistryOverrideDirective = function() {
   return {
-    scope: {
-      map: '='
-    },
+    scope: {map: '='},
     controller: RegistryOverrideController,
     bindToController: true,
     restrict: 'E',
@@ -113,173 +114,171 @@ exports.RegistryOverrideDirective.directive_name =
 
 /**
  * Controller for the SemanticValueDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!angular.$compile} $compile
- * @param {!jQuery} $element
- * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
- *     grrSemanticValueDirectivesRegistryService
- * @ngInject
+ * @unrestricted
  */
-const SemanticValueController = function(
-    $scope, $compile, $element, grrSemanticValueDirectivesRegistryService) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const SemanticValueController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!angular.$compile} $compile
+   * @param {!jQuery} $element
+   * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+   *     grrSemanticValueDirectivesRegistryService
+   * @ngInject
+   */
+  constructor(
+      $scope, $compile, $element, grrSemanticValueDirectivesRegistryService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {?} */
-  this.scope_.value;
+    /** @type {?} */
+    this.scope_.value;
 
-  /** @private {!angular.$compile} */
-  this.compile_ = $compile;
+    /** @private {!angular.$compile} */
+    this.compile_ = $compile;
 
-  /** @private {!jQuery} */
-  this.element_ = $element;
+    /** @private {!jQuery} */
+    this.element_ = $element;
 
-  /** @private {!grrUi.core.semanticRegistryService.SemanticRegistryService} */
-  this.grrSemanticValueDirectivesRegistryService_ =
-      grrSemanticValueDirectivesRegistryService;
+    /**
+     * @private {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+     */
+    this.grrSemanticValueDirectivesRegistryService_ =
+        grrSemanticValueDirectivesRegistryService;
 
-  /** @type {RegistryOverrideController} */
-  this.registryOverrideController;
+    /** @type {RegistryOverrideController} */
+    this.registryOverrideController;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
-
-
-
-/**
- * Converts camelCaseStrings to dash-delimited-strings.
- *
- * @param {string} directiveName String to be converted.
- * @return {string} Converted string.
- */
-SemanticValueController.prototype.camelCaseToDashDelimited = function(
-    directiveName) {
-  return directiveName.replace(/\W+/g, '-')
-      .replace(/([a-z\d])([A-Z])/g, '$1-$2').toLowerCase();
-};
-
-
-/**
- * Compiles a template for a given single value.
- *
- * @param {Object} value Value to compile the template for.
- * @return {!angular.$q.Promise} Promise that will get resolved into the
- *     compiled template.
- * @private
- */
-SemanticValueController.prototype.compileSingleTypedValueTemplate_ = function(
-    value) {
-  var successHandler = function(directive) {
-    var element = angular.element('<span />');
-
-    element.html('<' +
-        this.camelCaseToDashDelimited(directive.directive_name) +
-        ' value="::value" />');
-    return this.compile_(element);
-  }.bind(this);
-
-  var failureHandler = function(directive) {
-    var element = angular.element('<span />');
-    element.html('{$ ::value.value $}');
-    return this.compile_(element);
-  }.bind(this);
-
-  var overrides;
-  if (this.registryOverrideController) {
-    overrides = this.registryOverrideController.map;
-  }
-
-  return this.grrSemanticValueDirectivesRegistryService_.
-      findDirectiveForType(value['type'], overrides)
-      .then(successHandler, failureHandler);
-};
-
-
-/**
- * Compiles a template for repeated values.
- *
- * @return {function(!angular.Scope, function(Object,
- *     !angular.Scope=)=):Object} Compiled template.
- * @private
- */
-SemanticValueController.prototype.compileRepeatedValueTemplate_ = function() {
-  var element = angular.element(
-      '<div ng-repeat="item in ::repeatedValue || []">' +
-          '<grr-semantic-value value="::item" /></div>');
-  return this.compile_(element);
-};
-
-
-/**
- * Handles value changes.
- *
- * @export
- */
-SemanticValueController.prototype.onValueChange = function() {
-  var value = this.scope_.value;
-
-  if (value == null) {
-    return;
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
   }
 
   /**
-   * @type {(function(!angular.Scope, function(Object,
-   *     !angular.Scope=)=):Object|undefined)}
+   * Converts camelCaseStrings to dash-delimited-strings.
+   *
+   * @param {string} directiveName String to be converted.
+   * @return {string} Converted string.
    */
-  var template;
+  camelCaseToDashDelimited(directiveName) {
+    return directiveName.replace(/\W+/g, '-')
+        .replace(/([a-z\d])([A-Z])/g, '$1-$2')
+        .toLowerCase();
+  }
+
+  /**
+   * Compiles a template for a given single value.
+   *
+   * @param {Object} value Value to compile the template for.
+   * @return {!angular.$q.Promise} Promise that will get resolved into the
+   *     compiled template.
+   * @private
+   */
+  compileSingleTypedValueTemplate_(value) {
+    var successHandler = function(directive) {
+      var element = angular.element('<span />');
+
+      element.html(
+          '<' + this.camelCaseToDashDelimited(directive.directive_name) +
+          ' value="::value" />');
+      return this.compile_(element);
+    }.bind(this);
+
+    var failureHandler = function(directive) {
+      var element = angular.element('<span />');
+      element.html('{$ ::value.value $}');
+      return this.compile_(element);
+    }.bind(this);
+
+    var overrides;
+    if (this.registryOverrideController) {
+      overrides = this.registryOverrideController.map;
+    }
+
+    return this.grrSemanticValueDirectivesRegistryService_
+        .findDirectiveForType(value['type'], overrides)
+        .then(successHandler, failureHandler);
+  }
+
+  /**
+   * Compiles a template for repeated values.
+   *
+   * @return {function(!angular.Scope, function(Object,
+   *     !angular.Scope=)=):Object} Compiled template.
+   * @private
+   */
+  compileRepeatedValueTemplate_() {
+    var element = angular.element(
+        '<div ng-repeat="item in ::repeatedValue || []">' +
+        '<grr-semantic-value value="::item" /></div>');
+    return this.compile_(element);
+  }
+
+  /**
+   * Handles value changes.
+   *
+   * @export
+   */
+  onValueChange() {
+    var value = this.scope_.value;
+
+    if (value == null) {
+      return;
+    }
+
+    /**
+     * @type {(function(!angular.Scope, function(Object,
+     *     !angular.Scope=)=):Object|undefined)}
+     */
+    var template;
 
 
-  if (angular.isDefined(value['type'])) {
-    var handleTemplate = function(template) {
+    if (angular.isDefined(value['type'])) {
+      var handleTemplate = function(template) {
+        template(this.scope_, function(cloned, opt_scope) {
+          this.element_.html('');
+          this.element_.append(cloned);
+        }.bind(this));
+      }.bind(this);
+
+      // Make sure that templates for overrides do not collide with either
+      // templates for other overrides or with default templates.
+      var cacheKey = value['type'];
+      if (this.registryOverrideController) {
+        cacheKey += this.registryOverrideController.overrideKey;
+      }
+
+      template = singleValueTemplateCache[cacheKey];
+      if (angular.isUndefined(template)) {
+        this.compileSingleTypedValueTemplate_(value).then(function(tmpl) {
+          singleValueTemplateCache[cacheKey] = tmpl;
+          handleTemplate(tmpl);
+        }.bind(this));
+      } else {
+        handleTemplate(template);
+      }
+    } else if (angular.isArray(value)) {
+      if (value.length > 10) {
+        var continuation = value.slice(10);
+        this.scope_.repeatedValue = value.slice(0, 10);
+        this.scope_.repeatedValue.push(
+            {type: '__FetchMoreLink', value: continuation});
+      } else {
+        this.scope_.repeatedValue = value;
+      }
+
+      if (angular.isUndefined(repeatedValuesTemplate)) {
+        repeatedValuesTemplate = this.compileRepeatedValueTemplate_();
+      }
+      template = repeatedValuesTemplate;
+
       template(this.scope_, function(cloned, opt_scope) {
         this.element_.html('');
         this.element_.append(cloned);
       }.bind(this));
-    }.bind(this);
-
-    // Make sure that templates for overrides do not collide with either
-    // templates for other overrides or with default templates.
-    var cacheKey = value['type'];
-    if (this.registryOverrideController) {
-      cacheKey += this.registryOverrideController.overrideKey;
-    }
-
-    template = singleValueTemplateCache[cacheKey];
-    if (angular.isUndefined(template)) {
-      this.compileSingleTypedValueTemplate_(value).then(function(tmpl) {
-        singleValueTemplateCache[cacheKey] = tmpl;
-        handleTemplate(tmpl);
-      }.bind(this));
     } else {
-      handleTemplate(template);
+      this.element_.text(value.toString() + ' ');
     }
-  } else if (angular.isArray(value)) {
-    if (value.length > 10) {
-      var continuation = value.slice(10);
-      this.scope_.repeatedValue = value.slice(0, 10);
-      this.scope_.repeatedValue.push({
-        type: '__FetchMoreLink',
-        value: continuation
-      });
-    } else {
-      this.scope_.repeatedValue = value;
-    }
-
-    if (angular.isUndefined(repeatedValuesTemplate)) {
-      repeatedValuesTemplate = this.compileRepeatedValueTemplate_();
-    }
-    template = repeatedValuesTemplate;
-
-    template(this.scope_, function(cloned, opt_scope) {
-      this.element_.html('');
-      this.element_.append(cloned);
-    }.bind(this));
-  } else {
-    this.element_.text(value.toString() + ' ');
   }
 };
+
 
 
 /**
@@ -291,14 +290,13 @@ SemanticValueController.prototype.onValueChange = function() {
  */
 exports.SemanticValueDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     require: '?^grrSemanticValueRegistryOverride',
     restrict: 'E',
     controller: SemanticValueController,
     controllerAs: 'controller',
-    link: function(scope, element, attrs, grrSemanticValueRegistryOverrideCtrl) {
+    link: function(
+        scope, element, attrs, grrSemanticValueRegistryOverrideCtrl) {
       if (grrSemanticValueRegistryOverrideCtrl) {
         scope['controller']['registryOverrideController'] =
             grrSemanticValueRegistryOverrideCtrl;

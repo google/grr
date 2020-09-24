@@ -143,7 +143,7 @@ def GetFileSystems():
   version = OSXVersion()
   major, minor = version.VersionAsMajorMinor()
 
-  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+  libc = objc.LoadLibrary("c")
 
   if major <= 10 and minor <= 5:
     use_64 = False

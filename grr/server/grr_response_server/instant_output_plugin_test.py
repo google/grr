@@ -34,17 +34,15 @@ class DummyOutValue2(rdfvalue.RDFString):
 class TestConverter1(export.ExportConverter):
   input_rdf_type = DummySrcValue1
 
-  def Convert(self, metadata, value, token=None):
-    _ = token
+  def Convert(self, metadata, value):
     return [DummyOutValue1("exp-" + str(value))]
 
 
 class TestConverter2(export.ExportConverter):
   input_rdf_type = DummySrcValue2
 
-  def Convert(self, metadata, value, token=None):
+  def Convert(self, metadata, value):
     _ = metadata
-    _ = token
     return [
         DummyOutValue1("exp1-" + str(value)),
         DummyOutValue2("exp2-" + str(value))

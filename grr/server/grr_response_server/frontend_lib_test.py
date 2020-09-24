@@ -770,7 +770,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
         request_id=12345,
         request=self.messages[0].payload)
 
-    handler = ca_enroller.EnrolmentHandler(token=self.token)
+    handler = ca_enroller.EnrolmentHandler()
     handler.ProcessMessages([request])
 
     # The next client communication should give a 200.

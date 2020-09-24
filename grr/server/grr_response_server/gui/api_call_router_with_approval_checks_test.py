@@ -11,6 +11,7 @@ import mock
 from grr_response_server import access_control
 
 from grr_response_server.flows.general import timeline
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
 from grr_response_server.gui.api_plugins import client as api_client
@@ -39,6 +40,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     super(ApiCallRouterWithApprovalChecksTest, self).setUp()
 
     self.client_id = test_lib.TEST_CLIENT_ID
+    self.context = api_call_context.ApiCallContext("test")
 
     self.delegate_mock = mock.MagicMock()
     self.access_checker_mock = mock.MagicMock()
@@ -50,15 +52,15 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
                                  method,
                                  access_type,
                                  args=None,
-                                 token=None):
-    token = token or self.token
+                                 context=None):
+    context = context or self.context
 
     # Check that legacy access control manager is called and that the method
     # is then delegated.
-    method(args, token=token)
+    method(args, context=context)
     self.assertTrue(getattr(self.access_checker_mock, access_type).called)
     getattr(self.delegate_mock, method.__name__).assert_called_with(
-        args, token=token)
+        args, context=context)
 
     self.delegate_mock.reset_mock()
     self.access_checker_mock.reset_mock()
@@ -70,7 +72,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
               access_type).side_effect = access_control.UnauthorizedAccess("")
 
       with self.assertRaises(access_control.UnauthorizedAccess):
-        method(args, token=token)
+        method(args, context=context)
 
       self.assertTrue(getattr(self.access_checker_mock, access_type).called)
       self.assertFalse(getattr(self.delegate_mock, method.__name__).called)
@@ -80,10 +82,10 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       self.delegate_mock.reset_mock()
       self.access_checker_mock.reset_mock()
 
-  def CheckMethodIsNotAccessChecked(self, method, args=None, token=None):
-    token = token or self.token
+  def CheckMethodIsNotAccessChecked(self, method, args=None, context=None):
+    context = context or self.context
 
-    method(args, token=token)
+    method(args, context=context)
 
     self.assertFalse(self.access_checker_mock.CheckClientAccess.called)
     self.assertFalse(self.access_checker_mock.CheckHuntAccess.called)
@@ -92,7 +94,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     self.assertFalse(self.access_checker_mock.CheckDataStoreAccess.called)
 
     getattr(self.delegate_mock, method.__name__).assert_called_with(
-        args, token=token)
+        args, context=context)
 
     self.delegate_mock.reset_mock()
     self.access_checker_mock.reset_mock()
@@ -185,9 +187,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testGetCollectedTimelineRaisesIfFlowIsNotFound(self):
     args = api_timeline.ApiGetCollectedTimelineArgs(
-        client_id=self.client_id, flow_id="F:123456")
+        client_id=self.client_id, flow_id="12345678")
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
-      self.router.GetCollectedTimeline(args, token=self.token)
+      self.router.GetCollectedTimeline(args, context=self.context)
 
   def testGetCollectedTimelineGrantsAccessIfPartOfHunt(self):
     client_id = self.SetupClient(0)
@@ -209,7 +211,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     args = api_timeline.ApiGetCollectedTimelineArgs(
         client_id=client_id, flow_id=flow_id)
     with self.assertRaises(ValueError):
-      self.router.GetCollectedTimeline(args=args, token=self.token)
+      self.router.GetCollectedTimeline(args=args, context=self.context)
 
   def testGetCollectedTimelineRefusesAccessIfWrongFlow(self):
     client_id = self.SetupClient(0)
@@ -219,7 +221,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     args = api_timeline.ApiGetCollectedTimelineArgs(
         client_id=client_id, flow_id=flow_id)
     with self.assertRaises(ValueError):
-      self.router.GetCollectedTimeline(args=args, token=self.token)
+      self.router.GetCollectedTimeline(args=args, context=self.context)
 
   def testGetCollectedTimelineChecksClientAccessIfNotPartOfHunt(self):
     client_id = self.SetupClient(0)
@@ -337,20 +339,20 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testDeleteHuntRaisesIfHuntNotFound(self):
     args = api_hunt.ApiDeleteHuntArgs(hunt_id="H:123456")
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
-      self.router.DeleteHunt(args, token=self.token)
+      self.router.DeleteHunt(args, context=self.context)
 
   def testDeleteHuntIsAccessCheckedIfUserIsNotCreator(self):
-    hunt_id = self.CreateHunt(creator=self.token.username)
+    hunt_id = self.CreateHunt(creator=self.context.username)
     args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt_id)
 
     self.CheckMethodIsAccessChecked(
         self.router.DeleteHunt,
         "CheckHuntAccess",
         args=args,
-        token=access_control.ACLToken(username="foo"))
+        context=api_call_context.ApiCallContext("foo"))
 
   def testDeleteHuntIsNotAccessCheckedIfUserIsCreator(self):
-    hunt_id = self.CreateHunt(creator=self.token.username)
+    hunt_id = self.CreateHunt(creator=self.context.username)
     args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt_id)
 
     self.CheckMethodIsNotAccessChecked(self.router.DeleteHunt, args=args)
@@ -388,7 +390,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ])
 
   def testListFlowDescriptorsIsAccessChecked(self):
-    handler = self.router.ListFlowDescriptors(None, token=self.token)
+    handler = self.router.ListFlowDescriptors(None, context=self.context)
     # Check that router's access_checker's method got passed into the handler.
     self.assertEqual(handler.access_check_fn,
                      self.router.access_checker.CheckIfCanStartClientFlow)
@@ -398,7 +400,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ])
 
   def testGetGrrUserReturnsFullTraitsForAdminUser(self):
-    handler = self.router.GetGrrUser(None, token=self.token)
+    handler = self.router.GetGrrUser(None, context=self.context)
 
     self.assertEqual(handler.interface_traits,
                      api_user.ApiGrrUserInterfaceTraits().EnableAll())
@@ -406,7 +408,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   def testGetGrrUserReturnsRestrictedTraitsForNonAdminUser(self):
     error = access_control.UnauthorizedAccess("some error")
     self.access_checker_mock.CheckIfUserIsAdmin.side_effect = error
-    handler = self.router.GetGrrUser(None, token=self.token)
+    handler = self.router.GetGrrUser(None, context=self.context)
 
     self.assertNotEqual(handler.interface_traits,
                         api_user.ApiGrrUserInterfaceTraits().EnableAll())

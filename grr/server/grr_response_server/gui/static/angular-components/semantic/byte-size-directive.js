@@ -38,49 +38,51 @@ const stringifyByteSize = function(value) {
 
 /**
  * Controller for ByteSizeDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const ByteSizeController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const ByteSizeController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.stringifiedByteSize;
+    /** @type {string} */
+    this.stringifiedByteSize;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
-
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {{type: string, value: number}|undefined} newValue
- *   An `rdf.ByteSize`-compatible object.
- */
-ByteSizeController.prototype.onValueChange = function(newValue) {
-  if (!angular.isDefined(newValue)) {
-    return;
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
   }
 
-  var byteSize = newValue.value;
-  if (angular.isNumber(byteSize)) {
-    var stringified = stringifyByteSize(byteSize);
-    var size = stringified[0];
-    var sizeToken = stringified[1];
-
-    var result = [Math.floor(size).toString()];
-    var decimalPart = Math.round((size % 1) * 10).toString();
-    if (decimalPart !== '0') {
-      result.push('.', decimalPart);
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {{type: string, value: number}|undefined} newValue
+   *   An `rdf.ByteSize`-compatible object.
+   */
+  onValueChange(newValue) {
+    if (!angular.isDefined(newValue)) {
+      return;
     }
-    result.push(sizeToken);
 
-    this.stringifiedByteSize = result.join('');
-  } else {
-    this.stringifiedByteSize = '-';
+    var byteSize = newValue.value;
+    if (angular.isNumber(byteSize)) {
+      var stringified = stringifyByteSize(byteSize);
+      var size = stringified[0];
+      var sizeToken = stringified[1];
+
+      var result = [Math.floor(size).toString()];
+      var decimalPart = Math.round((size % 1) * 10).toString();
+      if (decimalPart !== '0') {
+        result.push('.', decimalPart);
+      }
+      result.push(sizeToken);
+
+      this.stringifiedByteSize = result.join('');
+    } else {
+      this.stringifiedByteSize = '-';
+    }
   }
 };
 
@@ -95,9 +97,7 @@ ByteSizeController.prototype.onValueChange = function(newValue) {
  */
 exports.ByteSizeDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/byte-size.html',
     controller: ByteSizeController,

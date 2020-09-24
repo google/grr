@@ -21,10 +21,12 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util.compat import json
 from grr_response_server.gui import api_auth_manager
+# pylint: disable=unused-import
 # This import guarantees that all API-related RDF types will get imported
 # (as they're all references by api_call_router).
-# pylint: disable=unused-import
 from grr_response_server.gui import api_call_router
+# This import guarantees that the no-checks router used by tests is present.
+from grr_response_server.gui import api_call_router_without_checks
 # pylint: enable=unused-import
 from grr_response_server.gui import api_regression_http
 from grr_response_server.gui import webauth
@@ -228,7 +230,10 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
     """
     prev_data = json.ReadFromPath(self.output_file_name)
 
-    checks = prev_data[self.__class__.handler.__name__]
+    # Using an empty list if the handler class name is not present in the
+    # golden file. This way it's easy to debug new tests: we get a proper
+    # regression test failure instead of a KeyError.
+    checks = prev_data.get(self.__class__.handler.__name__, [])
     relevant_checks = []
     for check in checks:
       if check["test_class"] == self.golden_file_class_name:
@@ -297,10 +302,7 @@ class ApiRegressionGoldenOutputGenerator(object):
             logging.exception(e)
 
     json_sample_data = json.Dump(sample_data, sort_keys=True)
-    if compatibility.PY2:
-      print(json_sample_data.encode("utf-8"))
-    else:
-      print(json_sample_data)
+    sys.stdout.buffer.write(json_sample_data.encode("utf-8"))
 
 
 def GetFlowTestReplaceDict(client_id=None,

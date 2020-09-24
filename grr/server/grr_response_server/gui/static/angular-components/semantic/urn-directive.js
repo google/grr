@@ -7,69 +7,70 @@ const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
 
 /**
  * Controller for UrnDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const UrnController = function(
-    $scope, grrRoutingService) {
+const UrnController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @ngInject
+   */
+  constructor($scope, grrRoutingService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!grrUi.routing.routingService.RoutingService} */
+    this.grrRoutingService_ = grrRoutingService;
 
-  /** @private {!grrUi.routing.routingService.RoutingService} */
-  this.grrRoutingService_ = grrRoutingService;
+    /** @type {string} */
+    this.plainValue;
 
-  /** @type {string} */
-  this.plainValue;
+    /** @type {string} */
+    this.ref;
 
-  /** @type {string} */
-  this.ref;
+    /** @type {string} */
+    this.refState;
 
-  /** @type {string} */
-  this.refState;
+    /** @type {Object} */
+    this.refParams;
 
-  /** @type {Object} */
-  this.refParams;
-
-  this.scope_.$watch('::value', this.onValueChange_.bind(this));
-};
-
-
-/**
- * Handles value changes.
- *
- * @param {string} newValue
- * @private
- */
-UrnController.prototype.onValueChange_ = function(newValue) {
-  if (angular.isObject(newValue)) {
-    this.plainValue = newValue.value;
-  } else if (angular.isString(newValue)) {
-    this.plainValue = newValue;
-  } else {
-    return;
+    this.scope_.$watch('::value', this.onValueChange_.bind(this));
   }
 
-  var urlResult = aff4UrnToUrl(this.plainValue);
-  if (urlResult) {
-    this.refState = urlResult.state;
-    this.refParams = urlResult.params;
+  /**
+   * Handles value changes.
+   *
+   * @param {string} newValue
+   * @private
+   */
+  onValueChange_(newValue) {
+    if (angular.isObject(newValue)) {
+      this.plainValue = newValue.value;
+    } else if (angular.isString(newValue)) {
+      this.plainValue = newValue;
+    } else {
+      return;
+    }
 
-    this.ref = this.grrRoutingService_.href(urlResult.state, urlResult.params);
+    var urlResult = aff4UrnToUrl(this.plainValue);
+    if (urlResult) {
+      this.refState = urlResult.state;
+      this.refParams = urlResult.params;
+
+      this.ref =
+          this.grrRoutingService_.href(urlResult.state, urlResult.params);
+    }
+  }
+
+  /**
+   * Handles clicks on the link.
+   * @export
+   */
+  onClick() {
+    this.grrRoutingService_.go('client.vfs', this.refParams);
   }
 };
 
-
-/**
- * Handles clicks on the link.
- * @export
- */
-UrnController.prototype.onClick = function() {
-  this.grrRoutingService_.go('client.vfs', this.refParams);
-};
 
 
 /**
@@ -81,9 +82,7 @@ UrnController.prototype.onClick = function() {
  */
 exports.UrnDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     templateUrl: '/static/angular-components/semantic/urn.html',
     controller: UrnController,

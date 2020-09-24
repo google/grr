@@ -16,17 +16,25 @@ from urllib import parse as urlparse
 import sqlite3
 
 from grr_response_core.lib import parsers
+from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
 from grr_response_core.lib.util import sqlite
 
 
-class ChromeHistoryParser(parsers.SingleFileParser):
+class ChromeHistoryParser(
+    parsers.SingleFileParser[rdf_webhistory.BrowserHistoryItem]):
   """Parse Chrome history files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
   supported_artifacts = ["ChromeHistory"]
 
-  def ParseFile(self, knowledge_base, pathspec, filedesc):
+  def ParseFile(
+      self,
+      knowledge_base: rdf_client.KnowledgeBase,
+      pathspec: rdf_paths.PathSpec,
+      filedesc: IO[bytes],
+  ) -> Iterator[rdf_webhistory.BrowserHistoryItem]:
     del knowledge_base  # Unused.
 
     # TODO(user): Convert this to use the far more intelligent plaso parser.

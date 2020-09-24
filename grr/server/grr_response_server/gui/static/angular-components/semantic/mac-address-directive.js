@@ -9,8 +9,7 @@ goog.module.declareLegacyNamespace();
  * @param {string} address Byte-string with MAC address.
  * @return {string} Human-readable MAC address.
  */
-const convertMacAddressToString = function(
-    address) {
+const convertMacAddressToString = function(address) {
   var result = [];
   for (var i = 0; i < address.length; ++i) {
     var part = address.charCodeAt(i).toString(16);
@@ -26,36 +25,36 @@ const convertMacAddressToString = function(
 
 /**
  * Controller for MacAddressDirective.
- *
- * @param {!angular.Scope} $scope
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const MacAddressController = function($scope) {
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+const MacAddressController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @ngInject
+   */
+  constructor($scope) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @type {string} */
-  this.convertedAddress;
+    /** @type {string} */
+    this.convertedAddress;
 
-  this.scope_.$watch('::value', this.onValueChange.bind(this));
-};
+    this.scope_.$watch('::value', this.onValueChange.bind(this));
+  }
 
-
-
-/**
- * Handles changes of scope.value attribute.
- *
- * @param {number} newValue Timestamp value in microseconds.
- * @suppress {missingProperties} as value can be anything.
- */
-MacAddressController.prototype.onValueChange = function(newValue) {
-  var address = newValue.value;
-  if (angular.isString(address)) {
-    this.convertedAddress = convertMacAddressToString(
-        window.atob(address));
-  } else {
-    this.convertedAddress = '-';
+  /**
+   * Handles changes of scope.value attribute.
+   *
+   * @param {number} newValue Timestamp value in microseconds.
+   * @suppress {missingProperties} as value can be anything.
+   */
+  onValueChange(newValue) {
+    var address = newValue.value;
+    if (angular.isString(address)) {
+      this.convertedAddress = convertMacAddressToString(window.atob(address));
+    } else {
+      this.convertedAddress = '-';
+    }
   }
 };
 
@@ -70,9 +69,7 @@ MacAddressController.prototype.onValueChange = function(newValue) {
  */
 exports.MacAddressDirective = function() {
   return {
-    scope: {
-      value: '='
-    },
+    scope: {value: '='},
     restrict: 'E',
     template: '<nobr ng-if="::controller.convertedAddress !== undefined">' +
         '{$ ::controller.convertedAddress $}</nobr>',

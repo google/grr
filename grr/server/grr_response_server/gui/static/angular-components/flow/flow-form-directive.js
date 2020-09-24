@@ -6,77 +6,81 @@ const {valueHasErrors} = goog.require('grrUi.forms.utils');
 
 /**
  * Controller for FlowFormDirective.
- *
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @constructor
- * @ngInject
+ * @unrestricted
  */
-const FlowFormController = function(
-    $scope, grrReflectionService) {
+const FlowFormController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.reflectionService.ReflectionService}
+   *     grrReflectionService
+   * @ngInject
+   */
+  constructor($scope, grrReflectionService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    this.grrReflectionService_ = grrReflectionService;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
-  this.grrReflectionService_ = grrReflectionService;
+    /** @type {Object} */
+    this.outputPluginsField;
 
-  /** @type {Object} */
-  this.outputPluginsField;
+    /** @type {Object} */
+    this.outputPluginDescriptor;
 
-  /** @type {Object} */
-  this.outputPluginDescriptor;
+    this.grrReflectionService_.getRDFValueDescriptor('FlowRunnerArgs')
+        .then(function(descriptor) {
+          angular.forEach(descriptor['fields'], function(field) {
+            if (field.name == 'output_plugins') {
+              this.outputPluginsField = field;
+            }
+          }.bind(this));
 
-  this.grrReflectionService_.getRDFValueDescriptor('FlowRunnerArgs').then(
-      function(descriptor) {
-        angular.forEach(descriptor['fields'], function(field) {
-          if (field.name == 'output_plugins') {
-            this.outputPluginsField = field;
-          }
+          return this.grrReflectionService_.getRDFValueDescriptor(
+              'OutputPluginDescriptor');
+        }.bind(this))
+        .then(function(descriptor) {
+          this.outputPluginDescriptor = descriptor;
         }.bind(this));
 
-        return this.grrReflectionService_.getRDFValueDescriptor(
-            'OutputPluginDescriptor');
-      }.bind(this)).then(function(descriptor) {
-        this.outputPluginDescriptor = descriptor;
-      }.bind(this));
+    this.scope_.$watch(
+        'flowRunnerArgs.value.output_plugins',
+        this.onOutputPluginsChanged_.bind(this));
 
-  this.scope_.$watch('flowRunnerArgs.value.output_plugins',
-                     this.onOutputPluginsChanged_.bind(this));
-
-  this.scope_.$watch(function() {
-    return [this.scope_['flowArgs'], this.scope_['flowRunnerArgs']];
-  }.bind(this), this.onArgsDeepChange_.bind(this), true);
-};
-
-
-/**
- * @private
- */
-FlowFormController.prototype.onArgsDeepChange_ = function() {
-  this.scope_['hasErrors'] = valueHasErrors(this.scope_['flowArgs']) ||
-      valueHasErrors(this.scope_['flowRunnerArgs']);
-};
-
-/**
- * Handles changes in output plugins part of flow runner args binding.
- * This function ensures that if withOutputPlugins binding is true, then
- * flowRunnerArgs.value.output_plugins is always set to a defined value.
- *
- * @param {Array<Object>} newValue New output plugins value.
- *
- * @private
- */
-FlowFormController.prototype.onOutputPluginsChanged_ = function(newValue) {
-  if (!this.scope_['withOutputPlugins']) {
-    return;
+    this.scope_.$watch(function() {
+      return [this.scope_['flowArgs'], this.scope_['flowRunnerArgs']];
+    }.bind(this), this.onArgsDeepChange_.bind(this), true);
   }
 
-  var flowRunnerArgs = this.scope_['flowRunnerArgs'];
-  if (angular.isUndefined(newValue) && angular.isDefined(flowRunnerArgs)) {
-    flowRunnerArgs['value']['output_plugins'] = [];
+  /**
+   * @private
+   */
+  onArgsDeepChange_() {
+    this.scope_['hasErrors'] = valueHasErrors(this.scope_['flowArgs']) ||
+        valueHasErrors(this.scope_['flowRunnerArgs']);
+  }
+
+  /**
+   * Handles changes in output plugins part of flow runner args binding.
+   * This function ensures that if withOutputPlugins binding is true, then
+   * flowRunnerArgs.value.output_plugins is always set to a defined value.
+   *
+   * @param {Array<Object>} newValue New output plugins value.
+   *
+   * @private
+   */
+  onOutputPluginsChanged_(newValue) {
+    if (!this.scope_['withOutputPlugins']) {
+      return;
+    }
+
+    var flowRunnerArgs = this.scope_['flowRunnerArgs'];
+    if (angular.isUndefined(newValue) && angular.isDefined(flowRunnerArgs)) {
+      flowRunnerArgs['value']['output_plugins'] = [];
+    }
   }
 };
+
 
 
 /**

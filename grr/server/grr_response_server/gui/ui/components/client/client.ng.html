@@ -1,34 +1,31 @@
-<div *ngIf="client$ | async as client">
-  <div class="client-header mat-body-1">
-    <div class="fqdn-chips">
-      <div class="fqdn">
-        <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
+<mat-drawer-container class="container" [class.noscroll]="clientDetailsDrawer.opened">
+  <mat-drawer #clientDetailsDrawer position="end">
+    <client-details [clientId]="id$ | async"></client-details>
+  </mat-drawer>
+
+  <mat-drawer-content>
+    <client-overview>
+      <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
+        <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
+        <ng-template #iconArrowRight>
+          <mat-icon>keyboard_arrow_right</mat-icon>
+        </ng-template>
+      </button>
+    </client-overview>
+
+    <div class="client-start-flow">
+      <flow-form></flow-form>
+    </div>
+    <div class="client-flows">
+      <flow-list></flow-list>
+      <div [style.height.px]="approvalHeight">
+        <!-- Placeholder behind Approval bottom sheet to allow scrolling to the
+             bottom of the flows list. -->
       </div>
-      <div class="chips">
-        <mat-chip-list>
-          <mat-chip *ngFor="let label of client.labels">
-            {{label.name}}
-          </mat-chip>
-        </mat-chip-list>
-      </div>
     </div>
-    <div class="client-id">
-      <span class="mat-h5">{{client.clientId}}</span>
+
+    <div class="client-approval mat-elevation-z12">
+      <approval></approval>
     </div>
-    <div class="os">
-       {{client.knowledgeBase.os}}
-    </div>
-    <div class="last-seen">
-      Last seen: {{client.lastSeenAt | date:'MM/dd/yyyy hh:mm:ss':'utc'}} UTC
-    </div>
-  </div>
-  <div class="client-approval">
-    <approval></approval>
-  </div>
-  <div class="client-start-flow">
-    <flow-form></flow-form>
-  </div>
-  <div class="client-flows">
-    <flow-list></flow-list>
-  </div>
-</div>
+  </mat-drawer-content>
+</mat-drawer-container>

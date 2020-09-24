@@ -14,9 +14,9 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import body
 from grr_response_core.lib.util import chunked
 from grr_response_proto.api import timeline_pb2
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.flows.general import timeline
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
@@ -47,7 +47,7 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiGetCollectedTimelineArgs,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the timeline export API call."""
     client_id = str(args.client_id)
@@ -101,7 +101,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
   def Handle(
       self,
       args: ApiGetCollectedHuntTimelinesArgs,
-      token: Optional[access_control.ACLToken] = None,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_call_handler_base.ApiBinaryStream:
     """Handles requests for the hunt timelines export API call."""
     hunt_id = str(args.hunt_id)
@@ -111,18 +111,32 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       message = f"Hunt '{hunt_id}' is not a timeline hunt"
       raise ValueError(message)
 
+    # TODO(hanuszczak): Enum-related attribute errors can by bypassed by using
+    # raw protobuf enums.
+    # pytype: disable=attribute-error
+    if (args.format != ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED and
+        args.format != ApiGetCollectedTimelineArgs.Format.BODY):
+      message = f"Incorrect timeline export format: {args.format}"
+      raise ValueError(message)
+    # pytype: enable=attribute-error
+
     filename = f"timelines_{hunt_id}.zip"
-    content = self._Generate(hunt_id)
+    content = self._Generate(hunt_id, args.format)
     return api_call_handler_base.ApiBinaryStream(filename, content)
 
-  def _Generate(self, hunt_id: Text) -> Iterator[bytes]:
+  def _Generate(
+      self,
+      hunt_id: Text,
+      fmt: rdf_structs.EnumNamedValue,
+  ) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
-    yield from self._GenerateTimelines(hunt_id, zipgen)
+    yield from self._GenerateTimelines(hunt_id, fmt, zipgen)
     yield zipgen.Close()
 
   def _GenerateTimelines(
       self,
       hunt_id: Text,
+      fmt: rdf_structs.EnumNamedValue,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
     offset = 0
@@ -142,7 +156,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
         flow_id = flow.flow_id
         fqdn = client_fqdns[client_id]
 
-        yield from self._GenerateTimeline(client_id, flow_id, fqdn, zipgen)
+        yield from self._GenerateTimeline(client_id, flow_id, fqdn, fmt, zipgen)
 
       if len(flows) < _FLOW_BATCH_SIZE:
         break
@@ -152,15 +166,21 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       client_id: Text,
       flow_id: Text,
       fqdn: Text,
+      fmt: rdf_structs.EnumNamedValue,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
     args = ApiGetCollectedTimelineArgs()
     args.client_id = client_id
     args.flow_id = flow_id
-    # TODO(hanuszczak): Add support for other formats.
-    args.format = ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED  # pytype: disable=attribute-error
+    args.format = fmt
 
-    filename = f"{client_id}_{fqdn}.gzchunked"
+    if fmt == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:  # pytype: disable=attribute-error
+      filename = f"{client_id}_{fqdn}.gzchunked"
+    elif fmt == ApiGetCollectedTimelineArgs.Format.BODY:  # pytype: disable=attribute-error
+      filename = f"{client_id}_{fqdn}.body"
+    else:
+      raise AssertionError()
+
     yield zipgen.WriteFileHeader(filename)
 
     for chunk in self._handler.Handle(args).GenerateContent():

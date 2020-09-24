@@ -180,7 +180,7 @@ class NTFSFile(vfs_base.VFSHandler):
         entry.get_access_time())
     st.st_mtime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
         entry.get_modification_time())
-    st.st_crtime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
+    st.st_btime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
         entry.get_creation_time())
     st.st_ctime = rdfvalue.RDFDatetimeSeconds.FromDatetime(
         entry.get_entry_modification_time())
@@ -216,7 +216,7 @@ class NTFSFile(vfs_base.VFSHandler):
       # mounts to work out the exact mount point and device we need to
       # open. We then modify the pathspec so we get nested in the raw
       # pathspec.
-      raw_pathspec, corrected_path = client_utils.GetRawDevice(component.path)
+      raw_pathspec, corrected_path = client_utils.GetRawDevice(component.path)  # pytype: disable=attribute-error
 
       # Insert the raw device before the component in the pathspec and correct
       # the path

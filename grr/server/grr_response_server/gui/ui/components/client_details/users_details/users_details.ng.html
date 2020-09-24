@@ -1,0 +1,34 @@
+<ng-template ngFor let-user [ngForOf]="users" let-isLast="last">
+  <table class="section">
+    <tr *ngIf="user.username">
+      <td class="description">Username</td>
+      <td class="value">{{user.username}}</td>
+    </tr>
+    <tr *ngIf="user.fullName">
+      <td class="description">Full name</td>
+      <td class="value">{{user.fullName}}</td>
+    </tr>
+    <tr *ngIf="user.lastLogon">
+      <td class="description">Last logon</td>
+      <td class="value"><timestamp [date]="user.lastLogon"></timestamp></td>
+    </tr>
+    <tr *ngIf="user.homedir">
+      <td class="description">Home directory</td>
+      <td class="value">{{user.homedir}}</td>
+    </tr>
+    <tr *ngIf="user.uid">
+      <td class="description">UID</td>
+      <td class="value">{{user.uid}}</td>
+    </tr>
+    <tr *ngIf="user.gid">
+      <td class="description">GID</td>
+      <td class="value">{{user.gid}}</td>
+    </tr>
+    <tr *ngIf="user.shell">
+      <td class="description">Shell</td>
+      <td class="value">{{user.shell}}</td>
+    </tr>
+  </table>
+  <br *ngIf="!isLast">
+</ng-template>
+<div class="section" *ngIf="users.length === 0">None.</div>

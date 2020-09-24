@@ -5,59 +5,59 @@ goog.module.declareLegacyNamespace();
 
 /**
  * Controller for ApiQuerySpecDirective.
- *
- * @constructor
- * @param {!angular.Scope} $scope
- * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
- * @ngInject
+ * @unrestricted
  */
-const ApiQuerySpecController = function(
-    $scope, grrReflectionService) {
+const ApiQuerySpecController = class {
+  /**
+   * @param {!angular.Scope} $scope
+   * @param {!grrUi.core.reflectionService.ReflectionService}
+   *     grrReflectionService
+   * @ngInject
+   */
+  constructor($scope, grrReflectionService) {
+    /** @private {!angular.Scope} */
+    this.scope_ = $scope;
 
-  /** @private {!angular.Scope} */
-  this.scope_ = $scope;
+    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    this.grrReflectionService_ = grrReflectionService;
 
-  /** @private {!grrUi.core.reflectionService.ReflectionService} */
-  this.grrReflectionService_ = grrReflectionService;
+    /** @export {Array.<Object>} */
+    this.descriptorFields;
 
-  /** @export {Array.<Object>} */
-  this.descriptorFields;
+    /** @export {Object.<string, Object>} */
+    this.descriptorsCache;
 
-  /** @export {Object.<string, Object>} */
-  this.descriptorsCache;
+    /** @export {Object.<string, string>} */
+    this.typeHints = {
+      'RDFDatetime': 'Time since epoch in microseconds.',
+      'RDFURN': 'Path string with components separated by "/", i.e. ' +
+          '"foo/bar/blah".'
+    };
 
-  /** @export {Object.<string, string>} */
-  this.typeHints = {
-    'RDFDatetime': 'Time since epoch in microseconds.',
-    'RDFURN': 'Path string with components separated by "/", i.e. ' +
-        '"foo/bar/blah".'
-  };
+    this.scope_.$watch('argsType', this.onArgsTypeChange.bind(this));
+  }
 
-  this.scope_.$watch('argsType', this.onArgsTypeChange.bind(this));
-};
+  /**
+   * Handles value attribute changes.
+   *
+   * @param {string} newValue New args type value.
+   * @export
+   */
+  onArgsTypeChange(newValue) {
+    this.argsDescriptor = null;
+    if (angular.isString(newValue)) {
+      this.grrReflectionService_.getRDFValueDescriptor(newValue, true)
+          .then(function(result) {
+            this.descriptorFields = [];
+            angular.forEach(result[newValue]['fields'], function(field) {
+              if (field.name !== 'additional_args') {
+                this.descriptorFields.push(field);
+              }
+            }.bind(this));
 
-
-
-/**
- * Handles value attribute changes.
- *
- * @param {string} newValue New args type value.
- * @export
- */
-ApiQuerySpecController.prototype.onArgsTypeChange = function(newValue) {
-  this.argsDescriptor = null;
-  if (angular.isString(newValue)) {
-    this.grrReflectionService_.getRDFValueDescriptor(newValue, true).then(
-        function(result) {
-          this.descriptorFields = [];
-          angular.forEach(result[newValue]['fields'], function(field) {
-            if (field.name !== 'additional_args') {
-              this.descriptorFields.push(field);
-            }
+            this.descriptorsCache = result;
           }.bind(this));
-
-          this.descriptorsCache = result;
-        }.bind(this));
+    }
   }
 };
 
@@ -72,11 +72,7 @@ ApiQuerySpecController.prototype.onArgsTypeChange = function(newValue) {
  */
 exports.ApiQuerySpecDirective = function() {
   return {
-    scope: {
-      argsType: '=',
-      prefix: '=',
-      noHeader: '@'
-    },
+    scope: {argsType: '=', prefix: '=', noHeader: '@'},
     restrict: 'E',
     templateUrl: '/static/angular-components/docs/api-query-spec.html',
     controller: ApiQuerySpecController,
