@@ -4,7 +4,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from typing import Text
+from typing import Text, Dict, Any
 
 from grr_api_client import artifact
 from grr_api_client import client
@@ -16,6 +16,7 @@ from grr_api_client import root
 from grr_api_client import types
 from grr_api_client import user
 from grr_api_client import yara
+from grr_api_client import metadata
 from grr_response_proto.api import hunt_pb2
 
 
@@ -84,6 +85,10 @@ class GrrApi(object):
   @property
   def username(self):
     return self._context.username
+
+  def GetOpenApiDescription(self) -> Dict[str, Any]:
+    """Returns the OpenAPI description of the GRR API as a dictionary."""
+    return metadata.GetOpenApiDescription(context=self._context)
 
 
 def InitHttp(api_endpoint=None,

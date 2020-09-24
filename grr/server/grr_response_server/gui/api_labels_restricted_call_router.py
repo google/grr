@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
@@ -16,10 +17,11 @@ from grr_response_server import data_store
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_call_router_without_checks
+from grr_response_server.gui import api_call_context
 
 from grr_response_server.gui.api_plugins import client as api_client
-
 from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import metadata as api_metadata
 
 
 def CheckClientLabels(client_id, allow_labels=None, allow_labels_owners=None):
@@ -358,3 +360,15 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     # Everybody can list available API methods.
 
     return self.delegate.ListApiMethods(args, context=context)
+
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    """Returns a description of the API following the OpenAPI specification.
+
+    Everybody can get the OpenAPI description.
+    """
+
+    return self.delegate.GetOpenApiDescription(args, context=context)
