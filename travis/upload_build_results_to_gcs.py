@@ -132,7 +132,7 @@ def _DecryptGCPServiceFileTo(service_file_path: str):
             e.__class__.__name__, redacted_message))
 
 
-def _UploadDirectory(local_dir:str, gcs_bucket: storage.Bucket, gcs_dir: str):
+def _UploadDirectory(local_dir: str, gcs_bucket: storage.Bucket, gcs_dir: str):
   """Upload the contents of a local directory to a GCS Bucket."""
   for file_name in os.listdir(local_dir):
     path = os.path.join(local_dir, file_name)
