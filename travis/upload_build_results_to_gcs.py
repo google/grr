@@ -87,16 +87,13 @@ def _GetGCSBuildResultsDir() -> str:
   try:
     commit_timestamp = int(git_output.decode("utf-8").strip())
   except ValueError:
-    raise ValueError(
-        "Received invalid response from git: {}.".format(git_output))
+    raise ValueError(f"Received invalid response from git: {git_output}.")
   formatted_commit_timestamp = datetime.datetime.utcfromtimestamp(
       commit_timestamp).strftime(_GCS_BUCKET_TIME_FORMAT)
-  destination_dir = ("{commit_timestamp}_{travis_commit}/"
-                     "travis_job_{travis_job_number}_{gcs_tag}").format(
-                         commit_timestamp=formatted_commit_timestamp,
-                         travis_commit=os.environ[_TRAVIS_COMMIT],
-                         travis_job_number=os.environ[_TRAVIS_JOB_NUMBER],
-                         gcs_tag=os.environ[_GCS_TAG])
+  destination_dir = (
+    f"{formatted_commit_timestamp}_{os.environ[_TRAVIS_COMMIT]}/"
+    f"travis_job_{os.environ[_TRAVIS_JOB_NUMBER]}_{os.environ[_GCS_TAG]}"
+  )
   return destination_dir
 
 
@@ -128,8 +125,10 @@ def _DecryptGCPServiceFileTo(service_file_path: str):
   except Exception as e:
     redacted_message = _GetRedactedExceptionMessage(e)
     raise DecryptionError(
-        "{} encountered when trying to decrypt the GCP service key: {}".format(
-            e.__class__.__name__, redacted_message))
+        f"{e.__class__.__name__} "
+        f"encountered when trying to decrypt the GCP service key: "
+        f"{redacted_message}"
+    )
 
 
 def _UploadDirectory(local_dir: str, gcs_bucket: storage.Bucket, gcs_dir: str):
@@ -193,17 +192,19 @@ def _TriggerAppveyorBuild(project_slug_var_name: str):
       "commitId": os.environ[_TRAVIS_COMMIT],
   }
   logging.info("Will trigger Appveyor build with params: %s", data)
-  headers = {"Authorization": "Bearer {}".format(os.environ[_APPVEYOR_TOKEN])}
+  headers = {"Authorization": f"Bearer {os.environ[_APPVEYOR_TOKEN]}"}
   try:
     response = requests.post(_APPVEYOR_API_URL, json=data, headers=headers)
   except Exception as e:
     redacted_message = _GetRedactedExceptionMessage(e)
-    raise AppveyorError("{} encountered on POST request: {}".format(
-        e.__class__.__name__, redacted_message))
+    raise AppveyorError(
+      f"{e.__class__.__name__} encountered on POST request: {redacted_message}"
+    )
   if not response.ok:
     raise AppveyorError(
-        "Failed to trigger Appveyor build; got response {}.".format(
-            response.status_code))
+        f"Failed to trigger Appveyor build; got response "
+        f"{response.status_code}."
+    )
 
 
 def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
@@ -224,8 +225,9 @@ def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
 
   for gcs_blob in new_build_results:
     build_result_filename = gcs_blob.name.split("/")[-1]
-    latest_build_result_path = "{}/{}".format(_LATEST_SERVER_DEB_GCS_DIR,
-                                              build_result_filename)
+    latest_build_result_path = (
+      f"{_LATEST_SERVER_DEB_GCS_DIR}/{build_result_filename}"
+    )
     logging.info("Copying blob %s (%s) -> %s", gcs_blob, gcs_bucket,
                  latest_build_result_path)
     gcs_bucket.copy_blob(
