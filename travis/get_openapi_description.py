@@ -16,8 +16,9 @@ OPENAPI_JSON_FILE_NAME = os.environ.get(
   "OPENAPI_JSON_FILE_NAME",
   default="openapi_description.json"
 )
-HOME_PATH = os.environ["HOME"]
-OPENAPI_JSON_FOLDER_PATH = os.path.join(HOME_PATH, OPENAPI_JSON_FOLDER_NAME)
+OPENAPI_JSON_FOLDER_PATH = os.path.join(
+  os.environ["HOME"], OPENAPI_JSON_FOLDER_NAME
+)
 OPENAPI_JSON_FILE_PATH = os.path.join(
   OPENAPI_JSON_FOLDER_PATH, OPENAPI_JSON_FILE_NAME
 )
