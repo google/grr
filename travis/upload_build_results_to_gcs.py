@@ -140,8 +140,7 @@ def _UploadDirectory(local_dir:str, gcs_bucket: storage.Bucket, gcs_dir: str):
       logging.info("Skipping %s as it's not a file.", path)
       continue
     logging.info("Uploading: %s", path)
-    gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_dir,
-                                              file_name))
+    gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_dir, file_name))
     gcs_blob.upload_from_filename(path)
 
 
@@ -162,9 +161,7 @@ def _UploadOpenApiJson(gcs_bucket: storage.Bucket, gcs_openapi_dir: str):
   logging.info("Will upload generated OpenAPI JSON to gs://%s/%s.",
                os.environ[_GCS_BUCKET_OPENAPI], gcs_openapi_dir)
 
-  _UploadDirectory(
-    flags.FLAGS.openapi_json_dir, gcs_bucket, gcs_openapi_dir
-  )
+  _UploadDirectory(flags.FLAGS.openapi_json_dir, gcs_bucket, gcs_openapi_dir)
 
   logging.info("GCS OpenAPI JSON upload done.")
 
@@ -174,9 +171,7 @@ def _UploadDocumentation(gcs_bucket: storage.Bucket, gcs_docs_dir: str):
   logging.info("Will upload generated GRR API documentation to gs://%s/%s.",
                os.environ[_GCS_BUCKET_OPENAPI], gcs_docs_dir)
 
-  _UploadDirectory(
-    flags.FLAGS.openapi_docs_dir, gcs_bucket, gcs_docs_dir
-  )
+  _UploadDirectory(flags.FLAGS.openapi_docs_dir, gcs_bucket, gcs_docs_dir)
 
   logging.info("GCS GRR API documentation upload done.")
 

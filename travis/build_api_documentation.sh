@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# TODO: Delete debug commands below
-pwd
-ls -ltr .
-ls -ltr local_pypi
-# TODO: Delete above
-
 function setup_environment() {
   # Set up virtual python and node environment.
   python3 -m venv "${HOME}/DOCUMENTATION_VENV"
@@ -39,11 +33,3 @@ generate_openapi_description
 generate_documentation
 
 deactivate
-
-# TODO: Delete debug commands below
-pwd
-ls -ltr .
-ls -ltr "${HOME}"
-ls -ltr "${HOME}/${OPENAPI_JSON_FOLDER_NAME}"
-ls -ltr "${HOME}/${OPENAPI_DOCUMENTATION_FOLDER_NAME}"
-# TODO: Delete above
