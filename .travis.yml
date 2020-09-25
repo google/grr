@@ -174,10 +174,6 @@ matrix:
       dist: bionic
       env:
         - GCS_TAG=server_deb
-        - OPENAPI_JSON_FOLDER_NAME=generated_description
-        - OPENAPI_JSON_FILE_NAME=openapi_description.json
-        - OPENAPI_DOCUMENTATION_FOLDER_NAME=generated_documentation
-        - OPENAPI_DOCUMENTATION_FILE_NAME=openapi_documentation.html
       before_install:
         - >-
           sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev
@@ -195,7 +191,7 @@ matrix:
         - >-
           travis/fetch_client_templates.sh &&
           travis/build_local_pyindex.sh &&
-          travis/build_api_documentation.sh &&
+          travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html" &&
           travis/build_server_deb.sh
         - >-
           ${HOME}/GCS_VENV/bin/python

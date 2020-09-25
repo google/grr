@@ -1,5 +1,14 @@
 #!/bin/bash
 
+if [ $# -ne 2 ]
+  then
+    echo "Usage: $0 <OPENAPI_JSON_PATH> <OPENAPI_DOCUMENTATION_PATH>"
+    exit 1
+fi
+
+OPENAPI_JSON_PATH=$1
+OPENAPI_DOCUMENTATION_PATH=$2
+
 function setup_environment() {
   # Set up virtual python and node environment.
   python3 -m venv "${HOME}/DOCUMENTATION_VENV"
@@ -19,17 +28,17 @@ function setup_environment() {
 }
 
 function generate_openapi_description() {
-  python3 "travis/get_openapi_description.py"
+  python3 "travis/get_openapi_description.py" --local_json_path "$1"
 }
 
 function generate_documentation() {
-  npx redoc-cli@0.9.12 bundle "${HOME}/${OPENAPI_JSON_FOLDER_NAME}/${OPENAPI_JSON_FILE_NAME}"
-  mkdir "${HOME}/${OPENAPI_DOCUMENTATION_FOLDER_NAME}"
-  mv "redoc-static.html" "${HOME}/${OPENAPI_DOCUMENTATION_FOLDER_NAME}/${OPENAPI_DOCUMENTATION_FILE_NAME}"
+  npx redoc-cli@0.9.12 bundle "$1"
+  mkdir -p "$(dirname $2)"
+  mv "redoc-static.html" "$2"
 }
 
 setup_environment
-generate_openapi_description
-generate_documentation
+generate_openapi_description "$OPENAPI_JSON_PATH"
+generate_documentation "$OPENAPI_JSON_PATH" "$OPENAPI_DOCUMENTATION_PATH"
 
 deactivate
