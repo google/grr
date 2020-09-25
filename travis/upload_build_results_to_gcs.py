@@ -140,7 +140,7 @@ def _UploadDirectory(local_dir: str, gcs_bucket: storage.Bucket, gcs_dir: str):
       logging.info("Skipping %s as it's not a file.", path)
       continue
     logging.info("Uploading: %s", path)
-    gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_dir, file_name))
+    gcs_blob = gcs_bucket.blob(f"{gcs_dir}/{file_name}")
     gcs_blob.upload_from_filename(path)
 
 
