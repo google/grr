@@ -1,6 +1,7 @@
 env:
   global:
     - GCS_BUCKET=autobuilds.grr-response.com
+    - GCS_BUCKET_OPENAPI=autobuilds-grr-openapi
     - CLOUDSDK_CORE_DISABLE_PROMPTS=1
     - APPVEYOR_ACCOUNT_NAME=grr
     - APPVEYOR_WINDOWS_TEMPLATES_SLUG=grr-5wmt5
@@ -190,6 +191,7 @@ matrix:
         - >-
           travis/fetch_client_templates.sh &&
           travis/build_local_pyindex.sh &&
+          travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html" &&
           travis/build_server_deb.sh
         - >-
           ${HOME}/GCS_VENV/bin/python
@@ -197,6 +199,8 @@ matrix:
           --alsologtostderr
           --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
           --build_results_dir="${PWD}/gcs_upload_dir/"
+          --openapi_json_dir="${HOME}/generated_description"
+          --openapi_docs_dir="${HOME}/generated_documentation"
 
 cache:
   directories:
