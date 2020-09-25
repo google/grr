@@ -40,6 +40,7 @@ from grr_response_server.databases import mysql_paths
 from grr_response_server.databases import mysql_pool
 from grr_response_server.databases import mysql_signed_binaries
 from grr_response_server.databases import mysql_users
+from grr_response_server.databases import mysql_utils
 from grr_response_server.databases import mysql_yara
 
 # Maximum size of one SQL statement, including blob and protobuf data.
@@ -560,6 +561,13 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
           if not readonly:
             connection.commit()
           return result
+        except mysql_utils.RetryableError:
+          connection.rollback()
+          if txn_execution_attempts < _MAX_RETRY_COUNT:
+            _SleepWithBackoff(txn_execution_attempts)
+            txn_execution_attempts += 1
+          else:
+            raise
         except MySQLdb.OperationalError as e:
           if e.args[0] == mysql_conn_errors.SERVER_GONE_ERROR:
             # The connection to the MySQL server is broken. That might be

@@ -12,7 +12,6 @@ from typing import Type
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
@@ -409,13 +408,6 @@ class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
       rdfvalue.ByteSize,
       rdf_client.KnowledgeBase,
   ]
-
-  @property
-  def path_type(self):
-    if self.use_tsk or self.use_raw_filesystem_access:
-      return rdf_paths.PathSpec.PathType.TSK
-    else:
-      return rdf_paths.PathSpec.PathType.OS
 
   def Validate(self):
     if not self.artifact_list:

@@ -161,7 +161,12 @@ class MySQLDBClientMixin(object):
           (int_client_id, current_timestamp, startup_info.SerializeToBytes()))
       cursor.execute(update_query, client_info)
     except MySQLdb.IntegrityError as e:
-      raise db.UnknownClientError(snapshot.client_id, cause=e)
+      if e.args and e.args[0] == mysql_error_constants.NO_REFERENCED_ROW_2:
+        raise db.UnknownClientError(snapshot.client_id, cause=e)
+      elif e.args and e.args[0] == mysql_error_constants.DUP_ENTRY:
+        raise mysql_utils.RetryableError(cause=e)
+      else:
+        raise
     finally:
       snapshot.startup_info = startup_info
 

@@ -17,6 +17,7 @@ from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
+from grr_response_server.databases import db as db_module
 from grr_response_server.databases import db_utils
 
 
@@ -240,3 +241,7 @@ class WithTransaction(object):
       return self._RunInTransaction(Closure, readonly)
 
     return db_utils.CallLoggedAndAccounted(Decorated)
+
+
+class RetryableError(db_module.Error):
+  """Indicates that a transaction can be retried."""

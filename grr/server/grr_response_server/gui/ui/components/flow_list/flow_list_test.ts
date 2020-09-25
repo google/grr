@@ -1,5 +1,6 @@
 import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterTestingModule} from '@angular/router/testing';
 import {FlowListModule} from '@app/components/flow_list/module';
 import {Client} from '@app/lib/models/client';
 import {FlowListEntry} from '@app/lib/models/flow';
@@ -9,6 +10,7 @@ import {ConfigFacade} from '@app/store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {initTestEnvironment} from '@app/testing';
 import {ReplaySubject, Subject} from 'rxjs';
+
 import {FlowList} from './flow_list';
 
 
@@ -36,6 +38,7 @@ describe('FlowList Component', () => {
           imports: [
             NoopAnimationsModule,
             FlowListModule,
+            RouterTestingModule.withRoutes([]),
           ],
 
           providers: [

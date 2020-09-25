@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from typing import Any, Optional
 
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import flow_base
@@ -62,9 +63,12 @@ class CollectSingleFile(transfer.MultiGetFileLogic, flow_base.FlowBase):
     """See MultiGetFileLogic."""
     if (self.client_os == "Windows" and
         pathspec.pathtype == rdf_paths.PathSpec.PathType.OS):
-      # Retry with TSK on Windows, the file might be locked for reads.
-      tsk_pathspec = rdf_paths.PathSpec.TSK(path=self.args.path)
-      self.StartFileFetch(tsk_pathspec)
+      # Retry with raw filesystem access on Windows,
+      # the file might be locked for reads.
+      raw_pathspec = rdf_paths.PathSpec(
+          path=self.args.path,
+          pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
+      self.StartFileFetch(raw_pathspec)
     elif status is not None and status.error_message:
       error_description = "{} when fetching {} with {}".format(
           status.error_message, pathspec.path, pathspec.pathtype)

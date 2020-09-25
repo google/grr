@@ -14,6 +14,7 @@ import mock
 
 from grr_response_client import vfs
 from grr_response_client.vfs_handlers import files as vfs_files
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
@@ -58,21 +59,20 @@ def SetUpTestFiles():
     }
 
 
-class _UseOSForTSKFile(vfs_files.File):
-  supported_pathtype = rdf_paths.PathSpec.PathType.TSK
-
-
-class _FailingOSFile(vfs_files.File):
-  supported_pathtype = rdf_paths.PathSpec.PathType.OS
-
-  def Read(self, length=None):
-    raise IOError("mock error")
-
-
 def _PatchVfs():
+
+  class _UseOSForRawFile(vfs_files.File):
+    supported_pathtype = config.CONFIG["Server.raw_filesystem_access_pathtype"]
+
+  class _FailingOSFile(vfs_files.File):
+    supported_pathtype = rdf_paths.PathSpec.PathType.OS
+
+    def Read(self, length=None):
+      raise IOError("mock error")
+
   return mock.patch.dict(
       vfs.VFS_HANDLERS, {
-          _UseOSForTSKFile.supported_pathtype: _UseOSForTSKFile,
+          _UseOSForRawFile.supported_pathtype: _UseOSForRawFile,
           _FailingOSFile.supported_pathtype: _FailingOSFile,
       })
 
@@ -112,7 +112,7 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
           path="/nonexistent",
           token=self.token)
 
-  def testFetchIsRetriedWithTskOnWindows(self):
+  def testFetchIsRetriedWithRawOnWindows(self):
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
       with _PatchVfs():
         flow_id = flow_test_lib.TestFlowHelper(
@@ -127,19 +127,22 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(results, 1)
     self.assertEqual(results[0].stat.pathspec.path, self.files["bar"].path)
     self.assertEqual(results[0].stat.pathspec.pathtype,
-                     rdf_paths.PathSpec.PathType.TSK)
+                     config.CONFIG["Server.raw_filesystem_access_pathtype"])
     self.assertEqual(str(results[0].hash.sha1), self.files["bar"].sha1)
 
   def testRaisesAfterRetryOnFailedFetchOnWindows(self):
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
       with mock.patch.object(vfs, "VFSOpen", side_effect=IOError("mock err")):
-        with self.assertRaisesRegex(RuntimeError, r"mock err.*bar.*TSK"):
+        with self.assertRaisesRegex(RuntimeError, r"mock err.*bar.*") as e:
           flow_test_lib.TestFlowHelper(
               file.CollectSingleFile.__name__,
               self.client_mock,
               client_id=self.client_id,
               path=self.files["bar"].path,
               token=self.token)
+        self.assertIn(
+            str(config.CONFIG["Server.raw_filesystem_access_pathtype"]),
+            str(e.exception))
 
   def testCorrectlyReportsProgressInFlight(self):
     flow_id = flow_test_lib.StartFlow(
@@ -190,8 +193,10 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(progress.status,
                      rdf_file_finder.CollectSingleFileProgress.Status.FAILED)
-    self.assertEqual(progress.error_description,
-                     "mock err when fetching /nonexistent with TSK")
+    self.assertEqual(
+        progress.error_description,
+        f"mock err when fetching /nonexistent with {config.CONFIG['Server.raw_filesystem_access_pathtype']}"
+    )
 
 
 class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):

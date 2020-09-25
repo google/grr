@@ -4,6 +4,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Any
+
 from grr_api_client import errors
 from grr_api_client import utils
 
@@ -34,7 +36,8 @@ class Types(object):
     """Creates hunt runner args object."""
     return flows_pb2.HuntRunnerArgs()
 
-  def CreateFlowArgs(self, flow_name=None):
+  # TODO: Delete this method as it is not really type-safe.
+  def CreateFlowArgs(self, flow_name=None) -> Any:
     """Creates flow arguments object for a flow with a given name."""
     if not self._flow_descriptors:
       self._flow_descriptors = {}

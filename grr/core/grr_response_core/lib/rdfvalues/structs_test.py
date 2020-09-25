@@ -1012,6 +1012,25 @@ class EnumNamedValueTest(absltest.TestCase):
     self.assertEqual(a2, a)
 
 
+class EnumContainerTest(absltest.TestCase):
+
+  def setUp(self):
+    super(EnumContainerTest, self).setUp()
+    self.enum_container = rdf_structs.EnumContainer(
+        name="foo", values={
+            "bar": 1,
+            "baz": 2
+        })
+
+  def testFromString(self):
+    self.assertEqual(
+        self.enum_container.FromString("bar"), self.enum_container.bar)
+
+  def testFromString_invalidValue(self):
+    with self.assertRaises(ValueError):
+      self.enum_container.FromString("bax")
+
+
 def main(argv):
   test_lib.main(argv)
 

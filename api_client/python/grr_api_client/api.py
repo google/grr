@@ -4,7 +4,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from typing import Text, Dict, Any
+from typing import Any
+from typing import Dict
+from typing import Text
 
 from grr_api_client import artifact
 from grr_api_client import client
@@ -12,11 +14,11 @@ from grr_api_client import config
 from grr_api_client import connectors
 from grr_api_client import context
 from grr_api_client import hunt
+from grr_api_client import metadata
 from grr_api_client import root
 from grr_api_client import types
 from grr_api_client import user
 from grr_api_client import yara
-from grr_api_client import metadata
 from grr_response_proto.api import hunt_pb2
 
 

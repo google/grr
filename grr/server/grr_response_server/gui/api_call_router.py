@@ -1415,7 +1415,6 @@ class ApiCallRouterStub(ApiCallRouter):
       An ApiGetOpenApiDescriptionHandler object whose Handle method is used to
       create and return the OpenAPI description of the GRR API.
     """
-
     raise NotImplementedError()
 
 

@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -168,7 +169,9 @@ class CollectRunKeyBinaries(flow_base.FlowBase):
       for path in path_guesses:
         filenames.append(
             rdf_paths.PathSpec(
-                path=path, pathtype=rdf_paths.PathSpec.PathType.TSK))
+                path=path,
+                pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
+        )
 
     if filenames:
       self.CallFlow(

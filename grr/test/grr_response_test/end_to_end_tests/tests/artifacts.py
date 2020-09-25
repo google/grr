@@ -57,7 +57,7 @@ class TestUseTsk(test_base.EndToEndTest):
   """Tests that the deprecated, hidden field use_tsk works via the API."""
 
   platforms = [
-      test_base.EndToEndTest.Platform.LINUX,
+      test_base.EndToEndTest.Platform.WINDOWS,
   ]
 
   def runTest(self):
@@ -65,7 +65,12 @@ class TestUseTsk(test_base.EndToEndTest):
     # This is deprecated and has label: HIDDEN set.
     # Test that the field works via the API.
     args.use_tsk = True
-    args.artifact_list.append("UserHomeDirs")
+    args.artifact_list.append("WindowsEventLogApplication")
+    args.artifact_list.append("WindowsEventLogSecurity")
+    args.artifact_list.append("WindowsEventLogSystem")
+    args.artifact_list.append("WindowsXMLEventLogApplication")
+    args.artifact_list.append("WindowsXMLEventLogSecurity")
+    args.artifact_list.append("WindowsXMLEventLogSystem")
     f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
 
     results = list(f.ListResults())

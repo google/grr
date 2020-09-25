@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Lint as: python3
 """Functions to convert strings between different case styles."""
 import re
@@ -18,7 +19,7 @@ def SnakeToCamel(snake_str: str) -> str:
     A lowerCamelCase representation of the given string.
   """
   # Extract the words from the snake_case string.
-  words = list(filter(lambda word: len(word) > 0, snake_str.split("_")))
+  words = [word for word in snake_str.split("_") if word]
   if not words:
     return ""
 

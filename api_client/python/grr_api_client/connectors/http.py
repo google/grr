@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import contextlib
 import json
 import logging
 from typing import Optional
@@ -18,6 +19,7 @@ import requests
 from werkzeug import routing
 
 from google.protobuf import json_format
+from google.protobuf import message
 from google.protobuf import symbol_database
 from grr_api_client import errors
 from grr_api_client import utils
@@ -253,20 +255,21 @@ class HttpConnector(abstract.Connector):
     try:
       # TODO(hanuszczak): `json` package should not be used.
       parsed_json = json.loads(json_str)
-      message = parsed_json["message"] + "\n" + parsed_json.get("traceBack", "")
+      json_message = (
+          parsed_json["message"] + "\n" + parsed_json.get("traceBack", ""))
     except (ValueError, KeyError):
-      message = content
+      json_message = content
 
     if response.status_code == 403:
-      raise errors.AccessForbiddenError(message)
+      raise errors.AccessForbiddenError(json_message)
     elif response.status_code == 404:
-      raise errors.ResourceNotFoundError(message)
+      raise errors.ResourceNotFoundError(json_message)
     elif response.status_code == 422:
-      raise errors.InvalidArgumentError(message)
+      raise errors.InvalidArgumentError(json_message)
     elif response.status_code == 501:
-      raise errors.ApiNotImplementedError(message)
+      raise errors.ApiNotImplementedError(json_message)
     else:
-      raise errors.UnknownError(message)
+      raise errors.UnknownError(json_message)
 
   def BuildRequest(self, method_name, args):
     self._InitializeIfNeeded()
@@ -295,10 +298,14 @@ class HttpConnector(abstract.Connector):
         auth=self.auth)
 
   @property
-  def page_size(self):
+  def page_size(self) -> int:
     return self._page_size
 
-  def SendRequest(self, handler_name, args):
+  def SendRequest(
+      self,
+      handler_name: str,
+      args: message.Message,
+  ) -> Optional[message.Message]:
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
 
@@ -323,7 +330,11 @@ class HttpConnector(abstract.Connector):
       json_format.Parse(json_str, result, ignore_unknown_fields=True)
       return result
 
-  def SendStreamingRequest(self, handler_name, args):
+  def SendStreamingRequest(
+      self,
+      handler_name: str,
+      args: message.Message,
+  ) -> utils.BinaryChunkIterator:
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
 
@@ -340,14 +351,12 @@ class HttpConnector(abstract.Connector):
     self._CheckResponseStatus(response)
 
     def GenerateChunks():
-      for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
-        yield chunk
+      with contextlib.closing(session):
+        with contextlib.closing(response):
+          for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
+            yield chunk
 
-    def Close():
-      response.close()
-      session.close()
-
-    return utils.BinaryChunkIterator(chunks=GenerateChunks(), on_close=Close)
+    return utils.BinaryChunkIterator(chunks=GenerateChunks())
 
   def _ValidateVersion(self):
     """Validates that the API client is compatible the GRR server.

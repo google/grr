@@ -19,14 +19,14 @@ from grr_response_server import throttle
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
-from grr_response_server.gui import api_call_context
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import metadata as api_metadata
+from grr_response_server.gui.api_plugins import reflection as api_reflection
 
 
 class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
@@ -362,4 +362,5 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       args: None,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    del args, context  # Unused.
     return api_metadata.ApiGetOpenApiDescriptionHandler(self)

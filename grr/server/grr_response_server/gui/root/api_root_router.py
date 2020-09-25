@@ -12,12 +12,11 @@ from __future__ import unicode_literals
 
 from typing import Optional
 
-
-from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_context
+from grr_response_server.gui import api_call_router
 
-from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import metadata as api_metadata
+from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.root.api_plugins import binary_management as api_binary_management
 from grr_response_server.gui.root.api_plugins import client_management as api_client_management

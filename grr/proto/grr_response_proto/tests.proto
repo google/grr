@@ -180,12 +180,12 @@ message MetadataRepeatedFieldMessage {
 }
 
 message MetadataEnumFieldMessage {
-  enum metadata_enum {
-    A = 1;
-    B = 2;
-    C = 3;
+  enum MetadataEnum {
+    UNKNOWN = 0;
+    FOO = 1;
+    BAR = 2;
   }
-  optional metadata_enum field_enum = 1;
+  optional MetadataEnum field_enum = 1;
 }
 
 message MetadataTypesHierarchyRoot {
@@ -224,7 +224,7 @@ message MetadataSemTypeMessage {
     type: "RDFDatetimeSeconds",
     description: "field_datetimeseconds with `sem_type` option."
   }];
-  optional uint64 field_duration = 3 [(sem_type) = {
+  optional uint64 field_durationmicros = 3 [(sem_type) = {
     type: "Duration",
     description: "field_duration with `sem_type` option."
   }];
