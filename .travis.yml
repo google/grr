@@ -199,8 +199,8 @@ matrix:
           --alsologtostderr
           --encrypted_service_key="${PWD}/travis/travis_uploader_service_account.json.enc"
           --build_results_dir="${PWD}/gcs_upload_dir/"
-          --openapi_json_dir="${HOME}/${OPENAPI_JSON_FOLDER_NAME}"
-          --openapi_docs_dir="${HOME}/${OPENAPI_DOCUMENTATION_FOLDER_NAME}"
+          --openapi_json_dir="${HOME}/generated_description"
+          --openapi_docs_dir="${HOME}/generated_documentation"
 
 cache:
   directories:
