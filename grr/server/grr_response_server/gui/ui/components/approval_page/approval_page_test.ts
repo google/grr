@@ -1,4 +1,5 @@
 import {async, TestBed} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -99,5 +100,23 @@ describe('ApprovalPage Component', () => {
     expect(text).toContain('C.1234');
     expect(text).toContain('msan');
     expect(text).toContain('foobazzle 42');
+  });
+
+  it('grants approval on button click', () => {
+    const fixture = TestBed.createComponent(ApprovalPage);
+    fixture.detectChanges();
+
+    approvalPageFacade.approvalSubject.next(newClientApproval({
+      clientId: 'C.1234',
+      requestor: 'msan',
+      reason: 'foobazzle 42',
+      status: {type: 'pending', reason: 'Need 1 more approver'},
+    }));
+    fixture.detectChanges();
+
+    expect(approvalPageFacade.grantApproval).not.toHaveBeenCalled();
+    fixture.debugElement.query(By.css('mat-card-actions button'))
+        .triggerEventHandler('click', undefined);
+    expect(approvalPageFacade.grantApproval).toHaveBeenCalled();
   });
 });

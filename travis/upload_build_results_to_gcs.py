@@ -22,12 +22,14 @@ flags.DEFINE_string("encrypted_service_key", "",
                     "Path to Travis's GCP service account key.")
 flags.DEFINE_string("build_results_dir", "",
                     "Path to the local directory containing build results.")
-flags.DEFINE_string("openapi_json_dir", "",
-                    "Path to the local directory containing the generated "
-                    "OpenAPI description JSON.")
-flags.DEFINE_string("openapi_docs_dir", "",
-                    "Path to the local directory containing the generated "
-                    "documentation HTML.")
+flags.DEFINE_string(
+    "openapi_json_dir", "",
+    "Path to the local directory containing the generated "
+    "OpenAPI description JSON.")
+flags.DEFINE_string(
+    "openapi_docs_dir", "",
+    "Path to the local directory containing the generated "
+    "documentation HTML.")
 
 # Environment variables.
 _TRAVIS_COMMIT = "TRAVIS_COMMIT"
@@ -91,9 +93,8 @@ def _GetGCSBuildResultsDir() -> str:
   formatted_commit_timestamp = datetime.datetime.utcfromtimestamp(
       commit_timestamp).strftime(_GCS_BUCKET_TIME_FORMAT)
   destination_dir = (
-    f"{formatted_commit_timestamp}_{os.environ[_TRAVIS_COMMIT]}/"
-    f"travis_job_{os.environ[_TRAVIS_JOB_NUMBER]}_{os.environ[_GCS_TAG]}"
-  )
+      f"{formatted_commit_timestamp}_{os.environ[_TRAVIS_COMMIT]}/"
+      f"travis_job_{os.environ[_TRAVIS_JOB_NUMBER]}_{os.environ[_GCS_TAG]}")
   return destination_dir
 
 
@@ -127,8 +128,7 @@ def _DecryptGCPServiceFileTo(service_file_path: str):
     raise DecryptionError(
         f"{e.__class__.__name__} "
         f"encountered when trying to decrypt the GCP service key: "
-        f"{redacted_message}"
-    )
+        f"{redacted_message}")
 
 
 def _UploadDirectory(local_dir: str, gcs_bucket: storage.Bucket, gcs_dir: str):
@@ -148,9 +148,8 @@ def _UploadBuildResults(gcs_bucket: storage.Bucket, gcs_build_results_dir: str):
   logging.info("Will upload build results to gs://%s/%s.",
                os.environ[_GCS_BUCKET], gcs_build_results_dir)
 
-  _UploadDirectory(
-    flags.FLAGS.build_results_dir, gcs_bucket, gcs_build_results_dir
-  )
+  _UploadDirectory(flags.FLAGS.build_results_dir, gcs_bucket,
+                   gcs_build_results_dir)
 
   logging.info("GCS build results upload done.")
 
@@ -198,13 +197,11 @@ def _TriggerAppveyorBuild(project_slug_var_name: str):
   except Exception as e:
     redacted_message = _GetRedactedExceptionMessage(e)
     raise AppveyorError(
-      f"{e.__class__.__name__} encountered on POST request: {redacted_message}"
+        f"{e.__class__.__name__} encountered on POST request: {redacted_message}"
     )
   if not response.ok:
-    raise AppveyorError(
-        f"Failed to trigger Appveyor build; got response "
-        f"{response.status_code}."
-    )
+    raise AppveyorError(f"Failed to trigger Appveyor build; got response "
+                        f"{response.status_code}.")
 
 
 def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
@@ -226,8 +223,7 @@ def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
   for gcs_blob in new_build_results:
     build_result_filename = gcs_blob.name.split("/")[-1]
     latest_build_result_path = (
-      f"{_LATEST_SERVER_DEB_GCS_DIR}/{build_result_filename}"
-    )
+        f"{_LATEST_SERVER_DEB_GCS_DIR}/{build_result_filename}")
     logging.info("Copying blob %s (%s) -> %s", gcs_blob, gcs_bucket,
                  latest_build_result_path)
     gcs_bucket.copy_blob(
@@ -253,10 +249,9 @@ def main(argv):
     _UploadBuildResults(gcs_bucket, gcs_build_results_dir)
 
     # Upload the generated OpenAPI description and the generated documentation.
-    if len(flags.FLAGS.openapi_json_dir) > 0:
+    if flags.FLAGS.openapi_json_dir:
       gcs_bucket_openapi = (
-        gcs_client.get_bucket(os.environ[_GCS_BUCKET_OPENAPI])
-      )
+          gcs_client.get_bucket(os.environ[_GCS_BUCKET_OPENAPI]))
       _UploadOpenApiJson(gcs_bucket_openapi, "openapi_description")
       _UploadDocumentation(gcs_bucket_openapi, "documentation")
   finally:

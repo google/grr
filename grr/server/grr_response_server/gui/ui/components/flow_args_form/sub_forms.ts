@@ -9,8 +9,21 @@ import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 /** Mapping from flow name to Component class to configure the Flow. */
 export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'CollectBrowserHistory': CollectBrowserHistoryForm,
-  'CollectSingleFile': CollectSingleFileForm,
   'CollectMultipleFiles': CollectMultipleFilesForm,
+  'CollectSingleFile': CollectSingleFileForm,
+
+  // Show empty form as fallback for flows that typically do not require
+  // configuration.
+  'CollectEfiHashes': FallbackFlowArgsForm,
+  'CollectRunKeyBinaries': FallbackFlowArgsForm,
+  'DumpEfiImage': FallbackFlowArgsForm,
+  'DumpFlashImage': FallbackFlowArgsForm,
+  'GetClientStats': FallbackFlowArgsForm,
+  'GetMBR': FallbackFlowArgsForm,
+  'Interrogate': FallbackFlowArgsForm,
+  'ListProcesses': FallbackFlowArgsForm,
+  'ListVolumeShadowCopies': FallbackFlowArgsForm,
+  'Netstat': FallbackFlowArgsForm,
 };
 
 /** Fallback form for Flows without configured form. */

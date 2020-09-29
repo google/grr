@@ -140,19 +140,21 @@ describe('FlowArgsForm Component', () => {
     expect(fixture.nativeElement.innerText.trim()).toEqual('');
   });
 
-  it('shows fallback for non-existent flow form', () => {
+  it('fallback form emits defaultArgs', (done) => {
     const fixture = TestBed.createComponent(TestHostComponent);
 
     fixture.componentInstance.flowDescriptor = {
       name: 'FlowWithoutForm',
       friendlyName: '---',
       category: 'Misc',
-      defaultArgs: {},
+      defaultArgs: {foo: 42},
     };
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText.trim())
-        .toContain('Form for selected Flow has not been found');
+    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(values => {
+      expect(values).toEqual({foo: 42});
+      done();
+    });
   });
 
   it('emits valid:false when form input is invalid', (done) => {

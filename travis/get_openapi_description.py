@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # python3
-
+"""A tool that generates the OpenAPI description."""
 import os
 
 from absl import app

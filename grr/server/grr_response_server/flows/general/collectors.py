@@ -48,11 +48,13 @@ def _ReadClientKnowledgeBase(client_id, allow_uninitialized=False):
       client, allow_uninitialized=allow_uninitialized)
 
 
-def _GetPathType(
-    args: rdf_artifacts.ArtifactCollectorFlowArgs
-) -> rdf_paths.PathSpec.PathType:
+def _GetPathType(args: rdf_artifacts.ArtifactCollectorFlowArgs,
+                 client_os: str) -> rdf_paths.PathSpec.PathType:
   if args.use_tsk or args.use_raw_filesystem_access:
-    return config.CONFIG["Server.raw_filesystem_access_pathtype"]
+    if client_os == "Windows":
+      return config.CONFIG["Server.raw_filesystem_access_pathtype"]
+    else:
+      return rdf_paths.PathSpec.PathType.TSK
   else:
     return rdf_paths.PathSpec.PathType.OS
 
@@ -197,12 +199,12 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
         elif type_name == source_type.DIRECTORY:
-          self.Glob(source, _GetPathType(self.args))
+          self.Glob(source, _GetPathType(self.args, self.client_os))
         elif type_name == source_type.FILE:
-          self.GetFiles(source, _GetPathType(self.args),
+          self.GetFiles(source, _GetPathType(self.args, self.client_os),
                         self.args.max_file_size)
         elif type_name == source_type.GREP:
-          self.Grep(source, _GetPathType(self.args))
+          self.Grep(source, _GetPathType(self.args, self.client_os))
         elif type_name == source_type.PATH:
           # TODO(user): GRR currently ignores PATH types, they are currently
           # only useful to plaso during bootstrapping when the registry is
@@ -1023,7 +1025,8 @@ def GetArtifactCollectorArgs(flow_args, knowledge_base):
     artifact_names = GetArtifactsForCollection(knowledge_base.os,
                                                flow_args.artifact_list)
 
-  expander = ArtifactExpander(knowledge_base, _GetPathType(flow_args),
+  expander = ArtifactExpander(knowledge_base,
+                              _GetPathType(flow_args, knowledge_base.os),
                               flow_args.max_file_size)
   for artifact_name in artifact_names:
     rdf_artifact = artifact_registry.REGISTRY.GetArtifact(artifact_name)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ $# -ne 2 ]
+if [[ $# -ne 2 ]]
   then
     echo "Usage: $0 <OPENAPI_JSON_PATH> <OPENAPI_DOCUMENTATION_PATH>"
     exit 1
@@ -33,7 +33,7 @@ function generate_openapi_description() {
 
 function generate_documentation() {
   npx redoc-cli@0.9.12 bundle "$1"
-  mkdir -p "$(dirname $2)"
+  mkdir -p "$(dirname "$2")"
   mv "redoc-static.html" "$2"
 }
 

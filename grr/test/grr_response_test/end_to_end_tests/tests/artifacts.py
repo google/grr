@@ -79,6 +79,47 @@ class TestUseTsk(test_base.EndToEndTest):
         (rdf_paths.PathSpec.PathType.TSK, rdf_paths.PathSpec.PathType.NTFS))
 
 
+class TestRawFilesystemAccessUsesNtfsOnWindows(test_base.EndToEndTest):
+  """Tests that use_raw_filesystem_access maps to NTFS on Windows OSes."""
+
+  platforms = [
+      test_base.EndToEndTest.Platform.WINDOWS,
+  ]
+
+  def runTest(self):
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    args.use_raw_filesystem_access = True
+    args.artifact_list.append("WindowsEventLogApplication")
+    args.artifact_list.append("WindowsEventLogSecurity")
+    args.artifact_list.append("WindowsEventLogSystem")
+    args.artifact_list.append("WindowsXMLEventLogApplication")
+    args.artifact_list.append("WindowsXMLEventLogSecurity")
+    args.artifact_list.append("WindowsXMLEventLogSystem")
+    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
+
+    results = list(f.ListResults())
+    self.assertEqual(results[0].payload.pathspec.nested_path.pathtype,
+                     rdf_paths.PathSpec.PathType.NTFS)
+
+
+class TestRawFilesystemAccessUsesTskOnNonWindows(test_base.EndToEndTest):
+  """Tests that use_raw_filesystem_access maps to TSK on non-Windows OSes."""
+
+  platforms = [
+      test_base.EndToEndTest.Platform.LINUX,
+  ]
+
+  def runTest(self):
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    args.use_raw_filesystem_access = True
+    args.artifact_list.append("UserHomeDirs")
+    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
+
+    results = list(f.ListResults())
+    self.assertEqual(results[0].payload.pathspec.nested_path.pathtype,
+                     rdf_paths.PathSpec.PathType.TSK)
+
+
 class TestParserDependency(test_base.EndToEndTest):
   """Test artifact collectors completes when dependencies=FETCH_NOW."""
 

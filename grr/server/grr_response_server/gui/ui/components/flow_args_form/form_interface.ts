@@ -5,5 +5,6 @@ import {Observable} from 'rxjs';
 export abstract class FlowArgumentForm<T extends unknown> {
   @Input() defaultFlowArgs!: T;
   @Output() abstract formValues$: Observable<T>;
-  @Output() abstract status$: Observable<string>;
+  @Output()
+  abstract status$: Observable<'VALID'|'INVALID'|'PENDING'|'DISABLED'>;
 }
