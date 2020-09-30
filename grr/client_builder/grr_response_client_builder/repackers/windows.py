@@ -8,7 +8,6 @@ from __future__ import unicode_literals
 import io
 import logging
 import os
-import re
 import struct
 import zipfile
 
@@ -86,22 +85,13 @@ class WindowsClientRepacker(build.ClientRepacker):
     final_fs_config_fname = config.CONFIG.Get(
         "Client.fleetspeak_unsigned_config_fname", context=self.context)
     if orig_fs_config_path.endswith(".in"):
-      logging.info("Interpolating %s", orig_fs_config_path)
-      logging.warning("Backslashes will be naively re-escaped after "
-                      "interpolation. If this is not desired, use a Fleetspeak "
-                      "config file without the '.in' extension.")
-      with utils.TempDirectory() as temp_dir:
-        temp_fs_config_path = os.path.join(temp_dir, final_fs_config_fname)
-        with io.open(orig_fs_config_path, "r") as source:
-          with io.open(temp_fs_config_path, "w") as dest:
-            interpolated = config.CONFIG.InterpolateValue(
-                source.read(), context=self.context)
-            dest.write(re.sub(r"\\", r"\\\\", interpolated))
-        self._ValidateFleetspeakServiceConfig(temp_fs_config_path)
-        zip_file.write(temp_fs_config_path, final_fs_config_fname)
+      # The interpolation has to be performed on the client, since it depends
+      # on values of environment variable.
+      final_fs_config_fname = f"{final_fs_config_fname}.in"
     else:
       self._ValidateFleetspeakServiceConfig(orig_fs_config_path)
-      zip_file.write(orig_fs_config_path, final_fs_config_fname)
+
+    zip_file.write(orig_fs_config_path, final_fs_config_fname)
 
   def _AddFleetspeakConfig(self, zip_file):
     zip_file.write(

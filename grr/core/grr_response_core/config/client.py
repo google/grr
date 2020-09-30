@@ -249,6 +249,12 @@ config_lib.DEFINE_string(
     "File-name for the Fleetspeak service config generated "
     "when repacking templates.")
 
+config_lib.DEFINE_list(
+    "Client.allowed_commands",
+    default=[],
+    help="Commands that the client is allowed to execute. Each command must be "
+    "specified in the format that is supported by the Python's `shlex` module.")
+
 # osquery options.
 
 config_lib.DEFINE_string(
