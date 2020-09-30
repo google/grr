@@ -350,6 +350,9 @@ def CreateHunt(flow_name=None,
     request.hunt_runner_args.CopyFrom(hunt_runner_args)
 
   data = context.SendRequest("CreateHunt", request)
+  if not isinstance(data, hunt_pb2.ApiHunt):
+    raise TypeError(f"Unexpected response type: {type(data)}")
+
   return Hunt(data=data, context=context)
 
 
@@ -359,6 +362,9 @@ def CreatePerClientFileCollectionHunt(
   """Createt a per-client file collection hunt."""
 
   data = context.SendRequest("CreatePerClientFileCollectionHunt", hunt_args)
+  if not isinstance(data, hunt_pb2.ApiHunt):
+    raise TypeError(f"Unexpected response type: {type(data)}")
+
   return Hunt(data=data, context=context)
 
 

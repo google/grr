@@ -23,7 +23,7 @@ class Connector(abc.ABC):
   def SendRequest(
       self,
       handler_name: str,
-      args: message.Message,
+      args: Optional[message.Message],
   ) -> Optional[message.Message]:
     """Sends a request to the GRR server.
 
