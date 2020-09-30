@@ -67,6 +67,10 @@ Target:Darwin:
 
   ClientBuilder.template_extension: .xar.zip
 
+  ClientBuilder.fleetspeak_plist_path: /Library/LaunchDaemons/com.google.code.fleetspeak.plist
+
+  ClientBuilder.fleetspeak_service_dir: /etc/fleetspeak-client/textservices
+
   Logging.path: /var/log
 
   PyInstaller.distpath: |
