@@ -88,10 +88,10 @@ describe('FileResultsTable Component', () => {
     // No support for hashes yet, ignoring cell #1.
     expect(cells[2].innerText).toBe('-rw-r--r--');
     expect(cells[3].innerText).toBe('142');
-    expect(cells[4].innerText).toBe('1970-01-02 02:53:20');
-    expect(cells[5].innerText).toBe('1970-01-17 04:53:20');
-    expect(cells[6].innerText).toBe('1970-06-12 12:53:20');
-    expect(cells[7].innerText).toBe('1974-06-09 08:53:20');
+    expect(cells[4].innerText).toBe('1970-01-02 14:53:20 UTC');
+    expect(cells[5].innerText).toBe('1970-01-17 04:53:20 UTC');
+    expect(cells[6].innerText).toBe('1970-06-12 00:53:20 UTC');
+    expect(cells[7].innerText).toBe('1974-06-09 08:53:20 UTC');
   });
 
   it('correctly presents 2 rows', () => {
@@ -112,20 +112,20 @@ describe('FileResultsTable Component', () => {
     // No support for hashes yet, ignoring cell #1.
     expect(cells[2].innerText).toBe('-rw-r--r--');
     expect(cells[3].innerText).toBe('142');
-    expect(cells[4].innerText).toBe('1970-01-02 02:53:20');
-    expect(cells[5].innerText).toBe('1970-01-17 04:53:20');
-    expect(cells[6].innerText).toBe('1970-06-12 12:53:20');
-    expect(cells[7].innerText).toBe('1974-06-09 08:53:20');
+    expect(cells[4].innerText).toBe('1970-01-02 14:53:20 UTC');
+    expect(cells[5].innerText).toBe('1970-01-17 04:53:20 UTC');
+    expect(cells[6].innerText).toBe('1970-06-12 00:53:20 UTC');
+    expect(cells[7].innerText).toBe('1974-06-09 08:53:20 UTC');
 
     cells = rows[2].querySelectorAll('td');
     expect(cells[0].innerText.trim()).toBe('/home/foo/bar/1');
     // No support for hashes yet, ignoring cell #1.
     expect(cells[2].innerText).toBe('-rw-r--r--');
     expect(cells[3].innerText).toBe('242');
-    expect(cells[4].innerText).toBe('1970-01-03 06:40:00');
-    expect(cells[5].innerText).toBe('1970-01-28 06:40:00');
-    expect(cells[6].innerText).toBe('1970-10-05 06:40:00');
-    expect(cells[7].innerText).toBe('1977-08-09 06:40:00');
+    expect(cells[4].innerText).toBe('1970-01-03 18:40:00 UTC');
+    expect(cells[5].innerText).toBe('1970-01-28 18:40:00 UTC');
+    expect(cells[6].innerText).toBe('1970-10-05 18:40:00 UTC');
+    expect(cells[7].innerText).toBe('1977-08-09 18:40:00 UTC');
   });
 
 

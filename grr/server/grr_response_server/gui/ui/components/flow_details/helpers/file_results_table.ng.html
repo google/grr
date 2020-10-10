@@ -21,10 +21,10 @@
       <td class="hash"></td>
       <td class="number">{{ r.mode | fileMode }}</td>
       <td class="number">{{ r.size }}</td>
-      <td class="timestamp">{{ r.atime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
-      <td class="timestamp">{{ r.mtime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
-      <td class="timestamp">{{ r.ctime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
-      <td class="timestamp">{{ r.btime | date:'yyyy-MM-dd hh:mm:ss':'UTC' }}</td>
+      <td class="timestamp"><timestamp [date]="r.atime"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.mtime"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.ctime"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.btime"></timestamp></td>
     </tr>
   </tbody>
 </table>
