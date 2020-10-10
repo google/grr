@@ -158,4 +158,23 @@ describe('FileResultsTable Component', () => {
 
     expect(fixture.componentInstance.loadMoreTriggered).toHaveBeenCalled();
   });
+
+  it('uses timestamp components for dates', () => {
+    const fixture = createComponent(
+        [flowFileResultFromStatEntry(createStatEntry(0))],
+        2,
+    );
+
+    const rows = fixture.nativeElement.querySelectorAll('tr');
+    // Rows include the header.
+    expect(rows.length).toBe(2);
+    const cells = rows[1].querySelectorAll('td');
+
+    const datesStartIdx = 4;
+    const datesEndIdx = 7;
+
+    for (let idx=datesStartIdx; idx<=datesEndIdx; idx++) {
+      expect(cells[idx].querySelector('timestamp')).toBeTruthy();
+    }
+  })
 });
