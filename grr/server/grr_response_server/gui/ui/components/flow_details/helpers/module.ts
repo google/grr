@@ -10,6 +10,7 @@ import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe'
 import {FileResultsTable} from './file_results_table';
 
 import {TimestampModule} from '../../timestamp/module';
+import {HumanReadableSizeModule} from '../../human_readable_size/module';
 
 
 
@@ -26,6 +27,7 @@ import {TimestampModule} from '../../timestamp/module';
     MatButtonModule,
     MatIconModule,
     TimestampModule,
+    HumanReadableSizeModule
   ],
   declarations: [
     FileResultsTable,

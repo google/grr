@@ -20,7 +20,7 @@
       </td>
       <td class="hash"></td>
       <td class="number">{{ r.mode | fileMode }}</td>
-      <td class="number">{{ r.size }}</td>
+      <td class="number"><human-readable-size [size]="r.size"></human-readable-size></td>
       <td class="timestamp"><timestamp [date]="r.atime"></timestamp></td>
       <td class="timestamp"><timestamp [date]="r.mtime"></timestamp></td>
       <td class="timestamp"><timestamp [date]="r.ctime"></timestamp></td>
