@@ -27,7 +27,7 @@ import {HumanReadableSizeModule} from '../../human_readable_size/module';
     MatButtonModule,
     MatIconModule,
     TimestampModule,
-    HumanReadableSizeModule
+    HumanReadableSizeModule,
   ],
   declarations: [
     FileResultsTable,
