@@ -11,6 +11,7 @@ import {FileResultsTable} from './file_results_table';
 
 import {TimestampModule} from '../../timestamp/module';
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
+import {HashModule} from '../../expandable_hash/module';
 
 
 
@@ -27,7 +28,8 @@ import {HumanReadableSizeModule} from '../../human_readable_size/module';
     MatButtonModule,
     MatIconModule,
     TimestampModule,
-    HumanReadableSizeModule
+    HumanReadableSizeModule,
+    HashModule,
   ],
   declarations: [
     FileResultsTable,

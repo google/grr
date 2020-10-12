@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {StatEntry} from '@app/lib/api/api_interfaces';
+import {StatEntry, Hash} from '@app/lib/api/api_interfaces';
 import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
@@ -10,7 +10,7 @@ import {map} from 'rxjs/operators';
  */
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
-  // TODO(user): add support for hashes (here and in the component).
+  readonly hash: Hash;
 }
 
 /**
@@ -20,8 +20,20 @@ export declare interface FlowFileResult {
  */
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
+  // TODO: Remove
+  const temporaryLongDummyHash: Hash = {
+    sha256: 'sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256',
+    md5: 'md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5',
+    sha1: 'sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1'
+  }
+  const temporaryShortDummyHash: Hash = {
+    sha256: 'sha256',
+    md5: 'md5',
+    sha1: 'sha1'
+  }
   return {
     statEntry,
+    hash: temporaryLongDummyHash
   };
 }
 
@@ -66,6 +78,7 @@ export class FileResultsTable {
         return entries.map((e) => {
           return {
             path: e.statEntry.pathspec?.path ?? '',
+            hash: e.hash,
             mode: e.statEntry.stMode,  // formatting will be handled by the pipe
             uid: e.statEntry.stUid?.toString() ?? '',
             gid: e.statEntry.stGid?.toString() ?? '',
